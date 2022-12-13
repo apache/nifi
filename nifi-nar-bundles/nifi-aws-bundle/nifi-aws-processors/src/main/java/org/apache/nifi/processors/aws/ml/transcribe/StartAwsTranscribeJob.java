@@ -26,6 +26,7 @@ import com.amazonaws.services.transcribe.model.StartTranscriptionJobResult;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
@@ -47,17 +48,17 @@ public class StartAwsTranscribeJob extends AwsMachineLearningJobStarter<AmazonTr
     }
 
     @Override
-    protected StartTranscriptionJobResult sendRequest(StartTranscriptionJobRequest request, ProcessContext context) {
+    protected StartTranscriptionJobResult sendRequest(StartTranscriptionJobRequest request, ProcessContext context, FlowFile flowFile) {
         return getClient().startTranscriptionJob(request);
     }
 
     @Override
-    protected Class<? extends StartTranscriptionJobRequest> getAwsRequestClass(ProcessContext context) {
+    protected Class<? extends StartTranscriptionJobRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
         return StartTranscriptionJobRequest.class;
     }
 
     @Override
-    protected String getAwsTaskId(ProcessContext context, StartTranscriptionJobResult startTranscriptionJobResult) {
+    protected String getAwsTaskId(ProcessContext context, StartTranscriptionJobResult startTranscriptionJobResult, FlowFile flowFile) {
         return startTranscriptionJobResult.getTranscriptionJob().getTranscriptionJobName();
     }
 }

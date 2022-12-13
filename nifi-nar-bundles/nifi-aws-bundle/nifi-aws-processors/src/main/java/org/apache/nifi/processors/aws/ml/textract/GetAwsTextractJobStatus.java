@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
-
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.textract.AmazonTextractClient;
@@ -34,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -50,10 +49,10 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
     public static final String EXPENSE_ANALYSIS = "Expense Analysis";
     public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
             .name("textract-type")
-            .displayName("Textract type")
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-            .allowableValues(DOCUMENT_ANALYSIS, DOCUMENT_TEXT_DETECTION, EXPENSE_ANALYSIS)
+            .displayName("Textract Type")
             .required(true)
+            .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(DOCUMENT_ANALYSIS)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -79,7 +78,7 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
         if (flowFile == null) {
             return;
         }
-        String textractType = context.getProperty(TEXTRACT_TYPE).evaluateAttributeExpressions().getValue();
+        String textractType = context.getProperty(TEXTRACT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
 
         String awsTaskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
         JobStatus jobStatus = getTaskStatus(textractType, getClient(), awsTaskId);

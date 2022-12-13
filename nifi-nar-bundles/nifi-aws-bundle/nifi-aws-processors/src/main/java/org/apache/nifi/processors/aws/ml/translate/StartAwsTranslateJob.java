@@ -25,6 +25,7 @@ import com.amazonaws.services.translate.model.StartTextTranslationJobResult;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
@@ -41,16 +42,16 @@ public class StartAwsTranslateJob extends AwsMachineLearningJobStarter<AmazonTra
     }
 
     @Override
-    protected StartTextTranslationJobResult sendRequest(StartTextTranslationJobRequest request, ProcessContext context) {
+    protected StartTextTranslationJobResult sendRequest(StartTextTranslationJobRequest request, ProcessContext context, FlowFile flowFile) {
         return getClient().startTextTranslationJob(request);
     }
 
     @Override
-    protected Class<StartTextTranslationJobRequest> getAwsRequestClass(ProcessContext context) {
+    protected Class<StartTextTranslationJobRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
         return StartTextTranslationJobRequest.class;
     }
 
-    protected String getAwsTaskId(ProcessContext context, StartTextTranslationJobResult startTextTranslationJobResult) {
+    protected String getAwsTaskId(ProcessContext context, StartTextTranslationJobResult startTextTranslationJobResult, FlowFile flowFile) {
         return startTextTranslationJobResult.getJobId();
     }
 }

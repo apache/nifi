@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -51,23 +50,17 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     private static final String DOCUMENT_ANALYSIS = "Document Analysis";
     private static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
     private static final String EXPENSE_ANALYSIS = "Expense Analysis";
-    public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
             .name("textract-type")
             .displayName("Textract Type")
-            .allowableValues(
-                    new AllowableValue(DOCUMENT_ANALYSIS, DOCUMENT_ANALYSIS, "Document analysis operation return 5 categories of document extraction " +
-                            "— text, forms, tables, query responses, and signatures"),
-                    new AllowableValue(DOCUMENT_TEXT_DETECTION, DOCUMENT_TEXT_DETECTION, "Text detection operation that return only the text detected" +
-                            " in a document."),
-                    new AllowableValue(EXPENSE_ANALYSIS, EXPENSE_ANALYSIS, "Extracts relevant data such as such as vendor and receiver " +
-                            "contact information, from almost any invoice or receipt without the need for any templates or configuration"))
             .required(true)
+            .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(DOCUMENT_ANALYSIS)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
-        Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TYPE)).collect(Collectors.toList()));
+        Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TEXTRACT_TYPE)).collect(Collectors.toList()));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -77,7 +70,6 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     @Override
     protected void postProcessFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile, AmazonWebServiceResult response) {
         super.postProcessFlowFile(context, session, flowFile, response);
-        session.putAttribute(flowFile, TYPE.getName(), context.getProperty(TYPE.getName()).getValue());
     }
 
     @Override
@@ -89,8 +81,8 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     }
 
     @Override
-    protected AmazonWebServiceResult sendRequest(AmazonWebServiceRequest request, ProcessContext context) {
-        String textractType = context.getProperty(TYPE.getName()).getValue();
+    protected AmazonWebServiceResult sendRequest(AmazonWebServiceRequest request, ProcessContext context, FlowFile flowFile) {
+        String textractType = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
         AmazonWebServiceResult result;
         switch (textractType) {
             case DOCUMENT_ANALYSIS :
@@ -108,8 +100,8 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     }
 
     @Override
-    protected Class<? extends AmazonWebServiceRequest> getAwsRequestClass(ProcessContext context) {
-        String typeOfTextract = context.getProperty(TYPE.getName()).getValue();
+    protected Class<? extends AmazonWebServiceRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
+        String typeOfTextract = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
         Class<? extends AmazonWebServiceRequest>  result;
         switch (typeOfTextract) {
             case DOCUMENT_ANALYSIS:
@@ -127,10 +119,10 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
     }
 
     @Override
-    protected String getAwsTaskId(ProcessContext context, AmazonWebServiceResult amazonWebServiceResult) {
-        String typeOfTextract = context.getProperty(TYPE.getName()).getValue();
+    protected String getAwsTaskId(ProcessContext context, AmazonWebServiceResult amazonWebServiceResult, FlowFile flowFile) {
+        String textractType = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
         String  result;
-        switch (typeOfTextract) {
+        switch (textractType) {
             case DOCUMENT_ANALYSIS:
                 result = ((StartDocumentAnalysisResult) amazonWebServiceResult).getJobId();
                 break;

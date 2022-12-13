@@ -23,7 +23,7 @@ import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus.DOCUMENT_ANALYSIS;
-import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TYPE;
+import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEXTRACT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -83,7 +83,7 @@ public class GetAwsTranslateJobStatusTest {
                 .withJobStatus(JobStatus.IN_PROGRESS);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
         runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TYPE.getName(), DOCUMENT_ANALYSIS));
+                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
@@ -96,7 +96,7 @@ public class GetAwsTranslateJobStatusTest {
                 .withJobStatus(JobStatus.SUCCEEDED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
         runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TYPE.getName(), DOCUMENT_ANALYSIS));
+                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -109,7 +109,7 @@ public class GetAwsTranslateJobStatusTest {
                 .withJobStatus(JobStatus.FAILED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
         runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TYPE.getName(), DOCUMENT_ANALYSIS));
+                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);

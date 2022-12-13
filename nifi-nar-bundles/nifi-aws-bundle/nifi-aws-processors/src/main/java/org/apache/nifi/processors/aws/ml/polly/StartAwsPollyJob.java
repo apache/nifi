@@ -26,6 +26,7 @@ import com.amazonaws.services.polly.model.StartSpeechSynthesisTaskResult;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
@@ -42,17 +43,17 @@ public class StartAwsPollyJob extends AwsMachineLearningJobStarter<AmazonPollyCl
     }
 
     @Override
-    protected StartSpeechSynthesisTaskResult sendRequest(StartSpeechSynthesisTaskRequest request, ProcessContext context) {
+    protected StartSpeechSynthesisTaskResult sendRequest(StartSpeechSynthesisTaskRequest request, ProcessContext context, FlowFile flowFile) {
         return getClient().startSpeechSynthesisTask(request);
     }
 
     @Override
-    protected Class<? extends StartSpeechSynthesisTaskRequest> getAwsRequestClass(ProcessContext context) {
+    protected Class<? extends StartSpeechSynthesisTaskRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
         return StartSpeechSynthesisTaskRequest.class;
     }
 
     @Override
-    protected String getAwsTaskId(ProcessContext context, StartSpeechSynthesisTaskResult startSpeechSynthesisTaskResult) {
+    protected String getAwsTaskId(ProcessContext context, StartSpeechSynthesisTaskResult startSpeechSynthesisTaskResult, FlowFile flowFile) {
         return startSpeechSynthesisTaskResult.getSynthesisTask().getTaskId();
     }
 }

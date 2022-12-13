@@ -109,7 +109,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
         final RESPONSE response;
         FlowFile childFlowFile;
         try {
-            response = sendRequest(buildRequest(session, context, flowFile), context);
+            response = sendRequest(buildRequest(session, context, flowFile), context, flowFile);
             childFlowFile = writeToFlowFile(session, flowFile, response);
             postProcessFlowFile(context, session, childFlowFile, response);
             session.transfer(childFlowFile, REL_SUCCESS);
@@ -127,13 +127,13 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     protected void postProcessFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile, RESPONSE response) {
-        session.putAttribute(flowFile, AWS_TASK_ID_PROPERTY, getAwsTaskId(context, response));
+        session.putAttribute(flowFile, AWS_TASK_ID_PROPERTY, getAwsTaskId(context, response, flowFile));
         session.putAttribute(flowFile, MIME_TYPE.key(), "application/json");
-        getLogger().debug("AWS ML task has been started with task id: {}", getAwsTaskId(context, response));
+        getLogger().debug("AWS ML task has been started with task id: {}", getAwsTaskId(context, response, flowFile));
     }
 
     protected REQUEST buildRequest(ProcessSession session, ProcessContext context, FlowFile flowFile) throws JsonProcessingException {
-        return MAPPER.readValue(getPayload(session, context, flowFile), getAwsRequestClass(context));
+        return MAPPER.readValue(getPayload(session, context, flowFile), getAwsRequestClass(context, flowFile));
     }
 
     @Override
@@ -163,9 +163,9 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
         return payloadPropertyValue;
     }
 
-    abstract protected RESPONSE sendRequest(REQUEST request, ProcessContext context) throws JsonProcessingException;
+    abstract protected RESPONSE sendRequest(REQUEST request, ProcessContext context, FlowFile flowFile) throws JsonProcessingException;
 
-    abstract protected Class<? extends REQUEST> getAwsRequestClass(ProcessContext context);
+    abstract protected Class<? extends REQUEST> getAwsRequestClass(ProcessContext context, FlowFile flowFile);
 
-    abstract protected String getAwsTaskId(ProcessContext context, RESPONSE response);
+    abstract protected String getAwsTaskId(ProcessContext context, RESPONSE response, FlowFile flowFile);
 }
