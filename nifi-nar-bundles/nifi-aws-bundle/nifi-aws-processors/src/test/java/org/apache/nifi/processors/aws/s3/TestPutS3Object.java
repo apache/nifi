@@ -37,8 +37,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerContext;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerFactory;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -296,23 +294,14 @@ public class TestPutS3Object {
     }
 
     @Test
-    public void testCustomSignerWithSigner() {
-        testCustomSigner(CustomS3Signer.class.getName());
-    }
-
-    @Test
-    public void testCustomSignerWithSignerFactory() {
-        testCustomSigner(CustomS3SignerFactory.class.getName());
-    }
-
-    private void testCustomSigner(final String className) {
+    public void testCustomSigner() {
         final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
         final ClientConfiguration config = new ClientConfiguration();
         final PutS3Object processor = new PutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.SIGNER_OVERRIDE, AwsSignerType.CUSTOM_SIGNER.getValue());
-        runner.setProperty(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME, className);
+        runner.setProperty(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME, CustomS3Signer.class.getName());
 
         ProcessContext context = runner.getProcessContext();
         processor.createClient(context, credentialsProvider, config);
@@ -326,13 +315,5 @@ public class TestPutS3Object {
 
     public static class CustomS3Signer extends AWSS3V4Signer {
 
-    }
-
-    public static class CustomS3SignerFactory implements AwsCustomSignerFactory {
-
-        @Override
-        public Class<? extends AWSS3V4Signer> getSignerClass(AwsCustomSignerContext context) {
-            return CustomS3Signer.class;
-        }
     }
 }

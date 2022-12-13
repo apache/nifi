@@ -33,8 +33,6 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerContext;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerFactory;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -295,22 +293,13 @@ public class TestCredentialsProviderFactory {
     }
 
     @Test
-    public void testAssumeRoleCredentialsWithCustomSignerWithSigner() throws Exception {
-        testAssumeRoleCredentialsWithCustomSigner(CustomSTSSigner.class.getName());
-    }
-
-    @Test
-    public void testAssumeRoleCredentialsWithCustomSignerWithSignerFactory() throws Exception {
-        testAssumeRoleCredentialsWithCustomSigner(CustomSTSSignerFactory.class.getName());
-    }
-
-    private void testAssumeRoleCredentialsWithCustomSigner(final String className) throws Exception {
+    public void testAssumeRoleCredentialsWithCustomSigner() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_ARN, "BogusArn");
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_NAME, "BogusSession");
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_STS_SIGNER_OVERRIDE, AwsSignerType.CUSTOM_SIGNER.getValue());
-        runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME, className);
+        runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME, CustomSTSSigner.class.getName());
         runner.assertValid();
 
         final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
@@ -333,13 +322,5 @@ public class TestCredentialsProviderFactory {
 
     public static class CustomSTSSigner extends AWS4Signer {
 
-    }
-
-    public static class CustomSTSSignerFactory implements AwsCustomSignerFactory {
-
-        @Override
-        public Class<? extends AWS4Signer> getSignerClass(AwsCustomSignerContext context) {
-            return CustomSTSSigner.class;
-        }
     }
 }

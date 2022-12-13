@@ -22,7 +22,6 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerFactory;
 
 public final class AwsPropertyDescriptors {
 
@@ -33,8 +32,7 @@ public final class AwsPropertyDescriptors {
     public static final PropertyDescriptor CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
             .name("custom-signer-class-name")
             .displayName("Custom Signer Class Name")
-            .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s or %s interfaces.",
-                    Signer.class.getName(), AwsCustomSignerFactory.class.getName()))
+            .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)

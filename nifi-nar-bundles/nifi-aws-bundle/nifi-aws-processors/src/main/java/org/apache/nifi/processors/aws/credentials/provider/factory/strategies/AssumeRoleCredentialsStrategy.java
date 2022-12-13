@@ -23,9 +23,7 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processors.aws.AwsServiceType;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerContext;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -162,13 +160,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         if (assumeRoleSTSSignerType == CUSTOM_SIGNER) {
             final String signerClassName = properties.get(ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME);
 
-            config.withSignerOverride(AwsCustomSignerUtil.registerCustomSigner(
-                    signerClassName,
-                    AwsCustomSignerContext.builder()
-                            .setServiceType(AwsServiceType.STS)
-                            .setRegionName(assumeRoleSTSRegion)
-                            .setEndpointUrl(assumeRoleSTSEndpoint)
-                            .build()));
+            config.withSignerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
         } else if (assumeRoleSTSSignerType != DEFAULT_SIGNER) {
             config.withSignerOverride(assumeRoleSTSSigner);
         }

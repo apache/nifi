@@ -41,8 +41,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
-import org.apache.nifi.processors.aws.AwsServiceType;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerContext;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
 
@@ -229,16 +227,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
         if (signerType == CUSTOM_SIGNER) {
             final String signerClassName = context.getProperty(S3_CUSTOM_SIGNER_CLASS_NAME).evaluateAttributeExpressions().getValue();
-            final String regionName = context.getProperty(REGION).getValue();
-            final String endpointUrl = context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue();
 
-            config.setSignerOverride(AwsCustomSignerUtil.registerCustomSigner(
-                    signerClassName,
-                    AwsCustomSignerContext.builder()
-                            .setServiceType(AwsServiceType.S3)
-                            .setRegionName(regionName)
-                            .setEndpointUrl(endpointUrl)
-                            .build()));
+            config.setSignerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
         } else if (signerType != DEFAULT_SIGNER) {
             config.setSignerOverride(signer);
         }

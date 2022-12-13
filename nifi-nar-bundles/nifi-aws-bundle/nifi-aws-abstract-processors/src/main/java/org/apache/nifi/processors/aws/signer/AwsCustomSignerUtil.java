@@ -27,7 +27,7 @@ public final class AwsCustomSignerUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public static String registerCustomSigner(final String className, final AwsCustomSignerContext context) {
+    public static String registerCustomSigner(final String className) {
         final Class<? extends Signer> signerClass;
 
         try {
@@ -35,13 +35,8 @@ public final class AwsCustomSignerUtil {
 
             if (Signer.class.isAssignableFrom(clazz)) {
                 signerClass = (Class<? extends Signer>) clazz;
-            } else if (AwsCustomSignerFactory.class.isAssignableFrom(clazz)) {
-                Class<? extends AwsCustomSignerFactory> signerFactoryClass = (Class<? extends AwsCustomSignerFactory>) clazz;
-                AwsCustomSignerFactory signerFactory = signerFactoryClass.newInstance();
-                signerClass = signerFactory.getSignerClass(context);
             } else {
-                throw new ProcessException(String.format("Cannot create signer from class %s because it does not implement %s or %s",
-                        className, Signer.class.getName(), AwsCustomSignerFactory.class.getName()));
+                throw new ProcessException(String.format("Cannot create signer from class %s because it does not implement %s", className, Signer.class.getName()));
             }
         } catch (ClassNotFoundException cnfe) {
             throw new ProcessException("Signer class not found: " + className);
