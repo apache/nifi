@@ -31,13 +31,12 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.opentest4j.AssertionFailedError;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-public class AzureAdxSourceProcessorTest {
+class AzureAdxSourceProcessorTest {
 
     private AzureAdxSourceProcessor azureAdxSourceProcessor;
     private static final String MOCK_DB_NAME= "mockDBName";
@@ -50,27 +49,16 @@ public class AzureAdxSourceProcessorTest {
     private TestRunner testRunner;
 
     @BeforeEach
-    public void init() {
+    public void init() throws InitializationException {
 
-        azureAdxSourceProcessor = new AzureAdxSourceProcessor();
+        azureAdxSourceProcessor = new MockAzureAdxSourceProcessor();
         final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
         final String componentId = "componentId";
         when(initContext.getIdentifier()).thenReturn(componentId);
         MockComponentLog componentLog = new MockComponentLog(componentId, azureAdxSourceProcessor);
         when(initContext.getLogger()).thenReturn(componentLog);
         azureAdxSourceProcessor.initialize(initContext);
-
-    }
-
-    @Test
-    public void testAzureAdxSourceProcessorSuccess() throws InitializationException, IOException {
-
         testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
-
-        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,MOCK_ADX_QUERY);
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
-
         testRunner.setValidateExpressionUsage(false);
 
         azureAdxSourceConnectionService = new MockAzureAdxSourceConnectionService();
@@ -81,74 +69,71 @@ public class AzureAdxSourceProcessorTest {
         testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
         testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
         testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
-
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
+
+    }
+
+    /**
+     * test successful scenario where all valid parameters of source processor are provided
+     */
+    @Test
+    void testAzureAdxSourceProcessorSuccess() {
+        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,MOCK_ADX_QUERY);
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
+
         testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
         testRunner.getFlowFilesForRelationship(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
         testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
-
     }
 
+    /**
+     * test failure scenario of source processor where query parameter databaseName is missing
+     */
     @Test
-    public void testAzureAdxSourceProcessorFailureParamMissing() throws InitializationException, IOException {
+    void testAzureAdxSourceProcessorFailureParamMissing() {
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,MOCK_ADX_QUERY);
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
 
-        testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
+        testRunner.setIncomingConnection(false);
+        assertThrows(AssertionFailedError.class,()-> testRunner.run(1));
+    }
 
+    /**
+     * test failure scenario of source processor where query parameter adxQuery is missing
+     */
+    @Test
+    void testAzureAdxSourceProcessorFailureInvalidQuery() {
         testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,MOCK_DB_NAME);
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
 
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new MockAzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
         testRunner.setIncomingConnection(false);
-        assertThrows(AssertionFailedError.class,()->{
-            testRunner.run(1);
-        });
+        assertThrows(AssertionFailedError.class,()-> testRunner.run(1));
     }
 
+    /**
+     * test successful scenario where incoming connection exists for source processor
+     */
     @Test
-    public void testAzureAdxSourceProcessorFailureInvalidQuery() throws InitializationException, IOException {
-
-        testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
-
+    void testAzureAdxSourceProcessorIncomingConnection() {
         testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,MOCK_DB_NAME);
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,MOCK_ADX_QUERY);
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
 
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new MockAzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
-        testRunner.setIncomingConnection(false);
-        assertThrows(AssertionFailedError.class,()->{
-            testRunner.run(1);
-        });
+        testRunner.setIncomingConnection(true);
+        testRunner.enqueue("Storms");
+        testRunner.run(1);
+        testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_SUCCEEDED);
     }
 
+    /**
+     * test failure scenario of source processor where kusto query limit exceeded
+     */
     @Test
-    public void testAzureAdxSourceProcessorFailureQueryLimitExceeded() throws InitializationException {
-
+    void testAzureAdxSourceProcessorFailureQueryLimitExceeded() throws InitializationException {
         AzureAdxSourceProcessor mockAzureAdxSourceProcessor = new AzureAdxSourceProcessor(){
             @Override
             protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws OutOfMemoryError {
@@ -180,31 +165,4 @@ public class AzureAdxSourceProcessorTest {
         testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_FAILED);
     }
 
-    @Test
-    public void testAzureAdxSourceProcessorIncomingConnection() throws InitializationException {
-
-        testRunner = TestRunners.newTestRunner(new MockAzureAdxSourceProcessor());
-
-        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,MOCK_ADX_QUERY);
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-source-connection-service");
-
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new MockAzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
-        testRunner.setIncomingConnection(true);
-        testRunner.enqueue("Storms");
-        testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_SUCCEEDED);
-    }
 }

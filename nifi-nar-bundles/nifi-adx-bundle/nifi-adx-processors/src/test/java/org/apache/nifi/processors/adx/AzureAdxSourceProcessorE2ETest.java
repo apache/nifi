@@ -26,7 +26,19 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-public class AzureAdxSourceProcessorE2ETest {
+/**
+ * These are end to end tests for ADX Source Processor, which are disabled/skipped by default
+ * during maven test phase. These parameters need to be provided during maven build
+ * -DexecuteE2ETests=<true>
+ * -DappId=<appId>
+ * -DappKey=<appKey>
+ * -DappTenant=<appTenant>
+ * -DclusterUrl=<clusterUrl>
+ * -DdatabaseName=<databaseName>
+ * -DadxQuery=<query to be executed in source ADX>
+ * -DadxQueryLimit=<query who execution will exceed the kusto query limits>
+ **/
+class AzureAdxSourceProcessorE2ETest {
 
     private AzureAdxSourceProcessor azureAdxSourceProcessor;
 
@@ -35,70 +47,68 @@ public class AzureAdxSourceProcessorE2ETest {
     private TestRunner testRunner;
 
     @BeforeEach
-    public void init() {
-        azureAdxSourceProcessor = new AzureAdxSourceProcessor();
-    }
-
-    @Test
-    public void testAzureAdxSourceProcessorSuccessE2E() throws InitializationException {
-
+    public void init() throws InitializationException {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
+        azureAdxSourceProcessor = new AzureAdxSourceProcessor();
         testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
+        testRunner.setValidateExpressionUsage(false);
+        azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
+        testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.enableControllerService(azureAdxSourceConnectionService);
+        testRunner.assertValid(azureAdxSourceConnectionService);
+    }
+
+    /**
+     * tests the successful scenario when all the parameters are passed
+     * queries the ADX database against the input query and passes the result to flow file of RL_SUCCEEDED
+     * -DexecuteE2ETests=<true>
+     * -DappId=<appId>
+     * -DappKey=<appKey>
+     * -DappTenant=<appTenant>
+     * -DclusterUrl=<clusterUrl>
+     * -DdatabaseName=<databaseName>
+     * -DadxQuery=<query to be executed in source ADX>
+     */
+    @Test
+    void testAzureAdxSourceProcessorSuccessE2E() {
+        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQuery"));
         testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
-
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
         testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
         testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
-
     }
 
+    /**
+     * tests the failure scenario when the kusto query limit is execeeded
+     * queries the ADX database against the input query, query result records/size too large, results in RL_FAILURE
+     * -DexecuteE2ETests=<true>
+     * -DappId=<appId>
+     * -DappKey=<appKey>
+     * -DappTenant=<appTenant>
+     * -DclusterUrl=<clusterUrl>
+     * -DdatabaseName=<databaseName>
+     * -adxQueryLimit=<query to be executed in source ADX which exceeds the kusto limits 500000records/64MB>
+     */
     @Test
-    public void testAzureAdxSourceProcessorFailureE2E() throws InitializationException {
-
+    void testAzureAdxSourceProcessorFailureQueryLimitExceededE2E() {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
-
-        testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
 
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQueryLimit"));
         testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
-
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
         testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
         testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_FAILED);
-
     }
 
 }

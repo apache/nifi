@@ -24,9 +24,9 @@ public enum AzureAdxSourceProcessorParamsEnum {
 
     ADX_SOURCE_SERVICE("Azure ADX Source Connection Service","Service that provides the Azure Data Explorer(ADX) Connections.");
 
-    private String paramDisplayName;
+    private final String paramDisplayName;
 
-    private String paramDescription;
+    private final String paramDescription;
 
     AzureAdxSourceProcessorParamsEnum(String paramDisplayName, String paramDescription) {
         this.paramDisplayName = paramDisplayName;
@@ -37,15 +37,7 @@ public enum AzureAdxSourceProcessorParamsEnum {
         return paramDisplayName;
     }
 
-    public void setParamDisplayName(String paramDisplayName) {
-        this.paramDisplayName = paramDisplayName;
-    }
-
     public String getParamDescription() {
         return paramDescription;
-    }
-
-    public void setParamDescription(String paramDescription) {
-        this.paramDescription = paramDescription;
     }
 }

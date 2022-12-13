@@ -26,25 +26,27 @@ import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * these are mock implementation classes of adx source processor required for junit classes to work properly
+ */
 public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
 
     @Override
     protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataClientException {
         ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
-        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable"))));
-        String listAsJson = null;
+        valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("FailedIngestionsQueue"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("SuccessfulIngestionsQueue"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
+        valuesList.add(new ArrayList<>((Collections.singletonList("IngestionsStatusTable"))));
         try {
-            listAsJson = objectMapper.writeValueAsString(valuesList);
+            String listAsJson = objectMapper.writeValueAsString(valuesList);
             String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
                     "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
                     "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"

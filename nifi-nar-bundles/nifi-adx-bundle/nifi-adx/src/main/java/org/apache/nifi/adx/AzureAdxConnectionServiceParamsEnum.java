@@ -24,8 +24,8 @@ public enum AzureAdxConnectionServiceParamsEnum {
     APP_TENANT("Application Tenant","Azure application tenant for accessing the ADX-Cluster"),
     CLUSTER_URL("Cluster URL","Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.");
 
-    private String paramDisplayName;
-    private String description;
+    private final String paramDisplayName;
+    private final String description;
 
 
     AzureAdxConnectionServiceParamsEnum(String paramDisplayName, String description) {

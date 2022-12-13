@@ -19,7 +19,6 @@ package org.apache.nifi.adx.model;
 public class ADXConnectionParams {
 
     private String kustoAuthStrategy;
-    private String ingestURL;
     private String appId;
     private String appKey;
     private String appTenant;
@@ -31,14 +30,6 @@ public class ADXConnectionParams {
 
     public void setKustoAuthStrategy(String kustoAuthStrategy) {
         this.kustoAuthStrategy = kustoAuthStrategy;
-    }
-
-    public String getIngestURL() {
-        return ingestURL;
-    }
-
-    public void setIngestURL(String ingestURL) {
-        this.ingestURL = ingestURL;
     }
 
     public String getAppId() {

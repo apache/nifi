@@ -32,14 +32,13 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 @Tags({ "Azure", "ADX", "Kusto", "ingest", "azure"})
-@CapabilityDescription("Sends batches of flowfile content or stream flowfile content to an Azure ADX cluster.")
+@CapabilityDescription("Sends batches of flow file content or stream flow file content to an Azure ADX cluster.")
 @ReadsAttributes({
         @ReadsAttribute(attribute= "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
         @ReadsAttribute(attribute= "APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
@@ -49,13 +48,17 @@ import java.util.List;
 })
 public class AzureAdxSourceConnectionService extends AbstractControllerService implements AdxSourceConnectionService {
 
+    private static final String KUSTO_STRATEGY_APPLICATION = "application";
+
+    private static final String KUSTO_STRATEGY_MANAGED_IDENTITY = "managed_identity";
+
     public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
             .Builder().name(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.name())
             .displayName(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getParamDisplayName())
             .description(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getDescription())
             .required(false)
-            .defaultValue("application")
-            .allowableValues("application","managed_identity")
+            .defaultValue(KUSTO_STRATEGY_APPLICATION)
+            .allowableValues(KUSTO_STRATEGY_APPLICATION,KUSTO_STRATEGY_MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
@@ -112,8 +115,6 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     /**
      * @param context
      *            the configuration context
-     * @throws InitializationException
-     *             if unable to create a database connection
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
@@ -149,7 +150,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
         final ConnectionStringBuilder kcsb;
         switch (kustoAuthStrategy) {
-            case "application":
+            case KUSTO_STRATEGY_APPLICATION:
                 if (StringUtils.isNotEmpty(appId) && StringUtils.isNotEmpty(appKey)){
                     kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                             clusterUrl,
@@ -161,7 +162,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                 }
                 break;
 
-            case "managed_identity":
+            case KUSTO_STRATEGY_MANAGED_IDENTITY:
                 kcsb = ConnectionStringBuilder.createWithAadManagedIdentity(
                         clusterUrl,
                         appId);
@@ -172,7 +173,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                         "provide valid credentials. Either Kusto managed identity or " +
                         "Kusto appId, appKey, and authority should be configured.");
         }
-        kcsb.setClientVersionForTracing(Version.CLIENT_NAME + ":" + Version.getVersion());
+        kcsb.setClientVersionForTracing(NiFiVersion.CLIENT_NAME + ":" + NiFiVersion.getVersion());
         return kcsb;
     }
 

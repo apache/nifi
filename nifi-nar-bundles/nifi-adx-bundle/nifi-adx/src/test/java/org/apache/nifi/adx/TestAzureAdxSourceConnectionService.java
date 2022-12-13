@@ -31,7 +31,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestAzureAdxSourceConnectionService {
+class TestAzureAdxSourceConnectionService {
 
     private TestRunner runner;
 
@@ -59,14 +59,62 @@ public class TestAzureAdxSourceConnectionService {
         runner.clearProperties();
     }
 
+    /**
+     * test successful adx connection scenario where all valid parameters are passed
+     */
     @Test
-    public void testAdxConnectionControllerWithoutStreaming() {
+    void testAdxConnectionController() {
         configureAppId();
         configureAppKey();
         configureAppTenant();
         configureClusterURL();
 
         runner.assertValid(service);
+    }
+
+    /**
+     * test successful adx connection scenario where all valid parameters are passed
+     */
+    @Test
+    void testCreateExecutionClientSuccess(){
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+        configureClusterURL();
+        runner.assertValid(service);
+        runner.setValidateExpressionUsage(false);
+        runner.enableControllerService(service);
+        Client executionClient = service.getKustoExecutionClient();
+
+        Assertions.assertNotNull(executionClient);
+    }
+
+    @Test
+    void testPropertyDescriptor(){
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+        configureClusterURL();
+        List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
+
+        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_ID));
+        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_KEY));
+        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_TENANT));
+        assertTrue(pd.contains(AzureAdxSourceConnectionService.CLUSTER_URL));
+    }
+
+
+    @Test
+    void testInvalidConnectionMissingProperty(){
+        configureAppId();
+        configureAppKey();
+        configureAppTenant();
+
+        runner.assertNotValid(service);
+        runner.setValidateExpressionUsage(false);
+
+        assertThrows(IllegalStateException.class,()-> runner.enableControllerService(service));
+
     }
 
     private void configureAppId() {
@@ -83,55 +131,5 @@ public class TestAzureAdxSourceConnectionService {
 
     private void configureClusterURL() {
         runner.setProperty(service, AzureAdxSourceConnectionService.CLUSTER_URL, MOCK_CLUSTER_URL);
-    }
-
-    @Test
-    public void testCreateExecutionClientSuccess(){
-
-        configureAppId();
-        configureAppKey();
-        configureAppTenant();
-        configureClusterURL();
-
-        runner.assertValid(service);
-        runner.setValidateExpressionUsage(false);
-
-        runner.enableControllerService(service);
-
-        Client executionClient = service.getKustoExecutionClient();
-        Assertions.assertNotNull(executionClient);
-
-    }
-
-    @Test
-    public void testPropertyDescriptor(){
-
-        configureAppId();
-        configureAppKey();
-        configureAppTenant();
-        configureClusterURL();
-
-        List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_ID));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_KEY));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_TENANT));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.CLUSTER_URL));
-    }
-
-
-    @Test
-    public void testInvalidConnectionMissingProperty(){
-
-        configureAppId();
-        configureAppKey();
-        configureAppTenant();
-
-        runner.assertNotValid(service);
-        runner.setValidateExpressionUsage(false);
-
-        assertThrows(IllegalStateException.class,()->{
-            runner.enableControllerService(service);
-        });
-
     }
 }

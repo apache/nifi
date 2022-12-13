@@ -42,7 +42,6 @@ import org.apache.nifi.processors.adx.enums.AzureAdxSourceProcessorParamsEnum;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,14 +59,12 @@ import java.util.Set;
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
 
-    private AdxSourceConnectionService service;
-
     private Set<Relationship> relationships;
 
     private List<PropertyDescriptor> descriptors;
     private Client executionClient;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public static final String ADX_QUERY_ERROR_MESSAGE = "adx.query.error.message";
 
@@ -109,16 +106,16 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
 
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(ADX_SOURCE_SERVICE);
-        descriptors.add(DB_NAME);
-        descriptors.add(ADX_QUERY);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        final List<PropertyDescriptor> descriptorList = new ArrayList<>();
+        descriptorList.add(ADX_SOURCE_SERVICE);
+        descriptorList.add(DB_NAME);
+        descriptorList.add(ADX_QUERY);
+        this.descriptors = Collections.unmodifiableList(descriptorList);
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(RL_SUCCEEDED);
-        relationships.add(RL_FAILED);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final Set<Relationship> relationshipList = new HashSet<>();
+        relationshipList.add(RL_SUCCEEDED);
+        relationshipList.add(RL_FAILED);
+        this.relationships = Collections.unmodifiableSet(relationshipList);
     }
 
     @Override
@@ -133,7 +130,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSourceConnectionService.class);
+        AdxSourceConnectionService service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSourceConnectionService.class);
         executionClient = service.getKustoExecutionClient();
     }
 
@@ -143,20 +140,20 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
         FlowFile outgoingFlowFile;
 
         String databaseName = context.getProperty(DB_NAME).getValue();
-        String adxQuery = null;
+        String adxQuery;
         KustoResultSetTable kustoResultSetTable;
 
+        //checks if this processor has any preceding connection, if yes retrieve
         if ( context.hasIncomingConnection() ) {
             FlowFile incomingFlowFile = session.get();
 
+            //incoming connection exists but the incoming flowfile is null
             if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
-                String message = "Incoming connection exists but Incoming flow file is null";
-                getLogger().error(message);
-                incomingFlowFile = session.putAttribute(incomingFlowFile, ADX_QUERY_ERROR_MESSAGE, message);
-                session.transfer(incomingFlowFile, RL_FAILED);
+                getLogger().error("Incoming connection exists but Incoming flow file is null");
                 return;
             }
 
+            //incoming connection exists and retrieve adxQuery from context
             if ( incomingFlowFile != null && incomingFlowFile.getSize() == 0 ) {
                 if ( context.getProperty(ADX_QUERY).isSet() ) {
                     adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
@@ -169,7 +166,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
                 }
             } else {
                 try {
-                    adxQuery = getQuery(session, StandardCharsets.UTF_8, incomingFlowFile);
+                    adxQuery = getQuery(session, incomingFlowFile);
                 } catch(IOException ioe) {
                     getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
                     throw new ProcessException(ioe);
@@ -190,14 +187,14 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             String json = tableData.size() == 1 ? objectMapper.writeValueAsString(tableData.get(0)) : objectMapper.writeValueAsString(tableData);
 
             if ( getLogger().isDebugEnabled() ) {
-                getLogger().debug("Query result {} ", new Object[] {tableData});
+                getLogger().debug("Query result {} ", tableData);
             }
 
             ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes());
             session.importFrom(bais, outgoingFlowFile);
             bais.close();
 
-            //if no error then
+            //if no error
             outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
             session.transfer(outgoingFlowFile, RL_SUCCEEDED);
         }catch (OutOfMemoryError ex){
@@ -214,12 +211,12 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
         return executionClient.execute(databaseName,adxQuery).getPrimaryResults();
     }
 
-    protected String getQuery(final ProcessSession session, Charset charset, FlowFile incomingFlowFile)
-            throws IOException {
+    protected String getQuery(final ProcessSession session, FlowFile incomingFlowFile) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        session.exportTo(incomingFlowFile, baos);
-        baos.close();
-        return new String(baos.toByteArray(), charset);
+        try (baos) {
+            session.exportTo(incomingFlowFile, baos);
+            return baos.toString(StandardCharsets.UTF_8);
+        }
     }
 
 

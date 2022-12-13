@@ -23,15 +23,16 @@ import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-
+/**
+ * these are mock implementation classes of adx source connection service required for junit classes to work properly
+ */
 public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectionService {
 
     @Override
@@ -39,24 +40,23 @@ public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectio
         return new Client() {
 
             @Override
-            public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
+            public KustoOperationResult execute(String command) {
                 return null;
             }
 
             @Override
-            public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
+            public KustoOperationResult execute(String database, String command) throws DataClientException {
                 ObjectMapper objectMapper = Utils.getObjectMapper();
                 List<List<String>> valuesList = new ArrayList<>();
-                valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("TempStorage"))));
-                valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable"))));
-                String listAsJson = null;
+                valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("FailedIngestionsQueue"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("SuccessfulIngestionsQueue"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
+                valuesList.add(new ArrayList<>((Collections.singletonList("IngestionsStatusTable"))));
                 try {
-                    listAsJson = objectMapper.writeValueAsString(valuesList);
+                    String listAsJson = objectMapper.writeValueAsString(valuesList);
                 String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
                         "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
                         "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
@@ -68,22 +68,22 @@ public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectio
             }
 
             @Override
-            public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+            public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) {
                 return null;
             }
 
             @Override
-            public String executeToJsonResult(String database) throws DataServiceException, DataClientException {
+            public String executeToJsonResult(String database) {
                 return null;
             }
 
             @Override
-            public String executeToJsonResult(String database, String command) throws DataServiceException, DataClientException {
+            public String executeToJsonResult(String database, String command) {
                 return null;
             }
 
             @Override
-            public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+            public String executeToJsonResult(String database, String command, ClientRequestProperties properties) {
                 return null;
             }
         };
