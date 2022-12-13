@@ -44,7 +44,6 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.nar.OSUtil;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -73,6 +72,8 @@ import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -103,7 +104,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -203,11 +203,9 @@ public class StandardProcessorNodeIT {
         }
     }
 
+    @EnabledOnOs(OS.MAC)
     @Test
     public void testNativeLibLoadedFromDynamicallyModifiesClasspathProperty() {
-        // GIVEN
-        assumeTrue(new OSUtil(){}.isOsMac(), "Test only runs on Mac OS");
-
         // Init NiFi
         NarClassLoader narClassLoader = mock(NarClassLoader.class);
         when(narClassLoader.getURLs()).thenReturn(new URL[0]);

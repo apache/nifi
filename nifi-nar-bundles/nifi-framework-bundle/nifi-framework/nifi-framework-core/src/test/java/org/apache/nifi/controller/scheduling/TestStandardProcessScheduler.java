@@ -350,7 +350,6 @@ public class TestStandardProcessScheduler {
                     scheduler.enableControllerService(serviceNode).get();
                     assertTrue(serviceNode.isActive());
                 } catch (final Exception e) {
-                    e.printStackTrace();
                     asyncFailed.set(true);
                 }
             });
@@ -385,7 +384,6 @@ public class TestStandardProcessScheduler {
                     scheduler.disableControllerService(serviceNode);
                     assertFalse(serviceNode.isActive());
                 } catch (final Exception e) {
-                    e.printStackTrace();
                     asyncFailed.set(true);
                 }
             });
@@ -423,7 +421,6 @@ public class TestStandardProcessScheduler {
                     scheduler.disableControllerService(serviceNode);
                     assertFalse(serviceNode.isActive());
                 } catch (final Exception e) {
-                    e.printStackTrace();
                     asyncFailed.set(true);
                 }
             });

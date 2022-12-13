@@ -54,16 +54,6 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         }
     }
 
-    @BeforeEach
-    void setUp() throws Exception {
-
-    }
-
-    @AfterEach
-    void tearDown() throws Exception {
-
-    }
-
     @AfterAll
     static void tearDownOnce() {
         if (originalPropertiesPath) {

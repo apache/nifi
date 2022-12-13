@@ -138,10 +138,6 @@ public class FrameworkIntegrationTest {
     //@Rule
     public Timeout globalTimeout = Timeout.seconds(20);
 
-    /*@Rule
-    public TestName name = new TestName();*/
-
-
     private ResourceClaimManager resourceClaimManager;
     private StandardProcessScheduler processScheduler;
 
@@ -164,7 +160,6 @@ public class FrameworkIntegrationTest {
     public void setup() throws IOException {
         StandardStateManagerProvider.resetProvider();
 
-        cleanup();
         initialize();
 
         flowController.initializeFlow();
@@ -320,7 +315,7 @@ public class FrameworkIntegrationTest {
             processScheduler.shutdown();
         }
 
-        cleanup();
+        deleteDirectory(new File("target/int-tests"));
     }
 
     protected void restart() throws IOException, ExecutionException, InterruptedException {
@@ -366,10 +361,6 @@ public class FrameworkIntegrationTest {
         };
 
         flowController.initializeFlow(queueProvider);
-    }
-
-    public final void cleanup() throws IOException {
-        deleteDirectory(new File("target/int-tests"));
     }
 
     private void deleteDirectory(final File dir) throws IOException {

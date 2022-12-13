@@ -72,11 +72,6 @@ public class TestStandardFlowFileQueue {
 
     private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
-    @BeforeAll
-    public static void setupLogging() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
-    }
-
     @BeforeEach
     @SuppressWarnings("unchecked")
     public void setup() {

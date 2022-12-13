@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository.crypto
 
-import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext
 import org.apache.nifi.controller.repository.claim.ContentClaim
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
@@ -27,10 +26,11 @@ import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.DisabledOnOs
+import org.junit.jupiter.api.condition.OS
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.security.Security
 
+@DisabledOnOs(OS.WINDOWS)
 class EncryptedFileSystemRepositoryTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepositoryTest.class)
 
@@ -63,8 +64,6 @@ class EncryptedFileSystemRepositoryTest {
 
     @BeforeAll
     static void setUpOnce() throws Exception {
-        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix")
-
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->

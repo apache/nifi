@@ -36,6 +36,7 @@ import java.io.InputStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -119,12 +120,7 @@ public class TestContentRepositoryFlowFileAccess {
         final byte[] buffer = new byte[5];
         StreamUtils.fillBuffer(repoStream, buffer);
 
-        try {
-            repoStream.read();
-            fail("Expected EOFException because not enough bytes were in the InputStream for the FlowFile");
-        } catch (final EOFException eof) {
-            // expected
-        }
+        assertThrows(EOFException.class, repoStream::read,
+                "Expected EOFException because not enough bytes were in the InputStream for the FlowFile");
     }
-
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
@@ -29,9 +28,10 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -63,8 +63,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestFileSystemRepository {
 
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
@@ -73,11 +73,6 @@ public class TestFileSystemRepository {
     private StandardResourceClaimManager claimManager = null;
     private final File rootFile = new File("target/content_repository");
     private NiFiProperties nifiProperties;
-
-    @BeforeAll
-    public static void setupClass() {
-        assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
-    }
 
     @BeforeEach
     public void setup() throws IOException {
