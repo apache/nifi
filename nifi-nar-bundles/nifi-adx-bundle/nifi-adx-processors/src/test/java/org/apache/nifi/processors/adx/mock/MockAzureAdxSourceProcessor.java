@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
+import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -23,7 +25,6 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +34,6 @@ import java.util.List;
  * these are mock implementation classes of adx source processor required for junit classes to work properly
  */
 public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
-
     @Override
     protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataClientException {
         ObjectMapper objectMapper = Utils.getObjectMapper();

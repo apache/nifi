@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.adx;
 
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.adx.model.ADXConnectionParams;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -32,6 +29,10 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -118,7 +119,6 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
-
         getLogger().info("Starting Azure ADX Source Connection Service...");
         adxConnectionParams = new ADXConnectionParams();
         adxConnectionParams.setKustoAuthStrategy(context.getProperty(KUSTO_AUTH_STRATEGY).evaluateAttributeExpressions().getValue());
@@ -126,7 +126,6 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
         adxConnectionParams.setAppKey(context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue());
         adxConnectionParams.setAppTenant(context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue());
         adxConnectionParams.setKustoEngineURL(context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue());
-
         if(this.executionClient != null) {
             onStopped();
         }
@@ -184,6 +183,4 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
             throw new ProcessException("Failed to initialize KustoEngineClient", e);
         }
     }
-
-
 }
