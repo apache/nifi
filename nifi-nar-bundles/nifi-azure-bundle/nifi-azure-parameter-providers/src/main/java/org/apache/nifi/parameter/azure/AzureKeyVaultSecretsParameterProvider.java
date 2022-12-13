@@ -132,8 +132,10 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
         final List<KeyVaultSecret> secrets = new ArrayList<>();
 
         for (final SecretProperties secretProperties : secretClient.listPropertiesOfSecrets()) {
-            KeyVaultSecret secretWithValue = secretClient.getSecret(secretProperties.getName(), secretProperties.getVersion());
-            secrets.add(secretWithValue);
+            if (secretProperties.isEnabled()) {
+                KeyVaultSecret secretWithValue = secretClient.getSecret(secretProperties.getName(), secretProperties.getVersion());
+                secrets.add(secretWithValue);
+            }
         }
 
         return secrets;
@@ -145,7 +147,12 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
             final String parameterName = secret.getName();
             final String parameterValue = secret.getValue();
 
-            final String parameterGroupName = secret.getProperties().getTags().get(GROUP_NAME_TAG);
+            final Map<String, String> tags = secret.getProperties().getTags();
+            if (tags == null) {
+                getLogger().debug("Secret with parameter name [{}] not recognized as a valid parameter since it does not have tags");
+                continue;
+            }
+            final String parameterGroupName = tags.get(GROUP_NAME_TAG);
             if (parameterGroupName == null) {
                 getLogger().debug("Secret with parameter name [{}] not recognized as a valid parameter since it " +
                                 "does not have the [{}] tag", parameterName, GROUP_NAME_TAG);

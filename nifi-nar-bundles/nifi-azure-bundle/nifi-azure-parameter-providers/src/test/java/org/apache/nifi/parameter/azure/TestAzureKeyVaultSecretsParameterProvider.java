@@ -97,6 +97,59 @@ public class TestAzureKeyVaultSecretsParameterProvider {
     }
 
     @Test
+    public void testFetchDisabledParameters() throws IOException, InitializationException {
+        final List<SecretProperties> secretPropertiesList = new ArrayList<>();
+        for (final ParameterGroup group : mockParameterGroups) {
+            for (final Parameter parameter : group.getParameters()) {
+                final SecretProperties secretProperties = mock(SecretProperties.class);
+
+                when(secretProperties.isEnabled()).thenReturn(false);
+
+                secretPropertiesList.add(secretProperties);
+            }
+
+        }
+
+        final PagedIterable<SecretProperties> mockIterable = mock(PagedIterable.class);
+        when(secretClient.listPropertiesOfSecrets()).thenReturn(mockIterable);
+        when(mockIterable.iterator()).thenReturn(secretPropertiesList.iterator());
+        runProviderTest( 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
+    public void testFetchParametersWithNullTagsShouldNotThrowError() throws IOException, InitializationException {
+        final List<SecretProperties> secretPropertiesList = new ArrayList<>();
+        for (final ParameterGroup group : mockParameterGroups) {
+            for (final Parameter parameter : group.getParameters()) {
+                final String parameterName = parameter.getDescriptor().getName();
+                final String parameterValue = parameter.getValue();
+                final KeyVaultSecret secret = mock(KeyVaultSecret.class);
+                when(secret.getName()).thenReturn(parameterName);
+                when(secret.getValue()).thenReturn(parameterValue);
+
+                final SecretProperties secretProperties = mock(SecretProperties.class);
+                when(secret.getProperties()).thenReturn(secretProperties);
+
+                final Map<String, String> tags = null;
+                when(secretProperties.getTags()).thenReturn(tags);
+
+                when(secretProperties.getName()).thenReturn(parameterName);
+                when(secretProperties.getVersion()).thenReturn(null);
+                when(secretProperties.isEnabled()).thenReturn(true);
+                when(secretClient.getSecret(eq(parameterName), any())).thenReturn(secret);
+
+                secretPropertiesList.add(secretProperties);
+            }
+
+        }
+
+        final PagedIterable<SecretProperties> mockIterable = mock(PagedIterable.class);
+        when(secretClient.listPropertiesOfSecrets()).thenReturn(mockIterable);
+        when(mockIterable.iterator()).thenReturn(secretPropertiesList.iterator());
+        runProviderTest( 0, ConfigVerificationResult.Outcome.SUCCESSFUL);
+    }
+
+    @Test
     public void testFetchParametersListFailure() throws IOException, InitializationException {
         when(secretClient.listPropertiesOfSecrets()).thenThrow(new RuntimeException("Fake RuntimeException"));
         runProviderTest(0, ConfigVerificationResult.Outcome.FAILED);
@@ -129,6 +182,7 @@ public class TestAzureKeyVaultSecretsParameterProvider {
 
                 when(secretProperties.getName()).thenReturn(parameterName);
                 when(secretProperties.getVersion()).thenReturn(null);
+                when(secretProperties.isEnabled()).thenReturn(true);
                 when(secretClient.getSecret(eq(parameterName), any())).thenReturn(secret);
 
                 secretPropertiesList.add(secretProperties);
