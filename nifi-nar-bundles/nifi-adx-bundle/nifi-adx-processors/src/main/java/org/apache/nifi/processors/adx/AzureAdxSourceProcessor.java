@@ -43,7 +43,6 @@ import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -197,7 +196,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     protected String getQuery(final ProcessSession session, FlowFile incomingFlowFile) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             session.exportTo(incomingFlowFile, baos);
-            return baos.toString(StandardCharsets.UTF_8);
+            return baos.toString("UTF-8");
         }
     }
 
