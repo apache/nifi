@@ -218,7 +218,11 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded()) {
+        final String percentageThreshold = threshold.substring(0, threshold.length() - 1);
+        final double usageThreshold = Double.parseDouble(percentageThreshold);
+        // In certain scenarios in the monitored memory bean the gcSensor can get stuck in 'on' state before the usage would reach the threshold
+        // and this will cause false exceeded state until the next garbage collection. To eliminate this we are adding a condition with the calculated usage threshold.
+        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded() && percentageUsed > usageThreshold) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }
