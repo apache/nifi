@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.signer;
 
 import com.amazonaws.auth.SignerFactory;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 
 import java.util.HashMap;
@@ -67,10 +66,6 @@ public enum AwsSignerType implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
-    }
-
-    public AllowableValue getAllowableValue() {
-        return new AllowableValue(value, displayName, description);
     }
 
     public static AwsSignerType forValue(final String value) {

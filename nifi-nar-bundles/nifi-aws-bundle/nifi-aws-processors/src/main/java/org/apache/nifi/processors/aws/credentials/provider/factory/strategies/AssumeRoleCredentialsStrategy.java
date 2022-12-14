@@ -107,11 +107,12 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         if (assumeRoleArnIsSet) {
             final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
 
-            // Session time only b/w 900 to 3600 sec (see sts session class)
-            if (maxSessionTime < 900 || maxSessionTime > 3600)
+            // Session time only b/w 900 to 3600 sec (see com.amazonaws.services.securitytoken.model.AssumeRoleRequest#withDurationSeconds)
+            if (maxSessionTime < 900 || maxSessionTime > 3600) {
                 validationFailureResults.add(new ValidationResult.Builder().valid(false).input(maxSessionTime + "")
                         .explanation(MAX_SESSION_TIME.getDisplayName() +
                                 " must be between 900 and 3600 seconds").build());
+            }
 
             final boolean assumeRoleProxyHostIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_HOST).isSet();
             final boolean assumeRoleProxyPortIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_PORT).isSet();
