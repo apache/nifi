@@ -104,11 +104,15 @@ public class TestNarBundleExtractor {
         }
     }
 
-    @Test(expected = BundleException.class)
+    @Test
     public void testExtractFromNarMissingExtensionDescriptor() throws IOException {
         try (final InputStream in = new FileInputStream("src/test/resources/nars/nifi-foo-nar-missing-extension-descriptor.nar")) {
-            extractor.extract(in);
-            fail("Should have thrown exception");
+            final BundleDetails bundleDetails = extractor.extract(in);
+            assertNotNull(bundleDetails);
+            assertNotNull(bundleDetails.getBundleIdentifier());
+            assertNotNull(bundleDetails.getExtensions());
+            assertEquals(0, bundleDetails.getExtensions().size());
+            assertEquals(NarBundleExtractor.NA, bundleDetails.getSystemApiVersion());
         }
     }
 

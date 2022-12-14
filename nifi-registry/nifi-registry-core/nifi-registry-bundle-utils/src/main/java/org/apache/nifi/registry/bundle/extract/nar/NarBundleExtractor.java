@@ -67,7 +67,6 @@ public class NarBundleExtractor implements BundleExtractor {
      */
     static String NA = "N/A";
 
-
     @Override
     public BundleDetails extract(final InputStream inputStream) throws IOException {
         try (final JarInputStream jarInputStream = new JarInputStream(inputStream)) {
@@ -185,8 +184,7 @@ public class NarBundleExtractor implements BundleExtractor {
         }
 
         if (!foundExtensionDocs) {
-            throw new BundleException("Unable to find descriptor at '" + EXTENSION_DESCRIPTOR_ENTRY + "'. " +
-                    "This NAR may need to be rebuilt with the latest version of the NiFi NAR Maven Plugin.");
+            builder.systemApiVersion(NA);
         }
     }
 
