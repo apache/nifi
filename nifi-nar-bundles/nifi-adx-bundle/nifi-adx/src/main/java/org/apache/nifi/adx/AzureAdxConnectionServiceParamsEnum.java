@@ -19,10 +19,10 @@ package org.apache.nifi.adx;
 public enum AzureAdxConnectionServiceParamsEnum {
 
     AUTH_STRATEGY("Kusto Authentication Method", "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
-    APP_ID("Application ID","Azure application ID for accessing the ADX-Cluster"),
-    APP_KEY("Application KEY","Azure application Key for accessing the ADX-Cluster"),
-    APP_TENANT("Application Tenant","Azure application tenant for accessing the ADX-Cluster"),
-    CLUSTER_URL("Cluster URL","Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.");
+    APP_ID("Application ID", "Azure application ID for accessing the ADX-Cluster"),
+    APP_KEY("Application KEY", "Azure application Key for accessing the ADX-Cluster"),
+    APP_TENANT("Application Tenant", "Azure application tenant for accessing the ADX-Cluster"),
+    CLUSTER_URL("Cluster URL", "Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.");
 
     private final String paramDisplayName;
     private final String description;

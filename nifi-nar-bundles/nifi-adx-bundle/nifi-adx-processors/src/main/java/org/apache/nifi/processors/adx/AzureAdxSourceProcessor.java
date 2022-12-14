@@ -60,10 +60,6 @@ import java.util.Set;
         @WritesAttribute(attribute = "ADX_EXECUTED_QUERY", description = "Azure Data Explorer executed query.")
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
-    private Client executionClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     public static final String ADX_QUERY_ERROR_MESSAGE = "adx.query.error.message";
     public static final String ADX_EXECUTED_QUERY = "adx.executed.query";
     public static final Relationship RL_SUCCEEDED = new Relationship.Builder()
@@ -95,6 +91,11 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(AdxSourceConnectionService.class)
             .build();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private Set<Relationship> relationships;
+    private List<PropertyDescriptor> descriptors;
+    private Client executionClient;
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptorList = new ArrayList<>();
@@ -194,8 +195,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     }
 
     protected String getQuery(final ProcessSession session, FlowFile incomingFlowFile) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (baos) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             session.exportTo(incomingFlowFile, baos);
             return baos.toString(StandardCharsets.UTF_8);
         }

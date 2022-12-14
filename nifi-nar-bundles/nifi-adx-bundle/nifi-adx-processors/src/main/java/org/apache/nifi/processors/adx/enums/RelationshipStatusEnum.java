@@ -22,7 +22,6 @@ public enum RelationshipStatusEnum {
 
     private final String description;
 
-
     RelationshipStatusEnum(String description) {
         this.description = description;
     }

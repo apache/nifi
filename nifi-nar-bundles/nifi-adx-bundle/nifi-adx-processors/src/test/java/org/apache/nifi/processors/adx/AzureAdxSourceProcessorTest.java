@@ -43,7 +43,6 @@ class AzureAdxSourceProcessorTest {
 
     private static final String MOCK_ADX_QUERY= "mockAdxQuery";
 
-
     private AzureAdxSourceConnectionService azureAdxSourceConnectionService;
 
     private TestRunner testRunner;

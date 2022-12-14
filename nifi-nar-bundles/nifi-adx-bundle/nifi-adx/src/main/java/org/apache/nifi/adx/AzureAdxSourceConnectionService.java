@@ -38,14 +38,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@Tags({ "Azure", "ADX", "Kusto", "ingest", "azure"})
+@Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flow file content or stream flow file content to an Azure ADX cluster.")
 @ReadsAttributes({
-        @ReadsAttribute(attribute= "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
-        @ReadsAttribute(attribute= "APP_ID", description="Specifies Azure application id for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute= "APP_KEY", description="Specifies Azure application key for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute= "APP_TENANT", description="Azure application tenant for accessing the ADX-Cluster."),
-        @ReadsAttribute(attribute= "CLUSTER_URL", description="Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
+        @ReadsAttribute(attribute = "AUTH_STRATEGY", description = "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
+        @ReadsAttribute(attribute = "APP_ID", description = "Specifies Azure application id for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute = "APP_KEY", description = "Specifies Azure application key for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute = "APP_TENANT", description = "Azure application tenant for accessing the ADX-Cluster."),
+        @ReadsAttribute(attribute = "CLUSTER_URL", description = "Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
 public class AzureAdxSourceConnectionService extends AbstractControllerService implements AdxSourceConnectionService {
 
@@ -59,7 +59,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
             .description(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getDescription())
             .required(false)
             .defaultValue(KUSTO_STRATEGY_APPLICATION)
-            .allowableValues(KUSTO_STRATEGY_APPLICATION,KUSTO_STRATEGY_MANAGED_IDENTITY)
+            .allowableValues(KUSTO_STRATEGY_APPLICATION, KUSTO_STRATEGY_MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
@@ -114,8 +114,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     }
 
     /**
-     * @param context
-     *            the configuration context
+     * @param context the configuration context
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
@@ -126,7 +125,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
         adxConnectionParams.setAppKey(context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue());
         adxConnectionParams.setAppTenant(context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue());
         adxConnectionParams.setKustoEngineURL(context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue());
-        if(this.executionClient != null) {
+        if (this.executionClient != null) {
             onStopped();
         }
 
@@ -138,7 +137,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     }
 
     @Override
-    public Client getKustoExecutionClient(){
+    public Client getKustoExecutionClient() {
         return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
                 adxConnectionParams.getAppId(),
                 adxConnectionParams.getAppKey(),
@@ -146,11 +145,11 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                 adxConnectionParams.getKustoAuthStrategy());
     }
 
-    public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
+    public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl, final String appId, final String appKey, final String appTenant, final String kustoAuthStrategy) {
         final ConnectionStringBuilder kcsb;
         switch (kustoAuthStrategy) {
             case KUSTO_STRATEGY_APPLICATION:
-                if (StringUtils.isNotEmpty(appId) && StringUtils.isNotEmpty(appKey)){
+                if (StringUtils.isNotEmpty(appId) && StringUtils.isNotEmpty(appKey)) {
                     kcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                             clusterUrl,
                             appId,
@@ -176,9 +175,9 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
         return kcsb;
     }
 
-    public Client createKustoExecutionClient(final String clusterUrl,final String appId,final String appKey,final String appTenant, final String kustoAuthStrategy) {
+    public Client createKustoExecutionClient(final String clusterUrl, final String appId, final String appKey, final String appTenant, final String kustoAuthStrategy) {
         try {
-            return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl,appId,appKey,appTenant,kustoAuthStrategy));
+            return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy));
         } catch (Exception e) {
             throw new ProcessException("Failed to initialize KustoEngineClient", e);
         }

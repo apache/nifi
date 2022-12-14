@@ -17,11 +17,11 @@
 package org.apache.nifi.processors.adx.enums;
 
 public enum AzureAdxSourceProcessorParamsEnum {
-    DB_NAME("Database name","The name of the database where the query will be executed."),
+    DB_NAME("Database name", "The name of the database where the query will be executed."),
 
     ADX_QUERY("ADX query", "The query which needs to be executed in Azure Data Explorer."),
 
-    ADX_SOURCE_SERVICE("Azure ADX Source Connection Service","Service that provides the Azure Data Explorer(ADX) Connections.");
+    ADX_SOURCE_SERVICE("Azure ADX Source Connection Service", "Service that provides the Azure Data Explorer(ADX) Connections.");
 
     private final String paramDisplayName;
 

@@ -51,7 +51,6 @@ class TestAzureAdxSourceConnectionService {
 
         service = new AzureAdxSourceConnectionService();
         runner.addControllerService("test-good", service);
-
     }
 
     @AfterEach
@@ -76,7 +75,7 @@ class TestAzureAdxSourceConnectionService {
      * test successful adx connection scenario where all valid parameters are passed
      */
     @Test
-    void testCreateExecutionClientSuccess(){
+    void testCreateExecutionClientSuccess() {
         configureAppId();
         configureAppKey();
         configureAppTenant();
@@ -90,7 +89,7 @@ class TestAzureAdxSourceConnectionService {
     }
 
     @Test
-    void testPropertyDescriptor(){
+    void testPropertyDescriptor() {
         configureAppId();
         configureAppKey();
         configureAppTenant();
@@ -105,15 +104,14 @@ class TestAzureAdxSourceConnectionService {
 
 
     @Test
-    void testInvalidConnectionMissingProperty(){
+    void testInvalidConnectionMissingProperty() {
         configureAppId();
         configureAppKey();
         configureAppTenant();
-
         runner.assertNotValid(service);
         runner.setValidateExpressionUsage(false);
 
-        assertThrows(IllegalStateException.class,()-> runner.enableControllerService(service));
+        assertThrows(IllegalStateException.class, () -> runner.enableControllerService(service));
 
     }
 
