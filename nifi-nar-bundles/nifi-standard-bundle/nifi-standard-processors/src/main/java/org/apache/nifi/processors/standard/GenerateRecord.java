@@ -88,7 +88,7 @@ import java.util.stream.Collectors;
 @CapabilityDescription("This processor creates FlowFiles with records having random value for the specified fields. GenerateFakeRecord is useful " +
         "for testing, configuration, and simulation. It uses either user-defined properties to define a record schema or a provided schema and generates the specified number of records using " +
         "random data for the fields in the schema.")
-public class GenerateFakeRecord extends AbstractProcessor {
+public class GenerateRecord extends AbstractProcessor {
 
     // Additional Faker datatypes that don't use predetermined data files (i.e. they generate data or have non-String types)
     static final AllowableValue FT_BOOL = new AllowableValue("Boolean.bool", "Boolean - bool (true/false)", "A value of 'true' or 'false'");
@@ -352,7 +352,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
                                     writeFieldValue = generateValueFromRecordField(writeRecordField, faker, nullPercentage);
                                 } else {
                                     final boolean nullValue;
-                                    if (!context.getProperty(GenerateFakeRecord.NULLABLE_FIELDS).asBoolean() || nullPercentage == 0) {
+                                    if (!context.getProperty(GenerateRecord.NULLABLE_FIELDS).asBoolean() || nullPercentage == 0) {
                                         nullValue = false;
                                     } else {
                                         nullValue = (faker.number().numberBetween(0, 100) <= nullPercentage);

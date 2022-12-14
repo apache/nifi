@@ -47,14 +47,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-public class TestGenerateFakeRecord {
+public class TestGenerateRecord {
 
     private TestRunner testRunner;
-    private GenerateFakeRecord processor;
+    private GenerateRecord processor;
 
     @BeforeEach
     public void setup() {
-        processor = new GenerateFakeRecord();
+        processor = new GenerateRecord();
         testRunner = TestRunners.newTestRunner(processor);
     }
 
@@ -62,7 +62,7 @@ public class TestGenerateFakeRecord {
     public void testGenerateNoNullableFields() throws Exception {
 
         // Set all Faker properties
-        for (Map.Entry<String, GenerateFakeRecord.FakerMethodHolder> fakerProperty : GenerateFakeRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -71,14 +71,14 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "false");
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "100"); // This should be ignored
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "3");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "false");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100"); // This should be ignored
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "3");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -91,7 +91,7 @@ public class TestGenerateFakeRecord {
     @Test
     public void testGenerateNullableFieldsZeroNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, GenerateFakeRecord.FakerMethodHolder> fakerProperty : GenerateFakeRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -100,14 +100,14 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "true");
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "0");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "3");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "0");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "3");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -120,7 +120,7 @@ public class TestGenerateFakeRecord {
     @Test
     public void testGenerateNullableFieldsOneHundredNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, GenerateFakeRecord.FakerMethodHolder> fakerProperty : GenerateFakeRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -129,24 +129,24 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "true");
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "100");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "1");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         // null values should cause all fields to be empty in the output
         // create a string of commas whose number equals the number of fields in the datatypeFunctionMap (size - 1 copies)
-        flowFile.assertContentEquals(String.join("", Collections.nCopies(GenerateFakeRecord.datatypeFunctionMap.size() - 1, ",")) + "\n");
+        flowFile.assertContentEquals(String.join("", Collections.nCopies(GenerateRecord.datatypeFunctionMap.size() - 1, ",")) + "\n");
     }
 
     // Tests that the remaining fields are supported by the processor.
     @Test
     public void testFieldsReturnValue() throws Exception {
 
-        List<Field> fieldTypeFields = Arrays.stream(GenerateFakeRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).collect(Collectors.toList());
+        List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).collect(Collectors.toList());
         for (Field field : fieldTypeFields) {
             testRunner.setProperty(field.getName().toLowerCase(Locale.ROOT), ((AllowableValue) field.get(processor)).getValue());
         }
@@ -156,13 +156,13 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "true");
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "100");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "1");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
     }
 
     @Test
@@ -175,15 +175,15 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.SCHEMA_TEXT, schemaText);
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "true"); // Should be ignored
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "0");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "3");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true"); // Should be ignored
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "0");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "3");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -199,15 +199,15 @@ public class TestGenerateFakeRecord {
         final JsonRecordSetWriter recordWriter = new JsonRecordSetWriter();
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.SCHEMA_TEXT, schemaText);
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "false"); // Should be ignored
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "0");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "3");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "false"); // Should be ignored
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "0");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "3");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         final String output = flowFile.getContent();
         final JsonFactory jsonFactory = new JsonFactory();
         try (JsonParser jsonParser = jsonFactory.createParser(output)) {
@@ -256,15 +256,15 @@ public class TestGenerateFakeRecord {
         final MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1, false, outputSchema);
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
-        testRunner.setProperty(GenerateFakeRecord.RECORD_WRITER, "record-writer");
-        testRunner.setProperty(GenerateFakeRecord.SCHEMA_TEXT, schemaText);
-        testRunner.setProperty(GenerateFakeRecord.NULLABLE_FIELDS, "false"); // Should be ignored
-        testRunner.setProperty(GenerateFakeRecord.NULL_PERCENTAGE, "100");
-        testRunner.setProperty(GenerateFakeRecord.NUM_RECORDS, "1");
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "false"); // Should be ignored
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
 
         testRunner.run();
-        testRunner.assertTransferCount(GenerateFakeRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateFakeRecord.REL_SUCCESS).get(0);
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         // null values should cause all fields to be empty in the output (2 top-level record fields in this case
         flowFile.assertContentEquals(",\n");
     }
