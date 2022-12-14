@@ -49,9 +49,9 @@ import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
 import org.apache.nifi.nar.NarProvider;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
-import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -788,6 +788,17 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             DocGenerator.generate(props, extensionManager, extensionMapping);
 
             // Additionally loaded NARs and collected flow resources must be in place before starting the flows
+            narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
+                    .providers(buildExternalResourceProviders(extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
+                    .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
+                    .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
+                    .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
+                    .restrainingStartup(Boolean.valueOf(props.getProperty(NAR_PROVIDER_RESTRAIN_PROPERTY, "true")))
+                    .build();
+            narProviderService.start();
+
+            // The NarAutoLoader must be started after the provider has started because we don't want the loader to load anything
+            // until all provided NARs are available, in case there is a dependency between any of the provided NARs
             final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
             final NarLoader narLoader = new StandardNarLoader(
                     props.getExtensionsWorkingDirectory(),
@@ -800,15 +811,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
             narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();
-
-            narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
-                    .providers(buildExternalResourceProviders(extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
-                    .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
-                    .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
-                    .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
-                    .restrainingStartup(Boolean.getBoolean(props.getProperty(NAR_PROVIDER_RESTRAIN_PROPERTY, "true")))
-                    .build();
-            narProviderService.start();
 
             // start the server
             server.start();
