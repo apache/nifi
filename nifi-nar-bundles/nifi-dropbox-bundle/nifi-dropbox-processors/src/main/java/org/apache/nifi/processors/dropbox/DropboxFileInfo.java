@@ -37,6 +37,7 @@ public class DropboxFileInfo implements ListableEntity {
     public static final String SIZE = "dropbox.size";
     public static final String TIMESTAMP = "dropbox.timestamp";
     public static final String REVISION = "dropbox.revision";
+    public static final String URL = "dropbox.url";
 
     private static final RecordSchema SCHEMA;
 
@@ -62,7 +63,6 @@ public class DropboxFileInfo implements ListableEntity {
     private final long size;
     private final long timestamp;
     private final String revision;
-
     private DropboxFileInfo(final Builder builder) {
         this.id = builder.id;
         this.path = builder.path;
@@ -71,6 +71,8 @@ public class DropboxFileInfo implements ListableEntity {
         this.timestamp = builder.timestamp;
         this.revision = builder.revision;
     }
+
+
 
     public String getId() {
         return id;

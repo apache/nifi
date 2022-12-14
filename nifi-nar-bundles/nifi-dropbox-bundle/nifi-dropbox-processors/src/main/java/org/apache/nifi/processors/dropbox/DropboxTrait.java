@@ -17,13 +17,17 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
+import static java.lang.String.valueOf;
 
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.http.HttpRequestor;
 import com.dropbox.core.http.OkHttp3Requestor;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import java.net.Proxy;
+import java.util.HashMap;
+import java.util.Map;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -33,6 +37,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 public interface DropboxTrait {
+
+    String DROPBOX_HOME_URL = "https://www.dropbox.com/home";
 
     PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
             .name("dropbox-credential-service")
@@ -76,5 +82,23 @@ public interface DropboxTrait {
 
     default String convertFolderName(String folderName) {
         return "/".equals(folderName) ? "" : folderName;
+    }
+
+    default String getParentPath(String fullPath) {
+        final int idx = fullPath.lastIndexOf("/");
+        final String parentPath = fullPath.substring(0, idx);
+        return "".equals(parentPath) ? "/" : parentPath;
+    }
+
+    default Map<String, String> createAttributeMap(FileMetadata fileMetadata) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(DropboxFileInfo.ID, fileMetadata.getId());
+        attributes.put(DropboxFileInfo.PATH, getParentPath(fileMetadata.getPathDisplay()));
+        attributes.put(DropboxFileInfo.FILENAME, fileMetadata.getName());
+        attributes.put(DropboxFileInfo.SIZE, valueOf(fileMetadata.getSize()));
+        attributes.put(DropboxFileInfo.REVISION, fileMetadata.getRev());
+        attributes.put(DropboxFileInfo.TIMESTAMP, valueOf(fileMetadata.getServerModified().getTime()));
+        attributes.put(DropboxFileInfo.URL, DROPBOX_HOME_URL + fileMetadata.getPathDisplay());
+        return attributes;
     }
 }

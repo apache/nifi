@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.valueOf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.DbxUserFilesRequests;
 import com.dropbox.core.v2.files.FileMetadata;
 import java.io.ByteArrayInputStream;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +49,8 @@ public class FetchDropboxTest {
     public static final String FILE_ID_2 = "id:odTlUvbpIEBBBBBBBBBGGQ";
     public static final String FILENAME = "file_name";
     public static final String FOLDER = "/testFolder";
-    public static final String SIZE = "125";
-    public static final String CREATED_TIME = "1659707000";
+    public static final long SIZE = 125;
+    public static final long CREATED_TIME = 1659707000;
     public static final String REVISION = "5e4ddb1320676a5c29261";
 
     private TestRunner testRunner;
@@ -89,6 +91,7 @@ public class FetchDropboxTest {
 
         when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes(UTF_8)));
+        when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
         MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID_1);
         testRunner.enqueue(inputFlowFile);
@@ -107,6 +110,7 @@ public class FetchDropboxTest {
 
         when(mockDbxUserFilesRequest.download(FOLDER + "/" + FILENAME)).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("contentByPath".getBytes(UTF_8)));
+        when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
         MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID_1);
         testRunner.enqueue(inputFlowFile);
@@ -151,8 +155,8 @@ public class FetchDropboxTest {
         attributes.put(DropboxFileInfo.REVISION, REVISION);
         attributes.put(DropboxFileInfo.FILENAME, FILENAME);
         attributes.put(DropboxFileInfo.PATH, FOLDER);
-        attributes.put(DropboxFileInfo.SIZE, SIZE);
-        attributes.put(DropboxFileInfo.TIMESTAMP, CREATED_TIME);
+        attributes.put(DropboxFileInfo.SIZE, valueOf(SIZE));
+        attributes.put(DropboxFileInfo.TIMESTAMP, valueOf(CREATED_TIME));
         inputFlowFile.putAttributes(attributes);
         return inputFlowFile;
     }
@@ -161,8 +165,18 @@ public class FetchDropboxTest {
         flowFile.assertAttributeEquals(DropboxFileInfo.ID, fileId);
         flowFile.assertAttributeEquals(DropboxFileInfo.REVISION, REVISION);
         flowFile.assertAttributeEquals(DropboxFileInfo.PATH, FOLDER);
-        flowFile.assertAttributeEquals(DropboxFileInfo.SIZE, SIZE);
-        flowFile.assertAttributeEquals(DropboxFileInfo.TIMESTAMP, CREATED_TIME);
+        flowFile.assertAttributeEquals(DropboxFileInfo.SIZE, valueOf(SIZE));
+        flowFile.assertAttributeEquals(DropboxFileInfo.TIMESTAMP, valueOf(CREATED_TIME));
         flowFile.assertAttributeEquals(DropboxFileInfo.FILENAME, FILENAME);
+    }
+
+    private FileMetadata createFileMetadata() {
+        return FileMetadata.newBuilder(FILENAME, FILE_ID_1,
+                        new Date(CREATED_TIME),
+                        new Date(CREATED_TIME),
+                        REVISION, SIZE)
+                .withPathDisplay(FOLDER + "/" + FILENAME)
+                .withIsDownloadable(true)
+                .build();
     }
 }

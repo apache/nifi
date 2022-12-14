@@ -16,14 +16,18 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -48,8 +52,15 @@ import org.apache.nifi.proxy.ProxySpec;
 @Tags({"dropbox", "storage", "fetch"})
 @CapabilityDescription("Fetches files from Dropbox. Designed to be used in tandem with ListDropbox.")
 @SeeAlso({PutDropbox.class, ListDropbox.class})
-@WritesAttributes(
-        @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails.")
+@WritesAttributes({
+        @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails."),
+        @WritesAttribute(attribute = DropboxFileInfo.ID, description = "The Dropbox identifier of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.PATH, description = "The folder path where the file is located"),
+        @WritesAttribute(attribute = DropboxFileInfo.FILENAME, description = "The name of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.SIZE, description = "The size of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.TIMESTAMP, description = "The server modified time, when the file was uploaded to Dropbox"),
+        @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.URL, description = "Dropbox URL of the file")}
 )
 public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
@@ -118,20 +129,28 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         String fileIdentifier = context.getProperty(FILE).evaluateAttributeExpressions(flowFile).getValue();
         fileIdentifier = correctFilePath(fileIdentifier);
 
-        final FlowFile outFlowFile = flowFile;
+        FlowFile outFlowFile = flowFile;
+        final long startNanos = System.nanoTime();
         try {
-            fetchFile(fileIdentifier, session, outFlowFile);
+            FileMetadata fileMetadata = fetchFile(fileIdentifier, session, outFlowFile);
+
+            final Map<String, String> attributes = createAttributeMap(fileMetadata);
+            outFlowFile = session.putAllAttributes(outFlowFile, attributes);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            session.getProvenanceReporter().fetch(flowFile, attributes.get(DropboxFileInfo.URL), transferMillis);
+
             session.transfer(outFlowFile, REL_SUCCESS);
         } catch (Exception e) {
             handleError(session, flowFile, fileIdentifier, e);
         }
     }
 
-    private void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
-        final InputStream dropboxInputStream = dropboxApiClient.files()
-                .download(fileId)
-                .getInputStream();
-        session.importFrom(dropboxInputStream, outFlowFile);
+    private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
+        try (DbxDownloader<FileMetadata> dbxDownloader = dropboxApiClient.files().download(fileId)) {
+            final InputStream dropboxInputStream = dbxDownloader.getInputStream();
+            session.importFrom(dropboxInputStream, outFlowFile);
+            return dbxDownloader.getResult();
+        }
     }
 
     private void handleError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {

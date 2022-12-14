@@ -85,15 +85,33 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
         testRunner.enqueue(CONTENT);
         testRunner.run();
 
-        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
         testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
         testRunner.clearTransferState();
 
         testRunner.enqueue(CHANGED_CONTENT);
         testRunner.run();
         testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 0);
         testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 1);
+    }
 
+    @Test
+    void testUploadExistingFileWithSameContentFailStrategy()  {
+        testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.FAIL_RESOLUTION);
+
+        testRunner.enqueue(CONTENT);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
+
+        testRunner.clearTransferState();
+
+        testRunner.enqueue(CONTENT);
+        testRunner.run();
+        testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 1);
     }
 
     @Test

@@ -267,10 +267,5 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
                 .collect(toList());
     }
 
-    private String getParentPath(String fullPath) {
-        final int idx = fullPath.lastIndexOf("/");
-        final String parentPath = fullPath.substring(0, idx);
-        return "".equals(parentPath) ? "/" : parentPath;
-    }
 
 }
