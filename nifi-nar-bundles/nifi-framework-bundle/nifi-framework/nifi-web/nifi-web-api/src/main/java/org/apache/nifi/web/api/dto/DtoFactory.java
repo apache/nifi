@@ -4247,7 +4247,6 @@ public final class DtoFactory {
                 allowableValueDto.setDescription(allowableValue.getDescription());
                 allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
-            allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
             dto.setAllowableValues(allowableValues);
         }
 
