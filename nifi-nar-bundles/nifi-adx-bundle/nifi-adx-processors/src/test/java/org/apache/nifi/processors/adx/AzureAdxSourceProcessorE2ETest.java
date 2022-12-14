@@ -29,14 +29,14 @@ import java.util.HashMap;
 /**
  * These are end to end tests for ADX Source Processor, which are disabled/skipped by default
  * during maven test phase. These parameters need to be provided during maven build
- * -DexecuteE2ETests=<true>
- * -DappId=<appId>
- * -DappKey=<appKey>
- * -DappTenant=<appTenant>
- * -DclusterUrl=<clusterUrl>
- * -DdatabaseName=<databaseName>
- * -DadxQuery=<query to be executed in source ADX>
- * -DadxQueryLimit=<query who execution will exceed the kusto query limits>
+ * -DexecuteE2ETests=(set to true)
+ * -DappId=(appId)
+ * -DappKey=(appKey)
+ * -DappTenant=(appTenant)
+ * -DclusterUrl=(clusterUrl)
+ * -DdatabaseName=(databaseName)
+ * -DadxQuery=(query-to-be-executed-in-source-ADX)
+ * -DadxQueryLimit=(query-who-execution-will-exceed-the-kusto-query-limits)
  **/
 class AzureAdxSourceProcessorE2ETest {
 
@@ -66,13 +66,13 @@ class AzureAdxSourceProcessorE2ETest {
     /**
      * tests the successful scenario when all the parameters are passed
      * queries the ADX database against the input query and passes the result to flow file of RL_SUCCEEDED
-     * -DexecuteE2ETests=<true>
-     * -DappId=<appId>
-     * -DappKey=<appKey>
-     * -DappTenant=<appTenant>
-     * -DclusterUrl=<clusterUrl>
-     * -DdatabaseName=<databaseName>
-     * -DadxQuery=<query to be executed in source ADX>
+     * -DexecuteE2ETests=(set to true)
+     * -DappId=(appId)
+     * -DappKey=(appKey)
+     * -DappTenant=(appTenant)
+     * -DclusterUrl=(clusterUrl)
+     * -DdatabaseName=(databaseName)
+     * -DadxQuery=<(query-to-be-executed-in-source-ADX)
      */
     @Test
     void testAzureAdxSourceProcessorSuccessE2E() {
@@ -90,13 +90,13 @@ class AzureAdxSourceProcessorE2ETest {
     /**
      * tests the failure scenario when the kusto query limit is execeeded
      * queries the ADX database against the input query, query result records/size too large, results in RL_FAILURE
-     * -DexecuteE2ETests=<true>
-     * -DappId=<appId>
-     * -DappKey=<appKey>
-     * -DappTenant=<appTenant>
-     * -DclusterUrl=<clusterUrl>
-     * -DdatabaseName=<databaseName>
-     * -adxQueryLimit=<query to be executed in source ADX which exceeds the kusto limits 500000records/64MB>
+     * -DexecuteE2ETests=(set to true)
+     * -DappId=(appId)
+     * -DappKey=(appKey)
+     * -DappTenant=(appTenant)
+     * -DclusterUrl=(clusterUrl)
+     * -DdatabaseName=(databaseName)
+     * -adxQueryLimit=(query-to-be-executed-in-source-ADX-which-exceeds-the-kusto-limits-500000records/64MB)
      */
     @Test
     void testAzureAdxSourceProcessorFailureQueryLimitExceededE2E() {
