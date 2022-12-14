@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.github.javafaker.Faker;
+import com.github.javafaker.service.files.EnFile;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -57,10 +58,14 @@ import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,229 +90,21 @@ import java.util.stream.Collectors;
         "random data for the fields in the schema.")
 public class GenerateFakeRecord extends AbstractProcessor {
 
-    static final AllowableValue FT_ADDRESS = new AllowableValue("Address", "Address", "A full address including street, city, state, etc.");
-    static final AllowableValue FT_AIRCRAFT = new AllowableValue("Aircraft", "Aircraft", "The name of a type of aircraft");
-    static final AllowableValue FT_AIRPORT = new AllowableValue("Airport", "Airport", "The code for an airport (RJAF, e.g.)");
-    static final AllowableValue FT_ANCIENT_GOD = new AllowableValue("Ancient God", "Ancient God", "The name of a god from ancient mythology");
-    static final AllowableValue FT_ANCIENT_HERO = new AllowableValue("Ancient Hero", "Ancient Hero", "The name of a hero from ancient mythology");
-    static final AllowableValue FT_ANCIENT_PRIMORDIAL = new AllowableValue("Ancient Primordial", "Primordial", "The name of a primordial from ancient mythology");
-    static final AllowableValue FT_ANCIENT_TITAN = new AllowableValue("Ancient Titan", "Ancient Titan", "The name of a titan from ancient mythology");
-    static final AllowableValue FT_ANIMAL = new AllowableValue("Animal", "Animal", "The name of an animal");
-    static final AllowableValue FT_APP_AUTHOR = new AllowableValue("App Author", "App Author", "The name of an author of an application");
-    static final AllowableValue FT_APP_NAME = new AllowableValue("App Name", "App Name", "The name of an application");
-    static final AllowableValue FT_APP_VERSION = new AllowableValue("App Version", "App Version", "The version of an application");
-    static final AllowableValue FT_ARTIST = new AllowableValue("Artist", "Artist", "The name of the artist");
-    static final AllowableValue FT_AVATAR = new AllowableValue("Avatar URL", "Avatar URL", "The URL of a Twitter avatar");
-    static final AllowableValue FT_BEER_NAME = new AllowableValue("Beer Name", "Beer Name", "The name of a beer");
-    static final AllowableValue FT_BEER_STYLE = new AllowableValue("Beer Style", "Beer Style", "The style of a beer (Light Lager, e.g.)");
-    static final AllowableValue FT_BEER_HOP = new AllowableValue("Beer Hop", "Beer Hop", "A hop used in making beer (Bitter Gold, e.g.)");
-    static final AllowableValue FT_BEER_YEAST = new AllowableValue("Beer Yeast", "Beer Yeast", "A yeast used in making beer (3333 - German Wheat, e.g.) ");
-    static final AllowableValue FT_BEER_MALT = new AllowableValue("Beer Malt", "Beer Malt", "A malt used in making beer (Victory, e.g.)");
-    static final AllowableValue FT_BIRTHDAY = new AllowableValue("Birthday", "Birthday", "Generates a random birthday between 65 and 18 years ago");
-    static final AllowableValue FT_BOOK_AUTHOR = new AllowableValue("Book Author", "Book Author", "The author of a book");
-    static final AllowableValue FT_BOOK_TITLE = new AllowableValue("Book Title", "Book Title", "The title of a book");
-    static final AllowableValue FT_BOOK_PUBLISHER = new AllowableValue("Book Publisher", "Book Publisher", "The publisher of a book");
-    static final AllowableValue FT_BOOK_GENRE = new AllowableValue("Book Genre", "Book Genre", "The genre of a book");
-    static final AllowableValue FT_BOOL = new AllowableValue("Boolean (true/false)", "Boolean (true/false)", "A value of 'true' or 'false'");
-    static final AllowableValue FT_BIC = new AllowableValue("Business Identifier Code (BIC)", "Business Identifier Code (BIC)", "A Business Identifier Code (BIC)");
-    static final AllowableValue FT_BUILDING_NUMBER = new AllowableValue("Building Number", "Building Number", "The number of a building in an address");
-    static final AllowableValue FT_CHUCK_NORRIS_FACT = new AllowableValue("Chuck Norris Fact", "Chuck Norris Fact", "A fact about Chuck Norris");
-    static final AllowableValue FT_CAT_NAME = new AllowableValue("Cat Name", "Cat Name", "The name of a cat");
-    static final AllowableValue FT_CAT_BREED = new AllowableValue("Cat Breed", "Cat Breed", "The breed of a cat");
-    static final AllowableValue FT_CAT_REGISTRY = new AllowableValue("Cat Registry", "Cat Registry", "The registry to which a cat my belong");
-    static final AllowableValue FT_CITY = new AllowableValue("City", "City", "The name of a city");
-    static final AllowableValue FT_COLOR = new AllowableValue("Color", "Color", "The name of a color");
-    static final AllowableValue FT_COMPANY_NAME = new AllowableValue("Company Name", "Company Name", "The name of a company");
-    static final AllowableValue FT_CONSTELLATION = new AllowableValue("Constellation", "Constellation", "The name of a constellation in the galaxy");
-    static final AllowableValue FT_COUNTRY_CAPITOL = new AllowableValue("Country Capitol", "Country Capitol", "The name of a capitol of a country");
-    static final AllowableValue FT_COUNTRY = new AllowableValue("Country", "Country", "The name of a country");
-    static final AllowableValue FT_COUNTRY_CODE = new AllowableValue("Country Code", "Country Code", "A code corresponding to a country (TH, e.g.)");
-    static final AllowableValue FT_COURSE = new AllowableValue("Course of Study", "Course of Study", "The name of a course of study");
-    static final AllowableValue FT_CREDIT_CARD_NUMBER = new AllowableValue("Credit Card Number", "Credit Card Number", "A generated number from a random credit card type");
-    static final AllowableValue FT_DEMONYM = new AllowableValue("Demonym", "Demonym", "The term for a person or thing  from a particular country (Austrian, e.g.)");
-    static final AllowableValue FT_DEPARTMENT_NAME = new AllowableValue("Department Name", "Department Name", "The name of a department in a business");
-
-    static final AllowableValue FT_DOG_BREED = new AllowableValue("Dog Breed", "Dog Breed", "The name of a breed of dog");
-    static final AllowableValue FT_DOG_NAME = new AllowableValue("Dog Name", "Dog Name", "The name of a dog");
-    static final AllowableValue FT_EDUCATIONAL_ATTAINMENT = new AllowableValue("Educational Attainment", "Educational Attainment", "The name of a level of education attained");
-    static final AllowableValue FT_EMAIL_ADDRESS = new AllowableValue("EMail Address", "EMail Address", "A syntactically valid email address (abc@xyz.com, e.g.)");
-    static final AllowableValue FT_FILE_EXTENSION = new AllowableValue("File Extension", "File Extension", "The extension (.exe for example) of a file");
-    static final AllowableValue FT_FILENAME = new AllowableValue("Filename", "Filename", "The name of a file");
-    static final AllowableValue FT_FIRST_NAME = new AllowableValue("First name", "First name", "The first name of a person");
-    static final AllowableValue FT_FOOD = new AllowableValue("Food", "Food", "The name of a prepared dish");
-    static final AllowableValue FT_FUNNY_NAME = new AllowableValue("Funny Name", "Funny Name", "A humorous name of a person");
-    static final AllowableValue FT_FUTURE_DATE = new AllowableValue("Future Date", "Future Date", "Generates a date up to one year in the future from the time the " +
+    // Additional Faker datatypes that don't use predetermined data files (i.e. they generate data or have non-String types)
+    static final AllowableValue FT_BOOL = new AllowableValue("Boolean.bool", "Boolean - bool (true/false)", "A value of 'true' or 'false'");
+    static final AllowableValue FT_FUTURE_DATE = new AllowableValue("DateAndTime.futureDate", "Date And Time - Future Date", "Generates a date up to one year in the " +
+            "future from the time the processor is executed");
+    static final AllowableValue FT_PAST_DATE = new AllowableValue("DateAndTime.pastDate", "Date And Time - Past Date", "Generates a date up to one year in the past from the time the " +
             "processor is executed");
-    static final AllowableValue FT_GOT = new AllowableValue("Game Of Thrones Character", "Game Of Thrones Character", "A character name from Game of Thrones (GoT)");
-    static final AllowableValue FT_HARRY_POTTER = new AllowableValue("Harry Potter Character", "Harry Potter Character", "A character name from the Harry Potter franchise");
-    static final AllowableValue FT_IBAN = new AllowableValue("IBAN", "IBAN", "International Bank Account Number");
-    static final AllowableValue FT_INDUSTRY = new AllowableValue("Industry", "Industry", "The name of an industry (Electrical / Electronic Manufacturing, e.g.)");
-    static final AllowableValue FT_IPV4_ADDRESS = new AllowableValue("IPV4 Address", "IPV4 Address", "A valid Internet Protocol Version 4 (IPv4) address");
-    static final AllowableValue FT_IPV6_ADDRESS = new AllowableValue("IPV6 Address", "IPV6 Address", "A valid Internet Protocol Version 6 (IPv6) address");
-    static final AllowableValue FT_JOB = new AllowableValue("Job", "Job", "The name of a job");
-    static final AllowableValue FT_LANGUAGE = new AllowableValue("Language", "Language", "The name of a language");
-    static final AllowableValue FT_LAST_NAME = new AllowableValue("First name", "First name", "The first name of a person");
-    static final AllowableValue FT_LATITUDE = new AllowableValue("Latitude", "Latitude", "A measurement of degrees of Latitude (-38, e.g.)");
-    static final AllowableValue FT_LONGITUDE = new AllowableValue("Longitude", "Longitude", "A measurement of degrees of Longitude (77, e.g.)");
-    static final AllowableValue FT_LOREM = new AllowableValue("Lorem", "Lorem", "A random latin word (ipsum, e.g.)");
-    static final AllowableValue FT_MAC_ADDRESS = new AllowableValue("MAC Address", "MAC Address", "A syntactically valid Media Access Control (MAC) address");
-    static final AllowableValue FT_MARITAL_STATUS = new AllowableValue("Marital Status", "Marital Status", "A term describing a marital status (Single, e.g.)");
-    static final AllowableValue FT_MD5 = new AllowableValue("MD5", "MD5", "An MD5 hash");
-    static final AllowableValue FT_METAR = new AllowableValue("METAR Weather Report", "METAR Weather Report", "The description of a METAR weather report");
-    static final AllowableValue FT_MIME_TYPE = new AllowableValue("MIME Type", "MIME Type", "The MIME type of a document (text/csv, e.g.)");
-    static final AllowableValue FT_NAME = new AllowableValue("Name", "Name", "A person's name");
-    static final AllowableValue FT_NASDAQ_SYMBOL = new AllowableValue("Nasdaq Stock Symbol", "Nasdaq Stock Symbol", "Stock symbol for the Nasdaq Stock Exchange");
+    static final AllowableValue FT_BIRTHDAY = new AllowableValue("DateAndTime.birthday", "Date And Time - Birthday", "Generates a random birthday between 65 and 18 years ago");
+    static final AllowableValue FT_MD5 = new AllowableValue("Crypto.MD5", "Crypto - MD5", "An MD5 hash");
+    static final AllowableValue FT_NUMBER = new AllowableValue("Number.Integer", "Number - Integer", "A integer number");
+    static final AllowableValue FT_SHA1 = new AllowableValue("Crypto.SHA-1", "Crypto - SHA-1", "A SHA-1 hash");
+    static final AllowableValue FT_SHA256 = new AllowableValue("Crypto.SHA-256", "Crypto - SHA-256", "A SHA-256 hash");
+    static final AllowableValue FT_SHA512 = new AllowableValue("Crypto.SHA-512", "Crypto - SHA-512", "A SHA-512 hash");
 
-    static final AllowableValue FT_NATIONALITY = new AllowableValue("Nationality", "Nationality", "The name of a nationality");
-    static final AllowableValue FT_NUMBER = new AllowableValue("Number", "Number", "A integer number");
-    static final AllowableValue FT_NYSE_SYMBOL = new AllowableValue("NYSE Stock Symbol", "Nasdaq Stock Symbol", "Stock symbol for the New York Stock Exchange (NYSE)");
-    static final AllowableValue FT_PASSWORD = new AllowableValue("Password", "Password", "A password guaranteed to be between 8 and 20 characters and contains " +
-            "at least 1 digit, 1 uppercase letter, and 1 special character");
-    static final AllowableValue FT_PAST_DATE = new AllowableValue("Past Date", "Past Date", "Generates a date up to one year in the past from the time the " +
-            "processor is executed");
-    static final AllowableValue FT_PHONE_NUMBER = new AllowableValue("Phone Number", "Phone Number", "A phone number, possibly with country code and/or extension");
-    static final AllowableValue FT_PHONE_EXTENSION = new AllowableValue("Phone Number Extension", "Phone Number Extension", "The extension of a phone number (x4799, e.g.)");
-    static final AllowableValue FT_PLANET = new AllowableValue("Planet", "Planet", "A planet in our Solar System");
-    static final AllowableValue FT_PROFESSION = new AllowableValue("Profession", "Profession", "The name of a profession");
-    static final AllowableValue FT_RACE = new AllowableValue("Race", "Race", "The name of a Race");
-    static final AllowableValue FT_SECONDARY_ADDRESS = new AllowableValue("Secondary Address", "Secondary Address", "A secondary address (Suite 330, e.g.)");
-    static final AllowableValue FT_SEX = new AllowableValue("Sex", "Sex", "A string containing either Male or Female");
-    static final AllowableValue FT_SHA1 = new AllowableValue("SHA-1", "SHA-1", "A SHA-1 hash");
-    static final AllowableValue FT_SHA256 = new AllowableValue("SHA-256", "SHA-256", "A SHA-256 hash");
-    static final AllowableValue FT_SHA512 = new AllowableValue("SHA-512", "SHA-512", "A SHA-512 hash");
-    static final AllowableValue FT_SHAKESPEARE = new AllowableValue("Shakespeare", "Shakespeare", "A quote from Shakespeare's Romeo and Juliet");
-    static final AllowableValue FT_SLACK_EMOJI = new AllowableValue("Slack Emoji", "Slack Emoji", "A Slack Emoji string in the format ':name:'");
-    static final AllowableValue FT_SSN = new AllowableValue("Social Security Number (SSN)", "Social Security Number (SSN)", "A string in the Social Security Number format");
-    static final AllowableValue FT_SPORT = new AllowableValue("Sport", "Sport", "The name of a sport");
-    static final AllowableValue FT_STAR_TREK_CHARACTER = new AllowableValue("Star Trek Character", "Star Trek Character",
-            "The name of a character from the Star Trek franchise");
-    static final AllowableValue FT_STATE = new AllowableValue("State", "State", "The name of a state in the United States");
-    static final AllowableValue FT_STATE_ABBR = new AllowableValue("State Abbreviation", "State Abbreviation", "The two-letter abbreviation of a state (ME, e.g.)");
-    static final AllowableValue FT_STREET_NAME = new AllowableValue("Street Name", "Street Name", "The name of a street in an address");
-    static final AllowableValue FT_STREET_NUMBER = new AllowableValue("Street Address Number", "Street Address Number", "The number of a building on a street in an address");
-    static final AllowableValue FT_STREET_ADDRESS = new AllowableValue("Street Address", "Street Address", "A street address");
-    static final AllowableValue FT_SUPERHERO = new AllowableValue("Superhero Name", "Superhero Name", "The name of a superhero");
-
-    static final AllowableValue FT_TEMP_F = new AllowableValue("Fahrenheit Temperature", "Fahrenheit Temperature",
-            "A temperature between -22 degrees and 100 degrees Fahrenheit");
-    static final AllowableValue FT_TEMP_C = new AllowableValue("Celsius Temperature", "Celsius Temperature",
-            "A temperature between -30 degrees and 38 degrees Celsius");
-    static final AllowableValue FT_TIMEZONE = new AllowableValue("Timezone", "Timezone", "The name of a timezone (Europe/Lisbon, e.g.)");
-    static final AllowableValue FT_UNIVERSITY = new AllowableValue("University", "University", "The name of a university");
-
-    static final AllowableValue FT_URL = new AllowableValue("URL", "URL", "A syntactically valid Uniform Resource Locator (URL)");
-    static final AllowableValue FT_USER_AGENT = new AllowableValue("User Agent", "User Agent", "A syntactically valid User Agent value for HTTP messages e.g.");
-    static final AllowableValue FT_WEATHER = new AllowableValue("Weather", "Weather", "A string description of possible weather types");
-    static final AllowableValue FT_ZELDA = new AllowableValue("Zelda", "Zelda", "The name of a character in the Zelda franchise");
-    static final AllowableValue FT_ZIP_CODE = new AllowableValue("ZIP Code", "ZIP Code", "A ZIP code from a mailing address");
-
-    static final AllowableValue[] FIELD_TYPES = {
-            FT_ADDRESS,
-            FT_AIRCRAFT,
-            FT_AIRPORT,
-            FT_ANCIENT_GOD,
-            FT_ANCIENT_HERO,
-            FT_ANCIENT_PRIMORDIAL,
-            FT_ANCIENT_TITAN,
-            FT_ANIMAL,
-            FT_APP_AUTHOR,
-            FT_APP_NAME,
-            FT_APP_VERSION,
-            FT_ARTIST,
-            FT_AVATAR,
-            FT_BEER_HOP,
-            FT_BEER_MALT,
-            FT_BEER_NAME,
-            FT_BEER_STYLE,
-            FT_BEER_YEAST,
-            FT_BIRTHDAY,
-            FT_BOOK_AUTHOR,
-            FT_BOOK_GENRE,
-            FT_BOOK_PUBLISHER,
-            FT_BOOK_TITLE,
-            FT_BOOL,
-            FT_BIC,
-            FT_BUILDING_NUMBER,
-            FT_CHUCK_NORRIS_FACT,
-            FT_CAT_BREED,
-            FT_CAT_NAME,
-            FT_CAT_REGISTRY,
-            FT_TEMP_C,
-            FT_CITY,
-            FT_COLOR,
-            FT_COMPANY_NAME,
-            FT_CONSTELLATION,
-            FT_COUNTRY,
-            FT_COUNTRY_CAPITOL,
-            FT_COUNTRY_CODE,
-            FT_COURSE,
-            FT_CREDIT_CARD_NUMBER,
-            FT_DEMONYM,
-            FT_DEPARTMENT_NAME,
-            FT_DOG_BREED,
-            FT_DOG_NAME,
-            FT_EDUCATIONAL_ATTAINMENT,
-            FT_EMAIL_ADDRESS,
-            FT_TEMP_F,
-            FT_FILE_EXTENSION,
-            FT_FILENAME,
-            FT_FIRST_NAME,
-            FT_FOOD,
-            FT_FUNNY_NAME,
-            FT_FUTURE_DATE,
-            FT_GOT,
-            FT_HARRY_POTTER,
-            FT_IBAN,
-            FT_INDUSTRY,
-            FT_IPV4_ADDRESS,
-            FT_IPV6_ADDRESS,
-            FT_JOB,
-            FT_LANGUAGE,
-            FT_LAST_NAME,
-            FT_LATITUDE,
-            FT_LONGITUDE,
-            FT_LOREM,
-            FT_MAC_ADDRESS,
-            FT_MARITAL_STATUS,
-            FT_MD5,
-            FT_METAR,
-            FT_MIME_TYPE,
-            FT_NAME,
-            FT_NASDAQ_SYMBOL,
-            FT_NATIONALITY,
-            FT_NUMBER,
-            FT_NYSE_SYMBOL,
-            FT_PASSWORD,
-            FT_PAST_DATE,
-            FT_PHONE_NUMBER,
-            FT_PHONE_EXTENSION,
-            FT_PLANET,
-            FT_PROFESSION,
-            FT_RACE,
-            FT_SECONDARY_ADDRESS,
-            FT_SEX,
-            FT_SHA1,
-            FT_SHA256,
-            FT_SHA512,
-            FT_SHAKESPEARE,
-            FT_SLACK_EMOJI,
-            FT_SSN,
-            FT_SPORT,
-            FT_STAR_TREK_CHARACTER,
-            FT_STATE,
-            FT_STATE_ABBR,
-            FT_STREET_ADDRESS,
-            FT_STREET_NAME,
-            FT_STREET_NUMBER,
-            FT_SUPERHERO,
-            FT_TIMEZONE,
-            FT_UNIVERSITY,
-            FT_URL,
-            FT_USER_AGENT,
-            FT_WEATHER,
-            FT_ZELDA,
-            FT_ZIP_CODE
-    };
+    static final String FT_LATITUDE_ALLOWABLE_VALUE_NAME = "Address.latitude";
+    static final String FT_LONGITUDE_ALLOWABLE_VALUE_NAME = "Address.longitude";
 
     static final String[] SUPPORTED_LOCALES = {
             "bg",
@@ -360,10 +157,62 @@ public class GenerateFakeRecord extends AbstractProcessor {
             "zh-TW"
     };
 
+    private static final String PACKAGE_PREFIX = "com.github.javafaker";
+
     private volatile Faker faker = new Faker();
 
+    private static final AllowableValue[] fakerDatatypeValues;
+
+    protected static final Map<String, FakerMethodHolder> datatypeFunctionMap = new HashMap<>();
+
+    static {
+        final List<EnFile> fakerFiles = EnFile.getFiles();
+        final Map<String, Class<?>> possibleFakerTypeMap = new HashMap<>(fakerFiles.size());
+        for (EnFile fakerFile : fakerFiles) {
+            String className = normalizeClassName(fakerFile.getFile().substring(0, fakerFile.getFile().indexOf('.')));
+            try {
+                possibleFakerTypeMap.put(className, Class.forName(PACKAGE_PREFIX + '.' + className));
+            } catch (Exception e) {
+                // Ignore, these are the ones we want to filter out
+            }
+        }
+
+        // Filter on no-arg methods that return a String, these should be the methods the user can use to generate data
+        Faker tempFaker = new Faker();
+        List<AllowableValue> fakerDatatypeValueList = new ArrayList<>();
+        for (Map.Entry<String, Class<?>> entry : possibleFakerTypeMap.entrySet()) {
+            List<Method> fakerMethods = Arrays.stream(entry.getValue().getDeclaredMethods()).filter((method) ->
+                            Modifier.isPublic(method.getModifiers())
+                                    && method.getParameterCount() == 0
+                                    && method.getReturnType() == String.class)
+                    .collect(Collectors.toList());
+            try {
+                final Object methodObject = tempFaker.getClass().getDeclaredMethod(normalizeMethodName(entry.getKey())).invoke(tempFaker);
+                for (Method method : fakerMethods) {
+                    final String allowableValueName = normalizeClassName(entry.getKey()) + "." + method.getName();
+                    final String allowableValueDisplayName = normalizeDisplayName(entry.getKey()) + " - " + normalizeDisplayName(method.getName());
+                    datatypeFunctionMap.put(allowableValueName, new FakerMethodHolder(allowableValueName, methodObject, method));
+                    fakerDatatypeValueList.add(new AllowableValue(allowableValueName, allowableValueDisplayName, allowableValueDisplayName));
+                }
+            } catch (Exception e) {
+                // Ignore, this should indicate a Faker method that we're not interested in
+            }
+        }
+
+        // Add types manually for those Faker methods that generate data rather than getting it from a resource file
+        fakerDatatypeValueList.add(FT_FUTURE_DATE);
+        fakerDatatypeValueList.add(FT_PAST_DATE);
+        fakerDatatypeValueList.add(FT_BIRTHDAY);
+        fakerDatatypeValueList.add(FT_NUMBER);
+        fakerDatatypeValueList.add(FT_MD5);
+        fakerDatatypeValueList.add(FT_SHA1);
+        fakerDatatypeValueList.add(FT_SHA256);
+        fakerDatatypeValueList.add(FT_SHA512);
+        fakerDatatypeValues = fakerDatatypeValueList.toArray(new AllowableValue[]{});
+    }
+
     static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
-            .name("schema-text")
+            .name("generate-record-schema-text")
             .displayName("Schema Text")
             .description("The text of an Avro-formatted Schema used to generate record data. If this property is set, any user-defined properties are ignored.")
             .addValidator(new AvroSchemaValidator())
@@ -371,7 +220,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             .required(false)
             .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
+            .name("generate-record-record-writer")
             .displayName("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records")
             .identifiesControllerService(RecordSetWriterFactory.class)
@@ -379,7 +228,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor NUM_RECORDS = new PropertyDescriptor.Builder()
-            .name("gen-fake-record-num-records")
+            .name("generate-record--num-records")
             .displayName("Number of Records")
             .description("Specifies how many records will be generated for each outgoing FlowFile.")
             .required(true)
@@ -389,7 +238,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor LOCALE = new PropertyDescriptor.Builder()
-            .name("gen-fake-record-locale")
+            .name("generate-record-locale")
             .displayName("Locale")
             .description("The locale that will be used to generate field data. For example a Locale of 'es' will generate fields (e.g. names) in Spanish.")
             .required(true)
@@ -399,7 +248,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor NULLABLE_FIELDS = new PropertyDescriptor.Builder()
-            .name("gen-fake-record-nullable-fields")
+            .name("generate-record-nullable-fields")
             .displayName("Nullable Fields")
             .description("Whether the generated fields will be nullable. Note that this property is ignored if Schema Text is set. Also it only affects the schema of the generated data, " +
                     "not whether any values will be null. If this property is true, see 'Null Value Percentage' to set the probability that any generated field will be null.")
@@ -408,7 +257,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             .required(true)
             .build();
     static final PropertyDescriptor NULL_PERCENTAGE = new PropertyDescriptor.Builder()
-            .name("gen-fake-record-null-pct")
+            .name("generate-record-null-pct")
             .displayName("Null Value Percentage")
             .description("The percent probability (0-100%) that a generated value for any nullable field will be null. Set this property to zero to have no null values, or 100 to have all " +
                     "null values.")
@@ -441,8 +290,8 @@ public class GenerateFakeRecord extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-                .allowableValues(FIELD_TYPES)
-                .defaultValue(FT_ADDRESS.getValue())
+                .allowableValues(fakerDatatypeValues)
+                .defaultValue("Address.fullAddress")
                 .required(false)
                 .dynamic(true)
                 .build();
@@ -563,251 +412,33 @@ public class GenerateFakeRecord extends AbstractProcessor {
 
     private Object getFakeData(String type, Faker faker) {
 
-        if (FT_ADDRESS.getValue().equals(type)) {
-            return faker.address().fullAddress();
-        }
-        if (FT_AIRCRAFT.getValue().equals(type)) {
-            return faker.aviation().airport();
-        }
-        if (FT_AIRPORT.getValue().equals(type)) {
-            return faker.aviation().airport();
-        }
-        if (FT_ANCIENT_GOD.getValue().equals(type)) {
-            return faker.ancient().god();
-        }
-        if (FT_ANCIENT_HERO.getValue().equals(type)) {
-            return faker.ancient().hero();
-        }
-        if (FT_ANCIENT_PRIMORDIAL.getValue().equals(type)) {
-            return faker.ancient().primordial();
-        }
-        if (FT_ANCIENT_TITAN.getValue().equals(type)) {
-            return faker.ancient().titan();
-        }
-        if (FT_ANIMAL.getValue().equals(type)) {
-            return faker.animal().name();
-        }
-        if (FT_APP_AUTHOR.getValue().equals(type)) {
-            return faker.app().author();
-        }
-        if (FT_APP_NAME.getValue().equals(type)) {
-            return faker.app().name();
-        }
-        if (FT_APP_VERSION.getValue().equals(type)) {
-            return faker.app().version();
-        }
-        if (FT_ARTIST.getValue().equals(type)) {
-            return faker.artist().name();
-        }
-        if (FT_AVATAR.getValue().equals(type)) {
-            return faker.avatar().image();
-        }
-        if (FT_BEER_HOP.getValue().equals(type)) {
-            return faker.beer().hop();
-        }
-        if (FT_BEER_NAME.getValue().equals(type)) {
-            return faker.beer().name();
-        }
-        if (FT_BEER_MALT.getValue().equals(type)) {
-            return faker.beer().malt();
-        }
-        if (FT_BEER_STYLE.getValue().equals(type)) {
-            return faker.beer().style();
-        }
-        if (FT_BEER_YEAST.getValue().equals(type)) {
-            return faker.beer().yeast();
-        }
-        if (FT_BOOK_AUTHOR.getValue().equals(type)) {
-            return faker.book().author();
-        }
-        if (FT_BOOK_GENRE.getValue().equals(type)) {
-            return faker.book().genre();
-        }
-        if (FT_BOOK_PUBLISHER.getValue().equals(type)) {
-            return faker.book().publisher();
-        }
-        if (FT_BOOK_TITLE.getValue().equals(type)) {
-            return faker.book().title();
-        }
-        if (FT_BOOL.getValue().equals(type)) {
-            return faker.bool().bool();
-        }
-        if (FT_BIC.getValue().equals(type)) {
-            return faker.finance().bic();
-        }
-        if (FT_BIRTHDAY.getValue().equals(type)) {
-            return faker.date().birthday();
-        }
-        if (FT_BUILDING_NUMBER.getValue().equals(type)) {
-            return faker.address().buildingNumber();
-        }
-        if (FT_CHUCK_NORRIS_FACT.getValue().equals(type)) {
-            return faker.chuckNorris().fact();
-        }
-        if (FT_CAT_BREED.getValue().equals(type)) {
-            return faker.cat().breed();
-        }
-        if (FT_CAT_NAME.getValue().equals(type)) {
-            return faker.cat().name();
-        }
-        if (FT_CAT_REGISTRY.getValue().equals(type)) {
-            return faker.cat().registry();
-        }
-        if (FT_CITY.getValue().equals(type)) {
-            return faker.address().city();
-        }
-        if (FT_COLOR.getValue().equals(type)) {
-            return faker.color().name();
-        }
-        if (FT_COMPANY_NAME.getValue().equals(type)) {
-            return faker.company().name();
-        }
-        if (FT_CONSTELLATION.getValue().equals(type)) {
-            return faker.space().constellation();
-        }
-        if (FT_COUNTRY.getValue().equals(type)) {
-            return faker.country().name();
-        }
-        if (FT_COUNTRY_CAPITOL.getValue().equals(type)) {
-            return faker.country().capital();
-        }
-        if (FT_COUNTRY_CODE.getValue().equals(type)) {
-            return faker.address().countryCode();
-        }
-        if (FT_COURSE.getValue().equals(type)) {
-            return faker.educator().course();
-        }
-        if (FT_CREDIT_CARD_NUMBER.getValue().equals(type)) {
-            return faker.finance().creditCard();
-        }
-        if (FT_DEMONYM.getValue().equals(type)) {
-            return faker.demographic().demonym();
-        }
-        if (FT_DEPARTMENT_NAME.getValue().equals(type)) {
-            return faker.commerce().department();
-        }
-        if (FT_DOG_BREED.getValue().equals(type)) {
-            return faker.dog().breed();
-        }
-        if (FT_DOG_NAME.getValue().equals(type)) {
-            return faker.dog().name();
-        }
-        if (FT_EDUCATIONAL_ATTAINMENT.getValue().equals(type)) {
-            return faker.demographic().educationalAttainment();
-        }
-        if (FT_EMAIL_ADDRESS.getValue().equals(type)) {
-            return faker.internet().emailAddress();
-        }
-        if (FT_FILE_EXTENSION.getValue().equals(type)) {
-            return faker.file().extension();
-        }
-        if (FT_FILENAME.getValue().equals(type)) {
-            return faker.file().fileName();
-        }
-        if (FT_FIRST_NAME.getValue().equals(type)) {
-            return faker.name().firstName();
-        }
-        if (FT_FOOD.getValue().equals(type)) {
-            return faker.food().dish();
-        }
-        if (FT_FUNNY_NAME.getValue().equals(type)) {
-            return faker.funnyName().name();
-        }
-        if (FT_FUTURE_DATE.getValue().equals(type)) {
-            return faker.date().future(365, TimeUnit.DAYS);
-        }
-        if (FT_GOT.getValue().equals(type)) {
-            return faker.gameOfThrones().character();
-        }
-        if (FT_HARRY_POTTER.getValue().equals(type)) {
-            return faker.harryPotter().character();
-        }
-        if (FT_IBAN.getValue().equals(type)) {
-            return faker.finance().iban();
-        }
-        if (FT_INDUSTRY.getValue().equals(type)) {
-            return faker.company().industry();
-        }
-        if (FT_IPV4_ADDRESS.getValue().equals(type)) {
-            return faker.internet().ipV4Address();
-        }
-        if (FT_IPV6_ADDRESS.getValue().equals(type)) {
-            return faker.internet().ipV6Address();
-        }
-        if (FT_JOB.getValue().equals(type)) {
-            return faker.job().title();
-        }
-        if (FT_LANGUAGE.getValue().equals(type)) {
-            return faker.nation().language();
-        }
-        if (FT_LAST_NAME.getValue().equals(type)) {
-            return faker.name().lastName();
-        }
-        if (FT_LATITUDE.getValue().equals(type)) {
+        // Catch these two cases ahead of calling the "discovered" Faker method below in order to return a double instead of a String
+        if (FT_LATITUDE_ALLOWABLE_VALUE_NAME.equals(type)) {
             return Double.valueOf(faker.address().latitude());
         }
-        if (FT_LONGITUDE.getValue().equals(type)) {
+        if (FT_LONGITUDE_ALLOWABLE_VALUE_NAME.equals(type)) {
             return Double.valueOf(faker.address().longitude());
         }
-        if (FT_LOREM.getValue().equals(type)) {
-            return faker.lorem().word();
-        }
-        if (FT_MAC_ADDRESS.getValue().equals(type)) {
-            return faker.internet().macAddress();
-        }
-        if (FT_MD5.getValue().equals(type)) {
-            return faker.crypto().md5();
-        }
-        if (FT_MARITAL_STATUS.getValue().equals(type)) {
-            return faker.demographic().maritalStatus();
-        }
-        if (FT_METAR.getValue().equals(type)) {
-            return faker.aviation().METAR();
-        }
-        if (FT_MIME_TYPE.getValue().equals(type)) {
-            return faker.file().mimeType();
-        }
-        if (FT_NAME.getValue().equals(type)) {
-            return faker.name().fullName();
-        }
-        if (FT_NASDAQ_SYMBOL.getValue().equals(type)) {
-            return faker.stock().nsdqSymbol();
-        }
-        if (FT_NATIONALITY.getValue().equals(type)) {
-            return faker.nation().nationality();
-        }
+
+        // Handle Number method not discovered by programmatically getting methods from the Faker objects
         if (FT_NUMBER.getValue().equals(type)) {
             return faker.number().numberBetween(Integer.MIN_VALUE, Integer.MAX_VALUE);
         }
-        if (FT_NYSE_SYMBOL.getValue().equals(type)) {
-            return faker.stock().nyseSymbol();
-        }
-        if (FT_PASSWORD.getValue().equals(type)) {
-            return faker.internet().password(8, 20, true, true, true);
+
+        // Handle DateAndTime methods not discovered by programmatically getting methods from the Faker objects
+        if (FT_FUTURE_DATE.getValue().equals(type)) {
+            return faker.date().future(365, TimeUnit.DAYS);
         }
         if (FT_PAST_DATE.getValue().equals(type)) {
             return faker.date().past(365, TimeUnit.DAYS);
         }
-        if (FT_PHONE_NUMBER.getValue().equals(type)) {
-            return faker.phoneNumber().phoneNumber();
+        if (FT_BIRTHDAY.getValue().equals(type)) {
+            return faker.date().birthday();
         }
-        if (FT_PHONE_EXTENSION.getValue().equals(type)) {
-            return faker.phoneNumber().extension();
-        }
-        if (FT_PLANET.getValue().equals(type)) {
-            return faker.space().planet();
-        }
-        if (FT_PROFESSION.getValue().equals(type)) {
-            return faker.company().profession();
-        }
-        if (FT_RACE.getValue().equals(type)) {
-            return faker.demographic().race();
-        }
-        if (FT_SECONDARY_ADDRESS.getValue().equals(type)) {
-            return faker.address().secondaryAddress();
-        }
-        if (FT_SEX.getValue().equals(type)) {
-            return faker.demographic().sex();
+
+        // Handle Crypto methods not discovered by programmatically getting methods from the Faker objects
+        if (FT_MD5.getValue().equals(type)) {
+            return faker.crypto().md5();
         }
         if (FT_SHA1.getValue().equals(type)) {
             return faker.crypto().sha1();
@@ -818,70 +449,18 @@ public class GenerateFakeRecord extends AbstractProcessor {
         if (FT_SHA512.getValue().equals(type)) {
             return faker.crypto().sha512();
         }
-        if (FT_SHAKESPEARE.getValue().equals(type)) {
-            return faker.shakespeare().romeoAndJulietQuote();
-        }
-        if (FT_SLACK_EMOJI.getValue().equals(type)) {
-            return faker.slackEmoji().emoji();
-        }
-        if (FT_SSN.getValue().equals(type)) {
-            return faker.idNumber().ssnValid();
-        }
-        if (FT_SPORT.getValue().equals(type)) {
-            return faker.team().sport();
-        }
-        if (FT_STAR_TREK_CHARACTER.getValue().equals(type)) {
-            return faker.starTrek().character();
-        }
-        if (FT_STATE.getValue().equals(type)) {
-            return faker.address().state();
-        }
-        if (FT_STATE_ABBR.getValue().equals(type)) {
-            return faker.address().stateAbbr();
-        }
-        if (FT_STREET_ADDRESS.getValue().equals(type)) {
-            return faker.address().streetAddress();
-        }
-        if (FT_STREET_NAME.getValue().equals(type)) {
-            return faker.address().streetName();
-        }
-        if (FT_STREET_NUMBER.getValue().equals(type)) {
-            return faker.address().streetAddressNumber();
-        }
-        if (FT_SUPERHERO.getValue().equals(type)) {
-            return faker.superhero().name();
-        }
-        if (FT_TEMP_C.getValue().equals(type)) {
-            return faker.weather().temperatureCelsius();
-        }
-        if (FT_TEMP_F.getValue().equals(type)) {
-            return faker.weather().temperatureFahrenheit();
-        }
-        if (FT_TIMEZONE.getValue().equals(type)) {
-            return faker.address().timeZone();
-        }
-        if (FT_UNIVERSITY.getValue().equals(type)) {
-            return faker.university().name();
-        }
-        if (FT_URL.getValue().equals(type)) {
-            return faker.internet().url();
-        }
-        if (FT_USER_AGENT.getValue().equals(type)) {
-            return faker.internet().userAgentAny();
-        }
-        if (FT_WEATHER.getValue().equals(type)) {
-            return faker.weather().description();
-        }
-        if (FT_ZELDA.getValue().equals(type)) {
-            return faker.zelda().character();
-        }
-        if (FT_ZIP_CODE.getValue().equals(type)) {
-            return faker.address().zipCode();
-        } else {
+
+        // If not a special circumstance, use the map to call the associated Faker method and return the value
+        try {
+            final FakerMethodHolder fakerMethodHolder = datatypeFunctionMap.get(type);
+            Object returnObject = fakerMethodHolder.getMethod().invoke(fakerMethodHolder.getMethodObject());
+            return returnObject;
+        } catch (InvocationTargetException | IllegalAccessException e) {
             throw new ProcessException(type + " is not a valid value");
         }
     }
 
+    // This method overrides the default String type for certain Faker datatypes for more user-friendly values (such as a Double for latitude/longitude)
     private DataType getDataType(final String type) {
 
         if (FT_FUTURE_DATE.getValue().equals(type)
@@ -890,9 +469,12 @@ public class GenerateFakeRecord extends AbstractProcessor {
         ) {
             return RecordFieldType.DATE.getDataType();
         }
-        if (FT_LATITUDE.getValue().equals(type)
-                || FT_LONGITUDE.getValue().equals(type)) {
+        if (FT_LATITUDE_ALLOWABLE_VALUE_NAME.equals(type)
+                || FT_LONGITUDE_ALLOWABLE_VALUE_NAME.equals(type)) {
             return RecordFieldType.DOUBLE.getDataType("%.8g");
+        }
+        if (FT_NUMBER.getValue().equals(type)) {
+            return RecordFieldType.INT.getDataType();
         }
         if (FT_BOOL.getValue().equals(type)) {
             return RecordFieldType.BOOLEAN.getDataType();
@@ -908,7 +490,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
             case BIGINT:
                 return new BigInteger(String.valueOf(faker.number().numberBetween(Long.MIN_VALUE, Long.MAX_VALUE)));
             case BOOLEAN:
-                return getFakeData(FT_BOOL.getValue(), faker);
+                return getFakeData("Bool.bool", faker);
             case BYTE:
                 return faker.number().numberBetween(Byte.MIN_VALUE, Byte.MAX_VALUE);
             case CHAR:
@@ -928,8 +510,6 @@ public class GenerateFakeRecord extends AbstractProcessor {
             case ENUM:
                 List<String> enums = ((EnumDataType) recordField.getDataType()).getEnums();
                 return enums.get(faker.number().numberBetween(0, enums.size() - 1));
-            case STRING:
-                return generateRandomString();
             case TIME:
                 DateFormat df = new SimpleDateFormat("HH:mm:ss");
                 return df.format((Date) getFakeData(FT_PAST_DATE.getValue(), faker));
@@ -975,6 +555,7 @@ public class GenerateFakeRecord extends AbstractProcessor {
                 DataType chosenType = subTypes.get(faker.number().numberBetween(0, subTypes.size() - 1));
                 RecordField tempRecordField = new RecordField(recordField.getFieldName(), chosenType);
                 return generateValueFromRecordField(tempRecordField, faker, nullPercentage);
+            case STRING:
             default:
                 return generateRandomString();
         }
@@ -1015,7 +596,54 @@ public class GenerateFakeRecord extends AbstractProcessor {
             RecordField recordField = new RecordField(fieldName, fieldDataType, nullable);
             recordFields.add(recordField);
         }
-
         return new SimpleRecordSchema(recordFields);
+    }
+
+    // This method identifies "segments" by splitting the given name on underscores, then capitalizes each segment and removes the underscores. Ex: 'game_of_thrones' = 'GameOfThrones'
+    private static String normalizeClassName(String name) {
+        String[] segments = name.split("_");
+        String newName = Arrays.stream(segments).map((s) -> s.substring(0, 1).toUpperCase() + s.substring(1)).collect(Collectors.joining());
+        return newName;
+    }
+
+    // This method lowercases the first letter of the given name in order to match the name to a Faker method
+    private static String normalizeMethodName(String name) {
+
+        String newName = name.substring(0, 1).toLowerCase() + name.substring(1);
+        return newName;
+    }
+
+    // This method splits the given name on uppercase letters, ensures the first letter is capitalized, then joins the segments using a space. Ex. 'gameOfThrones' = 'Game Of Thrones'
+    private static String normalizeDisplayName(String name) {
+        // Split when the next letter is uppercase
+        String[] upperCaseSegments = name.split("(?=\\p{Upper})");
+
+        return Arrays.stream(upperCaseSegments).map(
+                (upperCaseSegment) -> upperCaseSegment.substring(0, 1).toUpperCase() + upperCaseSegment.substring(1)).collect(Collectors.joining(" "));
+    }
+
+    // This class holds references to objects in order to programmatically make calls to Faker objects to generate random data
+    protected static class FakerMethodHolder {
+        private final String propertyName;
+        private final Object methodObject;
+        private final Method method;
+
+        public FakerMethodHolder(final String propertyName, final Object methodObject, final Method method) {
+            this.propertyName = propertyName;
+            this.methodObject = methodObject;
+            this.method = method;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public Object getMethodObject() {
+            return methodObject;
+        }
+
+        public Method getMethod() {
+            return method;
+        }
     }
 }
