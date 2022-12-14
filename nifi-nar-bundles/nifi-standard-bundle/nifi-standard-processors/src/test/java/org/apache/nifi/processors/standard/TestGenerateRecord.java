@@ -25,6 +25,8 @@ import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.processors.standard.faker.FakerMethodHolder;
+import org.apache.nifi.processors.standard.faker.FakerUtils;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
@@ -62,7 +64,7 @@ public class TestGenerateRecord {
     public void testGenerateNoNullableFields() throws Exception {
 
         // Set all Faker properties
-        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -91,7 +93,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNullableFieldsZeroNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -120,7 +122,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNullableFieldsOneHundredNullPercentage() throws Exception {
         // Set all Faker properties
-        for (Map.Entry<String, GenerateRecord.FakerMethodHolder> fakerProperty : GenerateRecord.datatypeFunctionMap.entrySet()) {
+        for (Map.Entry<String, FakerMethodHolder> fakerProperty : FakerUtils.getDatatypeFunctionMap().entrySet()) {
             testRunner.setProperty(fakerProperty.getKey(), fakerProperty.getKey());
         }
 
@@ -139,7 +141,7 @@ public class TestGenerateRecord {
         MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
         // null values should cause all fields to be empty in the output
         // create a string of commas whose number equals the number of fields in the datatypeFunctionMap (size - 1 copies)
-        flowFile.assertContentEquals(String.join("", Collections.nCopies(GenerateRecord.datatypeFunctionMap.size() - 1, ",")) + "\n");
+        flowFile.assertContentEquals(String.join("", Collections.nCopies(FakerUtils.getDatatypeFunctionMap().size() - 1, ",")) + "\n");
     }
 
     // Tests that the remaining fields are supported by the processor.
@@ -168,7 +170,7 @@ public class TestGenerateRecord {
     @Test
     public void testGenerateNoNullableFieldsSchemaText() throws Exception {
 
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateFakeRecord/nested_no_nullable.avsc")));
+        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_no_nullable.avsc")));
         final Schema avroSchema = new Schema.Parser().parse(schemaText);
         final RecordSchema outputSchema = AvroTypeUtil.createSchema(avroSchema);
 
@@ -195,7 +197,7 @@ public class TestGenerateRecord {
 
     @Test
     public void testGenerateNullableFieldsZeroNullPercentageSchemaText() throws Exception {
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateFakeRecord/nested_nullable.avsc")));
+        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
         final JsonRecordSetWriter recordWriter = new JsonRecordSetWriter();
         testRunner.addControllerService("record-writer", recordWriter);
         testRunner.enableControllerService(recordWriter);
@@ -249,7 +251,7 @@ public class TestGenerateRecord {
 
     @Test
     public void testGenerateNullableFieldsOneHundredNullPercentageSchemaText() throws Exception {
-        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateFakeRecord/nested_nullable.avsc")));
+        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
         final Schema avroSchema = new Schema.Parser().parse(schemaText);
         final RecordSchema outputSchema = AvroTypeUtil.createSchema(avroSchema);
 

@@ -519,8 +519,8 @@
                         <exclude>src/test/resources/ScanAttribute/dictionary1</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
-                        <exclude>src/test/resources/TestGenerateFakeRecord/nested_no_nullable.avsc</exclude>
-                        <exclude>src/test/resources/TestGenerateFakeRecord/nested_nullable.avsc</exclude>
+                        <exclude>src/test/resources/TestGenerateRecord/nested_no_nullable.avsc</exclude>
+                        <exclude>src/test/resources/TestGenerateRecord/nested_nullable.avsc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
