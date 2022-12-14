@@ -47,7 +47,7 @@ class TestAzureAdxSourceConnectionService {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestAzureAdxSourceProcessor.class);
+        runner = TestRunners.newTestRunner(MockAzureAdxSourceProcessor.class);
 
         service = new AzureAdxSourceConnectionService();
         runner.addControllerService("test-good", service);

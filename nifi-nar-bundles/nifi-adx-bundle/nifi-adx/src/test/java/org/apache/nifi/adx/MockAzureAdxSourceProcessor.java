@@ -25,7 +25,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestAzureAdxSourceProcessor extends AbstractProcessor {
+public class MockAzureAdxSourceProcessor extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }
@@ -34,8 +34,8 @@ public class TestAzureAdxSourceProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-                .name("MyService test processor")
-                .description("MyService test processor")
+                .name("AdxService")
+                .description("AdxService")
                 .identifiesControllerService(AdxSourceConnectionService.class)
                 .required(true)
                 .build());

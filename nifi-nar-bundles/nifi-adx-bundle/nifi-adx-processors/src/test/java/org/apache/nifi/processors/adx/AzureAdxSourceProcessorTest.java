@@ -17,7 +17,8 @@
 package org.apache.nifi.processors.adx;
 
 
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import org.apache.nifi.adx.AzureAdxSourceConnectionService;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.adx.mock.MockAzureAdxSourceConnectionService;
@@ -38,7 +39,6 @@ import static org.mockito.Mockito.when;
 
 class AzureAdxSourceProcessorTest {
 
-    private AzureAdxSourceProcessor azureAdxSourceProcessor;
     private static final String MOCK_DB_NAME= "mockDBName";
 
     private static final String MOCK_ADX_QUERY= "mockAdxQuery";
@@ -51,7 +51,7 @@ class AzureAdxSourceProcessorTest {
     @BeforeEach
     public void init() throws InitializationException {
 
-        azureAdxSourceProcessor = new MockAzureAdxSourceProcessor();
+        AzureAdxSourceProcessor azureAdxSourceProcessor = new MockAzureAdxSourceProcessor();
         final ProcessorInitializationContext initContext = Mockito.mock(ProcessorInitializationContext.class);
         final String componentId = "componentId";
         when(initContext.getIdentifier()).thenReturn(componentId);
@@ -136,8 +136,8 @@ class AzureAdxSourceProcessorTest {
     void testAzureAdxSourceProcessorFailureQueryLimitExceeded() throws InitializationException {
         AzureAdxSourceProcessor mockAzureAdxSourceProcessor = new AzureAdxSourceProcessor(){
             @Override
-            protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws OutOfMemoryError {
-                throw new OutOfMemoryError();
+            protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataClientException {
+                throw new DataClientException("ingestionSource","Query execution has exceeded the allowed limits");
             }
         };
 

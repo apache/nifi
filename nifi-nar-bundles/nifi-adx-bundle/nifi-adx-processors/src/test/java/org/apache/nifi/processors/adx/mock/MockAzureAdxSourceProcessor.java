@@ -16,43 +16,28 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
-import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 /**
  * these are mock implementation classes of adx source processor required for junit classes to work properly
  */
 public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
     @Override
-    protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataClientException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
-        List<List<String>> valuesList = new ArrayList<>();
-        valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("SecuredReadyForAggregationQueue"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("FailedIngestionsQueue"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("SuccessfulIngestionsQueue"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("TempStorage"))));
-        valuesList.add(new ArrayList<>((Collections.singletonList("IngestionsStatusTable"))));
+    protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataClientException {
         try {
-            String listAsJson = objectMapper.writeValueAsString(valuesList);
-            String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
-                    "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
-                    "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
-                    + listAsJson + "}]}";
-            return new KustoOperationResult(response, "v1").getPrimaryResults();
-        } catch (KustoServiceQueryError | JsonProcessingException e) {
+            URL url = this.getClass().getResource("/Test.json");
+            String response = new String(Files.readAllBytes(Paths.get(Objects.requireNonNull(url).getFile())));
+            return new KustoOperationResult(response, "v1");
+        } catch (KustoServiceQueryError | IOException e) {
             throw new DataClientException("exception","exception",e);
         }
     }

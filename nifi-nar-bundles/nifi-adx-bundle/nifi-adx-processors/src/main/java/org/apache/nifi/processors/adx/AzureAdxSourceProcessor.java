@@ -18,9 +18,10 @@ package org.apache.nifi.processors.adx;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.adx.AdxSourceConnectionService;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -36,14 +37,15 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import org.apache.nifi.processors.adx.enums.AzureAdxSourceProcessorParamsEnum;
+import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -58,18 +60,12 @@ import java.util.Set;
         @WritesAttribute(attribute = "ADX_EXECUTED_QUERY", description = "Azure Data Explorer executed query.")
 })
 public class AzureAdxSourceProcessor extends AbstractProcessor {
-
     private Set<Relationship> relationships;
-
     private List<PropertyDescriptor> descriptors;
     private Client executionClient;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
-
     public static final String ADX_QUERY_ERROR_MESSAGE = "adx.query.error.message";
-
     public static final String ADX_EXECUTED_QUERY = "adx.executed.query";
-
     public static final Relationship RL_SUCCEEDED = new Relationship.Builder()
             .name(RelationshipStatusEnum.RL_SUCCEEDED.name())
             .description(RelationshipStatusEnum.RL_SUCCEEDED.getDescription())
@@ -78,7 +74,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .name(RelationshipStatusEnum.RL_FAILED.name())
             .description(RelationshipStatusEnum.RL_FAILED.getDescription())
             .build();
-
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.DB_NAME.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.DB_NAME.getParamDisplayName())
@@ -86,7 +81,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor ADX_QUERY = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_QUERY.getParamDisplayName())
@@ -94,7 +88,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     public static final PropertyDescriptor ADX_SOURCE_SERVICE = new PropertyDescriptor
             .Builder().name(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.name())
             .displayName(AzureAdxSourceProcessorParamsEnum.ADX_SOURCE_SERVICE.getParamDisplayName())
@@ -102,10 +95,8 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
             .required(true)
             .identifiesControllerService(AdxSourceConnectionService.class)
             .build();
-
     @Override
     protected void init(final ProcessorInitializationContext context) {
-
         final List<PropertyDescriptor> descriptorList = new ArrayList<>();
         descriptorList.add(ADX_SOURCE_SERVICE);
         descriptorList.add(DB_NAME);
@@ -136,23 +127,19 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         FlowFile outgoingFlowFile;
-
         String databaseName = context.getProperty(DB_NAME).getValue();
         String adxQuery;
-        KustoResultSetTable kustoResultSetTable;
+        KustoOperationResult kustoOperationResult;
 
         //checks if this processor has any preceding connection, if yes retrieve
         if ( context.hasIncomingConnection() ) {
             FlowFile incomingFlowFile = session.get();
-
             //incoming connection exists but the incoming flowfile is null
             if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
                 getLogger().error("Incoming connection exists but Incoming flow file is null");
                 return;
             }
-
             //incoming connection exists and retrieve adxQuery from context
             if ( incomingFlowFile != null && incomingFlowFile.getSize() == 0 ) {
                 if ( context.getProperty(ADX_QUERY).isSet() ) {
@@ -173,7 +160,6 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
                 }
             }
             outgoingFlowFile = incomingFlowFile;
-
         } else {
             outgoingFlowFile = session.create();
             adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
@@ -181,34 +167,30 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
         try {
             //execute Query
-            kustoResultSetTable = executeQuery(databaseName,adxQuery);
-            List<List<Object>> tableData = kustoResultSetTable.getData();
-
+            kustoOperationResult = executeQuery(databaseName,adxQuery);
+            List<List<Object>> tableData = kustoOperationResult.getPrimaryResults().getData();
             String json = tableData.size() == 1 ? objectMapper.writeValueAsString(tableData.get(0)) : objectMapper.writeValueAsString(tableData);
-
             if ( getLogger().isDebugEnabled() ) {
                 getLogger().debug("Query result {} ", tableData);
             }
-
-            ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes());
-            session.importFrom(bais, outgoingFlowFile);
-            bais.close();
-
+            try(ByteArrayInputStream bais = new ByteArrayInputStream(json.getBytes())){
+                session.importFrom(bais, outgoingFlowFile);
+            }
             //if no error
             outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
             session.transfer(outgoingFlowFile, RL_SUCCEEDED);
-        }catch (OutOfMemoryError ex){
-            getLogger().error("Exception occurred while reading data from ADX : Query Limits exceeded : Please modify your query to fetch results below the kusto query limits ", ex);
-            session.transfer(outgoingFlowFile, RL_FAILED);
-        } catch (DataServiceException | DataClientException | IOException e) {
-            getLogger().error("Exception occurred while reading data from ADX ", e);
+        } catch (DataServiceException | IOException | DataClientException e) {
+            if(Arrays.stream(ExceptionUtils.getRootCauseStackTrace(e)).anyMatch(str -> str.contains("LimitsExceeded"))){
+                getLogger().error("Exception occurred while reading data from ADX : Query Limits exceeded : Please modify your query to fetch results below the kusto query limits ", e);
+            }else{
+                getLogger().error("Exception occurred while reading data from ADX ", e);
+            }
             session.transfer(outgoingFlowFile, RL_FAILED);
         }
-
     }
 
-    protected KustoResultSetTable executeQuery(String databaseName, String adxQuery) throws DataServiceException, DataClientException, OutOfMemoryError {
-        return executionClient.execute(databaseName,adxQuery).getPrimaryResults();
+    protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataServiceException, DataClientException {
+        return executionClient.execute(databaseName,adxQuery);
     }
 
     protected String getQuery(final ProcessSession session, FlowFile incomingFlowFile) throws IOException {

@@ -36,13 +36,9 @@ import java.util.HashMap;
  * -DclusterUrl=(clusterUrl)
  * -DdatabaseName=(databaseName)
  * -DadxQuery=(query-to-be-executed-in-source-ADX)
- * -DadxQueryLimit=(query-who-execution-will-exceed-the-kusto-query-limits)
+ * -DadxQueryWhichExceedsLimit=(query-who-execution-will-exceed-the-kusto-query-limits)
  **/
 class AzureAdxSourceProcessorE2ETest {
-
-    private AzureAdxSourceProcessor azureAdxSourceProcessor;
-
-    private AzureAdxSourceConnectionService azureAdxSourceConnectionService;
 
     private TestRunner testRunner;
 
@@ -50,10 +46,10 @@ class AzureAdxSourceProcessorE2ETest {
     public void init() throws InitializationException {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        azureAdxSourceProcessor = new AzureAdxSourceProcessor();
+        AzureAdxSourceProcessor azureAdxSourceProcessor = new AzureAdxSourceProcessor();
         testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
         testRunner.setValidateExpressionUsage(false);
-        azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
+        AzureAdxSourceConnectionService azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
         testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
         testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
         testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
@@ -96,13 +92,13 @@ class AzureAdxSourceProcessorE2ETest {
      * -DappTenant=(appTenant)
      * -DclusterUrl=(clusterUrl)
      * -DdatabaseName=(databaseName)
-     * -adxQueryLimit=(query-to-be-executed-in-source-ADX-which-exceeds-the-kusto-limits-500000records/64MB)
+     * -adxQueryWhichExceedsLimit=(query-to-be-executed-in-source-ADX-which-exceeds-the-kusto-limits-500000records/64MB)
      */
     @Test
     void testAzureAdxSourceProcessorFailureQueryLimitExceededE2E() {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQueryLimit"));
+        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQueryWhichExceedsLimit"));
         testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
         testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
         testRunner.setIncomingConnection(false);
