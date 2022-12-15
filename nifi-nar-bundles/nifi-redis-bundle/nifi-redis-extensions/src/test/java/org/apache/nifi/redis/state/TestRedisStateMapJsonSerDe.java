@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -49,7 +50,7 @@ public class TestRedisStateMapJsonSerDe {
 
         final RedisStateMap deserialized = serDe.deserialize(serialized);
         assertNotNull(deserialized);
-        assertEquals(stateMap.getVersion(), deserialized.getVersion());
+        assertEquals(stateMap.getStateVersion(), deserialized.getStateVersion());
         assertEquals(stateMap.getEncodingVersion(), deserialized.getEncodingVersion());
         assertEquals(stateMap.toMap(), deserialized.toMap());
     }
@@ -73,7 +74,7 @@ public class TestRedisStateMapJsonSerDe {
 
         final RedisStateMap deserialized = serDe.deserialize(serialized);
         assertNotNull(deserialized);
-        assertEquals(RedisStateMap.DEFAULT_VERSION.longValue(), stateMap.getVersion());
+        assertFalse(stateMap.getStateVersion().isPresent());
         assertEquals(RedisStateMap.DEFAULT_ENCODING, stateMap.getEncodingVersion());
         assertNotNull(deserialized.toMap());
         assertEquals(0, deserialized.toMap().size());

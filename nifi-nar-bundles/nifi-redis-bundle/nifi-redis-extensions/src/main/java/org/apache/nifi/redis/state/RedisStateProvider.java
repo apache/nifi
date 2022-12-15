@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A StateProvider backed by Redis.
@@ -212,14 +213,14 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             final byte[] key = getComponentKey(componentId).getBytes(StandardCharsets.UTF_8);
             redisConnection.watch(key);
 
-            final long prevVersion = oldValue == null ? -1L : oldValue.getVersion();
+            final Optional<String> previousVersion = oldValue == null ? Optional.empty() : oldValue.getStateVersion();
 
             final byte[] currValue = redisConnection.get(key);
             final RedisStateMap currStateMap = serDe.deserialize(currValue);
-            final long currVersion = currStateMap == null ? -1L : currStateMap.getVersion();
+            final Optional<String> currentVersion = currStateMap == null ? Optional.empty() : currStateMap.getStateVersion();
 
             // the replace API expects that you can't call replace on a non-existing value, so unwatch and return
-            if (!allowReplaceMissing && currVersion == -1) {
+            if (!allowReplaceMissing && !currentVersion.isPresent()) {
                 redisConnection.unwatch();
                 return false;
             }
@@ -228,10 +229,11 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             redisConnection.multi();
 
             // compare-and-set
-            if (prevVersion == currVersion) {
+            if (previousVersion.equals(currentVersion)) {
                 // build the new RedisStateMap incrementing the version, using latest encoding, and using the passed in values
+                final long currentVersionNumber = currentVersion.map(Long::parseLong).orElse(RedisStateMapJsonSerDe.EMPTY_VERSION);
                 final RedisStateMap newStateMap = new RedisStateMap.Builder()
-                        .version(currVersion + 1)
+                        .version(currentVersionNumber + 1)
                         .encodingVersion(ENCODING_VERSION)
                         .stateValues(newValue)
                         .build();
@@ -263,7 +265,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             updated = replace(currStateMap, Collections.emptyMap(), componentId, true);
 
             final String result = updated ? "successful" : "unsuccessful";
-            logger.debug("Attempt # {} to clear state for component {} was {}", new Object[] { attempted + 1, componentId, result});
+            logger.debug("Attempt # {} to clear state for component {} was {}", attempted + 1, componentId, result);
 
             attempted++;
         }

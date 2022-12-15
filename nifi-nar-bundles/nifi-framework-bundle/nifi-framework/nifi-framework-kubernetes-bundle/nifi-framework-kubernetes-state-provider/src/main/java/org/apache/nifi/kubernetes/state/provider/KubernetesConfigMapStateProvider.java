@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -48,8 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class KubernetesConfigMapStateProvider extends AbstractConfigurableComponent implements StateProvider {
     private static final Scope[] SUPPORTED_SCOPES = { Scope.CLUSTER };
-
-    private static final long UNKNOWN_VERSION = 0;
 
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 
@@ -114,7 +113,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         try {
             final ConfigMap configMap = createConfigMapBuilder(state, componentId).build();
             final ConfigMap configMapCreated = kubernetesClient.configMaps().resource(configMap).createOrReplace();
-            final long version = getVersion(configMapCreated);
+            final Optional<String> version = getVersion(configMapCreated);
             logger.debug("Set State Component ID [{}] Version [{}]", componentId, version);
         } catch (final KubernetesClientException e) {
             if (isNotFound(e.getCode())) {
@@ -139,7 +138,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         try {
             final ConfigMap configMap = configMapResource(componentId).get();
             final Map<String, String> data = configMap == null ? Collections.emptyMap() : getDecodedMap(configMap.getData());
-            final long version = configMap == null ? UNKNOWN_VERSION : getVersion(configMap);
+            final Optional<String> version = configMap == null ? Optional.empty() : getVersion(configMap);
             return new StandardStateMap(data, version);
         } catch (final RuntimeException e) {
             throw new IOException(String.format("Get failed for Component ID [%s]", componentId), e);
@@ -156,21 +155,22 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
      */
     @Override
     public boolean replace(final StateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
-        final String resourceVersion = Long.toString(currentState.getVersion());
-        final ConfigMap configMap = createConfigMapBuilder(state, componentId)
-                .editOrNewMetadata()
-                .withResourceVersion(resourceVersion)
-                .endMetadata()
-                .build();
+        final ConfigMapBuilder configMapBuilder = createConfigMapBuilder(state, componentId);
+        final Optional<String> stateVersion = currentState.getStateVersion();
+        if (stateVersion.isPresent()) {
+            final String resourceVersion = stateVersion.get();
+            configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion);
+        }
+        final ConfigMap configMap = configMapBuilder.build();
 
         try {
             final ConfigMap configMapReplaced = kubernetesClient.configMaps().resource(configMap).replace();
-            final long version = getVersion(configMapReplaced);
+            final Optional<String> version = getVersion(configMapReplaced);
             logger.debug("Replaced State Component ID [{}] Version [{}]", componentId, version);
             return true;
         } catch (final KubernetesClientException e) {
             if (isNotFoundOrConflict(e.getCode())) {
-                logger.debug("Replace State Failed Component ID [{}] Version [{}]", componentId, resourceVersion, e);
+                logger.debug("Replace State Failed Component ID [{}] Version [{}]", componentId, stateVersion, e);
                 return false;
             } else {
                 throw new IOException(String.format("Replace failed for Component ID [%s]", componentId), e);
@@ -276,15 +276,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         return String.format(CONFIG_MAP_NAME_FORMAT, componentId);
     }
 
-    private long getVersion(final ConfigMap configMap) {
+    private Optional<String> getVersion(final ConfigMap configMap) {
         final ObjectMeta metadata = configMap.getMetadata();
         final String resourceVersion = metadata.getResourceVersion();
-        try {
-            return resourceVersion == null ? UNKNOWN_VERSION : Long.parseLong(resourceVersion);
-        } catch (final NumberFormatException e) {
-            logger.debug("ConfigMap [{}] Resource Version [{}] parsing failed", metadata.getName(), resourceVersion);
-            return UNKNOWN_VERSION;
-        }
+        return Optional.ofNullable(resourceVersion);
     }
 
     private Map<String, String> getEncodedMap(final Map<String, String> stateMap) {

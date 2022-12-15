@@ -141,7 +141,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        assertEquals(-1L, runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion(), "Cluster StateMap should be fresh (version -1L)");
+        assertFalse(runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getStateVersion().isPresent(), "Cluster StateMap should be fresh (version -1L)");
         assertTrue(processor.getStateKeys().isEmpty());
 
         processor.restoreState(runner.getProcessSessionFactory().createSession());
@@ -187,9 +187,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        assertEquals(-1L,
-                runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion(),
-                "Cluster StateMap should be fresh (version -1L)"
+        assertFalse(
+                runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getStateVersion().isPresent(),
+                "Cluster StateMap should be fresh"
         );
 
         final Set<String> keys = new LinkedHashSet<>(Arrays.asList("test-key-0", "test-key-1"));
@@ -197,7 +197,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         processor.persistState(session, 4L, keys);
 
         final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
-        assertEquals(1L, stateMap.getVersion(), "Cluster StateMap should have been written to");
+        assertTrue(stateMap.getStateVersion().isPresent(), "Cluster StateMap should have been written to");
 
         final Map<String, String> state = new HashMap<>();
         state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(4L));
@@ -369,7 +369,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
         verifyConfigVerification(runner, processor, 0);
 
-        assertEquals(-1L, runner.getStateManager().getState(Scope.CLUSTER).getVersion(), "No state should be persisted on an empty return");
+        assertFalse(runner.getStateManager().getState(Scope.CLUSTER).getStateVersion().isPresent(), "No state should be persisted on an empty return");
     }
 
     @Test

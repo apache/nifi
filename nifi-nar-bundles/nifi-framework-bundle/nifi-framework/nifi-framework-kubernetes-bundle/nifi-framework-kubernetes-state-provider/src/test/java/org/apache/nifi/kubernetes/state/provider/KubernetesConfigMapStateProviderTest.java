@@ -52,11 +52,9 @@ import static org.mockito.Mockito.when;
 class KubernetesConfigMapStateProviderTest {
     private static final String IDENTIFIER = KubernetesConfigMapStateProvider.class.getSimpleName();
 
-    private static final long UNKNOWN_VERSION = 0;
+    private static final String FIRST_VERSION = "1";
 
-    private static final long FIRST_VERSION = 1;
-
-    private static final long SECOND_VERSION = 2;
+    private static final String SECOND_VERSION = "2";
 
     private static final String DEFAULT_NAMESPACE = "default";
 
@@ -126,7 +124,7 @@ class KubernetesConfigMapStateProviderTest {
         final StateMap stateMap = provider.getState(COMPONENT_ID);
 
         assertTrue(stateMap.toMap().isEmpty());
-        assertEquals(UNKNOWN_VERSION, stateMap.getVersion());
+        assertFalse(stateMap.getStateVersion().isPresent());
     }
 
     @Test
@@ -184,7 +182,7 @@ class KubernetesConfigMapStateProviderTest {
         setContext();
         provider.initialize(context);
 
-        final StateMap stateMap = new StandardStateMap(Collections.emptyMap(), UNKNOWN_VERSION);
+        final StateMap stateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
         final boolean replaced = provider.replace(stateMap, Collections.emptyMap(), COMPONENT_ID);
 
         assertFalse(replaced);
@@ -199,14 +197,18 @@ class KubernetesConfigMapStateProviderTest {
         provider.setState(state, COMPONENT_ID);
 
         final StateMap initialStateMap = provider.getState(COMPONENT_ID);
-        assertEquals(FIRST_VERSION, initialStateMap.getVersion());
+        final Optional<String> initialVersion = initialStateMap.getStateVersion();
+        assertTrue(initialVersion.isPresent());
+        assertEquals(FIRST_VERSION, initialVersion.get());
 
         final boolean replaced = provider.replace(initialStateMap, Collections.emptyMap(), COMPONENT_ID);
 
         assertTrue(replaced);
 
         final StateMap replacedStateMap = provider.getState(COMPONENT_ID);
-        assertEquals(SECOND_VERSION, replacedStateMap.getVersion());
+        final Optional<String> replacedVersion = replacedStateMap.getStateVersion();
+        assertTrue(replacedVersion.isPresent());
+        assertEquals(SECOND_VERSION, replacedVersion.get());
     }
 
     @Test

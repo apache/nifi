@@ -246,7 +246,7 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
         return new StandardLeaderElectionCommandProvider(kubernetesClientProvider, namespace);
     }
 
-    private void registerLeaderElectionCommand(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
+    private synchronized void registerLeaderElectionCommand(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
         final Future<?> currentRoleCommand = roleCommands.get(roleName);
         if (currentRoleCommand == null) {
             final String roleId = getRoleId(roleName);

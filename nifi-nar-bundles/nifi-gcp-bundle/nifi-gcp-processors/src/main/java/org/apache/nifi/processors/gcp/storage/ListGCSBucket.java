@@ -318,7 +318,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     void restoreState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
-        if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
+        if (!stateMap.getStateVersion().isPresent() || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
             currentKeys.clear();
         } else {

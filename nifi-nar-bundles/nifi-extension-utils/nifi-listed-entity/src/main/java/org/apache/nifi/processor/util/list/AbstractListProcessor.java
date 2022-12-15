@@ -398,7 +398,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // Check if state already exists for this path. If so, we have already migrated the state.
         final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-        if (stateMap.getVersion() == -1L) {
+        if (!stateMap.getStateVersion().isPresent()) {
             try {
                 // Migrate state from the old way of managing state (distributed cache service and local file)
                 // to the new mechanism (State Manager).

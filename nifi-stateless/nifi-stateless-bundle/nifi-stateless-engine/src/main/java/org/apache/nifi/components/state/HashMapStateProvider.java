@@ -28,9 +28,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class HashMapStateProvider implements StateProvider {
-    private static final int UNKNOWN_STATE_VERSION = -1;
+    private static final long VERSION_INCREMENT = 1;
+    private static final String INITIAL_VERSION = String.valueOf(VERSION_INCREMENT);
+
     private final Map<String, StateMap> committedStates = new HashMap<>();
     private final Map<String, StateMap> activeStates = new HashMap<>();
 
@@ -67,8 +70,9 @@ public class HashMapStateProvider implements StateProvider {
     @Override
     public synchronized void setState(final Map<String, String> state, final String componentId) {
         final StateMap existing = getState(componentId);
-        final long version = existing == null ? UNKNOWN_STATE_VERSION : existing.getVersion();
-        final StateMap updated = new StandardStateMap(state, version + 1);
+        final Optional<String> existingVersion = existing.getStateVersion();
+        final String version = existingVersion.map(this::getIncrementedVersion).orElse(INITIAL_VERSION);
+        final StateMap updated = new StandardStateMap(state, Optional.of(version));
         activeStates.put(componentId, updated);
     }
 
@@ -79,13 +83,13 @@ public class HashMapStateProvider implements StateProvider {
             existing = committedStates.get(componentId);
         }
 
-        return existing == null ? new StandardStateMap(Collections.emptyMap(), -1) : existing;
+        return existing == null ? new StandardStateMap(Collections.emptyMap(), Optional.empty()) : existing;
     }
 
     @Override
     public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) {
         final StateMap existing = getState(componentId);
-        if (oldValue.getVersion() == existing.getVersion() && oldValue.toMap().equals(existing.toMap())) {
+        if (oldValue.getStateVersion().equals(existing.getStateVersion()) && oldValue.toMap().equals(existing.toMap())) {
             setState(newValue, componentId);
             return true;
         }
@@ -147,5 +151,11 @@ public class HashMapStateProvider implements StateProvider {
     @Override
     public String getIdentifier() {
         return "stateless-state-provider";
+    }
+
+    private String getIncrementedVersion(final String currentVersion) {
+        final long versionNumber = Long.parseLong(currentVersion);
+        final long version = versionNumber + VERSION_INCREMENT;
+        return String.valueOf(version);
     }
 }

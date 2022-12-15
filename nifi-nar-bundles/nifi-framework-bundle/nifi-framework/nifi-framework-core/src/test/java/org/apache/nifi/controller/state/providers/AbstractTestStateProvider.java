@@ -59,7 +59,7 @@ public abstract class AbstractTestStateProvider {
 
         StateMap map = provider.getState(componentId);
         assertNotNull(map);
-        assertEquals(-1, map.getVersion());
+        assertFalse(map.getStateVersion().isPresent());
 
         assertNotNull(map.toMap());
         assertTrue(map.toMap().isEmpty());
@@ -67,7 +67,7 @@ public abstract class AbstractTestStateProvider {
 
         map = provider.getState(componentId);
         assertNotNull(map);
-        assertEquals(0, map.getVersion());
+        assertTrue(map.getStateVersion().isPresent());
         assertEquals("value1", map.get(key));
         assertEquals("value1", map.toMap().get(key));
 
@@ -77,7 +77,7 @@ public abstract class AbstractTestStateProvider {
 
         map = provider.getState(componentId);
         assertEquals("value2", map.get(key));
-        assertEquals(1L, map.getVersion());
+        assertTrue(map.getStateVersion().isPresent());
     }
 
     @Test
@@ -89,7 +89,7 @@ public abstract class AbstractTestStateProvider {
         StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
         assertEquals("value1", stateMap.get(key));
-        assertEquals(0, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
 
         provider.setState(Collections.singletonMap(key, "intermediate value"), componentId);
 
@@ -98,7 +98,7 @@ public abstract class AbstractTestStateProvider {
         assertEquals(key, stateMap.toMap().keySet().iterator().next());
         assertEquals(1, stateMap.toMap().size());
         assertEquals("intermediate value", stateMap.get(key));
-        assertEquals(1, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
     }
 
 
@@ -116,13 +116,13 @@ public abstract class AbstractTestStateProvider {
         assertEquals(1, map.size());
         assertEquals("value", map.get(key));
 
-        provider.setState(Collections.<String, String> emptyMap(), componentId);
+        provider.setState(Collections.emptyMap(), componentId);
 
         final StateMap stateMap = provider.getState(componentId);
         map = stateMap.toMap();
         assertNotNull(map);
         assertTrue(map.isEmpty());
-        assertEquals(1, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
     }
 
     @Test
@@ -130,21 +130,21 @@ public abstract class AbstractTestStateProvider {
         final StateProvider provider = getProvider();
         StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(-1L, stateMap.getVersion());
+        assertFalse(stateMap.getStateVersion().isPresent());
         assertTrue(stateMap.toMap().isEmpty());
 
         provider.setState(Collections.singletonMap("testClear", "value"), componentId);
 
         stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(0, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
         assertEquals("value", stateMap.get("testClear"));
 
         provider.clear(componentId);
 
         stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(1L, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
         assertTrue(stateMap.toMap().isEmpty());
     }
 
@@ -196,7 +196,7 @@ public abstract class AbstractTestStateProvider {
 
         provider.setState(newValue, componentId);
         final StateMap stateMap = provider.getState(componentId);
-        assertEquals(0L, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
 
         provider.onComponentRemoved(componentId);
 
@@ -205,8 +205,8 @@ public abstract class AbstractTestStateProvider {
 
         final StateMap stateMapAfterRemoval = provider.getState(componentId);
 
-        // version should be -1 because the state has been removed entirely.
-        assertEquals(-1L, stateMapAfterRemoval.getVersion());
+        // version should not be present because the state has been removed entirely.
+        assertFalse(stateMapAfterRemoval.getStateVersion().isPresent());
     }
 
     protected abstract StateProvider getProvider();

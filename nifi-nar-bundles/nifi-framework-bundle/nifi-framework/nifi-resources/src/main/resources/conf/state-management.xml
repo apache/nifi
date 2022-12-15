@@ -64,6 +64,12 @@
         <property name="Access Control">Open</property>
     </cluster-provider>
 
+    <!-- Kubernetes ConfigMap implementation of State Provider -->
+    <cluster-provider>
+        <id>kubernetes-provider</id>
+        <class>org.apache.nifi.kubernetes.state.provider.KubernetesConfigMapStateProvider</class>
+    </cluster-provider>
+
     <!--
         Cluster State Provider that stores state in Redis. This can be used as an alternative to the ZooKeeper State Provider.
 
@@ -133,16 +139,6 @@
             <property name="Redis Mode">Standalone</property>
             <property name="Connection String">localhost:6379</property>
         </cluster-provider>
-    -->
-
-    <!--
-
-    Kubernetes ConfigMap implementation of State Provider
-
-    <cluster-provider>
-        <id>kubernetes-provider</id>
-        <class>org.apache.nifi.kubernetes.state.provider.KubernetesConfigMapStateProvider</class>
-    </cluster-provider>
     -->
 
 </stateManagement>

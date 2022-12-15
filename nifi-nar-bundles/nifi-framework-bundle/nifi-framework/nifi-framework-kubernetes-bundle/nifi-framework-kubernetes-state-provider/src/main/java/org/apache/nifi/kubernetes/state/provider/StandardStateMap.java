@@ -20,28 +20,40 @@ import org.apache.nifi.components.state.StateMap;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Standard implementation of StateMap
  */
 class StandardStateMap implements StateMap {
+    private static final int EMPTY_VERSION = -1;
 
     private final Map<String, String> data;
 
-    private final long version;
+    private final Optional<String> version;
 
-    StandardStateMap(final Map<String, String> data, final long version) {
+    StandardStateMap(final Map<String, String> data, final Optional<String> version) {
         this.data = Collections.unmodifiableMap(data);
         this.version = version;
     }
 
     /**
-     * Get Version
+     * Get Version returns String.hashCode() or -1 on empty for compatibility
      *
      * @return Version
      */
     @Override
     public long getVersion() {
+        return version.map(stateVersion -> stateVersion.hashCode()).orElse(EMPTY_VERSION);
+    }
+
+    /**
+     * Get State Version
+     *
+     * @return State Version or empty when not known
+     */
+    @Override
+    public Optional<String> getStateVersion() {
         return version;
     }
 
