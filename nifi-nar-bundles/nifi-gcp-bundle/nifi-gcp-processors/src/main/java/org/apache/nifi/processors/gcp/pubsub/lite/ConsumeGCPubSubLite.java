@@ -118,7 +118,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .build();
 
     private Subscriber subscriber = null;
-    private static final BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
+    private BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
