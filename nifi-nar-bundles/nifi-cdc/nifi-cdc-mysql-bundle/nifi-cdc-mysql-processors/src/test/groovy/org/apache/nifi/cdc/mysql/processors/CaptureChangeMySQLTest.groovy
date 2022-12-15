@@ -262,6 +262,10 @@ class CaptureChangeMySQLTest {
         def resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS)
         assertEquals(1, resultFiles.size())
         assertEquals('10', resultFiles[0].getAttribute(EventWriter.SEQUENCE_ID_KEY))
+        // Verify the contents of the event includes the database and table name even though the cache is not configured
+        def json = new JsonSlurper().parseText(resultFiles[0].getContent())
+        assertEquals('myDB', json['database'])
+        assertEquals('myTable', json['table_name'])
     }
 
     @Test
