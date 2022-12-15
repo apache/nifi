@@ -19,12 +19,11 @@ package org.apache.nifi.processors.adx.mock;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
 
 import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
@@ -34,8 +33,7 @@ public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
     @Override
     protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataClientException {
         try {
-            URL url = this.getClass().getResource("/Test.json");
-            String response = new String(Files.readAllBytes(Paths.get(Objects.requireNonNull(url).getFile())));
+            String response = IOUtils.toString(Objects.requireNonNull(this.getClass().getResourceAsStream("/Test.json")), StandardCharsets.UTF_8);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError | IOException e) {
             throw new DataClientException("exception","exception",e);
