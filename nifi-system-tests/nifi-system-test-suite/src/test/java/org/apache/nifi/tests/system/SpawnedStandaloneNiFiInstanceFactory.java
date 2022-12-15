@@ -122,6 +122,12 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             final File destinationLib = new File(instanceDirectory, "lib");
             copyContents(new File("target/nifi-lib-assembly/lib"), destinationLib);
 
+            final File destinationNarProviderNars = new File(instanceDirectory, "nifi-nar-provider-nars");
+            copyContents(new File("target/nifi-nar-provider-nars"), destinationNarProviderNars);
+
+            final File destinationExtensionsDir = new File(instanceDirectory, "extensions");
+            destinationExtensionsDir.mkdir();
+
             final File destinationCertsDir = new File(instanceDirectory, "certs");
             if (!destinationCertsDir.exists()) {
                 assertTrue(destinationCertsDir.mkdirs());

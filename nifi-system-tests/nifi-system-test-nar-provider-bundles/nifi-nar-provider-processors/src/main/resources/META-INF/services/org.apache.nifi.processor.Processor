@@ -12,22 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Configure where NiFi's lib and conf directories live
-lib.dir=../nifi-lib-assembly/lib
-conf.dir=./conf
-working.dir=./target/standalone-instance
-
-# How long to wait after telling NiFi to shutdown before explicitly killing the Process
-graceful.shutdown.seconds=20
-
-# JVM memory settings
-java.arg.2=-Xms512m
-java.arg.3=-Xmx512m
-
-java.arg.14=-Djava.awt.headless=true
-
-#java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8002
-
-# Disable Logback web shutdown hook using System property
-java.arg.logbackShutdown=-DlogbackDisableServletContainerInitializer=true
+org.apache.nifi.nar.provider.GetClassLoaderInfo

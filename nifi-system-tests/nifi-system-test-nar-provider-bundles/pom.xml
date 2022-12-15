@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -12,24 +12,24 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+--><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>nifi</artifactId>
+        <artifactId>nifi-system-tests</artifactId>
         <groupId>org.apache.nifi</groupId>
         <version>1.20.0-SNAPSHOT</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>nifi-system-tests</artifactId>
+    <artifactId>nifi-system-test-nar-provider-bundles</artifactId>
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-system-test-extensions-bundle</module>
-        <module>nifi-system-test-extensions2-bundle</module>
-        <module>nifi-system-test-suite</module>
-        <module>nifi-stateless-system-test-suite</module>
-        <module>nifi-system-test-nar-provider-bundles</module>
-    </modules>
-
+      <module>nifi-nar-provider-service-api</module>
+      <module>nifi-nar-provider-service-api-nar</module>
+      <module>nifi-nar-provider-service</module>
+      <module>nifi-nar-provider-service-nar</module>
+      <module>nifi-nar-provider-processors</module>
+      <module>nifi-nar-provider-processors-nar</module>
+      <module>nifi-nar-provider-assembly</module>
+  </modules>
 </project>
