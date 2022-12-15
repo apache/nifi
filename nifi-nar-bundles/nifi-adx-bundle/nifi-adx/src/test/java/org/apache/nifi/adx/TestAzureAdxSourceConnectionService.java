@@ -113,7 +113,10 @@ class TestAzureAdxSourceConnectionService {
         configureAppTenant();
         runner.assertNotValid(service);
         runner.setValidateExpressionUsage(false);
-        Assertions.assertNull(((ControllerServiceConfiguration)((Map.Entry<?, ?>)(((StandardProcessorTestRunner)runner).getProcessContext().getControllerServices()).entrySet().toArray()[0]).getValue()).getProperty(AzureAdxSourceConnectionService.CLUSTER_URL));
+        Assertions.assertNull(
+                ((ControllerServiceConfiguration)
+                        ((Map.Entry<?, ?>) (((StandardProcessorTestRunner)runner).getProcessContext().getControllerServices()).entrySet().toArray()[0])
+                                .getValue()).getProperty(AzureAdxSourceConnectionService.CLUSTER_URL));
 
         assertThrows(IllegalStateException.class, () -> runner.enableControllerService(service));
 
