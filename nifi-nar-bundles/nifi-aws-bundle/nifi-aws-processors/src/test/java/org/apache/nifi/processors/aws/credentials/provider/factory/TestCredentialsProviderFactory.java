@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
-import com.amazonaws.ClientConfiguration;
+import com.amazonaws.SignableRequest;
 import com.amazonaws.auth.AWS4Signer;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -25,11 +25,8 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.auth.Signer;
-import com.amazonaws.auth.SignerFactory;
-import com.amazonaws.auth.SignerParams;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
@@ -43,13 +40,14 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * Tests of the validation and credentials provider capabilities of CredentialsProviderFactory.
@@ -293,7 +291,7 @@ public class TestCredentialsProviderFactory {
     }
 
     @Test
-    public void testAssumeRoleCredentialsWithCustomSigner() throws Exception {
+    public void testAssumeRoleCredentialsWithCustomSigner() {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_ARN, "BogusArn");
@@ -305,22 +303,31 @@ public class TestCredentialsProviderFactory {
         final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
 
+        final Signer signerChecker = mock(Signer.class);
+        CustomSTSSigner.setSignerChecker(signerChecker);
+
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
 
-        final Field stsClientField = credentialsProvider.getClass().getDeclaredField("securityTokenService");
-        stsClientField.setAccessible(true);
-        AWSSecurityTokenServiceClient stsClient = (AWSSecurityTokenServiceClient) stsClientField.get(credentialsProvider);
+        try {
+            credentialsProvider.getCredentials();
+        } catch (Exception e) {
+            // Expected to fail, we are only interested in the Signer
+        }
 
-        ClientConfiguration stsClientConfig = stsClient.getClientConfiguration();
-
-        final String signerName = stsClientConfig.getSignerOverride();
-        assertNotNull(signerName);
-        final Signer signer = SignerFactory.createSigner(signerName, new SignerParams("sts", "us-west-2"));
-        assertNotNull(signer);
-        assertSame(CustomSTSSigner.class, signer.getClass());
+        verify(signerChecker).sign(any(), any());
     }
 
     public static class CustomSTSSigner extends AWS4Signer {
 
+        private static final ThreadLocal<Signer> SIGNER_CHECKER = new ThreadLocal<>();
+
+        public static void setSignerChecker(Signer signerChecker) {
+            SIGNER_CHECKER.set(signerChecker);
+        }
+
+        @Override
+        public void sign(SignableRequest<?> request, AWSCredentials credentials) {
+            SIGNER_CHECKER.get().sign(request, credentials);
+        }
     }
 }
