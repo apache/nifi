@@ -17,30 +17,38 @@
 
 package org.apache.nifi.wali
 
-
-import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.queue.FlowFileQueue
-import org.apache.nifi.controller.repository.*
+import org.apache.nifi.controller.repository.EncryptedSchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.LiveSerializedRepositoryRecord
+import org.apache.nifi.controller.repository.RepositoryRecordType
+import org.apache.nifi.controller.repository.SchemaRepositoryRecordSerde
+import org.apache.nifi.controller.repository.SerializedRepositoryRecord
+import org.apache.nifi.controller.repository.StandardFlowFileRecord
+import org.apache.nifi.controller.repository.StandardRepositoryRecord
+import org.apache.nifi.controller.repository.StandardRepositoryRecordSerdeFactory
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
 import org.apache.nifi.repository.schema.NoOpFieldCache
 import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.*
-import org.junit.rules.TestName
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.condition.DisabledOnOs
+import org.junit.jupiter.api.condition.OS
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.wali.SerDe
 import org.wali.SerDeFactory
 import org.wali.SingletonSerDeFactory
 
-import java.security.Security
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
-@RunWith(JUnit4.class)
-class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
+@DisabledOnOs(OS.WINDOWS)
+class EncryptedSequentialAccessWriteAheadLogTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSequentialAccessWriteAheadLogTest.class)
 
     public static final String TEST_QUEUE_IDENTIFIER = "testQueueIdentifier"
@@ -62,20 +70,18 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     private EncryptedSchemaRepositoryRecordSerde esrrs
 
-    @Rule
-    public TestName testName = new TestName()
-
-    @BeforeClass
+    private TestInfo testName
+    
+    @BeforeAll
     static void setUpOnce() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.debug("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
-    void setUp() throws Exception {
+    @BeforeEach
+    void setUp(TestInfo testInfo) throws Exception {
+        testName = testInfo
         claimManager = new StandardResourceClaimManager()
         flowFileQueue = createAndRegisterMockQueue(TEST_QUEUE_IDENTIFIER)
         byteArrayOutputStream = new ByteArrayOutputStream()
@@ -91,19 +97,19 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         esrrs = new EncryptedSchemaRepositoryRecordSerde(wrappedSerDe, properties)
     }
 
-    @After
+    @AfterEach
     void tearDown() throws Exception {
         claimManager.purge()
     }
 
-    private FlowFileQueue createMockQueue(String identifier = testName.methodName + new Date().toString()) {
+    private FlowFileQueue createMockQueue(String identifier = testName.testMethod.get().name + new Date().toString()) {
         [getIdentifier: { ->
             logger.mock("Retrieving flowfile queue identifier: ${identifier}" as String)
             identifier
         }] as FlowFileQueue
     }
 
-    private FlowFileQueue createAndRegisterMockQueue(String identifier = testName.methodName + new Date().toString()) {
+    private FlowFileQueue createAndRegisterMockQueue(String identifier = testName.testMethod.get().name + new Date().toString()) {
         FlowFileQueue queue = createMockQueue(identifier)
         queue
     }
@@ -118,7 +124,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
     }
 
     private String getMockUUID() {
-        "${testName.methodName ?: "no_test"}@${new Date().format("mmssSSS")}" as String
+        "${testName.testMethod.get().name ?: "no_test"}@${new Date().format("mmssSSS")}" as String
     }
 
     /** This test creates flowfile records, adds them to the repository, and then recovers them to ensure they were persisted */
@@ -188,7 +194,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     private SequentialAccessWriteAheadLog<SerializedRepositoryRecord> createWriteRepo(final SerDe<SerializedRepositoryRecord> serde) throws IOException {
         final File targetDir = new File("target")
-        final File storageDir = new File(targetDir, testName?.methodName ?: "unknown_test")
+        final File storageDir = new File(targetDir, testName.testMethod.get().name)
         deleteRecursively(storageDir)
         assertTrue(storageDir.mkdirs())
 
@@ -204,7 +210,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
 
     private SequentialAccessWriteAheadLog<SerializedRepositoryRecord> createRecoveryRepo() throws IOException {
         final File targetDir = new File("target")
-        final File storageDir = new File(targetDir, testName?.methodName ?: "unknown_test")
+        final File storageDir = new File(targetDir, testName.testMethod.get().name)
 
         final SerDe<SerializedRepositoryRecord> serde = buildEncryptedSerDe()
         final SerDeFactory<SerializedRepositoryRecord> serdeFactory = new SingletonSerDeFactory<>(serde)

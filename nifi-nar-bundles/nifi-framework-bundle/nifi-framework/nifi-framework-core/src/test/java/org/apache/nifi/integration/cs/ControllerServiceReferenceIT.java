@@ -66,7 +66,7 @@ public class ControllerServiceReferenceIT extends FrameworkIntegrationTest {
         serviceNode.setProperties(Collections.singletonMap(LongValidatingControllerService.DELAY.getName(), "250 millis"));
         final ValidationStatus validationStatus = serviceNode.performValidation();
         final Collection<ValidationResult> validationErrors = serviceNode.getValidationErrors();
-        assertSame(validationStatus, ValidationStatus.VALID);
+        assertSame(ValidationStatus.VALID, validationStatus);
         assertEquals(0, validationErrors.size());
     }
 

@@ -25,19 +25,19 @@ import org.apache.curator.framework.imps.DefaultACLProvider;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.data.ACL;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestCuratorACLProviderFactory {
 
     private volatile String propsFile = TestCuratorACLProviderFactory.class.getResource("/flowcontrollertest.nifi.properties").getFile();
     final Map<String, String> otherProps = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void setup(){
         otherProps.put("nifi.zookeeper.connect.string", "local:1234");
         otherProps.put("nifi.zookeeper.root.node", "/nifi");

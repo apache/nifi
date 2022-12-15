@@ -43,7 +43,7 @@ public class InferSchemaAccessStrategy<T> implements SchemaAccessStrategy {
     public RecordSchema getSchema(final Map<String, String> variables, final InputStream contentStream, final RecordSchema readSchema) throws IOException {
         // We expect to be able to mark/reset any length because we expect that the underlying stream here will be a ContentClaimInputStream, which is able to
         // re-read the content regardless of how much data is read.
-        contentStream.mark(10_000_000);
+        contentStream.mark(1_000_000);
         try {
             final RecordSource<T> recordSource = recordSourceFactory.create(variables, new NonCloseableInputStream(contentStream));
             final RecordSchema schema = schemaInference.inferSchema(recordSource);

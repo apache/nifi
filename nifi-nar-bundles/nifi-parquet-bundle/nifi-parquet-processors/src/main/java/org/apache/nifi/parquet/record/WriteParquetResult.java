@@ -23,8 +23,10 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parquet.stream.NifiParquetOutputFile;
 import org.apache.nifi.parquet.utils.ParquetConfig;
+import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.io.OutputFile;
@@ -41,17 +43,21 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
     private final Schema schema;
     private final ParquetWriter<GenericRecord> parquetWriter;
     private final ComponentLog componentLogger;
+    private SchemaAccessWriter accessWriter;
+    private RecordSchema recordSchema;
 
-    public WriteParquetResult(final Schema schema, final OutputStream out, final ParquetConfig parquetConfig, final ComponentLog componentLogger) throws IOException {
+    public WriteParquetResult(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter accessWriter, final OutputStream out,
+                              final ParquetConfig parquetConfig, final ComponentLog componentLogger) throws IOException {
         super(out);
-        this.schema = schema;
+        this.schema = avroSchema;
         this.componentLogger = componentLogger;
+        this.accessWriter = accessWriter;
+        this.recordSchema = recordSchema;
 
         final Configuration conf = new Configuration();
         final OutputFile outputFile = new NifiParquetOutputFile(out);
 
-        final AvroParquetWriter.Builder<GenericRecord> writerBuilder =
-                AvroParquetWriter.<GenericRecord>builder(outputFile).withSchema(schema);
+        final AvroParquetWriter.Builder<GenericRecord> writerBuilder = AvroParquetWriter.<GenericRecord>builder(outputFile).withSchema(avroSchema);
         applyCommonConfig(writerBuilder, conf, parquetConfig);
         parquetWriter = writerBuilder.build();
     }
@@ -61,6 +67,11 @@ public class WriteParquetResult extends AbstractRecordSetWriter {
         final GenericRecord genericRecord = AvroTypeUtil.createAvroRecord(record, schema);
         parquetWriter.write(genericRecord);
         return Collections.emptyMap();
+    }
+
+    @Override
+    protected Map<String, String> onFinishRecordSet() {
+        return accessWriter.getAttributes(recordSchema);
     }
 
     @Override

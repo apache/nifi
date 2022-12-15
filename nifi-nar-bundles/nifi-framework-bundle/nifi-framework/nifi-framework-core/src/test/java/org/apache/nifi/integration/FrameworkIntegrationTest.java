@@ -104,10 +104,8 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -140,10 +138,6 @@ public class FrameworkIntegrationTest {
     //@Rule
     public Timeout globalTimeout = Timeout.seconds(20);
 
-    @Rule
-    public TestName name = new TestName();
-
-
     private ResourceClaimManager resourceClaimManager;
     private StandardProcessScheduler processScheduler;
 
@@ -162,11 +156,10 @@ public class FrameworkIntegrationTest {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         StandardStateManagerProvider.resetProvider();
 
-        cleanup();
         initialize();
 
         flowController.initializeFlow();
@@ -306,8 +299,8 @@ public class FrameworkIntegrationTest {
         return clusterCoordinator;
     }
 
-    @After
-    public final void shutdown() {
+    @AfterEach
+    public final void shutdown() throws IOException {
         logger.info("Shutting down...");
 
         if (flowController != null) {
@@ -321,6 +314,8 @@ public class FrameworkIntegrationTest {
         if (processScheduler != null) {
             processScheduler.shutdown();
         }
+
+        deleteDirectory(new File("target/int-tests"));
     }
 
     protected void restart() throws IOException, ExecutionException, InterruptedException {
@@ -366,11 +361,6 @@ public class FrameworkIntegrationTest {
         };
 
         flowController.initializeFlow(queueProvider);
-    }
-
-    @After
-    public final void cleanup() throws IOException {
-        deleteDirectory(new File("target/int-tests"));
     }
 
     private void deleteDirectory(final File dir) throws IOException {

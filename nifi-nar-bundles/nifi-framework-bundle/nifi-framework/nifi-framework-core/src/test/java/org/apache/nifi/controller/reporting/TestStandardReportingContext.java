@@ -42,9 +42,9 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -54,7 +54,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestStandardReportingContext {
 
@@ -71,7 +71,7 @@ public class TestStandardReportingContext {
     private StatusHistoryRepository statusHistoryRepository;
     private volatile String propsFile = TestStandardReportingContext.class.getResource("/flowcontrollertest.nifi.properties").getFile();
 
-    @Before
+    @BeforeEach
     public void setup() {
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
@@ -133,7 +133,7 @@ public class TestStandardReportingContext {
                 bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository);
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws Exception {
         controller.shutdown(true);
         FileUtils.deleteDirectory(new File("./target/flowcontrollertest"));

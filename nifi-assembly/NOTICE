@@ -412,6 +412,78 @@ The following binary components are provided under the Apache Software License v
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
 
+  (ASLv2) Bean Validation API
+    The following NOTICE information applies:
+      Bean Validation API
+      Copyright (c) Emmanuel Bernard
+
+  (ASLv2) Jackson Annotations
+    The following NOTICE information applies:
+      Jackson Annotations
+      Copyright (c) 2019 Tatu Saloranta
+
+  (ASLv2) Jackson Core
+    The following NOTICE information applies:
+      Jackson Core
+      Copyright (c) Tatu Saloranta
+
+  (ASLv2) Jackson Databind
+    The following NOTICE information applies:
+      Jackson Databind
+      Copyright (c) 2007- Tatu Saloranta, tatu.saloranta@iki.fi
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+  (ASLv2) Jackson Datatype: JSR310
+    The following NOTICE information applies:
+      Jackson Datatype: JSR310
+      Copyright (c) Tatu Saloranta
+
+  (ASLv2) Jackson Module JsonSchema
+    The following NOTICE information applies:
+      Jackson Module JsonSchema
+      Copyright (c) Tatu Saloranta
+
+  (ASLv2) JSON Small and Fast Parser
+    The following NOTICE information applies:
+      JSON Small and Fast Parser
+      Copyright (c) 2010 Uriel Chemouni
+
+  (ASLv2) Camel :: Salesforce
+    The following NOTICE information applies:
+      Camel :: Salesforce
+      Copyright (c) 2007-2022 The Apache Software Foundation
+
+  (ASLv2) IntelliJ IDEA Annotations (org.jetbrains:annotations:13.0 - http://www.jetbrains.org)
+    The following NOTICE information applies:
+      IntelliJ IDEA Annotations
+      Copyright 2000-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.7.20 - https://kotlinlang.org/)
+    The following NOTICE information applies:
+      Kotlin Stdlib
+      Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Common (org.jetbrains.kotlin:kotlin-stdlib-common:1.7.20 - https://kotlinlang.org/)
+    The following NOTICE information applies:
+      Kotlin Stdlib Common
+      Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.7.20 - https://kotlinlang.org/)
+    The following NOTICE information applies:
+      Kotlin Stdlib Jdk7
+      Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
+  (ASLv2) Kotlin Stdlib Jdk8 (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.7.20 - https://kotlinlang.org/)
+    The following NOTICE information applies:
+      Kotlin Stdlib Jdk8
+      Copyright 2010-2022 JetBrains s.r.o. and Kotlin Programming Language contributors
+
   (ASLv2) Apache Thrift
     The following NOTICE information applies:
       Apache Thrift
@@ -2137,6 +2209,11 @@ The following binary components are provided under the Apache Software License v
       ASM Based Accessors Helper Used By JSON Smart 1.2
       Copyright 2017, Uriel Chemouni
 
+  (ASLv2) ASM Based Accessors Helper Used By JSON Smart (net.minidev:accessors-smart:jar:2.4.8 - http://www.minidev.net/)
+    The following NOTICE information applies:
+     ASM Based Accessors Helper Used By JSON Smart 2.4.8
+     Copyright 2017, Uriel Chemouni
+
   (ASLv2) Adapter: RxJava (com.squareup.retrofit2:adapter-rxjava:jar:2.6.2)
     The following NOTICE information applies:
       Adapter: RxJava 2.6.2
@@ -2171,6 +2248,11 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       OkHttp 3.12.6
       Copyright 2019 Square, Inc.
+
+  (ASLv2) OkHttp (com.squareup.okhttp3:okhttp:jar:4.10.0)
+    The following NOTICE information applies:
+      OkHttp 4.10.0
+      Copyright (c) 2019 Square, Inc.
 
   (ASLv2) OkHttp URLConnection (com.squareup.okhttp3:okhttp-urlconnection:jar:3.12.2)
     The following NOTICE information applies:

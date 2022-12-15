@@ -17,8 +17,9 @@
 
 package org.apache.nifi.controller.state;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import org.apache.nifi.components.state.StateMap;
+import org.junit.jupiter.api.Test;
+import org.wali.UpdateType;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,9 +29,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.components.state.StateMap;
-import org.junit.Test;
-import org.wali.UpdateType;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestStateMapSerDe {
 

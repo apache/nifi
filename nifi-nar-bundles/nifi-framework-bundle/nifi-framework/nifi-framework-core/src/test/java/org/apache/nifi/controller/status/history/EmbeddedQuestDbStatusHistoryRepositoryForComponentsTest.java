@@ -17,12 +17,13 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.NodeStatus;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends AbstractEmbeddedQuestDbStatusHistoryRepositoryTest {
 
@@ -94,15 +95,15 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends Abs
         final StatusHistory result = testSubject.getProcessGroupStatusHistory(ROOT_GROUP_ID, START, END, 3);
 
         // then - in case the value of preferred data points are lower than the number of snapshots available, the latest will added to the result
-        Assert.assertEquals(3, result.getStatusSnapshots().size());
-        Assert.assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(7)), result.getStatusSnapshots().get(0).getTimestamp());
-        Assert.assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(6)), result.getStatusSnapshots().get(1).getTimestamp());
-        Assert.assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(5)), result.getStatusSnapshots().get(2).getTimestamp());
+        assertEquals(3, result.getStatusSnapshots().size());
+        assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(7)), result.getStatusSnapshots().get(0).getTimestamp());
+        assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(6)), result.getStatusSnapshots().get(1).getTimestamp());
+        assertEquals(new Date(INSERTED_AT.getTime() - TimeUnit.MINUTES.toMillis(5)), result.getStatusSnapshots().get(2).getTimestamp());
     }
 
     private void assertCorrectStatusHistory(final StatusHistory rootGroupStatus, final String id, final String name) {
-        Assert.assertEquals(id, rootGroupStatus.getComponentDetails().get("Id"));
-        Assert.assertEquals(name, rootGroupStatus.getComponentDetails().get("Name"));
-        Assert.assertEquals(1, rootGroupStatus.getStatusSnapshots().size());
+        assertEquals(id, rootGroupStatus.getComponentDetails().get("Id"));
+        assertEquals(name, rootGroupStatus.getComponentDetails().get("Name"));
+        assertEquals(1, rootGroupStatus.getStatusSnapshots().size());
     }
 }

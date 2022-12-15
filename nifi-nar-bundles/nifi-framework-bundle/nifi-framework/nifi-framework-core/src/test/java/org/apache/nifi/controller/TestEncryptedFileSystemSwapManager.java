@@ -28,8 +28,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.security.kms.StaticKeyProvider;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -41,6 +40,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -84,9 +85,9 @@ public class TestEncryptedFileSystemSwapManager {
 
         // verify recovery of original content
         final List<FlowFileRecord> flowFilesRecovered = swapContents.getFlowFiles();
-        Assert.assertEquals(flowFiles.size(), flowFilesRecovered.size());
-        Assert.assertTrue(flowFilesRecovered.containsAll(flowFiles));
-        Assert.assertTrue(flowFiles.containsAll(flowFilesRecovered));
+        assertEquals(flowFiles.size(), flowFilesRecovered.size());
+        assertTrue(flowFilesRecovered.containsAll(flowFiles));
+        assertTrue(flowFiles.containsAll(flowFilesRecovered));
     }
 
     /**
