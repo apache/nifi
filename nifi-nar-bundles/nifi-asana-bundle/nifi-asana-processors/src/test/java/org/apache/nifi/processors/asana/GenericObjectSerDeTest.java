@@ -18,6 +18,7 @@ package org.apache.nifi.processors.asana;
 
 import static java.util.Collections.singletonMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,6 +61,16 @@ public class GenericObjectSerDeTest {
         Map<String, Map<String, Integer>> expected = Maps.of("Lorem", singletonMap("Ipsum", 1), "Foo", singletonMap("Bar", 2));
         Map<String, Map<String, Integer>> actual = serializeAndThenDeserialize(expected);
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testDeserializingNullInput() throws IOException {
+        assertNull(new GenericObjectSerDe<>().deserialize(null));
+    }
+
+    @Test
+    public void testDeserializingEmptyByteArray() throws IOException {
+        assertNull(new GenericObjectSerDe<>().deserialize(new byte[0]));
     }
 
     private <V> V serializeAndThenDeserialize(V value) throws IOException {

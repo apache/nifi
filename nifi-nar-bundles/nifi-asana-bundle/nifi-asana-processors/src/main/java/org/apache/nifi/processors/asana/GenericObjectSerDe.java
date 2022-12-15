@@ -31,7 +31,7 @@ public class GenericObjectSerDe <V> implements Serializer<V>, Deserializer<V> {
     @Override
     @SuppressWarnings("unchecked")
     public V deserialize(byte[] value) throws DeserializationException, IOException {
-        if (value == null) {
+        if (value == null || value.length == 0) {
             return null;
         }
 
