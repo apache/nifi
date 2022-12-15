@@ -18,7 +18,6 @@ package org.apache.nifi.processors.asana;
 
 import static java.lang.String.format;
 import static java.lang.String.join;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_EVENTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_PROJECT_MEMBERS;
@@ -82,6 +81,7 @@ import org.apache.nifi.processors.asana.utils.AsanaTaskFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaTeamFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaTeamMemberFetcher;
 import org.apache.nifi.processors.asana.utils.AsanaUserFetcher;
+import org.apache.nifi.reporting.InitializationException;
 
 @TriggerSerially
 @PrimaryNodeOnly
@@ -227,7 +227,7 @@ public class GetAsanaObject extends AbstractProcessor {
     protected static final GenericObjectSerDe<String> STATE_MAP_KEY_SERIALIZER = new GenericObjectSerDe<>();
     protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_SERIALIZER = new GenericObjectSerDe<>();
 
-    private volatile Map<String, String> stateBackup = emptyMap();
+    private volatile AsanaObjectFetcher objectFetcher;
     private volatile Integer batchSize;
 
     @Override
@@ -241,34 +241,27 @@ public class GetAsanaObject extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        batchSize = context.getProperty(PROP_ASANA_OUTPUT_BATCH_SIZE).asInteger();
-    }
-
-    @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onScheduled(final ProcessContext context) throws InitializationException {
         AsanaClientProviderService controllerService = context.getProperty(PROP_ASANA_CLIENT_SERVICE).asControllerService(AsanaClientProviderService.class);
         AsanaClient client = controllerService.createClient();
-        AsanaObjectFetcher objectFetcher;
+        batchSize = context.getProperty(PROP_ASANA_OUTPUT_BATCH_SIZE).asInteger();
 
         try {
             getLogger().debug("Initializing object fetcher...");
             objectFetcher = createObjectFetcher(context, client);
         } catch (Exception e) {
-            throw new ProcessException(e);
+            throw new InitializationException(e);
         }
+    }
 
-        Map<String, String> processorState = emptyMap();
-        try {
-            processorState = recoverState(context).orElse(emptyMap());
-        } catch (Exception e) {
-            getLogger().warn("Failed to recover last stored state. Falling back to empty state.", e);
-        }
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        Map<String, String> processorState = recoverState(context).orElse(Collections.emptyMap());
         try {
             getLogger().debug("Attempting to load state: {}", processorState);
             objectFetcher.loadState(processorState);
         } catch (Exception e) {
-            getLogger().info("Failed to load state. Falling back to clean start.");
+            getLogger().info("Failed to recover state. Falling back to clean start.");
             objectFetcher.clearState();
         }
         if (getLogger().isDebugEnabled()) {
@@ -321,6 +314,7 @@ public class GetAsanaObject extends AbstractProcessor {
         session.commitAsync();
         Map<String, String> state = objectFetcher.saveState();
         persistState(state, context);
+        objectFetcher.clearState();
 
         getLogger().debug("New state after transferring {} FlowFiles: {}", transferCount, state);
     }
@@ -385,9 +379,6 @@ public class GetAsanaObject extends AbstractProcessor {
     }
 
     private Optional<Map<String, String>> recoverState(final ProcessContext context) {
-        if (!stateBackup.isEmpty()) {
-            return Optional.ofNullable(stateBackup);
-        }
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
             final Map<String, String> result = client.get(getIdentifier(), STATE_MAP_KEY_SERIALIZER,
@@ -404,14 +395,12 @@ public class GetAsanaObject extends AbstractProcessor {
     }
 
     private void persistState(final Map<String, String> state, final ProcessContext context) {
-        stateBackup = new HashMap<>(state);
         final DistributedMapCacheClient client = getDistributedMapCacheClient(context);
         try {
             client.put(getIdentifier(), state, STATE_MAP_KEY_SERIALIZER, STATE_MAP_VALUE_SERIALIZER);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-        stateBackup.clear();
     }
 
     private static DistributedMapCacheClient getDistributedMapCacheClient(ProcessContext context) {

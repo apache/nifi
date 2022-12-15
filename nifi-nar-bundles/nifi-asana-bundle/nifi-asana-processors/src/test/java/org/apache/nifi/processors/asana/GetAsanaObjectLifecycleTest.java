@@ -204,6 +204,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(emptyMap());
+        verify(mockObjectFetcher, times(1)).clearState();
     }
 
     @Test
@@ -224,6 +225,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(validState);
+        verify(mockObjectFetcher, times(1)).clearState();
     }
 
     @Test
@@ -242,6 +244,7 @@ public class GetAsanaObjectLifecycleTest {
         runner.run(1);
 
         verify(mockObjectFetcher, times(1)).loadState(invalidState);
+        verify(mockObjectFetcher, times(2)).clearState();
     }
 
     @Test
