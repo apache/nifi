@@ -19,6 +19,8 @@ package org.apache.nifi.adx;
 import com.microsoft.azure.kusto.data.Client;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.ControllerServiceConfiguration;
+import org.apache.nifi.util.StandardProcessorTestRunner;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,6 +113,7 @@ class TestAzureAdxSourceConnectionService {
         configureAppTenant();
         runner.assertNotValid(service);
         runner.setValidateExpressionUsage(false);
+        Assertions.assertNull(((ControllerServiceConfiguration)((Map.Entry<?, ?>)(((StandardProcessorTestRunner)runner).getProcessContext().getControllerServices()).entrySet().toArray()[0]).getValue()).getProperty(AzureAdxSourceConnectionService.CLUSTER_URL));
 
         assertThrows(IllegalStateException.class, () -> runner.enableControllerService(service));
 
