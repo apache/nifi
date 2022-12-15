@@ -282,8 +282,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-dist-map-cache-client")
             .displayName("Distributed Map Cache Client")
-            .description("Identifies a Distributed Map Cache Client controller service to be used for keeping information about the various tables, columns, etc. "
-                    + "needed by the processor. If a client is not specified, the generated events will not include column type or name information.")
+            .description("Identifies a Distributed Map Cache Client controller service to be used for keeping information about the various table columns, datatypes, etc. "
+                    + "needed by the processor. If a client is not specified, the generated events will not include column type or name information (but they will include database "
+                    + "and table information.")
             .identifiesControllerService(DistributedMapCacheClient.class)
             .required(false)
             .build();
@@ -918,6 +919,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     throw new IOException(se.getMessage(), se);
                                 }
                             }
+                        } else {
+                            // Populate a limited version of TableInfo without column information
+                            currentTable = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(), Collections.emptyList());
                         }
                     } else {
                         // Clear the current table, to force a reload next time we get a TABLE_MAP event we care about
