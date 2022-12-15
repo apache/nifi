@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MockStateManager implements StateManager {
     private final AtomicInteger versionIndex = new AtomicInteger(0);
@@ -262,7 +263,7 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
-        assertFalse(stateMap.getStateVersion().isPresent(), "Expected state to be set for Scope " + scope + ", but it was not set");
+        assertTrue(stateMap.getStateVersion().isPresent(), "Expected state to be set for Scope " + scope + ", but it was not set");
     }
 
     /**
