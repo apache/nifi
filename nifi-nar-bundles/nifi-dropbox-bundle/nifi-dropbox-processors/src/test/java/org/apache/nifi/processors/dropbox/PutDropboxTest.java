@@ -127,8 +127,8 @@ public class PutDropboxTest extends AbstractDropboxTest {
 
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertOutFlowFileAttributes(flowFile);
+        MockFlowFile ff0 = flowFiles.get(0);
+        assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
@@ -156,6 +156,11 @@ public class PutDropboxTest extends AbstractDropboxTest {
 
         runWithFlowFile();
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
+        MockFlowFile ff0 = flowFiles.get(0);
+        assertOutFlowFileAttributes(ff0, "/");
     }
 
     @Test
@@ -250,7 +255,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(mockUploadSessionAppendV2Uploader);
 
         //finish session: 30 - 8 - 2 * 8 = 6 bytes uploaded
-        CommitInfo commitInfo = CommitInfo.newBuilder(TEST_FOLDER + "/" + FILENAME_1)
+        CommitInfo commitInfo = CommitInfo.newBuilder(getPath(TEST_FOLDER , FILENAME_1))
                 .withMode(WriteMode.ADD)
                 .withStrictConflict(true)
                 .withClientModified(new Date(mockFlowFile.getEntryDate()))
@@ -262,7 +267,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
 
         when(mockUploadSessionFinishUploader
                 .uploadAndFinish(any(InputStream.class), eq(6L)))
-                .thenReturn(createFileMetadata());
+                .thenReturn(createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME));
 
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
@@ -278,13 +283,11 @@ public class PutDropboxTest extends AbstractDropboxTest {
     }
 
     private void mockFileUpload(String folder, String filename, WriteMode writeMode) throws Exception {
-        String path = folder.equals("/") ? folder + filename : folder + "/" + filename;
-
         when(mockDropboxClient.files())
                 .thenReturn(mockDbxUserFilesRequest);
 
         when(mockDbxUserFilesRequest
-                .uploadBuilder(path)
+                .uploadBuilder(getPath(folder, filename))
                 .withMode(writeMode)
                 .withStrictConflict(true)
                 .start())
@@ -292,7 +295,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
 
         when(mockUploadUploader
                 .uploadAndFinish(any(InputStream.class)))
-                .thenReturn(createFileMetadata());
+                .thenReturn(createFileMetadata(FILE_ID_1, filename, folder, CREATED_TIME));
     }
 
     private void mockFileUploadError(DbxException exception) throws Exception {
@@ -300,7 +303,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(mockDbxUserFilesRequest);
 
         when(mockDbxUserFilesRequest
-                .uploadBuilder(TEST_FOLDER + "/" + FILENAME_1)
+                .uploadBuilder(getPath(TEST_FOLDER, FILENAME_1))
                 .withMode(WriteMode.ADD)
                 .withStrictConflict(true)
                 .start())

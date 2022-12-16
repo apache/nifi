@@ -54,8 +54,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class ListDropboxTest extends AbstractDropboxTest {
 
-    public static final String FOLDER_ID_1 = "id:11111";
-    public static final String FOLDER_ID_2 = "id:22222";
+    public static final String FOLDER_ID = "id:11111";
     public static final boolean IS_RECURSIVE = true;
     public static final long MIN_TIMESTAMP = 1659707000;
     public static final long OLD_CREATED_TIME = 1657375066;
@@ -124,7 +123,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
         //root is listed when "" is used in Dropbox API
         when(mockDbxUserFilesRequest.listFolderBuilder("")).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(singletonList(
-                createFileMetadata(FILENAME_1, folderName, FOLDER_ID_1, CREATED_TIME)
+                createFileMetadata(FILE_ID_1, FILENAME_1, folderName, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -132,7 +131,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        assertFlowFileAttributes(ff0, folderName);
+        assertOutFlowFileAttributes(ff0, folderName);
     }
 
     @Test
@@ -143,9 +142,9 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
+                createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME),
                 createFolderMetadata(),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, CREATED_TIME, false)
+                createFileMetadata(FILE_ID_2, FILENAME_2, TEST_FOLDER, CREATED_TIME, false)
         ));
 
         testRunner.run();
@@ -153,7 +152,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        assertFlowFileAttributes(ff0, TEST_FOLDER);
+        assertOutFlowFileAttributes(ff0);
     }
 
     @Test
@@ -164,8 +163,8 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, OLD_CREATED_TIME)
+                createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME),
+                createFileMetadata(FILE_ID_2, FILENAME_2, TEST_FOLDER, OLD_CREATED_TIME)
         ));
 
         testRunner.run();
@@ -173,7 +172,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
         testRunner.assertAllFlowFilesTransferred(ListDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ListDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
-        assertFlowFileAttributes(ff0, TEST_FOLDER);
+        assertOutFlowFileAttributes(ff0);
     }
 
     @Test
@@ -185,8 +184,8 @@ public class ListDropboxTest extends AbstractDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, CREATED_TIME)
+                createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME),
+                createFileMetadata(FILE_ID_2, FILENAME_2, TEST_FOLDER, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -200,18 +199,9 @@ public class ListDropboxTest extends AbstractDropboxTest {
         assertEquals(expectedFileNames, actualFileNames);
     }
 
-    private void assertFlowFileAttributes(MockFlowFile flowFile, String folderName) {
-        flowFile.assertAttributeEquals(DropboxAttributes.ID, FOLDER_ID_1);
-        flowFile.assertAttributeEquals(DropboxAttributes.FILENAME, FILENAME_1);
-        flowFile.assertAttributeEquals(DropboxAttributes.PATH, folderName);
-        flowFile.assertAttributeEquals(DropboxAttributes.TIMESTAMP, Long.toString(CREATED_TIME));
-        flowFile.assertAttributeEquals(DropboxAttributes.SIZE, Long.toString(SIZE));
-        flowFile.assertAttributeEquals(DropboxAttributes.REVISION, REVISION);
-    }
-
     private Metadata createFolderMetadata() {
-        return FolderMetadata.newBuilder(FOLDER_ID_1)
-                .withPathDisplay(TEST_FOLDER + "/" + FOLDER_ID_1)
+        return FolderMetadata.newBuilder(FOLDER_ID)
+                .withPathDisplay(TEST_FOLDER + "/" + FOLDER_ID)
                 .build();
     }
 

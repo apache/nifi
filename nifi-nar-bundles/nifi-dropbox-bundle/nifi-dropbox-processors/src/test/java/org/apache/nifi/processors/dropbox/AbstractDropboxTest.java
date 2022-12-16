@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static java.lang.String.valueOf;
 import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.dropbox.core.v2.DbxClientV2;
@@ -40,7 +39,8 @@ public class AbstractDropboxTest {
     public static final String TEST_FOLDER = "/testFolder";
     public static final String FILENAME_1 = "file_name_1";
     public static final String FILENAME_2 = "file_name_2";
-    public static final String FILE_ID = "id:odTlUvbpIEAAAAAAAAAGGQ";
+    public static final String FILE_ID_1 = "id:odTlUvbpIEAAAAAAAAAGGQ";
+    public static final String FILE_ID_2 = "id:bdCQUvbpIEAABBAAAAAGKK";
     public static final long CREATED_TIME = 1659707000;
     public static final long SIZE = 125;
     public static final String REVISION = "5e4ddb1320676a5c29261";
@@ -79,44 +79,50 @@ public class AbstractDropboxTest {
     }
 
     protected FileMetadata createFileMetadata() {
-        return FileMetadata.newBuilder(FILENAME_1, FILE_ID,
+        return FileMetadata.newBuilder(FILENAME_1, FILE_ID_1,
                         new Date(CREATED_TIME),
                         new Date(CREATED_TIME),
                         REVISION, SIZE)
-                .withPathDisplay(TEST_FOLDER + "/" + FILENAME_1)
+                .withPathDisplay(getPath(TEST_FOLDER, FILENAME_1))
                 .withIsDownloadable(true)
                 .build();
     }
 
     protected FileMetadata createFileMetadata(
-            String filename,
+            String id, String filename,
             String parent,
-            String id,
             long createdTime,
             boolean isDownloadable) {
         return FileMetadata.newBuilder(filename, id,
                         new Date(createdTime),
                         new Date(createdTime),
                         REVISION, SIZE)
-                .withPathDisplay(parent + "/" + filename)
+                .withPathDisplay(getPath(parent, filename))
                 .withIsDownloadable(isDownloadable)
                 .build();
     }
 
-    protected FileMetadata createFileMetadata(
+    protected FileMetadata createFileMetadata(String id,
             String filename,
             String parent,
-            String id,
             long createdTime) {
-        return createFileMetadata(filename, parent, id, createdTime, true);
+        return createFileMetadata(id, filename, parent, createdTime, true);
     }
 
     protected void assertOutFlowFileAttributes(MockFlowFile flowFile) {
-        flowFile.assertAttributeEquals(DropboxAttributes.ID, FILE_ID);
-        flowFile.assertAttributeEquals(DropboxAttributes.REVISION, REVISION);
-        flowFile.assertAttributeEquals(DropboxAttributes.PATH, TEST_FOLDER);
-        flowFile.assertAttributeEquals(DropboxAttributes.SIZE, valueOf(SIZE));
-        flowFile.assertAttributeEquals(DropboxAttributes.TIMESTAMP, valueOf(CREATED_TIME));
+        assertOutFlowFileAttributes(flowFile, TEST_FOLDER);
+    }
+
+    protected void assertOutFlowFileAttributes(MockFlowFile flowFile, String folderName) {
+        flowFile.assertAttributeEquals(DropboxAttributes.ID, FILE_ID_1);
         flowFile.assertAttributeEquals(DropboxAttributes.FILENAME, FILENAME_1);
+        flowFile.assertAttributeEquals(DropboxAttributes.PATH, folderName);
+        flowFile.assertAttributeEquals(DropboxAttributes.TIMESTAMP, Long.toString(CREATED_TIME));
+        flowFile.assertAttributeEquals(DropboxAttributes.SIZE, Long.toString(SIZE));
+        flowFile.assertAttributeEquals(DropboxAttributes.REVISION, REVISION);
+    }
+
+    protected String getPath(String folder, String filename) {
+        return "/".equals(folder) ? folder + filename : folder + "/" + filename;
     }
 }

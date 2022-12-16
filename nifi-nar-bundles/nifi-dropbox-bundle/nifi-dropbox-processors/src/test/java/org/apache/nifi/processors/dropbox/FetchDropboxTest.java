@@ -50,7 +50,7 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     private DbxDownloader<FileMetadata> mockDbxDownloader;
 
     @BeforeEach
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {
             @Override
             public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
@@ -68,11 +68,11 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     void testFileIsDownloadedById() throws Exception {
         testRunner.setProperty(FetchDropbox.FILE, "${dropbox.id}");
 
-        when(mockDbxUserFilesRequest.download(FILE_ID)).thenReturn(mockDbxDownloader);
+        when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes(UTF_8)));
         when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -88,11 +88,11 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     void testFileIsDownloadedByPath() throws Exception {
         testRunner.setProperty(FetchDropbox.FILE, "${path}/${filename}");
 
-        when(mockDbxUserFilesRequest.download(TEST_FOLDER + "/" + FILENAME_1)).thenReturn(mockDbxDownloader);
+        when(mockDbxUserFilesRequest.download(getPath(TEST_FOLDER, FILENAME_1))).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("contentByPath".getBytes(UTF_8)));
         when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -108,9 +108,9 @@ public class FetchDropboxTest extends AbstractDropboxTest {
     void testFetchFails() throws Exception {
         testRunner.setProperty(FetchDropbox.FILE, "${dropbox.id}");
 
-        when(mockDbxUserFilesRequest.download(FILE_ID)).thenThrow(new DbxException("Error in Dropbox"));
+        when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenThrow(new DbxException("Error in Dropbox"));
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -122,10 +122,10 @@ public class FetchDropboxTest extends AbstractDropboxTest {
         assertNoProvenanceEvent();
     }
 
-    private MockFlowFile getMockFlowFile(String fileId) {
+    private MockFlowFile getMockFlowFile() {
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(DropboxAttributes.ID, fileId);
+        attributes.put(DropboxAttributes.ID, FILE_ID_1);
         attributes.put(DropboxAttributes.REVISION, REVISION);
         attributes.put(DropboxAttributes.FILENAME, FILENAME_1);
         attributes.put(DropboxAttributes.PATH, TEST_FOLDER);
