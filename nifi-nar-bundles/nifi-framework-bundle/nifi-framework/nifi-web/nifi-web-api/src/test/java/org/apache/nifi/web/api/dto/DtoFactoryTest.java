@@ -18,11 +18,11 @@ package org.apache.nifi.web.api.dto;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -70,14 +70,14 @@ public class DtoFactoryTest {
         dtoFactory.setControllerServiceProvider(controllerServiceProvider);
         dtoFactory.setEntityFactory(entityFactory);
         final StandardExtensionDiscoveringManager extensionManager =
-                new StandardExtensionDiscoveringManager(Collections.singleton(RecordReaderFactory.class));
+                new StandardExtensionDiscoveringManager(Collections.singleton(ControllerService.class));
         extensionManager.discoverExtensions(
                 Collections.singleton(SystemBundle.create(".", getClass().getClassLoader())));
         dtoFactory.setExtensionManager(extensionManager);
 
         final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
                 .name("reader")
-                .identifiesControllerService(RecordReaderFactory.class)
+                .identifiesControllerService(ControllerService.class)
                 .build();
         final PropertyDescriptorDTO dto = dtoFactory.createPropertyDescriptorDto(propertyDescriptor, null);
         final List<AllowableValueEntity> allowableValues = dto.getAllowableValues();
