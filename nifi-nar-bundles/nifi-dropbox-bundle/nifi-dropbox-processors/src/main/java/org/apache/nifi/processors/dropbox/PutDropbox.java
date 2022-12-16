@@ -18,6 +18,20 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxUploader;
@@ -74,13 +88,14 @@ import org.apache.nifi.proxy.ProxySpec;
 @Tags({"dropbox", "storage", "put"})
 @CapabilityDescription("Puts content to a Dropbox folder.")
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the Dropbox object.")
-@WritesAttributes({@WritesAttribute(attribute = DropboxFileInfo.ID, description = "The Dropbox identifier of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.PATH, description = "The folder path where the file is located"),
-        @WritesAttribute(attribute = DropboxFileInfo.FILENAME, description = "The name of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.SIZE, description = "The size of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.TIMESTAMP, description = "The server modified time, when the file was uploaded to Dropbox"),
-        @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.URL, description = "Dropbox URL of the file")})
+@WritesAttributes({
+        @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC),
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = PATH, description = PATH_DESC),
+        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = REVISION, description = REVISION_DESC)})
 public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
     public static final int SINGLE_UPLOAD_LIMIT_IN_BYTES = 150 * 1024 * 1024;
@@ -178,6 +193,11 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         return RELATIONSHIPS;
     }
 
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         dropboxApiClient = getDropboxApiClient(context, getIdentifier());
@@ -226,14 +246,16 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
             if (fileMetadata != null) {
                 final Map<String, String> attributes = createAttributeMap(fileMetadata);
+                String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, attributes.get(DropboxFileInfo.URL), transferMillis);
+                session.getProvenanceReporter().send(flowFile, url, transferMillis);
             }
 
             session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Exception occurred while uploading file '{}' to Dropbox folder '{}'", filename, folder, e);
+            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -244,11 +266,6 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         if (dbxUploader != null) {
             dbxUploader.close();
         }
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
     }
 
     private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadErrorException e) throws UploadErrorException {

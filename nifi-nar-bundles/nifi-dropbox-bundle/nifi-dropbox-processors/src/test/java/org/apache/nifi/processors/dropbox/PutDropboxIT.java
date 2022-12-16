@@ -130,7 +130,6 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
         testRunner.run();
         testRunner.assertTransferCount(PutDropbox.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutDropbox.REL_FAILURE, 0);
-
     }
 
     @Test

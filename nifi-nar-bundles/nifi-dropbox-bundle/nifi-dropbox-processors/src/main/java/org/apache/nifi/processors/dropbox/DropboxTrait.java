@@ -92,13 +92,12 @@ public interface DropboxTrait {
 
     default Map<String, String> createAttributeMap(FileMetadata fileMetadata) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(DropboxFileInfo.ID, fileMetadata.getId());
-        attributes.put(DropboxFileInfo.PATH, getParentPath(fileMetadata.getPathDisplay()));
-        attributes.put(DropboxFileInfo.FILENAME, fileMetadata.getName());
-        attributes.put(DropboxFileInfo.SIZE, valueOf(fileMetadata.getSize()));
-        attributes.put(DropboxFileInfo.REVISION, fileMetadata.getRev());
-        attributes.put(DropboxFileInfo.TIMESTAMP, valueOf(fileMetadata.getServerModified().getTime()));
-        attributes.put(DropboxFileInfo.URL, DROPBOX_HOME_URL + fileMetadata.getPathDisplay());
+        attributes.put(DropboxAttributes.ID, fileMetadata.getId());
+        attributes.put(DropboxAttributes.PATH, getParentPath(fileMetadata.getPathDisplay()));
+        attributes.put(DropboxAttributes.FILENAME, fileMetadata.getName());
+        attributes.put(DropboxAttributes.SIZE, valueOf(fileMetadata.getSize()));
+        attributes.put(DropboxAttributes.REVISION, fileMetadata.getRev());
+        attributes.put(DropboxAttributes.TIMESTAMP, valueOf(fileMetadata.getServerModified().getTime()));
         return attributes;
     }
 }

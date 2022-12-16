@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.DbxUserFilesRequests;
-import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
@@ -37,17 +36,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.StreamSupport;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,26 +52,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class ListDropboxTest {
+public class ListDropboxTest extends AbstractDropboxTest {
 
-    public static final String ID_1 = "id:11111";
-    public static final String ID_2 = "id:22222";
-    public static final String TEST_FOLDER = "/testFolder";
-    public static final String FILENAME_1 = "file_name_1";
-    public static final String FILENAME_2 = "file_name_2";
-    public static final long SIZE = 125;
-    public static final long CREATED_TIME = 1659707000;
-    public static final String REVISION = "5e4ddb1320676a5c29261";
+    public static final String FOLDER_ID_1 = "id:11111";
+    public static final String FOLDER_ID_2 = "id:22222";
     public static final boolean IS_RECURSIVE = true;
     public static final long MIN_TIMESTAMP = 1659707000;
     public static final long OLD_CREATED_TIME = 1657375066;
-    private TestRunner testRunner;
 
     @Mock
     private DbxClientV2 mockDropboxClient;
-
-    @Mock
-    private DropboxCredentialService mockCredentialService;
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -87,7 +73,7 @@ public class ListDropboxTest {
     private ListFolderBuilder mockListFolderBuilder;
 
     @BeforeEach
-    void setUp() throws Exception {
+    protected void setUp() throws Exception {
         ListDropbox testSubject = new ListDropbox() {
             @Override
             public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
@@ -103,10 +89,9 @@ public class ListDropboxTest {
 
         testRunner = TestRunners.newTestRunner(testSubject);
 
-        mockStandardDropboxCredentialService();
-
         testRunner.setProperty(ListDropbox.RECURSIVE_SEARCH, Boolean.toString(IS_RECURSIVE));
         testRunner.setProperty(ListDropbox.MIN_AGE, "0 sec");
+        super.setUp();
     }
 
     @Test
@@ -139,7 +124,7 @@ public class ListDropboxTest {
         //root is listed when "" is used in Dropbox API
         when(mockDbxUserFilesRequest.listFolderBuilder("")).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(singletonList(
-                createFileMetadata(FILENAME_1, folderName, ID_1, CREATED_TIME)
+                createFileMetadata(FILENAME_1, folderName, FOLDER_ID_1, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -158,9 +143,9 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFolderMetadata("testFolder1", TEST_FOLDER),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME, false)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
+                createFolderMetadata(),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, CREATED_TIME, false)
         ));
 
         testRunner.run();
@@ -179,8 +164,8 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, OLD_CREATED_TIME)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, OLD_CREATED_TIME)
         ));
 
         testRunner.run();
@@ -200,8 +185,8 @@ public class ListDropboxTest {
 
         when(mockDbxUserFilesRequest.listFolderBuilder(TEST_FOLDER)).thenReturn(mockListFolderBuilder);
         when(mockListFolderResult.getEntries()).thenReturn(Arrays.asList(
-                createFileMetadata(FILENAME_1, TEST_FOLDER, ID_1, CREATED_TIME),
-                createFileMetadata(FILENAME_2, TEST_FOLDER, ID_2, CREATED_TIME)
+                createFileMetadata(FILENAME_1, TEST_FOLDER, FOLDER_ID_1, CREATED_TIME),
+                createFileMetadata(FILENAME_2, TEST_FOLDER, FOLDER_ID_2, CREATED_TIME)
         ));
 
         testRunner.run();
@@ -216,49 +201,18 @@ public class ListDropboxTest {
     }
 
     private void assertFlowFileAttributes(MockFlowFile flowFile, String folderName) {
-        flowFile.assertAttributeEquals(DropboxFileInfo.ID, ID_1);
-        flowFile.assertAttributeEquals(DropboxFileInfo.FILENAME, FILENAME_1);
-        flowFile.assertAttributeEquals(DropboxFileInfo.PATH, folderName);
-        flowFile.assertAttributeEquals(DropboxFileInfo.TIMESTAMP, Long.toString(CREATED_TIME));
-        flowFile.assertAttributeEquals(DropboxFileInfo.SIZE, Long.toString(SIZE));
-        flowFile.assertAttributeEquals(DropboxFileInfo.REVISION, REVISION);
+        flowFile.assertAttributeEquals(DropboxAttributes.ID, FOLDER_ID_1);
+        flowFile.assertAttributeEquals(DropboxAttributes.FILENAME, FILENAME_1);
+        flowFile.assertAttributeEquals(DropboxAttributes.PATH, folderName);
+        flowFile.assertAttributeEquals(DropboxAttributes.TIMESTAMP, Long.toString(CREATED_TIME));
+        flowFile.assertAttributeEquals(DropboxAttributes.SIZE, Long.toString(SIZE));
+        flowFile.assertAttributeEquals(DropboxAttributes.REVISION, REVISION);
     }
 
-    private FileMetadata createFileMetadata(
-            String filename,
-            String parent,
-            String id,
-            long createdTime,
-            boolean isDownloadable) {
-        return FileMetadata.newBuilder(filename, id,
-                        new Date(createdTime),
-                        new Date(createdTime),
-                        REVISION, SIZE)
-                .withPathDisplay(parent + "/" + filename)
-                .withIsDownloadable(isDownloadable)
+    private Metadata createFolderMetadata() {
+        return FolderMetadata.newBuilder(FOLDER_ID_1)
+                .withPathDisplay(TEST_FOLDER + "/" + FOLDER_ID_1)
                 .build();
-    }
-
-    private FileMetadata createFileMetadata(
-            String filename,
-            String parent,
-            String id,
-            long createdTime) {
-        return createFileMetadata(filename, parent, id, createdTime, true);
-    }
-
-    private Metadata createFolderMetadata(String folderName, String parent) {
-        return FolderMetadata.newBuilder(folderName)
-                .withPathDisplay(parent + "/" + folderName)
-                .build();
-    }
-
-    private void mockStandardDropboxCredentialService() throws Exception {
-        String credentialServiceId = "dropbox_credentials";
-        when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, mockCredentialService);
-        testRunner.enableControllerService(mockCredentialService);
-        testRunner.setProperty(ListDropbox.CREDENTIAL_SERVICE, credentialServiceId);
     }
 
     private void mockRecordWriter() throws InitializationException {

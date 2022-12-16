@@ -18,6 +18,18 @@ package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
@@ -69,12 +81,13 @@ import org.apache.nifi.serialization.record.RecordSchema;
         " This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the" +
         " previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({@WritesAttribute(attribute = DropboxFileInfo.ID, description = "The Dropbox identifier of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.PATH, description = "The folder path where the file is located"),
-        @WritesAttribute(attribute = DropboxFileInfo.FILENAME, description = "The name of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.SIZE, description = "The size of the file"),
-        @WritesAttribute(attribute = DropboxFileInfo.TIMESTAMP, description = "The server modified time, when the file was uploaded to Dropbox"),
-        @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
+@WritesAttributes({
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = PATH, description = PATH_DESC),
+        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = REVISION, description = REVISION_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
 @SeeAlso({FetchDropbox.class, PutDropbox.class})

@@ -19,9 +19,8 @@ package org.apache.nifi.processors.dropbox;
 
 import static com.dropbox.core.v2.files.UploadError.path;
 import static com.dropbox.core.v2.files.WriteConflictError.FILE;
-import static java.lang.String.valueOf;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.nifi.processors.dropbox.PutDropbox.DROPBOX_HOME_URL;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,7 +33,6 @@ import com.dropbox.core.LocalizedText;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
 import com.dropbox.core.v2.files.DbxUserFilesRequests;
-import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.UploadErrorException;
 import com.dropbox.core.v2.files.UploadSessionAppendV2Uploader;
 import com.dropbox.core.v2.files.UploadSessionCursor;
@@ -50,10 +48,9 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,26 +59,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class PutDropboxTest {
+public class PutDropboxTest extends AbstractDropboxTest {
 
-    public static final String TEST_FOLDER = "/testFolder";
-    public static final String FILENAME_1 = "file_name_1";
-    public static final String FILENAME_2 = "file_name_2";
     public static final long CHUNKED_UPLOAD_SIZE_IN_BYTES = 8;
     public static final long CHUNKED_UPLOAD_THRESHOLD_IN_BYTES = 15;
     public static final String CONTENT = "1234567890";
     public static final String LARGE_CONTENT_30B = "123456789012345678901234567890";
     public static final String SESSION_ID = "sessionId";
-    public static final String DROPBOX_ID = "id:11111";
-    public static final long CREATED_TIME = 1659707000;
 
-    private TestRunner testRunner;
-
-    @Mock
-    private DbxClientV2 mockDropboxClient;
-
-    @Mock
-    private DropboxCredentialService mockCredentialService;
 
     @Mock(answer = RETURNS_DEEP_STUBS)
     private DbxUserFilesRequests mockDbxUserFilesRequest;
@@ -101,23 +86,17 @@ public class PutDropboxTest {
     @Mock
     private UploadSessionFinishUploader mockUploadSessionFinishUploader;
 
-    @Mock(answer = RETURNS_DEEP_STUBS)
-    private FileMetadata mockFileMetadata;
-
     @BeforeEach
-    void setUp() throws Exception {
+    protected void setUp() throws Exception {
         final PutDropbox testSubject = new PutDropbox() {
             @Override
             public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
                 return mockDropboxClient;
             }
         };
-
         testRunner = TestRunners.newTestRunner(testSubject);
-
-        mockStandardDropboxCredentialService();
-
         testRunner.setProperty(PutDropbox.FOLDER, TEST_FOLDER);
+        super.setUp();
     }
 
     @Test
@@ -144,16 +123,13 @@ public class PutDropboxTest {
     void testFileUploadFileNameFromProperty() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
         mockFileUpload(TEST_FOLDER, FILENAME_1);
-        when(mockFileMetadata.getSize()).thenReturn((long) CONTENT.length());
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_SUCCESS);
         MockFlowFile flowFile = flowFiles.get(0);
-        flowFile.assertAttributeEquals(DropboxFileInfo.PATH, TEST_FOLDER);
-        flowFile.assertAttributeEquals(DropboxFileInfo.FILENAME, FILENAME_1);
-        flowFile.assertAttributeEquals(DropboxFileInfo.SIZE, valueOf(CONTENT.length()));
-        flowFile.assertAttributeEquals(DropboxFileInfo.URL, DROPBOX_HOME_URL + TEST_FOLDER + "/" + FILENAME_1);
+        assertOutFlowFileAttributes(flowFile);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
     @Test
@@ -168,6 +144,7 @@ public class PutDropboxTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
     @Test
@@ -190,6 +167,7 @@ public class PutDropboxTest {
 
         runWithFlowFile();
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
     @Test
@@ -199,7 +177,12 @@ public class PutDropboxTest {
         mockFileUploadError(new DbxException("Dropbox error"));
 
         runWithFlowFile();
+
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutDropbox.REL_FAILURE);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeEquals(ERROR_MESSAGE, "Dropbox error");
+        assertNoProvenanceEvent();
     }
 
     @Test
@@ -211,6 +194,7 @@ public class PutDropboxTest {
 
         runWithFlowFile();
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_FAILURE, 1);
+        assertNoProvenanceEvent();
     }
 
     @Test
@@ -222,6 +206,7 @@ public class PutDropboxTest {
 
         runWithFlowFile();
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_SUCCESS, 1);
+        assertNoProvenanceEvent();
     }
 
     @Test
@@ -232,6 +217,7 @@ public class PutDropboxTest {
 
         runWithFlowFile();
         testRunner.assertAllFlowFilesTransferred(PutDropbox.REL_FAILURE, 1);
+        assertNoProvenanceEvent();
     }
 
     @Test
@@ -276,12 +262,7 @@ public class PutDropboxTest {
 
         when(mockUploadSessionFinishUploader
                 .uploadAndFinish(any(InputStream.class), eq(6L)))
-                .thenReturn(mockFileMetadata);
-
-        when(mockFileMetadata.getName()).thenReturn(FILENAME_1);
-        when(mockFileMetadata.getPathDisplay()).thenReturn(TEST_FOLDER + "/" + FILENAME_1);
-        when(mockFileMetadata.getId()).thenReturn(DROPBOX_ID);
-        when(mockFileMetadata.getServerModified().getTime()).thenReturn(CREATED_TIME);
+                .thenReturn(createFileMetadata());
 
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
@@ -289,14 +270,7 @@ public class PutDropboxTest {
 
         verify(mockUploadSessionAppendV2Uploader, times(2))
                 .uploadAndFinish(any(InputStream.class), eq(CHUNKED_UPLOAD_SIZE_IN_BYTES));
-    }
-
-    private void mockStandardDropboxCredentialService() throws Exception {
-        String credentialServiceId = "dropbox_credentials";
-        when(mockCredentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, mockCredentialService);
-        testRunner.enableControllerService(mockCredentialService);
-        testRunner.setProperty(PutDropbox.CREDENTIAL_SERVICE, credentialServiceId);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
     }
 
     private void mockFileUpload(String folder, String filename) throws Exception {
@@ -318,12 +292,7 @@ public class PutDropboxTest {
 
         when(mockUploadUploader
                 .uploadAndFinish(any(InputStream.class)))
-                .thenReturn(mockFileMetadata);
-
-        when(mockFileMetadata.getName()).thenReturn(filename);
-        when(mockFileMetadata.getPathDisplay()).thenReturn(path);
-        when(mockFileMetadata.getId()).thenReturn(DROPBOX_ID);
-        when(mockFileMetadata.getServerModified().getTime()).thenReturn(CREATED_TIME);
+                .thenReturn(createFileMetadata());
     }
 
     private void mockFileUploadError(DbxException exception) throws Exception {
