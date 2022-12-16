@@ -114,6 +114,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -434,7 +435,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private BinlogLifecycleListener lifecycleListener;
     private GtidSet gtidSet;
 
-    private final LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
+    // Set queue capacity to avoid excessive memory consumption
+    private final BlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>(1000);
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
     private volatile String currentGtidSet = null;
@@ -1192,7 +1194,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param q      A queue used to communicate events between the listener and the NiFi processor thread.
      * @return A BinlogEventListener instance, which will be notified of events associated with the specified client
      */
-    BinlogEventListener createBinlogEventListener(BinaryLogClient client, LinkedBlockingQueue<RawBinlogEvent> q) {
+    BinlogEventListener createBinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q) {
         return new BinlogEventListener(client, q);
     }
 
