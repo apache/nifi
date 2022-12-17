@@ -193,6 +193,20 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testRecordToString() throws Exception {
+        Map<String, Object> objectMap = new HashMap<>();
+        objectMap.put("x", "1");
+        objectMap.put("y", "2");
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("x", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("y", RecordFieldType.STRING.getDataType()));
+        RecordSchema schema = new SimpleRecordSchema(fields);
+        Record record = new MapRecord(schema, objectMap);
+        String expected = DataTypeUtils.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(objectMap);
+        assertEquals(expected, DataTypeUtils.convertType(record, RecordFieldType.STRING.getDataType(), "test"));
+    }
+
+    @Test
     public void testConvertRecordArrayToJavaArray() {
         assertNull(DataTypeUtils.convertRecordArrayToJavaArray(null, null));
         assertNull(DataTypeUtils.convertRecordArrayToJavaArray(null, RecordFieldType.STRING.getDataType()));

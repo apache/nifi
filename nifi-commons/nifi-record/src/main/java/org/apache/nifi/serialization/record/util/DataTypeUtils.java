@@ -17,6 +17,7 @@
 
 package org.apache.nifi.serialization.record.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -134,6 +135,8 @@ public class DataTypeUtils {
     private static final double MIN_FLOAT_VALUE_IN_DOUBLE = -MAX_FLOAT_VALUE_IN_DOUBLE;
 
     private static final Map<RecordFieldType, Predicate<Object>> NUMERIC_VALIDATORS = new EnumMap<>(RecordFieldType.class);
+
+    public static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
         NUMERIC_VALIDATORS.put(RecordFieldType.BIGINT, value -> value instanceof BigInteger);
@@ -993,6 +996,15 @@ public class DataTypeUtils {
                 return sb.toString();
             } catch (Exception e) {
                 throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", e);
+            }
+        }
+
+        if (value instanceof MapRecord) {
+            Map<String, Object> map = ((MapRecord)value).toMap();
+            try {
+                return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(map);
+            } catch (Exception ex) {
+                throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + value.getClass() + " to a valid String", ex);
             }
         }
 
