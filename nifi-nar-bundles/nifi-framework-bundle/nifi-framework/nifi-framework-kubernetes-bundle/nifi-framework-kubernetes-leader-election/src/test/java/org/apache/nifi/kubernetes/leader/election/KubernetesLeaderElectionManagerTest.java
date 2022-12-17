@@ -33,6 +33,7 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
@@ -60,13 +61,13 @@ class KubernetesLeaderElectionManagerTest {
     @Captor
     ArgumentCaptor<Runnable> commandCaptor;
 
-    ManagedLeaderElectionCommandProvider leaderElectionCommandFactory;
+    ManagedLeaderElectionCommandProvider leaderElectionCommandProvider;
 
     KubernetesLeaderElectionManager manager;
 
     @BeforeEach
     void setManager() {
-        leaderElectionCommandFactory = new ManagedLeaderElectionCommandProvider();
+        leaderElectionCommandProvider = new ManagedLeaderElectionCommandProvider();
         manager = new MockKubernetesLeaderElectionManager();
     }
 
@@ -76,7 +77,7 @@ class KubernetesLeaderElectionManagerTest {
         manager.start();
         manager.stop();
 
-        assertTrue(leaderElectionCommandFactory.closed);
+        assertTrue(leaderElectionCommandProvider.closed);
     }
 
     @Test
@@ -88,7 +89,7 @@ class KubernetesLeaderElectionManagerTest {
 
         manager.stop();
 
-        assertTrue(leaderElectionCommandFactory.closed);
+        assertTrue(leaderElectionCommandProvider.closed);
     }
 
     @Test
@@ -129,6 +130,8 @@ class KubernetesLeaderElectionManagerTest {
         manager.unregister(ROLE);
 
         assertNotActiveParticipantNotLeader();
+
+        assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.findLeaderName);
     }
 
     @Test
@@ -182,9 +185,9 @@ class KubernetesLeaderElectionManagerTest {
 
     private void setSubmitStartLeading() {
         doReturn(future).when(executorService).submit(isA(Runnable.class));
-        leaderElectionCommandFactory.runStartLeading = true;
-        leaderElectionCommandFactory.runNewLeader = true;
-        leaderElectionCommandFactory.runStopLeading = true;
+        leaderElectionCommandProvider.runStartLeading = true;
+        leaderElectionCommandProvider.runNewLeader = true;
+        leaderElectionCommandProvider.runStopLeading = true;
     }
 
     private void captureRunCommand() {
@@ -202,7 +205,7 @@ class KubernetesLeaderElectionManagerTest {
         final String leaderId = manager.getLeader(ROLE);
         assertEquals(PARTICIPANT_ID, leaderId);
 
-        assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandFactory.name);
+        assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.name);
     }
 
     private void assertNotActiveParticipantNotLeader() {
@@ -211,6 +214,9 @@ class KubernetesLeaderElectionManagerTest {
 
         final boolean leader = manager.isLeader(ROLE);
         assertFalse(leader);
+
+        final String leaderId = manager.getLeader(ROLE);
+        assertNull(leaderId, "Leader found for unregistered election");
     }
 
     private class MockKubernetesLeaderElectionManager extends KubernetesLeaderElectionManager {
@@ -221,13 +227,15 @@ class KubernetesLeaderElectionManagerTest {
 
         @Override
         protected LeaderElectionCommandProvider createLeaderElectionCommandProvider() {
-            return leaderElectionCommandFactory;
+            return leaderElectionCommandProvider;
         }
     }
 
     private static class ManagedLeaderElectionCommandProvider implements LeaderElectionCommandProvider {
 
         private String name;
+
+        private String findLeaderName;
 
         private boolean runStartLeading;
 
@@ -261,6 +269,7 @@ class KubernetesLeaderElectionManagerTest {
 
         @Override
         public String findLeader(final String name) {
+            this.findLeaderName = name;
             return null;
         }
 

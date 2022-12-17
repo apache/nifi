@@ -87,7 +87,6 @@ class LeaderElectionCommand implements Runnable {
                 .withName(name)
                 .withLeaderCallbacks(leaderCallbacks)
                 .withLock(lock)
-                .withReleaseOnCancel()
                 .withLeaseDuration(LEASE_DURATION)
                 .withRenewDeadline(RENEW_DEADLINE)
                 .withRetryPeriod(RETRY_PERIOD)

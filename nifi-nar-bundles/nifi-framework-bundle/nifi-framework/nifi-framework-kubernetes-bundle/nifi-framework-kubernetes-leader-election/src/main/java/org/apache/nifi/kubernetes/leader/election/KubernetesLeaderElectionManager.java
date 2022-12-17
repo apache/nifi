@@ -107,6 +107,7 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
         } catch (final IOException e) {
             logger.warn("Leader Election Command Factory close failed", e);
         }
+        roleLeaders.clear();
         executorService.shutdown();
         started.getAndSet(false);
         logger.debug("Stopped");
@@ -147,18 +148,19 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
     public synchronized void unregister(final String roleName) {
         requireRoleName(roleName);
 
-        final ParticipantRegistration roleRegistration = roleRegistrations.get(roleName);
+        roleLeaders.remove(roleName);
+
+        final ParticipantRegistration roleRegistration = roleRegistrations.remove(roleName);
         if (roleRegistration == null) {
             logger.info("Not registered for Election Role [{}]", roleName);
         } else {
-            final Future<?> roleCommand = roleCommands.get(roleName);
+            final Future<?> roleCommand = roleCommands.remove(roleName);
             if (roleCommand == null) {
                 logger.warn("Leader Election Command not found Role [{}] ID [{}]", roleName, roleRegistration.participantId);
             } else {
                 roleCommand.cancel(INTERRUPT_ENABLED);
             }
 
-            roleRegistrations.remove(roleName);
             logger.info("Unregistered for Election Role [{}] ID [{}]", roleName, roleRegistration.participantId);
         }
     }
@@ -188,18 +190,19 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
 
         final long pollStarted = System.nanoTime();
         try {
+            final String roleId = getRoleId(roleName);
             final String leader;
             if (started.get()) {
                 final String roleLeader = roleLeaders.get(roleName);
                 if (roleLeader == null) {
                     logger.debug("Leader not registered: finding Leader for Role [{}]", roleName);
-                    leader = leaderElectionCommandProvider.findLeader(roleName);
+                    leader = leaderElectionCommandProvider.findLeader(roleId);
                 } else {
                     leader = roleLeader;
                 }
             } else {
                 logger.debug("Manager not running: finding Leader for Role [{}]", roleName);
-                leader = leaderElectionCommandProvider.findLeader(roleName);
+                leader = leaderElectionCommandProvider.findLeader(roleId);
             }
             return leader;
         } finally {
