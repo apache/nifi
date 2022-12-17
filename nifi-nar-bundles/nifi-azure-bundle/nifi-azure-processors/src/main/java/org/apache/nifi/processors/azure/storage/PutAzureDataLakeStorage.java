@@ -213,9 +213,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     }
 
     /**
-     * This method serves as a "commit" for the upload process. To support various Conflict Resolution Strategies the processor uploads
-     * the content of the FlowFile to a temporary file with a unique name, then attempts to rename it. It is not an efficient approach,
-     * especially for large files, but it is needed because of the issue (azure-sdk-for-java/issues/31248) linked above.
+     * This method serves as a "commit" for the upload process. Upon upload, a 0-byte file is created, then the payload is appended to it.
+     * Because of that, a work-in-progress file is available for readers before the upload is complete. It is not an efficient approach in
+     * case of conflicts because FlowFiles are uploaded unnecessarily, but it is a calculated risk because consistency is more important.
      *
      * Visible for testing
      *
