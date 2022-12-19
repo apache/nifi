@@ -356,7 +356,7 @@ public class PublisherLease implements Closeable {
             }
 
             final Record record = (Record) object;
-            final RecordSchema schema = record.getSchema();
+            final RecordSchema schema = writerFactory.getSchema(flowFile.getAttributes(), record.getSchema());
             try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                  final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
                 writer.write(record);
