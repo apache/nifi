@@ -38,6 +38,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.lookup.StringLookupService;
@@ -55,12 +56,14 @@ import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
@@ -235,7 +238,7 @@ public class TransformXml extends AbstractProcessor {
                         .valid(false)
                         .subject(XSLT_CONTROLLER.getDisplayName())
                         .explanation("This processor requires a key-value lookup service supporting exactly one required key, was: " +
-                            (requiredKeys == null ? "null" : String.valueOf(requiredKeys.size())))
+                                (requiredKeys == null ? "null" : String.valueOf(requiredKeys.size())))
                         .build());
             }
         }
@@ -283,7 +286,7 @@ public class TransformXml extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
         final String path = context.getProperty(XSLT_FILE_NAME).isSet()
                 ? context.getProperty(XSLT_FILE_NAME).evaluateAttributeExpressions(original).getValue()
-                        : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
+                : context.getProperty(XSLT_CONTROLLER_KEY).evaluateAttributeExpressions(original).getValue();
 
         try {
             final FlowFile transformed = session.write(original, (inputStream, outputStream) -> {
@@ -298,6 +301,7 @@ public class TransformXml extends AbstractProcessor {
                     final Transformer transformer = templates.newTransformer();
                     final String indentProperty = context.getProperty(INDENT_OUTPUT).asBoolean() ? "yes" : "no";
                     transformer.setOutputProperty(OutputKeys.INDENT, indentProperty);
+                    transformer.setErrorListener(getErrorListenerLogger());
 
                     // pass all dynamic properties to the transformer
                     for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -323,6 +327,10 @@ public class TransformXml extends AbstractProcessor {
         }
     }
 
+    private ErrorListenerLogger getErrorListenerLogger() {
+        return new ErrorListenerLogger(getLogger());
+    }
+
     @SuppressWarnings("unchecked")
     private Templates newTemplates(final ProcessContext context, final String path) throws TransformerConfigurationException, LookupFailureException {
         final boolean secureProcessing = context.getProperty(SECURE_PROCESSING).asBoolean();
@@ -341,6 +349,8 @@ public class TransformXml extends AbstractProcessor {
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-parameter-entities", false);
             factory.setFeature("http://saxon.sf.net/feature/parserFeature?uri=http://xml.org/sax/features/external-general-entities", false);
         }
+        factory.setErrorListener(getErrorListenerLogger());
+
         return factory;
     }
 
@@ -370,6 +380,30 @@ public class TransformXml extends AbstractProcessor {
             return new StAXSource(streamReader);
         } catch (final ProcessingException e) {
             throw new TransformerConfigurationException("XSLT Source Stream Reader creation failed", e);
+        }
+    }
+
+    private static class ErrorListenerLogger implements ErrorListener {
+        private final ComponentLog logger;
+
+        ErrorListenerLogger(ComponentLog logger) {
+            this.logger = logger;
+        }
+
+        @Override
+        public void warning(TransformerException exception) {
+            logger.warn(exception.getMessageAndLocation(), exception);
+        }
+
+        @Override
+        public void error(TransformerException exception) {
+            logger.error(exception.getMessageAndLocation(), exception);
+        }
+
+        @Override
+        public void fatalError(TransformerException exception) throws TransformerException {
+            logger.log(LogLevel.FATAL, exception.getMessageAndLocation(), exception);
+            throw exception;
         }
     }
 }

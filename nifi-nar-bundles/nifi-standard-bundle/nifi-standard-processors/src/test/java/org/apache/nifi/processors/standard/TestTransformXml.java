@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,6 +32,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransformXml {
 
@@ -296,5 +300,56 @@ public class TestTransformXml {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
 
         transformed.assertContentEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    }
+
+    @Test
+    public void testNonMatchingTemplateTag() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
+
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+        MockComponentLog logger = runner.getLogger();
+        assertFalse(logger.getErrorMessages().isEmpty());
+        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        assertTrue(firstMessage.contains("xsl:template"));
+    }
+
+    @Test
+    public void testMessageTerminate() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test message terminate");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
+
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+        MockComponentLog logger = runner.getLogger();
+        assertFalse(logger.getErrorMessages().isEmpty());
+        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        assertTrue(firstMessage.contains("xsl:message"));
+    }
+
+    @Test
+    public void testMessageNonTerminate() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test message non terminate");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
+
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/employee.html")));
+
+        transformed.assertContentEquals(expectedContent);
+        MockComponentLog logger = runner.getLogger();
+        assertTrue(logger.getErrorMessages().isEmpty());
+        assertTrue(logger.getWarnMessages().isEmpty());
     }
 }
