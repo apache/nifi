@@ -88,6 +88,12 @@ The next step is to download a copy of the Apache NiFi source code from the http
 
 `mvn clean install -Pinclude-grpc,include-graph,include-media`
 
+There is also a specific profile allowing you to build NiFi with all of the additional bundles that are not included by default:
+
+`mvn clean install -Pinclude-all`
+
+This will include bundles such as gRPC, Atlas, Hive, Hive 1_1, Hive 3, Media, Rules, SQL Reporting, Accumulo, Ranger, ASN1, Snowflake, Iceberg, etc.
+
 == Port Configuration
 
 === NiFi
