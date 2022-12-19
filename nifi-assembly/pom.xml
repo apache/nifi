@@ -1207,9 +1207,6 @@ language governing permissions and limitations under the License. -->
             <!-- This profile excludes the nifi-server artifacts, such as the Web/UI NAR(s) and instead uses the nifi-headless-server-nar. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
