@@ -611,6 +611,7 @@
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.xml</exclude>
+                        <exclude>src/test/resources/TestTransformXml/employee.html</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev2</exclude>

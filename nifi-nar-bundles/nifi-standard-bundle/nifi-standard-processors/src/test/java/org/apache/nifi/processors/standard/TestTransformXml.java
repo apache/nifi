@@ -297,4 +297,47 @@ public class TestTransformXml {
 
         transformed.assertContentEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
     }
+
+    @Test
+    public void testNonMatchingTemplateTag() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+    }
+
+    @Test
+    public void testMessageTerminate() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test message terminate");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+    }
+
+    @Test
+    public void testMessageNonTerminate() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test message non terminate");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
+
+        final Map<String, String> attributes = new HashMap<>();
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/employee.html")));
+
+        transformed.assertContentEquals(expectedContent);
+    }
 }
