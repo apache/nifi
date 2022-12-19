@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.gcp.vision;
 
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
-
 import com.google.longrunning.Operation;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.GeneratedMessageV3;
@@ -29,9 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -58,13 +54,6 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
             REL_FAILURE,
             REL_RUNNING
     )));
-
-    @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                GCP_CREDENTIALS_PROVIDER_SERVICE)
-        );
-    }
 
     @Override
     public Set<Relationship> getRelationships() {

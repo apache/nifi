@@ -23,21 +23,16 @@ import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.cloud.vision.v1.ImageAnnotatorSettings;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -53,14 +48,15 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
             REL_SUCCESS,
             REL_FAILURE
     )));
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+            GCP_CREDENTIALS_PROVIDER_SERVICE)
+    );
 
     private ImageAnnotatorClient vision;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                GCP_CREDENTIALS_PROVIDER_SERVICE)
-        );
+        return properties;
     }
 
     @Override
@@ -79,14 +75,7 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
             vision = ImageAnnotatorClient.create(builder.build());
         } catch (Exception e) {
             getLogger().error("Failed to create vision client.", e);
-        }
-    }
-
-    protected String readFlowFile(final ProcessSession session, final FlowFile flowFile) {
-        try (InputStream inputStream = session.read(flowFile)) {
-            return new String(IOUtils.toByteArray(inputStream));
-        } catch (final IOException e) {
-            throw new ProcessException("Read FlowFile Failed", e);
+            throw new ProcessException("Failed to create vision client.", e);
         }
     }
 

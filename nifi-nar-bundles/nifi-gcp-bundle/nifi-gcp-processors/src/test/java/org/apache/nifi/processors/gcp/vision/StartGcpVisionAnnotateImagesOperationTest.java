@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.api.gax.longrunning.OperationSnapshot;
-import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -41,8 +40,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -51,8 +48,6 @@ public class StartGcpVisionAnnotateImagesOperationTest {
     private TestRunner runner = null;
     private StartGcpVisionAnnotateImagesOperation processor;
     private static final Path FLOW_FILE_CONTENT = Paths.get("src/test/resources/vision/annotate-image.json");
-    @Captor
-    private ArgumentCaptor<AsyncBatchAnnotateFilesRequest> requestCaptor;
     private String operationName = "operationName";
     @Mock
     private OperationFuture operationFuture;
@@ -83,9 +78,7 @@ public class StartGcpVisionAnnotateImagesOperationTest {
     @Test
     public void testAnnotateImageJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateImagesAsync(any())).thenReturn(operationFuture);
-        when(operationFuture.getInitialFuture()).thenReturn(apiFuture);
-        when(apiFuture.get()).thenReturn(operationSnapshot);
-        when(operationSnapshot.getName()).thenReturn(operationName);
+        when(operationFuture.getName()).thenReturn(operationName);
         runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();
 
@@ -96,9 +89,7 @@ public class StartGcpVisionAnnotateImagesOperationTest {
     @Test
     public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateImagesAsync(any())).thenReturn(operationFuture);
-        when(operationFuture.getInitialFuture()).thenReturn(apiFuture);
-        when(apiFuture.get()).thenReturn(operationSnapshot);
-        when(operationSnapshot.getName()).thenReturn(operationName);
+        when(operationFuture.getName()).thenReturn(operationName);
         runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();
 

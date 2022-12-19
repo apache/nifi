@@ -22,16 +22,25 @@
 </head>
 <body>
 
-<h1>Google Cloud Vision - Start Annotate Images Status</h1>
+<h1>Google Cloud Vision - Start Annotate Images Operation</h1>
 
+<p>
+	Prerequisites
+<ul>
+	<li>Make sure Vision API is enabled and the account you are using has rights to use</li>
+	<li>Make sure input image(s) are available in GCS</li>
+</ul>
+</p>
 <h3>Usage</h3>
 <p>
-    StartGcpVisionAnnotateImagedOperationStatus is designed to periodically check image annotation status. This processor should be used in pair with GetGcpVisionAnnotateImagesOperationStatus Processor.
-    FlowFile will contain the serialized response that contains the result and additional metadata as it is documented in Google Vision API Reference.
+StartGcpVisionAnnotateImagesOperation is designed to trigger image annotation operation. This processor should be used in pair with GetGcpVisionAnnotateImagesOperationStatus Processor.
+FlowFile will contain the serialized response that contains the result and additional metadata as it is documented in Google Vision API Reference.
 </p>
-
+<h3>Payload</h3>
 <p>
-	JSON payload template - note that it can be simplified with the optional fields, check <a href="https://cloud.google.com/vision/docs/reference/rest"> Vision API reference </a> for more details - example:
+	The JSON Payload is a request in json format that documented in <a href="https://cloud.google.com/vision/docs/reference/rest/v1/images/asyncBatchAnnotate" target="_blank">Google Vision REST API reference </a>.
+	Payload can be feed to the processor via <code>JSON Payload</code> property or as a flow file content. Property has higher precedence over FlowFile content.
+	JSON payload template example:
 </p>
 
 <code>
@@ -56,5 +65,18 @@
 	}
 }
     </pre>
+</code>
+<h3>Features types</h3>
+<ul>
+	<li>TEXT_DETECTION: Optical character recognition (OCR) for an image; text recognition and conversion to machine-coded text. Identifies and extracts UTF-8 text in an image.</li>
+	<li>DOCUMENT_TEXT_DETECTION: Optical character recognition (OCR) for a file (PDF/TIFF) or dense text image; dense text recognition and conversion to machine-coded text.</li>
+	<li>LANDMARK_DETECTION: Provides the name of the landmark, a confidence score and a bounding box in the image for the landmark.</li>
+	<li>LOGO_DETECTION: Provides a textual description of the entity identified, a confidence score, and a bounding polygon for the logo in the file.</li>
+	<li>LABEL_DETECTION: Provides generalized labels for an image.</li>
+	<li>etc.</li>
+</ul>
+You can find more details on <a href="https://cloud.google.com/vision/docs/features-list" target="_blank">Google Vision Feature List</a>
+<h3>Example Flow</h3>
+<img src="vision-annotate-images.png" style="height: 50%; width: 50%"/>
 </body>
 </html>

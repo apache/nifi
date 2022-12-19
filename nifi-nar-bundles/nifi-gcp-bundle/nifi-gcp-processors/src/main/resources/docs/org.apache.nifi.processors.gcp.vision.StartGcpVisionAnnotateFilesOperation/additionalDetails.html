@@ -22,16 +22,25 @@
 </head>
 <body>
 
-<h1>Google Cloud Vision - Start Annotate Files Status</h1>
-
+<h1>Google Cloud Vision - Start Annotate Files Operation</h1>
+<p>
+    Prerequisites
+<ul>
+    <li>Make sure Vision API is enabled and the account you are using has rights to use</li>
+    <li>Make sure input file(s) are available in GCS</li>
+</ul>
+</p>
 <h3>Usage</h3>
 <p>
-    StartGcpVisionAnnotateFilesOperationStatus is designed to periodically check file annotation status. This processor should be used in pair with GetGcpVisionAnnotateFilesOperationStatus Processor.
+    StartGcpVisionAnnotateFilesOperation is designed to trigger file annotation operation. This processor should be used in pair with GetGcpVisionAnnotateFilesOperationStatus Processor.
     FlowFile will contain the serialized response that contains the result and additional metadata as it is documented in Google Vision API Reference.
 </p>
 
+<h3>Payload</h3>
 <p>
-    JSON payload template - note that it can be simplified with the optional fields, check <a href="https://cloud.google.com/vision/docs/reference/rest"> Vision API reference </a> for more details - example:
+    The JSON Payload is a request in json format that documented in <a href="https://cloud.google.com/vision/docs/reference/rest/v1/files/asyncBatchAnnotate" target="_blank">Google Vision REST API reference </a>.
+    Payload can be feed to the processor via <code>JSON Payload</code> property or as a flow file content. Property has higher precedence over FlowFile content.
+    JSON payload template example:
 </p>
 <code>
     <pre>
@@ -45,7 +54,7 @@
                 "mimeType": "application/pdf"
             },
             "features": [{
-                    "type": "IMAGE_PROPERTIES",
+                    "type": "DOCUMENT_TEXT_DETECTION",
                     "maxResults": 4
                 }],
             "outputConfig": {
@@ -58,5 +67,14 @@
 }
     </pre>
 </code>
+<h3>Features types</h3>
+<ul>
+    <li>TEXT_DETECTION: Optical character recognition (OCR) for an image; text recognition and conversion to machine-coded text. Identifies and extracts UTF-8 text in an image.</li>
+    <li>DOCUMENT_TEXT_DETECTION: Optical character recognition (OCR) for a file (PDF/TIFF) or dense text image; dense text recognition and conversion to machine-coded text.</li>
+</ul>
+You can find more details on <a href="https://cloud.google.com/vision/docs/features-list" target="_blank">Google Vision Feature List</a>
+
+<h3>Example Flow</h3>
+<img src="vision-annotate-files.png" style="height: 50%; width: 50%"/>
 </body>
 </html>

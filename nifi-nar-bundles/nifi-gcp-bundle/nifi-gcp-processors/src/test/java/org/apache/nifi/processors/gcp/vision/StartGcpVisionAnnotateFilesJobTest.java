@@ -28,7 +28,9 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.api.gax.longrunning.OperationSnapshot;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
+import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesResponse;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
+import com.google.cloud.vision.v1.OperationMetadata;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -58,7 +60,7 @@ public class StartGcpVisionAnnotateFilesJobTest {
     private ArgumentCaptor<AsyncBatchAnnotateFilesRequest> requestCaptor;
     private String operationName = "operationName";
     @Mock
-    private OperationFuture operationFuture;
+    private OperationFuture<AsyncBatchAnnotateFilesResponse, OperationMetadata> operationFuture;
     @Mock
     private ApiFuture<OperationSnapshot> apiFuture;
     @Mock
@@ -86,9 +88,7 @@ public class StartGcpVisionAnnotateFilesJobTest {
     @Test
     public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenReturn(operationFuture);
-        when(operationFuture.getInitialFuture()).thenReturn(apiFuture);
-        when(apiFuture.get()).thenReturn(operationSnapshot);
-        when(operationSnapshot.getName()).thenReturn(operationName);
+        when(operationFuture.getName()).thenReturn(operationName);
         runner.enqueue(FlowFileContent, Collections.emptyMap());
         runner.run();
 
