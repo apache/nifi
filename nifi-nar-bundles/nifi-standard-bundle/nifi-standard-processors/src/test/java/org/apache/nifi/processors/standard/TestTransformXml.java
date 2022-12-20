@@ -304,8 +304,7 @@ public class TestTransformXml {
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
 
-        final Map<String, String> attributes = new HashMap<>();
-        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
@@ -317,8 +316,7 @@ public class TestTransformXml {
         runner.setProperty("header", "Test message terminate");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
 
-        final Map<String, String> attributes = new HashMap<>();
-        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"), attributes);
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
@@ -330,8 +328,7 @@ public class TestTransformXml {
         runner.setProperty("header", "Test message non terminate");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
 
-        final Map<String, String> attributes = new HashMap<>();
-        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"), attributes);
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/employee.xml"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);

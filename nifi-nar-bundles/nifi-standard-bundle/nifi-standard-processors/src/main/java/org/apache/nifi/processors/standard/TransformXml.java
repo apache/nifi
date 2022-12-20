@@ -382,27 +382,28 @@ public class TransformXml extends AbstractProcessor {
             throw new TransformerConfigurationException("XSLT Source Stream Reader creation failed", e);
         }
     }
-}
 
-class ErrorListenerLogger implements ErrorListener {
-    private final ComponentLog logger;
+    private static class ErrorListenerLogger implements ErrorListener {
+        private final ComponentLog logger;
 
-    ErrorListenerLogger(ComponentLog logger) {
-        this.logger = logger;
-    }
+        ErrorListenerLogger(ComponentLog logger) {
+            this.logger = logger;
+        }
 
-    @Override
-    public void warning(TransformerException exception) throws TransformerException {
-        logger.warn(exception.getMessageAndLocation());
-    }
+        @Override
+        public void warning(TransformerException exception) {
+            logger.warn(exception.getMessageAndLocation(), exception);
+        }
 
-    @Override
-    public void error(TransformerException exception) throws TransformerException {
-        logger.error(exception.getMessageAndLocation());
-    }
+        @Override
+        public void error(TransformerException exception) {
+            logger.error(exception.getMessageAndLocation(), exception);
+        }
 
-    @Override
-    public void fatalError(TransformerException exception) throws TransformerException {
-        logger.log(LogLevel.FATAL, exception.getMessageAndLocation());
+        @Override
+        public void fatalError(TransformerException exception) throws TransformerException {
+            logger.log(LogLevel.FATAL, exception.getMessageAndLocation(), exception);
+            throw exception;
+        }
     }
 }
