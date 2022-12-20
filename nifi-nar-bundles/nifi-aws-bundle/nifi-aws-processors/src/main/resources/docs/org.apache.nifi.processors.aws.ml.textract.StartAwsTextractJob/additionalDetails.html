@@ -24,9 +24,9 @@
 
 <h1>StartAwsTextractJob</h1>
 <p>
-
     Amazon Textract is a machine learning (ML) service that automatically extracts text, handwriting, and data from scanned documents.
-    It goes beyond simple optical character recognition (OCR) to identify, understand, and extract data from forms and tables. </p>
+    It goes beyond simple optical character recognition (OCR) to identify, understand, and extract data from forms and tables.
+</p>
 
 <h3>Usage</h3>
 <p>
@@ -42,10 +42,13 @@
 </p>
 <p>
     Three different type of textract task are supported: Documnet Analysis, Text Detection, Expense Analysis.
-    JSON payload templates - note that these can be simplified with the optional fields, check AWS documentation for more details - examples:
 </p>
+<h3>DocumentAnalysis</h3>
+<p>Starts the asynchronous analysis of an input document for relationships between detected items such as key-value pairs, tables, and selection elements.
+    <a href="https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentAnalysis.html" target="_blank"> API Reference</a>
+</p>
+Example payload:
 <code>
-DocumentAnalysis
     <pre>
 {
    "ClientRequestToken": "string",
@@ -77,8 +80,13 @@ DocumentAnalysis
       ]
    }
 }
-  </pre>
-ExpenseAnalysis
+    </pre>
+</code>
+<h3>ExpenseAnalysis</h3>
+<p>Starts the asynchronous analysis of invoices or receipts for data like contact information, items purchased, and vendor names.
+    <a href="https://docs.aws.amazon.com/textract/latest/dg/API_StartExpenseAnalysis.html" target="_blank"> API Reference</a>
+</p>
+Example payload:
   <code>
     <pre>
 {
@@ -103,8 +111,12 @@ ExpenseAnalysis
 }
     </pre>
   </code>
-StartDocumentTextDetection
-  <code>
+<h3>StartDocumentTextDetection</h3>
+<p>Starts the asynchronous detection of text in a document. Amazon Textract can detect lines of text and the words that make up a line of text.
+    <a href="https://docs.aws.amazon.com/textract/latest/dg/API_StartDocumentTextDetection.html" target="_blank"> API Reference</a>
+</p>
+Example payload:
+<code>
     <pre>
 {
    "ClientRequestToken": "string",
