@@ -18,9 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import net.sf.saxon.event.Receiver;
-import net.sf.saxon.event.ReceiverOption;
-import net.sf.saxon.trans.XPathException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -76,7 +73,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -306,7 +302,6 @@ public class TransformXml extends AbstractProcessor {
                     final String indentProperty = context.getProperty(INDENT_OUTPUT).asBoolean() ? "yes" : "no";
                     transformer.setOutputProperty(OutputKeys.INDENT, indentProperty);
                     transformer.setErrorListener(getErrorListenerLogger());
-                    setMessageReceiver(transformer);
 
                     // pass all dynamic properties to the transformer
                     for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -334,48 +329,6 @@ public class TransformXml extends AbstractProcessor {
 
     private ErrorListenerLogger getErrorListenerLogger() {
         return new ErrorListenerLogger(getLogger());
-    }
-
-    /**
-     * The Saxon transformer sends messages from <xsl:message/> to a message emitter
-     * which by default prints messages to the console. This method instantiates a custom message
-     * emitter to allow for using Nifi logging for these messages instead.
-     *
-     * @param transformer Instance of {@link Transformer}.
-     */
-    private void setMessageReceiver(final Transformer transformer) {
-        if (transformer instanceof net.sf.saxon.jaxp.TransformerImpl) {
-            net.sf.saxon.jaxp.TransformerImpl saxonTransformer = (net.sf.saxon.jaxp.TransformerImpl) transformer;
-            final ComponentLog logger = getLogger();
-            Receiver messageReceiver = new net.sf.saxon.serialize.XMLEmitter() {
-                boolean terminate = false;
-
-                @Override
-                public void startDocument(int properties) throws XPathException {
-                    setWriter(new StringWriter());
-                    terminate = (properties & ReceiverOption.TERMINATE) != 0;
-                    super.startDocument(properties);
-                }
-
-                @Override
-                public void endDocument() throws XPathException {
-                    String message = getWriter().toString();
-                    if (terminate) {
-                        //NOTE: trim is used as there may be a blank line before the actual message.
-                        logger.error(StringUtils.trim(message));
-                    } else {
-                        logger.warn(message);
-                    }
-                }
-
-                @Override
-                public void close() {
-                    /* This method is empty as the close methods in the two parent classes
-                     *  call things which are not necessary in this context. */
-                }
-            };
-            saxonTransformer.getUnderlyingController().setMessageEmitter(messageReceiver);
-        }
     }
 
     @SuppressWarnings("unchecked")
