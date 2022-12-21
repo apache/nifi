@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,6 +32,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransformXml {
 
@@ -308,6 +312,13 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+        MockComponentLog logger = runner.getLogger();
+        assertFalse(logger.getErrorMessages().isEmpty());
+        assertTrue(logger.getErrorMessages().size() >= 1);
+        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        assertTrue(firstMessage.contains("xsl:template"));
+        assertTrue(firstMessage.contains("Line#"));
+        assertTrue(firstMessage.contains("Column#"));
     }
 
     @Test
@@ -320,6 +331,13 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
+        MockComponentLog logger = runner.getLogger();
+        assertFalse(logger.getErrorMessages().isEmpty());
+        assertTrue(logger.getErrorMessages().size() >= 1);
+        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        assertTrue(firstMessage.contains("xsl:message"));
+        assertTrue(firstMessage.contains("Line#"));
+        assertTrue(firstMessage.contains("Column#"));
     }
 
     @Test
@@ -336,5 +354,8 @@ public class TestTransformXml {
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/employee.html")));
 
         transformed.assertContentEquals(expectedContent);
+        MockComponentLog logger = runner.getLogger();
+        assertTrue(logger.getErrorMessages().isEmpty());
+        assertTrue(logger.getWarnMessages().isEmpty());
     }
 }
