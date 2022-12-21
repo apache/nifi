@@ -317,8 +317,6 @@ public class TestTransformXml {
         assertTrue(logger.getErrorMessages().size() >= 1);
         String firstMessage = logger.getErrorMessages().get(0).getMsg();
         assertTrue(firstMessage.contains("xsl:template"));
-        assertTrue(firstMessage.contains("Line#"));
-        assertTrue(firstMessage.contains("Column#"));
     }
 
     @Test
@@ -336,8 +334,6 @@ public class TestTransformXml {
         assertTrue(logger.getErrorMessages().size() >= 1);
         String firstMessage = logger.getErrorMessages().get(0).getMsg();
         assertTrue(firstMessage.contains("xsl:message"));
-        assertTrue(firstMessage.contains("Line#"));
-        assertTrue(firstMessage.contains("Column#"));
     }
 
     @Test
