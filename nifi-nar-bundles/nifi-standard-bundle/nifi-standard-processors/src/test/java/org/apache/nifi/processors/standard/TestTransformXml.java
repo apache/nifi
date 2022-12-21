@@ -314,7 +314,6 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        assertTrue(logger.getErrorMessages().size() >= 1);
         String firstMessage = logger.getErrorMessages().get(0).getMsg();
         assertTrue(firstMessage.contains("xsl:template"));
     }
@@ -331,7 +330,6 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        assertTrue(logger.getErrorMessages().size() >= 1);
         String firstMessage = logger.getErrorMessages().get(0).getMsg();
         assertTrue(firstMessage.contains("xsl:message"));
     }
