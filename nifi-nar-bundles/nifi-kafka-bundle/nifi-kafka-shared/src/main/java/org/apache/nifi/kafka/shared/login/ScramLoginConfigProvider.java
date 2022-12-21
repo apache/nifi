@@ -19,17 +19,18 @@ package org.apache.nifi.kafka.shared.login;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.REQUIRED;
+
 /**
  * SASL SCRAM Login Module implementation of configuration provider
  */
 public class ScramLoginConfigProvider implements LoginConfigProvider {
     private static final String MODULE_CLASS_NAME = "org.apache.kafka.common.security.scram.ScramLoginModule";
 
-    private static final String FORMAT = "%s required username=\"%s\" password=\"%s\"";
+    private static final String USERNAME_KEY = "username";
+    private static final String PASSWORD_KEY = "password";
 
-    private static final String TOKEN_AUTH_ENABLED = "tokenauth=true";
-
-    private static final String SEMI_COLON = ";";
+    private static final String TOKEN_AUTH_KEY = "tokenauth";
 
     /**
      * Get JAAS configuration using configured username and password with optional token authentication
@@ -39,20 +40,19 @@ public class ScramLoginConfigProvider implements LoginConfigProvider {
      */
     @Override
     public String getConfiguration(final PropertyContext context) {
-        final StringBuilder builder = new StringBuilder();
+        final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS_NAME, REQUIRED);
 
         final String username = context.getProperty(KafkaClientComponent.SASL_USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(KafkaClientComponent.SASL_PASSWORD).evaluateAttributeExpressions().getValue();
 
-        final String moduleUsernamePassword = String.format(FORMAT, MODULE_CLASS_NAME, username, password);
-        builder.append(moduleUsernamePassword);
+        builder.append(USERNAME_KEY, username);
+        builder.append(PASSWORD_KEY, password);
 
         final Boolean tokenAuthenticationEnabled = context.getProperty(KafkaClientComponent.TOKEN_AUTHENTICATION).asBoolean();
         if (Boolean.TRUE == tokenAuthenticationEnabled) {
-            builder.append(TOKEN_AUTH_ENABLED);
+            builder.append(TOKEN_AUTH_KEY, Boolean.TRUE);
         }
 
-        builder.append(SEMI_COLON);
-        return builder.toString();
+        return builder.build();
     }
 }

@@ -135,5 +135,18 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>include-kafka-aws</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>software.amazon.msk</groupId>
+                    <artifactId>aws-msk-iam-auth</artifactId>
+                    <version>${aws-msk-iam-auth.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
     </profiles>
 </project>
