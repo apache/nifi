@@ -1,5 +1,5 @@
-nifi-kafka-1-0-nar
-Copyright 2014-2022 The Apache Software Foundation
+nifi-kafka-2-0-nar
+Copyright 2014-2023 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -80,4 +80,9 @@ The following binary components are provided under the Apache Software License v
       A list of contributors may be found from CREDITS file, which is included
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
+
+  (ASLv2) aws-msk-iam-auth
+    The following NOTICE information applies:
+      aws-msk-iam-auth
+      Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 

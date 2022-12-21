@@ -58,7 +58,7 @@ public interface KafkaClientComponent {
             .description("SASL mechanism used for authentication. Corresponds to Kafka Client sasl.mechanism property")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SaslMechanism.class)
+            .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
             .defaultValue(SaslMechanism.GSSAPI.getValue())
             .build();
 
@@ -105,6 +105,35 @@ public interface KafkaClientComponent {
                     SaslMechanism.SCRAM_SHA_256.getValue(),
                     SaslMechanism.SCRAM_SHA_512.getValue()
             )
+            .build();
+
+    PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
+            .name("aws.profile.name")
+            .displayName("AWS Profile Name")
+            .description("The AWS Profile to consider when there are multiple profiles available.")
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AWS_MSK_IAM
+            )
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    PropertyDescriptor AWS_DEBUG_CREDS = new PropertyDescriptor.Builder()
+            .name("aws.debug.creds")
+            .displayName("Debug AWS Credentials")
+            .description("This property helps to debug which AWS credential is being exactly used. If this property is set to true "
+                    + "and `software.amazon.msk.auth.iam.internals.MSKCredentialProvider` logger is set to DEBUG, a log will be printed "
+                    + "including IAM Account, IAM user id and the ARN of the IAM Principal corresponding to the credential being used. "
+                    + "It is recommended to use this property only during debug since it makes an additional remote call.")
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AWS_MSK_IAM
+            )
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

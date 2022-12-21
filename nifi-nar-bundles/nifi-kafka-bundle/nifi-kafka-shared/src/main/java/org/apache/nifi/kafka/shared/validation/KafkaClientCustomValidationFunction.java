@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 
@@ -74,6 +75,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         validateKerberosServices(validationContext, results);
         validateKerberosCredentials(validationContext, results);
         validateUsernamePassword(validationContext, results);
+        validateAWSIAMMechanism(validationContext, results);
         return results;
     }
 
@@ -230,6 +232,19 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
                         .explanation(explanation)
                         .build());
             }
+        }
+    }
+
+    private void validateAWSIAMMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
+        final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+
+        if (SaslMechanism.AWS_MSK_IAM.getValue().equals(saslMechanism) && !StandardKafkaPropertyProvider.isIAMCallbackHandlerFound()) {
+            final String explanation = String.format("[%s] should be on classpath", StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+            results.add(new ValidationResult.Builder()
+                    .subject(SASL_MECHANISM.getDisplayName())
+                    .valid(false)
+                    .explanation(explanation)
+                    .build());
         }
     }
 

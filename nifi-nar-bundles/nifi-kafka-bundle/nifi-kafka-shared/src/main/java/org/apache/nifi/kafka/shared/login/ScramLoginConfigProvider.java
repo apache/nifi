@@ -25,11 +25,9 @@ import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 public class ScramLoginConfigProvider implements LoginConfigProvider {
     private static final String MODULE_CLASS_NAME = "org.apache.kafka.common.security.scram.ScramLoginModule";
 
-    private static final String FORMAT = "%s required username=\"%s\" password=\"%s\"";
+    private static final String USERNAME_AND_PASSWORD_FORMAT = "username=\"%s\" password=\"%s\"";
 
     private static final String TOKEN_AUTH_ENABLED = "tokenauth=true";
-
-    private static final String SEMI_COLON = ";";
 
     /**
      * Get JAAS configuration using configured username and password with optional token authentication
@@ -39,20 +37,19 @@ public class ScramLoginConfigProvider implements LoginConfigProvider {
      */
     @Override
     public String getConfiguration(final PropertyContext context) {
-        final StringBuilder builder = new StringBuilder();
+        final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS_NAME);
 
         final String username = context.getProperty(KafkaClientComponent.SASL_USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(KafkaClientComponent.SASL_PASSWORD).evaluateAttributeExpressions().getValue();
 
-        final String moduleUsernamePassword = String.format(FORMAT, MODULE_CLASS_NAME, username, password);
-        builder.append(moduleUsernamePassword);
+        final String usernamePassword = String.format(USERNAME_AND_PASSWORD_FORMAT, username, password);
+        builder.append(usernamePassword);
 
         final Boolean tokenAuthenticationEnabled = context.getProperty(KafkaClientComponent.TOKEN_AUTHENTICATION).asBoolean();
         if (Boolean.TRUE == tokenAuthenticationEnabled) {
             builder.append(TOKEN_AUTH_ENABLED);
         }
 
-        builder.append(SEMI_COLON);
-        return builder.toString();
+        return builder.build();
     }
 }

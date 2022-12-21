@@ -32,13 +32,6 @@ import java.util.Objects;
  * Kerberos User Service Login Module implementation of configuration provider
  */
 public class KerberosUserServiceLoginConfigProvider implements LoginConfigProvider {
-    private static final String SPACE = " ";
-
-    private static final String EQUALS = "=";
-
-    private static final String DOUBLE_QUOTE = "\"";
-
-    private static final String SEMI_COLON = ";";
 
     private static final Map<AppConfigurationEntry.LoginModuleControlFlag, String> CONTROL_FLAGS = new LinkedHashMap<>();
 
@@ -61,32 +54,15 @@ public class KerberosUserServiceLoginConfigProvider implements LoginConfigProvid
         final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
         final AppConfigurationEntry configurationEntry = kerberosUser.getConfigurationEntry();
 
-        final StringBuilder builder = new StringBuilder();
-
-        final String loginModuleName = configurationEntry.getLoginModuleName();
-        builder.append(loginModuleName);
+        final LoginConfigBuilder builder = new LoginConfigBuilder(configurationEntry.getLoginModuleName());
 
         final AppConfigurationEntry.LoginModuleControlFlag controlFlag = configurationEntry.getControlFlag();
         final String moduleControlFlag = Objects.requireNonNull(CONTROL_FLAGS.get(controlFlag), "Control Flag not found");
-        builder.append(SPACE);
         builder.append(moduleControlFlag);
 
         final Map<String, ?> options = configurationEntry.getOptions();
-        options.forEach((key, value) -> {
-            builder.append(SPACE);
+        options.forEach(builder::append);
 
-            builder.append(key);
-            builder.append(EQUALS);
-            if (value instanceof String) {
-                builder.append(DOUBLE_QUOTE);
-                builder.append(value);
-                builder.append(DOUBLE_QUOTE);
-            } else {
-                builder.append(value);
-            }
-        });
-
-        builder.append(SEMI_COLON);
-        return builder.toString();
+        return builder.build();
     }
 }

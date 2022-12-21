@@ -24,6 +24,8 @@ public enum KafkaClientProperty {
 
     SASL_LOGIN_CLASS("sasl.login.class"),
 
+    SASL_CLIENT_CALLBACK_HANDLER_CLASS("sasl.client.callback.handler.class"),
+
     SSL_KEYSTORE_LOCATION("ssl.keystore.location"),
 
     SSL_KEYSTORE_PASSWORD("ssl.keystore.password"),

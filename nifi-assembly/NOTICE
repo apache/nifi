@@ -2392,6 +2392,11 @@ The following binary components are provided under the Apache Software License v
       The Box SDK for Java
       Copyright 2019 Box, Inc. All rights reserved.
 
+  (ASLv2) aws-msk-iam-auth
+    The following NOTICE information applies:
+      aws-msk-iam-auth
+      Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
