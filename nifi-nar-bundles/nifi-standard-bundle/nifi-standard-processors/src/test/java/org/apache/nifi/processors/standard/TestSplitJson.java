@@ -113,6 +113,43 @@ public class TestSplitJson {
     }
 
     @Test
+    public void testSplit_change_jsonpath() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[0].range");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        int numSplitsExpected = 10;
+
+        testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
+        testRunner.assertTransferCount(SplitJson.REL_SPLIT, numSplitsExpected);
+        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
+        originalOut.assertContentEquals(JSON_SNIPPET);
+
+        // Change JsonPath Expression, verify it is being applied correctly
+        testRunner.clearTransferState();
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
+
+        testRunner.enqueue(JSON_SNIPPET, new HashMap<>() {
+            {
+                put(CoreAttributes.FILENAME.key(), "test.json");
+            }
+        });
+        testRunner.run();
+
+        testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
+        originalFlowFile.assertContentEquals(JSON_SNIPPET);
+        testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0);
+        flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
+    }
+
+    @Test
     public void testSplit_arrayResult_nonScalarValues() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
