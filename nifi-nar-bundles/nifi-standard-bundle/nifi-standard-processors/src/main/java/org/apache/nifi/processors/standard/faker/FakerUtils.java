@@ -28,7 +28,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -36,12 +38,10 @@ import java.util.stream.Collectors;
 
 public class FakerUtils {
 
-    private static final int RANDOM_DATE_DAYS = 365;
-
     public static final String DEFAULT_DATE_PROPERTY_NAME = "DateAndTime.pastDate";
+    private static final int RANDOM_DATE_DAYS = 365;
+    private static final Map<String, FakerMethodHolder> datatypeFunctionMap = new LinkedHashMap<>();
 
-
-    protected static final Map<String, FakerMethodHolder> datatypeFunctionMap = new HashMap<>();
 
     // Additional Faker datatypes that don't use predetermined data files (i.e. they generate data or have non-String types)
     static final AllowableValue FT_BOOL = new AllowableValue("Boolean.bool", "Boolean - bool (true/false)", "A value of 'true' or 'false'");
@@ -69,8 +69,8 @@ public class FakerUtils {
         }
 
         // Filter on no-arg methods that return a String, these should be the methods the user can use to generate data
-        Faker tempFaker = new Faker();
-        List<AllowableValue> fakerDatatypeValueList = new ArrayList<>();
+        Faker faker = new Faker();
+        List<AllowableValue> supportedDataTypes = new ArrayList<>();
         for (Map.Entry<String, Class<?>> entry : possibleFakerTypeMap.entrySet()) {
             List<Method> fakerMethods = Arrays.stream(entry.getValue().getDeclaredMethods()).filter((method) ->
                             Modifier.isPublic(method.getModifiers())
@@ -78,12 +78,12 @@ public class FakerUtils {
                                     && method.getReturnType() == String.class)
                     .collect(Collectors.toList());
             try {
-                final Object methodObject = tempFaker.getClass().getDeclaredMethod(normalizeMethodName(entry.getKey())).invoke(tempFaker);
+                final Object methodObject = faker.getClass().getDeclaredMethod(normalizeMethodName(entry.getKey())).invoke(faker);
                 for (Method method : fakerMethods) {
                     final String allowableValueName = normalizeClassName(entry.getKey()) + "." + method.getName();
                     final String allowableValueDisplayName = normalizeDisplayName(entry.getKey()) + " - " + normalizeDisplayName(method.getName());
                     datatypeFunctionMap.put(allowableValueName, new FakerMethodHolder(allowableValueName, methodObject, method));
-                    fakerDatatypeValueList.add(new AllowableValue(allowableValueName, allowableValueDisplayName, allowableValueDisplayName));
+                    supportedDataTypes.add(new AllowableValue(allowableValueName, allowableValueDisplayName, allowableValueDisplayName));
                 }
             } catch (Exception e) {
                 // Ignore, this should indicate a Faker method that we're not interested in
@@ -91,36 +91,15 @@ public class FakerUtils {
         }
 
         // Add types manually for those Faker methods that generate data rather than getting it from a resource file
-        fakerDatatypeValueList.add(FT_FUTURE_DATE);
-        fakerDatatypeValueList.add(FT_PAST_DATE);
-        fakerDatatypeValueList.add(FT_BIRTHDAY);
-        fakerDatatypeValueList.add(FT_NUMBER);
-        fakerDatatypeValueList.add(FT_SHA256);
-        fakerDatatypeValueList.add(FT_SHA512);
-        return fakerDatatypeValueList.toArray(new AllowableValue[]{});
-    }
+        supportedDataTypes.add(FT_FUTURE_DATE);
+        supportedDataTypes.add(FT_PAST_DATE);
+        supportedDataTypes.add(FT_BIRTHDAY);
+        supportedDataTypes.add(FT_NUMBER);
+        supportedDataTypes.add(FT_SHA256);
+        supportedDataTypes.add(FT_SHA512);
+        supportedDataTypes.sort(Comparator.comparing(AllowableValue::getDisplayName));
 
-    // This method identifies "segments" by splitting the given name on underscores, then capitalizes each segment and removes the underscores. Ex: 'game_of_thrones' = 'GameOfThrones'
-    private static String normalizeClassName(String name) {
-        String[] segments = name.split("_");
-        String newName = Arrays.stream(segments).map((s) -> s.substring(0, 1).toUpperCase() + s.substring(1)).collect(Collectors.joining());
-        return newName;
-    }
-
-    // This method lowercases the first letter of the given name in order to match the name to a Faker method
-    private static String normalizeMethodName(String name) {
-
-        String newName = name.substring(0, 1).toLowerCase() + name.substring(1);
-        return newName;
-    }
-
-    // This method splits the given name on uppercase letters, ensures the first letter is capitalized, then joins the segments using a space. Ex. 'gameOfThrones' = 'Game Of Thrones'
-    private static String normalizeDisplayName(String name) {
-        // Split when the next letter is uppercase
-        String[] upperCaseSegments = name.split("(?=\\p{Upper})");
-
-        return Arrays.stream(upperCaseSegments).map(
-                (upperCaseSegment) -> upperCaseSegment.substring(0, 1).toUpperCase() + upperCaseSegment.substring(1)).collect(Collectors.joining(" "));
+        return supportedDataTypes.toArray(new AllowableValue[]{});
     }
 
     public static Object getFakeData(String type, Faker faker) {
@@ -179,5 +158,31 @@ public class FakerUtils {
 
     public static Map<String, FakerMethodHolder> getDatatypeFunctionMap() {
         return datatypeFunctionMap;
+    }
+
+    // This method identifies "segments" by splitting the given name on underscores, then capitalizes each segment and removes the underscores. Ex: 'game_of_thrones' = 'GameOfThrones'
+    private static String normalizeClassName(String name) {
+        String[] segments = name.split("_");
+        String newName = Arrays.stream(segments)
+                .map(s -> s.substring(0, 1).toUpperCase() + s.substring(1))
+                .collect(Collectors.joining());
+        return newName;
+    }
+
+    // This method lowercases the first letter of the given name in order to match the name to a Faker method
+    private static String normalizeMethodName(String name) {
+
+        String newName = name.substring(0, 1).toLowerCase() + name.substring(1);
+        return newName;
+    }
+
+    // This method splits the given name on uppercase letters, ensures the first letter is capitalized, then joins the segments using a space. Ex. 'gameOfThrones' = 'Game Of Thrones'
+    private static String normalizeDisplayName(String name) {
+        // Split when the next letter is uppercase
+        String[] upperCaseSegments = name.split("(?=\\p{Upper})");
+
+        return Arrays.stream(upperCaseSegments).map(
+                        upperCaseSegment -> upperCaseSegment.substring(0, 1).toUpperCase() + upperCaseSegment.substring(1))
+                .collect(Collectors.joining(" "));
     }
 }

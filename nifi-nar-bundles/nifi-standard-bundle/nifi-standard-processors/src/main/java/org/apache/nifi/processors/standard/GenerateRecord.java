@@ -96,14 +96,6 @@ public class GenerateRecord extends AbstractProcessor {
     private static final String KEY4 = "key4";
 
 
-    static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
-            .name("schema-text")
-            .displayName("Schema Text")
-            .description("The text of an Avro-formatted Schema used to generate record data. If this property is set, any user-defined properties are ignored.")
-            .addValidator(new AvroSchemaValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(false)
-            .build();
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
             .displayName("Record Writer")
@@ -143,6 +135,16 @@ public class GenerateRecord extends AbstractProcessor {
             .dependsOn(NULLABLE_FIELDS, "true")
             .build();
 
+    static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
+            .name("schema-text")
+            .displayName("Schema Text")
+            .description("The text of an Avro-formatted Schema used to generate record data. If this property is set, any user-defined properties are ignored.")
+            .addValidator(new AvroSchemaValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .build();
+
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are successfully created will be routed to this relationship")
@@ -155,11 +157,11 @@ public class GenerateRecord extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SCHEMA_TEXT);
         properties.add(RECORD_WRITER);
         properties.add(NUM_RECORDS);
         properties.add(NULLABLE_FIELDS);
         properties.add(NULL_PERCENTAGE);
+        properties.add(SCHEMA_TEXT);
         return properties;
     }
 
