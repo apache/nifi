@@ -18,6 +18,8 @@ package org.apache.nifi.processors.standard;
 
 import com.github.javafaker.Faker;
 import org.apache.avro.Schema;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -85,6 +87,13 @@ import static org.apache.nifi.processors.standard.faker.FakerUtils.DEFAULT_DATE_
 @CapabilityDescription("This processor creates FlowFiles with records having random value for the specified fields. GenerateRecord is useful " +
         "for testing, configuration, and simulation. It uses either user-defined properties to define a record schema or a provided schema and generates the specified number of records using " +
         "random data for the fields in the schema.")
+@DynamicProperties({
+        @DynamicProperty(
+                name = "Field name in generated record",
+                value = "Faker category for generated record values",
+                description = "Custom properties define the generated record schema using configured field names and value data types in absence of the Schema Text property"
+        )
+})
 public class GenerateRecord extends AbstractProcessor {
 
     private static final AllowableValue[] fakerDatatypeValues = FakerUtils.createFakerPropertyList();
@@ -95,7 +104,6 @@ public class GenerateRecord extends AbstractProcessor {
     private static final String KEY3 = "key3";
     private static final String KEY4 = "key4";
 
-
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
             .displayName("Record Writer")
@@ -105,7 +113,7 @@ public class GenerateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor NUM_RECORDS = new PropertyDescriptor.Builder()
-            .name("-num-records")
+            .name("number-of-records")
             .displayName("Number of Records")
             .description("Specifies how many records will be generated for each outgoing FlowFile.")
             .required(true)
@@ -124,7 +132,7 @@ public class GenerateRecord extends AbstractProcessor {
             .required(true)
             .build();
     static final PropertyDescriptor NULL_PERCENTAGE = new PropertyDescriptor.Builder()
-            .name("null-pct")
+            .name("null-percentage")
             .displayName("Null Value Percentage")
             .description("The percent probability (0-100%) that a generated value for any nullable field will be null. Set this property to zero to have no null values, or 100 to have all " +
                     "null values.")
