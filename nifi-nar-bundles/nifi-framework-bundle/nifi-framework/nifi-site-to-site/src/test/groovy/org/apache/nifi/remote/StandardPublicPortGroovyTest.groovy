@@ -24,35 +24,20 @@ import org.apache.nifi.remote.protocol.CommunicationsSession
 import org.apache.nifi.remote.protocol.ServerProtocol
 import org.apache.nifi.reporting.BulletinRepository
 import org.apache.nifi.util.NiFiProperties
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeAll
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-class StandardPublicPortGroovyTest extends GroovyTestCase {
+class StandardPublicPortGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(StandardPublicPortGroovyTest.class)
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() {
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     private static PublicPort createPublicPort(NiFiProperties niFiProperties) {
@@ -62,13 +47,15 @@ class StandardPublicPortGroovyTest extends GroovyTestCase {
             logger.mock("Registered event for worker: ${worker}")
         }] as ProcessScheduler
 
-        StandardPublicPort spp = new StandardPublicPort("id", "name", TransferDirection.RECEIVE, ConnectableType.INPUT_PORT, mockAuthorizer, mockBulletinRepository, mockProcessScheduler, false, niFiProperties.getBoredYieldDuration(), [])
+        StandardPublicPort spp =
+                new StandardPublicPort("id", "name", TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
+                        mockAuthorizer, mockBulletinRepository, mockProcessScheduler, false, niFiProperties.getBoredYieldDuration(), [])
         logger.info("Created SPP with mocked collaborators: ${spp}")
         spp
     }
 
     // TODO: Implement test
-    @Ignore("Not yet implemented")
+    @Disabled("Not yet implemented")
     @Test
     void testReceiveFlowFilesShouldHandleBlockedRequestDueToContentLength() {
         // Arrange

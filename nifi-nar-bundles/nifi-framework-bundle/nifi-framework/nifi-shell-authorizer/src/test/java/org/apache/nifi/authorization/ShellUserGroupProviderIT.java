@@ -19,16 +19,11 @@ package org.apache.nifi.authorization;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.util.ShellRunner;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +32,17 @@ import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class ShellUserGroupProviderIT {
     private static final Logger logger = LoggerFactory.getLogger(ShellUserGroupProviderIT.class);
@@ -53,12 +55,12 @@ public class ShellUserGroupProviderIT {
     private final static String DEBIAN_IMAGE = "natural/debian-sshd:latest";
     private final static String UBUNTU_IMAGE = "natural/ubuntu-sshd:latest";
     private final static List<String> TEST_CONTAINER_IMAGES =
-        Arrays.asList(
-                      ALPINE_IMAGE,
-                      CENTOS_IMAGE,
-                      DEBIAN_IMAGE,
-                      UBUNTU_IMAGE
-                      );
+            Arrays.asList(
+                    ALPINE_IMAGE,
+                    CENTOS_IMAGE,
+                    DEBIAN_IMAGE,
+                    UBUNTU_IMAGE
+            );
 
     private final static String CONTAINER_SSH_AUTH_KEYS = "/root/.ssh/authorized_keys";
     private final static Integer CONTAINER_SSH_PORT = 22;
@@ -86,15 +88,13 @@ public class ShellUserGroupProviderIT {
 
     private static ShellRunner shellRunner;
 
-    @ClassRule
-    static public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    static Path tempFolder;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
-    @BeforeClass
+    @BeforeAll
     public static void setupOnce() throws IOException {
-        sshPrivKeyFile = tempFolder.getRoot().getAbsolutePath() + "/id_rsa";
+        sshPrivKeyFile = tempFolder.getRoot().toFile().getAbsolutePath() + "/id_rsa";
         sshPubKeyFile = sshPrivKeyFile + ".pub";
 
         shellRunner = new ShellRunner(60);
@@ -111,13 +111,13 @@ public class ShellUserGroupProviderIT {
         // Fix the file permissions to abide by the ssh client
         // requirements:
         Arrays.asList(sshPrivKeyFile, sshPubKeyFile).forEach(name -> {
-                final File f = new File(name);
-                Assert.assertTrue(f.setReadable(false, false));
-                Assert.assertTrue(f.setReadable(true));
-            });
+            final File f = new File(name);
+            assertTrue(f.setReadable(false, false));
+            assertTrue(f.setReadable(true));
+        });
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         authContext = Mockito.mock(AuthorizerConfigurationContext.class);
         initContext = Mockito.mock(UserGroupProviderInitializationContext.class);
@@ -135,17 +135,17 @@ public class ShellUserGroupProviderIT {
             logger.error("setup() exception: " + exc + "; tests cannot run on this system.");
             return;
         }
-        Assert.assertEquals(10000, localProvider.getRefreshDelay());
+        assertEquals(10000, localProvider.getRefreshDelay());
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         localProvider.preDestruction();
     }
 
     private GenericContainer createContainer(String image) throws IOException, InterruptedException {
         GenericContainer container = new GenericContainer(image)
-            .withEnv("SSH_ENABLE_ROOT", "true").withExposedPorts(CONTAINER_SSH_PORT);
+                .withEnv("SSH_ENABLE_ROOT", "true").withExposedPorts(CONTAINER_SSH_PORT);
         container.start();
 
         // This can go into the docker images:
@@ -156,10 +156,10 @@ public class ShellUserGroupProviderIT {
 
     private UserGroupProvider createRemoteProvider(GenericContainer container) {
         final ShellCommandsProvider remoteCommands =
-            RemoteShellCommands.wrapOtherProvider(new NssShellCommands(),
-                                                  sshPrivKeyFile,
-                                                  container.getContainerIpAddress(),
-                                                  container.getMappedPort(CONTAINER_SSH_PORT));
+                RemoteShellCommands.wrapOtherProvider(new NssShellCommands(),
+                        sshPrivKeyFile,
+                        container.getContainerIpAddress(),
+                        container.getMappedPort(CONTAINER_SSH_PORT));
 
         ShellUserGroupProvider remoteProvider = new ShellUserGroupProvider();
         remoteProvider.setCommandsProvider(remoteCommands);
@@ -174,10 +174,9 @@ public class ShellUserGroupProviderIT {
         final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("1 milliseconds"));
 
-        expectedException.expect(AuthorizerCreationException.class);
-        expectedException.expectMessage("The Refresh Delay '1 milliseconds' is below the minimum value of '10000 ms'");
-
-        localProvider.onConfigured(authContext);
+        AuthorizerCreationException authorizerCreationException =
+                assertThrows(AuthorizerCreationException.class, () -> localProvider.onConfigured(authContext));
+        assertEquals("The Refresh Delay '1 milliseconds' is below the minimum value of '10000 ms'", authorizerCreationException.getMessage());
     }
 
 
@@ -188,11 +187,9 @@ public class ShellUserGroupProviderIT {
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("3 minutes"));
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.EXCLUDE_GROUP_PROPERTY))).thenReturn(new MockPropertyValue("(3"));
 
-        expectedException.expect(AuthorizerCreationException.class);
-        expectedException.expectMessage("Unclosed group near index");
-        localProvider.onConfigured(authContext);
-
-
+        AuthorizerCreationException authorizerCreationException =
+                assertThrows(AuthorizerCreationException.class, () -> localProvider.onConfigured(authContext));
+        assertEquals("Unclosed group near index", authorizerCreationException.getMessage());
     }
 
     @Test
@@ -202,9 +199,9 @@ public class ShellUserGroupProviderIT {
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("3 minutes"));
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.EXCLUDE_USER_PROPERTY))).thenReturn(new MockPropertyValue("*"));
 
-        expectedException.expect(AuthorizerCreationException.class);
-        expectedException.expectMessage("Dangling meta character");
-        localProvider.onConfigured(authContext);
+        AuthorizerCreationException authorizerCreationException =
+                assertThrows(AuthorizerCreationException.class, () -> localProvider.onConfigured(authContext));
+        assertEquals("Dangling meta character", authorizerCreationException.getMessage());
     }
 
     @Test
@@ -223,10 +220,9 @@ public class ShellUserGroupProviderIT {
         final ShellUserGroupProvider localProvider = new ShellUserGroupProvider();
         Mockito.when(authContext.getProperty(Mockito.eq(ShellUserGroupProvider.REFRESH_DELAY_PROPERTY))).thenReturn(new MockPropertyValue("Not an interval"));
 
-        expectedException.expect(AuthorizerCreationException.class);
-        expectedException.expectMessage("The Refresh Delay 'Not an interval' is not a valid time interval.");
-
-        localProvider.onConfigured(authContext);
+        AuthorizerCreationException authorizerCreationException =
+                assertThrows(AuthorizerCreationException.class, () -> localProvider.onConfigured(authContext));
+        assertEquals("The Refresh Delay 'Not an interval' is not a valid time interval.", authorizerCreationException.getMessage());
     }
 
     @Test
@@ -261,40 +257,40 @@ public class ShellUserGroupProviderIT {
     public void testVariousSystemImages() {
         // Here we explicitly clear the system check flag to allow the remote checks that follow:
         systemCheckFailed = false;
-        Assume.assumeTrue(isSSHAvailable());
+        assumeTrue(isSSHAvailable());
 
         TEST_CONTAINER_IMAGES.forEach(image -> {
-                GenericContainer container;
-                UserGroupProvider remoteProvider;
-                logger.debug("creating container from image: " + image);
+            GenericContainer container;
+            UserGroupProvider remoteProvider;
+            logger.debug("creating container from image: " + image);
 
-                try {
-                    container = createContainer(image);
-                } catch (final Exception exc) {
-                    logger.error("create container exception: " + exc);
-                    return;
-                }
-                try {
-                    remoteProvider = createRemoteProvider(container);
-                } catch (final Exception exc) {
-                    logger.error("create user provider exception: " + exc);
-                    return;
-                }
+            try {
+                container = createContainer(image);
+            } catch (final Exception exc) {
+                logger.error("create container exception: " + exc);
+                return;
+            }
+            try {
+                remoteProvider = createRemoteProvider(container);
+            } catch (final Exception exc) {
+                logger.error("create user provider exception: " + exc);
+                return;
+            }
 
-                try {
-                    verifyUsersAndUsersMinimumCount(remoteProvider);
-                    verifyKnownUserByUsername(remoteProvider);
-                    verifyGroupsAndMinimumGroupCount(remoteProvider);
-                    verifyGetUserByIdentityAndGetGroupMembership(remoteProvider);
-                } catch (final Exception e) {
-                    // Some environments don't allow our tests to work.
-                    logger.error("Exception running remote provider on image: " + image +  ", exception: " + e);
-                }
+            try {
+                verifyUsersAndUsersMinimumCount(remoteProvider);
+                verifyKnownUserByUsername(remoteProvider);
+                verifyGroupsAndMinimumGroupCount(remoteProvider);
+                verifyGetUserByIdentityAndGetGroupMembership(remoteProvider);
+            } catch (final Exception e) {
+                // Some environments don't allow our tests to work.
+                logger.error("Exception running remote provider on image: " + image +  ", exception: " + e);
+            }
 
-                container.stop();
-                remoteProvider.preDestruction();
-                logger.debug("finished with container image: " + image);
-            });
+            container.stop();
+            remoteProvider.preDestruction();
+            logger.debug("finished with container image: " + image);
+        });
     }
 
     // TODO: Make test which retrieves list of users and then getUserByIdentity to ensure the user is populated in the response
@@ -316,18 +312,18 @@ public class ShellUserGroupProviderIT {
      * @param provider {@link UserGroupProvider}
      */
     private void verifyUsersAndUsersMinimumCount(UserGroupProvider provider) {
-        Assume.assumeTrue(isSSHAvailable());
+        assumeTrue(isSSHAvailable());
 
         Set<User> users = provider.getUsers();
 
         // This shows that we don't have any users matching the exclude regex, which is likely because those users
         // exist but were excluded:
         for (User user : users) {
-            Assert.assertFalse(user.getIdentifier().startsWith("s"));
+            assertFalse(user.getIdentifier().startsWith("s"));
         }
 
-        Assert.assertNotNull(users);
-        Assert.assertTrue(users.size() > 0);
+        assertNotNull(users);
+        assertTrue(users.size() > 0);
     }
 
     /**
@@ -336,11 +332,11 @@ public class ShellUserGroupProviderIT {
      * @param provider {@link UserGroupProvider}
      */
     private void verifyKnownUserByUsername(UserGroupProvider provider) {
-        Assume.assumeTrue(isSSHAvailable());
+        assumeTrue(isSSHAvailable());
 
         User root = provider.getUserByIdentity(KNOWN_USER);
-        Assert.assertNotNull(root);
-        Assert.assertEquals(KNOWN_USER, root.getIdentity());
+        assertNotNull(root);
+        assertEquals(KNOWN_USER, root.getIdentity());
     }
 
     /**
@@ -349,18 +345,18 @@ public class ShellUserGroupProviderIT {
      * @param provider {@link UserGroupProvider}
      */
     private void verifyGroupsAndMinimumGroupCount(UserGroupProvider provider) {
-        Assume.assumeTrue(isSSHAvailable());
+        assumeTrue(isSSHAvailable());
 
         Set<Group> groups = provider.getGroups();
 
         // This shows that we don't have any groups matching the exclude regex, which is likely because those groups
         // exist but were excluded:
         for (Group group : groups) {
-            Assert.assertFalse(group.getName().endsWith("d"));
+            assertFalse(group.getName().endsWith("d"));
         }
 
-        Assert.assertNotNull(groups);
-        Assert.assertTrue(groups.size() > 0);
+        assertNotNull(groups);
+        assertTrue(groups.size() > 0);
     }
 
     /**
@@ -369,19 +365,19 @@ public class ShellUserGroupProviderIT {
      * @param provider {@link UserGroupProvider}
      */
     private void verifyGetUserByIdentityAndGetGroupMembership(UserGroupProvider provider) {
-        Assume.assumeTrue(isSSHAvailable());
+        assumeTrue(isSSHAvailable());
 
         UserAndGroups user = provider.getUserAndGroups(KNOWN_USER);
-        Assert.assertNotNull(user);
+        assertNotNull(user);
 
         try {
-            Assert.assertTrue(user.getGroups().size() > 0);
+            assertTrue(user.getGroups().size() > 0);
             logger.info("root user group count: " + user.getGroups().size());
         } catch (final AssertionError ignored) {
             logger.info("root user and groups group count zero on this system");
         }
 
         Set<Group> groups = provider.getGroups();
-        Assert.assertTrue(groups.size() > user.getGroups().size());
+        assertTrue(groups.size() > user.getGroups().size());
     }
 }

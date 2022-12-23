@@ -41,8 +41,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Matchers.anyString;
@@ -83,7 +83,7 @@ public class TestStandardRemoteGroupPort {
     private MockProcessSession processSession;
     private MockProcessContext processContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
@@ -367,7 +367,7 @@ public class TestStandardRemoteGroupPort {
 
         // Verify transactions, sent packets, and provenance events.
         assertEquals(flowFiles.size(), totalPacketsSent.get());
-        assertEquals("The number of transactions should match as expected.", expectedNumberOfPackets.length, sentPackets.size());
+        assertEquals(expectedNumberOfPackets.length, sentPackets.size(),"The number of transactions should match as expected.");
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
         // SEND and DROP events for each flowfile
         assertEquals(flowFiles.size() * 2, provenanceEvents.size());

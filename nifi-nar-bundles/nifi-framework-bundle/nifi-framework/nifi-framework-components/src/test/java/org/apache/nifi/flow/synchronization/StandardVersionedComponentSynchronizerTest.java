@@ -67,8 +67,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -138,7 +138,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
 
-    @Before
+    @BeforeEach
     public void setup() {
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
@@ -260,11 +260,9 @@ public class StandardVersionedComponentSynchronizerTest {
     private void instrumentComponentNodeMethods(final String uuid, final ComponentNode component) {
         when(component.getIdentifier()).thenReturn(uuid);
         when(component.getProperties()).thenReturn(Collections.emptyMap());
-        when(component.getPropertyDescriptor(anyString())).thenAnswer(invocation -> {
-            return new PropertyDescriptor.Builder()
-                .name(invocation.getArgument(0, String.class))
-                .build();
-        });
+        when(component.getPropertyDescriptor(anyString())).thenAnswer(invocation -> new PropertyDescriptor.Builder()
+            .name(invocation.getArgument(0, String.class))
+            .build());
         when(component.getBundleCoordinate()).thenReturn(new BundleCoordinate("group", "artifact", "version 1.0"));
     }
 
@@ -375,9 +373,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION);
 
-        assertThrows(TimeoutException.class, () -> {
-            synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
-        });
+        assertThrows(TimeoutException.class, () -> synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions));
 
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
@@ -466,9 +462,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizationOptions = createQuickFailSynchronizationOptions(FlowSynchronizationOptions.ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION);
 
-        assertThrows(TimeoutException.class, () -> {
-            synchronizer.synchronize(connectionAB, versionedConnection, group, synchronizationOptions);
-        });
+        assertThrows(TimeoutException.class, () -> synchronizer.synchronize(connectionAB, versionedConnection, group, synchronizationOptions));
 
         // Ensure that we terminate the source
         verify(processorA, times(0)).terminate();

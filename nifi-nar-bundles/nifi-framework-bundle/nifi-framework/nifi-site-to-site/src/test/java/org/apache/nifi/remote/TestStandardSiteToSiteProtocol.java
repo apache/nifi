@@ -18,7 +18,6 @@ package org.apache.nifi.remote;
 
 //package nifi.remote;
 //
-//import static org.junit.Assert.assertEquals;
 //
 //import java.io.IOException;
 //import java.util.LinkedHashMap;
@@ -28,9 +27,11 @@ package org.apache.nifi.remote;
 //import nifi.cluster.NodeInformation;
 //import nifi.remote.StandardSiteToSiteProtocol.Destination;
 //
-//import org.junit.Assert;
-//import org.junit.Test;
+//import org.junit.jupiter.api.Test;
 //import org.mockito.Mockito;
+
+//import static org.junit.jupiter.api.Assertions.assertEquals;
+//import static org.junit.jupiter.api.Assertions.fail;
 //
 //public class TestStandardSiteToSiteProtocol {
 //
@@ -54,7 +55,7 @@ package org.apache.nifi.remote;
 //            } else if ( destination.getNodeInformation() == node2 ) {
 //                node2Count++;
 //            } else {
-//                Assert.fail("Got Destination for unknkown NodeInformation");
+//                fail("Got Destination for unknkown NodeInformation");
 //            }
 //        }
 //
@@ -91,7 +92,7 @@ package org.apache.nifi.remote;
 //            } else if ( destination.getNodeInformation() == node3 ) {
 //                node3Count++;
 //            } else {
-//                Assert.fail("Got Destination for unknkown NodeInformation");
+//                fail("Got Destination for unknkown NodeInformation");
 //            }
 //        }
 //
