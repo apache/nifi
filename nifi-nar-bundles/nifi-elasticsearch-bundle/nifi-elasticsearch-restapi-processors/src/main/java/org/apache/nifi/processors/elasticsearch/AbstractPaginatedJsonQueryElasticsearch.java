@@ -102,7 +102,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
 
-        paginationType = PaginationType.valueOf(context.getProperty(PAGINATION_TYPE).getValue());
+        paginationType = PaginationType.fromValue(context.getProperty(PAGINATION_TYPE).getValue());
     }
 
     @Override

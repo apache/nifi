@@ -181,9 +181,9 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     public void onScheduled(final ProcessContext context) {
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
 
-        hitStrategy = ResultOutputStrategy.valueOf(context.getProperty(SEARCH_RESULTS_SPLIT).getValue());
+        hitStrategy = ResultOutputStrategy.fromValue(context.getProperty(SEARCH_RESULTS_SPLIT).getValue());
         hitFormat = SearchResultsFormat.valueOf(context.getProperty(SEARCH_RESULTS_FORMAT).getValue());
-        aggregationStrategy = ResultOutputStrategy.valueOf(context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue());
+        aggregationStrategy = ResultOutputStrategy.fromValue(context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue());
         aggregationFormat = AggregationResultsFormat.valueOf(context.getProperty(AGGREGATION_RESULTS_FORMAT).getValue());
 
         outputNoHits = context.getProperty(OUTPUT_NO_HITS).asBoolean();

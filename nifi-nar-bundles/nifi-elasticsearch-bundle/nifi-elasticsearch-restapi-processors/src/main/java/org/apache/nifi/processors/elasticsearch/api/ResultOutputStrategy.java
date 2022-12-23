@@ -19,23 +19,27 @@ package org.apache.nifi.processors.elasticsearch.api;
 
 import org.apache.nifi.components.DescribedValue;
 
+import java.util.Arrays;
+
 public enum ResultOutputStrategy implements DescribedValue {
-    PER_HIT("Flowfile per hit."),
-    PER_RESPONSE("Flowfile per response."),
-    PER_QUERY("Combine results from all query responses (one flowfile per entire paginated result set of hits). " +
+    PER_HIT("splitUp-yes", "Flowfile per hit."),
+    PER_RESPONSE("splitUp-no", "Flowfile per response."),
+    PER_QUERY("splitUp-query", "Combine results from all query responses (one flowfile per entire paginated result set of hits). " +
             "Note that aggregations cannot be paged, they are generated across the entire result set and " +
             "returned as part of the first page. Results are output with one JSON object per line " +
             "(allowing hits to be combined from multiple pages without loading all results into memory).");
 
+    private final String value;
     private final String description;
 
-    ResultOutputStrategy(final String description) {
+    ResultOutputStrategy(final String value, final String description) {
+        this.value = value;
         this.description = description;
     }
 
     @Override
     public String getValue() {
-        return name();
+        return value;
     }
 
     @Override
@@ -46,5 +50,10 @@ public enum ResultOutputStrategy implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public static ResultOutputStrategy fromValue(final String value) {
+        return Arrays.stream(ResultOutputStrategy.values()).filter(v -> v.getValue().equals(value)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown value %s", value)));
     }
 }

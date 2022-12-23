@@ -96,8 +96,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "not-boolean")
 
         final String expectedAllowedSplitHits = processor instanceof AbstractPaginatedJsonQueryElasticsearch
-            ? ResultOutputStrategy.values().join(", ")
-            : [ResultOutputStrategy.PER_RESPONSE, ResultOutputStrategy.PER_HIT].join(", ")
+            ? ResultOutputStrategy.values().collect {r -> r.getValue()}.join(", ")
+            : [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", ")
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 8 validation failures:\n" +
@@ -115,7 +115,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 AbstractJsonQueryElasticsearch.TYPE.getName(), AbstractJsonQueryElasticsearch.TYPE.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName(),
                 AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.getName(), expectedAllowedSplitHits,
-                AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), [ResultOutputStrategy.PER_RESPONSE, ResultOutputStrategy.PER_HIT].join(", "),
+                AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", "),
                 AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName()
         )))
