@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import org.apache.nifi.cluster.coordination.http.endpoints.AbstractSingleEntityEndpoint;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PermissionsDtoMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
