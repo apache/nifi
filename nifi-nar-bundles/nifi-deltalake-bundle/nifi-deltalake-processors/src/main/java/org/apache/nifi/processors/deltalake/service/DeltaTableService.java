@@ -139,7 +139,7 @@ public class DeltaTableService {
         List<String> partitionDirectories = directories.subList(directories.size() - (this.partitionColumns.size() + 1), directories.size()-1);
 
         for (int i = 0; i < this.partitionColumns.size(); i++) {
-            partitionColumns.put(this.partitionColumns.get(i), partitionDirectories.get(this.partitionColumns.size() - i - 1));
+            partitionColumns.put(this.partitionColumns.get(i), partitionDirectories.get(i));
         }
 
         return partitionColumns;

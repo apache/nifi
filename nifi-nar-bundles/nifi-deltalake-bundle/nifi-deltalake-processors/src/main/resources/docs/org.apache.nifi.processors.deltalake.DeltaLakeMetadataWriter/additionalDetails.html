@@ -41,20 +41,21 @@
         Example value: <code>year,customer</code> </p>
     <h3>Input file</h3>
     <p>This processor can process other processors output file. For example, it can process the PutParquet processors output file.
-        The processor processes one file at a time.
-        To achieve that set the following properties:</p>
+        The processor processes one file at a time. To achieve that just connect a processors output to this processor. If the input file is partitioned,
+        the <code>Parquet partition columns</code> and the <code>Partition Values Of The Input File</code> has to be filled.</p>
+    <h4>Example</h4>
     <table>
         <tr>
-            <th>PutDeltalake input property</th>
+            <th>UpdateDeltaLakeTable input property</th>
             <th>PutParquet output attribute name</th>
         </tr>
         <tr>
-            <td>Attribute name of the input files paths</td>
-            <td><code>absolute.hdfs.path</code></td>
+            <td>Parquet Partition Columns</td>
+            <td><code>year,customer</code></td>
         </tr>
         <tr>
-            <td>Attribute name of the input files name</td>
-            <td><code>filename</code></td>
+            <td>Partition Values Of The Input File</td>
+            <td><code>2020,555</code></td>
         </tr>
     </table>
     <h3>Parquet structure</h3>
@@ -103,6 +104,24 @@
     ]
 }
     </pre>
+    <h3>Hadoop Configuration</h3>
+    <p>Hadoop Configuration can also be used to configure the cloud storages. First a Configuration will be created based on the entered configuration file.
+        After that, if any cloud configuration is presented within the processors attrinutes, that will upsert that attribute.
+    </p>
+    <p>Example of an S3 Configuration:</p>
+    <xmp>
+        <configuration>
+            <property>
+                <name>fs.s3a.access.key</name>
+                <value>ACCESS_KEX</value>
+            </property>
+            <property>
+                <name>fs.s3a.secret.key</name>
+                <value>SECRET_KEY</value>
+            </property>
+        </configuration>
+
+        </xmp>
     <h2>Attributes</h2>
     <table>
         <tr>
@@ -121,11 +140,10 @@
             <td>Select where the data is located, on local filesystem or in the cloud</td>
         </tr>
         <tr>
-            <td>Input file</td>
-            <td>Don't process input file</td>
-            <td>Don't process input file<br>
-                Process input file</td>
-            <td>Whether you want to process other processors output file or not</td>
+            <td>Hadoop Configuration Resources</td>
+            <td></td>
+            <td>List of filenames, separated by comma<br>
+            <td>If presented, the processor will try to create a Hadoop Configuration from it</td>
         </tr>
         <tr>
             <td>Data path on local filesystem</td>
@@ -159,16 +177,10 @@
             <td>Partition columns separated by comma</td>
         </tr>
         <tr>
-            <td>Attribute name of the input files paths</td>
+            <td>Partition Values Of The Input File</td>
             <td></td>
             <td></td>
-            <td>If you want to process an input file from another processor, you have to define the name of the other processors output attribute, which contains the path of the file</td>
-        </tr>
-        <tr>
-            <td>Attribute name of the input files name</td>
-            <td></td>
-            <td></td>
-            <td>If you want to process an input file from another processor, you have to define the name of the other processors output attribute, which contains the name of the file</td>
+            <td>If the input file is partitioned, this has to be filled with the partition values separated by coma. Example: 2020,555</td>
         </tr>
         <tr>
             <td>S3 Access Key</td>
@@ -180,7 +192,7 @@
             <td>S3 Secret Key</td>
             <td></td>
             <td></td>
-            <td>If you choose Amazon S3 cloud storage you have to provide your S3 secret key</td>
+            <td>If you choose Amazon S3 cloud storage you can provide your S3 secret key</td>
         </tr>
         <tr>
             <td>S3 bucket URL</td>
@@ -198,7 +210,7 @@
             <td>Azure Account Key</td>
             <td></td>
             <td></td>
-            <td>If you choose Azure cloud storage you have to provide your Azure account key</td>
+            <td>If you choose Azure cloud storage you can provide your Azure account key</td>
         </tr>
         <tr>
             <td>Azure blob storage name</td>
@@ -221,7 +233,7 @@
             <td>GCP account JSON keyfile path</td>
             <td></td>
             <td></td>
-            <td>You have to provide your GCP account JSON keyfile path in case of Google Cloud Storage, which has to be on the local filesystem</td>
+            <td>You can provide your GCP account JSON keyfile path in case of Google Cloud Storage, which has to be on the local filesystem</td>
         </tr>
             <td>GCP bucket URL</td>
             <td></td>

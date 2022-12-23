@@ -32,19 +32,20 @@ import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.GCP_PATH
 
 public class GcpStorageAdapter implements StorageAdapter {
 
-    private FileSystem fileSystem;
-    private DeltaLog deltaLog;
-    private String dataPath;
-    private String engineInfo;
+    private final FileSystem fileSystem;
+    private final DeltaLog deltaLog;
+    private final String dataPath;
+    private final String engineInfo;
+    private final Configuration configuration;
 
-    public GcpStorageAdapter(ProcessContext processorContext, String engineInfo) {
+    public GcpStorageAdapter(ProcessContext processorContext, String engineInfo, Configuration configuration) {
         this.engineInfo = engineInfo;
 
         String accountJsonKeyPath = processorContext.getProperty(GCP_ACCOUNT_JSON_KEYFILE_PATH).getValue();
         URI gcpBucketUri = URI.create(processorContext.getProperty(GCP_BUCKET).getValue());
         String gcpPath = processorContext.getProperty(GCP_PATH).getValue();
 
-        Configuration configuration = createConfiguration(accountJsonKeyPath);
+        this.configuration = initializeConfiguration(configuration, accountJsonKeyPath);
         fileSystem = new GoogleHadoopFileSystem();
         try {
             fileSystem.initialize(gcpBucketUri, configuration);
@@ -76,12 +77,18 @@ public class GcpStorageAdapter implements StorageAdapter {
         return engineInfo;
     }
 
-    private Configuration createConfiguration(String accountJsonKeyPath) {
-        Configuration configuration = new Configuration();
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
+    }
+
+    private Configuration initializeConfiguration(Configuration configuration, String accountJsonKeyPath) {
         configuration.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
         configuration.set("fs.AbstractFileSystem.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS");
         configuration.set("google.cloud.auth.service.account.enable", "true");
-        configuration.set("google.cloud.auth.service.account.json.keyfile", accountJsonKeyPath);
+        if (accountJsonKeyPath != null) {
+            configuration.set("google.cloud.auth.service.account.json.keyfile", accountJsonKeyPath);
+        }
         return configuration;
     }
 }

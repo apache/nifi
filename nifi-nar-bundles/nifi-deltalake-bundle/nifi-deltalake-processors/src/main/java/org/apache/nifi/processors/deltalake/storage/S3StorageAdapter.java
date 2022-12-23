@@ -39,19 +39,22 @@ public class S3StorageAdapter implements StorageAdapter {
     private final DeltaLog deltaLog;
     private final String dataPath;
     private final String engineInfo;
+    private final Configuration configuration;
 
-    public S3StorageAdapter(ProcessContext processorContext, String engineInfo) {
+    public S3StorageAdapter(ProcessContext processorContext, String engineInfo, Configuration configuration) {
         this.engineInfo = engineInfo;
 
         String accessKey = processorContext.getProperty(S3_ACCESS_KEY).getValue();
+        if (accessKey != null) {
+            configuration.set(S3_ACCESS_CONFIGURATION_KEY, accessKey);
+        }
         String secretKey = processorContext.getProperty(S3_SECRET_KEY).getValue();
+        if (secretKey != null) {
+            configuration.set(S3_SECRET_CONFIGURATION_KEY, secretKey);
+        }
+        this.configuration = configuration;
+
         String bucket = processorContext.getProperty(S3_BUCKET).getValue();
-        String path = processorContext.getProperty(S3_PATH).getValue();
-
-        Configuration configuration = new Configuration();
-        configuration.set(S3_ACCESS_CONFIGURATION_KEY, accessKey);
-        configuration.set(S3_SECRET_CONFIGURATION_KEY, secretKey);
-
         URI s3uri = URI.create(bucket);
         try {
             fileSystem = FileSystem.get(s3uri, configuration);
@@ -59,6 +62,7 @@ public class S3StorageAdapter implements StorageAdapter {
             throw new UncheckedIOException(String.format("S3 Filesystem Bucket URI [%s] initialization failed", s3uri), e);
         }
 
+        String path = processorContext.getProperty(S3_PATH).getValue();
         dataPath = bucket + "/" + path;
         deltaLog = DeltaLog.forTable(configuration, dataPath);
     }
@@ -81,5 +85,10 @@ public class S3StorageAdapter implements StorageAdapter {
     @Override
     public String getEngineInfo() {
         return engineInfo;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }

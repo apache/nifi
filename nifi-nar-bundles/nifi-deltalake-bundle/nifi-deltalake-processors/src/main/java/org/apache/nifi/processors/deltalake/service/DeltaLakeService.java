@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.deltalake.service;
 
+import java.io.InputStream;
+
 public interface DeltaLakeService {
 
     boolean deltaTableExists();
@@ -30,6 +32,6 @@ public interface DeltaLakeService {
 
     void finishTransaction();
 
-    void handleInputParquet(String pathAttributeValue, String filenameAttributeValue);
+    void handleInputParquet(String pathAttributeValue, String filenameAttributeValue, InputStream inputFile);
 
 }

@@ -25,6 +25,7 @@ import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapterFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -109,14 +110,17 @@ public class DeltaLakeServiceImpl implements DeltaLakeService{
         deltaTableService.finishTransaction();
     }
 
-    public void handleInputParquet(String pathAttributeValue, String filenameAttributeValue) {
-        if (pathAttributeValue != null && filenameAttributeValue != null) {
-            String inputParquetPath = pathAttributeValue
+    public void handleInputParquet(String pathAttributeValue, String filenameAttributeValue, InputStream inputFile) {
+        String inputParquetPath;
+        if (pathAttributeValue != null) {
+            inputParquetPath = pathAttributeValue.replaceAll(",", FileSystems.getDefault().getSeparator())
                     + FileSystems.getDefault().getSeparator()
                     + filenameAttributeValue;
-            if (!deltaTableService.fileAlreadyAdded(inputParquetPath)) {
-                storageService.moveToStorage(inputParquetPath);
-            }
+        } else {
+            inputParquetPath = filenameAttributeValue;
+        }
+        if (!deltaTableService.fileAlreadyAdded(inputParquetPath)) {
+            storageService.moveToStorage(inputParquetPath, inputFile);
         }
     }
 

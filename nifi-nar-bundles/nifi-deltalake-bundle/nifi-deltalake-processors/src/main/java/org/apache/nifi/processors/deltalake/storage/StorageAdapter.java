@@ -17,11 +17,30 @@
 package org.apache.nifi.processors.deltalake.storage;
 
 import io.delta.standalone.DeltaLog;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public interface StorageAdapter {
     DeltaLog getDeltaLog();
     String getDataPath();
     FileSystem getFileSystem();
     String getEngineInfo();
+    Configuration getConfiguration();
+
+    default void copyFile(InputStream inputStream, Path outputPath) {
+        try {
+            OutputStream outputStream = getFileSystem().create(outputPath);
+            IOUtils.copyBytes(inputStream, outputStream, getConfiguration());
+        } catch (IOException e) {
+            throw new RuntimeException("Error moving file to data storage", e);
+        }
+    }
+
+
 }

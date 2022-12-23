@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.processors.deltalake.storage;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.lang.reflect.InvocationTargetException;
 
+import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.HADOOP_CONFIGURATION_RESOURCES;
 import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.STORAGE_SELECTOR;
 
 public class StorageAdapterFactory {
@@ -28,15 +31,27 @@ public class StorageAdapterFactory {
 
         String location = processorContext.getProperty(STORAGE_SELECTOR).getValue();
         DeltaLakeStorageLocation storageLocation = DeltaLakeStorageLocation.valueOf(location);
+        Configuration configuration = createConfiguration(processorContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue());
 
         try {
             StorageAdapter storageAdapter = storageLocation.getServiceClass()
-                    .getConstructor(ProcessContext.class, String.class)
-                    .newInstance(processorContext, storageLocation.engineInfo);
+                    .getConstructor(ProcessContext.class, String.class, Configuration.class)
+                    .newInstance(processorContext, storageLocation.engineInfo, configuration);
             return storageAdapter;
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException("Error during StorageAdapter creation: " + storageLocation, e);
         }
 
     }
+
+    private static Configuration createConfiguration(String hadoopConfigurationFiles) {
+        Configuration configuration = new Configuration();
+        if (hadoopConfigurationFiles != null) {
+            for (final String configFile : hadoopConfigurationFiles.split(",")) {
+                configuration.addResource(new Path(configFile.trim()));
+            }
+        }
+        return configuration;
+    }
+
 }

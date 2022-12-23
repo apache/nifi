@@ -38,12 +38,13 @@ public class AzureStorageAdapter implements StorageAdapter {
     private static final String AZURE_URI_PREFIX = "wasbs://";
     private static final String AZURE_URI_SUBFIX = ".blob.core.windows.net";
 
-    private FileSystem fileSystem;
-    private DeltaLog deltaLog;
-    private String dataPath;
-    private String engineInfo;
+    private final FileSystem fileSystem;
+    private final DeltaLog deltaLog;
+    private final String dataPath;
+    private final String engineInfo;
+    private final Configuration configuration;
 
-    public AzureStorageAdapter(ProcessContext processorContext, String engineInfo) {
+    public AzureStorageAdapter(ProcessContext processorContext, String engineInfo, Configuration configuration) {
         this.engineInfo = engineInfo;
 
         String accountKey = processorContext.getProperty(AZURE_ACCOUNT_KEY).getValue();
@@ -54,15 +55,18 @@ public class AzureStorageAdapter implements StorageAdapter {
         URI azureUri = URI.create(AZURE_URI_PREFIX + storageName + "@" + storageAccount + AZURE_URI_SUBFIX);
         dataPath = azureUri + "/" + azurePath;
 
-        Configuration configuration = new Configuration();
+        if (accountKey != null) {
+            configuration.set(FS_AZURE_ACCOUNT_KEY_PREFIX + storageAccount + FS_AZURE_ACCOUNT_KEY_SUBFIX, accountKey);
+        }
+
         fileSystem = new NativeAzureFileSystem();
-        configuration.set(FS_AZURE_ACCOUNT_KEY_PREFIX + storageAccount + FS_AZURE_ACCOUNT_KEY_SUBFIX, accountKey);
         try {
             fileSystem.initialize(azureUri, configuration);
         } catch (IOException e) {
             throw new UncheckedIOException(String.format("Azure Filesystem URI [%s] initialization failed", azureUri), e);
         }
 
+        this.configuration = configuration;
         deltaLog = DeltaLog.forTable(configuration, dataPath);
     }
 
@@ -84,5 +88,10 @@ public class AzureStorageAdapter implements StorageAdapter {
     @Override
     public String getEngineInfo() {
         return engineInfo;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }

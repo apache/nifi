@@ -22,8 +22,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.nifi.processors.deltalake.storage.StorageAdapter;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,18 +66,12 @@ public class StorageService {
                 .collect(Collectors.toSet());
     }
 
-    public void moveToStorage(String inputParquetPath) {
-        String destinationFileName = Util.getFileNameWithPartitionColumns(inputParquetPath, partitionColumns);
+    public void moveToStorage(String inputParquetPath, InputStream read) {
         if (!getParquetFileNamesFromDataStore().contains(inputParquetPath)) {
-            try {
-                Path destinationPath = new Path(storageAdapter.getDataPath()
-                        + FileSystems.getDefault().getSeparator()
-                        + destinationFileName);
-                Path inputPath = new Path("file://" + new File(inputParquetPath).getAbsolutePath());
-                storageAdapter.getFileSystem().moveFromLocalFile(inputPath, destinationPath);
-            } catch (IOException e) {
-                throw new RuntimeException("Error moving file to data storage", e);
-            }
+            Path destinationPath = new Path(storageAdapter.getDataPath()
+                    + FileSystems.getDefault().getSeparator()
+                    + inputParquetPath);
+            storageAdapter.copyFile(read, destinationPath);
         }
     }
 

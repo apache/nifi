@@ -29,18 +29,18 @@ import static org.apache.nifi.processors.deltalake.UpdateDeltaLakeTable.LOCAL_PA
 
 public class LocalStorageAdapter implements StorageAdapter {
 
-    private FileSystem fileSystem;
-    private DeltaLog deltaLog;
-    private String dataPath;
-    private String engineInfo;
+    private final FileSystem fileSystem;
+    private final DeltaLog deltaLog;
+    private final String dataPath;
+    private final String engineInfo;
+    private final Configuration configuration;
 
-    public LocalStorageAdapter(ProcessContext processorContext, String engineInfo) {
+    public LocalStorageAdapter(ProcessContext processorContext, String engineInfo, Configuration configuration) {
         this.engineInfo = engineInfo;
+        this.configuration = configuration;
 
         dataPath = processorContext.getProperty(LOCAL_PATH).getValue();
         Path source = new Path(dataPath);
-
-        Configuration configuration = new Configuration();
         try {
             fileSystem = source.getFileSystem(configuration);
         } catch (IOException e) {
@@ -68,6 +68,11 @@ public class LocalStorageAdapter implements StorageAdapter {
     @Override
     public String getEngineInfo() {
         return engineInfo;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+        return configuration;
     }
 
 }

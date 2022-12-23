@@ -27,7 +27,9 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -39,6 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.deltalake.service.DeltaLakeService;
 import org.apache.nifi.processors.deltalake.service.DeltaLakeServiceImpl;
 
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,41 +81,27 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
     public static final AllowableValue PARQUET_SCHEMA_FILE = new AllowableValue("FILE", "Local file path",
             "The parquet schema files path");
 
-    public static final AllowableValue NO_INPUT_FILE = new AllowableValue("NO_INPUT_FILE", "Don't process input file",
-            "Don't import file from other processor");
-
-    public static final AllowableValue PROCESS_INPUT_FILE = new AllowableValue("PROCESS_INPUT_FILE", "Process input file",
-            "Import new file from based on the given attributes.");
-
     private List<PropertyDescriptor> descriptors;
 
     private Set<Relationship> relationships;
 
-    public static final PropertyDescriptor INPUT_FILE_SELECTOR = new PropertyDescriptor.Builder()
-            .name("input-file-selector")
-            .displayName("Input File")
-            .description("Choose to process or not process the input file")
-            .allowableValues(NO_INPUT_FILE, PROCESS_INPUT_FILE)
-            .defaultValue(NO_INPUT_FILE.getValue())
-            .required(true)
+    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
+            .name("hadoop-config-resources")
+            .displayName("Hadoop Configuration Resources")
+            .description("A file, or comma separated list of files, which contain the Hadoop configuration (core-site.xml, etc.)")
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
             .build();
 
-    public static final PropertyDescriptor INPUT_FILE_PATH_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("input-file-path-attribute")
-            .displayName("Attribute Name Of The Input Files Path")
-            .description("Different processors give different attribute names for the output files path")
-            .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
+    public static final PropertyDescriptor INPUT_PARTITION_VALUES = new PropertyDescriptor.Builder()
+            .name("input-file-partition-values")
+            .displayName("Partition Values Of The Input File")
+            .description("If the input file is partitioned, this should be filled in. Example values: \"2020,555\"," +
+                    " where the corresponding partition columns are the followings: \"year,id\"")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor INPUT_FILE_NAME_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("input-file-name-attribute")
-            .displayName("Attribute Name Of The Input Files Name")
-            .description("Different processors give different attribute names for the output filenames")
-            .dependsOn(INPUT_FILE_SELECTOR, PROCESS_INPUT_FILE)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor STORAGE_SELECTOR = new PropertyDescriptor.Builder()
@@ -148,7 +137,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
             .description("The access key for Amazon S3")
             .dependsOn(STORAGE_SELECTOR, AMAZON_S3)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .sensitive(true)
             .build();
 
@@ -158,7 +147,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
             .description("The secret key for Amazon S3")
             .dependsOn(STORAGE_SELECTOR, AMAZON_S3)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .sensitive(true)
             .build();
 
@@ -186,7 +175,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
             .description("The account key for the Azure blob")
             .dependsOn(STORAGE_SELECTOR, MICROSOFT_AZURE)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(true)
+            .required(false)
             .sensitive(true)
             .build();
 
@@ -224,7 +213,7 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
             .dependsOn(STORAGE_SELECTOR, GCP)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .required(true)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor GCP_BUCKET = new PropertyDescriptor.Builder()
@@ -289,14 +278,13 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
         this.descriptors = Collections.unmodifiableList(Arrays.asList(
                 STORAGE_SELECTOR,
-                INPUT_FILE_SELECTOR,
+                HADOOP_CONFIGURATION_RESOURCES,
                 LOCAL_PATH,
                 PARQUET_SCHEMA_SELECTOR,
                 SCHEMA_TEXT_JSON,
                 SCHEMA_FILE_JSON,
                 PARTITION_COLUMNS,
-                INPUT_FILE_PATH_ATTRIBUTE,
-                INPUT_FILE_NAME_ATTRIBUTE,
+                INPUT_PARTITION_VALUES,
                 S3_ACCESS_KEY,
                 S3_SECRET_KEY,
                 S3_BUCKET,
@@ -326,29 +314,31 @@ public class UpdateDeltaLakeTable extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext processContext, final ProcessSession session) throws ProcessException {
-        FlowFile file = session.get();
-        FlowFile flowFile = file == null ? session.create() : file;
-
+        FlowFile file;
+        file = session.get();
+        if (file == null) {
+            file = session.create();
+        }
         try {
-            handleInputFile(processContext, flowFile);
+            if (processContext.hasIncomingConnection()) {
+                handleInputFile(processContext, file, session.read(file));
+            }
             Map<String, String> updateResult =  updateDeltaLake();
-            FlowFile updatedFlowFIle = session.putAllAttributes(flowFile, updateResult);
+            FlowFile updatedFlowFIle = session.putAllAttributes(file, updateResult);
             session.transfer(updatedFlowFIle, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Error during delta table generation: ", e);
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(file, REL_FAILURE);
         }
     }
 
-    private void handleInputFile(ProcessContext processContext, FlowFile flowFile) {
-        if (processContext.getProperty(INPUT_FILE_SELECTOR).getValue().equals(PROCESS_INPUT_FILE.getValue())) {
-            String pathAttributeName = processContext.getProperty(INPUT_FILE_PATH_ATTRIBUTE).getValue();
-            String filenameAttributeName = processContext.getProperty(INPUT_FILE_NAME_ATTRIBUTE).getValue();
-            if (pathAttributeName != null && filenameAttributeName != null) {
-                String pathAttributeValue = flowFile.getAttribute(pathAttributeName);
-                String filenameAttributeValue = flowFile.getAttribute(filenameAttributeName);
-                deltalakeService.handleInputParquet(pathAttributeValue, filenameAttributeValue);
-            }
+    private void handleInputFile(ProcessContext processContext, FlowFile flowFile, InputStream read) {
+        String filenameAttributeValue = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+        String partitionValues = processContext.getProperty(INPUT_PARTITION_VALUES).evaluateAttributeExpressions(flowFile).getValue();
+        if (filenameAttributeValue != null) {
+            deltalakeService.handleInputParquet(partitionValues, filenameAttributeValue, read);
+        } else {
+            throw new RuntimeException("No input file presented");
         }
     }
 
