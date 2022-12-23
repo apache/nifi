@@ -18,8 +18,6 @@ package org.apache.nifi.remote;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.remote.TransactionCompletion;
-
 public class ClientTransactionCompletion implements TransactionCompletion {
 
     private final boolean backoff;
