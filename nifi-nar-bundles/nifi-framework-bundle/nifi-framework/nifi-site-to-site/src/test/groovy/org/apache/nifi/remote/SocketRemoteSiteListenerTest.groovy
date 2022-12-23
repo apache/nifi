@@ -23,12 +23,9 @@ import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -36,8 +33,9 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import java.security.Security
 
-@RunWith(JUnit4.class)
-class SocketRemoteSiteListenerTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class SocketRemoteSiteListenerTest {
     private static final Logger logger = LoggerFactory.getLogger(SocketRemoteSiteListenerTest.class)
 
     private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
@@ -71,7 +69,7 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
 
     private SocketRemoteSiteListener srsListener
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -83,11 +81,7 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
         sslContext = SslContextFactory.createSslContext(tlsConfiguration)
     }
 
-    @Before
-    void setUp() {
-    }
-
-    @After
+    @AfterEach
     void tearDown() {
         if (srsListener) {
             srsListener.stop()
@@ -126,6 +120,6 @@ class SocketRemoteSiteListenerTest extends GroovyTestCase {
         SSLServerSocket sslServerSocket = srsListener.createServerSocket() as SSLServerSocket
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(sslServerSocket)}" as String)
         assertProtocolVersions(sslServerSocket.enabledProtocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
-        assert sslServerSocket.needClientAuth
+        assertTrue(sslServerSocket.needClientAuth)
     }
 }
