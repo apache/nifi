@@ -323,6 +323,11 @@
             <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <version>1.20.0-SNAPSHOT</version>
@@ -514,6 +519,8 @@
                         <exclude>src/test/resources/ScanAttribute/dictionary1</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
+                        <exclude>src/test/resources/TestGenerateRecord/nested_no_nullable.avsc</exclude>
+                        <exclude>src/test/resources/TestGenerateRecord/nested_nullable.avsc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
@@ -611,6 +618,7 @@
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.xml</exclude>
+                        <exclude>src/test/resources/TestTransformXml/employee.html</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev2</exclude>

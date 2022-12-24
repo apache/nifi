@@ -2814,7 +2814,7 @@ search the information for specific items, and filter the search results. It is 
 replay data at any point within the dataflow, and see a graphical representation of the data's lineage, or path through the flow.
 (These features are described in depth below.)
 
-When authorization is enabled, accessessing Data Provenance information requires the 'query provenance' Global Policy as well as the 'view provenance'
+When authorization is enabled, accessing Data Provenance information requires the 'query provenance' Global Policy as well as the 'view provenance'
 Component Policy for the component which generated the event. In addition, access to event details which include FlowFile attributes and content require
 the 'view the data' Component Policy for the component which generated the event.
 

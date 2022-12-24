@@ -582,6 +582,42 @@ The following settings can be configured in _nifi.properties_ to control JSON We
 |`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new RSA Key Pair, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
 |==================================================================================================================================================
 
+[[csrf-protection]]
+=== Cross-Site Request Forgery Protection
+
+NiFi 1.15.0 introduced
+link:https://owasp.org/www-community/attacks/csrf[Cross-Site Request Forgery] protection as part of user interface
+access based on session cookies. CSRF protection builds on standard
+link:https://docs.spring.io/spring-security/reference/features/exploits/csrf.html[Spring Security features]
+and implements the
+link:https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie[double submit cookie]
+strategy. The implementation strategy relies on the server generating and sending a random request token cookie at the
+beginning of the session. The client browser stores the cookie, JavaScript application code reads the cookie, and sets
+the value in a custom HTTP header on subsequent requests.
+
+NiFi applies the `SameSite` attribute with a value of `Strict` to session cookies, which instructs supporting web
+browsers to avoid sending the cookie on requests that a third party initiates. These protections mitigate a number of
+potential threats.
+
+Cookie names are not considered part of the public REST API and are subject to change in minor release
+versions. Programmatic HTTP requests to the NiFi REST API should use the standard HTTP `Authorization` header when
+sending access tokens instead of the session cookie that the NiFi user interface uses.
+
+NiFi deployments that include HTTP load balanced access with <<session_affinity>> depend on custom HTTP cookies,
+requiring custom programmatic clients to store and send cookies for the duration of an authenticated session.
+Programmatic clients in these scenarios should limit cookie storage to cookie names specific to the HTTP load balancer
+to avoid HTTP 403 Forbidden errors related to CSRF filtering.
+
+The CSRF implementation sends the following HTTP cookie to set the random request token for the session:
+
+- Cookie Name: `__Secure-Request-Token`
+- Value: Random UUID
+
+The CSRF security filter expects the following HTTP request header on non-idempotent methods such as `POST` or `PUT`:
+
+- Header Name: `Request-Token`
+- Value: UUID matching the `__Secure-Request-Token` cookie header
+
 [[multi-tenant-authorization]]
 == Multi-Tenant Authorization
 
