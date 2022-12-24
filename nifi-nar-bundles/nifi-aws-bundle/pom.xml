@@ -27,7 +27,7 @@
 
     <properties>
         <!-- keep KCL 1.x until NIFI-8531 (blocked by NIFI-8287) -->
-        <aws-kinesis-client-library-version>1.14.8</aws-kinesis-client-library-version>
+        <aws-kinesis-client-library-version>1.14.9</aws-kinesis-client-library-version>
     </properties>
 
     <modules>
