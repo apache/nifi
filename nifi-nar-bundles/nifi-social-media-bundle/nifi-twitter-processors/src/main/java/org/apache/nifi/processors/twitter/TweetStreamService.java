@@ -97,12 +97,12 @@ public class TweetStreamService {
         ApiClient client = new ApiClient();
         final int connectTimeout = context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int readTimeout = context.getProperty(ConsumeTwitter.READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        client = client.setConnectTimeout(connectTimeout);
-        client = client.setReadTimeout(readTimeout);
+        final TwitterCredentialsBearer bearer = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
+        client.setConnectTimeout(connectTimeout);
+        client.setReadTimeout(readTimeout);
+        client.setTwitterCredentials(bearer);
         api = new TwitterApi(client);
 
-        final TwitterCredentialsBearer bearer = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
-        api.setTwitterCredentials(bearer);
 
         final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
         api.getApiClient().setBasePath(basePath);
@@ -174,9 +174,25 @@ public class TweetStreamService {
         public void run() {
             try {
                 if (endpoint.equals(StreamEndpoint.SAMPLE_ENDPOINT)) {
-                    stream = api.tweets().sampleStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
+                    stream = api.tweets().sampleStream()
+                            .expansions(expansions)
+                            .tweetFields(tweetFields)
+                            .userFields(userFields)
+                            .mediaFields(mediaFields)
+                            .placeFields(placeFields)
+                            .pollFields(pollFields)
+                            .backfillMinutes(backfillMinutes)
+                            .execute();
                 } else {
-                    stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
+                    stream = api.tweets().searchStream()
+                            .expansions(expansions)
+                            .tweetFields(tweetFields)
+                            .userFields(userFields)
+                            .mediaFields(mediaFields)
+                            .placeFields(placeFields)
+                            .pollFields(pollFields)
+                            .backfillMinutes(backfillMinutes)
+                            .execute();
                 }
                 executorService.execute(new TweetStreamHandler());
             } catch (final ApiException e) {
