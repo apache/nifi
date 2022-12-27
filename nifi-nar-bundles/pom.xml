@@ -123,6 +123,7 @@
         <module>nifi-iceberg-bundle</module>
         <module>nifi-jslt-bundle</module>
         <module>nifi-iotdb-bundle</module>
+        <module>nifi-cipher-bundle</module>
     </modules>
 
     <build>
