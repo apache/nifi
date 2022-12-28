@@ -153,6 +153,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_MICROS;
@@ -220,6 +221,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.OR;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_LEFT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PAD_RIGHT;
@@ -1205,6 +1207,8 @@ public class ExpressionCompiler {
             case TRUE:
             case FALSE:
                 return buildBooleanEvaluator(tree);
+            case NULL:
+                return newStringLiteralEvaluator(null);
             case UUID: {
                 return addToken(new UuidEvaluator(), "uuid");
             }
@@ -1271,11 +1275,10 @@ public class ExpressionCompiler {
                 return eval;
             }
             case GET_URI: {
-                @SuppressWarnings("unchecked")
-                Evaluator<String> [] uriArgs = Stream.iterate(0, i -> i + 1)
+                List<Evaluator<String>> uriArgs = Stream.iterate(0, i -> i + 1)
                         .limit(tree.getChildCount())
                         .map(num -> toStringEvaluator(buildEvaluator(tree.getChild(num))))
-                        .toArray(Evaluator[]::new);
+                        .collect(Collectors.toList());
                 return addToken(new GetUriEvaluator(uriArgs), "getUri");
             }
             default:

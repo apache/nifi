@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -26,47 +25,34 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class GetUriEvaluator extends StringEvaluator {
 
-    private final Evaluator<String>[] uriArgs;
+    private final List<Evaluator<String>> uriArgs;
 
-    public GetUriEvaluator(Evaluator<String>[] uriArgs) {
+    public GetUriEvaluator(List<Evaluator<String>> uriArgs) {
         this.uriArgs = uriArgs;
     }
 
     @Override
     public QueryResult<String> evaluate(EvaluationContext evaluationContext) {
-        List<String> args = Arrays.stream(uriArgs)
+        List<String> args = uriArgs.stream()
                 .map(uriArg -> uriArg.evaluate(evaluationContext).getValue())
-                .map(string -> StringUtils.isBlank(string) ? null : string)
                 .collect(Collectors.toList());
 
         try {
-            switch (args.size()) {
-                case 3:
-                    return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2)).toString());
-                case 4:
-                    return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2), args.get(3)).toString());
-                case 5:
-                    return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2), args.get(3), args.get(4)).toString());
-                case 7:
-                    return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2),
-                            Integer.parseInt(args.get(3)), args.get(4), args.get(5), args.get(6)).toString());
-                default:
-                    throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with " + args.size() + " argument(s)");
+            if (args.size() == 7) {
+                return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2),
+                        Integer.parseInt(args.get(3)), args.get(4), args.get(5), args.get(6)).toString());
             }
+            throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with " + args.size() + " argument(s)");
         } catch (NumberFormatException nfe) {
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument '"
                     + args.get(3) + "' which is not a number", nfe);
-        } catch (URISyntaxException e) {
-            args = args.stream()
-                    .map(arg -> arg == null ? "''" : arg)
-                    .collect(Collectors.toList());
-            throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument(s) " + args, e);
+        } catch (URISyntaxException use) {
+            throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument(s) " + args, use);
         }
     }
 

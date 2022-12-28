@@ -91,6 +91,7 @@ fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 TRUE	: 'true';
 FALSE	: 'false';
+NULL    : 'null';
 
 //
 // FUNCTION NAMES
