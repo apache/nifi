@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -63,8 +64,7 @@ public class NarThreadContextClassLoaderTest {
         Bundle systemBundle = SystemBundle.create(properties);
         ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
-        assertNotNull(NarThreadContextClassLoader.createInstance(extensionManager, WithDefaultConstructor.class.getName(),
-                WithDefaultConstructor.class, properties));
+        assertInstanceOf(WithDefaultConstructor.class, NarThreadContextClassLoader.createInstance(extensionManager, WithDefaultConstructor.class.getName(), WithDefaultConstructor.class, properties));
     }
 
     public static class WithPropertiesConstructor extends AbstractProcessor {
