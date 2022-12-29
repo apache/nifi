@@ -30,6 +30,8 @@ import org.junit.jupiter.api.BeforeAll
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import static org.junit.jupiter.api.Assertions.assertFalse
+
 class StandardPublicPortGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(StandardPublicPortGroovyTest.class)
 
@@ -96,6 +98,6 @@ class StandardPublicPortGroovyTest {
         logger.info("Received ${responses.sum()} total flowfiles")
 
         // Assert
-        assert !responses.isEmpty()
+        assertFalse(!responses.isEmpty())
     }
 }
