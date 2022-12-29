@@ -98,6 +98,6 @@ class StandardPublicPortGroovyTest {
         logger.info("Received ${responses.sum()} total flowfiles")
 
         // Assert
-        assertFalse(!responses.isEmpty())
+        assertFalse(responses.isEmpty())
     }
 }
