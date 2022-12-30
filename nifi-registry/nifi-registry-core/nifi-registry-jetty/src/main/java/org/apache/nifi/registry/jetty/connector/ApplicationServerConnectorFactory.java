@@ -162,7 +162,7 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
 
     private KeyStore buildTrustStore(final NiFiRegistryProperties properties) {
         final String trustStore = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE);
-        final String trustStoreType = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_KEYSTORE_TYPE);
+        final String trustStoreType = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE_TYPE);
         final String trustStorePassword = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD);
         return buildStore(trustStore, trustStoreType, trustStorePassword);
     }
