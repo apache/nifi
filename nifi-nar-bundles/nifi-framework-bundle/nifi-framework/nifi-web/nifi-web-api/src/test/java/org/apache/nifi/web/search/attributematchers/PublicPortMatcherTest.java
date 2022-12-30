@@ -18,8 +18,8 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.PublicPort;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -31,10 +31,10 @@ public class PublicPortMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private Port port;
 
-    @Mock
+    @Mock(lenient = true)
     private PublicPort publicPort;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(publicPort.getUserAccessControl()).thenReturn(new HashSet<>(Arrays.asList("user1Lorem", "user2Lorem")));

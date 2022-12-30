@@ -17,8 +17,8 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.parameter.ParameterContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -27,7 +27,7 @@ public class ParameterContextMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ParameterContext component;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(component.getIdentifier()).thenReturn("LoremId");

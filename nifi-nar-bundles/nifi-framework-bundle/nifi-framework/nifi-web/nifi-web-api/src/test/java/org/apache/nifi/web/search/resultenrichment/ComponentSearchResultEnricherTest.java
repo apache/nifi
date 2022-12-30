@@ -23,14 +23,20 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ComponentSearchResultEnricherTest {
     private static final String NAME = "name";
     private static final String IDENTIFIER = "identifier";
@@ -44,9 +50,6 @@ public class ComponentSearchResultEnricherTest {
 
     @Mock
     private ProcessGroup parentProcessGroup;
-
-    @Mock
-    private ProcessGroup rootGroup;
 
     @Mock
     private NiFiUser user;
@@ -68,15 +71,15 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(IDENTIFIER, result.getGroupId());
+        assertEquals(IDENTIFIER, result.getGroupId());
 
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(NAME, result.getParentGroup().getName());
 
-        Assert.assertNotNull(result.getVersionedGroup());
-        Assert.assertEquals(IDENTIFIER, result.getVersionedGroup().getId());
-        Assert.assertEquals(NAME, result.getVersionedGroup().getName());
+        assertNotNull(result.getVersionedGroup());
+        assertEquals(IDENTIFIER, result.getVersionedGroup().getId());
+        assertEquals(NAME, result.getVersionedGroup().getName());
 
     }
 
@@ -91,15 +94,15 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getGroupId());
+        assertEquals(PARENT_IDENTIFIER, result.getGroupId());
 
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(PARENT_NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(PARENT_IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(PARENT_NAME, result.getParentGroup().getName());
 
-        Assert.assertNotNull(result.getVersionedGroup());
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getVersionedGroup().getId());
-        Assert.assertEquals(PARENT_NAME, result.getVersionedGroup().getName());
+        assertNotNull(result.getVersionedGroup());
+        assertEquals(PARENT_IDENTIFIER, result.getVersionedGroup().getId());
+        assertEquals(PARENT_NAME, result.getVersionedGroup().getName());
     }
 
     @Test
@@ -114,9 +117,9 @@ public class ComponentSearchResultEnricherTest {
 
         // then
         thenIdentifierIsNotSet(result);
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(CONTEXT_IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(CONTEXT_NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(CONTEXT_IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(CONTEXT_NAME, result.getParentGroup().getName());
 
         thenVersionedGroupIsNotSet(result);
     }
@@ -132,12 +135,12 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(IDENTIFIER, result.getGroupId());
-        Assert.assertNull(result.getId());
-        Assert.assertNull(result.getParentGroup());
+        assertEquals(IDENTIFIER, result.getGroupId());
+        assertNull(result.getId());
+        assertNull(result.getParentGroup());
         thenVersionedGroupIsNotSet(result);
-        Assert.assertNull(result.getName());
-        Assert.assertNull(result.getMatches());
+        assertNull(result.getName());
+        assertNull(result.getMatches());
     }
 
     private void givenProcessGroup() {
@@ -162,10 +165,10 @@ public class ComponentSearchResultEnricherTest {
     }
 
     private void thenIdentifierIsNotSet(final ComponentSearchResultDTO result) {
-        Assert.assertNull(result.getGroupId());
+        assertNull(result.getGroupId());
     }
 
     private void thenVersionedGroupIsNotSet(final ComponentSearchResultDTO result) {
-        Assert.assertNull(result.getVersionedGroup());
+        assertNull(result.getVersionedGroup());
     }
 }

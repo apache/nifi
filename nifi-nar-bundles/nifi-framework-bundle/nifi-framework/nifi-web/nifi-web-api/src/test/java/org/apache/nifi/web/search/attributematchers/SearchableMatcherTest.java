@@ -25,14 +25,17 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Collection;
 import java.util.HashSet;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
@@ -56,7 +59,7 @@ public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ExtensionManager extensionManager;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);

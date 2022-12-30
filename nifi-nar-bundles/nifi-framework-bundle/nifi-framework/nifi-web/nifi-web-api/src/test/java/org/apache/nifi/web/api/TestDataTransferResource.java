@@ -30,8 +30,8 @@ import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -49,8 +49,8 @@ import java.net.URL;
 import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -61,7 +61,7 @@ import static org.mockito.Mockito.when;
 
 public class TestDataTransferResource {
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         final URL resource = TestDataTransferResource.class.getResource("/site-to-site/nifi.properties");
         final String propertiesFile = resource.toURI().getPath();

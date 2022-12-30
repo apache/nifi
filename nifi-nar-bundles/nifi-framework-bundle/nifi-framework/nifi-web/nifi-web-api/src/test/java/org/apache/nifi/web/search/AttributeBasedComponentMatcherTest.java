@@ -20,20 +20,26 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.search.attributematchers.AttributeMatcher;
 import org.apache.nifi.web.search.query.SearchQuery;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AttributeBasedComponentMatcherTest {
     private static final String IDENTIFIER = "lorem";
     private static final String NAME = "ipsum";
@@ -56,7 +62,7 @@ public class AttributeBasedComponentMatcherTest {
     @Mock
     private Function<ProcessorNode, String> getName;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Mockito.when(getIdentifier.apply(Mockito.any(ProcessorNode.class))).thenReturn(IDENTIFIER);
         Mockito.when(getName.apply(Mockito.any(ProcessorNode.class))).thenReturn(NAME);
@@ -72,12 +78,12 @@ public class AttributeBasedComponentMatcherTest {
         final Optional<ComponentSearchResultDTO> result = testSubject.match(component, searchQuery);
 
         // then
-        Assert.assertTrue(result.isPresent());
-        Assert.assertEquals(IDENTIFIER, result.get().getId());
-        Assert.assertEquals(NAME, result.get().getName());
-        Assert.assertEquals(2, result.get().getMatches().size());
-        Assert.assertTrue(result.get().getMatches().contains("matcher1"));
-        Assert.assertTrue(result.get().getMatches().contains("matcher2"));
+        assertTrue(result.isPresent());
+        assertEquals(IDENTIFIER, result.get().getId());
+        assertEquals(NAME, result.get().getName());
+        assertEquals(2, result.get().getMatches().size());
+        assertTrue(result.get().getMatches().contains("matcher1"));
+        assertTrue(result.get().getMatches().contains("matcher2"));
 
         Mockito.verify(attributeMatcher1, Mockito.atLeastOnce()).match(Mockito.any(ProcessorNode.class), Mockito.any(SearchQuery.class), Mockito.anyList());
         Mockito.verify(attributeMatcher2, Mockito.atLeastOnce()).match(Mockito.any(ProcessorNode.class), Mockito.any(SearchQuery.class), Mockito.anyList());
@@ -93,7 +99,7 @@ public class AttributeBasedComponentMatcherTest {
         final Optional<ComponentSearchResultDTO> result = testSubject.match(component, searchQuery);
 
         // then
-        Assert.assertFalse(result.isPresent());
+        assertFalse(result.isPresent());
     }
 
     private List<AttributeMatcher<ProcessorNode>> givenAttributeMatchers() {

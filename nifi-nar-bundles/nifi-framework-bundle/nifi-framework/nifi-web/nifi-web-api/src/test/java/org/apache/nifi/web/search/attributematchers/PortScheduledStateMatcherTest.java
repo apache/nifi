@@ -18,13 +18,13 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock
+    @Mock(lenient = true)
     private Port component;
 
     @Test

@@ -17,8 +17,8 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -29,7 +29,7 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
     @Mock
     private ControllerServiceNode component;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(component.getIdentifier()).thenReturn("LoremId");

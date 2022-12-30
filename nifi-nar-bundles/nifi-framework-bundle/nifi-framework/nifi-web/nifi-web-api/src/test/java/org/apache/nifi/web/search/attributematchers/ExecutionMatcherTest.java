@@ -18,13 +18,13 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.scheduling.ExecutionNode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class ExecutionMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock
+    @Mock(lenient = true)
     private ProcessorNode component;
 
     @Test

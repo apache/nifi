@@ -19,13 +19,13 @@ package org.apache.nifi.web.search.attributematchers;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock
+    @Mock(lenient = true)
     private ProcessorNode component;
 
     @Test

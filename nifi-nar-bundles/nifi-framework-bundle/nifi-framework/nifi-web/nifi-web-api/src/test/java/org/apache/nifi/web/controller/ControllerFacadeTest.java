@@ -23,15 +23,18 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.query.SearchQueryParser;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ControllerFacadeTest {
     private static final String ACTIVE_GROUP_ID = "activeId";
     private static final String SEARCH_LITERAL = "processor1";
@@ -57,7 +60,7 @@ public class ControllerFacadeTest {
     @Mock
     private ControllerSearchService controllerSearchService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
         Mockito.when(flowManager.getRootGroup()).thenReturn(rootGroup);

@@ -18,13 +18,16 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.concurrent.TimeUnit;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
 
     @Mock
@@ -33,7 +36,7 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
     @Mock
     private FlowFileQueue flowFileQueue;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(component.getFlowFileQueue()).thenReturn(flowFileQueue);

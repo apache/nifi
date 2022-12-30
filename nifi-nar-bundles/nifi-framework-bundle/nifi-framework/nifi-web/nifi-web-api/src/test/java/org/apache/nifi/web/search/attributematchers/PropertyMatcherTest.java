@@ -18,8 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -28,13 +27,8 @@ import java.util.Map;
 
 public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock
+    @Mock(lenient = true)
     private ProcessorNode component;
-
-    @Before
-    public void setUp() {
-        super.setUp();
-    }
 
     @Test
     public void testMatchingAndNotFiltered() {

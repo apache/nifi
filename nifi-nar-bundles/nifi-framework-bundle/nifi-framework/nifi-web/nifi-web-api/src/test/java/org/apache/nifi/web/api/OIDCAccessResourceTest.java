@@ -27,7 +27,7 @@ import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.provider.StandardBearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

@@ -18,20 +18,20 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock
+    @Mock(lenient = true)
     private Parameter parameter;
 
     @Mock
     private ParameterDescriptor descriptor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(parameter.getDescriptor()).thenReturn(descriptor);

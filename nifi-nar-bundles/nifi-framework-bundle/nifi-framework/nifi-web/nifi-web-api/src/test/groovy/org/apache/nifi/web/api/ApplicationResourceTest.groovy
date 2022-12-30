@@ -18,9 +18,7 @@ package org.apache.nifi.web.api
 
 import org.apache.nifi.util.NiFiProperties
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Test
 
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
@@ -36,8 +34,9 @@ import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PREFIX_HTTP_HEADER
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER
 
-@RunWith(JUnit4.class)
-class ApplicationResourceTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+
+class ApplicationResourceTest {
     static final String PROXY_CONTEXT_PATH_PROP = NiFiProperties.WEB_PROXY_CONTEXT_PATH
     static final String ALLOWED_PATH = "/some/context/path"
 
@@ -93,9 +92,7 @@ class ApplicationResourceTest extends GroovyTestCase {
     @Test
     void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource()
-        shouldFail(UriBuilderException) {
-            resource.generateResourceUri('actualResource')
-        }
+        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
     }
 
     @Test
@@ -125,18 +122,14 @@ class ApplicationResourceTest extends GroovyTestCase {
     void testGenerateUriShouldBlockForwardedContextHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
 
-        shouldFail(UriBuilderException) {
-            resource.generateResourceUri('actualResource')
-        }
+        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
     }
 
     @Test
     void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
 
-        shouldFail(UriBuilderException) {
-            resource.generateResourceUri('actualResource')
-        }
+        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
     }
 
     @Test
