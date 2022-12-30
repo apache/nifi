@@ -47,17 +47,19 @@ import net.minidev.json.JSONObject
 import org.apache.commons.codec.binary.Base64
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertNull
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class StandardOidcIdentityProviderGroovyTest  {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProviderGroovyTest.class)
 
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
@@ -80,20 +82,16 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
             "X3VuaXRfdGVzdF9hdXRob3JpdHkiLCJhdWQiOiJhbGwiLCJ1c2VybmFtZSI6Im9pZGNfdGVzdCIsImVtYWlsIjoib2lkY19" +
             "0ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9.b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         mockNiFiProperties = buildNiFiProperties()
-    }
-
-    @After
-    void teardown() throws Exception {
     }
 
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
@@ -126,7 +124,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Defined claims: ${definedClaims}")
 
         // Assert
-        assert definedClaims == POPULATED_CLAIM_NAMES
+        assertEquals(POPULATED_CLAIM_NAMES, definedClaims)
     }
 
     @Test
@@ -160,9 +158,9 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Client Auth properties: ${clientAuthentication.getProperties()}")
 
         // Assert
-        assert clientAuthentication.getClientID() == EXPECTED_CLIENT_AUTHENTICATION.getClientID()
+        assertEquals(EXPECTED_CLIENT_AUTHENTICATION.getClientID(), clientAuthentication.getClientID())
         logger.info("Client secret: ${(clientAuthentication as ClientSecretPost).clientSecret.value}")
-        assert ((ClientSecretPost) clientAuthentication).getClientSecret() == ((ClientSecretPost) EXPECTED_CLIENT_AUTHENTICATION).getClientSecret()
+        assertEquals(((ClientSecretPost) EXPECTED_CLIENT_AUTHENTICATION).getClientSecret(), ((ClientSecretPost) clientAuthentication).getClientSecret())
     }
 
     @Test
@@ -196,10 +194,10 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Client authentication properties: ${clientAuthentication.properties}")
 
         // Assert
-        assert clientAuthentication.getClientID() == EXPECTED_CLIENT_AUTHENTICATION.getClientID()
-        assert clientAuthentication.getMethod() == EXPECTED_CLIENT_AUTHENTICATION.getMethod()
+        assertEquals(EXPECTED_CLIENT_AUTHENTICATION.getClientID(), clientAuthentication.getClientID())
+        assertEquals(EXPECTED_CLIENT_AUTHENTICATION.getMethod(), clientAuthentication.getMethod())
         logger.info("Client secret: ${(clientAuthentication as ClientSecretBasic).clientSecret.value}")
-        assert (clientAuthentication as ClientSecretBasic).getClientSecret() == EXPECTED_CLIENT_AUTHENTICATION.clientSecret
+        assertEquals(EXPECTED_CLIENT_AUTHENTICATION.clientSecret, (clientAuthentication as ClientSecretBasic).getClientSecret())
     }
 
     @Test
@@ -235,10 +233,10 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Query: ${URLDecoder.decode(httpRequest.query, "UTF-8")}")
 
         // Assert
-        assert httpRequest.getMethod().name() == "POST"
-        assert httpRequest.query =~ "code=${mockCode.value}"
+        assertEquals("POST", httpRequest.getMethod().name())
+        assertTrue(httpRequest.query.contains("code=" + mockCode.value))
         String encodedUri = URLEncoder.encode("https://localhost/oidc", "UTF-8")
-        assert httpRequest.query =~ "redirect_uri=${encodedUri}&grant_type=authorization_code"
+        assertTrue(httpRequest.query.contains("redirect_uri="+encodedUri+"&grant_type=authorization_code"))
     }
 
     @Test
@@ -262,7 +260,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Identity: ${identity}")
 
         // Assert
-        assert identity == EXPECTED_IDENTITY
+        assertEquals(EXPECTED_IDENTITY, identity)
     }
 
     @Test
@@ -280,14 +278,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         HTTPRequest mockUserInfoRequest = mockHttpRequest(responseBody, 200, "HTTP NO USER")
 
         // Act
-        def msg = shouldFail(IllegalStateException) {
-            String identity = soip.lookupIdentityInUserInfo(mockUserInfoRequest)
-            logger.info("Identity: ${identity}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "Unable to extract identity from the UserInfo token using the claim 'username'."
+        IllegalStateException ise = assertThrows(IllegalStateException.class, () -> soip.lookupIdentityInUserInfo(mockUserInfoRequest))
+        assertTrue(ise.getMessage().contains("Unable to extract identity from the UserInfo token using the claim 'username'."))
     }
 
     @Test
@@ -306,16 +298,9 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
                          error_uri        : "https://localhost/oidc/error"]
         HTTPRequest mockUserInfoRequest = mockHttpRequest(errorBody, 500, "HTTP ERROR")
 
-        // Act
-        def msg = shouldFail(RuntimeException) {
-            String identity = soip.lookupIdentityInUserInfo(mockUserInfoRequest)
-            logger.info("Identity: ${identity}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "An error occurred while invoking the UserInfo endpoint: The provided username and password " +
-                "were not correct"
+        RuntimeException re = assertThrows(RuntimeException.class, () -> soip.lookupIdentityInUserInfo(mockUserInfoRequest))
+        assertTrue(re.getMessage().contains("An error occurred while invoking the UserInfo endpoint: The provided username and password " +
+                "were not correct"))
     }
 
     @Test
@@ -335,12 +320,12 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
         logger.info("Token contents: ${contents} | Expiration: ${expiration}")
 
-        assert contents =~ "LoginAuthenticationToken for person@nifi\\.apache\\.org issued by https://accounts\\.issuer\\.com expiring at"
+        assertTrue(contents.contains("LoginAuthenticationToken for person@nifi.apache.org issued by https://accounts.issuer.com expiring at"))
 
         // Assert expiration
         final String[] expList = expiration.split("\\s")
         final Long expLong = Long.parseLong(expList[0])
-        assert expLong <= System.currentTimeMillis() + 10_000
+        assertTrue(expLong <= System.currentTimeMillis() + 10_000)
     }
 
     @Test
@@ -360,14 +345,14 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
         logger.info("Token contents: ${contents} | Expiration: ${expiration}")
 
-        assert contents =~ "LoginAuthenticationToken for person@nifi\\.apache\\.org issued by https://accounts\\.issuer\\.com expiring at"
+        assertTrue(contents.contains("LoginAuthenticationToken for person@nifi.apache.org issued by https://accounts.issuer.com expiring at"))
 
         // Get the expiration
         final ArrayList<String> expires = expiration.split("[\\D*]")
         final long exp = Long.parseLong(expires[0])
         logger.info("exp: ${exp} ms")
 
-        assert exp <= System.currentTimeMillis() + 10_000
+        assertTrue(exp <= System.currentTimeMillis() + 10_000)
     }
 
     @Test
@@ -376,7 +361,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(
                 ["nifi.security.user.oidc.claim.identifying.user": "email",
                  "nifi.security.user.oidc.fallback.claims.identifying.user": "upn" ])
-        String expectedUpn = "xxx@aaddomain";
+        String expectedUpn = "xxx@aaddomain"
 
         OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": expectedUpn])
         logger.info("OIDC Token Response with no email and upn: ${mockResponse.dump()}")
@@ -387,7 +372,22 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Split JWT into components and decode Base64 to JSON
         def (String contents, String expiration) = loginToken.tokenize("\\[\\]")
         logger.info("Token contents: ${contents} | Expiration: ${expiration}")
-        assert contents =~ "LoginAuthenticationToken for ${expectedUpn} issued by https://accounts\\.issuer\\.com expiring at"
+        assertTrue(contents.contains("LoginAuthenticationToken for " + expectedUpn + " issued by https://accounts.issuer.com expiring at"))
+    }
+
+    @Test
+    void testAuthorizeClientRequestShouldHandleError() {
+        // Arrange
+        // Build ID Provider with mock token endpoint URI to make a connection
+        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator([:])
+
+        def responseBody = [id_token: MOCK_JWT, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
+        HTTPRequest mockTokenRequest = mockHttpRequest(responseBody, 500, "HTTP SERVER ERROR")
+
+        // Act
+        RuntimeException re = assertThrows(RuntimeException.class, () -> soip.authorizeClientRequest(mockTokenRequest))
+        // Assert
+        assertTrue(re.getMessage().contains("An error occurred while invoking the Token endpoint: null"))
     }
 
     @Test
@@ -399,11 +399,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
-        def msg = shouldFail(IOException) {
-            String loginAuthenticationToken = soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse)
-            logger.info("Login authentication token: ${loginAuthenticationToken}")
-        }
-        logger.expected(msg)
+        assertThrows(IOException.class, () -> soip.convertOIDCTokenToLoginAuthenticationToken(mockResponse))
     }
 
     @Test
@@ -420,27 +416,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Token Response: ${tokenResponse.dump()}")
 
         // Assert
-        assert tokenResponse
-    }
-
-    @Test
-    void testAuthorizeClientRequestShouldHandleError() {
-        // Arrange
-        // Build ID Provider with mock token endpoint URI to make a connection
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator([:])
-
-        def responseBody = [id_token: MOCK_JWT, access_token: "some.access.token", refresh_token: "some.refresh.token", token_type: "bearer"]
-        HTTPRequest mockTokenRequest = mockHttpRequest(responseBody, 500, "HTTP SERVER ERROR")
-
-        // Act
-        def msg = shouldFail(RuntimeException) {
-            def nifiToken = soip.authorizeClientRequest(mockTokenRequest)
-            logger.info("NiFi token: ${nifiToken}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "An error occurred while invoking the Token endpoint: null"
+        assertNotNull(tokenResponse)
     }
 
     @Test
@@ -477,7 +453,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Access token: ${accessTokenString}")
 
         // Assert
-        assert accessTokenString
+        assertNotNull(accessTokenString)
     }
 
     @Test
@@ -513,7 +489,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("Access Token: ${accessTokenString}")
 
         // Assert
-        assert accessTokenString == null
+        assertNull(accessTokenString)
     }
 
     @Test
@@ -543,13 +519,9 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         OIDCTokens mockOidcTokens = new OIDCTokens(mockJwt, mockAccessToken, mockRefreshToken)
 
         // Act
-        def msg = shouldFail(Exception) {
-            soip.validateAccessToken(mockOidcTokens)
-        }
-        logger.expected(msg)
-
+        Exception e = assertThrows(Exception.class, () -> soip.validateAccessToken(mockOidcTokens))
         // Assert
-        assert msg =~ "Unable to validate the Access Token: Access token hash \\(at_hash\\) mismatch"
+        assertTrue(e.getMessage().contains("Unable to validate the Access Token: Access token hash (at_hash) mismatch"))
     }
 
     @Test
@@ -584,8 +556,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("ID Token: ${idTokenString}")
 
         // Assert
-        assert idTokenString
-        assert idTokenString == EXPECTED_ID_TOKEN
+        assertNotNull(idTokenString)
+        assertEquals(EXPECTED_ID_TOKEN, idTokenString)
 
         // Assert that 'email:person@nifi.apache.org' is present
         def (String header, String payload) = idTokenString.split("\\.")
@@ -593,7 +565,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         final String payloadString = new String(idTokenBytes, "UTF-8")
         logger.info(payloadString)
 
-        assert payloadString =~ "\"email\":\"person@nifi\\.apache\\.org\""
+        assertTrue(payloadString.contains("\"email\":\"person@nifi.apache.org\""))
     }
 
     @Test
@@ -616,8 +588,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("ID Token Claims Set: ${claimsSetString}")
 
         // Assert
-        assert claimsSet
-        assert claimsSetString =~ "\"email\":\"person@nifi\\.apache\\.org\""
+        assertNotNull(claimsSet)
+        assertTrue(claimsSetString.contains("\"email\":\"person@nifi.apache.org\""))
     }
 
     @Test
@@ -652,13 +624,13 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         logger.info("OIDC Tokens: ${oidcTokens.toJSONObject()}")
 
         // Assert
-        assert oidcTokens
+        assertNotNull(oidcTokens)
 
         // Assert ID Tokens match
         final JSONObject oidcJson = oidcTokens.toJSONObject()
         final String idToken = oidcJson["id_token"]
         logger.info("ID Token String: ${idToken}")
-        assert idToken == EXPECTED_ID_TOKEN
+        assertEquals(EXPECTED_ID_TOKEN, idToken)
     }
 
     private StandardOidcIdentityProvider buildIdentityProviderWithMockTokenValidator(Map<String, String> additionalProperties = [:]) {
