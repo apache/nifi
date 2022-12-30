@@ -23,14 +23,17 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+@ExtendWith(MockitoExtension.class)
 public class ComponentSearchResultEnricherTest {
     private static final String NAME = "name";
     private static final String IDENTIFIER = "identifier";
@@ -44,9 +47,6 @@ public class ComponentSearchResultEnricherTest {
 
     @Mock
     private ProcessGroup parentProcessGroup;
-
-    @Mock
-    private ProcessGroup rootGroup;
 
     @Mock
     private NiFiUser user;
@@ -68,22 +68,22 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(IDENTIFIER, result.getGroupId());
+        assertEquals(IDENTIFIER, result.getGroupId());
 
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(NAME, result.getParentGroup().getName());
 
-        Assert.assertNotNull(result.getVersionedGroup());
-        Assert.assertEquals(IDENTIFIER, result.getVersionedGroup().getId());
-        Assert.assertEquals(NAME, result.getVersionedGroup().getName());
+        assertNotNull(result.getVersionedGroup());
+        assertEquals(IDENTIFIER, result.getVersionedGroup().getId());
+        assertEquals(NAME, result.getVersionedGroup().getName());
 
     }
 
     @Test
     public void testProcessGroupEnrichment() {
         // given
-        givenProcessGroup();
+        givenParentProcessGroup();
         final ProcessGroupSearchResultEnricher testSubject  = new ProcessGroupSearchResultEnricher(processGroup, user, authorizer);
         final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
 
@@ -91,21 +91,21 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getGroupId());
+        assertEquals(PARENT_IDENTIFIER, result.getGroupId());
 
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(PARENT_NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(PARENT_IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(PARENT_NAME, result.getParentGroup().getName());
 
-        Assert.assertNotNull(result.getVersionedGroup());
-        Assert.assertEquals(PARENT_IDENTIFIER, result.getVersionedGroup().getId());
-        Assert.assertEquals(PARENT_NAME, result.getVersionedGroup().getName());
+        assertNotNull(result.getVersionedGroup());
+        assertEquals(PARENT_IDENTIFIER, result.getVersionedGroup().getId());
+        assertEquals(PARENT_NAME, result.getVersionedGroup().getName());
     }
 
     @Test
     public void testParameterEnriching() {
         // given
-        givenProcessGroup();
+        givenParameterContext();
         final ParameterSearchResultEnricher testSubject = new ParameterSearchResultEnricher(parameterContext);
         final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
 
@@ -114,9 +114,9 @@ public class ComponentSearchResultEnricherTest {
 
         // then
         thenIdentifierIsNotSet(result);
-        Assert.assertNotNull(result.getParentGroup());
-        Assert.assertEquals(CONTEXT_IDENTIFIER, result.getParentGroup().getId());
-        Assert.assertEquals(CONTEXT_NAME, result.getParentGroup().getName());
+        assertNotNull(result.getParentGroup());
+        assertEquals(CONTEXT_IDENTIFIER, result.getParentGroup().getId());
+        assertEquals(CONTEXT_NAME, result.getParentGroup().getName());
 
         thenVersionedGroupIsNotSet(result);
     }
@@ -132,12 +132,12 @@ public class ComponentSearchResultEnricherTest {
         testSubject.enrich(result);
 
         // then
-        Assert.assertEquals(IDENTIFIER, result.getGroupId());
-        Assert.assertNull(result.getId());
-        Assert.assertNull(result.getParentGroup());
+        assertEquals(IDENTIFIER, result.getGroupId());
+        assertNull(result.getId());
+        assertNull(result.getParentGroup());
         thenVersionedGroupIsNotSet(result);
-        Assert.assertNull(result.getName());
-        Assert.assertNull(result.getMatches());
+        assertNull(result.getName());
+        assertNull(result.getMatches());
     }
 
     private void givenProcessGroup() {
@@ -145,27 +145,30 @@ public class ComponentSearchResultEnricherTest {
         Mockito.when(processGroup.getName()).thenReturn(NAME);
         Mockito.when(processGroup.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
         Mockito.when(processGroup.getVersionControlInformation()).thenReturn(Mockito.mock(VersionControlInformation.class));
+    }
+
+    private void givenParentProcessGroup() {
         Mockito.when(processGroup.getParent()).thenReturn(parentProcessGroup);
 
         Mockito.when(parentProcessGroup.getIdentifier()).thenReturn(PARENT_IDENTIFIER);
         Mockito.when(parentProcessGroup.getName()).thenReturn(PARENT_NAME);
         Mockito.when(parentProcessGroup.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
         Mockito.when(parentProcessGroup.getVersionControlInformation()).thenReturn(Mockito.mock(VersionControlInformation.class));
-
+    }
+    private void givenParameterContext() {
         Mockito.when(parameterContext.getIdentifier()).thenReturn(CONTEXT_IDENTIFIER);
         Mockito.when(parameterContext.getName()).thenReturn(CONTEXT_NAME);
     }
-
     private void givenRootProcessGroup() {
         Mockito.when(processGroup.getIdentifier()).thenReturn(IDENTIFIER);
         Mockito.when(processGroup.getParent()).thenReturn(null);
     }
 
     private void thenIdentifierIsNotSet(final ComponentSearchResultDTO result) {
-        Assert.assertNull(result.getGroupId());
+        assertNull(result.getGroupId());
     }
 
     private void thenVersionedGroupIsNotSet(final ComponentSearchResultDTO result) {
-        Assert.assertNull(result.getVersionedGroup());
+        assertNull(result.getVersionedGroup());
     }
 }

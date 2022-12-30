@@ -28,8 +28,8 @@ import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
@@ -38,9 +38,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 
 public class TestSiteToSiteResource {
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         final URL resource = TestSiteToSiteResource.class.getResource("/site-to-site/nifi.properties");
         final String propertiesFile = resource.toURI().getPath();
@@ -56,7 +56,7 @@ public class TestSiteToSiteResource {
     }
 
     @Test
-    public void testGetControllerForOlderVersion() throws Exception {
+    public void testGetControllerForOlderVersion() {
         final HttpServletRequest req = mock(HttpServletRequest.class);
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
         final ControllerEntity controllerEntity = new ControllerEntity();
@@ -74,13 +74,13 @@ public class TestSiteToSiteResource {
         ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertNull("remoteSiteHttpListeningPort should be null since older version doesn't recognize this field" +
-                " and throws JSON mapping exception.", resultEntity.getController().getRemoteSiteHttpListeningPort());
-        assertEquals("Other fields should be retained.", new Integer(9990), controllerEntity.getController().getRemoteSiteListeningPort());
+        assertNull(resultEntity.getController().getRemoteSiteHttpListeningPort(),"remoteSiteHttpListeningPort should be null since older version doesn't recognize this field" +
+                " and throws JSON mapping exception.");
+        assertEquals(Integer.valueOf(9990), controllerEntity.getController().getRemoteSiteListeningPort(),"Other fields should be retained.");
     }
 
     @Test
-    public void testGetController() throws Exception {
+    public void testGetController() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
@@ -99,8 +99,8 @@ public class TestSiteToSiteResource {
         ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
 
         assertEquals(200, response.getStatus());
-        assertEquals("remoteSiteHttpListeningPort should be retained", new Integer(8080), resultEntity.getController().getRemoteSiteHttpListeningPort());
-        assertEquals("Other fields should be retained.", new Integer(9990), controllerEntity.getController().getRemoteSiteListeningPort());
+        assertEquals(Integer.valueOf(8080), resultEntity.getController().getRemoteSiteHttpListeningPort(),"remoteSiteHttpListeningPort should be retained");
+        assertEquals(Integer.valueOf(9990), controllerEntity.getController().getRemoteSiteListeningPort(), "Other fields should be retained.");
     }
 
     private HttpServletRequest createCommonHttpServletRequest() {
@@ -110,7 +110,7 @@ public class TestSiteToSiteResource {
     }
 
     @Test
-    public void testPeers() throws Exception {
+    public void testPeers() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
@@ -128,7 +128,7 @@ public class TestSiteToSiteResource {
     }
 
     @Test
-    public void testPeersPortForwarding() throws Exception {
+    public void testPeersPortForwarding() {
         final HttpServletRequest req = createCommonHttpServletRequest();
 
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
@@ -166,10 +166,10 @@ public class TestSiteToSiteResource {
             final NodeIdentifier nodeId = new NodeIdentifier(hostname, hostname, 8080 + i, hostname, 8090 + i, hostname, 8100 + i, siteToSiteHttpApiPort, false);
             final NodeWorkload workload = new NodeWorkload();
             workload.setReportedTimestamp(System.currentTimeMillis() - i);
-            workload.setFlowFileBytes(1024 * i);
+            workload.setFlowFileBytes(1024L * i);
             workload.setFlowFileCount(10 * i);
             workload.setActiveThreadCount(i);
-            workload.setSystemStartTime(System.currentTimeMillis() - (1000 * i));
+            workload.setSystemStartTime(System.currentTimeMillis() - (1000L * i));
             workloads.put(nodeId, workload);
             hostportWorkloads.put(hostname + ":" + siteToSiteHttpApiPort, workload);
         });
@@ -182,7 +182,7 @@ public class TestSiteToSiteResource {
 
         assertEquals(200, response.getStatus());
         assertEquals(3, resultEntity.getPeers().size());
-        resultEntity.getPeers().stream().forEach(peerDTO -> {
+        resultEntity.getPeers().forEach(peerDTO -> {
             final NodeWorkload workload = hostportWorkloads.get(peerDTO.getHostname() + ":" + peerDTO.getPort());
             assertNotNull(workload);
             assertEquals(workload.getFlowFileCount(), peerDTO.getFlowFileCount());
@@ -191,7 +191,7 @@ public class TestSiteToSiteResource {
     }
 
     @Test
-    public void testPeersVersionWasNotSpecified() throws Exception {
+    public void testPeersVersionWasNotSpecified() {
         final HttpServletRequest req = mock(HttpServletRequest.class);
 
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
@@ -206,7 +206,7 @@ public class TestSiteToSiteResource {
     }
 
     @Test
-    public void testPeersVersionNegotiationDowngrade() throws Exception {
+    public void testPeersVersionNegotiationDowngrade() {
         final HttpServletRequest req = mock(HttpServletRequest.class);
         doReturn("999").when(req).getHeader(eq(HttpHeaders.PROTOCOL_VERSION));
 
@@ -220,7 +220,7 @@ public class TestSiteToSiteResource {
 
         assertEquals(200, response.getStatus());
         assertEquals(1, resultEntity.getPeers().size());
-        assertEquals(new Integer(1), response.getMetadata().getFirst(HttpHeaders.PROTOCOL_VERSION));
+        assertEquals(1, response.getMetadata().getFirst(HttpHeaders.PROTOCOL_VERSION));
     }
 
     private SiteToSiteResource getSiteToSiteResource(final NiFiServiceFacade serviceFacade) {

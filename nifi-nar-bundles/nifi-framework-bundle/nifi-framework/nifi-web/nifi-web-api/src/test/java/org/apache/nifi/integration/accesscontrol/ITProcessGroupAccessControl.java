@@ -23,9 +23,9 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
 import java.util.HashMap;
@@ -37,11 +37,11 @@ import static org.apache.nifi.integration.accesscontrol.AccessControlHelper.NONE
 import static org.apache.nifi.integration.accesscontrol.AccessControlHelper.READ_CLIENT_ID;
 import static org.apache.nifi.integration.accesscontrol.AccessControlHelper.READ_WRITE_CLIENT_ID;
 import static org.apache.nifi.integration.accesscontrol.AccessControlHelper.WRITE_CLIENT_ID;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Access control test for process groups.
@@ -51,7 +51,7 @@ public class ITProcessGroupAccessControl {
     private static AccessControlHelper helper;
     private static int count = 0;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         helper = new AccessControlHelper();
     }
@@ -458,7 +458,7 @@ public class ITProcessGroupAccessControl {
         return response;
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() throws Exception {
         helper.cleanup();
     }

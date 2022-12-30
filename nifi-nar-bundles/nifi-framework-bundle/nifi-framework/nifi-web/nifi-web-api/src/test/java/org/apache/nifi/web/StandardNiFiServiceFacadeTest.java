@@ -73,9 +73,8 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -95,11 +94,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -144,7 +144,7 @@ public class StandardNiFiServiceFacadeTest {
     private FlowController flowController;
     private ProcessGroupDAO processGroupDAO;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         // audit service
         final AuditService auditService = mock(AuditService.class);
@@ -182,7 +182,7 @@ public class StandardNiFiServiceFacadeTest {
             when(componentAuthorizable.getAuthorizable()).then(getAuthorizableInvocation -> {
 
                 // authorizable
-                final Authorizable authorizable = new Authorizable() {
+                return new Authorizable() {
                     @Override
                     public Authorizable getParentAuthorizable() {
                         return null;
@@ -193,8 +193,6 @@ public class StandardNiFiServiceFacadeTest {
                         return ResourceFactory.getComponentResource(ResourceType.Processor, processorId, processorId);
                     }
                 };
-
-                return authorizable;
             });
 
             return componentAuthorizable;
@@ -250,13 +248,13 @@ public class StandardNiFiServiceFacadeTest {
         return action;
     }
 
-    @Test(expected = ResourceNotFoundException.class)
-    public void testGetUnknownAction() throws Exception {
-        serviceFacade.getAction(UNKNOWN_ACTION_ID);
+    @Test
+    public void testGetUnknownAction() {
+        assertThrows(ResourceNotFoundException.class, () -> serviceFacade.getAction(UNKNOWN_ACTION_ID));
     }
 
     @Test
-    public void testGetActionApprovedThroughAction() throws Exception {
+    public void testGetActionApprovedThroughAction() {
         // set the user
         final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -273,21 +271,16 @@ public class StandardNiFiServiceFacadeTest {
         verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
-    @Test(expected = AccessDeniedException.class)
-    public void testGetActionDeniedDespiteControllerAccess() throws Exception {
+    @Test
+    public void testGetActionDeniedDespiteControllerAccess() {
         // set the user
         final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        try {
-            // get the action
-            serviceFacade.getAction(ACTION_ID_1);
-            fail();
-        } finally {
-            // resource exists, but should trigger access denied and will not check the controller
-            verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
-            verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
-        }
+        assertThrows(AccessDeniedException.class, () -> serviceFacade.getAction(ACTION_ID_1));
+        // resource exists, but should trigger access denied and will not check the controller
+        verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
+        verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
     @Test
@@ -305,12 +298,12 @@ public class StandardNiFiServiceFacadeTest {
 
         // then
         Mockito.verify(controllerFacade).getNodeStatusHistory();
-        Assert.assertNotNull(result);
-        Assert.assertEquals(generated, result.getStatusHistory().getGenerated());
+        assertNotNull(result);
+        assertEquals(generated, result.getStatusHistory().getGenerated());
     }
 
     @Test
-    public void testGetActionApprovedThroughController() throws Exception {
+    public void testGetActionApprovedThroughController() {
         // set the user
         final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -328,7 +321,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testGetActionsForUser1() throws Exception {
+    public void testGetActionsForUser1() {
         // set the user
         final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -347,7 +340,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testGetActionsForUser2() throws Exception {
+    public void testGetActionsForUser2() {
         // set the user
         final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_2).build()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -518,7 +511,7 @@ public class StandardNiFiServiceFacadeTest {
     }
 
     @Test
-    public void testVerifyUpdateRemoteProcessGroups() throws Exception {
+    public void testVerifyUpdateRemoteProcessGroups() {
         // GIVEN
         RemoteProcessGroupDAO remoteProcessGroupDAO = mock(RemoteProcessGroupDAO.class);
         serviceFacade.setRemoteProcessGroupDAO(remoteProcessGroupDAO);
@@ -606,7 +599,7 @@ public class StandardNiFiServiceFacadeTest {
         Revision revision = new Revision(1L, "a", "b");
         final FlowModification lastModification = new FlowModification(revision, "a");
         RevisionUpdate<Object> snapshot = new StandardRevisionUpdate<>(processGroupDTO, lastModification);
-        when(revisionManager.updateRevision(any(), any(), any())).thenReturn((RevisionUpdate<Object> )snapshot);
+        when(revisionManager.updateRevision(any(), any(), any())).thenReturn(snapshot);
         serviceFacadeSpy.setRevisionManager(revisionManager);
 
         MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
@@ -628,9 +621,9 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupEntity result = serviceFacadeSpy.updateProcessGroup(revision, processGroupDTO);
 
         //THEN
-        Assert.assertNotNull(result);
-        Assert.assertEquals(1, result.getBulletins().size());
-        Assert.assertEquals(groupId, result.getBulletins().get(0).getGroupId());
+        assertNotNull(result);
+        assertEquals(1, result.getBulletins().size());
+        assertEquals(groupId, result.getBulletins().get(0).getGroupId());
     }
 
     @Test
@@ -660,7 +653,7 @@ public class StandardNiFiServiceFacadeTest {
         final FlowModification lastModification = new FlowModification(revision, "a");
 
         RevisionUpdate<Object> snapshot = new StandardRevisionUpdate<>(processGroupDTO,lastModification);
-        when(revisionManager.updateRevision(any(), any(), any())).thenReturn((RevisionUpdate<Object> )snapshot);
+        when(revisionManager.updateRevision(any(), any(), any())).thenReturn(snapshot);
         serviceFacadeSpy.setRevisionManager(revisionManager);
 
         MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
@@ -676,8 +669,8 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupEntity result = serviceFacadeSpy.updateProcessGroup(revision, processGroupDTO);
 
         //THEN
-        Assert.assertNotNull(result);
-        Assert.assertEquals(0, result.getBulletins().size());
+        assertNotNull(result);
+        assertEquals(0, result.getBulletins().size());
     }
 
     @Test
@@ -707,7 +700,7 @@ public class StandardNiFiServiceFacadeTest {
         final FlowModification lastModification = new FlowModification(revision, "a");
 
         RevisionUpdate<Object> snapshot = new StandardRevisionUpdate<>(processGroupDTO,lastModification);
-        when(revisionManager.updateRevision(any(), any(), any())).thenReturn((RevisionUpdate<Object> )snapshot);
+        when(revisionManager.updateRevision(any(), any(), any())).thenReturn(snapshot);
         serviceFacadeSpy.setRevisionManager(revisionManager);
 
         MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
@@ -729,9 +722,9 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupEntity result = serviceFacadeSpy.updateProcessGroup(revision, processGroupDTO);
 
         //THEN
-        Assert.assertNotNull(result);
-        Assert.assertEquals(1, result.getBulletins().size());
-        Assert.assertEquals(groupId, result.getBulletins().get(0).getGroupId());
+        assertNotNull(result);
+        assertEquals(1, result.getBulletins().size());
+        assertEquals(groupId, result.getBulletins().get(0).getGroupId());
     }
 
 

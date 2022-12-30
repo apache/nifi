@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.web.search.attributematchers;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AttributeMatcherTest {
     private final static String SEARCH_TERM = "lorem";
@@ -39,8 +41,8 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_PARTIAL, LABEL, matches);
 
         // then
-        Assert.assertEquals(1, matches.size());
-        Assert.assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL));
+        assertEquals(1, matches.size());
+        assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL));
     }
 
     @Test
@@ -52,8 +54,8 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_FULL, LABEL, matches);
 
         // then
-        Assert.assertEquals(1, matches.size());
-        Assert.assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_FULL));
+        assertEquals(1, matches.size());
+        assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_FULL));
     }
 
     @Test
@@ -65,8 +67,8 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_PARTIAL_UPPERCASE, LABEL, matches);
 
         // then
-        Assert.assertEquals(1, matches.size());
-        Assert.assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL_UPPERCASE));
+        assertEquals(1, matches.size());
+        assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL_UPPERCASE));
     }
 
     @Test
@@ -79,7 +81,7 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, nonMatchingSubject, LABEL, matches);
 
         // then
-        Assert.assertEquals(0, matches.size());
+        assertEquals(0, matches.size());
     }
 
     @Test
@@ -91,7 +93,7 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, null, LABEL, matches);
 
         // then
-        Assert.assertEquals(0, matches.size());
+        assertEquals(0, matches.size());
     }
 
     @Test
@@ -103,7 +105,7 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(null, SUBJECT_PARTIAL, LABEL, matches);
 
         // then
-        Assert.assertEquals(0, matches.size());
+        assertEquals(0, matches.size());
     }
 
     @Test
@@ -115,7 +117,7 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(null, null, LABEL, matches);
 
         // then
-        Assert.assertEquals(0, matches.size());
+        assertEquals(0, matches.size());
     }
 
     @Test
@@ -136,8 +138,8 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_PARTIAL, null, matches);
 
         // then
-        Assert.assertEquals(1, matches.size());
-        Assert.assertTrue(matches.contains("null: " + SUBJECT_PARTIAL));
+        assertEquals(1, matches.size());
+        assertTrue(matches.contains("null: " + SUBJECT_PARTIAL));
     }
 
     @Test
@@ -150,9 +152,9 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_FULL, LABEL_2, matches);
 
         // then
-        Assert.assertEquals(2, matches.size());
-        Assert.assertEquals(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL, matches.get(0));
-        Assert.assertEquals(LABEL_2 + AttributeMatcher.SEPARATOR + SUBJECT_FULL, matches.get(1));
+        assertEquals(2, matches.size());
+        assertEquals(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL, matches.get(0));
+        assertEquals(LABEL_2 + AttributeMatcher.SEPARATOR + SUBJECT_FULL, matches.get(1));
     }
 
     @Test
@@ -165,7 +167,7 @@ public class AttributeMatcherTest {
         AttributeMatcher.addIfMatching(SEARCH_TERM, SUBJECT_PARTIAL, LABEL, matches);
 
         // then
-        Assert.assertEquals(1, matches.size());
-        Assert.assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL));
+        assertEquals(1, matches.size());
+        assertTrue(matches.contains(LABEL + AttributeMatcher.SEPARATOR + SUBJECT_PARTIAL));
     }
 }

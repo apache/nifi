@@ -18,8 +18,8 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -31,11 +31,11 @@ public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ParameterDescriptor descriptor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
+        givenDefaultSearchTerm();
         Mockito.when(parameter.getDescriptor()).thenReturn(descriptor);
-        Mockito.when(parameter.getValue()).thenReturn("LoremValue");
         Mockito.when(descriptor.getName()).thenReturn("LoremName");
         Mockito.when(descriptor.getDescription()).thenReturn("LoremDescription");
     }
@@ -45,6 +45,7 @@ public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ParameterMatcher testSubject = new ParameterMatcher();
         givenValueIsNotSensitive();
+        Mockito.when(parameter.getValue()).thenReturn("LoremValue");
 
         // when
         testSubject.match(parameter, searchQuery, matches);

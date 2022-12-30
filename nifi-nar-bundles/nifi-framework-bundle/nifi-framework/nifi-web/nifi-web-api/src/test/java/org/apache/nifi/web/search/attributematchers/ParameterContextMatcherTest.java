@@ -17,8 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.parameter.ParameterContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -27,19 +26,14 @@ public class ParameterContextMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ParameterContext component;
 
-    @Before
-    public void setUp() {
-        super.setUp();
-        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
-        Mockito.when(component.getName()).thenReturn("LoremName");
-        Mockito.when(component.getDescription()).thenReturn("LoremDescription");
-    }
-
     @Test
     public void testMatches() {
         // given
         final ParameterContextMatcher testSubject = new ParameterContextMatcher();
-
+        givenDefaultSearchTerm();
+        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
+        Mockito.when(component.getName()).thenReturn("LoremName");
+        Mockito.when(component.getDescription()).thenReturn("LoremDescription");
         // when
         testSubject.match(component, searchQuery, matches);
 

@@ -18,7 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.processor.Relationship;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 

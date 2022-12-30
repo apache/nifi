@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Access control test for funnels.
@@ -33,7 +33,7 @@ public class ITCountersAccessControl {
     private static AccessControlHelper helper;
     private static String uri;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         helper = new AccessControlHelper();
         uri = helper.getBaseUrl() + "/counters";
@@ -77,7 +77,7 @@ public class ITCountersAccessControl {
         assertEquals(403, response.getStatus());
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() throws Exception {
         helper.cleanup();
     }

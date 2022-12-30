@@ -20,9 +20,9 @@ import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
@@ -38,14 +38,14 @@ public class TrustStoreScannerTest {
     private static File keyStoreFile;
     private static File trustStoreFile;
 
-    @BeforeClass
+    @BeforeAll
     public static void initClass() {
         TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         keyStoreFile = Paths.get(tlsConfiguration.getKeystorePath()).toFile();
         trustStoreFile = Paths.get(tlsConfiguration.getTruststorePath()).toFile();
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         sslContextFactory = Mockito.mock(SslContextFactory.class);
         Resource trustStoreResource = Mockito.mock(Resource.class);

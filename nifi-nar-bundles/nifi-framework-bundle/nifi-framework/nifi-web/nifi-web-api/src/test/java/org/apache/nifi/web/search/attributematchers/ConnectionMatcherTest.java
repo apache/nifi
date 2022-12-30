@@ -17,8 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connection;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -29,19 +28,14 @@ public class ConnectionMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private Connection component;
 
-    @Before
-    public void setUp() {
-        super.setUp();
-        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
-        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
-        Mockito.when(component.getName()).thenReturn("LoremName");
-    }
-
     @Test
     public void testMatching() {
         // given
         final ConnectionMatcher testSubject = new ConnectionMatcher();
-
+        givenDefaultSearchTerm();
+        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
+        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
+        Mockito.when(component.getName()).thenReturn("LoremName");
         // when
         testSubject.match(component, searchQuery, matches);
 

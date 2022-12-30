@@ -17,7 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
