@@ -46,13 +46,15 @@ class ApplicationServerConnectorFactoryTest {
 
     private static final String LOCALHOST = "127.0.0.1";
 
+    private static final String PROPRIETARY_TRUST_STORE_TYPE = "JKS";
+
     static TlsConfiguration tlsConfiguration;
 
     Server server;
 
     @BeforeAll
     static void setTlsConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType(PROPRIETARY_TRUST_STORE_TYPE).build();
     }
 
     @BeforeEach
