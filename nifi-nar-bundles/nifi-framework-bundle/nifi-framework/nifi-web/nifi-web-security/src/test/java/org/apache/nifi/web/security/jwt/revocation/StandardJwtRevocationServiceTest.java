@@ -19,13 +19,13 @@ package org.apache.nifi.web.security.jwt.revocation;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -33,14 +33,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardJwtRevocationServiceTest {
     private static final String ID = UUID.randomUUID().toString();
 
@@ -59,7 +59,7 @@ public class StandardJwtRevocationServiceTest {
 
     private StandardJwtRevocationService service;
 
-    @Before
+    @BeforeEach
     public void setService() {
         service = new StandardJwtRevocationService(stateManager);
     }
@@ -73,7 +73,7 @@ public class StandardJwtRevocationServiceTest {
 
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
-        assertTrue("Expired Key not deleted", stateSaved.isEmpty());
+        assertTrue(stateSaved.isEmpty(), "Expired Key not deleted");
     }
 
     @Test
@@ -103,6 +103,6 @@ public class StandardJwtRevocationServiceTest {
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
         final String saved = stateSaved.get(ID);
-        assertEquals("Expiration not matched", expiration.toString(), saved);
+        assertEquals(expiration.toString(), saved, "Expiration not matched");
     }
 }

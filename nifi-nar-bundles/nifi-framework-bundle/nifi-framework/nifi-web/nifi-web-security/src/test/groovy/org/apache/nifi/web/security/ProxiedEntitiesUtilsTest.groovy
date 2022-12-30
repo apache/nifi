@@ -17,23 +17,19 @@
 package org.apache.nifi.web.security
 
 import org.apache.nifi.authorization.user.NiFiUser
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 
-@RunWith(JUnit4.class)
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotEquals
+
 class ProxiedEntitiesUtilsTest {
     private static final Logger logger = LoggerFactory.getLogger(ProxiedEntitiesUtils.class)
-
-    private static final String SAFE_USER_NAME_ANDY = "alopresto"
-    private static final String SAFE_USER_DN_ANDY = "CN=${SAFE_USER_NAME_ANDY}, OU=Apache NiFi"
 
     private static final String SAFE_USER_NAME_JOHN = "jdoe"
     private static final String SAFE_USER_DN_JOHN = "CN=${SAFE_USER_NAME_JOHN}, OU=Apache NiFi"
@@ -50,7 +46,6 @@ class ProxiedEntitiesUtilsTest {
 
     private static
     final String MALICIOUS_USER_NAME_JOHN_ESCAPED = sanitizeDn(MALICIOUS_USER_NAME_JOHN)
-    private static final String MALICIOUS_USER_DN_JOHN_ESCAPED = sanitizeDn(MALICIOUS_USER_DN_JOHN)
 
     private static final String UNICODE_DN_1 = "CN=Алйс, OU=Apache NiFi"
     private static final String UNICODE_DN_1_ENCODED = "<" + base64Encode(UNICODE_DN_1) + ">"
@@ -58,19 +53,11 @@ class ProxiedEntitiesUtilsTest {
     private static final String UNICODE_DN_2 = "CN=Боб, OU=Apache NiFi"
     private static final String UNICODE_DN_2_ENCODED = "<" + base64Encode(UNICODE_DN_2) + ">"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() {
-    }
-
-    @After
-    void tearDown() {
     }
 
     private static String sanitizeDn(String dn = "") {
@@ -82,7 +69,7 @@ class ProxiedEntitiesUtilsTest {
     }
 
     private static String printUnicodeString(final String raw) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder()
         for (int i = 0; i < raw.size(); i++) {
             int codePoint = Character.codePointAt(raw, i)
             int charCount = Character.charCount(codePoint)
@@ -120,7 +107,7 @@ class ProxiedEntitiesUtilsTest {
             logger.info("Sanitized name: ${sanitizedName} | ${printUnicodeString(sanitizedName)}")
 
             // Assert
-            assert sanitizedName != DESIRED_NAME
+            assertNotEquals(DESIRED_NAME, sanitizedName)
         }
     }
 
@@ -138,7 +125,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Forjohned proxy DN: ${forjohnedProxyDn}")
 
         // Assert
-        assert forjohnedProxyDn == EXPECTED_PROXY_DN
+        assertEquals(EXPECTED_PROXY_DN, forjohnedProxyDn)
     }
 
     @Test
@@ -156,7 +143,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Forjohned proxy DN: ${forjohnedProxyDn}")
 
         // Assert
-        assert forjohnedProxyDn == EXPECTED_PROXY_DN
+        assertEquals(EXPECTED_PROXY_DN, forjohnedProxyDn)
     }
 
     @Test
@@ -169,7 +156,7 @@ class ProxiedEntitiesUtilsTest {
         def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
 
         // Assert
-        assert output == expectedOutput
+        assertEquals(expectedOutput, output)
     }
 
     @Test
@@ -182,7 +169,7 @@ class ProxiedEntitiesUtilsTest {
         def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
 
         // Assert
-        assert output == expectedOutput
+        assertEquals(expectedOutput, output)
     }
 
     @Test
@@ -195,7 +182,7 @@ class ProxiedEntitiesUtilsTest {
         def output = ProxiedEntitiesUtils.getProxiedEntitiesChain(input)
 
         // Assert
-        assert output == expectedOutput
+        assertEquals(expectedOutput, output)
     }
 
     @Test
@@ -210,7 +197,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Formatted DN: ${formattedDn}")
 
         // Assert
-        assert formattedDn == expectedFormattedDn
+        assertEquals(expectedFormattedDn, formattedDn)
     }
 
     @Test
@@ -224,7 +211,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
 
         // Assert
-        assert proxiedEntitiesChain == "<${SAFE_USER_NAME_JOHN}><${SAFE_USER_NAME_PROXY_1}>" as String
+        assertEquals("<${SAFE_USER_NAME_JOHN}><${SAFE_USER_NAME_PROXY_1}>" as String, proxiedEntitiesChain)
     }
 
     @Test
@@ -236,7 +223,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
 
         // Assert
-        assert proxiedEntitiesChain == "<>"
+        assertEquals("<>", proxiedEntitiesChain)
     }
 
     @Test
@@ -250,7 +237,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
 
         // Assert
-        assert proxiedEntitiesChain == "<><${SAFE_USER_NAME_PROXY_1}>" as String
+        assertEquals("<><${SAFE_USER_NAME_PROXY_1}>" as String, proxiedEntitiesChain)
     }
 
     @Test
@@ -264,7 +251,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
 
         // Assert
-        assert proxiedEntitiesChain == "<${SAFE_USER_NAME_JOHN}><${UNICODE_DN_1_ENCODED}>" as String
+        assertEquals("<${SAFE_USER_NAME_JOHN}><${UNICODE_DN_1_ENCODED}>" as String, proxiedEntitiesChain)
     }
 
     @Test
@@ -278,7 +265,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Proxied entities chain: ${proxiedEntitiesChain}")
 
         // Assert
-        assert proxiedEntitiesChain == "<${MALICIOUS_USER_NAME_JOHN_ESCAPED}><${SAFE_USER_NAME_PROXY_1}>" as String
+        assertEquals("<${MALICIOUS_USER_NAME_JOHN_ESCAPED}><${SAFE_USER_NAME_PROXY_1}>" as String, proxiedEntitiesChain)
     }
 
     @Test
@@ -293,7 +280,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames}")
 
         // Assert
-        assert tokenizedNames == NAMES
+        assertEquals(NAMES, tokenizedNames)
     }
 
     @Test
@@ -308,7 +295,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames}")
 
         // Assert
-        assert tokenizedNames == NAMES
+        assertEquals(NAMES, tokenizedNames)
     }
 
     @Test
@@ -323,7 +310,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames}")
 
         // Assert
-        assert tokenizedNames == NAMES
+        assertEquals(NAMES, tokenizedNames)
     }
 
     @Test
@@ -338,7 +325,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames}")
 
         // Assert
-        assert tokenizedNames == NAMES
+        assertEquals(NAMES, tokenizedNames)
     }
 
     @Test
@@ -353,7 +340,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedDns.collect { "\"${it}\"" }}")
 
         // Assert
-        assert tokenizedDns == DNS
+        assertEquals(DNS, tokenizedDns)
     }
 
     @Test
@@ -368,7 +355,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames}")
 
         // Assert
-        assert tokenizedNames == NAMES
+        assertEquals(NAMES, tokenizedNames)
     }
 
     @Test
@@ -383,9 +370,9 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames.collect { "\"${it}\"" }}")
 
         // Assert
-        assert tokenizedNames == NAMES
-        assert tokenizedNames.size() == NAMES.size()
-        assert !tokenizedNames.contains(SAFE_USER_NAME_JOHN)
+        assertEquals(NAMES, tokenizedNames)
+        assertEquals(NAMES.size(), tokenizedNames.size())
+        assertFalse(tokenizedNames.contains(SAFE_USER_NAME_JOHN))
     }
 
     @Test
@@ -400,7 +387,7 @@ class ProxiedEntitiesUtilsTest {
         logger.info("Tokenized proxy chain: ${tokenizedNames.collect { "\"${it}\"" }}")
 
         // Assert
-        assert tokenizedNames == TOKENIZED_NAMES
-        assert tokenizedNames.size() == TOKENIZED_NAMES.size()
+        assertEquals(TOKENIZED_NAMES, tokenizedNames)
+        assertEquals(TOKENIZED_NAMES.size(), tokenizedNames.size())
     }
 }

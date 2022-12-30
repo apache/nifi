@@ -30,11 +30,11 @@ import org.apache.nifi.idp.IdpUserGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Collections;
@@ -42,12 +42,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardJwtAuthenticationConverterTest {
     private static final String USERNAME = "NiFi";
 
@@ -76,7 +76,7 @@ public class StandardJwtAuthenticationConverterTest {
 
     private StandardJwtAuthenticationConverter converter;
 
-    @Before
+    @BeforeEach
     public void setConverter() {
         final Map<String, String> properties = new HashMap<>();
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(StringUtils.EMPTY, properties);

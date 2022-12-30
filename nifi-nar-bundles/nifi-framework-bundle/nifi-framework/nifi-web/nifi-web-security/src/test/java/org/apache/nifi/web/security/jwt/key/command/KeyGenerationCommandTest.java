@@ -20,20 +20,20 @@ import com.nimbusds.jose.JWSAlgorithm;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
 import org.apache.nifi.web.security.jwt.jws.SignerListener;
 import org.apache.nifi.web.security.jwt.key.VerificationKeyListener;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.security.Key;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class KeyGenerationCommandTest {
     private static final String KEY_ALGORITHM = "RSA";
 
@@ -56,7 +56,7 @@ public class KeyGenerationCommandTest {
 
     private KeyGenerationCommand command;
 
-    @Before
+    @BeforeEach
     public void setCommand() {
         command = new KeyGenerationCommand(signerListener, verificationKeyListener);
     }
