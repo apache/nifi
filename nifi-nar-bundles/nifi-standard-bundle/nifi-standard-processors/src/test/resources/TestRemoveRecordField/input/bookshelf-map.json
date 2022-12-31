@@ -1,0 +1,16 @@
+[ {
+  "books" : {
+    "ISBN_1111111111111" : {
+      "author" : "Author 1",
+      "title" : "Title 1"
+    },
+    "ISBN_2222222222222" : {
+      "author" : "Author 2",
+      "title" : "Title 2"
+    },
+    "ISBN_3333333333333" : {
+      "author" : "Author 3",
+      "title" : "Title 3"
+    }
+  }
+} ]

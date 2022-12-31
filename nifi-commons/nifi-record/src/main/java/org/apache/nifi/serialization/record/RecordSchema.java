@@ -87,4 +87,26 @@ public interface RecordSchema {
      */
     Optional<String> getSchemaNamespace();
 
+    /**
+     * @param fieldName the name of the field to be removed from the schema
+     */
+    void removeField(String fieldName);
+
+    /**
+     * @param path the sequence of field names to be removed from the schema
+     */
+    void removePath(RecordFieldRemovalPath path);
+
+    /**
+     * @return true if the schema contains itself as a nested field type, false if it does not
+     */
+    boolean isRecursive();
+
+    /**
+     * @param schemas the list of schemas to check whether the current schema is contained within
+     * @return true if the current schema is present within the list of schemas (object reference equality), false otherwise
+     */
+    default boolean sameAsAny(List<RecordSchema> schemas) {
+        return schemas.stream().anyMatch(schema -> schema == this); // reference equality check used on purpose
+    }
 }

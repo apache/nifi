@@ -1,0 +1,1 @@
+{"type":"record","name":"nifiRecord","namespace":"org.apache.nifi","fields":[{"name":"books","type":{"type":"map","values":{"type":"record","name":"booksType","fields":[{"name":"author","type":"string"},{"name":"title","type":"string"}]}}}]}

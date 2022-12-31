@@ -1,0 +1,23 @@
+[ {
+  "id" : 17,
+  "homeAddress" : {
+    "zip" : 1111,
+    "street" : "Main",
+    "building" : {
+      "number" : 24,
+      "letter" : "A"
+    }
+  },
+  "workAddress" : {
+    "zip" : 2222,
+    "street" : "Airport"
+  }
+}, {
+  "id" : 28,
+  "homeAddress" : {
+    "zip" : 3333,
+    "street" : "Atlantic",
+    "building" : null
+  },
+  "workAddress" : null
+} ]
