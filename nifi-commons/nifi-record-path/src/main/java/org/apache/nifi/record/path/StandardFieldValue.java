@@ -21,8 +21,10 @@ import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -126,6 +128,27 @@ public class StandardFieldValue implements FieldValue {
         final RecordField currentField = getField();
         final RecordField recordField = new RecordField(currentField.getFieldName(), dataType, currentField.getDefaultValue(), currentField.getAliases(), currentField.isNullable());
         updateValue(newValue, recordField);
+    }
+
+    @Override
+    public void remove() {
+        getParent().ifPresent(p -> {
+            if (Filters.isRecord(p)) {
+                final Record parentRecord = (Record) p.getValue();
+                if (parentRecord != null) {
+                    parentRecord.remove(field);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void removeContent() {
+        if (field.getDataType().getFieldType() == RecordFieldType.ARRAY) {
+            updateValue(new Object[0]);
+        } else if (field.getDataType().getFieldType() == RecordFieldType.MAP) {
+            updateValue(Collections.emptyMap());
+        }
     }
 
     private void updateValue(final Object newValue, final RecordField field) {

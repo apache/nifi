@@ -35,13 +35,16 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -275,12 +278,15 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
          * The resolution of the recursive schema results in a cyclic reference graph which in turn leads to
          *  StackOverflowError when trying to compare to a similar resolved recursive schema.
          */
-        SimpleRecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("name", RecordFieldType.STRING.getDataType()),
-                new RecordField("children", RecordFieldType.ARRAY.getArrayDataType(
-                        RecordFieldType.RECORD.getRecordDataType(() -> null)
-                ))
+        final SimpleRecordSchema expectedSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("children", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.RECORD.getRecordDataType(expectedSchema))
         ));
+        expectedSchema.setFields(fields);
+        expectedSchema.setSchemaName("Recursive");
+        expectedSchema.setSchemaNamespace("org.apache.nifi.jasn1.example");
 
         Map<String, Object> expectedValues = new HashMap<String, Object>() {{
             put("name", "name");

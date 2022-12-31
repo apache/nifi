@@ -1,0 +1,51 @@
+{
+    "type": "record",
+    "name": "addressRecord",
+    "namespace": "org.apache.nifi",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "address",
+            "type": [
+                "string",
+                {
+                    "type": "record",
+                    "name": "addressType",
+                    "fields": [
+                        {
+                            "name": "zip",
+                            "type": "int"
+                        },
+                        {
+                            "name": "street",
+                            "type": "string"
+                        },
+                        {
+                            "name": "building",
+                            "type": [
+                                "int",
+                                {
+                                    "type": "record",
+                                    "name": "buildingType",
+                                    "fields": [
+                                        {
+                                            "name": "number",
+                                            "type": "int"
+                                        },
+                                        {
+                                            "name": "letter",
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -401,6 +401,31 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public void remove(final RecordField field) {
+        final Optional<RecordField> existingField = resolveField(field);
+        existingField.ifPresent(recordField -> values.remove(recordField.getFieldName()));
+    }
+
+    @Override
+    public void regenerateSchema() {
+        final List<RecordField> schemaFields = new ArrayList<>(schema.getFieldCount());
+
+        for (final RecordField schemaField : schema.getFields()) {
+            final Object fieldValue = getValue(schemaField);
+            if (schemaField.getDataType().getFieldType() == RecordFieldType.CHOICE) {
+                schemaFields.add(schemaField);
+            } else if (fieldValue instanceof Record) {
+                final Record childRecord = (Record) fieldValue;
+                schemaFields.add(new RecordField(schemaField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(childRecord.getSchema()), schemaField.isNullable()));
+            } else {
+                schemaFields.add(schemaField);
+            }
+        }
+
+        schema = new SimpleRecordSchema(schemaFields);
+    }
+
+    @Override
     public void setValue(final String fieldName, final Object value) {
         final Optional<RecordField> existingField = setValueAndGetField(fieldName, value);
 
@@ -517,9 +542,6 @@ public class MapRecord implements Record {
     public void incorporateSchema(RecordSchema other) {
         this.schema = DataTypeUtils.merge(this.schema, other);
     }
-
-
-
 
     @Override
     public void incorporateInactiveFields() {

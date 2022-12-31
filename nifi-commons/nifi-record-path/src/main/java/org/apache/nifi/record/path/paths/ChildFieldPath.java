@@ -17,9 +17,6 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
@@ -27,6 +24,10 @@ import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
+
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public class ChildFieldPath extends RecordPathSegment {
     private final String childName;
@@ -41,19 +42,31 @@ public class ChildFieldPath extends RecordPathSegment {
         return new StandardFieldValue(null, field, parent);
     }
 
+    private FieldValue missingChild(final FieldValue parent, final RecordField childField) {
+        final RecordField field = new RecordField(childName, childField.getDataType(), childField.isNullable());
+        return new StandardFieldValue(null, field, parent);
+    }
+
     private FieldValue getChild(final FieldValue fieldValue) {
         if (!Filters.isRecord(fieldValue)) {
             return missingChild(fieldValue);
         }
 
         final Record record = (Record) fieldValue.getValue();
-        if(record == null) {
-            return missingChild(fieldValue);
+        if (record == null) {
+            final RecordField parent = fieldValue.getField();
+            if (parent != null && parent.getDataType() instanceof RecordDataType) {
+                final Optional<RecordField> childFieldOptional = ((RecordDataType) parent.getDataType()).getChildSchema().getField(childName);
+                return childFieldOptional.map(recordField -> missingChild(fieldValue, recordField)).orElseGet(() -> missingChild(fieldValue));
+            } else {
+                return missingChild(fieldValue);
+            }
         }
 
         final Object value = record.getValue(childName);
         if (value == null) {
-            return missingChild(fieldValue);
+            final Optional<RecordField> childFieldOptional = record.getSchema().getField(childName);
+            return childFieldOptional.map(recordField -> missingChild(fieldValue, recordField)).orElseGet(() -> missingChild(fieldValue));
         }
 
         final Optional<RecordField> field = record.getSchema().getField(childName);
@@ -68,6 +81,6 @@ public class ChildFieldPath extends RecordPathSegment {
     public Stream<FieldValue> evaluate(final RecordPathEvaluationContext context) {
         return getParentPath().evaluate(context)
             // map to Optional<FieldValue> containing child element
-            .map(fieldVal -> getChild(fieldVal));
+            .map(this::getChild);
     }
 }

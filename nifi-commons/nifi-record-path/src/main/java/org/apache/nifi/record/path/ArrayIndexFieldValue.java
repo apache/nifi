@@ -17,6 +17,7 @@
 
 package org.apache.nifi.record.path;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -51,12 +52,21 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
 
     @Override
     public void updateValue(final Object newValue) {
-        getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
+        getParentRecord().ifPresent(parent -> parent.setArrayValue(getField().getFieldName(), getArrayIndex(), newValue));
     }
 
     @Override
     public void updateValue(final Object newValue, final DataType dataType) {
-        getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
+        getParentRecord().ifPresent(parent -> parent.setArrayValue(getField().getFieldName(), getArrayIndex(), newValue));
+    }
+
+    @Override
+    public void remove() {
+        getParent().ifPresent(parent -> {
+            if (parent.getValue() instanceof Object[]) {
+                parent.updateValue(ArrayUtils.remove((Object[]) parent.getValue(), index));
+            }
+        });
     }
 
     @Override

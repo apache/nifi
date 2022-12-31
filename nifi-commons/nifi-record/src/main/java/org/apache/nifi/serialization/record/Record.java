@@ -143,6 +143,22 @@ public interface Record {
     void setValue(RecordField field, Object value);
 
     /**
+     * Removes the value of a given field from the Record.
+     * It only removes the value of that field but does not modify the schema.
+     * To remove a field completely (from the schema as well as the data)
+     * the {@see org.apache.nifi.record.path.RecordFieldRemover} class should be used.
+     *
+     * @param field the field that should be removed from the record
+     */
+    void remove(RecordField field);
+
+    /**
+     * Creates a new schema for the Record based on the Record's field types.
+     * In case any of the Record's fields were changed, this method propagates the changes to the parent Record.
+     */
+    void regenerateSchema();
+
+    /**
      * Updates the value of a the specified index of a field. If the field specified
      * is not present in this Record's schema, this method will do nothing. If the field specified
      * is not an Array, an IllegalArgumentException will be thrown. If the field specified is an array
