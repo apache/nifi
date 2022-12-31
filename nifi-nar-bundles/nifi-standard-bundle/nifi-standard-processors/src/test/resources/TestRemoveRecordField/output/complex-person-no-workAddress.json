@@ -1,0 +1,22 @@
+[ {
+  "id" : 17,
+  "name" : "John",
+  "dateOfBirth" : "1980-01-01",
+  "homeAddress" : {
+    "zip" : 1111,
+    "street" : "Main",
+    "building" : {
+      "number" : 24,
+      "letter" : "A"
+    }
+  }
+}, {
+  "id" : 28,
+  "name" : "Bob",
+  "dateOfBirth" : null,
+  "homeAddress" : {
+    "zip" : 3333,
+    "street" : "Atlantic",
+    "building" : null
+  }
+} ]

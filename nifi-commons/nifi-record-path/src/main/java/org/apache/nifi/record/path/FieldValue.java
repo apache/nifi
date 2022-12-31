@@ -62,4 +62,14 @@ public interface FieldValue {
      * @param dataType the data type to use if the Record's schema does not already include this field
      */
     void updateValue(Object newValue, DataType dataType);
+
+    /**
+     * Removes this FieldValue instance from its parent FieldValue instance
+     */
+    void remove();
+
+    /**
+     * Removes the content of this FieldValue instance
+     */
+    void removeContent();
 }

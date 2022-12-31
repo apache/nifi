@@ -19,6 +19,7 @@ package org.apache.nifi.json;
 
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -29,7 +30,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.NullSuppression;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -54,16 +54,16 @@ import java.util.Map;
         + "consists of a single row, it will be written as an array with a single element. If using One Line Per Object output, the JSON objects cannot be pretty-printed.")
 public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements RecordSetWriterFactory {
 
-    static final AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
+    public static final AllowableValue ALWAYS_SUPPRESS = new AllowableValue("always-suppress", "Always Suppress",
             "Fields that are missing (present in the schema but not in the record), or that have a value of null, will not be written out");
-    static final AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
+    public static final AllowableValue NEVER_SUPPRESS = new AllowableValue("never-suppress", "Never Suppress",
             "Fields that are missing (present in the schema but not in the record), or that have a value of null, will be written out as a null value");
-    static final AllowableValue SUPPRESS_MISSING = new AllowableValue("suppress-missing", "Suppress Missing Values",
+    public static final AllowableValue SUPPRESS_MISSING = new AllowableValue("suppress-missing", "Suppress Missing Values",
             "When a field has a value of null, it will be written out. However, if a field is defined in the schema and not present in the record, the field will not be written out.");
 
-    static final AllowableValue OUTPUT_ARRAY = new AllowableValue("output-array", "Array",
+    public static final AllowableValue OUTPUT_ARRAY = new AllowableValue("output-array", "Array",
             "Output records as a JSON array");
-    static final AllowableValue OUTPUT_ONELINE = new AllowableValue("output-oneline", "One Line Per Object",
+    public static final AllowableValue OUTPUT_ONELINE = new AllowableValue("output-oneline", "One Line Per Object",
             "Output records with one JSON object per line, delimited by a newline character");
 
     public static final String COMPRESSION_FORMAT_GZIP = "gzip";
@@ -74,7 +74,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     public static final String COMPRESSION_FORMAT_NONE = "none";
     public static final String COMPRESSION_FORMAT_ZSTD = "zstd";
 
-    static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
             .name("suppress-nulls")
             .displayName("Suppress Null Values")
             .description("Specifies how the writer should handle a null field")
@@ -82,7 +82,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .defaultValue(NEVER_SUPPRESS.getValue())
             .required(true)
             .build();
-    static final PropertyDescriptor PRETTY_PRINT_JSON = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PRETTY_PRINT_JSON = new PropertyDescriptor.Builder()
             .name("Pretty Print JSON")
             .description("Specifies whether or not the JSON should be pretty printed")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -90,7 +90,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .defaultValue("false")
             .required(true)
             .build();
-    static final PropertyDescriptor OUTPUT_GROUPING = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor OUTPUT_GROUPING = new PropertyDescriptor.Builder()
             .name("output-grouping")
             .displayName("Output Grouping")
             .description("Specifies how the writer should output the JSON records (as an array or one object per line, e.g.) Note that if 'One Line Per Object' is "

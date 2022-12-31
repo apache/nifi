@@ -19,6 +19,7 @@ package org.apache.nifi.serialization;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 
@@ -34,10 +35,10 @@ import java.util.stream.Collectors;
 public class SimpleRecordSchema implements RecordSchema {
     private List<RecordField> fields = null;
     private Map<String, RecordField> fieldMap = null;
-    private final boolean textAvailable;
+    private boolean textAvailable;
     private final AtomicReference<String> text = new AtomicReference<>();
-    private final String schemaFormat;
-    private final SchemaIdentifier schemaIdentifier;
+    private String schemaFormat;
+    private SchemaIdentifier schemaIdentifier;
     private String schemaName;
     private String schemaNamespace;
     private volatile int hashCode;
@@ -167,12 +168,20 @@ public class SimpleRecordSchema implements RecordSchema {
         }
 
         final RecordSchema other = (RecordSchema) obj;
-        if (getSchemaNamespace().isPresent() && getSchemaNamespace().equals(other.getSchemaNamespace())
-                && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
-            return true;
+        final boolean thisIsRecursive = isRecursive();
+        final boolean otherIsRecursive = other.isRecursive();
+        if (thisIsRecursive && otherIsRecursive) {
+            if (getSchemaNamespace().isPresent() && getSchemaNamespace().equals(other.getSchemaNamespace())
+                    && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
+                return true;
+            } else {
+                return fields.equals(other.getFields());
+            }
+        } else if (thisIsRecursive || otherIsRecursive) {
+            return false;
+        } else {
+            return fields.equals(other.getFields());
         }
-
-        return fields.equals(other.getFields());
     }
 
     @Override
@@ -231,7 +240,7 @@ public class SimpleRecordSchema implements RecordSchema {
      * Set schema name.
      * @param schemaName schema name as defined in a root record.
      */
-    public void setSchemaName(String schemaName) {
+    public void setSchemaName(final String schemaName) {
         this.schemaName = schemaName;
     }
 
@@ -244,12 +253,43 @@ public class SimpleRecordSchema implements RecordSchema {
      * Set schema namespace.
      * @param schemaNamespace schema namespace as defined in a root record.
      */
-    public void setSchemaNamespace(String schemaNamespace) {
+    public void setSchemaNamespace(final String schemaNamespace) {
         this.schemaNamespace = schemaNamespace;
     }
 
     @Override
     public Optional<String> getSchemaNamespace() {
         return Optional.ofNullable(schemaNamespace);
+    }
+
+    @Override
+    public void removeField(final String fieldName) {
+        final List<RecordField> remainingFields = fields.stream()
+                .filter(field -> !field.getFieldName().equals(fieldName)).collect(Collectors.toList());
+
+        if (remainingFields.size() != fields.size()) {
+            fields = null;
+            setFields(remainingFields);
+            text.set(createText(fields));
+            textAvailable = true;
+            schemaFormat = null;
+            schemaIdentifier = SchemaIdentifier.EMPTY;
+            hashCode = 0; // set to 0 to trigger re-calculation
+            hashCode = hashCode();
+        }
+    }
+
+    @Override
+    public void removePath(final RecordFieldRemovalPath path) {
+        if (path.length() == 1) {
+            removeField(path.head());
+        } else if (path.length() != 0) {
+            getField(path.head()).ifPresent(field -> field.getDataType().removePath(path.tail()));
+        }
+    }
+
+    @Override
+    public boolean isRecursive() {
+        return getFields().stream().anyMatch(field -> field.getDataType().isRecursive(Collections.singletonList(this)));
     }
 }

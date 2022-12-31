@@ -514,74 +514,181 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/randombytes-1</exclude>
-                        <exclude>src/test/resources/localhost.cer</exclude>
-                        <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Original.txt</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt*</exclude>
+                        <exclude>src/test/resources/CompressedData/SampleFile1.txt*</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFileConcat.txt*</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1000bytes.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1mb.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/test.txt</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestLogStdErr.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
+                        <exclude>src/test/resources/hello.txt</exclude>
+                        <exclude>src/test/resources/localhost.cer</exclude>
+                        <exclude>src/test/resources/randombytes-1</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary1</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.json</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_header.csv</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.json.to.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_header.csv</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_schema.avro</exclude>
+                        <exclude>src/test/resources/TestConversions/data.int_float_string.xml</exclude>
+                        <exclude>src/test/resources/TestConversions/explicit.schema.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-extra-field.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
+                        <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
+                        <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
+                        <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/single-element-nested-nested-array.json</exclude>
+                        <exclude>src/test/resources/TestForkRecord/two-elements-nested-nested-array-null.json</exclude>
                         <exclude>src/test/resources/TestGenerateRecord/nested_no_nullable.avsc</exclude>
                         <exclude>src/test/resources/TestGenerateRecord/nested_nullable.avsc</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/.customConfig.xml</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
-                        <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.jar</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.tar.gz</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.tar</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt.bz2</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt.gz</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/1.zip</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/2.custom</exclude>
+                        <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment-first-value-null.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-original.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-enrichment.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/customChainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/input.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/sortrOutput.json</exclude>
                         <exclude>src/test/resources/TestJson/control-characters.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json</exclude>
+                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
-                        <exclude>src/test/resources/TestMergeContent/user.avsc</exclude>
                         <exclude>src/test/resources/TestMergeContent/place.avsc</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.json</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_header.csv</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_header.csv</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.xml</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.avro</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.with_schema.json.to.avro</exclude>
-                        <exclude>src/test/resources/TestConversions/data.int_float_string.without_schema.avro</exclude>
-                        <exclude>src/test/resources/TestConversions/explicit.schema.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-extra-field.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
-                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-bool.json</exclude>
-                        <exclude>src/test/resources/TestCountText/jabberwocky.txt</exclude>
-                        <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
+                        <exclude>src/test/resources/TestMergeContent/user.avsc</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
+                        <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/testFile.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/$1$1.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/BRue_cRue_RiRey.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/Blu$2e_clu$2e.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/D$d_h$d.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/Good.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/Spider.txt</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/address-choice.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/name-choice.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input/address-array.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input/address-choice.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input/bookshelf-map.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input/complex-person.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/input/name-choice.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-array-field-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-array-zip-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-array.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-choice-letter-removed-from-building.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map-author-field-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-multiple-fields-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-dateOfBirth.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-building-letter.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/name-choice-firstName-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-array-empty.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-array-one-element-removed.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-array-removed.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-array-zip-removed-from-all-elements.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-array-zip-removed-from-one-element.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/address-choice-letter-removed-from-building.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-all-items-removed.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-field-removed-from-all-elements.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-field-removed-from-one-element.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-one-item-removed.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-multiple-fields-removed.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-dateOfBirth.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress-building-letter.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person.json</exclude>
+                        <exclude>src/test/resources/TestRemoveRecordField/output/name-choice-firstName-removed.json</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/[DODO].txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/cu[$1]_Po[$1].txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/cu_Po.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/food.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/testFile.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/$1$1.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/AppendLineByLineTest.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/PrependLineByLineTest.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceLastLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceFirstLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptLastLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptFirstLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceLastLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceFirstLine.txt</exclude>
-                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/Blu$2e_clu$2e.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/BRue_cRue_RiRey.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/cu_Po.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/cu[$1]_Po[$1].txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/D$d_h$d.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/food.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/Good.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/LiteralReplaceLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/PrependLineByLineTest.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceExceptLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceFirstLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/ReplaceLastLine.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/Spider.txt</exclude>
+                        <exclude>src/test/resources/TestReplaceTextLineByLine/testFile.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-backreference-mapping.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-blank-mapping.txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextWithMapping/color-fruit-escaped-dollar-mapping.txt</exclude>
@@ -601,137 +708,67 @@
                         <exclude>src/test/resources/TestSplitText/4.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/5.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/input.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/customChainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/cardrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/shiftrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/sortrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/shiftrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/removrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineOutput.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteSpec.json</exclude>
-                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteOutput.json</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
+                        <exclude>src/test/resources/TestTransformXml/employee.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.xml</exclude>
-                        <exclude>src/test/resources/TestTransformXml/employee.html</exclude>
-                        <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
-                        <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev2</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.flowfilev3</exclude>
-                        <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
-                        <exclude>src/test/resources/TestXml/namespaceSplit1.xml</exclude>
-                        <exclude>src/test/resources/TestXml/namespaceSplit2.xml</exclude>
-                        <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
-                        <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
-                        <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
-                        <exclude>src/test/resources/ExecuteCommand/TestLogStdErr.jar</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.jar</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.tar</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.tar.gz</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt.bz2</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.txt.gz</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/1.zip</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/flowfilev1.tar</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/2.custom</exclude>
-                        <exclude>src/test/resources/TestIdentifyMimeType/.customConfig.xml</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.tar</exclude>
                         <exclude>src/test/resources/TestUnpackContent/data.zip</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/invalid_data.zip</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/plain.txt</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/salted_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
-                        <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
-                        <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
-                        <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
-                        <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/embedded-string.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-stringified-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/embedded-string.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/embedded-record.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
-                        <exclude>src/test/resources/xxe_template.xml</exclude>
-                        <exclude>src/test/resources/xxe_from_report.xml</exclude>
-                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/single-element-nested-array.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/single-element-nested-nested-array.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/two-elements-nested-nested-array-null.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/output/split-transactions.json</exclude>
-                        <exclude>src/test/resources/TestForkRecord/schema/extract-schema.avsc</exclude>
-                        <exclude>src/test/resources/TestForkRecord/schema/schema.avsc</exclude>
-                        <exclude>src/test/resources/TestConvertRecord/schema/person.avsc</exclude>
-                        <exclude>src/test/resources/TestConvertRecord/schema/person_with_union_enum_string.avsc</exclude>
-                        <exclude>src/test/resources/TestConvertRecord/input/person.json</exclude>
-                        <exclude>src/test/resources/TestConvertRecord/input/person_bad_enum.json</exclude>
-                        <exclude>src/test/resources/TestConvertRecord/input/person_long_id.json</exclude>
-                        <exclude>src/test/resources/TestValidateRecord/missing-array.json</exclude>
-                        <exclude>src/test/resources/TestValidateRecord/missing-array.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/embedded-record.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-missing-required.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example-with-comments.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/missing-array-with-default.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/missing-array.avsc</exclude>
+                        <exclude>src/test/resources/TestValidateRecord/missing-array.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/nested-map-input.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/nested-map-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/timestamp.json</exclude>
-                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input.json</exclude>
-                        <exclude>src/test/resources/TestLookupRecord/lookup-array-input-unmatched.json</exclude>
-                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output.json</exclude>
-                        <exclude>src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json</exclude>
-                        <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
-                        <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
-                        <exclude>src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment.json</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment-first-value-null.json</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/insert-original.json</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-enrichment.csv</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
-                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
-                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-missing-required.json</exclude>
-                        <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
-                        <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
-                        <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
-                        <exclude>src/test/resources/TestValidateJson/simple-example-with-comments.json</exclude>
+                        <exclude>src/test/resources/TestXml/namespaceSplit1.xml</exclude>
+                        <exclude>src/test/resources/TestXml/namespaceSplit2.xml</exclude>
+                        <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
+                        <exclude>src/test/resources/xxe_from_report.xml</exclude>
+                        <exclude>src/test/resources/xxe_template.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

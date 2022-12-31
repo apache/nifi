@@ -1,0 +1,27 @@
+{
+    "type": "record",
+    "name": "bookshelf",
+    "namespace": "org.apache.nifi",
+    "fields": [
+        {
+            "name": "books",
+            "type": {
+                "type": "map",
+                "values": {
+                    "type": "record",
+                    "name": "bookType",
+                    "fields": [
+                        {
+                            "name": "author",
+                            "type": "string"
+                        },
+                        {
+                            "name": "title",
+                            "type": "string"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -18,9 +18,12 @@
 package org.apache.nifi.serialization.record.type;
 
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -52,6 +55,30 @@ public class RecordDataType extends DataType {
             }
         }
         return childSchema;
+    }
+
+    @Override
+    public void removePath(final RecordFieldRemovalPath path) {
+        if (path.length() == 0) {
+            return;
+        }
+        getChildSchema().removePath(path);
+    }
+
+    @Override
+    public boolean isRecursive(final List<RecordSchema> schemas) {
+        // allow for childSchema to be null during schema inference
+        if (!schemas.isEmpty() && getChildSchema() != null) {
+            if (getChildSchema().sameAsAny(schemas)) {
+                return true;
+            } else {
+                final List<RecordSchema> schemasWithChildSchema = new ArrayList<>(schemas);
+                schemasWithChildSchema.add(getChildSchema());
+                return getChildSchema().getFields().stream()
+                        .anyMatch(childSchemaField -> childSchemaField.getDataType().isRecursive(schemasWithChildSchema));
+            }
+        }
+        return false;
     }
 
     @Override

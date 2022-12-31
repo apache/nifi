@@ -54,29 +54,29 @@ import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPER
 
 public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryService {
 
-    static final AllowableValue SCHEMA_NAME_ATTRIBUTE = new AllowableValue("schema-name", "Set 'schema.name' Attribute",
+    public static final AllowableValue SCHEMA_NAME_ATTRIBUTE = new AllowableValue("schema-name", "Set 'schema.name' Attribute",
         "The FlowFile will be given an attribute named 'schema.name' and this attribute will indicate the name of the schema in the Schema Registry. Note that if"
             + "the schema for a record is not obtained from a Schema Registry, then no attribute will be added.");
-    static final AllowableValue AVRO_SCHEMA_ATTRIBUTE = new AllowableValue("full-schema-attribute", "Set 'avro.schema' Attribute",
+    public static final AllowableValue AVRO_SCHEMA_ATTRIBUTE = new AllowableValue("full-schema-attribute", "Set 'avro.schema' Attribute",
         "The FlowFile will be given an attribute named 'avro.schema' and this attribute will contain the Avro Schema that describes the records in the FlowFile. "
             + "The contents of the FlowFile need not be Avro, but the text of the schema will be used.");
-    static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
+    public static final AllowableValue HWX_CONTENT_ENCODED_SCHEMA = new AllowableValue("hwx-content-encoded-schema", "HWX Content-Encoded Schema Reference",
         "The content of the FlowFile will contain a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', "
             + "followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, "
             + "as found at https://github.com/hortonworks/registry. "
             + "This will be prepended to each FlowFile. Note that "
             + "if the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
-    static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
+    public static final AllowableValue HWX_SCHEMA_REF_ATTRIBUTES = new AllowableValue("hwx-schema-ref-attributes", "HWX Schema Reference Attributes",
         "The FlowFile will be given a set of 3 attributes to describe the schema: 'schema.identifier', 'schema.version', and 'schema.protocol.version'. Note that if "
             + "the schema for a record does not contain the necessary identifier and version, an Exception will be thrown when attempting to write the data.");
-    static final AllowableValue CONFLUENT_ENCODED_SCHEMA = new AllowableValue("confluent-encoded", "Confluent Schema Registry Reference",
+    public static final AllowableValue CONFLUENT_ENCODED_SCHEMA = new AllowableValue("confluent-encoded", "Confluent Schema Registry Reference",
         "The content of the FlowFile will contain a reference to a schema in the Schema Registry service. The reference is encoded as a single "
             + "'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. "
             + "This will be prepended to each FlowFile. Note that if the schema for a record does not contain the necessary identifier and version, "
             + "an Exception will be thrown when attempting to write the data. This is based on the encoding used by version 3.2.x of the Confluent Schema Registry.");
-    static final AllowableValue NO_SCHEMA = new AllowableValue("no-schema", "Do Not Write Schema", "Do not add any schema-related information to the FlowFile.");
+    public static final AllowableValue NO_SCHEMA = new AllowableValue("no-schema", "Do Not Write Schema", "Do not add any schema-related information to the FlowFile.");
 
-    static final PropertyDescriptor SCHEMA_CACHE = new Builder()
+    public static final PropertyDescriptor SCHEMA_CACHE = new Builder()
         .name("schema-cache")
         .displayName("Schema Cache")
         .description("Specifies a Schema Cache to add the Record Schema to so that Record Readers can quickly lookup the schema.")
@@ -147,7 +147,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
         return INHERIT_RECORD_SCHEMA;
     }
 
-    protected PropertyDescriptor getSchemaWriteStrategyDescriptor() {
+    public PropertyDescriptor getSchemaWriteStrategyDescriptor() {
         return getPropertyDescriptor(SCHEMA_WRITE_STRATEGY.getName());
     }
 

@@ -106,6 +106,7 @@ org.apache.nifi.processors.standard.PutUDP
 org.apache.nifi.processors.standard.QueryDatabaseTable
 org.apache.nifi.processors.standard.QueryDatabaseTableRecord
 org.apache.nifi.processors.standard.QueryRecord
+org.apache.nifi.processors.standard.RemoveRecordField
 org.apache.nifi.processors.standard.ReplaceText
 org.apache.nifi.processors.standard.ReplaceTextWithMapping
 org.apache.nifi.processors.standard.RetryFlowFile
