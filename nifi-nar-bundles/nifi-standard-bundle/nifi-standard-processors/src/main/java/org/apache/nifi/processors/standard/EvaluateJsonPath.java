@@ -16,22 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedOutputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ConcurrentMap;
-
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -56,11 +44,21 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
-
+import java.io.BufferedOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @EventDriven
@@ -80,8 +78,8 @@ import java.util.stream.Collectors;
         + "If the JsonPath evaluates to a JSON array or JSON object and the Return Type is set to 'scalar' the FlowFile will be unmodified and will be routed to failure. "
         + "A Return Type of JSON can return scalar values if the provided JsonPath evaluates to the specified value and will be routed as a match."
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
-        + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
-        + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
+        + "If Destination is 'flowfile-attribute' and the expression matches nothing, attributes will be created with "
+        + "empty strings as the value unless 'Path Not Found Behaviour' is set to 'skip', and the FlowFile will always be routed to 'matched.'")
 @DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')",
         value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute "
         + "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile "
@@ -97,6 +95,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String PATH_NOT_FOUND_IGNORE = "ignore";
     public static final String PATH_NOT_FOUND_WARN = "warn";
+
+    public static final String PATH_NOT_FOUND_SKIP = "skip";
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
@@ -119,9 +119,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     public static final PropertyDescriptor PATH_NOT_FOUND = new PropertyDescriptor.Builder()
             .name("Path Not Found Behavior")
             .description("Indicates how to handle missing JSON path expressions when destination is set to 'flowfile-attribute'. Selecting 'warn' will "
-                    + "generate a warning when a JSON path expression is not found.")
+                    + "generate a warning when a JSON path expression is not found. Selecting 'skip' will omit attributes for any unmatched JSON path expressions.")
             .required(true)
-            .allowableValues(PATH_NOT_FOUND_WARN, PATH_NOT_FOUND_IGNORE)
+            .allowableValues(PATH_NOT_FOUND_WARN, PATH_NOT_FOUND_IGNORE, PATH_NOT_FOUND_SKIP)
             .defaultValue(PATH_NOT_FOUND_IGNORE)
             .build();
 
@@ -145,7 +145,6 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private final ConcurrentMap<String, JsonPath> cachedJsonPathMap = new ConcurrentHashMap<>();
 
     private final Queue<Set<Map.Entry<String, JsonPath>>> attributeToJsonPathEntrySetQueue = new ConcurrentLinkedQueue<>();
-    private volatile String representationOption;
     private volatile boolean destinationIsAttribute;
     private volatile String returnType;
     private volatile String pathNotFound;
@@ -153,18 +152,18 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_MATCH);
-        relationships.add(REL_NO_MATCH);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final Set<Relationship> rels = new HashSet<>();
+        rels.add(REL_MATCH);
+        rels.add(REL_NO_MATCH);
+        rels.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(rels);
 
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(DESTINATION);
-        properties.add(RETURN_TYPE);
-        properties.add(PATH_NOT_FOUND);
-        properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
-        this.properties = Collections.unmodifiableList(properties);
+        final List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(DESTINATION);
+        props.add(RETURN_TYPE);
+        props.add(PATH_NOT_FOUND);
+        props.add(NULL_VALUE_DEFAULT_REPRESENTATION);
+        this.properties = Collections.unmodifiableList(props);
     }
 
     @Override
@@ -222,12 +221,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if (descriptor.isDynamic()) {
-            if (!StringUtils.equals(oldValue, newValue)) {
-                if (oldValue != null) {
-                    cachedJsonPathMap.remove(oldValue);
-                }
-            }
+        if (descriptor.isDynamic() && !StringUtils.equals(oldValue, newValue) && oldValue != null) {
+            cachedJsonPathMap.remove(oldValue);
         }
     }
 
@@ -248,14 +243,13 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext processContext) {
-        representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
         destinationIsAttribute = DESTINATION_ATTRIBUTE.equals(processContext.getProperty(DESTINATION).getValue());
         returnType = processContext.getProperty(RETURN_TYPE).getValue();
         if (returnType.equals(RETURN_TYPE_AUTO)) {
             returnType = destinationIsAttribute ? RETURN_TYPE_SCALAR : RETURN_TYPE_JSON;
         }
         pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
-        nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
+        nullDefaultValue = NULL_REPRESENTATION_MAP.get(processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue());
     }
 
     @OnUnscheduled
@@ -276,7 +270,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         try {
             documentContext = validateAndEstablishJsonContext(processSession, flowFile);
         } catch (InvalidJsonException e) {
-            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
+            logger.error("FlowFile {} did not have valid JSON content.", flowFile);
             processSession.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -291,7 +285,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         try {
             // We'll only be using this map if destinationIsAttribute == true
-            final Map<String, String> jsonPathResults = destinationIsAttribute ? new HashMap<>(attributeJsonPathEntries.size()) : Collections.EMPTY_MAP;
+            final Map<String, String> jsonPathResults = destinationIsAttribute ? new HashMap<>(attributeJsonPathEntries.size()) : Collections.emptyMap();
 
             for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeJsonPathEntries) {
                 final String jsonPathAttrKey = attributeJsonPathEntry.getKey();
@@ -299,22 +293,24 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
                 Object result;
                 try {
-                    Object potentialResult = documentContext.read(jsonPathExp);
+                    final Object potentialResult = documentContext.read(jsonPathExp);
                     if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(potentialResult)) {
                         logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
-                                new Object[]{jsonPathExp.getPath(), flowFile.getId(), potentialResult.toString(), REL_FAILURE.getName()});
+                                jsonPathExp.getPath(), flowFile.getId(), potentialResult.toString(), REL_FAILURE.getName());
                         processSession.transfer(flowFile, REL_FAILURE);
                         return;
                     }
                     result = potentialResult;
-                } catch (PathNotFoundException e) {
+                } catch (final PathNotFoundException e) {
                     if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
                         logger.warn("FlowFile {} could not find path {} for attribute key {}.",
                                 new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
                     }
 
                     if (destinationIsAttribute) {
-                        jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
+                        if (!pathNotFound.equals(PATH_NOT_FOUND_SKIP)) {
+                            jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
+                        }
                         continue;
                     } else {
                         processSession.transfer(flowFile, REL_NO_MATCH);
@@ -336,7 +332,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             }
 
             // jsonPathResults map will be empty if this is false
-            if (destinationIsAttribute) {
+            if (destinationIsAttribute && !jsonPathResults.isEmpty()) {
                 flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
             }
             processSession.transfer(flowFile, REL_MATCH);
