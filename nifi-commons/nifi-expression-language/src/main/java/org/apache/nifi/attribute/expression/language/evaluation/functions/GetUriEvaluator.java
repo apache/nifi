@@ -44,18 +44,30 @@ public class GetUriEvaluator extends StringEvaluator {
 
         try {
             if (args.size() == 7) {
-                return new StringQueryResult(new URI(args.get(0), args.get(1), args.get(2),
-                        Integer.parseInt(args.get(3)), args.get(4), args.get(5), args.get(6)).toString());
+                final String scheme = args.get(0);
+                final String userInfo = args.get(1);
+                final String host = args.get(2);
+                final int port = getPort(args.get(3));
+                final String path = args.get(4);
+                final String query = args.get(5);
+                final String fragment = args.get(6);
+                final URI uri = new URI(scheme, userInfo, host, port, path, query, fragment);
+                return new StringQueryResult(uri.toString());
             }
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with " + args.size() + " argument(s)");
-        } catch (NumberFormatException nfe) {
-            throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument '"
-                    + args.get(3) + "' which is not a number", nfe);
         } catch (URISyntaxException use) {
             throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument(s) " + args, use);
         }
     }
 
+    private int getPort(String portArg) {
+        try {
+            return Integer.parseInt(portArg);
+        } catch (NumberFormatException nfe) {
+            throw new AttributeExpressionLanguageException("Could not evaluate 'getUri' function with argument '"
+                    + portArg + "' which is not a number", nfe);
+        }
+    }
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return null;
