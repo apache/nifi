@@ -25,17 +25,13 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import java.util.Collection;
 import java.util.HashSet;
 
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
@@ -59,13 +55,6 @@ public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ExtensionManager extensionManager;
 
-    @BeforeEach
-    public void setUp() {
-        super.setUp();
-        Mockito.when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
-        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
-    }
-
     @Test
     public void testNonSearchableProcessorHasNoMatch() {
         // given
@@ -83,6 +72,8 @@ public class SearchableMatcherTest extends AbstractAttributeMatcherTest {
     public void testSearchableProcessor() {
         // given
         final SearchableMatcher testSubject = givenTestSubject();
+        Mockito.when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
         givenProcessorIsSearchable();
         givenSearchResultsAreNotEmpty();
         givenSearchTerm("bbb");

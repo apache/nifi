@@ -35,15 +35,16 @@ public abstract class AbstractAttributeMatcherTest {
 
     protected List<String> matches;
 
-    @Mock(lenient = true)
+    @Mock
     protected SearchQuery searchQuery;
 
     @BeforeEach
     public void setUp() {
         matches = new ArrayList<>();
-        Mockito.when(searchQuery.getTerm()).thenReturn(SEARCH_TERM);
     }
-
+    protected void givenDefaultSearchTerm() {
+        givenSearchTerm(SEARCH_TERM);
+    }
     protected void givenSearchTerm(final String term) {
         Mockito.when(searchQuery.getTerm()).thenReturn(term);
     }

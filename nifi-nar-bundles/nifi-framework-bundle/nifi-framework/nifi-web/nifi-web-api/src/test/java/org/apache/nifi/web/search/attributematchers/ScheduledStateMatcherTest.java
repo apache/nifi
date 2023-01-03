@@ -25,7 +25,7 @@ import org.mockito.Mockito;
 
 public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock(lenient = true)
+    @Mock
     private ProcessorNode component;
 
     @Test
@@ -131,7 +131,6 @@ public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ScheduledStateMatcher testSubject = new ScheduledStateMatcher();
         givenScheduledState(ScheduledState.DISABLED);
-        givenValidationStatus(ValidationStatus.INVALID);
         givenSearchTerm("invalid");
 
         // when
@@ -146,7 +145,6 @@ public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ScheduledStateMatcher testSubject = new ScheduledStateMatcher();
         givenScheduledState(ScheduledState.DISABLED);
-        givenValidationStatus(ValidationStatus.VALIDATING);
         givenSearchTerm("validating");
 
         // when

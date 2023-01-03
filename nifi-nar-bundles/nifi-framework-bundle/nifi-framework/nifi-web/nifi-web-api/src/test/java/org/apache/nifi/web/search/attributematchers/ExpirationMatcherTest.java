@@ -18,16 +18,12 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import java.util.concurrent.TimeUnit;
 
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
 
     @Mock
@@ -35,19 +31,13 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
 
     @Mock
     private FlowFileQueue flowFileQueue;
-
-    @BeforeEach
-    public void setUp() {
-        super.setUp();
-        Mockito.when(component.getFlowFileQueue()).thenReturn(flowFileQueue);
-    }
-
     @Test
     public void testWhenKeywordExpiresAppearsAndExpired() {
         // given
         final ExpirationMatcher testSubject = new ExpirationMatcher();
         givenSearchTerm("expires");
         givenExpired();
+        givenFlowFileQueue();
 
         // when
         testSubject.match(component, searchQuery, matches);
@@ -56,13 +46,16 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
         thenMatchConsistsOf("FlowFile expiration: 5");
     }
 
+    private void givenFlowFileQueue() {
+        Mockito.when(component.getFlowFileQueue()).thenReturn(flowFileQueue);
+    }
     @Test
     public void testWhenKeywordExpirationAppearsAndExpired() {
         // given
         final ExpirationMatcher testSubject = new ExpirationMatcher();
         givenSearchTerm("expiration");
         givenExpired();
-
+        givenFlowFileQueue();
         // when
         testSubject.match(component, searchQuery, matches);
 
@@ -75,7 +68,6 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
         // given
         final ExpirationMatcher testSubject = new ExpirationMatcher();
         givenSearchTerm("lorem");
-        givenExpired();
 
         // when
         testSubject.match(component, searchQuery, matches);
@@ -90,7 +82,7 @@ public class ExpirationMatcherTest extends AbstractAttributeMatcherTest{
         final ExpirationMatcher testSubject = new ExpirationMatcher();
         givenSearchTerm("expires");
         givenNotExpired();
-
+        givenFlowFileQueue();
         // when
         testSubject.match(component, searchQuery, matches);
 

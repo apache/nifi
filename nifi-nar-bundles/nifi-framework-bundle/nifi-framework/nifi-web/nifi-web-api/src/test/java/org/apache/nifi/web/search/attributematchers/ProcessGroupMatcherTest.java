@@ -32,6 +32,7 @@ public class ProcessGroupMatcherTest extends AbstractAttributeMatcherTest {
     @BeforeEach
     public void setUp() {
         super.setUp();
+        givenDefaultSearchTerm();
         Mockito.when(component.getIdentifier()).thenReturn("LoremId");
         Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
         Mockito.when(component.getName()).thenReturn("LoremName");

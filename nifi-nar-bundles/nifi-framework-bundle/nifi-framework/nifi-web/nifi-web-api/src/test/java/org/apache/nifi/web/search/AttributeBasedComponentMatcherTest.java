@@ -20,14 +20,11 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.search.attributematchers.AttributeMatcher;
 import org.apache.nifi.web.search.query.SearchQuery;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class AttributeBasedComponentMatcherTest {
     private static final String IDENTIFIER = "lorem";
     private static final String NAME = "ipsum";
@@ -62,16 +58,12 @@ public class AttributeBasedComponentMatcherTest {
     @Mock
     private Function<ProcessorNode, String> getName;
 
-    @BeforeEach
-    public void setUp() {
-        Mockito.when(getIdentifier.apply(Mockito.any(ProcessorNode.class))).thenReturn(IDENTIFIER);
-        Mockito.when(getName.apply(Mockito.any(ProcessorNode.class))).thenReturn(NAME);
-    }
-
     @Test
     public void testMatching() {
         // given
         final AttributeBasedComponentMatcher<ProcessorNode> testSubject = new AttributeBasedComponentMatcher<>(givenAttributeMatchers(), getIdentifier, getName);
+        Mockito.when(getIdentifier.apply(Mockito.any(ProcessorNode.class))).thenReturn(IDENTIFIER);
+        Mockito.when(getName.apply(Mockito.any(ProcessorNode.class))).thenReturn(NAME);
         givenAttributesAreMatching();
 
         // when

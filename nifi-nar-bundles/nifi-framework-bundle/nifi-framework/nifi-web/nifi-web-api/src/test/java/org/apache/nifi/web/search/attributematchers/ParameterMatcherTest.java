@@ -25,7 +25,7 @@ import org.mockito.Mockito;
 
 public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock(lenient = true)
+    @Mock
     private Parameter parameter;
 
     @Mock
@@ -34,8 +34,8 @@ public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
     @BeforeEach
     public void setUp() {
         super.setUp();
+        givenDefaultSearchTerm();
         Mockito.when(parameter.getDescriptor()).thenReturn(descriptor);
-        Mockito.when(parameter.getValue()).thenReturn("LoremValue");
         Mockito.when(descriptor.getName()).thenReturn("LoremName");
         Mockito.when(descriptor.getDescription()).thenReturn("LoremDescription");
     }
@@ -45,6 +45,7 @@ public class ParameterMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ParameterMatcher testSubject = new ParameterMatcher();
         givenValueIsNotSensitive();
+        Mockito.when(parameter.getValue()).thenReturn("LoremValue");
 
         // when
         testSubject.match(parameter, searchQuery, matches);

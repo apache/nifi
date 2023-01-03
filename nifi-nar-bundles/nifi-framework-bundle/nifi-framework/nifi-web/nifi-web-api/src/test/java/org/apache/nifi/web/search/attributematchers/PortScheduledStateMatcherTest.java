@@ -24,7 +24,7 @@ import org.mockito.Mockito;
 
 public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock(lenient = true)
+    @Mock
     private Port component;
 
     @Test
@@ -46,7 +46,6 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
         // given
         final PortScheduledStateMatcher testSubject = new PortScheduledStateMatcher();
         givenSearchTerm("invalid");
-        givenInvalid();
         givenStatus(ScheduledState.DISABLED);
 
         // when
@@ -103,7 +102,7 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
         // given
         final PortScheduledStateMatcher testSubject = new PortScheduledStateMatcher();
         givenSearchTerm("invalid");
-        givenInvalid();
+        Mockito.when(component.isValid()).thenReturn(false);
 
         // when
         testSubject.match(component, searchQuery, matches);
@@ -132,9 +131,5 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
 
     private void givenValid() {
         Mockito.when(component.isValid()).thenReturn(true);
-    }
-
-    private void givenInvalid() {
-        Mockito.when(component.isValid()).thenReturn(false);
     }
 }

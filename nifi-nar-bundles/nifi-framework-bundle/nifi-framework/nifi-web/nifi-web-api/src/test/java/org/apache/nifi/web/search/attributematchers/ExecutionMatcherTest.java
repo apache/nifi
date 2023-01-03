@@ -24,7 +24,7 @@ import org.mockito.Mockito;
 
 public class ExecutionMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock(lenient = true)
+    @Mock
     private ProcessorNode component;
 
     @Test
@@ -46,7 +46,6 @@ public class ExecutionMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ExecutionMatcher testSubject = new ExecutionMatcher();
         givenExecutionModeIsNotPrimary();
-        givenSearchTerm("primary");
 
         // when
         testSubject.match(component, searchQuery, matches);

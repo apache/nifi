@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
 
-    @Mock(lenient = true)
+    @Mock
     private ProcessorNode component;
 
     @Test
@@ -65,7 +65,6 @@ public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
     public void testMatchingAndFiltered() {
         // given
         final PropertyMatcher testSubject = new PropertyMatcher();
-        givenProperties(false);
         givenSearchTerm("lorem");
         givenFilter("properties", "exclude");
 

@@ -17,7 +17,6 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.controller.label.Label;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -27,18 +26,13 @@ public class LabelMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private Label component;
 
-    @BeforeEach
-    public void setUp() {
-        super.setUp();
-        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
-        Mockito.when(component.getValue()).thenReturn("LoremValue");
-    }
-
     @Test
     public void testMatching() {
         // given
         final LabelMatcher testSubject = new LabelMatcher();
-
+        givenDefaultSearchTerm();
+        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
+        Mockito.when(component.getValue()).thenReturn("LoremValue");
         // when
         testSubject.match(component, searchQuery, matches);
 

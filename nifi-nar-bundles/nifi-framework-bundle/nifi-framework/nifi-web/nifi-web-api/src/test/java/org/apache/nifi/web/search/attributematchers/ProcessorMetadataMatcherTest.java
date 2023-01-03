@@ -45,6 +45,7 @@ public class ProcessorMetadataMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ProcessorMetadataMatcher testSubject = new ProcessorMetadataMatcher();
         final Processor processor = new LoremProcessor();
+        givenDefaultSearchTerm();
         Mockito.when(processorNode.getProcessor()).thenReturn(processor);
         Mockito.when(processorNode.getComponentType()).thenReturn("Lorem");
 

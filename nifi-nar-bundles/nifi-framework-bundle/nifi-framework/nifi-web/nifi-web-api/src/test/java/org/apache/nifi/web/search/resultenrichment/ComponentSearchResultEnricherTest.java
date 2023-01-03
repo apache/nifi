@@ -28,15 +28,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class ComponentSearchResultEnricherTest {
     private static final String NAME = "name";
     private static final String IDENTIFIER = "identifier";
@@ -86,7 +83,7 @@ public class ComponentSearchResultEnricherTest {
     @Test
     public void testProcessGroupEnrichment() {
         // given
-        givenProcessGroup();
+        givenParentProcessGroup();
         final ProcessGroupSearchResultEnricher testSubject  = new ProcessGroupSearchResultEnricher(processGroup, user, authorizer);
         final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
 
@@ -108,7 +105,7 @@ public class ComponentSearchResultEnricherTest {
     @Test
     public void testParameterEnriching() {
         // given
-        givenProcessGroup();
+        givenParameterContext();
         final ParameterSearchResultEnricher testSubject = new ParameterSearchResultEnricher(parameterContext);
         final ComponentSearchResultDTO result = new ComponentSearchResultDTO();
 
@@ -148,17 +145,20 @@ public class ComponentSearchResultEnricherTest {
         Mockito.when(processGroup.getName()).thenReturn(NAME);
         Mockito.when(processGroup.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
         Mockito.when(processGroup.getVersionControlInformation()).thenReturn(Mockito.mock(VersionControlInformation.class));
+    }
+
+    private void givenParentProcessGroup() {
         Mockito.when(processGroup.getParent()).thenReturn(parentProcessGroup);
 
         Mockito.when(parentProcessGroup.getIdentifier()).thenReturn(PARENT_IDENTIFIER);
         Mockito.when(parentProcessGroup.getName()).thenReturn(PARENT_NAME);
         Mockito.when(parentProcessGroup.isAuthorized(authorizer, RequestAction.READ, user)).thenReturn(true);
         Mockito.when(parentProcessGroup.getVersionControlInformation()).thenReturn(Mockito.mock(VersionControlInformation.class));
-
+    }
+    private void givenParameterContext() {
         Mockito.when(parameterContext.getIdentifier()).thenReturn(CONTEXT_IDENTIFIER);
         Mockito.when(parameterContext.getName()).thenReturn(CONTEXT_NAME);
     }
-
     private void givenRootProcessGroup() {
         Mockito.when(processGroup.getIdentifier()).thenReturn(IDENTIFIER);
         Mockito.when(processGroup.getParent()).thenReturn(null);

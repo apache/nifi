@@ -30,11 +30,8 @@ import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class ControllerFacadeTest {
     private static final String ACTIVE_GROUP_ID = "activeId";
     private static final String SEARCH_LITERAL = "processor1";
@@ -64,7 +61,6 @@ public class ControllerFacadeTest {
     public void setUp() {
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
         Mockito.when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        Mockito.when(flowManager.getGroup(ACTIVE_GROUP_ID)).thenReturn(activeGroup);
         // The NiFi user is null due to the production code acquires it from a static call
         Mockito.when(searchQueryParser.parse(
                 Mockito.anyString(),
@@ -79,7 +75,7 @@ public class ControllerFacadeTest {
     public void testExistingActiveGroupIsSentDownToSearch() {
         // given
         final ControllerFacade testSubject = givenTestSubject();
-
+        Mockito.when(flowManager.getGroup(ACTIVE_GROUP_ID)).thenReturn(activeGroup);
         // when
         testSubject.search(SEARCH_LITERAL, ACTIVE_GROUP_ID);
 
