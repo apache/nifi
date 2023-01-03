@@ -127,7 +127,7 @@
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <json.smart.version>2.4.8</json.smart.version>
-        <nifi.groovy.version>3.0.9</nifi.groovy.version>
+        <nifi.groovy.version>3.0.14</nifi.groovy.version>
         <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
         <surefire.version>3.0.0-M7</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
