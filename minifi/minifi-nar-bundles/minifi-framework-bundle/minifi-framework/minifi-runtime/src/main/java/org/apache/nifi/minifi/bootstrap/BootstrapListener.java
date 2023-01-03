@@ -154,11 +154,13 @@ public class BootstrapListener implements BootstrapCommunicator {
         messageHandlers.putIfAbsent(RELOAD, (args, outputStream) -> {
             logger.info("Received RELOAD request from Bootstrap");
             echoRequestCmd(RELOAD, outputStream);
+            logger.info("Responded to RELOAD request from Bootstrap, stopping MiNiFi Server");
             minifiServer.stop(true);
         });
         messageHandlers.putIfAbsent(SHUTDOWN, (args, outputStream) -> {
             logger.info("Received SHUTDOWN request from Bootstrap");
             echoRequestCmd(SHUTDOWN, outputStream);
+            logger.info("Responded to SHUTDOWN request from Bootstrap, stopping MiNiFi Server");
             minifiServer.stop(false);
         });
         messageHandlers.putIfAbsent("DUMP", (args, outputStream) -> {
@@ -292,6 +294,7 @@ public class BootstrapListener implements BootstrapCommunicator {
         try {
             out.write((cmd + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
+            out.close();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
