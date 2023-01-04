@@ -106,7 +106,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,14 +128,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FrameworkIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(FrameworkIntegrationTest.class);
-
-    //@Rule
-    public Timeout globalTimeout = Timeout.seconds(20);
 
     private ResourceClaimManager resourceClaimManager;
     private StandardProcessScheduler processScheduler;
@@ -391,7 +387,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ProcessorNode createProcessorNode(final String processorType, final ProcessGroup destination) {
-        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
+        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         if (destination != null) {
@@ -406,7 +402,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ControllerServiceNode createControllerServiceNode(final String controllerServiceType) {
-        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID().toString();
+        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ControllerServiceNode serviceNode = flowController.getFlowManager().createControllerService(controllerServiceType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         rootProcessGroup.addControllerService(serviceNode);
@@ -561,7 +557,7 @@ public class FrameworkIntegrationTest {
             }
         }
 
-        assertEquals("Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered, count, encountered);
+        assertEquals(count, encountered, "Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered);
     }
 
     protected void triggerOnce(final ProcessorNode processor) throws ExecutionException, InterruptedException {

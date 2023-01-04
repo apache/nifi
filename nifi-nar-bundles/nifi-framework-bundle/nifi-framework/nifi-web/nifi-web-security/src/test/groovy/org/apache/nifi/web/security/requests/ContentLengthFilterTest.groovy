@@ -23,7 +23,6 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.FilterHolder
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import org.junit.BeforeClass
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -61,13 +60,6 @@ class ContentLengthFilterTest {
     private Server serverUnderTest
     private LocalConnector localConnector
     private ServletContextHandler contextUnderTest
-
-    @BeforeClass
-    static void setUpOnce() {
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
 
     @BeforeEach
     void setUp() {
