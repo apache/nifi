@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.service;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.beans.PropertyDescriptor;
 import java.util.Collections;
@@ -57,9 +57,9 @@ public class StandardControllerServiceProviderIT {
     private static Bundle systemBundle;
     private static NiFiProperties niFiProperties;
     private static ExtensionDiscoveringManager extensionManager;
-    private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
+    private static final VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
-    private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
+    private static final StateManagerProvider stateManagerProvider = new StateManagerProvider() {
         @Override
         public StateManager getStateManager(final String componentId) {
             return Mockito.mock(StateManager.class);

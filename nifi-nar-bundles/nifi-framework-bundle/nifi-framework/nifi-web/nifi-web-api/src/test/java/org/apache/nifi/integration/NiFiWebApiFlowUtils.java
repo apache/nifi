@@ -34,18 +34,13 @@ import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Ignore;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.core.Response;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- *
- */
-@Ignore
-public class NiFiWebApiTest {
+public class NiFiWebApiFlowUtils {
 
     public static void populateFlow(Client client, String baseUrl, NiFiTestUser user, String clientId) throws Exception {
 
