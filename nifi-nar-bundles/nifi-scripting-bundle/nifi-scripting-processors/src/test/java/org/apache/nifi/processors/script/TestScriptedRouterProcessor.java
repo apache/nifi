@@ -24,10 +24,11 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 abstract class TestScriptedRouterProcessor {
     private static final String HEADER = "header§";
@@ -37,7 +38,7 @@ abstract class TestScriptedRouterProcessor {
     protected MockRecordWriter recordWriter;
     protected String incomingFlowFileContent;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         testRunner = TestRunners.newTestRunner(givenProcessorType());
 
@@ -77,13 +78,13 @@ abstract class TestScriptedRouterProcessor {
     protected void thenIncomingFlowFileIsRoutedToOriginal() {
         testRunner.assertTransferCount(getOriginalRelationship(), 1);
         testRunner.assertTransferCount(getFailedRelationship(), 0);
-        Assert.assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getOriginalRelationship()).get(0).getContent());
+        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getOriginalRelationship()).get(0).getContent());
     }
 
     protected void thenIncomingFlowFileIsRoutedToFailed() {
         testRunner.assertTransferCount(getOriginalRelationship(), 0);
         testRunner.assertTransferCount(getFailedRelationship(), 1);
-        Assert.assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getFailedRelationship()).get(0).getContent());
+        assertEquals(incomingFlowFileContent, testRunner.getFlowFilesForRelationship(getFailedRelationship()).get(0).getContent());
     }
 
     /**
