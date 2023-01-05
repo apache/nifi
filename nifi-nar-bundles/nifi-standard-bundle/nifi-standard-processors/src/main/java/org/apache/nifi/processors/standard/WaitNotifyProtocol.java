@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -49,6 +51,8 @@ public class WaitNotifyProtocol {
     public static final String CONSUMED_COUNT_NAME = "consumed";
     private static final int MAX_REPLACE_RETRY_COUNT = 5;
     private static final int REPLACE_RETRY_WAIT_MILLIS = 10;
+
+    private static final Interner<String> pool = Interners.newWeakInterner();
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -181,39 +185,40 @@ public class WaitNotifyProtocol {
      */
     public Signal notify(final String signalId, final Map<String, Integer> deltas, final Map<String, String> attributes)
             throws IOException, ConcurrentModificationException {
+        synchronized (pool.intern(signalId)) {
+            for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
 
-        for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
+                final Signal existingSignal = getSignal(signalId);
+                final Signal signal = existingSignal != null ? existingSignal : new Signal();
+                signal.identifier = signalId;
 
-            final Signal existingSignal = getSignal(signalId);
-            final Signal signal = existingSignal != null ? existingSignal : new Signal();
-            signal.identifier = signalId;
+                if (attributes != null) {
+                    signal.attributes.putAll(attributes);
+                }
 
-            if (attributes != null) {
-                signal.attributes.putAll(attributes);
+                deltas.forEach((counterName, delta) -> {
+                    long count = signal.counts.containsKey(counterName) ? signal.counts.get(counterName) : 0;
+                    count = delta == 0 ? 0 : count + delta;
+                    signal.counts.put(counterName, count);
+                });
+
+                if (replace(signal)) {
+                    return signal;
+                }
+
+                long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
+                logger.info("Waiting for {} ms to retry... {}.{}", waitMillis, signalId, deltas);
+                try {
+                    Thread.sleep(waitMillis);
+                } catch (InterruptedException e) {
+                    final String msg = String.format("Interrupted while waiting for retrying signal [%s] counter [%s].", signalId, deltas);
+                    throw new ConcurrentModificationException(msg, e);
+                }
             }
 
-            deltas.forEach((counterName, delta) -> {
-                long count = signal.counts.containsKey(counterName) ? signal.counts.get(counterName) : 0;
-                count = delta == 0 ? 0 : count + delta;
-                signal.counts.put(counterName, count);
-            });
-
-            if (replace(signal)) {
-                return signal;
-            }
-
-            long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
-            logger.info("Waiting for {} ms to retry... {}.{}", waitMillis, signalId, deltas);
-            try {
-                Thread.sleep(waitMillis);
-            } catch (InterruptedException e) {
-                final String msg = String.format("Interrupted while waiting for retrying signal [%s] counter [%s].", signalId, deltas);
-                throw new ConcurrentModificationException(msg, e);
-            }
+            final String msg = String.format("Failed to update signal [%s] counter [%s] after retrying %d times.", signalId, deltas, MAX_REPLACE_RETRY_COUNT);
+            throw new ConcurrentModificationException(msg);
         }
-
-        final String msg = String.format("Failed to update signal [%s] counter [%s] after retrying %d times.", signalId, deltas, MAX_REPLACE_RETRY_COUNT);
-        throw new ConcurrentModificationException(msg);
     }
 
 
