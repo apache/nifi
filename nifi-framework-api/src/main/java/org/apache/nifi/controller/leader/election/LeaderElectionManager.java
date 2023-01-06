@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.leader.election;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -64,10 +65,10 @@ public interface LeaderElectionManager {
      * known or if the role was registered without providing a Participant ID, this will return <code>null</code>.
      *
      * @param roleName the name of the role
-     * @return the Participant ID of the node that is elected leader, or <code>null</code> if either no leader is known or the leader
+     * @return the Participant ID of the node that is elected leader, or <code>empty</code> if either no leader is known or the leader
      *         did not register with a Participant ID.
      */
-    String getLeader(String roleName);
+    Optional<String> getLeader(String roleName);
 
     /**
      * Removes the role with the given name from this manager. If this

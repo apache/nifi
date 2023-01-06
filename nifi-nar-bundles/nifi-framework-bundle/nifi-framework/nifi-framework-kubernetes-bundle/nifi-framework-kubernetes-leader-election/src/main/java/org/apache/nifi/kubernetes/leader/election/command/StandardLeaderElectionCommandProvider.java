@@ -17,12 +17,15 @@
 package org.apache.nifi.kubernetes.leader.election.command;
 
 import io.fabric8.kubernetes.api.model.coordination.v1.Lease;
+import io.fabric8.kubernetes.api.model.coordination.v1.LeaseSpec;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import org.apache.nifi.kubernetes.client.KubernetesClientProvider;
 
 import java.net.HttpURLConnection;
+import java.time.ZonedDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -71,16 +74,17 @@ public class StandardLeaderElectionCommandProvider implements LeaderElectionComm
      * Find Leader Identifier for specified Election Name
      *
      * @param name Election Name
-     * @return Leader Identifier or null when not found
+     * @return Leader Identifier or empty when not found or lease expired
      */
     @Override
-    public String findLeader(final String name) {
+    public Optional<String> findLeader(final String name) {
         try {
             final Lease lease = kubernetesClient.leases().inNamespace(namespace).withName(name).get();
-            return lease == null ? null : lease.getSpec().getHolderIdentity();
+            final String currentHolderIdentity = getCurrentHolderIdentity(lease);
+            return Optional.ofNullable(currentHolderIdentity);
         } catch (final KubernetesClientException e) {
             if (isNotFound(e)) {
-                return null;
+                return Optional.empty();
             } else {
                 throw e;
             }
@@ -97,5 +101,30 @@ public class StandardLeaderElectionCommandProvider implements LeaderElectionComm
 
     private boolean isNotFound(final KubernetesClientException e) {
         return HttpURLConnection.HTTP_NOT_FOUND == e.getCode();
+    }
+
+    private String getCurrentHolderIdentity(final Lease lease) {
+        final String holderIdentity;
+
+        if (lease == null) {
+            holderIdentity = null;
+        } else {
+            final LeaseSpec spec = lease.getSpec();
+            final ZonedDateTime expiration = getExpiration(spec);
+            final ZonedDateTime now = ZonedDateTime.now();
+            if (now.isAfter(expiration)) {
+                holderIdentity = null;
+            } else {
+                holderIdentity = spec.getHolderIdentity();
+            }
+        }
+
+        return holderIdentity;
+    }
+
+    private ZonedDateTime getExpiration(final LeaseSpec leaseSpec) {
+        final ZonedDateTime renewTime = leaseSpec.getRenewTime();
+        final Integer leaseDuration = leaseSpec.getLeaseDurationSeconds();
+        return renewTime.plusSeconds(leaseDuration);
     }
 }

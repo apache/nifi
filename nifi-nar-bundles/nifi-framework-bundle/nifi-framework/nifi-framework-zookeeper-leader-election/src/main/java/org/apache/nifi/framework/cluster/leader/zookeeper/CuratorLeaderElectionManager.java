@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -237,7 +238,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
     }
 
     @Override
-    public String getLeader(final String roleName) {
+    public Optional<String> getLeader(final String roleName) {
         if (isStopped()) {
             return determineLeaderExternal(roleName);
         }
@@ -254,19 +255,19 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
             try {
                 participant = role.getLeaderSelector().getLeader();
             } catch (Exception e) {
-                logger.warn("Unable to determine leader for role '{}'; returning null", roleName, e);
-                return null;
+                logger.warn("Unable to determine leader for role [{}]", roleName, e);
+                return Optional.empty();
             }
 
             if (participant == null) {
                 logger.debug("There is currently no elected leader for the {} role", roleName);
-                return null;
+                return Optional.empty();
             }
 
             final String participantId = participant.getId();
             if (StringUtils.isEmpty(participantId)) {
-                logger.debug("Found leader participant for role {} but the participantId was empty", roleName);
-                return null;
+                logger.debug("Found leader participant for role [{}] but the participantId was empty", roleName);
+                return Optional.empty();
             }
 
             final String previousLeader = lastKnownLeader.put(roleName, participantId);
@@ -274,7 +275,7 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
                 onLeaderChanged(roleName);
             }
 
-            return participantId;
+            return Optional.of(participantId);
         } finally {
             registerPollTime(System.nanoTime() - startNanos);
         }
@@ -284,10 +285,10 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
      * Use a new Curator client to determine which node is the elected leader for the given role.
      *
      * @param roleName the name of the role
-     * @return the id of the elected leader, or <code>null</code> if no leader has been selected or if unable to determine
+     * @return the id of the elected leader, or <code>Optional.empty()</code> if no leader has been selected or if unable to determine
      *         the leader from ZooKeeper
      */
-    private String determineLeaderExternal(final String roleName) {
+    private Optional<String> determineLeaderExternal(final String roleName) {
         final long start = System.nanoTime();
 
         try (CuratorFramework client = createClient()) {
@@ -309,17 +310,17 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
 
             try {
                 final Participant leader = selector.getLeader();
-                return leader == null ? null : leader.getId();
+                return leader == null ? Optional.empty() : Optional.of(leader.getId());
             } catch (final KeeperException.NoNodeException nne) {
                 // If there is no ZNode, then there is no elected leader.
-                return null;
+                return Optional.empty();
             } catch (final Exception e) {
                 logger.warn("Unable to determine the Elected Leader for role '{}' due to {}; assuming no leader has been elected", roleName, e.toString());
                 if (logger.isDebugEnabled()) {
                     logger.warn("", e);
                 }
 
-                return null;
+                return Optional.empty();
             }
         } finally {
             registerPollTime(System.nanoTime() - start);
@@ -477,13 +478,14 @@ public class CuratorLeaderElectionManager extends TrackedLeaderElectionManager {
          * @return <code>true</code> if this node is still the elected leader according to ZooKeeper, false otherwise
          */
         private boolean verifyLeader() {
-            final String leader = getLeader(roleName);
-            if (leader == null) {
+            final Optional<String> leaderAddress = getLeader(roleName);
+            if (!leaderAddress.isPresent()) {
                 logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}' but found that there is no leader.", roleName);
                 setLeader(false);
                 return false;
             }
 
+            final String leader = leaderAddress.get();
             final boolean match = leader.equals(participantId);
             logger.debug("Reached out to ZooKeeper to determine which node is the elected leader for Role '{}'. Elected Leader = '{}', Participant ID = '{}', This Node Elected = {}",
                 roleName, leader, participantId, match);

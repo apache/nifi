@@ -17,10 +17,9 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.AbstractNodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
@@ -42,16 +41,17 @@ public class LeaderElectionNodeProtocolSender extends AbstractNodeProtocolSender
     }
 
     @Override
-    protected InetSocketAddress getServiceAddress() throws IOException {
-        final String address = electionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
+    protected InetSocketAddress getServiceAddress() {
+        final Optional<String> leaderAddress = electionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
 
-        if (StringUtils.isEmpty(address)) {
-            throw new NoClusterCoordinatorException("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster yet.");
+        if (!leaderAddress.isPresent()) {
+            throw new NoClusterCoordinatorException("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster");
         }
 
+        final String address = leaderAddress.get();
         final String[] splits = address.split(":");
         if (splits.length != 2) {
-            final String message = String.format("Attempted to determine Cluster Coordinator address. Zookeeper indicates "
+            final String message = String.format("Attempted to determine Cluster Coordinator address. Manager indicates "
                 + "that address is %s, but this is not in the expected format of <hostname>:<port>", address);
             logger.error(message);
             throw new ProtocolException(message);
@@ -67,14 +67,13 @@ public class LeaderElectionNodeProtocolSender extends AbstractNodeProtocolSender
                 throw new NumberFormatException("Port must be in the range of 1 - 65535 but got " + port);
             }
         } catch (final NumberFormatException nfe) {
-            final String message = String.format("Attempted to determine Cluster Coordinator address. Zookeeper indicates "
+            final String message = String.format("Attempted to determine Cluster Coordinator address. Manager indicates "
                 + "that address is %s, but the port is not a valid port number", address);
             logger.error(message);
             throw new ProtocolException(message);
         }
 
-        final InetSocketAddress socketAddress = InetSocketAddress.createUnresolved(hostname, port);
-        return socketAddress;
+        return InetSocketAddress.createUnresolved(hostname, port);
     }
 
 }

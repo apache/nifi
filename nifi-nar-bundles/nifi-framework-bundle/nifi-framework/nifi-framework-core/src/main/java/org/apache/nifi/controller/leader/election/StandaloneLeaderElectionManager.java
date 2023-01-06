@@ -19,6 +19,7 @@ package org.apache.nifi.controller.leader.election;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,8 +47,8 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public String getLeader(final String roleName) {
-        return null;
+    public Optional<String> getLeader(final String roleName) {
+        return Optional.empty();
     }
 
     @Override

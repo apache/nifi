@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -182,23 +183,23 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
      * Get Leader Identifier for Role
      *
      * @param roleName Role Name for requested Leader Identifier
-     * @return Leader Identifier or null when not found
+     * @return Leader Identifier or empty when not found
      */
     @Override
-    public String getLeader(final String roleName) {
+    public Optional<String> getLeader(final String roleName) {
         requireRoleName(roleName);
 
         final long pollStarted = System.nanoTime();
         try {
             final String roleId = getRoleId(roleName);
-            final String leader;
+            final Optional<String> leader;
             if (started.get()) {
                 final String roleLeader = roleLeaders.get(roleName);
                 if (roleLeader == null) {
                     logger.debug("Leader not registered: finding Leader for Role [{}]", roleName);
                     leader = leaderElectionCommandProvider.findLeader(roleId);
                 } else {
-                    leader = roleLeader;
+                    leader = Optional.of(roleLeader);
                 }
             } else {
                 logger.debug("Manager not running: finding Leader for Role [{}]", roleName);
@@ -227,7 +228,8 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
             logger.debug("Role [{}] not participating in Leader election", roleName);
             leader = false;
         } else {
-            final String leaderId = getLeader(roleName);
+            final Optional<String> leaderAddress = getLeader(roleName);
+            final String leaderId = leaderAddress.orElse(null);
             leader = participantId.equals(leaderId);
             if (leader) {
                 logger.debug("Role [{}] Participant ID [{}] is Leader", roleName, participantId);

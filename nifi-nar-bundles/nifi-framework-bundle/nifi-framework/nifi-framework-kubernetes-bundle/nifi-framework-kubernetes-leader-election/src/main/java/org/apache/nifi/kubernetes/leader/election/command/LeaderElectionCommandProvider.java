@@ -17,6 +17,7 @@
 package org.apache.nifi.kubernetes.leader.election.command;
 
 import java.io.Closeable;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -45,7 +46,7 @@ public interface LeaderElectionCommandProvider extends Closeable {
      * Find Leader Identifier for specified Election Name
      *
      * @param name Election Name
-     * @return Leader Identifier or null when not found
+     * @return Leader Identifier or empty when not found
      */
-    String findLeader(String name);
+    Optional<String> findLeader(String name);
 }

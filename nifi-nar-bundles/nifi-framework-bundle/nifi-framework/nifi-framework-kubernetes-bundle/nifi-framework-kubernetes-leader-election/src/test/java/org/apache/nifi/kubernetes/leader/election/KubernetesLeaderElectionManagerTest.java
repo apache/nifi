@@ -27,13 +27,13 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isA;
@@ -202,8 +202,9 @@ class KubernetesLeaderElectionManagerTest {
         final boolean leader = manager.isLeader(ROLE);
         assertTrue(leader);
 
-        final String leaderId = manager.getLeader(ROLE);
-        assertEquals(PARTICIPANT_ID, leaderId);
+        final Optional<String> leaderId = manager.getLeader(ROLE);
+        assertTrue(leaderId.isPresent());
+        assertEquals(PARTICIPANT_ID, leaderId.get());
 
         assertEquals(LEADER_ELECTION_ROLE.getRoleId(), leaderElectionCommandProvider.name);
     }
@@ -215,8 +216,8 @@ class KubernetesLeaderElectionManagerTest {
         final boolean leader = manager.isLeader(ROLE);
         assertFalse(leader);
 
-        final String leaderId = manager.getLeader(ROLE);
-        assertNull(leaderId, "Leader found for unregistered election");
+        final Optional<String> leaderId = manager.getLeader(ROLE);
+        assertFalse(leaderId.isPresent(), "Leader found for unregistered election");
     }
 
     private class MockKubernetesLeaderElectionManager extends KubernetesLeaderElectionManager {
@@ -268,9 +269,9 @@ class KubernetesLeaderElectionManagerTest {
         }
 
         @Override
-        public String findLeader(final String name) {
+        public Optional<String> findLeader(final String name) {
             this.findLeaderName = name;
-            return null;
+            return Optional.empty();
         }
 
         @Override

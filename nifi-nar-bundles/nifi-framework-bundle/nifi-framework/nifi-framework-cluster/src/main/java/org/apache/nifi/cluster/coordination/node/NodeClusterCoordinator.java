@@ -84,6 +84,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -297,7 +298,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return localNodeId;
     }
 
-    private String getElectedActiveCoordinatorAddress() {
+    private Optional<String> getElectedActiveCoordinatorAddress() {
         return leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
@@ -726,14 +727,14 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public NodeIdentifier getPrimaryNode() {
-        final String primaryNodeAddress = leaderElectionManager.getLeader(ClusterRoles.PRIMARY_NODE);
-        if (primaryNodeAddress == null) {
+        final Optional<String> primaryNodeLeader = leaderElectionManager.getLeader(ClusterRoles.PRIMARY_NODE);
+        if (!primaryNodeLeader.isPresent()) {
             return null;
         }
 
         return nodeStatuses.values().stream()
                 .map(NodeConnectionStatus::getNodeIdentifier)
-                .filter(nodeId -> primaryNodeAddress.equals(nodeId.getSocketAddress() + ":" + nodeId.getSocketPort()))
+                .filter(nodeId -> primaryNodeLeader.get().equals(nodeId.getSocketAddress() + ":" + nodeId.getSocketPort()))
                 .findFirst()
                 .orElse(null);
     }
@@ -744,20 +745,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private NodeIdentifier getElectedActiveCoordinatorNode(final boolean warnOnError) {
-        String electedNodeAddress;
+        final Optional<String> electedActiveCoordinatorAddress;
         try {
-            electedNodeAddress = getElectedActiveCoordinatorAddress();
+            electedActiveCoordinatorAddress = getElectedActiveCoordinatorAddress();
         } catch (final NoClusterCoordinatorException ncce) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
 
-        if (electedNodeAddress == null || electedNodeAddress.trim().isEmpty()) {
+        if (!electedActiveCoordinatorAddress.isPresent()) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
 
-        electedNodeAddress = electedNodeAddress.trim();
+        final String electedNodeAddress = electedActiveCoordinatorAddress.get().trim();
 
         final int colonLoc = electedNodeAddress.indexOf(':');
         if (colonLoc < 1) {

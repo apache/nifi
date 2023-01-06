@@ -732,10 +732,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // flow that is different from the rest of the cluster (especially an empty flow) and then
             // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
             // the coordinator.
-            LOG.info("Checking if there is already a Cluster Coordinator Elected...");
-            final String clusterCoordinatorAddress = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
-            if (StringUtils.isEmpty(clusterCoordinatorAddress)) {
-                LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
+            LOG.info("Checking for elected Cluster Coordinator...");
+            final Optional<String> clusterCoordinatorLeader = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
+            if (!clusterCoordinatorLeader.isPresent()) {
+                LOG.info("No Cluster Coordinator elected: Registering for Cluster Coordinator election");
                 registerForClusterCoordinator(true);
             } else {
                 // At this point, we have determined that there is a Cluster Coordinator elected. It is important to note, though,
@@ -746,8 +746,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 // to that address has not started. ZooKeeper/Curator will recognize this after a while and delete the ZNode. As a result,
                 // we may later determine that there is in fact no Cluster Coordinator. If this happens, we will automatically register for
                 // Cluster Coordinator through the StandardFlowService.
-                LOG.info("The Election for Cluster Coordinator has already begun (Leader is {}). Will not register to be elected for this role until after connecting "
-                        + "to the cluster and inheriting the cluster's flow.", clusterCoordinatorAddress);
+                LOG.info("Cluster Coordinator [{}] elected: Not registering for election until after connecting "
+                        + "to the cluster and inheriting the flow", clusterCoordinatorLeader.get());
                 registerForClusterCoordinator(false);
             }
 
