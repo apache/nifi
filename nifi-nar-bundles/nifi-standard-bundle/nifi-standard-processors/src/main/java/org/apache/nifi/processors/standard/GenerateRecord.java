@@ -296,7 +296,7 @@ public class GenerateRecord extends AbstractProcessor {
     }
 
     private Object generateValueFromRecordField(RecordField recordField, Faker faker, int nullPercentage) {
-        if (recordField.isNullable() && faker.number().numberBetween(0, 100) <= nullPercentage) {
+        if (recordField.isNullable() && faker.number().numberBetween(0, 100) < nullPercentage) {
             return null;
         }
         switch (recordField.getDataType().getFieldType()) {
