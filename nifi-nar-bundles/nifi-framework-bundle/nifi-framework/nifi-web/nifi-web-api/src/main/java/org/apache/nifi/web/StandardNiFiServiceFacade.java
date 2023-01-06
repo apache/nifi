@@ -6291,7 +6291,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 continue;
             }
 
-            if (leader.equals(nodeAddress)) {
+            final String leaderAddress = leader.get();
+            if (leaderAddress.equals(nodeAddress)) {
                 roles.add(roleName);
             }
         }
