@@ -57,23 +57,21 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.TimeZone;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -198,7 +196,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_ORIGINAL);
         _relationships.add(REL_FAILURE);
         _relationships.add(REL_RETRY);
         relationships = Collections.unmodifiableSet(_relationships);
@@ -229,36 +226,27 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile inputFlowFile = null;
         FlowFile fileToProcess = null;
 
-        Map<String, String> attributes = null;
-
         if (context.hasIncomingConnection()) {
-            inputFlowFile = session.get();
+            fileToProcess = session.get();
 
             // If we have no FlowFile, and all incoming connections are self-loops then we can continue on.
             // However, if we have no FlowFile and we have connections coming from other Processors, then
             // we know that we should run only if we have a FlowFile.
-            if (inputFlowFile == null && context.hasNonLoopConnection()) {
+            if (fileToProcess == null && context.hasNonLoopConnection()) {
                 return;
             }
-
-            attributes = inputFlowFile.getAttributes();
         }
 
         final ComponentLog logger = getLogger();
-        final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(inputFlowFile).getValue();
-        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(inputFlowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+        final long queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();
         final long maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final long outputBatchSize = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(inputFlowFile).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(fileToProcess).getValue());
         final StopWatch stopWatch = new StopWatch(true);
-
-        /*if(inputFlowFile != null){
-            session.transfer(inputFlowFile, REL_ORIGINAL);
-        }*/
 
         try {
             // The documentation for the driver recommends the session remain open the entire time the processor is running
@@ -271,17 +259,15 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }else{
                 resultSet = connectionSession.execute(selectQuery);
             }
-
             final AtomicLong nrOfRows = new AtomicLong(0L);
 
             long flowFileCount = 0;
 
-            do {
-                if(inputFlowFile != null){
-                    fileToProcess = session.create(inputFlowFile);
-                }else{
-                    fileToProcess = session.create();
-                }
+            if(fileToProcess == null) {
+                fileToProcess = session.create();
+            }
+
+            while(true) {
 
                 fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
                     @Override
@@ -327,20 +313,24 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 if (outputBatchSize > 0) {
                     flowFileCount++;
 
-                    if (flowFileCount== outputBatchSize) {
-                        session.commit();
+                    if (flowFileCount == outputBatchSize) {
+                        session.commitAsync();
                         flowFileCount = 0;
+                        fileToProcess = session.create();
                     }
                 }
-
-
                 try {
                     resultSet.fetchMoreResults().get();
                 } catch (Exception e) {
                     logger.error("ExecutionException : query {} for {} due to {}; routing to failure",
                             new Object[]{selectQuery, fileToProcess, e});
                 }
-            } while (!resultSet.isExhausted());
+                if (!resultSet.isExhausted()) {
+                    fileToProcess = session.create();
+                } else {
+                    break;
+                }
+            }
 
         } catch (final NoHostAvailableException nhae) {
             getLogger().error("No host in the Cassandra cluster can be contacted successfully to execute this query", nhae);
@@ -401,12 +391,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 context.yield();
             }
         }
-
-        if(inputFlowFile != null){
-            session.transfer(inputFlowFile, REL_ORIGINAL);
-        }
-
-        session.commit();
+        session.commitAsync();
     }
 
 
@@ -501,6 +486,22 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         }
     }
 
+    private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
+        final String dateFormatPattern = context
+                .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
+                .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat.format(value);
+    }
+
+    public static long convertToJsonStream(final ResultSet rs, long maxRowsPerFlowFile,
+                                           final OutputStream outStream,
+                                           Charset charset, long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException, ExecutionException {
+        return convertToJsonStream(Optional.empty(), rs, maxRowsPerFlowFile, outStream, charset, timeout, timeUnit);
+    }
+
     /**
      * Converts a result set into an Json object and writes it to the given stream using the specified character set.
      *
@@ -514,16 +515,11 @@ public class QueryCassandra extends AbstractCassandraProcessor {
      * @throws TimeoutException     If a result set fetch has taken longer than the specified timeout
      * @throws ExecutionException   If any error occurs during the result set fetch
      */
-    public static long convertToJsonStream(final ResultSet rs, long maxRowsPerFlowFile,
-                                           final OutputStream outStream,
-                                           Charset charset, long timeout, TimeUnit timeUnit)
-        throws IOException, InterruptedException, TimeoutException, ExecutionException {
-        return convertToJsonStream(Optional.empty(), rs, outStream, charset, timeout, timeUnit);
-    }
-
     @VisibleForTesting
-    static long convertToJsonStream(final Optional<ProcessContext> context, final ResultSet rs, final OutputStream outStream,
-                                           Charset charset, long timeout, TimeUnit timeUnit)
+    public static long convertToJsonStream(final Optional<ProcessContext> context,
+                                    final ResultSet rs, long maxRowsPerFlowFile,
+                                    final OutputStream outStream,
+                                    Charset charset, long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         try {
@@ -588,7 +584,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                     if (!first) {
                                         sb.append(",");
                                     }
-                                    sb.append(getJsonElement(element));
+                                    sb.append(getJsonElement(context, element));
                                     first = false;
                                 }
                                 sb.append("]");
@@ -604,15 +600,15 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                                     if (!first) {
                                         sb.append(",");
                                     }
-                                    sb.append(getJsonElement(mapKey));
+                                    sb.append(getJsonElement(context, mapKey));
                                     sb.append(":");
-                                    sb.append(getJsonElement(mapValue));
+                                    sb.append(getJsonElement(context, mapValue));
                                     first = false;
                                 }
                                 sb.append("}");
                                 valueString = sb.toString();
                             } else {
-                                valueString = getJsonElement(value);
+                                valueString = getJsonElement(context, value);
                             }
                             outStream.write(("\"" + colName + "\":"
                                     + valueString + "").getBytes(charset));
@@ -642,15 +638,6 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         } else {
             return "\"" + value.toString() + "\"";
         }
-    }
-
-    private static String getFormattedDate(final Optional<ProcessContext> context, Date value) {
-        final String dateFormatPattern = context
-                .map(_context -> _context.getProperty(TIMESTAMP_FORMAT_PATTERN).getValue())
-                .orElse(TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
-        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatPattern);
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return dateFormat.format(value);
     }
 
     /**
@@ -711,4 +698,3 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         return builder.endRecord();
     }
 }
-

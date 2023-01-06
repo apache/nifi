@@ -28,14 +28,6 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLContext;
 import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -56,9 +48,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.util.Locale;
+import javax.net.ssl.SSLContext;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.text.SimpleDateFormat;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -159,24 +156,19 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is transferred to this relationship if the operation completed successfully.")
             .build();
 
-    static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("All input FlowFiles that are part of a successful CQL operation execution go here.")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
+    static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("CQL operation execution failed.")
+            .description("A FlowFile is transferred to this relationship if the operation failed.")
             .build();
 
-    public static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
+    static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
             .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
-                    + "the operation again may succeed.")
+                    + "it again may succeed.")
             .build();
 
     protected static List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -190,7 +182,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         descriptors.add(USERNAME);
         descriptors.add(PASSWORD);
         descriptors.add(CONSISTENCY_LEVEL);
-        descriptors.add(COMPRESSION_TYPE);
         descriptors.add(CHARSET);
     }
 
@@ -218,12 +209,12 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
         if (connectionProviderIsSet && contactPointsIsSet) {
             results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("both " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
-                        " and processor level Cassandra configuration cannot be provided at the same time.").build());
+                    " and processor level Cassandra configuration cannot be provided at the same time.").build());
         }
 
         if (!connectionProviderIsSet && !contactPointsIsSet) {
             results.add(new ValidationResult.Builder().subject("Cassandra configuration").valid(false).explanation("either " + CONNECTION_PROVIDER_SERVICE.getDisplayName() +
-                        " or processor level Cassandra configuration has to be provided.").build());
+                    " or processor level Cassandra configuration has to be provided.").build());
         }
 
         return results;
@@ -233,7 +224,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
 
-        // Register codecs
         registerAdditionalCodecs();
 
         if (connectionProviderIsSet) {
@@ -394,10 +384,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             return row.getDouble(i);
 
         } else if (dataType.equals(DataType.timestamp())) {
-            // Timestamp type returned with ISO 8601 format
-            SimpleDateFormat formatter =
-                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.getDefault());
-            return formatter.format(row.getTimestamp(i));
+            return row.getTimestamp(i);
         } else if (dataType.equals(DataType.date())) {
             return row.getDate(i);
 

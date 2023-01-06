@@ -228,7 +228,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
     }
 
@@ -246,7 +245,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_SUCCESS, 2);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
     }
 
@@ -260,7 +258,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
     }
 
@@ -273,7 +270,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_RETRY, 1);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
     }
 
@@ -286,7 +282,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
         testRunner.clearTransferState();
     }
 
@@ -298,7 +293,6 @@ public class QueryCassandraTest {
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertTransferCount(QueryCassandra.REL_FAILURE, 1);
-        testRunner.assertTransferCount(QueryCassandra.REL_ORIGINAL, 1);
     }
 
     // --
@@ -443,7 +437,7 @@ public class QueryCassandraTest {
         DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, baos,
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, 0, baos,
             StandardCharsets.UTF_8, 0, null);
         assertEquals(1, numberOfRows);
 
@@ -463,7 +457,7 @@ public class QueryCassandraTest {
         DateFormat df = new SimpleDateFormat(customDateFormat);
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, baos, StandardCharsets.UTF_8, 0, null);
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, 0, baos, StandardCharsets.UTF_8, 0, null);
         assertEquals(1, numberOfRows);
 
         Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
@@ -534,7 +528,7 @@ public class QueryCassandraTest {
 
         @Override
         protected Cluster createCluster(List<InetSocketAddress> contactPoints, SSLContext sslContext,
-                                        String username, String password) {
+                                        String username, String password, String compressionType) {
             Cluster mockCluster = mock(Cluster.class);
             try {
                 Metadata mockMetadata = mock(Metadata.class);
