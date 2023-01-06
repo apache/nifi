@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,7 +39,7 @@ public class XmlValidator {
     public static void assertXmlValid(String xml) {
         final String html = xml.replace(DOCTYPE, EMPTY);
         final DocumentProvider provider = new StandardDocumentProvider();
-        provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+        assertDoesNotThrow(() -> provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))));
     }
 
     public static void assertContains(String original, String subword) {

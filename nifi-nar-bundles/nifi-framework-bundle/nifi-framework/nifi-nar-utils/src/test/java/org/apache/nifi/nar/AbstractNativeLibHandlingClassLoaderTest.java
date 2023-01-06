@@ -17,9 +17,8 @@
 package org.apache.nifi.nar;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,7 +30,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +51,7 @@ public class AbstractNativeLibHandlingClassLoaderTest {
     @Mock
     private AbstractNativeLibHandlingClassLoader testSubjectHelper;
 
+    @TempDir
     private Path tempDirectory;
 
     private String javaLibraryPath = "";
@@ -63,22 +62,6 @@ public class AbstractNativeLibHandlingClassLoaderTest {
     private boolean isOsWindows;
     private boolean isOsMaxOsx;
     private boolean isOsLinux;
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        tempDirectory = Files.createTempDirectory(this.getClass().getSimpleName());
-    }
-
-    @AfterEach
-    public void tearDown() throws Exception {
-        tempDirectory.toFile().deleteOnExit();
-
-        Files.walk(tempDirectory)
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
-
-    }
 
     @Test
     public void testFindLibraryShouldReturnNullOnWindowsWhenNoDLLAvailable() throws Exception {
