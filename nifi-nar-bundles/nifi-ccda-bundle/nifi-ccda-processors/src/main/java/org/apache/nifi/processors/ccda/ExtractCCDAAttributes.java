@@ -41,6 +41,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -53,6 +54,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.eclipse.emf.common.util.Diagnostic;
 import org.openhealthtools.mdht.uml.cda.CDAPackage;
 import org.openhealthtools.mdht.uml.cda.ClinicalDocument;
@@ -62,7 +64,9 @@ import org.openhealthtools.mdht.uml.cda.hitsp.HITSPPackage;
 import org.openhealthtools.mdht.uml.cda.ihe.IHEPackage;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil.ValidationHandler;
+import org.w3c.dom.Document;
 
+@DeprecationNotice(reason = "Parsing XML elements to FlowFile attributes is not recommend and should be replaced with record-oriented handling")
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -284,7 +288,11 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         ClinicalDocument cd = null;
 
         try {
-            cd = CDAUtil.load(inputStream); // load CDA document
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
+            final Document document = documentProvider.parse(inputStream);
+
+            cd = CDAUtil.load(document); // load CDA document
             if (!skipValidation && !CDAUtil.validate(cd, new CDAValidationHandler())) { //optional validation
                 getLogger().error("Failed to validate CDA document");
                 throw new ProcessException("Failed to validate CDA document");
