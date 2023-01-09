@@ -53,8 +53,8 @@
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-legacy</artifactId>
-            <version>${mongo.driver.version}</version>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

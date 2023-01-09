@@ -20,8 +20,8 @@
 package org.apache.nifi.processors.mongodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
@@ -67,7 +67,7 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(RunMongoAggregation.QUERY_ATTRIBUTE, AGG_ATTR);
 
-        mongoClient = new MongoClient(new MongoClientURI(MONGO_CONTAINER.getConnectionString()));
+        mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
 
         MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
         String[] values = new String[] { "a", "b", "c" };

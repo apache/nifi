@@ -17,8 +17,8 @@
 
 package org.apache.nifi.processors.mongodb;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,7 +44,7 @@ public class MongoWriteTestBase extends AbstractMongoIT {
 
     public void setup(Class processor) {
         DATABASE_NAME = processor.getSimpleName().toLowerCase();
-        mongoClient = new MongoClient(new MongoClientURI(MONGO_CONTAINER.getConnectionString()));
+        mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
         collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
     }
 

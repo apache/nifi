@@ -42,7 +42,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -79,10 +78,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.enableControllerService(recordReader);
         runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
         return runner;
-    }
-
-    private byte[] documentToByteArray(Document doc) {
-        return doc.toJson().getBytes(StandardCharsets.UTF_8);
     }
 
     @Test
@@ -213,12 +208,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongoRecord.REL_SUCCESS).get(0);
 
-
-        // verify 1 doc inserted into the collection
         assertEquals(4, collection.countDocuments());
-        //assertEquals(doc, collection.find().first());
     }
 
     @Test
@@ -250,7 +241,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     void testUpsertAsInsert() throws Exception {
-        // GIVEN
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
@@ -293,14 +283,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             }}
         ));
 
-        // WHEN
-        // THEN
         testUpsertSuccess(runner, inputs, expected);
     }
 
     @Test
     void testUpsertAsUpdate() throws Exception {
-        // GIVEN
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
@@ -353,13 +340,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             }}
         ));
 
-        // WHEN
         testUpsertSuccess(runner, inputs, expected);
     }
 
     @Test
     void testUpsertAsInsertAndUpdate() throws Exception {
-        // GIVEN
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id");
@@ -408,13 +393,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             }}
         ));
 
-        // WHEN
         testUpsertSuccess(runner, inputs, expected);
     }
 
     @Test
     void testRouteToFailureWhenKeyFieldDoesNotExist() throws Exception {
-        // GIVEN
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,non_existent_field");
@@ -436,17 +419,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        // WHEN
-        // THEN
         testUpsertFailure(runner, inputs);
     }
 
     @Test
     void testUpdateMany() throws Exception {
-        // GIVEN
         TestRunner initRunner = init();
 
-        // Init Mongo data
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
@@ -503,17 +482,13 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             }}
         ));
 
-        // WHEN
-        // THEN
         testUpsertSuccess(updateRunner, inputs, expected);
     }
 
     @Test
     void testUpdateModeFFAttributeSetToMany() throws Exception {
-        // GIVEN
         TestRunner initRunner = init();
 
-        // Init Mongo data
         recordReader.addSchemaField("name", RecordFieldType.STRING);
         recordReader.addSchemaField("team", RecordFieldType.STRING);
         recordReader.addSchemaField("color", RecordFieldType.STRING);
@@ -570,7 +545,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             }}
         ));
 
-        // WHEN
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
@@ -582,7 +556,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             updateRunner.run();
         });
 
-        // THEN
         assertEquals(0, updateRunner.getQueueSize().getObjectCount());
 
         updateRunner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
@@ -614,14 +587,11 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        // WHEN
-        // THEN
         testUpsertFailure(runner, inputs);
     }
 
     @Test
     void testRouteToFailureWhenKeyFieldReferencesNonEmbeddedDocument() throws Exception {
-        // GIVEN
         TestRunner runner = init();
 
         runner.setProperty(PutMongoRecord.UPDATE_KEY_FIELDS, "id,id.is_not_an_embedded_document");
@@ -643,15 +613,10 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             )
         );
 
-        // WHEN
-        // THEN
         testUpsertFailure(runner, inputs);
     }
 
     private void testUpsertSuccess(TestRunner runner, List<List<Object[]>> inputs, Set<Map<String, Object>> expected) {
-        // GIVEN
-
-        // WHEN
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
@@ -659,7 +624,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             runner.run();
         });
 
-        // THEN
         assertEquals(0, runner.getQueueSize().getObjectCount());
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_SUCCESS, inputs.size());
@@ -675,10 +639,8 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
     }
 
     private void testUpsertFailure(TestRunner runner, List<List<Object[]>> inputs) {
-        // GIVEN
         Set<Object> expected = Collections.emptySet();
 
-        // WHEN
         inputs.forEach(input -> {
             input.forEach(recordReader::addRecord);
 
@@ -686,7 +648,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             runner.run();
         });
 
-        // THEN
         assertEquals(0, runner.getQueueSize().getObjectCount());
 
         runner.assertAllFlowFilesTransferred(PutMongoRecord.REL_FAILURE, inputs.size());

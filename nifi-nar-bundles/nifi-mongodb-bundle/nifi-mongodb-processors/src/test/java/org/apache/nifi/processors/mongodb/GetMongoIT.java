@@ -19,8 +19,8 @@
 package org.apache.nifi.processors.mongodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
@@ -86,7 +86,7 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
         runner.setIncomingConnection(false);
 
-        mongoClient = new MongoClient(new MongoClientURI(MONGO_CONTAINER.getConnectionString()));
+        mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
 
         MongoCollection<Document> collection = mongoClient.getDatabase(DB_NAME).getCollection(COLLECTION_NAME);
         collection.insertMany(DOCUMENTS);
@@ -186,7 +186,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testReadOneDocument() throws Exception {
+    public void testReadOneDocument() {
         runner.setVariable("query", "{a: 1, b: 3}");
         runner.setProperty(GetMongo.QUERY, "${query}");
         runner.run();
@@ -197,7 +197,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testReadMultipleDocuments() throws Exception {
+    public void testReadMultipleDocuments() {
         runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.run();
         runner.assertAllFlowFilesTransferred(GetMongo.REL_SUCCESS, 3);
@@ -209,7 +209,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testProjection() throws Exception {
+    public void testProjection() {
         runner.setProperty(GetMongo.QUERY, "{\"a\": 1, \"b\": 3}");
         runner.setProperty(GetMongo.PROJECTION, "{\"_id\": 0, \"a\": 1}");
         runner.run();
@@ -221,7 +221,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testSort() throws Exception {
+    public void testSort() {
         runner.setVariable("sort", "{a: -1, b: -1, c: 1}");
         runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.SORT, "${sort}");
@@ -235,7 +235,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testLimit() throws Exception {
+    public void testLimit() {
         runner.setProperty(GetMongo.QUERY, "{\"a\": {\"$exists\": \"true\"}}");
         runner.setProperty(GetMongo.LIMIT, "${limit}");
         runner.setVariable("limit", "1");
@@ -247,7 +247,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testResultsPerFlowfile() throws Exception {
+    public void testResultsPerFlowfile() {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "${results.per.flowfile}");
         runner.setVariable("results.per.flowfile", "2");
         runner.enqueue("{}");
@@ -261,7 +261,7 @@ public class GetMongoIT extends AbstractMongoIT {
     }
 
     @Test
-    public void testBatchSize() throws Exception {
+    public void testBatchSize() {
         runner.setProperty(GetMongo.RESULTS_PER_FLOWFILE, "2");
         runner.setProperty(GetMongo.BATCH_SIZE, "${batch.size}");
         runner.setVariable("batch.size", "1");
@@ -655,22 +655,5 @@ public class GetMongoIT extends AbstractMongoIT {
         runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
         runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
         runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
-    }
-
-    public void testSendEmpty() throws Exception {
-        runner.setIncomingConnection(true);
-        runner.setProperty(GetMongo.SEND_EMPTY_RESULTS, "true");
-        runner.setProperty(GetMongo.QUERY, "{ \"nothing\": true }");
-        runner.assertValid();
-        runner.enqueue("");
-        runner.run();
-
-        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
-        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
-        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
-
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertEquals(0, flowFile.getSize());
     }
 }
