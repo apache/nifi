@@ -28,6 +28,7 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
+import org.apache.nifi.prometheus.util.ClusterMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
@@ -83,6 +84,8 @@ public class TestFlowResource {
     private static final String SAMPLE_LABEL_VALUES_PROCESS_GROUP = "ProcessGroup";
     private static final String COMPONENT_TYPE_LABEL = "component_type";
     private static final int COMPONENT_TYPE_VALUE_INDEX = 1;
+    private static final String CLUSTER_TYPE_LABEL = "cluster";
+    private static final String CLUSTER_LABEL_KEY = "instance";
 
     @InjectMocks
     private FlowResource resource = new FlowResource();
@@ -193,12 +196,13 @@ public class TestFlowResource {
         assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
         final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
-        assertThat(registryList, hasSize(9));
+        assertThat(registryList, hasSize(13));
 
         final Map<String, Long> result = getResult(registryList);
         assertThat(3L, equalTo(result.get(SAMPLE_NAME_JVM)));
         assertThat(4L, equalTo(result.get(SAMPLE_LABEL_VALUES_PROCESS_GROUP)));
         assertThat(2L, equalTo(result.get(SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP)));
+        assertThat(4L, equalTo(result.get(CLUSTER_LABEL_KEY)));
     }
 
     @Test
@@ -317,7 +321,13 @@ public class TestFlowResource {
     }
 
     private String getResultKey(final Sample sample) {
-        return sample.labelNames.contains(COMPONENT_TYPE_LABEL) ? sample.labelValues.get(COMPONENT_TYPE_VALUE_INDEX) : SAMPLE_NAME_JVM;
+        if (sample.labelNames.contains(COMPONENT_TYPE_LABEL)) {
+            return sample.labelValues.get(COMPONENT_TYPE_VALUE_INDEX);
+        }
+        if (sample.name.startsWith(CLUSTER_TYPE_LABEL)) {
+            return CLUSTER_LABEL_KEY;
+        }
+        return SAMPLE_NAME_JVM;
     }
 
     private static List<CollectorRegistry> getCollectorRegistriesForJson() {
@@ -327,6 +337,7 @@ public class TestFlowResource {
         registryList.add(getConnectionMetricsRegistry());
         registryList.add(getJvmMetricsRegistry());
         registryList.add(getBulletinMetricsRegistry());
+        registryList.add(getClusterMetricsRegistry());
 
         return registryList;
 
@@ -377,6 +388,18 @@ public class TestFlowResource {
 
         return bulletinMetricsRegistry.getRegistry();
     }
+
+    private static CollectorRegistry getClusterMetricsRegistry() {
+        final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
+
+        clusterMetricsRegistry.setDataPoint(1, "IS_CLUSTERED", "B1Id");
+        clusterMetricsRegistry.setDataPoint(1, "IS_CONNECTED_TO_CLUSTER", "B1Id");
+        clusterMetricsRegistry.setDataPoint(2, "CONNECTED_NODE_COUNT", "B1Id", "2 / 3");
+        clusterMetricsRegistry.setDataPoint(3, "TOTAL_NODE_COUNT", "B1Id");
+
+        return clusterMetricsRegistry.getRegistry();
+    }
+
 
     private static class SampleDeserializer extends StdDeserializer<Sample> {
         protected SampleDeserializer() {
