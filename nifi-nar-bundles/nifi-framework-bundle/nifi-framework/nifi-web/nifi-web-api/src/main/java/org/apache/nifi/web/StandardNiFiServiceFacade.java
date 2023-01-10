@@ -132,6 +132,7 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
+import org.apache.nifi.prometheus.util.ClusterMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
@@ -438,19 +439,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private final BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+    private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
 
     private final Collection<AbstractMetricsRegistry> configuredRegistries = Arrays.asList(
             nifiMetricsRegistry,
             jvmMetricsRegistry,
             connectionAnalyticsMetricsRegistry,
-            bulletinMetricsRegistry
+            bulletinMetricsRegistry,
+            clusterMetricsRegistry
     );
 
     private final Collection<CollectorRegistry> metricsRegistries = Arrays.asList(
             nifiMetricsRegistry.getRegistry(),
             jvmMetricsRegistry.getRegistry(),
             connectionAnalyticsMetricsRegistry.getRegistry(),
-            bulletinMetricsRegistry.getRegistry()
+            bulletinMetricsRegistry.getRegistry(),
+            clusterMetricsRegistry.getRegistry()
     );
 
 
@@ -6192,6 +6196,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 );
             }
         }
+
+        // Collect cluster summary metrics
+        int connectedNodeCount = 0;
+        int totalNodeCount = 0;
+        String connectedNodesLabel = "Not clustered";
+        if (clusterCoordinator != null && clusterCoordinator.isConnected()) {
+            final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
+            for (final List<NodeIdentifier> nodeList : stateMap.values()) {
+                totalNodeCount += nodeList.size();
+            }
+            final List<NodeIdentifier> connectedNodeIds = stateMap.get(NodeConnectionState.CONNECTED);
+            connectedNodeCount = (connectedNodeIds == null) ? 0 : connectedNodeIds.size();
+
+            connectedNodesLabel = connectedNodeCount + " / " + totalNodeCount;
+        }
+        final boolean isClustered = clusterCoordinator != null;
+        final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
+        PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
+
         return metricsRegistries;
     }
 
