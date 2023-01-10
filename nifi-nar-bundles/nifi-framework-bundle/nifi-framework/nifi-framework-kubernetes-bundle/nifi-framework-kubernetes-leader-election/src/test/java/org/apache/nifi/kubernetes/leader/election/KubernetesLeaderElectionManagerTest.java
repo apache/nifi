@@ -128,6 +128,7 @@ class KubernetesLeaderElectionManagerTest {
         assertActiveParticipantLeader();
 
         manager.unregister(ROLE);
+        leaderElectionCommandProvider.leader = null;
 
         assertNotActiveParticipantNotLeader();
 
@@ -188,6 +189,7 @@ class KubernetesLeaderElectionManagerTest {
         leaderElectionCommandProvider.runStartLeading = true;
         leaderElectionCommandProvider.runNewLeader = true;
         leaderElectionCommandProvider.runStopLeading = true;
+        leaderElectionCommandProvider.leader = PARTICIPANT_ID;
     }
 
     private void captureRunCommand() {
@@ -246,6 +248,8 @@ class KubernetesLeaderElectionManagerTest {
 
         private boolean closed;
 
+        private String leader;
+
         @Override
         public Runnable getCommand(
                 final String name,
@@ -271,7 +275,7 @@ class KubernetesLeaderElectionManagerTest {
         @Override
         public Optional<String> findLeader(final String name) {
             this.findLeaderName = name;
-            return Optional.empty();
+            return Optional.ofNullable(leader);
         }
 
         @Override

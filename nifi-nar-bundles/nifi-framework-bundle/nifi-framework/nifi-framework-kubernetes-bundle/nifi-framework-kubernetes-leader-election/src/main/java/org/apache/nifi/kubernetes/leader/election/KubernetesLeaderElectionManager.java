@@ -189,22 +189,12 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
     public Optional<String> getLeader(final String roleName) {
         requireRoleName(roleName);
 
+        final String roleId = getRoleId(roleName);
+
         final long pollStarted = System.nanoTime();
         try {
-            final String roleId = getRoleId(roleName);
-            final Optional<String> leader;
-            if (started.get()) {
-                final String roleLeader = roleLeaders.get(roleName);
-                if (roleLeader == null) {
-                    logger.debug("Leader not registered: finding Leader for Role [{}]", roleName);
-                    leader = leaderElectionCommandProvider.findLeader(roleId);
-                } else {
-                    leader = Optional.of(roleLeader);
-                }
-            } else {
-                logger.debug("Manager not running: finding Leader for Role [{}]", roleName);
-                leader = leaderElectionCommandProvider.findLeader(roleId);
-            }
+            final Optional<String> leader = leaderElectionCommandProvider.findLeader(roleId);
+            leader.ifPresent(leaderId -> setRoleLeader(roleName, leaderId));
             return leader;
         } finally {
             final long elapsed = System.nanoTime() - pollStarted;
@@ -270,8 +260,13 @@ public class KubernetesLeaderElectionManager extends TrackedLeaderElectionManage
     }
 
     private void setRoleLeader(final String roleName, final String leaderId) {
-        roleLeaders.put(roleName, leaderId);
-        onLeaderChanged(roleName);
+        final String previousLeaderId = roleLeaders.put(roleName, leaderId);
+        if (leaderId.equals(previousLeaderId)) {
+            logger.debug("Role [{}] Leader [{}] not changed", roleName, leaderId);
+        } else {
+            logger.debug("Role [{}] Leader [{}] Previous [{}] changed", roleName, leaderId, previousLeaderId);
+            onLeaderChanged(roleName);
+        }
     }
 
     private String getParticipantId(final String roleName) {
