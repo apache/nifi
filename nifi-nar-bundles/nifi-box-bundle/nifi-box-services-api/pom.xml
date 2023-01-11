@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.box</groupId>
             <artifactId>box-java-sdk</artifactId>
-            <version>3.6.0</version>
+            <version>3.8.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.bouncycastle</groupId>
