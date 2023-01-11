@@ -19,13 +19,11 @@ package org.apache.nifi.processors.model;
 import java.util.HashMap;
 import java.util.Set;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 
-public class Field {
+public class DatabaseField {
     private String tsName;
     private TSDataType dataType;
     private TSEncoding encoding;
@@ -60,15 +58,11 @@ public class Field {
         compressionMap.put("LZ4", CompressionType.LZ4);
     }
 
-    @JsonCreator
-    public Field(@JsonProperty("tsName") String tsName, @JsonProperty("dataType") String dataType, @JsonProperty("encoding") String encoding, @JsonProperty("compressionType") String compressionType) {
-        this.tsName = tsName;
-        this.dataType = typeMap.get(dataType);
-        this.encoding = encodingMap.get(encoding);
-        this.compressionType = compressionMap.get(compressionType);
+    public DatabaseField() {
+
     }
 
-    public Field(String tsName, TSDataType dataType) {
+    public DatabaseField(String tsName, TSDataType dataType) {
         this.tsName = tsName;
         this.dataType = dataType;
     }

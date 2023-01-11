@@ -18,7 +18,7 @@ package org.apache.nifi.processors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.processors.model.IoTDBSchema;
+import org.apache.nifi.processors.model.DatabaseSchema;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -37,12 +37,12 @@ public class PutIoTDBRecordTest {
     @Test
     public void testParseSchemaByAttribute() throws JsonProcessingException {
         String schemaAttribute =
-                "{\n"
-                        + "\t\"fields\": [\n"
-                        + "\t\t{\"tsName\": \"s1\",\"dataType\": \"INT32\", \"encoding\": \"PLAIN\", \"compressionType\": \"SNAPPY\"},\n"
-                        + "\t\t{\"tsName\": \"s2\",\"dataType\": \"BOOLEAN\", \"encoding\": \"PLAIN\", \"compressionType\": \"GZIP\"},\n"
-                        + "\t\t{\"tsName\": \"s3\",\"dataType\": \"TEXT\", \"encoding\": \"DICTIONARY\"}\n"
-                        + "\t]\n"
+                "{"
+                        + "\"fields\": ["
+                        + "{\"tsName\": \"s1\",\"dataType\": \"INT32\", \"encoding\": \"PLAIN\", \"compressionType\": \"SNAPPY\"},"
+                        + "{\"tsName\": \"s2\",\"dataType\": \"BOOLEAN\", \"encoding\": \"PLAIN\", \"compressionType\": \"GZIP\"},"
+                        + "{\"tsName\": \"s3\",\"dataType\": \"TEXT\", \"encoding\": \"DICTIONARY\"}"
+                        + "]"
                         + "}";
         List<String> exceptedFieldNames = Arrays.asList("root.sg.d1.s1","root.sg.d1.s2","root.sg.d1.s3");
         List<TSDataType> exceptedDataTypes = Arrays.asList(TSDataType.INT32, TSDataType.BOOLEAN, TSDataType.TEXT);
@@ -50,7 +50,7 @@ public class PutIoTDBRecordTest {
 
         List<CompressionType> exceptedCompressionTypes =  Arrays.asList(CompressionType.SNAPPY, CompressionType.GZIP, null);
 
-        IoTDBSchema schema = new ObjectMapper().readValue(schemaAttribute, IoTDBSchema.class);
+        DatabaseSchema schema = new ObjectMapper().readValue(schemaAttribute, DatabaseSchema.class);
         assertEquals(exceptedFieldNames, schema.getFieldNames("root.sg.d1."));
         assertArrayEquals(exceptedDataTypes.stream().sorted().toArray(), schema.getDataTypes().stream().sorted().toArray());
         assertArrayEquals(exceptedEncodings.stream().sorted().toArray(), schema.getEncodingTypes().stream().sorted().toArray());

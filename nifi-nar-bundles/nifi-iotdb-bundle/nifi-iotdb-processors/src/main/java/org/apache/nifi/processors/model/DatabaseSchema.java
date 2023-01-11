@@ -17,8 +17,9 @@
 package org.apache.nifi.processors.model;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -27,13 +28,13 @@ import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 
-public class IoTDBSchema {
-    private HashMap<String, Field> fieldMap;
-    private ArrayList<String> fieldNames;
+public class DatabaseSchema {
+    private final Map<String, DatabaseField> fieldMap;
+    private final List<String> fieldNames;
 
     @JsonCreator
-    public IoTDBSchema(@JsonProperty("fields") List<Field> fields) {
-        this.fieldMap = new HashMap<>();
+    public DatabaseSchema(@JsonProperty("fields") List<DatabaseField> fields) {
+        this.fieldMap = new LinkedHashMap<>();
         this.fieldNames = new ArrayList<>();
         fields.forEach(
                 field -> {
@@ -50,19 +51,19 @@ public class IoTDBSchema {
 
     public List<TSDataType> getDataTypes() {
         return fieldMap.values().stream()
-                .map(field -> field.getDataType())
+                .map(DatabaseField::getDataType)
                 .collect(Collectors.toList());
     }
 
     public List<TSEncoding> getEncodingTypes() {
         return fieldMap.values().stream()
-                .map(field -> field.getEncoding())
+                .map(DatabaseField::getEncoding)
                 .collect(Collectors.toList());
     }
 
     public List<CompressionType> getCompressionTypes() {
         return fieldMap.values().stream()
-                .map(field -> field.getCompressionType())
+                .map(DatabaseField::getCompressionType)
                 .collect(Collectors.toList());
     }
 

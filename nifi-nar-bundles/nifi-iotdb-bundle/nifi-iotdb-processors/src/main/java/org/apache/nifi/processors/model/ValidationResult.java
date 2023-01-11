@@ -17,19 +17,19 @@
 package org.apache.nifi.processors.model;
 
 public class ValidationResult {
-    private Boolean result;
-    private String message;
+    private final boolean valid;
+    private final String message;
 
-    public ValidationResult(Boolean result, String message) {
-        this.result = result;
+    public ValidationResult(final boolean valid, final String message) {
+        this.valid = valid;
         this.message = message;
     }
 
-    public Boolean getKey() {
-        return result;
+    public boolean isValid() {
+        return valid;
     }
 
-    public String getValue() {
+    public String getMessage() {
         return message;
     }
 }

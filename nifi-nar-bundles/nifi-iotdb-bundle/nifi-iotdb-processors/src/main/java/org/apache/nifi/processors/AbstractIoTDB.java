@@ -17,20 +17,24 @@
 package org.apache.nifi.processors;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processors.model.Field;
-import org.apache.nifi.processors.model.IoTDBSchema;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.processors.model.DatabaseField;
+import org.apache.nifi.processors.model.DatabaseSchema;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -55,70 +59,59 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
 
     protected static ObjectMapper mapper = new ObjectMapper();
 
-    //private static final String TIME_NAME = "timeName";
     private static final String FIELDS = "fields";
 
     private static final Map<RecordFieldType, TSDataType> typeMap =
             new HashMap<>();
 
-    private static final Map<String, RecordFieldType> reversedTypeMap =
-            new HashMap<>();
-
     static final Set<RecordFieldType> supportedType =
             new HashSet<>();
 
-    static final PropertyDescriptor IOTDB_HOST =
-            new PropertyDescriptor.Builder()
-                    .name("Host")
-                    .description("The host of IoTDB.")
-                    .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-                    .required(true)
-                    .build();
+    static final PropertyDescriptor IOTDB_HOST = new PropertyDescriptor.Builder()
+            .name("Host")
+            .description("IoTDB server host address")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .build();
 
-    static final PropertyDescriptor IOTDB_PORT =
-            new PropertyDescriptor.Builder()
-                    .name("Port")
-                    .description("The port of IoTDB.")
-                    .defaultValue(String.valueOf(DEFAULT_IOTDB_PORT))
-                    .addValidator(StandardValidators.PORT_VALIDATOR)
-                    .required(true)
-                    .addValidator(StandardValidators.PORT_VALIDATOR)
-                    .build();
+    static final PropertyDescriptor IOTDB_PORT = new PropertyDescriptor.Builder()
+            .name("Port")
+            .description("IoTDB server port number")
+            .defaultValue(String.valueOf(DEFAULT_IOTDB_PORT))
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .required(true)
+            .build();
 
-    static final PropertyDescriptor USERNAME =
-            new PropertyDescriptor.Builder()
-                    .name("Username")
-                    .description("Username to access the IoTDB.")
-                    .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-                    .required(true)
-                    .build();
+    static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
+            .name("Username")
+            .description("Username for access to IoTDB")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .build();
 
-    static final PropertyDescriptor PASSWORD =
-            new PropertyDescriptor.Builder()
-                    .name("Password")
-                    .description("Password to access the IoTDB.")
-                    .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-                    .required(true)
-                    .sensitive(true)
-                    .build();
+    static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .description("Password for access to IoTDB")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .sensitive(true)
+            .build();
 
-    static final List<PropertyDescriptor> descriptors = new ArrayList<>();
+    protected final static Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Processing succeeded")
+            .build();
 
-    protected final static Relationship REL_SUCCESS =
-            new Relationship.Builder()
-                    .name("success")
-                    .description("files that were successfully processed")
-                    .build();
-    protected final static Relationship REL_FAILURE =
-            new Relationship.Builder()
-                    .name("failure")
-                    .description("files that were not successfully processed")
-                    .build();
+    protected final static Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Processing failed")
+            .build();
 
-    protected Set<Relationship> relationships = new HashSet<>();
+    private static final List<PropertyDescriptor> descriptors = new ArrayList<>();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
+    private static final Set<Relationship> relationships = new LinkedHashSet<>();
+
+    static {
         descriptors.add(IOTDB_HOST);
         descriptors.add(IOTDB_PORT);
         descriptors.add(USERNAME);
@@ -133,9 +126,6 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         typeMap.put(RecordFieldType.LONG, TSDataType.INT64);
         typeMap.put(RecordFieldType.FLOAT, TSDataType.FLOAT);
         typeMap.put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
-        for (Map.Entry<RecordFieldType, TSDataType> it : typeMap.entrySet()) {
-            reversedTypeMap.put(String.valueOf(it.getValue()),it.getKey());
-        }
 
         supportedType.add(RecordFieldType.BOOLEAN);
         supportedType.add(RecordFieldType.STRING);
@@ -150,57 +140,59 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
 
     protected final AtomicReference<Session> session = new AtomicReference<>(null);
 
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws IoTDBConnectionException {
-        connectToIoTDB(context);
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
     }
 
-    void connectToIoTDB(ProcessContext context) throws IoTDBConnectionException {
+    @OnScheduled
+    public void onScheduled(ProcessContext context) throws IoTDBConnectionException {
         if (session.get() == null) {
             final String host = context.getProperty(IOTDB_HOST).getValue();
             final int port = Integer.parseInt(context.getProperty(IOTDB_PORT).getValue());
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
 
-            session.set(
-                    new Session.Builder()
-                            .host(host)
-                            .port(port)
-                            .username(username)
-                            .password(password)
-                            .build());
+            session.set(new Session.Builder()
+                    .host(host)
+                    .port(port)
+                    .username(username)
+                    .password(password)
+                    .build());
             session.get().open();
         }
     }
 
-    public void stop(ProcessContext context) {
+    @OnStopped
+    public void stop() {
         if (session.get() != null) {
             try {
                 session.get().close();
-            } catch (IoTDBConnectionException e) {
+            } catch (final IoTDBConnectionException e) {
                 getLogger().error("IoTDB disconnection failed", e);
             }
             session.set(null);
         }
     }
 
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Collections.unmodifiableList(descriptors);
+    }
+
     protected TSDataType getType(RecordFieldType type) {
         return typeMap.get(type);
     }
 
-    protected RecordFieldType getType(String type) {
-        return reversedTypeMap.get(type);
-    }
-
     protected ValidationResult validateSchemaAttribute(String schemaAttribute) {
-        JsonNode schema = null;
+        JsonNode schema;
         try {
             schema = mapper.readTree(schemaAttribute);
         } catch (JsonProcessingException e) {
             return new ValidationResult(false, e.getMessage());
         }
         Set<String> keySet = new HashSet<>();
-        schema.fieldNames().forEachRemaining(field -> keySet.add(field));
+        schema.fieldNames().forEachRemaining(keySet::add);
 
         if (!keySet.contains(FIELDS)) {
             String msg = "The JSON of schema must contain `fields`";
@@ -211,17 +203,17 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             JsonNode field = schema.get(FIELDS).get(i);
             Set<String> fieldKeySet = new HashSet<>();
 
-            field.fieldNames().forEachRemaining(fieldName -> fieldKeySet.add(fieldName));
+            field.fieldNames().forEachRemaining(fieldKeySet::add);
             if (!fieldKeySet.contains("tsName") || !fieldKeySet.contains("dataType")) {
                 String msg = "`tsName` or `dataType` has not been set";
                 return new ValidationResult(false, msg);
             }
 
-            if (!Field.getSupportedDataType().contains(field.get("dataType").asText())) {
+            if (!DatabaseField.getSupportedDataType().contains(field.get("dataType").asText())) {
                 String msg =
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
-                                field.get("dataType").asText(), Field.getSupportedDataType());
+                                field.get("dataType").asText(), DatabaseField.getSupportedDataType());
                 return new ValidationResult(false, msg);
             }
 
@@ -231,7 +223,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             supportedKeySet.add("encoding");
             supportedKeySet.add("compressionType");
 
-            HashSet<String> tmpKetSet = new HashSet<>();
+            Set<String> tmpKetSet = new HashSet<>();
             tmpKetSet.addAll(supportedKeySet);
             tmpKetSet.addAll(fieldKeySet);
             tmpKetSet.removeAll(supportedKeySet);
@@ -247,20 +239,20 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             }
 
             if (field.get("encoding") != null
-                    && !Field.getSupportedEncoding().contains(field.get("encoding").asText())) {
+                    && !DatabaseField.getSupportedEncoding().contains(field.get("encoding").asText())) {
                 String msg =
                         String.format(
                                 "Unknown `encoding`: %s, The supported encoding types are %s",
-                                field.get("encoding").asText(), Field.getSupportedEncoding());
+                                field.get("encoding").asText(), DatabaseField.getSupportedEncoding());
                 return new ValidationResult(false, msg);
             }
 
             if (field.get("compressionType") != null
-                    && !Field.getSupportedCompressionType().contains(field.get("compressionType").asText())) {
+                    && !DatabaseField.getSupportedCompressionType().contains(field.get("compressionType").asText())) {
                 String msg =
                         String.format(
                                 "Unknown `compressionType`: %s, The supported compressionType are %s",
-                                field.get("compressionType").asText(), Field.getSupportedCompressionType());
+                                field.get("compressionType").asText(), DatabaseField.getSupportedCompressionType());
                 return new ValidationResult(false, msg);
             }
         }
@@ -289,25 +281,26 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         return new ValidationResult(true, null);
     }
 
-    protected Map<String, List<String>> parseSchema(List<String> filedNames) {
-        HashMap<String, List<String>> deviceMeasurementMap = new HashMap<>();
-        filedNames.stream()
-                .forEach(
-                        filed -> {
-                            String[] paths = filed.split("\\.");
-                            String device = StringUtils.join(paths, ".", 0, paths.length - 1);
-                            if (!deviceMeasurementMap.containsKey(device)) {
-                                deviceMeasurementMap.put(device, new ArrayList<>());
-                            }
-                            deviceMeasurementMap.get(device).add(paths[paths.length - 1]);
-                        });
+    protected Map<String, List<String>> parseSchema(final List<String> fieldNames) {
+        final Map<String, List<String>> deviceMeasurementMap = new LinkedHashMap<>();
+        fieldNames.forEach(
+                field -> {
+                    final List<String> paths = new ArrayList<>(Arrays.asList(field.split("\\.")));
+                    final int lastIndex = paths.size() - 1;
+                    final String lastPath = paths.remove(lastIndex);
+                    final String device = String.join(".", paths);
+                    if (!deviceMeasurementMap.containsKey(device)) {
+                        deviceMeasurementMap.put(device, new ArrayList<>());
+                    }
+                    deviceMeasurementMap.get(device).add(lastPath);
+                });
 
         return deviceMeasurementMap;
     }
 
-    protected HashMap<String, Tablet> generateTablets(IoTDBSchema schema, String prefix, int maxRowNumber) {
-        Map<String, List<String>> deviceMeasurementMap = parseSchema(schema.getFieldNames(prefix));
-        HashMap<String, Tablet> tablets = new HashMap<>();
+    protected Map<String, Tablet> generateTablets(DatabaseSchema schema, String prefix, int maxRowNumber) {
+        final Map<String, List<String>> deviceMeasurementMap = parseSchema(schema.getFieldNames(prefix));
+        final Map<String, Tablet> tablets = new LinkedHashMap<>();
         deviceMeasurementMap.forEach(
                 (device, measurements) -> {
                     ArrayList<MeasurementSchema> schemas = new ArrayList<>();
@@ -348,17 +341,19 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         }
     }
 
-    protected IoTDBSchema convertSchema(String timeFiled, RecordSchema recordSchema) {
-        List<String> fieldNames = recordSchema.getFieldNames();
-        fieldNames.remove(timeFiled);
+    protected DatabaseSchema convertSchema(final String timeField, final RecordSchema recordSchema) {
+        final List<String> fieldNames = recordSchema.getFieldNames();
+        fieldNames.remove(timeField);
 
-        ArrayList<Field> fields = new ArrayList<>();
-        fieldNames.forEach(
-                fieldName ->
-                        fields.add(
-                                new Field(
-                                        fieldName, getType(recordSchema.getDataType(fieldName).get().getFieldType()))));
-        IoTDBSchema schema = new IoTDBSchema(fields);
-        return schema;
+        final List<DatabaseField> fields = new ArrayList<>();
+        fieldNames.forEach(fieldName -> {
+            final Optional<DataType> dataTypeFound = recordSchema.getDataType(fieldName);
+            final DataType dataType = dataTypeFound.orElseThrow(() -> new IllegalArgumentException(String.format("Field [%s] Data Type not found", fieldName)));
+            final RecordFieldType recordFieldType = dataType.getFieldType();
+            final TSDataType timeSeriesDataType = getType(recordFieldType);
+            final DatabaseField field = new DatabaseField(fieldName, timeSeriesDataType);
+            fields.add(field);
+        });
+        return new DatabaseSchema(fields);
     }
 }
