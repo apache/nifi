@@ -20,6 +20,7 @@ package org.apache.nifi.elasticsearch;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -87,6 +88,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private String url;
     private Charset responseCharset;
+
+    private ObjectWriter prettyPrintWriter;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -167,6 +170,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             }
+
+            prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
         } catch (final Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
@@ -808,7 +813,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     .append(endpoint)
                     .append("\n")
                     .append("Parameters: ")
-                    .append(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(parameters))
+                    .append(prettyPrintWriter.writeValueAsString(parameters))
                     .append("\n")
                     .append("Request body: ")
                     .append(new String(out.toByteArray()))
