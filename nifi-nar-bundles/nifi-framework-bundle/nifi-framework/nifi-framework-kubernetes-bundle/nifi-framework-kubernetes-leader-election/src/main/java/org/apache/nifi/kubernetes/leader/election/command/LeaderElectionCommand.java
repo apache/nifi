@@ -70,15 +70,24 @@ class LeaderElectionCommand implements Runnable {
 
     @Override
     public void run() {
-        logger.info("Starting Election Command Name [{}] ID [{}]", name, lock.identity());
+        logger.info("Election Name [{}] ID [{}] Participation STARTED", name, lock.identity());
 
+        while (!Thread.currentThread().isInterrupted()) {
+            runLeaderElector();
+        }
+
+        logger.info("Election Name [{}] ID [{}] Participation STOPPED", name, lock.identity());
+    }
+
+    private void runLeaderElector() {
+        logger.info("Election Name [{}] ID [{}] Command STARTED", name, lock.identity());
         try {
             final LeaderElectionConfig leaderElectionConfig = getLeaderElectionConfig();
             final LeaderElector leaderElector = kubernetesClient.leaderElector().withConfig(leaderElectionConfig).build();
             leaderElector.run();
-            logger.info("Completed Election Command Name [{}] ID [{}]", name, lock.identity());
+            logger.info("Election Name [{}] ID [{}] Command STOPPED", name, lock.identity());
         } catch (final RuntimeException e) {
-            logger.error("Failed Election Command Name [{}] ID [{}]", name, lock.identity(), e);
+            logger.error("Election Name [{}] ID [{}] Command FAILED", name, lock.identity(), e);
         }
     }
 
