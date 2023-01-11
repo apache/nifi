@@ -347,7 +347,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             }
             builder.append("] }");
             if (logger.isDebugEnabled()) {
-                logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+                logger.debug("Elasticsearch retrieved {} documents, routing to success", responseJson.size());
             }
 
             flowFile = session.write(flowFile, out -> {
