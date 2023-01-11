@@ -464,7 +464,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             }
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+                logger.debug("Elasticsearch retrieved {} documents, routing to success", responseJson.size());
             }
             // If we want to append query info as attributes but there were no hits,
             // pass along the original, if present.
