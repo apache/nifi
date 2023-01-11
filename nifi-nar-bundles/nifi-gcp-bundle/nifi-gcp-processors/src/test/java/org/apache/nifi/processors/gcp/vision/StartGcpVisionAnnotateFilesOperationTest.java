@@ -21,18 +21,21 @@ import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PR
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.GCP_OPERATION_KEY;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.gcp.vision.AbstractGetGcpVisionAnnotateOperationStatus.REL_ORIGINAL;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.google.api.core.ApiFuture;
+import com.google.api.gax.longrunning.OperationFuture;
+import com.google.api.gax.longrunning.OperationSnapshot;
+import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesResponse;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
-import com.google.longrunning.Operation;
-import com.google.longrunning.OperationsClient;
-import com.google.protobuf.Any;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.GeneratedMessageV3;
-import com.google.rpc.Status;
+import com.google.cloud.vision.v1.OperationMetadata;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.reporting.InitializationException;
@@ -41,35 +44,38 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class GetGcpVisionAnnotateFilesJobStatusTest {
-    private static final String PLACEHOLDER_CONTENT = "content";
-    private static final String OPERATION_KEY = "operationKey";
+public class StartGcpVisionAnnotateFilesOperationTest {
     private TestRunner runner = null;
-    private GetGcpVisionAnnotateFilesOperationStatus processor;
+    private StartGcpVisionAnnotateFilesOperation processor;
+    private static final Path FlowFileContent = Paths.get("src/test/resources/vision/annotate-image.json");
+    @Mock
+    private ImageAnnotatorClient vision;
+    @Captor
+    private ArgumentCaptor<AsyncBatchAnnotateFilesRequest> requestCaptor;
+    private String operationName = "operationName";
+    @Mock
+    private OperationFuture<AsyncBatchAnnotateFilesResponse, OperationMetadata> operationFuture;
+    @Mock
+    private ApiFuture<OperationSnapshot> apiFuture;
     @Mock
     private ImageAnnotatorClient mockVisionClient;
     private GCPCredentialsService gcpCredentialsService;
     @Mock
-    private OperationsClient operationClient;
-    @Mock
-    private Operation operation;
+    private OperationSnapshot operationSnapshot;
 
     @BeforeEach
     public void setUp() throws InitializationException {
         gcpCredentialsService = new GCPCredentialsControllerService();
-        processor = new GetGcpVisionAnnotateFilesOperationStatus() {
+        processor = new StartGcpVisionAnnotateFilesOperation() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
                 return mockVisionClient;
-            }
-
-            @Override
-            protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) {
-                return AsyncBatchAnnotateFilesResponse.newBuilder().build();
             }
         };
         runner = TestRunners.newTestRunner(processor);
@@ -80,41 +86,21 @@ public class GetGcpVisionAnnotateFilesJobStatusTest {
     }
 
     @Test
-    public void testGetAnnotateFilesJobStatusSuccess() {
-        when(mockVisionClient.getOperationsClient()).thenReturn(operationClient);
-        when(operationClient.getOperation(OPERATION_KEY)).thenReturn(operation);
-        when(operation.getResponse()).thenReturn(Any.newBuilder().build());
-        when(operation.getDone()).thenReturn(true);
-        when(operation.hasError()).thenReturn(false);
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(GCP_OPERATION_KEY, OPERATION_KEY));
+    public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
+        when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenReturn(operationFuture);
+        when(operationFuture.getName()).thenReturn(operationName);
+        runner.enqueue(FlowFileContent, Collections.emptyMap());
         runner.run();
 
-        runner.assertTransferCount(REL_SUCCESS, 1);
-        runner.assertTransferCount(REL_ORIGINAL, 1);
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        runner.assertAllFlowFilesContainAttribute(REL_SUCCESS, GCP_OPERATION_KEY);
     }
 
     @Test
-    public void testGetAnnotateFilesJobStatusInProgress() {
-        when(mockVisionClient.getOperationsClient()).thenReturn(operationClient);
-        when(operationClient.getOperation(OPERATION_KEY)).thenReturn(operation);
-        when(operation.getDone()).thenReturn(true);
-        when(operation.hasError()).thenReturn(true);
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(GCP_OPERATION_KEY, OPERATION_KEY));
+    public void testAnnotateFilesJobFail() throws IOException {
+        when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest)any())).thenThrow(new RuntimeException("ServiceError"));
+        runner.enqueue(FlowFileContent, Collections.emptyMap());
         runner.run();
-
-        runner.assertAllFlowFilesTransferred(REL_FAILURE, 1);
-    }
-
-    @Test
-    public void testGetAnnotateImagesJobStatusFailed() {
-        when(mockVisionClient.getOperationsClient()).thenReturn(operationClient);
-        when(operationClient.getOperation(OPERATION_KEY)).thenReturn(operation);
-        when(operation.getDone()).thenReturn(true);
-        when(operation.hasError()).thenReturn(true);
-        when(operation.getError()).thenReturn(Status.newBuilder().build());
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(GCP_OPERATION_KEY, OPERATION_KEY));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(REL_FAILURE);
     }
 }

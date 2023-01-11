@@ -49,7 +49,7 @@ FlowFile will contain the serialized response that contains the result and addit
 	"requests": [{
 		"image": {
 			"source": {
-				"imageUri": "gs://..."
+				"imageUri": "gs://#{bucket}/${filename}"
 			}
 		},
 		"features": [{
@@ -59,7 +59,7 @@ FlowFile will contain the serialized response that contains the result and addit
 	}],
 	"outputConfig": {
 		"gcsDestination": {
-			"uri": "gs://..."
+			"uri": "gs://#{bucket}/${filename}/"
 		},
 		"batchSize": 2
 	}
@@ -76,7 +76,32 @@ FlowFile will contain the serialized response that contains the result and addit
 	<li>etc.</li>
 </ul>
 You can find more details on <a href="https://cloud.google.com/vision/docs/features-list" target="_blank">Google Vision Feature List</a>
-<h3>Example Flow</h3>
+<h3>Example: How to setup simple Annotate Image Flow</h3>
+<p>
+	Prerequisites
+</p>
+<p>
+<ul>
+	<li>Make sure images are available in GCS</li>
+	<li>Setup a parameter context with <code>bucket</code> parameter and its value will be the name of your GCS bucket</li>
+	<li>Bucket must contain only your images.</li>
+	<li>Set Process Group Parameter Context</li>
+</ul>
+</p>
+<p>Create the following flow</p>
 <img src="vision-annotate-images.png" style="height: 50%; width: 50%"/>
+<p>
+	Keep the default value of JSON PAYLOAD property in StartGcpVisionAnnotateImagesOperation
+</p>
+<p>
+	Execution steps:
+<ul>
+	<li>ListGCSBucket processor will return list of files in the bucket for the first trigger.</li>
+	<li>ListGCSBucket will return new items since the last trigger for the additional runs</li>
+	<li>StartGcpVisionAnnotateImagesOperation processor will trigger GCP Vision jobs based on the json configuration.</li>
+	<li>StartGcpVisionAnnotateImagesOperation processor populate <code>operationKey</code> flow file attribute</li>
+	<li>GetGcpVisionAnnotateImagesOperationStatus processor will periodically query status of the job by the <code>operationKey</code>.</li>
+</ul>
+</p>
 </body>
 </html>

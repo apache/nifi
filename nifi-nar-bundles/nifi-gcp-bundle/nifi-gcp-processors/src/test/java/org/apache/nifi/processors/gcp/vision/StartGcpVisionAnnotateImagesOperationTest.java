@@ -20,6 +20,7 @@ package org.apache.nifi.processors.gcp.vision;
 import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.GCP_OPERATION_KEY;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.gcp.vision.StartGcpVisionAnnotateImagesOperation.JSON_PAYLOAD;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -27,11 +28,10 @@ import com.google.api.core.ApiFuture;
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.api.gax.longrunning.OperationSnapshot;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.concurrent.ExecutionException;
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.reporting.InitializationException;
@@ -47,7 +47,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class StartGcpVisionAnnotateImagesOperationTest {
     private TestRunner runner = null;
     private StartGcpVisionAnnotateImagesOperation processor;
-    private static final Path FLOW_FILE_CONTENT = Paths.get("src/test/resources/vision/annotate-image.json");
     private String operationName = "operationName";
     @Mock
     private OperationFuture operationFuture;
@@ -58,9 +57,11 @@ public class StartGcpVisionAnnotateImagesOperationTest {
     private GCPCredentialsService gcpCredentialsService;
     @Mock
     private OperationSnapshot operationSnapshot;
+    private String jsonPayloadValue;
 
     @BeforeEach
-    public void setUp() throws InitializationException {
+    public void setUp() throws InitializationException, IOException {
+        jsonPayloadValue = FileUtils.readFileToString(new File("src/test/resources/vision/annotate-image.json"), "UTF-8");
         gcpCredentialsService = new GCPCredentialsControllerService();
         processor = new StartGcpVisionAnnotateImagesOperation() {
             @Override
@@ -73,13 +74,14 @@ public class StartGcpVisionAnnotateImagesOperationTest {
         runner.enableControllerService(gcpCredentialsService);
         runner.setProperty(GCP_CREDENTIALS_PROVIDER_SERVICE, "gcp-credentials-provider-service-id");
         runner.assertValid(gcpCredentialsService);
+        runner.setProperty(JSON_PAYLOAD, jsonPayloadValue);
     }
 
     @Test
     public void testAnnotateImageJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateImagesAsync(any())).thenReturn(operationFuture);
         when(operationFuture.getName()).thenReturn(operationName);
-        runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
+
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -90,7 +92,6 @@ public class StartGcpVisionAnnotateImagesOperationTest {
     public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateImagesAsync(any())).thenReturn(operationFuture);
         when(operationFuture.getName()).thenReturn(operationName);
-        runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);

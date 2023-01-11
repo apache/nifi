@@ -24,14 +24,13 @@ import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.R
 import static org.apache.nifi.processors.gcp.vision.AbstractGetGcpVisionAnnotateOperationStatus.REL_ORIGINAL;
 import static org.mockito.Mockito.when;
 
-import com.google.cloud.vision.v1.AsyncBatchAnnotateImagesResponse;
+import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesResponse;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.longrunning.Operation;
 import com.google.longrunning.OperationsClient;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.rpc.Status;
 import java.util.Collections;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
@@ -46,11 +45,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class GetGcpVisionAnnotateImagesJobStatusTest {
+public class GetGcpVisionAnnotateFilesOperationStatusTest {
     private static final String PLACEHOLDER_CONTENT = "content";
     private static final String OPERATION_KEY = "operationKey";
     private TestRunner runner = null;
-    private GetGcpVisionAnnotateImagesOperationStatus processor;
+    private GetGcpVisionAnnotateFilesOperationStatus processor;
     @Mock
     private ImageAnnotatorClient mockVisionClient;
     private GCPCredentialsService gcpCredentialsService;
@@ -62,15 +61,15 @@ public class GetGcpVisionAnnotateImagesJobStatusTest {
     @BeforeEach
     public void setUp() throws InitializationException {
         gcpCredentialsService = new GCPCredentialsControllerService();
-        processor = new GetGcpVisionAnnotateImagesOperationStatus() {
+        processor = new GetGcpVisionAnnotateFilesOperationStatus() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
                 return mockVisionClient;
             }
 
             @Override
-            protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException {
-                return AsyncBatchAnnotateImagesResponse.newBuilder().build();
+            protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) {
+                return AsyncBatchAnnotateFilesResponse.newBuilder().build();
             }
         };
         runner = TestRunners.newTestRunner(processor);
@@ -81,7 +80,7 @@ public class GetGcpVisionAnnotateImagesJobStatusTest {
     }
 
     @Test
-    public void testGetAnnotateImagesJobStatusSuccess() {
+    public void testGetAnnotateFilesJobStatusSuccess() {
         when(mockVisionClient.getOperationsClient()).thenReturn(operationClient);
         when(operationClient.getOperation(OPERATION_KEY)).thenReturn(operation);
         when(operation.getResponse()).thenReturn(Any.newBuilder().build());
@@ -95,7 +94,7 @@ public class GetGcpVisionAnnotateImagesJobStatusTest {
     }
 
     @Test
-    public void testGetAnnotateImagesJobStatusInProgress() {
+    public void testGetAnnotateFilesJobStatusInProgress() {
         when(mockVisionClient.getOperationsClient()).thenReturn(operationClient);
         when(operationClient.getOperation(OPERATION_KEY)).thenReturn(operation);
         when(operation.getDone()).thenReturn(true);

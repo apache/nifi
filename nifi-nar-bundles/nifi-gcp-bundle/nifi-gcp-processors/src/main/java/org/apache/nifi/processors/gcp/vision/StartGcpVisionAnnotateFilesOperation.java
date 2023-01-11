@@ -17,13 +17,21 @@
 
 package org.apache.nifi.processors.gcp.vision;
 
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
+
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"Google", "Cloud", "Machine Learning", "Vision"})
 @CapabilityDescription("Trigger a Vision operation on file input. It should be followed by GetGcpVisionAnnotateFilesOperationStatus processor in order to monitor operation status.")
@@ -32,6 +40,42 @@ import org.apache.nifi.annotation.documentation.Tags;
         @WritesAttribute(attribute = "operationKey", description = "Unique key of the operation.")
 })
 public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVisionOperation<AsyncBatchAnnotateFilesRequest.Builder> {
+    public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
+            .name("json-payload")
+            .displayName("JSON Payload")
+            .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .defaultValue("{\n" +
+                    "    \"requests\": [\n" +
+                    "        {\n" +
+                    "            \"inputConfig\": {\n" +
+                    "                \"gcsSource\": {\n" +
+                    "                    \"uri\": \"gs://#{bucket}/${filename}\"\n" +
+                    "                },\n" +
+                    "                \"mimeType\": \"application/pdf\"\n" +
+                    "            },\n" +
+                    "            \"features\": [{\n" +
+                    "                    \"type\": \"DOCUMENT_TEXT_DETECTION\",\n" +
+                    "                    \"maxResults\": 4\n" +
+                    "                }],\n" +
+                    "            \"outputConfig\": {\n" +
+                    "                \"gcsDestination\": {\n" +
+                    "                    \"uri\": \"gs://#{bucket}/${filename}/\"\n" +
+                    "                },\n" +
+                    "                \"batchSize\": 2\n" +
+                    "            }\n" +
+                    "        }]\n" +
+                    "}")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            JSON_PAYLOAD, GCP_CREDENTIALS_PROVIDER_SERVICE));
+
+    @Override
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
 
     @Override
     AsyncBatchAnnotateFilesRequest.Builder newBuilder() {
@@ -41,5 +85,10 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
     @Override
     OperationFuture<?, ?> startOperation(AsyncBatchAnnotateFilesRequest.Builder builder) {
         return getVisionClient().asyncBatchAnnotateFilesAsync(builder.build());
+    }
+
+    @Override
+    PropertyDescriptor getJsonPayloadPropertyDescriptor() {
+        return JSON_PAYLOAD;
     }
 }

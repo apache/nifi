@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -74,6 +75,7 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
                 GeneratedMessageV3 response = deserializeResponse(operation.getResponse().getValue());
                 FlowFile childFlowFile = session.create(flowFile);
                 session.write(childFlowFile, out -> out.write(JsonFormat.printer().print(response).getBytes(StandardCharsets.UTF_8)));
+                session.putAttribute(childFlowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                 session.transfer(flowFile, REL_ORIGINAL);
                 session.transfer(childFlowFile, REL_SUCCESS);
             } else if (!operation.getDone()) {
