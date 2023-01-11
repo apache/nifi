@@ -19,10 +19,12 @@ package org.apache.nifi.documentation.html;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.junit.Assert;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class XmlValidator {
     private static final String DOCTYPE = "<!DOCTYPE html>";
@@ -36,19 +38,15 @@ public class XmlValidator {
      */
     public static void assertXmlValid(String xml) {
         final String html = xml.replace(DOCTYPE, EMPTY);
-        try {
-            final DocumentProvider provider = new StandardDocumentProvider();
-            provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
-        } catch (final ProcessingException e) {
-            Assert.fail(e.getMessage());
-        }
+        final DocumentProvider provider = new StandardDocumentProvider();
+        assertDoesNotThrow(() -> provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8))));
     }
 
     public static void assertContains(String original, String subword) {
-        Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
+        assertTrue(original.contains(subword), original + " did not contain: " + subword);
     }
 
     public static void assertNotContains(String original, String subword) {
-        Assert.assertFalse(original + " did contain: " + subword, original.contains(subword));
+        assertFalse(original.contains(subword), original + " did contain: " + subword);
     }
 }

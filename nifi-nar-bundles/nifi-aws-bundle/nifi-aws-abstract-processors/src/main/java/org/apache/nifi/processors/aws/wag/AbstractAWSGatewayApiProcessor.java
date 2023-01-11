@@ -402,7 +402,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
                 context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile)
                         .getValue()).toUpperCase();
         final HttpMethodName methodName = HttpMethodName.fromValue(method);
-        return configureRequest(context, session, resourcePath,requestFlowFile, methodName, attributes);
+        return configureRequest(context, session, resourcePath, requestFlowFile, methodName, attributes);
     }
 
     protected GenericApiGatewayRequest configureRequest(final ProcessContext context,
@@ -414,7 +414,7 @@ public abstract class AbstractAWSGatewayApiProcessor extends
 
         GenericApiGatewayRequestBuilder builder = new GenericApiGatewayRequestBuilder()
             .withResourcePath(resourcePath);
-        final Map<String, List<String>> parameters = getParameters(context);
+        final Map<String, List<String>> parameters = getParameters(context, attributes);
         builder = builder.withParameters(parameters);
 
         InputStream requestBody;
@@ -522,15 +522,16 @@ public abstract class AbstractAWSGatewayApiProcessor extends
      * Returns a map of Query Parameter Name to Values
      *
      * @param context ProcessContext
+     * @param flowFileAttributes map of FlowFile attributes used for EL evaluation
      * @return Map of names and values
      */
-    protected Map<String, List<String>> getParameters(final ProcessContext context) {
+    protected Map<String, List<String>> getParameters(final ProcessContext context, Map<String, String> flowFileAttributes) {
 
         if (!context.getProperty(PROP_QUERY_PARAMS).isSet()) {
             return new HashMap<>();
         }
         final String queryString = context.getProperty(PROP_QUERY_PARAMS)
-                                          .evaluateAttributeExpressions().getValue();
+                                          .evaluateAttributeExpressions(flowFileAttributes).getValue();
         final List<NameValuePair> params = URLEncodedUtils
             .parse(queryString, Charsets.toCharset("UTF-8"));
 

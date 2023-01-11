@@ -18,7 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -46,7 +46,6 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
         // given
         final PortScheduledStateMatcher testSubject = new PortScheduledStateMatcher();
         givenSearchTerm("invalid");
-        givenInvalid();
         givenStatus(ScheduledState.DISABLED);
 
         // when
@@ -103,7 +102,7 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
         // given
         final PortScheduledStateMatcher testSubject = new PortScheduledStateMatcher();
         givenSearchTerm("invalid");
-        givenInvalid();
+        Mockito.when(component.isValid()).thenReturn(false);
 
         // when
         testSubject.match(component, searchQuery, matches);
@@ -132,9 +131,5 @@ public class PortScheduledStateMatcherTest extends AbstractAttributeMatcherTest 
 
     private void givenValid() {
         Mockito.when(component.isValid()).thenReturn(true);
-    }
-
-    private void givenInvalid() {
-        Mockito.when(component.isValid()).thenReturn(false);
     }
 }

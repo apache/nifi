@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
-
-import com.amazonaws.auth.AWSCredentialsProvider;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 /**
  * AWSCredentialsProviderService interface to support getting AWSCredentialsProvider used for instantiating
@@ -31,14 +31,23 @@ import com.amazonaws.auth.AWSCredentialsProvider;
  */
 @Tags({"aws", "security", "credentials", "provider", "session"})
 @CapabilityDescription("Provides AWSCredentialsProvider.")
-public interface AWSCredentialsProviderService extends ControllerService {
+public interface AWSCredentialsProviderService extends AwsCredentialsProviderService {
 
     /**
-     * Get credentials provider
+     * Get credentials provider for Java SDK v1
      * @return credentials provider
      * @throws ProcessException process exception in case there is problem in getting credentials provider
      *
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
     AWSCredentialsProvider getCredentialsProvider() throws ProcessException;
+
+    /**
+     * Default implementation of {@link AwsCredentialsProviderService#getAwsCredentialsProvider()} throwing UnsupportedOperationException.
+     * @return always throws UnsupportedOperationException
+     */
+    @Override
+    default AwsCredentialsProvider getAwsCredentialsProvider() {
+        throw new UnsupportedOperationException("AWS Java SDK v2 credentials are not supported by this service");
+    }
 }

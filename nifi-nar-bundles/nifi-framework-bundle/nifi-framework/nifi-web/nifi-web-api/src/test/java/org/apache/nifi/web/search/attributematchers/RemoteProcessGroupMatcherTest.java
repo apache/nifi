@@ -17,8 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -29,21 +28,15 @@ public class RemoteProcessGroupMatcherTest extends AbstractAttributeMatcherTest 
     @Mock
     private RemoteProcessGroup component;
 
-    @Before
-    public void setUp() {
-        super.setUp();
-
-        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
-        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
-        Mockito.when(component.getName()).thenReturn("LoremName");
-        Mockito.when(component.getComments()).thenReturn("LoremComment");
-    }
-
     @Test
     public void testMatching() {
         // given
         final RemoteProcessGroupMatcher testSubject = new RemoteProcessGroupMatcher();
-
+        givenDefaultSearchTerm();
+        Mockito.when(component.getIdentifier()).thenReturn("LoremId");
+        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
+        Mockito.when(component.getName()).thenReturn("LoremName");
+        Mockito.when(component.getComments()).thenReturn("LoremComment");
         // when
         testSubject.match(component, searchQuery, matches);
 

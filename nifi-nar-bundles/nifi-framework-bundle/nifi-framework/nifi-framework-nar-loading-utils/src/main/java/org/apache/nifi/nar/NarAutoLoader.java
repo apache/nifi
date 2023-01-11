@@ -28,6 +28,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -57,6 +59,14 @@ public class NarAutoLoader {
         final File autoLoadDir = properties.getNarAutoLoadDirectory();
         FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
 
+        final List<File> initialNars = Arrays.asList(autoLoadDir.listFiles((dir, name) -> name.endsWith(".nar") && !name.startsWith(".")));
+        LOGGER.info("Found {} initial NARs from directory {}", initialNars.size(), autoLoadDir.getName());
+
+        if (!initialNars.isEmpty()) {
+            LOGGER.info("Loading initial NARs from directory {}...", autoLoadDir.getName());
+            narLoader.load(initialNars);
+        }
+
         final WatchService watcher = FileSystems.getDefault().newWatchService();
         final Path autoLoadPath = autoLoadDir.toPath();
         autoLoadPath.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
@@ -68,7 +78,7 @@ public class NarAutoLoader {
                 .narLoader(narLoader)
                 .build();
 
-        LOGGER.info("Starting NAR Auto-Loader for directory {} ...", new Object[]{autoLoadPath});
+        LOGGER.info("Starting NAR Auto-Loader Thread for directory {} ...", new Object[]{autoLoadPath});
 
         final Thread autoLoaderThread = new Thread(narAutoLoaderTask);
         autoLoaderThread.setName("NAR Auto-Loader");

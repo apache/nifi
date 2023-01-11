@@ -180,7 +180,7 @@ public class FlowParser {
         mapPorts(rootGroup.getInputPorts(), ports);
         mapPorts(rootGroup.getOutputPorts(), ports);
 
-        return new FlowInfo(rootGroup.getIdentifier(), ports);
+        return new FlowInfo(rootGroup.getInstanceIdentifier(), ports);
     }
 
     private void mapPorts(final Set<VersionedPort> versionedPorts, final List<PortDTO> portDtos) {

@@ -51,9 +51,9 @@ public class GhostFlowRegistryClient implements FlowRegistryClient {
     public Collection<ValidationResult> validate(final ValidationContext context) {
         return Collections.singleton(new ValidationResult.Builder()
                 .input("Any Property")
-                .subject("Missing Reporting Task")
+                .subject("Missing Registry Client")
                 .valid(false)
-                .explanation("Reporting Task is of type " + canonicalClassName + ", but this is not a valid Reporting Task type")
+                .explanation("Registry Client is of type " + canonicalClassName + ", but this is not a valid Registry Client type")
                 .build());
     }
 

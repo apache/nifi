@@ -20,6 +20,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
+import org.apache.nifi.web.security.csrf.SkipReplicatedCsrfFilter;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.log.AuthenticationUserFilter;
@@ -109,6 +110,7 @@ public class NiFiWebApiSecurityConfiguration {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(new SkipReplicatedCsrfFilter(), CsrfFilter.class)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(
                                 new StandardCookieCsrfTokenRepository()

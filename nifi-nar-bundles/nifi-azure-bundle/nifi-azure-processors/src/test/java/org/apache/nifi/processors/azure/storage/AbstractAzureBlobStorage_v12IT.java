@@ -34,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -137,10 +139,18 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         return attributes;
     }
 
-    protected void assertFlowFileBlobAttributes(MockFlowFile flowFile, String containerName, String blobName, int blobLength) {
+    protected void assertFlowFileCommonBlobAttributes(MockFlowFile flowFile, String containerName, String blobName) throws UnsupportedEncodingException {
         flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_CONTAINER, containerName);
         flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_BLOBNAME, blobName);
-        flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_PRIMARY_URI, String.format("https://%s.blob.core.windows.net/%s/%s", getAccountName(), containerName, blobName));
+        flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_PRIMARY_URI,
+                String.format("https://%s.blob.core.windows.net/%s/%s", getAccountName(), containerName, URLEncoder.encode(
+                        blobName,
+                        StandardCharsets.US_ASCII.name()
+                ).replace("+", "%20").replace("%2F", "/"))
+        );
+    }
+
+    protected void assertFlowFileResultBlobAttributes(MockFlowFile flowFile, int blobLength) {
         flowFile.assertAttributeExists(BlobAttributes.ATTR_NAME_ETAG);
         flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_BLOBTYPE, BlobType.BLOCK_BLOB.toString());
         flowFile.assertAttributeEquals(BlobAttributes.ATTR_NAME_MIME_TYPE, "application/octet-stream");

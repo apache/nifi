@@ -47,6 +47,7 @@ org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.ForkRecord
 org.apache.nifi.processors.standard.ForkEnrichment
+org.apache.nifi.processors.standard.GenerateRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
@@ -123,8 +124,10 @@ org.apache.nifi.processors.standard.TailFile
 org.apache.nifi.processors.standard.TransformXml
 org.apache.nifi.processors.standard.UnpackContent
 org.apache.nifi.processors.standard.UpdateCounter
+org.apache.nifi.processors.standard.UpdateDatabaseTable
 org.apache.nifi.processors.standard.UpdateRecord
 org.apache.nifi.processors.standard.ValidateCsv
+org.apache.nifi.processors.standard.ValidateJson
 org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.Wait

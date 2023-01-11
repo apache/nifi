@@ -27,6 +27,9 @@ import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -77,6 +80,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.enableControllerService(serviceImpl);
@@ -98,6 +102,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "1000");
@@ -120,6 +125,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "900");
@@ -135,6 +141,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
         runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.MAX_SESSION_TIME, "900");
@@ -182,24 +189,13 @@ public class AWSCredentialsProviderControllerServiceTest {
     }
 
     @Test
-    public void testKeysCredentialsProviderWithRoleNameOnlyInvalid() throws Throwable {
-        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
-        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        runner.addControllerService("awsCredentialsProvider", serviceImpl);
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.ACCESS_KEY, "awsAccessKey");
-        runner.setProperty(serviceImpl, AbstractAWSProcessor.SECRET_KEY, "awsSecretKey");
-        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
-
-        runner.assertNotValid(serviceImpl);
-    }
-
-    @Test
     public void testFileCredentialsProviderWithRole() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
         runner.setProperty(serviceImpl, AbstractAWSProcessor.CREDENTIALS_FILE,
                 "src/test/resources/mock-aws-credentials.properties");
+        runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "Role");
         runner.setProperty(serviceImpl, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "RoleName");
         runner.enableControllerService(serviceImpl);
@@ -321,5 +317,23 @@ public class AWSCredentialsProviderControllerServiceTest {
         assertEquals(
                 "awsSecretKey", service.getCredentialsProvider().getCredentials().getAWSSecretKey(),
                 "Expression language should be supported for " + CredentialPropertyDescriptors.SECRET_KEY.getName());
+    }
+
+    @Test
+    public void testDefaultAWSCredentialsProviderChainV2() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(FetchS3Object.class);
+        final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("awsCredentialsProvider", serviceImpl);
+
+        runner.enableControllerService(serviceImpl);
+
+        runner.assertValid(serviceImpl);
+        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+                .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
+        assertNotNull(service);
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
+        assertNotNull(credentialsProvider);
+        assertEquals(DefaultCredentialsProvider.class,
+                credentialsProvider.getClass(), "credentials provider should be equal");
     }
 }

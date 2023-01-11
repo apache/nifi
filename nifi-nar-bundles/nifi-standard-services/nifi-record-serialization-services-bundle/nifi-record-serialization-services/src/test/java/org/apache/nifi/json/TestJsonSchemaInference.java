@@ -19,8 +19,12 @@ package org.apache.nifi.json;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.TimeValueInference;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -41,17 +45,7 @@ class TestJsonSchemaInference {
 
     @Test
     void testInferenceIncludesAllRecords() throws IOException {
-        final File file = new File("src/test/resources/json/data-types.json");
-
-        final RecordSchema schema;
-        try (final InputStream in = new FileInputStream(file);
-             final InputStream bufferedIn = new BufferedInputStream(in)) {
-
-            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content),
-                    new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
-            schema = accessStrategy.getSchema(null, bufferedIn, null);
-        }
+        final RecordSchema schema = inferSchema(new File("src/test/resources/json/data-types.json"));
 
         assertSame(RecordFieldType.STRING, schema.getDataType("varcharc").get().getFieldType());
         assertSame(RecordFieldType.INT, schema.getDataType("uuid").get().getFieldType());
@@ -81,5 +75,66 @@ class TestJsonSchemaInference {
         final List<String> fieldNames = schema.getFieldNames();
         assertEquals(Arrays.asList("varcharc", "uuid", "tinyintc", "textc", "datec", "smallintc", "mediumintc", "longintc", "intc", "bigintc",
                 "floatc", "doublec", "decimalc", "timestampc", "timec", "charc", "tinytextc", "blobc", "mediumtextc", "enumc", "setc", "boolc", "binaryc"), fieldNames);
+    }
+
+    @Test
+    public void testNestedArrayOfRecords() throws IOException {
+        final RecordSchema schema = inferSchema(new File("src/test/resources/json/choice-of-array-empty-or-array-record.json"));
+        final RecordField dataField = schema.getField("data").get();
+        assertSame(RecordFieldType.RECORD, dataField.getDataType().getFieldType());
+
+        final RecordDataType dataFieldType = (RecordDataType) dataField.getDataType();
+        final RecordSchema dataSchema = dataFieldType.getChildSchema();
+
+        final DataType itemsDataType = dataSchema.getDataType("items").get();
+        assertSame(RecordFieldType.ARRAY, itemsDataType.getFieldType());
+
+        final ArrayDataType itemsArrayType = (ArrayDataType) itemsDataType;
+        final DataType itemsElementType = itemsArrayType.getElementType();
+        assertEquals(RecordFieldType.RECORD, itemsElementType.getFieldType());
+
+        final RecordSchema itemsSchema = ((RecordDataType) itemsElementType).getChildSchema();
+        final RecordField itemSchedulesField = itemsSchema.getField("itemSchedules").get();
+        final DataType itemSchedulesDataType = itemSchedulesField.getDataType();
+        assertEquals(RecordFieldType.ARRAY, itemSchedulesDataType.getFieldType());
+
+        final ArrayDataType schedulesArrayType = (ArrayDataType) itemSchedulesDataType;
+        final DataType schedulesElementType = schedulesArrayType.getElementType();
+        assertEquals(RecordFieldType.RECORD, schedulesElementType.getFieldType());
+    }
+
+    @Test
+    public void testEmptyArrays() throws IOException {
+        final RecordSchema schema = inferSchema(new File("src/test/resources/json/empty-arrays.json"));
+        final DataType itemsDataType = schema.getDataType("items").get();
+        assertSame(RecordFieldType.ARRAY, itemsDataType.getFieldType());
+
+        final ArrayDataType itemsArrayType = (ArrayDataType) itemsDataType;
+        final DataType itemsElementType = itemsArrayType.getElementType();
+        assertEquals(RecordFieldType.RECORD, itemsElementType.getFieldType());
+
+        final RecordSchema itemsSchema = ((RecordDataType) itemsElementType).getChildSchema();
+        final RecordField itemDataField = itemsSchema.getField("itemData").get();
+        final DataType ItemDataDatatype = itemDataField.getDataType();
+        assertEquals(RecordFieldType.ARRAY, ItemDataDatatype.getFieldType());
+
+        final ArrayDataType itemDataArrayType = (ArrayDataType) ItemDataDatatype;
+        final DataType itemDataElementType = itemDataArrayType.getElementType();
+        // Empty arrays should be inferred as array<string>
+        assertEquals(RecordFieldType.STRING, itemDataElementType.getFieldType());
+    }
+
+    private RecordSchema inferSchema(final File jsonFile) throws IOException {
+        try (final InputStream in = new FileInputStream(jsonFile);
+             final InputStream bufferedIn = new BufferedInputStream(in)) {
+
+            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
+                (var, content) -> new JsonRecordSource(content),
+                new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
+
+            final RecordSchema schema = accessStrategy.getSchema(null, bufferedIn, null);
+            return schema;
+        }
+
     }
 }

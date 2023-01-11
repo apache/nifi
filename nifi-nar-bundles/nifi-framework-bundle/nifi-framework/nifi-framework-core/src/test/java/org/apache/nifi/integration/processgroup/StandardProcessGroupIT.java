@@ -35,17 +35,17 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.Revision;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardProcessGroupIT extends FrameworkIntegrationTest {
 
@@ -250,12 +250,9 @@ public class StandardProcessGroupIT extends FrameworkIntegrationTest {
 
         getRootGroup().setVariables(Collections.singletonMap("number", "2"));
 
-        try {
-            child.setVariables(Collections.singletonMap("number", "10"));
-            Assert.fail("Updated variable that is referenced by a running processor");
-        } catch (final IllegalStateException ise) {
-            // Expected
-        }
+        assertThrows(IllegalStateException.class,
+                () -> child.setVariables(Collections.singletonMap("number", "10")),
+                "Updated variable that is referenced by a running processor");
 
         child.stopProcessor(processor);
     }

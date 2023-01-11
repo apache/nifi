@@ -107,7 +107,7 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
                 throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
             }
 
-            return new WriteParquetResult(avroSchema, out, parquetConfig, logger);
+            return new WriteParquetResult(avroSchema, recordSchema, getSchemaAccessWriter(recordSchema, variables), out, parquetConfig, logger);
 
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);

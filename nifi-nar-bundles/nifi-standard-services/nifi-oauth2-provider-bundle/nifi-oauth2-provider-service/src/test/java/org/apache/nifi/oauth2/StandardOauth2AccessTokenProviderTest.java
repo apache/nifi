@@ -22,10 +22,18 @@ import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okio.Buffer;
+
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -40,17 +48,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -81,6 +96,8 @@ public class StandardOauth2AccessTokenProviderTest {
     private ArgumentCaptor<String> errorCaptor;
     @Captor
     private ArgumentCaptor<Throwable> throwableCaptor;
+    @Captor
+    private ArgumentCaptor<Request> requestCaptor;
 
     @BeforeEach
     public void setUp() {
@@ -103,6 +120,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.BASIC_AUTHENTICATION.getValue());
 
         testSubject.onEnabled(mockContext);
     }
@@ -115,7 +133,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         runner.addControllerService("testSubject", testSubject);
 
-        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, "http://unimportant");
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
 
         // WHEN
         runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
@@ -132,12 +150,50 @@ public class StandardOauth2AccessTokenProviderTest {
 
         runner.addControllerService("testSubject", testSubject);
 
-        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, "http://unimportant");
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
 
         // WHEN
         runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
-        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_ID, "clientId");
-        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_SECRET, "clientSecret");
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_ID, CLIENT_ID);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_SECRET, CLIENT_SECRET);
+
+        // THEN
+        runner.assertValid(testSubject);
+    }
+
+    @Test
+    public void testInvalidWhenClientAuthenticationStrategyIsInvalid() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_ID, CLIENT_ID);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_SECRET, CLIENT_SECRET);
+
+        // WHEN
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY, "UNKNOWN");
+
+        // THEN
+        runner.assertNotValid(testSubject);
+    }
+
+    @Test
+    public void testValidWhenClientAuthenticationStrategyIsValid() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_ID, CLIENT_ID);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_SECRET, CLIENT_SECRET);
+
+        // WHEN
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY, ClientAuthenticationStrategy.REQUEST_BODY.getValue());
 
         // THEN
         runner.assertValid(testSubject);
@@ -160,6 +216,58 @@ public class StandardOauth2AccessTokenProviderTest {
 
         // THEN
         assertEquals(accessTokenValue, actual);
+    }
+
+    @Test
+    public void testVerifySuccess() throws Exception {
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("testSubject", testSubject);
+
+        Map<PropertyDescriptor, String> properties = ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get("testSubject").getProperties();
+
+        String accessTokenValue = "access_token_value";
+
+        // GIVEN
+        Response response = buildResponse(
+                HTTP_OK,
+                "{ \"access_token\":\"" + accessTokenValue + "\" }"
+        );
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(SUCCESSFUL, results.get(0).getOutcome());
+    }
+
+    @Test
+    public void testVerifyError() throws Exception {
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("testSubject", testSubject);
+
+        Map<PropertyDescriptor, String> properties = ((MockControllerServiceLookup) runner.getProcessContext().getControllerServiceLookup())
+                .getControllerServices().get("testSubject").getProperties();
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
+
+        final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
+                new MockConfigurationContext(testSubject, properties, runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
+                runner.getLogger(),
+                Collections.emptyMap()
+        );
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals(FAILED, results.get(0).getOutcome());
     }
 
     @Test
@@ -186,6 +294,42 @@ public class StandardOauth2AccessTokenProviderTest {
 
         // THEN
         assertEquals(expectedToken, actualToken);
+    }
+
+    @Test
+    public void testBasicAuthentication() throws Exception {
+        // GIVEN
+        Response response = buildResponse(HTTP_OK, "{\"access_token\":\"foobar\"}");
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+        String expected = "Basic " + Base64.getEncoder().withoutPadding().encodeToString((CLIENT_ID + ":" + CLIENT_SECRET).getBytes());
+
+        // WHEN
+        testSubject.getAccessDetails();
+
+        // THEN
+        verify(mockHttpClient, atLeast(1)).newCall(requestCaptor.capture());
+        assertEquals(expected, requestCaptor.getValue().header("Authorization"));
+    }
+
+    @Test
+    public void testRequestBodyAuthentication() throws Exception {
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.GRANT_TYPE).getValue()).thenReturn(StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE.getValue());
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.REQUEST_BODY.getValue());
+        testSubject.onEnabled(mockContext);
+
+        // GIVEN
+        Response response = buildResponse(HTTP_OK, "{\"access_token\":\"foobar\"}");
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+        String expected = "grant_type=client_credentials&client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET;
+
+        // WHEN
+        testSubject.getAccessDetails();
+
+        // THEN
+        Buffer buffer = new Buffer();
+        verify(mockHttpClient, atLeast(1)).newCall(requestCaptor.capture());
+        requestCaptor.getValue().body().writeTo(buffer);
+        assertEquals(expected, buffer.readString(Charset.defaultCharset()));
     }
 
     @Test

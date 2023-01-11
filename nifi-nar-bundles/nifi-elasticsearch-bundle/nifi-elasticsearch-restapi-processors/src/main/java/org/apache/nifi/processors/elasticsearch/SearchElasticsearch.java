@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.elasticsearch.api.PaginatedJsonQueryParameters;
+import org.apache.nifi.processors.elasticsearch.api.PaginationType;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -62,7 +63,7 @@ import java.util.Set;
 @TriggerSerially
 @PrimaryNodeOnly
 @DefaultSchedule(period="1 min")
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "query", "scroll", "page", "search", "json"})
+@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "query", "scroll", "page", "search", "json"})
 @CapabilityDescription("A processor that allows the user to repeatedly run a paginated query (with aggregations) written with the Elasticsearch JSON DSL. " +
         "Search After/Point in Time queries must include a valid \"sort\" field. The processor will retrieve multiple pages of results " +
         "until either no more results are available or the Pagination Keep Alive expiration is reached, after which the query will " +
@@ -144,12 +145,12 @@ public class SearchElasticsearch extends AbstractPaginatedJsonQueryElasticsearch
             getLogger().debug("Updating local state for next execution");
 
             final Map<String, String> newStateMap = new HashMap<>();
-            if (PAGINATION_SCROLL.getValue().equals(paginationType)) {
+            if (paginationType == PaginationType.SCROLL) {
                 newStateMap.put(STATE_SCROLL_ID, response.getScrollId());
             } else {
                 newStateMap.put(STATE_SEARCH_AFTER, response.getSearchAfter());
 
-                if (PAGINATION_POINT_IN_TIME.getValue().equals(paginationType)) {
+                if (paginationType == PaginationType.POINT_IN_TIME) {
                     newStateMap.put(STATE_PIT_ID, response.getPitId());
                 }
             }

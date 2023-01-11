@@ -40,12 +40,12 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.search.query.RegexSearchQueryParser;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.query.SearchQueryParser;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,7 +59,7 @@ import java.util.function.Function;
 
 import static org.apache.nifi.web.controller.ComponentMockUtil.getRootProcessGroup;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:nifi-web-api-test-context.xml", "classpath:nifi-web-api-context.xml"})
 public abstract class AbstractControllerSearchIntegrationTest {
     protected static final String ROOT_PROCESSOR_GROUP_ID = "3b9a7e60-0172-1000-5f1e-10cbc0c4d5f1";
@@ -87,7 +87,7 @@ public abstract class AbstractControllerSearchIntegrationTest {
     @Autowired
     private FlowController flowController;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         resetResults();
         processGroups = new HashSet<>();

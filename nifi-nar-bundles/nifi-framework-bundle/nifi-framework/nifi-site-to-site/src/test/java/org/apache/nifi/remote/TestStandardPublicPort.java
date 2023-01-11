@@ -25,8 +25,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -36,6 +35,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardPublicPort {
 
@@ -72,10 +74,10 @@ public class TestStandardPublicPort {
         final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
-        Assert.assertFalse(authResult.isAuthorized());
+        assertFalse(authResult.isAuthorized());
 
         authResult = port.checkUserAuthorization("node1@nifi.test");
-        Assert.assertTrue(authResult.isAuthorized());
+        assertTrue(authResult.isAuthorized());
     }
 
     @Test
@@ -97,10 +99,10 @@ public class TestStandardPublicPort {
         final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
-        Assert.assertFalse(authResult.isAuthorized());
+        assertFalse(authResult.isAuthorized());
 
         authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
-        Assert.assertTrue(authResult.isAuthorized());
+        assertTrue(authResult.isAuthorized());
     }
 
     @Test
@@ -125,10 +127,10 @@ public class TestStandardPublicPort {
         final PublicPort port = createPublicPort(nifiProperties);
 
         PortAuthorizationResult authResult = port.checkUserAuthorization("CN=node2, OU=nifi.test");
-        Assert.assertFalse(authResult.isAuthorized());
+        assertFalse(authResult.isAuthorized());
 
         authResult = port.checkUserAuthorization("CN=node1, OU=nifi.test");
-        Assert.assertTrue(authResult.isAuthorized());
+        assertTrue(authResult.isAuthorized());
     }
 
 }

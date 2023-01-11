@@ -129,54 +129,47 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final String tempDirectory = createPath(tempPath, TEMP_FILE_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
 
-            final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
-            final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
+            final DataLakeFileSystemClient fileSystemClient = getFileSystemClient(context, flowFile, fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(originalDirectory);
-            final DataLakeFileClient tempFileClient;
-            final DataLakeFileClient renamedFileClient;
 
             final String tempFilePrefix = UUID.randomUUID().toString();
             final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
-            boolean overwrite = conflictResolution.equals(REPLACE_RESOLUTION);
 
-            try {
-                tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
-                appendContent(flowFile, tempFileClient, session);
-                createDirectoryIfNotExists(directoryClient);
-                renamedFileClient = renameFile(fileName, directoryClient.getDirectoryPath(), tempFileClient, overwrite);
+            final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
+            appendContent(flowFile, tempFileClient, session);
+            createDirectoryIfNotExists(directoryClient);
 
-                final Map<String, String> attributes = new HashMap<>();
-                attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
-                attributes.put(ATTR_NAME_DIRECTORY, originalDirectory);
-                attributes.put(ATTR_NAME_FILENAME, fileName);
-                attributes.put(ATTR_NAME_PRIMARY_URI, renamedFileClient.getFileUrl());
-                attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
+            final String fileUrl = renameFile(tempFileClient, directoryClient.getDirectoryPath(), fileName, conflictResolution);
+            if (fileUrl != null) {
+                final Map<String, String> attributes = createAttributeMap(flowFile, fileSystem, originalDirectory, fileName, fileUrl);
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
-                session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, renamedFileClient.getFileUrl(), transferMillis);
-            } catch (DataLakeStorageException dlsException) {
-                if (dlsException.getStatusCode() == 409) {
-                    if (conflictResolution.equals(IGNORE_RESOLUTION)) {
-                        session.transfer(flowFile, REL_SUCCESS);
-                        String warningMessage = String.format("File with the same name already exists. " +
-                                "Remote file not modified. " +
-                                "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                        getLogger().warn(warningMessage, new Object[]{flowFile});
-                    } else {
-                        throw dlsException;
-                    }
-                } else {
-                    throw dlsException;
-                }
+                session.getProvenanceReporter().send(flowFile, fileUrl, transferMillis);
             }
+
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (Exception e) {
             getLogger().error("Failed to create file on Azure Data Lake Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private DataLakeFileSystemClient getFileSystemClient(ProcessContext context, FlowFile flowFile, String fileSystem) {
+        final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
+        return storageClient.getFileSystemClient(fileSystem);
+    }
+
+    private Map<String, String> createAttributeMap(FlowFile flowFile, String fileSystem, String originalDirectory, String fileName, String fileUrl) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
+        attributes.put(ATTR_NAME_DIRECTORY, originalDirectory);
+        attributes.put(ATTR_NAME_FILENAME, fileName);
+        attributes.put(ATTR_NAME_PRIMARY_URI, fileUrl);
+        attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
+        return attributes;
     }
 
     private void createDirectoryIfNotExists(DataLakeDirectoryClient directoryClient) {
@@ -185,7 +178,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-   //Visible for testing
+    //Visible for testing
     void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
         final long length = flowFile.getSize();
         if (length > 0) {
@@ -219,19 +212,39 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         fileClient.flush(length, true);
     }
 
-    //Visible for testing
-    DataLakeFileClient renameFile(final String fileName, final String directoryPath, final DataLakeFileClient fileClient, final boolean overwrite) {
+    /**
+     * This method serves as a "commit" for the upload process. Upon upload, a 0-byte file is created, then the payload is appended to it.
+     * Because of that, a work-in-progress file is available for readers before the upload is complete. It is not an efficient approach in
+     * case of conflicts because FlowFiles are uploaded unnecessarily, but it is a calculated risk because consistency is more important.
+     *
+     * Visible for testing
+     *
+     * @param sourceFileClient client of the temporary file
+     * @param destinationDirectory final location of the uploaded file
+     * @param destinationFileName final name of the uploaded file
+     * @param conflictResolution conflict resolution strategy
+     * @return URL of the uploaded file
+     */
+    String renameFile(final DataLakeFileClient sourceFileClient, final String destinationDirectory, final String destinationFileName, final String conflictResolution) {
+        final String destinationPath = createPath(destinationDirectory, destinationFileName);
+
         try {
             final DataLakeRequestConditions destinationCondition = new DataLakeRequestConditions();
-            if (!overwrite) {
+            if (!conflictResolution.equals(REPLACE_RESOLUTION)) {
                 destinationCondition.setIfNoneMatch("*");
             }
-            final String destinationPath = createPath(directoryPath, fileName);
-            return fileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
+            return sourceFileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue().getFileUrl();
         } catch (DataLakeStorageException dataLakeStorageException) {
-            getLogger().error("Renaming File [{}] failed", fileClient.getFileName(), dataLakeStorageException);
-            removeTempFile(fileClient);
-            throw dataLakeStorageException;
+            removeTempFile(sourceFileClient);
+            if (dataLakeStorageException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
+                getLogger().info("File [{}] already exists. Remote file not modified due to {} being set to '{}'.",
+                        destinationPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
+                return null;
+            } else if (dataLakeStorageException.getStatusCode() == 409 && conflictResolution.equals(FAIL_RESOLUTION)) {
+                throw new ProcessException(String.format("File [%s] already exists.", destinationPath), dataLakeStorageException);
+            } else {
+                throw new ProcessException(String.format("Renaming File [%s] failed", destinationPath), dataLakeStorageException);
+            }
         }
     }
 

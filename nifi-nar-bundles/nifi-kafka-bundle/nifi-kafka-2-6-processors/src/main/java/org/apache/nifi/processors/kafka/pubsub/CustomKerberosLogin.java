@@ -43,11 +43,9 @@ import java.util.Set;
  * Customized version of {@link org.apache.kafka.common.security.kerberos.KerberosLogin} which improves the re-login logic
  * to avoid making system calls to kinit when the ticket cache is being used, and to avoid exiting the refresh thread so that
  * it may recover if the ticket cache is externally refreshed.
- *
  * The re-login thread follows a similar approach used by NiFi's KerberosUser which attempts to call tgt.refresh()
  * and falls back to a logout/login.
- *
- * The Kafka client is configured to use this login by setting SaslConfigs.SASL_LOGIN_CLASS in {@link KafkaProcessorUtils}
+ * The Kafka client is configured to use this login by setting SaslConfigs.SASL_LOGIN_CLASS
  * when the SASL mechanism is GSSAPI.
  */
 public class CustomKerberosLogin extends AbstractLogin {

@@ -47,8 +47,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerCapabilityDetection;
 import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.c2.C2NiFiProperties;
-import org.apache.nifi.c2.C2NifiClientService;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -145,9 +143,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
      * the node identifier
      */
     private NodeIdentifier nodeId;
-
-    /* A reference to the client service for handling*/
-    private C2NifiClientService c2NifiClientService;
 
     // guardedBy rwLock
     private boolean firstControllerInitialization = true;
@@ -294,17 +289,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             if (configuredForClustering) {
                 senderListener.start();
-            } else {
-                // If standalone and C2 is enabled, create a C2 client
-                final boolean c2Enabled = Boolean.parseBoolean(nifiProperties.getProperty(C2NiFiProperties.C2_ENABLE_KEY, "false"));
-                if (c2Enabled) {
-                    logger.info("C2 enabled, creating a C2 client instance");
-                    c2NifiClientService = new C2NifiClientService(nifiProperties, this.controller);
-                    c2NifiClientService.start();
-                } else {
-                    logger.debug("C2 Property [{}] missing or disabled: C2 client not created", C2NiFiProperties.C2_ENABLE_KEY);
-                    c2NifiClientService = null;
-                }
             }
 
         } catch (final IOException ioe) {
@@ -329,10 +313,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             }
 
             running.set(false);
-
-            if (c2NifiClientService != null) {
-                c2NifiClientService.stop();
-            }
 
             if (clusterCoordinator != null) {
                 try {

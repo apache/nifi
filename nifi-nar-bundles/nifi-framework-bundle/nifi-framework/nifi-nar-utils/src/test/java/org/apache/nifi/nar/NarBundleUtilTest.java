@@ -18,13 +18,14 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NarBundleUtilTest {
 
@@ -92,10 +93,10 @@ public class NarBundleUtilTest {
         assertEquals("bbende", narDetails.getBuiltBy());
     }
 
-    @Test(expected = IOException.class)
-    public void testFromManifestWhenNarDirectoryDoesNotExist() throws IOException {
+    @Test
+    public void testFromManifestWhenNarDirectoryDoesNotExist() {
         final File manifest = new File("src/test/resources/nars/nar-does-not-exist");
-        NarBundleUtil.fromNarDirectory(manifest);
+        assertThrows(IOException.class, () -> NarBundleUtil.fromNarDirectory(manifest));
     }
 
 }

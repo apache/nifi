@@ -19,8 +19,9 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
     private static final String SCRIPT = "return record.getValue(\"first\") == 1";
@@ -105,15 +106,15 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
     private void thenValidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_VALID, 1);
         final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_VALID).get(0);
-        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
-        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
+        assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
+        assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
     }
 
     private void thenInvalidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_INVALID, 1);
         final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_INVALID).get(0);
-        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
-        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
+        assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
+        assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
     }
 
     private void thenNoValidFlowFile() {

@@ -16,12 +16,18 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.format;
+import static java.lang.String.valueOf;
+
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.http.HttpRequestor;
 import com.dropbox.core.http.OkHttp3Requestor;
 import com.dropbox.core.oauth.DbxCredential;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import java.net.Proxy;
+import java.util.HashMap;
+import java.util.Map;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -32,6 +38,8 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 
 public interface DropboxTrait {
 
+    String DROPBOX_HOME_URL = "https://www.dropbox.com/home";
+
     PropertyDescriptor CREDENTIAL_SERVICE = new PropertyDescriptor.Builder()
             .name("dropbox-credential-service")
             .displayName("Dropbox Credential Service")
@@ -41,9 +49,10 @@ public interface DropboxTrait {
             .required(true)
             .build();
 
-
-    default DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
-        OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
+    default DbxClientV2 getDropboxApiClient(ProcessContext context, String identifier) {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        final String dropboxClientId = format("%s-%s", getClass().getSimpleName(), identifier);
+        final OkHttpClient.Builder okHttpClientBuilder = OkHttp3Requestor.defaultOkHttpClientBuilder();
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
             okHttpClientBuilder.proxy(proxyConfiguration.createProxy());
@@ -58,16 +67,37 @@ public interface DropboxTrait {
             }
         }
 
-        HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
-        DbxRequestConfig config = DbxRequestConfig.newBuilder(clientId)
+        final HttpRequestor httpRequestor = new OkHttp3Requestor(okHttpClientBuilder.build());
+        final DbxRequestConfig config = DbxRequestConfig.newBuilder(dropboxClientId)
                 .withHttpRequestor(httpRequestor)
                 .build();
 
         final DropboxCredentialService credentialService = context.getProperty(CREDENTIAL_SERVICE)
                 .asControllerService(DropboxCredentialService.class);
-        DropboxCredentialDetails credential = credentialService.getDropboxCredential();
+        final DropboxCredentialDetails credential = credentialService.getDropboxCredential();
 
         return new DbxClientV2(config, new DbxCredential(credential.getAccessToken(), -1L,
                 credential.getRefreshToken(), credential.getAppKey(), credential.getAppSecret()));
+    }
+
+    default String convertFolderName(String folderName) {
+        return "/".equals(folderName) ? "" : folderName;
+    }
+
+    default String getParentPath(String fullPath) {
+        final int idx = fullPath.lastIndexOf("/");
+        final String parentPath = fullPath.substring(0, idx);
+        return "".equals(parentPath) ? "/" : parentPath;
+    }
+
+    default Map<String, String> createAttributeMap(FileMetadata fileMetadata) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(DropboxAttributes.ID, fileMetadata.getId());
+        attributes.put(DropboxAttributes.PATH, getParentPath(fileMetadata.getPathDisplay()));
+        attributes.put(DropboxAttributes.FILENAME, fileMetadata.getName());
+        attributes.put(DropboxAttributes.SIZE, valueOf(fileMetadata.getSize()));
+        attributes.put(DropboxAttributes.REVISION, fileMetadata.getRev());
+        attributes.put(DropboxAttributes.TIMESTAMP, valueOf(fileMetadata.getServerModified().getTime()));
+        return attributes;
     }
 }

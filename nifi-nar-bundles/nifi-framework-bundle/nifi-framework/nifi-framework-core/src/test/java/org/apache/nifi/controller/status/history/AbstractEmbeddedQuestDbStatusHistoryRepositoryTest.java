@@ -18,8 +18,8 @@ package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,13 +46,13 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
     protected EmbeddedQuestDbStatusHistoryRepository testSubject;
     protected String path;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         path = PATH + System.currentTimeMillis();
         testSubject = givenTestSubject();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         testSubject.shutdown();
 

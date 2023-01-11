@@ -15,6 +15,12 @@
 
 ## Latest changes
 
+### 1.19.0
+
+- Changed base image to eclipse-temurin:11-jre as openjdk:8-jre is no longer maintained
+- This also change the image to use Java 11 instead of Java 8
+- As a benefit, the NiFi image now supports arm64 platforms in addition to amd64/x86_64
+
 ### 1.14.0
 
 - Updated default container configuration to use HTTPS with Single User Authentication

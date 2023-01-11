@@ -18,8 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -33,17 +32,8 @@ public class BackPressureMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private FlowFileQueue flowFileQueue;
 
-    @Before
-    public void setUp() {
-        super.setUp();
-        Mockito.when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
-    }
-
     @Test
     public void testWhenNoKeywordThenNoMatching() {
-        // given
-        givenThereIsBackPressure();
-
         // when
         testSubject.match(connection, searchQuery, matches);
 
@@ -57,7 +47,7 @@ public class BackPressureMatcherTest extends AbstractAttributeMatcherTest {
         // given
         givenSearchTerm("presSURE");
         givenThereIsBackPressure();
-
+        givenFlowFileQueue();
         // when
         testSubject.match(connection, searchQuery, matches);
 
@@ -66,12 +56,15 @@ public class BackPressureMatcherTest extends AbstractAttributeMatcherTest {
         Mockito.verify(connection, Mockito.atLeastOnce()).getFlowFileQueue();
     }
 
+    private void givenFlowFileQueue() {
+        Mockito.when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+    }
     @Test
     public void testKeywordMatchesAndThereIsNoBackPressure() {
         // given
         givenSearchTerm("back pressure");
         givenThereIsNoBackPressure();
-
+        givenFlowFileQueue();
         // when
         testSubject.match(connection, searchQuery, matches);
 

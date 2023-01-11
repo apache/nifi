@@ -66,6 +66,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -73,9 +74,11 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -89,6 +92,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private final String EMAIL_CLAIM = "email";
 
     private final NiFiProperties properties;
+
     private OIDCProviderMetadata oidcProviderMetadata;
     private int oidcConnectTimeout;
     private int oidcReadTimeout;
@@ -443,6 +447,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         String identityClaim = properties.getOidcClaimIdentifyingUser();
         String identity = claimsSet.getStringClaim(identityClaim);
 
+        // Attempt to extract groups from the configured claim; default is 'groups'
+        String groupsClaim = properties.getOidcClaimGroups();
+        List<String> groups = claimsSet.getStringListClaim(groupsClaim);
+
         // If default identity not available, attempt secondary identity extraction
         if (StringUtils.isBlank(identity)) {
             // Provide clear message to admin that desired claim is missing and present available claims
@@ -474,8 +482,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final Date expiration = claimsSet.getExpirationTime();
         final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
+        Set<SimpleGrantedAuthority> authorities = groups != null ? groups.stream().map(
+                group -> new SimpleGrantedAuthority(group)).collect(
+                Collectors.collectingAndThen(
+                        Collectors.toSet(),
+                        Collections::unmodifiableSet
+                )) : null;
+
         return new LoginAuthenticationToken(
-                identity, identity, expiresIn, claimsSet.getIssuer().getValue());
+                identity, identity, expiresIn, claimsSet.getIssuer().getValue(), authorities);
     }
 
     private OIDCTokens getOidcTokens(OIDCTokenResponse response) {

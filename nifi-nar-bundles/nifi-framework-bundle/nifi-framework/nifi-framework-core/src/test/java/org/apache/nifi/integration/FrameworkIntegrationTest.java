@@ -63,6 +63,8 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
+import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider;
@@ -83,6 +85,7 @@ import org.apache.nifi.integration.processors.UsernamePasswordProcessor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.persistence.StandardFlowConfigurationDAO;
 import org.apache.nifi.processor.ProcessContext;
@@ -101,11 +104,8 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,18 +128,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FrameworkIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(FrameworkIntegrationTest.class);
-
-    //@Rule
-    public Timeout globalTimeout = Timeout.seconds(20);
-
-    @Rule
-    public TestName name = new TestName();
-
 
     private ResourceClaimManager resourceClaimManager;
     private StandardProcessScheduler processScheduler;
@@ -159,11 +152,10 @@ public class FrameworkIntegrationTest {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         StandardStateManagerProvider.resetProvider();
 
-        cleanup();
         initialize();
 
         flowController.initializeFlow();
@@ -190,7 +182,6 @@ public class FrameworkIntegrationTest {
         final Map<String, String> propertyOverrides = new HashMap<>(getNiFiPropertiesOverrides());
         if (isClusteredTest()) {
             propertyOverrides.put(NiFiProperties.CLUSTER_IS_NODE, "true");
-            // TODO: Update to use JSON
             propertyOverrides.put(NiFiProperties.FLOW_CONFIGURATION_FILE, "target/int-tests/flow.xml.gz");
         }
 
@@ -304,8 +295,8 @@ public class FrameworkIntegrationTest {
         return clusterCoordinator;
     }
 
-    @After
-    public final void shutdown() {
+    @AfterEach
+    public final void shutdown() throws IOException {
         logger.info("Shutting down...");
 
         if (flowController != null) {
@@ -319,6 +310,8 @@ public class FrameworkIntegrationTest {
         if (processScheduler != null) {
             processScheduler.shutdown();
         }
+
+        deleteDirectory(new File("target/int-tests"));
     }
 
     protected void restart() throws IOException, ExecutionException, InterruptedException {
@@ -344,7 +337,10 @@ public class FrameworkIntegrationTest {
         initialize();
 
         // Reload the flow
-        final FlowSynchronizer flowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
+        final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
+        final File storageFile = new File("target/int-tests/flow.json.gz");
+        final VersionedFlowSynchronizer versionedFlowSynchronizer = new VersionedFlowSynchronizer(extensionManager, storageFile, new FlowConfigurationArchiveManager(nifiProperties));
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(xmlFlowSynchronizer, versionedFlowSynchronizer);
         flowController.synchronize(flowSynchronizer, new StandardDataFlow(flowBytes, null, null, Collections.emptySet()), Mockito.mock(FlowService.class),
             BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
 
@@ -361,11 +357,6 @@ public class FrameworkIntegrationTest {
         };
 
         flowController.initializeFlow(queueProvider);
-    }
-
-    @After
-    public final void cleanup() throws IOException {
-        deleteDirectory(new File("target/int-tests"));
     }
 
     private void deleteDirectory(final File dir) throws IOException {
@@ -396,7 +387,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ProcessorNode createProcessorNode(final String processorType, final ProcessGroup destination) {
-        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
+        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         if (destination != null) {
@@ -411,7 +402,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ControllerServiceNode createControllerServiceNode(final String controllerServiceType) {
-        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID().toString();
+        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ControllerServiceNode serviceNode = flowController.getFlowManager().createControllerService(controllerServiceType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         rootProcessGroup.addControllerService(serviceNode);
@@ -566,7 +557,7 @@ public class FrameworkIntegrationTest {
             }
         }
 
-        assertEquals("Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered, count, encountered);
+        assertEquals(count, encountered, "Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered);
     }
 
     protected void triggerOnce(final ProcessorNode processor) throws ExecutionException, InterruptedException {

@@ -401,6 +401,7 @@ public class PutSmbFile extends AbstractProcessor {
         } catch (Exception e) {
             session.transfer(flowFiles, REL_FAILURE);
             logger.error("Could not establish smb connection because of error {}", new Object[]{e});
+            smbClient.getServerList().unregister(hostname);
         }
     }
 }

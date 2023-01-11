@@ -37,6 +37,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -69,6 +70,7 @@ import com.microsoft.azure.storage.blob.BlobRequestOptions;
         @WritesAttribute(attribute = "azure.etag", description = "Etag for the Azure blob"),
         @WritesAttribute(attribute = "azure.length", description = "Length of the blob"),
         @WritesAttribute(attribute = "azure.timestamp", description = "The timestamp in Azure for the blob")})
+@DeprecationNotice(alternatives = PutAzureBlobStorage_v12.class, reason = "Processor depends on legacy Microsoft Azure SDK")
 public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()

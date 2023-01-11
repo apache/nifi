@@ -16,26 +16,20 @@
  */
 package org.apache.nifi.web.api.filter;
 
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRedirectResourceFilter {
-
-    private static Logger logger = LoggerFactory.getLogger(TestRedirectResourceFilter.class);
 
     @Test
     public void testUnmatched() throws Exception {
@@ -50,12 +44,9 @@ public class TestRedirectResourceFilter {
         ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                fail("setUris shouldn't be called");
-                return null;
-            }
+        doAnswer(invocation -> {
+            fail("setUris shouldn't be called");
+            return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();
@@ -75,13 +66,10 @@ public class TestRedirectResourceFilter {
         ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                assertEquals("base uri should be retained", new URI(baseUri), invocation.getArguments()[0]);
-                assertEquals("request uri should be redirected", new URI(baseUri + "site-to-site"), invocation.getArguments()[1]);
-                return null;
-            }
+        doAnswer(invocation -> {
+            assertEquals(new URI(baseUri), invocation.getArguments()[0], "base uri should be retained");
+            assertEquals(new URI(baseUri + "site-to-site"), invocation.getArguments()[1], "request uri should be redirected");
+            return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();
@@ -103,14 +91,10 @@ public class TestRedirectResourceFilter {
         ContainerRequestContext request = mock(ContainerRequestContext.class);
         when(request.getUriInfo()).thenReturn(uriInfo);
 
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                assertEquals("base uri should be retained", new URI(baseUri), invocation.getArguments()[0]);
-                assertEquals("request uri should be redirected with query parameters",
-                        new URI(baseUri + "site-to-site" + query), invocation.getArguments()[1]);
-                return null;
-            }
+        doAnswer(invocation -> {
+            assertEquals(new URI(baseUri), invocation.getArguments()[0], "base uri should be retained");
+            assertEquals(new URI(baseUri + "site-to-site" + query), invocation.getArguments()[1], "request uri should be redirected with query parameters");
+            return null;
         }).when(request).setRequestUri(any(URI.class), any(URI.class));
 
         RedirectResourceFilter filter = new RedirectResourceFilter();

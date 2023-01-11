@@ -23,15 +23,15 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.query.SearchQueryParser;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ControllerFacadeTest {
     private static final String ACTIVE_GROUP_ID = "activeId";
     private static final String SEARCH_LITERAL = "processor1";
@@ -57,11 +57,10 @@ public class ControllerFacadeTest {
     @Mock
     private ControllerSearchService controllerSearchService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
         Mockito.when(flowManager.getRootGroup()).thenReturn(rootGroup);
-        Mockito.when(flowManager.getGroup(ACTIVE_GROUP_ID)).thenReturn(activeGroup);
         // The NiFi user is null due to the production code acquires it from a static call
         Mockito.when(searchQueryParser.parse(
                 Mockito.anyString(),
@@ -76,7 +75,7 @@ public class ControllerFacadeTest {
     public void testExistingActiveGroupIsSentDownToSearch() {
         // given
         final ControllerFacade testSubject = givenTestSubject();
-
+        Mockito.when(flowManager.getGroup(ACTIVE_GROUP_ID)).thenReturn(activeGroup);
         // when
         testSubject.search(SEARCH_LITERAL, ACTIVE_GROUP_ID);
 

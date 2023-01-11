@@ -16,25 +16,23 @@
  */
 package org.apache.nifi.web.security.oidc
 
-
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod
 import com.nimbusds.oauth2.sdk.id.Issuer
 import com.nimbusds.openid.connect.sdk.SubjectType
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata
 import org.apache.nifi.util.NiFiProperties
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
 
-@RunWith(JUnit4.class)
-class OidcServiceGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNull
+
+class OidcServiceGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(OidcServiceGroovyTest.class)
 
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
@@ -61,21 +59,17 @@ class OidcServiceGroovyTest extends GroovyTestCase {
             "CIsImVtYWlsIjoib2lkY190ZXN0QG5pZmkuYXBhY2hlLm9yZyJ9" +
             ".b4NIl0RONKdVLOH0D1eObdwAEX8qX-ExqB8KuKSZFLw"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         mockNiFiProperties = buildNiFiProperties()
         soip = new StandardOidcIdentityProvider(mockNiFiProperties)
-    }
-
-    @After
-    void teardown() throws Exception {
     }
 
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
@@ -100,7 +94,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         final String cachedJwt = service.getJwt(MOCK_REQUEST_IDENTIFIER)
         logger.info("Cached JWT: ${cachedJwt}")
 
-        assert cachedJwt == MOCK_JWT
+        assertEquals(MOCK_JWT, cachedJwt)
     }
 
     @Test
@@ -121,7 +115,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         logger.info("Retrieved JWT: ${retrievedJwt}")
 
         // Assert
-        assert retrievedJwt == MOCK_JWT
+        assertEquals(MOCK_JWT, retrievedJwt)
     }
 
     @Test
@@ -149,7 +143,7 @@ class OidcServiceGroovyTest extends GroovyTestCase {
         logger.info("Retrieved JWT: ${retrievedJwt}")
 
         // Assert
-        assert retrievedJwt == null
+        assertNull(retrievedJwt)
     }
 
     private static StandardOidcIdentityProvider buildIdentityProviderWithMockInitializedProvider(Map<String, String> additionalProperties = [:]) {

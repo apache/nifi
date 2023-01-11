@@ -108,6 +108,34 @@ public class TestUpdateAttribute {
     }
 
     @Test
+    public void testSetEmptyString() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("attribute.1", "");
+        runner.assertValid();
+
+        // No attributes on flowfile
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        assertTrue(result.get(0).getAttribute("attribute.1").isEmpty());
+        runner.clearTransferState();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("attribute.1", "old.value.1");
+        // Existing attribute to be replaced on flowfile
+        runner.enqueue(new byte[0], attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
+        result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
+        assertTrue(result.get(0).getAttribute("attribute.1").isEmpty());
+    }
+
+    @Test
     public void testDefaultAddAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty("NewAttr", "${one:plus(${two})}");

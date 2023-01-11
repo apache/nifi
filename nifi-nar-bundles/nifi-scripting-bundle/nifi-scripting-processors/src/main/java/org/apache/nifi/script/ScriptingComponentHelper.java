@@ -178,15 +178,21 @@ public class ScriptingComponentHelper {
             engineAllowableValues = engineList;
             AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
 
-            SCRIPT_ENGINE = new PropertyDescriptor.Builder()
+            final PropertyDescriptor.Builder enginePropertyBuilder = new PropertyDescriptor.Builder()
                     .name("Script Engine")
                     .required(true)
-                    .description("The engine to execute scripts")
-                    .allowableValues(engines)
-                    .defaultValue(engines[0].getValue())
+                    .description("Language Engine for executing scripts")
                     .required(true)
-                    .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-                    .build();
+                    .expressionLanguageSupported(ExpressionLanguageScope.NONE);
+
+            if (engineList.isEmpty()) {
+                enginePropertyBuilder.description("No Script Engines found");
+            } else {
+                enginePropertyBuilder.allowableValues(engines);
+                enginePropertyBuilder.defaultValue(engines[0].getValue());
+            }
+
+            SCRIPT_ENGINE = enginePropertyBuilder.build();
             descriptors.add(SCRIPT_ENGINE);
         }
 
@@ -265,7 +271,11 @@ public class ScriptingComponentHelper {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
+        if ("python".equalsIgnoreCase(scriptEngineName)) {
+            modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources();
+        } else {
+            modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
+        }
     }
 
     public void stop() {

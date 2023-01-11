@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+
+import org.apache.nifi.util.ComponentIdGenerator;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -27,8 +27,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.nifi.util.ComponentIdGenerator;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SnippetUtilsTest {
 
@@ -199,13 +200,13 @@ public class SnippetUtilsTest {
         UUID currentId3 = ComponentIdGenerator.generateId();
 
         UUID id1 = new UUID(currentId1.getMostSignificantBits(),
-                UUID.nameUUIDFromBytes((currentId1.toString() + seed.toString()).getBytes(StandardCharsets.UTF_8))
+                UUID.nameUUIDFromBytes((currentId1 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
         UUID id2 = new UUID(currentId2.getMostSignificantBits(),
-                UUID.nameUUIDFromBytes((currentId2.toString() + seed.toString()).getBytes(StandardCharsets.UTF_8))
+                UUID.nameUUIDFromBytes((currentId2 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
         UUID id3 = new UUID(currentId3.getMostSignificantBits(),
-                UUID.nameUUIDFromBytes((currentId3.toString() + seed.toString()).getBytes(StandardCharsets.UTF_8))
+                UUID.nameUUIDFromBytes((currentId3 + seed.toString()).getBytes(StandardCharsets.UTF_8))
                         .getLeastSignificantBits());
         List<UUID> list = new ArrayList<>();
         list.add(id2);

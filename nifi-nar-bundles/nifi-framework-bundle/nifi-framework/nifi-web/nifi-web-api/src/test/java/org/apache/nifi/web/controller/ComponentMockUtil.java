@@ -226,7 +226,7 @@ public class ComponentMockUtil {
             final Optional<String> versionedId,
             final Collection<Relationship> relationships,
             final List<FlowFilePrioritizer> flowFilePrioritizers,
-            final int flowFileExpirationInMs,
+            final long flowFileExpirationInMs,
             final String backPressureDataSize,
             final long backPressureCount,
             final Connectable source,

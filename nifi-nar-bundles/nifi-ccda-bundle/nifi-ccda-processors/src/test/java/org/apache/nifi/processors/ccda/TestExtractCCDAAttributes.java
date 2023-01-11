@@ -19,7 +19,6 @@ package org.apache.nifi.processors.ccda;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openhealthtools.mdht.uml.cda.consol.ConsolFactory;
@@ -33,20 +32,17 @@ import org.openhealthtools.mdht.uml.cda.consol.VitalSignsOrganizer;
 import org.openhealthtools.mdht.uml.cda.consol.VitalSignsSection;
 import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 
-import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-
 
 public class TestExtractCCDAAttributes {
 
-    private TestRunner runner;
+    private static final String INVALID_DOCTYPE = "<!DOCTYPE invalid [<!ENTITY entity SYSTEM 'file:///file-not-found'> %entity;]>";
 
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
-    }
+    private static final String INVALID_DOCUMENT = String.format("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>%s<ClinicalDocument xmlns=\"urn:hl7-org:v3\" />", INVALID_DOCTYPE);
+
+    private TestRunner runner;
 
     @BeforeEach
     public void init() {
@@ -55,7 +51,7 @@ public class TestExtractCCDAAttributes {
 
     @Test
     public void testProcessor() throws Exception {
-        Map<String, String> expectedAttributes = new HashMap<String, String>();
+        Map<String, String> expectedAttributes = new LinkedHashMap<>();
         expectedAttributes.put("code.code", "34133-9");
         expectedAttributes.put("code.codeSystem", "2.16.840.1.113883.6.1");
         expectedAttributes.put("code.codeSystemName", "LOINC");
@@ -110,11 +106,21 @@ public class TestExtractCCDAAttributes {
         StringWriter writer = new StringWriter();
         CDAUtil.save(doc, writer);
 
-        runTests(writer.toString(), expectedAttributes, true, true);
+        runTests(writer.toString(), expectedAttributes);
     }
 
-    private void runTests(final String content, Map<String, String> expectedAttributes, final boolean skipValidation, final boolean prettyPrinting) throws IOException{
-        runner.setProperty(ExtractCCDAAttributes.SKIP_VALIDATION, String.valueOf(skipValidation));
+    @Test
+    public void testRunInvalidDocument() {
+        runner.enqueue(INVALID_DOCUMENT);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExtractCCDAAttributes.REL_FAILURE);
+    }
+
+
+    private void runTests(final String content, final Map<String, String> expectedAttributes) {
+        runner.setProperty(ExtractCCDAAttributes.SKIP_VALIDATION, Boolean.TRUE.toString());
 
         runner.enqueue(content);
 

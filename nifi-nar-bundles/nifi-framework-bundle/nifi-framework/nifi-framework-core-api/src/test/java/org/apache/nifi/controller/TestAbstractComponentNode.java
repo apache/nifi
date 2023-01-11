@@ -40,7 +40,9 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import java.net.URL;
@@ -56,11 +58,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class TestAbstractComponentNode {
 
@@ -68,9 +78,10 @@ public class TestAbstractComponentNode {
 
     private static final String PROPERTY_VALUE = "abstract-property-value";
 
-    @Test(timeout = 5000)
+    @Timeout(5)
+    @Test
     public void testGetValidationStatusWithTimeout() {
-        final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(5000, Mockito.mock(ValidationTrigger.class));
+        final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(5000, mock(ValidationTrigger.class));
         final ValidationStatus status = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
         assertEquals(ValidationStatus.VALIDATING, status);
     }
@@ -99,7 +110,7 @@ public class TestAbstractComponentNode {
             }
         };
 
-        final ParameterContext context = Mockito.mock(ParameterContext.class);
+        final ParameterContext context = mock(ParameterContext.class);
         final ParameterDescriptor paramDescriptor = new ParameterDescriptor.Builder()
             .name("abc")
             .description("")
@@ -133,7 +144,7 @@ public class TestAbstractComponentNode {
     public void testMismatchedSensitiveFlags() {
         final LocalComponentNode node = new LocalComponentNode();
 
-        final ParameterContext context = Mockito.mock(ParameterContext.class);
+        final ParameterContext context = mock(ParameterContext.class);
         final ParameterDescriptor paramDescriptor = new ParameterDescriptor.Builder()
             .name("abc")
             .description("")
@@ -156,12 +167,12 @@ public class TestAbstractComponentNode {
         node.verifyCanUpdateProperties(properties);
         node.setProperties(properties, false, Collections.emptySet());
 
-        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-        Mockito.when(validationContext.getProperties()).thenReturn(Collections.singletonMap(propertyDescriptor, propertyValue));
-        Mockito.when(validationContext.getAllProperties()).thenReturn(properties);
-        Mockito.when(validationContext.isDependencySatisfied(Mockito.any(PropertyDescriptor.class), Mockito.any(Function.class))).thenReturn(true);
-        Mockito.when(validationContext.getReferencedParameters(Mockito.anyString())).thenReturn(Collections.singleton("abc"));
-        Mockito.when(validationContext.isParameterDefined("abc")).thenReturn(true);
+        final ValidationContext validationContext = mock(ValidationContext.class);
+        when(validationContext.getProperties()).thenReturn(Collections.singletonMap(propertyDescriptor, propertyValue));
+        when(validationContext.getAllProperties()).thenReturn(properties);
+        when(validationContext.isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class))).thenReturn(true);
+        when(validationContext.getReferencedParameters(Mockito.anyString())).thenReturn(Collections.singleton("abc"));
+        when(validationContext.isParameterDefined("abc")).thenReturn(true);
 
         final ValidationState validationState = node.performValidation(validationContext);
         assertSame(ValidationStatus.INVALID, validationState.getStatus());
@@ -173,7 +184,8 @@ public class TestAbstractComponentNode {
         assertTrue(result.getExplanation().toLowerCase().contains("sensitivity"));
     }
 
-    @Test(timeout = 10000)
+    @Timeout(10)
+    @Test
     public void testValidationTriggerPaused() throws InterruptedException {
         final AtomicLong validationCount = new AtomicLong(0L);
 
@@ -206,26 +218,76 @@ public class TestAbstractComponentNode {
 
     @Test
     public void testValidateControllerServicesValid() {
-        final ControllerServiceProvider serviceProvider = Mockito.mock(ControllerServiceProvider.class);
+        final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final ValidationContext context = getServiceValidationContext(ControllerServiceState.ENABLED, serviceProvider);
 
-        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, Mockito.mock(ValidationTrigger.class), serviceProvider);
+        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, mock(ValidationTrigger.class), serviceProvider);
         final Collection<ValidationResult> results = componentNode.validateReferencedControllerServices(context);
-        assertTrue(String.format("Validation Failed %s", results), results.isEmpty());
+        assertTrue(results.isEmpty(), String.format("Validation Failed %s", results));
+    }
+
+    @Test
+    public void testUpdateProcessorControllerServiceReference() {
+        final String controllerServiceIdA = "controllerServiceIdA";
+        final ControllerService controllerServiceA = mock(ControllerService.class);
+        when(controllerServiceA.getIdentifier()).thenReturn(controllerServiceIdA);
+        final ControllerServiceNode controllerServiceNodeA = mock(ControllerServiceNode.class);
+
+        final String controllerServiceIdB = "controllerServiceIdB";
+        final ControllerService controllerServiceB = mock(ControllerService.class);
+        when(controllerServiceB.getIdentifier()).thenReturn(controllerServiceIdB);
+        final ControllerServiceNode controllerServiceNodeB = mock(ControllerServiceNode.class);
+
+        final String propertyName = "record-reader";
+        final ConfigurableComponent processor = mock(ConfigurableComponent.class);
+        final PropertyDescriptor propertyDescriptorReader = new PropertyDescriptor.Builder()
+                .name(propertyName)
+                .identifiesControllerService(ControllerService.class)
+                .build();
+        when(processor.getPropertyDescriptor(eq(propertyName))).thenReturn(propertyDescriptorReader);
+
+        final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
+        when(serviceProvider.getControllerService(eq(controllerServiceIdA))).thenReturn(controllerServiceA);
+        when(serviceProvider.getControllerServiceNode(eq(controllerServiceIdA))).thenReturn(controllerServiceNodeA);
+        when(serviceProvider.getControllerService(eq(controllerServiceIdB))).thenReturn(controllerServiceB);
+        when(serviceProvider.getControllerServiceNode(eq(controllerServiceIdB))).thenReturn(controllerServiceNodeB);
+
+        final AbstractComponentNode componentNode = mock(AbstractComponentNode.class, withSettings()
+                .defaultAnswer(Answers.CALLS_REAL_METHODS)
+                .useConstructor(
+                        "id", mock(ValidationContextFactory.class),
+                        serviceProvider, "componentType", "componentClass",
+                        mock(ComponentVariableRegistry.class), mock(ReloadComponent.class),
+                        mock(ExtensionManager.class), mock(ValidationTrigger.class), false));
+        when(componentNode.getControllerServiceProvider()).thenReturn(serviceProvider);
+        when(componentNode.getComponent()).thenReturn(processor);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("record-reader", controllerServiceIdA);
+        componentNode.setProperties(properties);
+        verify(controllerServiceNodeA).addReference(eq(componentNode), eq(propertyDescriptorReader));
+        verifyNoMoreInteractions(controllerServiceNodeA);
+
+        properties.put("record-reader", controllerServiceIdB);
+        componentNode.setProperties(properties);
+        verify(controllerServiceNodeA).removeReference(eq(componentNode), eq(propertyDescriptorReader));
+        verifyNoMoreInteractions(controllerServiceNodeA);
+        verify(controllerServiceNodeB).addReference(eq(componentNode), eq(propertyDescriptorReader));
+        verifyNoMoreInteractions(controllerServiceNodeB);
     }
 
     @Test
     public void testValidateControllerServicesEnablingInvalid() {
-        final ControllerServiceProvider serviceProvider = Mockito.mock(ControllerServiceProvider.class);
+        final ControllerServiceProvider serviceProvider = mock(ControllerServiceProvider.class);
         final ValidationContext context = getServiceValidationContext(ControllerServiceState.ENABLING, serviceProvider);
 
-        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, Mockito.mock(ValidationTrigger.class), serviceProvider);
+        final ValidationControlledAbstractComponentNode componentNode = new ValidationControlledAbstractComponentNode(0, mock(ValidationTrigger.class), serviceProvider);
         final Collection<ValidationResult> results = componentNode.validateReferencedControllerServices(context);
 
         final Optional<ValidationResult> firstResult = results.stream().findFirst();
-        assertTrue("Validation Result not found", firstResult.isPresent());
+        assertTrue(firstResult.isPresent(), "Validation Result not found");
         final ValidationResult validationResult = firstResult.get();
-        assertTrue("Enabling Service Validation Result not found", validationResult instanceof EnablingServiceValidationResult);
+        assertInstanceOf(EnablingServiceValidationResult.class, validationResult);
     }
 
     @Test
@@ -298,13 +360,13 @@ public class TestAbstractComponentNode {
     }
 
     private ValidationContext getServiceValidationContext(final ControllerServiceState serviceState, final ControllerServiceProvider serviceProvider) {
-        final ValidationContext context = Mockito.mock(ValidationContext.class);
+        final ValidationContext context = mock(ValidationContext.class);
 
         final String serviceIdentifier = MockControllerService.class.getName();
-        final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
-        Mockito.when(serviceProvider.getControllerServiceNode(serviceIdentifier)).thenReturn(serviceNode);
-        Mockito.when(serviceNode.getState()).thenReturn(serviceState);
-        Mockito.when(serviceNode.isActive()).thenReturn(true);
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceProvider.getControllerServiceNode(serviceIdentifier)).thenReturn(serviceNode);
+        when(serviceNode.getState()).thenReturn(serviceState);
+        when(serviceNode.isActive()).thenReturn(true);
 
         final PropertyDescriptor property = new PropertyDescriptor.Builder()
                 .name(MockControllerService.class.getSimpleName())
@@ -313,11 +375,11 @@ public class TestAbstractComponentNode {
                 .build();
         final Map<PropertyDescriptor, String> properties = Collections.singletonMap(property, serviceIdentifier);
 
-        Mockito.when(context.getProperties()).thenReturn(properties);
-        final PropertyValue propertyValue = Mockito.mock(PropertyValue.class);
-        Mockito.when(propertyValue.getValue()).thenReturn(serviceIdentifier);
-        Mockito.when(context.getProperty(Mockito.eq(property))).thenReturn(propertyValue);
-        Mockito.when(context.isDependencySatisfied(Mockito.any(PropertyDescriptor.class), Mockito.any(Function.class))).thenReturn(true);
+        when(context.getProperties()).thenReturn(properties);
+        final PropertyValue propertyValue = mock(PropertyValue.class);
+        when(propertyValue.getValue()).thenReturn(serviceIdentifier);
+        when(context.getProperty(Mockito.eq(property))).thenReturn(propertyValue);
+        when(context.isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class))).thenReturn(true);
         return context;
     }
 
@@ -325,13 +387,13 @@ public class TestAbstractComponentNode {
         private volatile ParameterContext paramContext = null;
 
         public LocalComponentNode() {
-            this(Mockito.mock(ControllerServiceProvider.class), Mockito.mock(ValidationTrigger.class));
+            this(mock(ControllerServiceProvider.class), mock(ValidationTrigger.class));
         }
 
         public LocalComponentNode(final ControllerServiceProvider controllerServiceProvider, final ValidationTrigger validationTrigger) {
-            super("id", Mockito.mock(ValidationContextFactory.class), controllerServiceProvider, "unit test component",
-                ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
-                Mockito.mock(ExtensionManager.class), validationTrigger, false);
+            super("id", mock(ValidationContextFactory.class), controllerServiceProvider, "unit test component",
+                ValidationControlledAbstractComponentNode.class.getCanonicalName(), mock(ComponentVariableRegistry.class), mock(ReloadComponent.class),
+                mock(ExtensionManager.class), validationTrigger, false);
         }
 
         @Override
@@ -345,8 +407,8 @@ public class TestAbstractComponentNode {
 
         @Override
         public ConfigurableComponent getComponent() {
-            final ConfigurableComponent component = Mockito.mock(ConfigurableComponent.class);
-            Mockito.when(component.getPropertyDescriptor(Mockito.anyString())).thenAnswer(invocation -> {
+            final ConfigurableComponent component = mock(ConfigurableComponent.class);
+            when(component.getPropertyDescriptor(Mockito.anyString())).thenAnswer(invocation -> {
                 final String propertyName = invocation.getArgument(0, String.class);
                 return new PropertyDescriptor.Builder()
                     .name(propertyName)
@@ -427,7 +489,7 @@ public class TestAbstractComponentNode {
         private final long pauseMillis;
 
         public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
-            this(pauseMillis, validationTrigger, Mockito.mock(ControllerServiceProvider.class));
+            this(pauseMillis, validationTrigger, mock(ControllerServiceProvider.class));
         }
 
         public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger, final ControllerServiceProvider controllerServiceProvider) {

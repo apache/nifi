@@ -17,6 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -71,6 +72,7 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -79,13 +81,15 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -100,16 +104,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class NiFiRegistryFlowMapperTest {
 
     private static final String PARAMETER_PROVIDER_ID = "id";
@@ -126,15 +131,17 @@ public class NiFiRegistryFlowMapperTest {
     @Mock
     private ParameterProvider parameterProvider;
 
-    private NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
+    private final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
 
     private int counter = 1;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final FlowRegistryClientNode flowRegistry = mock(FlowRegistryClientNode.class);
-        Mockito.when(flowRegistry.getComponentType()).thenReturn("org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient");
+        Mockito.when(flowRegistry.getComponentType()).thenReturn(TestNifiRegistryFlowRegistryClient.class.getName());
         Mockito.when(flowRegistry.getRawPropertyValue(Mockito.any())).thenReturn("");
+        Mockito.when(flowRegistry.getPropertyDescriptor(TestNifiRegistryFlowRegistryClient.PROPERTY_URL.getName())).thenReturn(TestNifiRegistryFlowRegistryClient.PROPERTY_URL);
+        Mockito.when(flowRegistry.getRawPropertyValue(TestNifiRegistryFlowRegistryClient.PROPERTY_URL)).thenReturn("http://127.0.0.1:18080");
 
         when(flowManager.getFlowRegistryClient(anyString())).thenReturn(flowRegistry);
 
@@ -234,6 +241,9 @@ public class NiFiRegistryFlowMapperTest {
                         false);
         final VersionedProcessGroup innerVersionedProcessGroup =
                 versionedProcessGroup.getProcessGroups().iterator().next();
+
+        // ensure the Registry URL has been set correctly in the flowManager
+        assert(StringUtils.isNotEmpty(innerVersionedProcessGroup.getVersionedFlowCoordinates().getStorageLocation()));
 
         // verify root versioned process group contents only
         verifyVersionedProcessGroup(processGroup, versionedProcessGroup,false,false);
@@ -350,9 +360,7 @@ public class NiFiRegistryFlowMapperTest {
         final Collection<Parameter> parameters = parameterContext.getParameters().values();
         final Set<VersionedParameter> versionedParameters = versionedParameterContext.getParameters();
         // parameter order is not deterministic - use unique names to map up matching parameters
-        final Iterator<Parameter> parametersIterator = parameters.iterator();
-        while (parametersIterator.hasNext()) {
-            final Parameter parameter = parametersIterator.next();
+        for (Parameter parameter : parameters) {
             final Iterator<VersionedParameter> versionedParameterIterator = versionedParameters.iterator();
             while (versionedParameterIterator.hasNext()) {
                 final VersionedParameter versionedParameter = versionedParameterIterator.next();
@@ -363,7 +371,7 @@ public class NiFiRegistryFlowMapperTest {
                 }
             }
         }
-        assertTrue("Failed to match parameters by unique name", versionedParameters.isEmpty());
+        assertTrue(versionedParameters.isEmpty(), "Failed to match parameters by unique name");
 
     }
 
@@ -691,9 +699,7 @@ public class NiFiRegistryFlowMapperTest {
             // first verify the number of processors matches
             assertEquals(processorNodes.size(), versionedProcessors.size());
             // processor order is not deterministic - use unique names to map up matching processors
-            final Iterator<ProcessorNode> processorNodesIterator = processorNodes.iterator();
-            while (processorNodesIterator.hasNext()) {
-                final ProcessorNode processorNode = processorNodesIterator.next();
+            for (ProcessorNode processorNode : processorNodes) {
                 final Iterator<VersionedProcessor> versionedProcessorIterator = versionedProcessors.iterator();
                 while (versionedProcessorIterator.hasNext()) {
                     final VersionedProcessor versionedProcessor = versionedProcessorIterator.next();
@@ -704,7 +710,7 @@ public class NiFiRegistryFlowMapperTest {
                     }
                 }
             }
-            assertTrue("Failed to match processors by unique name", versionedProcessors.isEmpty());
+            assertTrue(versionedProcessors.isEmpty(), "Failed to match processors by unique name");
 
             // verify connections
             final Set<Connection> connections = processGroup.getConnections();
@@ -846,5 +852,15 @@ public class NiFiRegistryFlowMapperTest {
         assertEquals(propertyDescriptor.getName(), versionedPropertyDescriptor.getName());
         assertEquals(propertyDescriptor.getDisplayName(), versionedPropertyDescriptor.getDisplayName());
         assertEquals(propertyDescriptor.isSensitive(), versionedPropertyDescriptor.isSensitive());
+    }
+
+    private static class TestNifiRegistryFlowRegistryClient {
+        public static final PropertyDescriptor PROPERTY_URL = new PropertyDescriptor.Builder()
+                .name("url")
+                .displayName("URL")
+                .description("URL of the NiFi Registry")
+                .addValidator(StandardValidators.URL_VALIDATOR)
+                .required(true)
+                .build();
     }
 }

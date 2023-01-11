@@ -16,13 +16,13 @@
 # under the License.
 #
 
-FROM openjdk:8-jre-alpine
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG MINIFI_VERSION=1.17.0
+ARG MINIFI_VERSION=1.19.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV MINIFI_BASE_DIR /opt/minifi
@@ -31,25 +31,26 @@ ENV MINIFI_BINARY minifi-${MINIFI_VERSION}-bin.zip
 ENV MINIFI_BINARY_PATH nifi/${MINIFI_VERSION}/${MINIFI_BINARY}
 ENV MINIFI_BINARY_URL ${MIRROR}/${MINIFI_BINARY_PATH}
 
-# Setup MiNiFi user
-RUN addgroup -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
-RUN adduser -S -H -G minifi minifi
 RUN mkdir -p $MINIFI_BASE_DIR
-
-RUN apk --no-cache add curl
-
 ADD sh/ ${MINIFI_BASE_DIR}/scripts/
 
 # Download, validate, and expand Apache MiNiFi binary.
-RUN curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-	&& echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
-	&& unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
-	&& rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
-	&& ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME
-
-RUN chown -R -L minifi:minifi $MINIFI_HOME
+RUN apt-get update \
+    && apt-get install -y zip \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fSL $MINIFI_BINARY_URL -o $MINIFI_BASE_DIR/${MINIFI_BINARY} \
+    && echo "$(curl $MINIFI_BINARY_URL.sha256) *$MINIFI_BASE_DIR/${MINIFI_BINARY}" | sha256sum -c - \
+    && unzip $MINIFI_BASE_DIR/${MINIFI_BINARY} -d $MINIFI_BASE_DIR \
+    && rm $MINIFI_BASE_DIR/${MINIFI_BINARY} \
+    && groupadd -g ${GID} minifi \
+    && useradd --shell /bin/bash -u ${UID} -g ${GID} -m minifi \
+    && ln -s $MINIFI_BASE_DIR/minifi-$MINIFI_VERSION $MINIFI_HOME \
+    && chown -R -L minifi:minifi ${MINIFI_BASE_DIR} \
+    && chmod -R +x ${MINIFI_BASE_DIR}/scripts/*.sh
 
 USER minifi
 
+WORKDIR ${MINIFI_HOME}
+
 # Startup MiNiFi
-CMD ${MINIFI_BASE_DIR}/scripts/start.sh
+ENTRYPOINT ["../scripts/start.sh"]

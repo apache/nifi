@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.19.0-SNAPSHOT</version>
+        <version>1.20.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-grpc-bundle</artifactId>
@@ -32,7 +32,7 @@
     </modules>
 
     <properties>
-        <grpc.version>1.48.0</grpc.version>
+        <grpc.version>1.50.2</grpc.version>
         <protoc.version>3.21.4</protoc.version>
     </properties>
 
@@ -41,7 +41,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-grpc-processors</artifactId>
-                <version>1.19.0-SNAPSHOT</version>
+                <version>1.20.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

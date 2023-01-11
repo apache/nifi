@@ -34,8 +34,8 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,9 +45,9 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -56,7 +56,7 @@ import static org.mockito.Mockito.when;
 
 public class TestRemoteProcessGroupAuditor {
 
-    @Before
+    @BeforeEach
     public void setup() {
 
         final SecurityContext securityContext = SecurityContextHolder.getContext();
@@ -68,7 +68,6 @@ public class TestRemoteProcessGroupAuditor {
 
     }
 
-    @SuppressWarnings("unchecked")
     private Collection<Action> updateProcessGroupConfiguration(RemoteProcessGroupDTO inputRPGDTO, RemoteProcessGroup existingRPG) throws Throwable {
         final RemoteProcessGroupAuditor auditor = new RemoteProcessGroupAuditor();
         final ProceedingJoinPoint joinPoint = mock(ProceedingJoinPoint.class);
@@ -408,7 +407,6 @@ public class TestRemoteProcessGroupAuditor {
 
     }
 
-    @SuppressWarnings("unchecked")
     private Collection<Action> updateProcessGroupInputPortConfiguration(RemoteProcessGroupPortDTO inputRPGPortDTO, RemoteGroupPort existingRPGPort) throws Throwable {
         final RemoteProcessGroup existingRPG = defaultRemoteProcessGroup();
         final RemoteProcessGroupAuditor auditor = new RemoteProcessGroupAuditor();

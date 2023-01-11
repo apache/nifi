@@ -17,15 +17,18 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.NodeStatus;
+import org.apache.nifi.controller.status.StorageStatus;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatusHistoryRepositoryTest {
 
@@ -49,50 +52,50 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
 
         // then
         // checking on snapshots
-        Assert.assertEquals(nodeStatuses.size(), result.getStatusSnapshots().size());;
+        assertEquals(nodeStatuses.size(), result.getStatusSnapshots().size());
 
         // metrics based on NodeStatus
         for (int i = 0; i < result.getStatusSnapshots().size(); i++) {
             final StatusSnapshot snapshot = result.getStatusSnapshots().get(i);
             final NodeStatus nodeStatus = nodeStatuses.get(i);
 
-            Assert.assertEquals(nodeStatus.getFreeHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_HEAP.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getUsedHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_HEAP.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getHeapUtilization(), snapshot.getStatusMetric(NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getFreeNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_NON_HEAP.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getUsedNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_NON_HEAP.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getOpenFileHandlers(), snapshot.getStatusMetric(NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor()).longValue());
-            Assert.assertEquals(
+            assertEquals(nodeStatus.getFreeHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_HEAP.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getUsedHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_HEAP.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getHeapUtilization(), snapshot.getStatusMetric(NodeStatusDescriptor.HEAP_UTILIZATION.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getFreeNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.FREE_NON_HEAP.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getUsedNonHeap(), snapshot.getStatusMetric(NodeStatusDescriptor.USED_NON_HEAP.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getOpenFileHandlers(), snapshot.getStatusMetric(NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor()).longValue());
+            assertEquals(
                     Double.valueOf(nodeStatus.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getTotalThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getEventDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getTimerDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getFlowFileRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
-            Assert.assertEquals(nodeStatus.getFlowFileRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
-            Assert.assertEquals(
-                    nodeStatus.getContentRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+            assertEquals(nodeStatus.getTotalThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getEventDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getTimerDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getFlowFileRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
+            assertEquals(nodeStatus.getFlowFileRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
+            assertEquals(
+                    nodeStatus.getContentRepositories().stream().map(StorageStatus::getFreeSpace).reduce(0L, Long::sum).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
-            Assert.assertEquals(
-                    nodeStatus.getContentRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+            assertEquals(
+                    nodeStatus.getContentRepositories().stream().map(StorageStatus::getUsedSpace).reduce(0L, Long::sum).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.CONTENT_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
-            Assert.assertEquals(
-                    nodeStatus.getProvenanceRepositories().stream().map(r -> r.getFreeSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+            assertEquals(
+                    nodeStatus.getProvenanceRepositories().stream().map(StorageStatus::getFreeSpace).reduce(0L, Long::sum).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
-            Assert.assertEquals(
-                    nodeStatus.getProvenanceRepositories().stream().map(r -> r.getUsedSpace()).reduce(0L, (a, b) -> a + b).longValue(),
+            assertEquals(
+                    nodeStatus.getProvenanceRepositories().stream().map(StorageStatus::getUsedSpace).reduce(0L, Long::sum).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
 
             // metrics based on repositories
-            Assert.assertEquals(12 + i, getMetricAtOrdinal(snapshot, 17)); // c1 used
-            Assert.assertEquals(13 + i, getMetricAtOrdinal(snapshot, 16)); // c1 free
-            Assert.assertEquals(14 + i, getMetricAtOrdinal(snapshot, 19)); // c2 used
-            Assert.assertEquals(15 + i, getMetricAtOrdinal(snapshot, 18)); // c2 free
+            assertEquals(12 + i, getMetricAtOrdinal(snapshot, 17)); // c1 used
+            assertEquals(13 + i, getMetricAtOrdinal(snapshot, 16)); // c1 free
+            assertEquals(14 + i, getMetricAtOrdinal(snapshot, 19)); // c2 used
+            assertEquals(15 + i, getMetricAtOrdinal(snapshot, 18)); // c2 free
 
-            Assert.assertEquals(16 + i, getMetricAtOrdinal(snapshot, 21)); // p1 used
-            Assert.assertEquals(17 + i, getMetricAtOrdinal(snapshot, 20)); // p1 free
-            Assert.assertEquals(18 + i, getMetricAtOrdinal(snapshot, 23)); // p2 used
-            Assert.assertEquals(19 + i, getMetricAtOrdinal(snapshot, 22)); // p2 free
+            assertEquals(16 + i, getMetricAtOrdinal(snapshot, 21)); // p1 used
+            assertEquals(17 + i, getMetricAtOrdinal(snapshot, 20)); // p1 free
+            assertEquals(18 + i, getMetricAtOrdinal(snapshot, 23)); // p2 used
+            assertEquals(19 + i, getMetricAtOrdinal(snapshot, 22)); // p2 free
         }
 
         // metrics based on GarbageCollectionStatus (The ordinal numbers are true for setup, in production it might differ)
@@ -108,23 +111,23 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
         final StatusSnapshot snapshot1 = result.getStatusSnapshots().get(0);
         final StatusSnapshot snapshot2 = result.getStatusSnapshots().get(1);
 
-        Assert.assertEquals(100L, getMetricAtOrdinal(snapshot1, g0TimeOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g0TimeDiffOrdinal));
-        Assert.assertEquals(1L, getMetricAtOrdinal(snapshot1, g0CountOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g0CountDiffOrdinal));
-        Assert.assertEquals(300L, getMetricAtOrdinal(snapshot1, g1TimeOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g1TimeDiffOrdinal));
-        Assert.assertEquals(2L, getMetricAtOrdinal(snapshot1, g1CountOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot1, g1CountDiffOrdinal));
+        assertEquals(100L, getMetricAtOrdinal(snapshot1, g0TimeOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot1, g0TimeDiffOrdinal));
+        assertEquals(1L, getMetricAtOrdinal(snapshot1, g0CountOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot1, g0CountDiffOrdinal));
+        assertEquals(300L, getMetricAtOrdinal(snapshot1, g1TimeOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot1, g1TimeDiffOrdinal));
+        assertEquals(2L, getMetricAtOrdinal(snapshot1, g1CountOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot1, g1CountDiffOrdinal));
 
-        Assert.assertEquals(100L, getMetricAtOrdinal(snapshot2, g0TimeOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g0TimeDiffOrdinal));
-        Assert.assertEquals(1L, getMetricAtOrdinal(snapshot2, g0CountOrdinal));
-        Assert.assertEquals(0L, getMetricAtOrdinal(snapshot2, g0CountDiffOrdinal));
-        Assert.assertEquals(700L, getMetricAtOrdinal(snapshot2, g1TimeOrdinal));
-        Assert.assertEquals(400L, getMetricAtOrdinal(snapshot2, g1TimeDiffOrdinal));
-        Assert.assertEquals(5L, getMetricAtOrdinal(snapshot2, g1CountOrdinal));
-        Assert.assertEquals(3L, getMetricAtOrdinal(snapshot2, g1CountDiffOrdinal));
+        assertEquals(100L, getMetricAtOrdinal(snapshot2, g0TimeOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot2, g0TimeDiffOrdinal));
+        assertEquals(1L, getMetricAtOrdinal(snapshot2, g0CountOrdinal));
+        assertEquals(0L, getMetricAtOrdinal(snapshot2, g0CountDiffOrdinal));
+        assertEquals(700L, getMetricAtOrdinal(snapshot2, g1TimeOrdinal));
+        assertEquals(400L, getMetricAtOrdinal(snapshot2, g1TimeDiffOrdinal));
+        assertEquals(5L, getMetricAtOrdinal(snapshot2, g1CountOrdinal));
+        assertEquals(3L, getMetricAtOrdinal(snapshot2, g1CountDiffOrdinal));
     }
 
     private static long getMetricAtOrdinal(final StatusSnapshot snapshot, final long ordinal) {
@@ -136,7 +139,7 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
             }
         }
 
-        Assert.fail();
+        fail();
         return Long.MIN_VALUE;
     }
 }

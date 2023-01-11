@@ -21,6 +21,8 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,7 +54,13 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
             }
         }
 
-        return createSchema(typeMap, rootElementName);
+        RecordSchema inferredSchema = createSchema(typeMap, rootElementName);
+        // Replace array<null> with array<string> in the typeMap. We use array<null> internally for empty arrays because for example if we encounter an empty array in the first record,
+        // we have no way of knowing the type of elements. If we just decide to use STRING as the type like was previously done, this can cause problems because anything can be coerced
+        // into a STRING, and if we later encounter an array of Records there, we end up inferring that as a STRING so we end up converting the Record objects into STRINGs.
+        // Instead, we create an Array where the element type is null, then consider ARRAY[x] wider than ARRAY[null] for any x (other than null). But to cover all cases we have to wait
+        // until the very end, after making inferences based on all data. At that point if the type is still inferred to be null we can just change it to a STRING.
+        return defaultArrayTypes(inferredSchema);
     }
 
     protected void inferSchema(final T rawRecord, final Map<String, FieldTypeInference> inferences) {
@@ -78,15 +86,65 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
             final DataType fieldDataType = RecordFieldType.RECORD.getRecordDataType(schema);
             typeInference.addPossibleDataType(fieldDataType);
         } else if (isArray(value)) {
-            final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
-            forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
+            if (isEmptyArray(value)) {
+                // At this point we don't know the type of array elements as the array is empty, and it is too early to assume an array of strings. Use null as the
+                // element type for now, and call defaultArrayTypes() when all inferences are complete, to ensure that if there are any arrays with inferred element type
+                // of null, they default to string for the final schema.
+                final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(null);
+                typeInference.addPossibleDataType(arrayDataType);
+            } else {
+                final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
+                forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
 
-            final DataType elementDataType = arrayElementTypeInference.toDataType();
-            final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
-            typeInference.addPossibleDataType(arrayDataType);
+                DataType elementDataType = arrayElementTypeInference.toDataType();
+                final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
+                typeInference.addPossibleDataType(arrayDataType);
+            }
         } else {
             typeInference.addPossibleDataType(getDataType(value));
         }
+    }
+
+    /*
+     * This method checks a RecordSchema's child fields for array<null> datatypes recursively and replaces them with the default array<string>. This should be called
+     * after all inferences have been completed.
+     */
+    private RecordSchema defaultArrayTypes(final RecordSchema recordSchema) {
+        List<RecordField> newRecordFields = new ArrayList<>(recordSchema.getFieldCount());
+        for (RecordField childRecordField : recordSchema.getFields()) {
+            newRecordFields.add(defaultArrayTypes(childRecordField));
+        }
+        return new SimpleRecordSchema(newRecordFields, recordSchema.getIdentifier());
+    }
+
+    /*
+     * This method checks a RecordField for array<null> datatypes recursively and replaces them with the default array<string>
+     */
+    private RecordField defaultArrayTypes(final RecordField recordField) {
+        final DataType dataType = recordField.getDataType();
+        if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+            if (((ArrayDataType) dataType).getElementType() == null) {
+                return new RecordField(recordField.getFieldName(), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()),
+                        recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
+            } else {
+                // Iterate over the array element type (using a synthesized temporary RecordField), defaulting any arrays as well
+                ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                RecordField elementRecordField = new RecordField(recordField.getFieldName() + "_element", arrayDataType.getElementType(), recordField.isNullable());
+                RecordField adjustedElementRecordField = defaultArrayTypes(elementRecordField);
+
+                return new RecordField(recordField.getFieldName(), RecordFieldType.ARRAY.getArrayDataType(adjustedElementRecordField.getDataType()),
+                        recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
+            }
+        }
+        if (dataType.getFieldType() == RecordFieldType.RECORD) {
+            RecordDataType recordDataType = (RecordDataType) dataType;
+            RecordSchema childSchema = recordDataType.getChildSchema();
+            RecordSchema adjustedRecordSchema = defaultArrayTypes(childSchema);
+            return new RecordField(recordField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(adjustedRecordSchema), recordField.getDefaultValue(),
+                    recordField.getAliases(), recordField.isNullable());
+        }
+
+        return recordField;
     }
 
     private void inferType(final T value, final FieldTypeInference typeInference) {
@@ -95,12 +153,20 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
             final DataType fieldDataType = RecordFieldType.RECORD.getRecordDataType(schema);
             typeInference.addPossibleDataType(fieldDataType);
         } else if (isArray(value)) {
-            final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
-            forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
+            if (isEmptyArray(value)) {
+                // At this point we don't know the type of array elements as the array is empty, and it is too early to assume an array of strings. Use null as the
+                // element type for now, and call defaultArrayTypes() when all inferences are complete, to ensure that if there are any arrays with inferred element type
+                // of null, they default to string for the final schema.
+                final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(null);
+                typeInference.addPossibleDataType(arrayDataType);
+            } else {
+                final FieldTypeInference arrayElementTypeInference = new FieldTypeInference();
+                forEachRawRecordInArray(value, arrayElement -> inferType(arrayElement, arrayElementTypeInference));
 
-            final DataType elementDataType = arrayElementTypeInference.toDataType();
-            final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
-            typeInference.addPossibleDataType(arrayDataType);
+                DataType elementDataType = arrayElementTypeInference.toDataType();
+                final DataType arrayDataType = RecordFieldType.ARRAY.getArrayDataType(elementDataType);
+                typeInference.addPossibleDataType(arrayDataType);
+            }
         } else {
             typeInference.addPossibleDataType(getDataType(value));
         }
@@ -128,6 +194,8 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
     protected abstract boolean isObject(T value);
 
     protected abstract boolean isArray(T value);
+
+    protected abstract boolean isEmptyArray(T value);
 
     protected abstract void forEachFieldInRecord(T rawRecord, BiConsumer<String, T> fieldConsumer);
 

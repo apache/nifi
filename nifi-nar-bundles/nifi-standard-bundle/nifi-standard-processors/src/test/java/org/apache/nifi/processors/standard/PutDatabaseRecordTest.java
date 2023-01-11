@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.dbcp2.DelegatingConnection;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
+import org.apache.nifi.processors.standard.db.ColumnDescription;
+import org.apache.nifi.processors.standard.db.TableSchema;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -215,14 +217,15 @@ public class PutDatabaseRecordTest {
                 new RecordField("non_existing", RecordFieldType.BOOLEAN.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final PutDatabaseRecord.TableSchema tableSchema = new PutDatabaseRecord.TableSchema(
+        final TableSchema tableSchema = new TableSchema(
+                "PERSONS",
                 Arrays.asList(
-                        new PutDatabaseRecord.ColumnDescription("id", 4, true, 2, false),
-                        new PutDatabaseRecord.ColumnDescription("name", 12, true, 255, true),
-                        new PutDatabaseRecord.ColumnDescription("code", 4, true, 10, true)
+                        new ColumnDescription("id", 4, true, 2, false),
+                        new ColumnDescription("name", 12, true, 255, true),
+                        new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false,
-                new HashSet<String>(Arrays.asList("id")),
+                new HashSet<>(Arrays.asList("id")),
                 ""
         );
 
@@ -242,7 +245,7 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testGeneratePreparedStatementsFailUnmatchedField() throws SQLException, MalformedRecordException {
+    void testGeneratePreparedStatementsFailUnmatchedField() {
 
         final List<RecordField> fields = Arrays.asList(new RecordField("id", RecordFieldType.INT.getDataType()),
                 new RecordField("name", RecordFieldType.STRING.getDataType()),
@@ -250,14 +253,15 @@ public class PutDatabaseRecordTest {
                 new RecordField("non_existing", RecordFieldType.BOOLEAN.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final PutDatabaseRecord.TableSchema tableSchema = new PutDatabaseRecord.TableSchema(
+        final TableSchema tableSchema = new TableSchema(
+                "PERSONS",
                 Arrays.asList(
-                        new PutDatabaseRecord.ColumnDescription("id", 4, true, 2, false),
-                        new PutDatabaseRecord.ColumnDescription("name", 12, true, 255, true),
-                        new PutDatabaseRecord.ColumnDescription("code", 4, true, 10, true)
+                        new ColumnDescription("id", 4, true, 2, false),
+                        new ColumnDescription("name", 12, true, 255, true),
+                        new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false,
-                new HashSet<String>(Arrays.asList("id")),
+                new HashSet<>(Arrays.asList("id")),
                 ""
         );
 
@@ -1364,11 +1368,12 @@ public class PutDatabaseRecordTest {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final PutDatabaseRecord.TableSchema tableSchema = new PutDatabaseRecord.TableSchema(
+        final TableSchema tableSchema = new TableSchema(
+                "PERSONS",
                 Arrays.asList(
-                        new PutDatabaseRecord.ColumnDescription("id", 4, true, 2, false),
-                        new PutDatabaseRecord.ColumnDescription("name", 12, true, 255, true),
-                        new PutDatabaseRecord.ColumnDescription("code", 4, true, 10, true)
+                        new ColumnDescription("id", 4, true, 2, false),
+                        new ColumnDescription("name", 12, true, 255, true),
+                        new ColumnDescription("code", 4, true, 10, true)
                 ),
                 false,
                 new HashSet<>(Arrays.asList("id")),
@@ -1382,13 +1387,11 @@ public class PutDatabaseRecordTest {
         runner.setProperty(PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER, "true");
         final PutDatabaseRecord.DMLSettings settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext());
 
-
-        assertEquals("test_catalog.test_schema.test_table",
-                processor.generateTableName(settings, "test_catalog", "test_schema", "test_table", tableSchema));
+        assertEquals("test_catalog.test_schema.test_table", processor.generateTableName(settings, "test_catalog", "test_schema", "test_table", tableSchema));
     }
 
     @Test
-    void testInsertMismatchedCompatibleDataTypes() throws InitializationException, ProcessException, SQLException, IOException {
+    void testInsertMismatchedCompatibleDataTypes() throws InitializationException, ProcessException, SQLException {
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1468,11 +1471,7 @@ public class PutDatabaseRecordTest {
         parser.addSchemaField("dt", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.FLOAT.getDataType()).getFieldType());
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26);
-        BigInteger nifiDate1 = BigInteger.valueOf(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()); // in UTC
-        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
         LocalDate testDate2 = LocalDate.of(2021, 7, 26);
-        BigInteger nifiDate2 = BigInteger.valueOf(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()); // in UTC
-        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
 
         parser.addRecord("1", "rec1", 101, Arrays.asList(1.0, 2.0));
         parser.addRecord("2", "rec2", 102, Arrays.asList(3.0, 4.0));
@@ -1499,7 +1498,7 @@ public class PutDatabaseRecordTest {
         final Statement stmt = conn.createStatement();
         try {
             stmt.execute("DROP TABLE TEMP");
-        } catch(final Exception e) {
+        } catch (final Exception e) {
             // Do nothing, table may not exist
         }
         stmt.execute("CREATE TABLE TEMP (id integer primary key, name long varchar)");
@@ -1536,7 +1535,7 @@ public class PutDatabaseRecordTest {
     }
 
     @Test
-    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException, IOException {
+    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException {
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
@@ -1595,7 +1594,7 @@ public class PutDatabaseRecordTest {
         byte[] bytes = "BLOB".getBytes();
         Byte[] blobRecordValue = new Byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
-            blobRecordValue[i] = Byte.valueOf(bytes[i]);
+            blobRecordValue[i] = bytes[i];
         }
 
         parser.addSchemaField("id", RecordFieldType.INT);
@@ -1857,12 +1856,10 @@ public class PutDatabaseRecordTest {
         return () -> spyStmt[0];
     }
 
-
-
     static class PutDatabaseRecordUnmatchedField extends PutDatabaseRecord {
         @Override
         SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings) throws IllegalArgumentException {
-            return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0,1,2,3));
+            return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
         }
     }
 }

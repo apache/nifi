@@ -23,15 +23,11 @@ import static okhttp3.RequestBody.create;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -47,6 +43,9 @@ import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.serializer.C2Serializer;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,50 +194,40 @@ public class C2HttpClient implements C2Client {
         final String keystoreLocation = clientConfig.getKeystoreFilename();
         final String keystoreType = clientConfig.getKeystoreType();
         final String keystorePass = clientConfig.getKeystorePass();
-
         assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
 
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore.load(keyStoreStream, keystorePass.toCharArray());
+        final KeyStore keyStore;
+        try (final FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
+            keyStore = new StandardKeyStoreBuilder()
+                    .type(keystoreType)
+                    .inputStream(keyStoreStream)
+                    .password(keystorePass.toCharArray())
+                    .build();
         }
 
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-
-        // load truststore
         final String truststoreLocation = clientConfig.getTruststoreFilename();
         final String truststorePass = clientConfig.getTruststorePass();
         final String truststoreType = clientConfig.getTruststoreType();
         assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
 
-        KeyStore truststore = KeyStore.getInstance(truststoreType);
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-        trustManagerFactory.init(truststore);
-
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
+        final KeyStore truststore;
+        try (final FileInputStream trustStoreStream = new FileInputStream(truststoreLocation)) {
+            truststore = new StandardKeyStoreBuilder()
+                    .type(truststoreType)
+                    .inputStream(trustStoreStream)
+                    .password(truststorePass.toCharArray())
+                    .build();
         }
 
-        SSLContext tempSslContext;
-        try {
-            tempSslContext = SSLContext.getInstance("TLS");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SSLContext creation failed", e);
-        }
-
-        final SSLContext sslContext = tempSslContext;
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
-
+        final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
+        final SSLContext sslContext = new StandardSslContextBuilder()
+                .keyStore(keyStore)
+                .keyPassword(keystorePass.toCharArray())
+                .trustStore(truststore)
+                .build();
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+
+        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
     }
 
     private void assertKeystorePropertiesSet(String location, String password, String type) {

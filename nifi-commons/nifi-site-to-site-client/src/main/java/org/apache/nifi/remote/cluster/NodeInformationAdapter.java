@@ -18,8 +18,6 @@ package org.apache.nifi.remote.cluster;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
-import org.apache.nifi.remote.cluster.NodeInformation;
-
 public class NodeInformationAdapter extends XmlAdapter<AdaptedNodeInformation, NodeInformation> {
 
     @Override

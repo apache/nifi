@@ -21,7 +21,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.record.sink.RecordSinkService;
 
 import java.util.ArrayList;
 import java.util.List;

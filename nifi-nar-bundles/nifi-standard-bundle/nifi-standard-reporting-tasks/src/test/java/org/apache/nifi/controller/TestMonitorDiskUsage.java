@@ -17,13 +17,13 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestMonitorDiskUsage {
 

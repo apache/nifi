@@ -21,7 +21,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.HashMap;

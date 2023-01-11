@@ -27,10 +27,10 @@ import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.testng.Assert;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -40,8 +40,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
@@ -63,7 +64,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         zkServer = new TestingServer(true);
         zkServer.start();
@@ -134,7 +135,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         return NiFiProperties.createBasicNiFiProperties(null, keystoreProps);
     }
 
-    @After
+    @AfterEach
     public void clear() throws IOException {
         try {
             if (provider != null) {
@@ -155,7 +156,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         return provider;
     }
 
-    @Test(timeout = 30000)
+    @Timeout(30)
+    @Test
     public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
@@ -173,7 +175,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         while (true) {
             try {
                 getProvider().setState(state, componentId);
-                Assert.fail("Expected StateTooLargeException");
+                fail("Expected StateTooLargeException");
             } catch (final StateTooLargeException stle) {
                 // expected behavior.
                 break;
@@ -184,12 +186,13 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 // does not succeeed within 30 seconds.
                 Thread.sleep(1000L);
             } catch (final Exception e) {
-                Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+                fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
             }
         }
     }
 
-    @Test(timeout = 30000)
+    @Timeout(30)
+    @Test
     public void testStateTooLargeExceptionThrownOnReplace() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
@@ -223,7 +226,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         assertThrows(StateTooLargeException.class, () -> getProvider().replace(getProvider().getState(componentId), state, componentId));
     }
 
-    @Test(timeout = 5000)
+    @Timeout(30)
+    @Test
     public void testStateTooLargeExceptionThrownOnReplaceSmallJuteMaxbuffer() throws Exception {
         final Map<String, String> initialState = new HashMap<>();
         final String stateValue = UUID.randomUUID().toString();

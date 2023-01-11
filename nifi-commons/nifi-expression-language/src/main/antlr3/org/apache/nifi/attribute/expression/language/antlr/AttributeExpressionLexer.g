@@ -91,6 +91,7 @@ fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 TRUE	: 'true';
 FALSE	: 'false';
+NULL    : 'null';
 
 //
 // FUNCTION NAMES
@@ -111,6 +112,7 @@ UUID : 'UUID';
 HOSTNAME : 'hostname';	// requires boolean arg: prefer FQDN
 NOW	: 'now';
 THREAD : 'thread';
+GET_URI : 'getUri';
 
 
 // 0 arg functions
@@ -145,6 +147,7 @@ BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
 EVALUATE_EL_STRING: 'evaluateELString';
+IS_JSON: 'isJson';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';

@@ -85,7 +85,7 @@ threeArgString: ((JSON_PATH_PUT) LPAREN! anyArg COMMA! anyArg COMMA! anyArg RPAR
 fiveArgString : GET_DELIMITED_FIELD LPAREN! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg (COMMA! anyArg)?)?)?)? RPAREN!;
 
 // functions that return Booleans
-zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT) LPAREN! RPAREN!;
+zeroArgBool : (IS_NULL | NOT_NULL | IS_EMPTY | NOT | IS_JSON) LPAREN! RPAREN!;
 oneArgBool	: ((FIND | MATCHES | EQUALS_IGNORE_CASE) LPAREN! anyArg RPAREN!) |
 			  (GREATER_THAN | LESS_THAN | GREATER_THAN_OR_EQUAL | LESS_THAN_OR_EQUAL) LPAREN! anyArg RPAREN! |
 			  (EQUALS) LPAREN! anyArg RPAREN! |
@@ -106,7 +106,7 @@ booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum | zeroOrTwoArgNum | oneOrTwoArgNum | zeroOrOneOrTwoArgNum;
 
 anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool
-                | expression | parameterReference;
+                | expression | parameterReference | NULL;
 
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
 functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
@@ -137,7 +137,8 @@ booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
-standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
+sevenArgStandaloneFunction : GET_URI^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg RPAREN!;
+standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction | sevenArgStandaloneFunction;
 
 attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterReference);
 

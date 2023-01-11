@@ -44,10 +44,9 @@ div.connection-terminal-label {
 }
 
 #relationship-names {
-    padding: 2px;
     height: 150px;
     overflow-y: auto;
-    overflow-x: hidden; 
+    overflow-x: hidden;
     border: 0 solid #cccccc;
     padding: 2px;
     padding-bottom: 0;

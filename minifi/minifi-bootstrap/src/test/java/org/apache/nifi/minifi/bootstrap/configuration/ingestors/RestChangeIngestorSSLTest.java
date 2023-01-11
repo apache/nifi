@@ -25,24 +25,21 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListene
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.Properties;
 
@@ -52,14 +49,16 @@ import static org.mockito.Mockito.when;
 public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
 
     @BeforeAll
-    public static void setUpHttps() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException, KeyManagementException, InterruptedException {
+    public static void setUpHttps() throws IOException, InterruptedException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType("JKS").build();
+
         Properties properties = new Properties();
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_LOCATION_KEY, "./src/test/resources/localhost-ts.jks");
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_PASSWORD_KEY, "localtest");
-        properties.setProperty(RestChangeIngestor.TRUSTSTORE_TYPE_KEY, "JKS");
-        properties.setProperty(RestChangeIngestor.KEYSTORE_LOCATION_KEY, "./src/test/resources/localhost-ks.jks");
-        properties.setProperty(RestChangeIngestor.KEYSTORE_PASSWORD_KEY, "localtest");
-        properties.setProperty(RestChangeIngestor.KEYSTORE_TYPE_KEY, "JKS");
+        properties.setProperty(RestChangeIngestor.TRUSTSTORE_LOCATION_KEY, tlsConfiguration.getTruststorePath());
+        properties.setProperty(RestChangeIngestor.TRUSTSTORE_PASSWORD_KEY, tlsConfiguration.getTruststorePassword());
+        properties.setProperty(RestChangeIngestor.TRUSTSTORE_TYPE_KEY, tlsConfiguration.getTruststoreType().getType());
+        properties.setProperty(RestChangeIngestor.KEYSTORE_LOCATION_KEY, tlsConfiguration.getKeystorePath());
+        properties.setProperty(RestChangeIngestor.KEYSTORE_PASSWORD_KEY, tlsConfiguration.getKeystorePassword());
+        properties.setProperty(RestChangeIngestor.KEYSTORE_TYPE_KEY, tlsConfiguration.getKeystoreType().getType());
         properties.setProperty(RestChangeIngestor.NEED_CLIENT_AUTH_KEY, "false");
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
@@ -80,50 +79,33 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
 
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
-        final String keystoreLocation = "./src/test/resources/localhost-ks.jks";
-        final String keystorePass = "localtest";
-        final String keystoreType = "JKS";
-
-        // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-        try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-            keyStore.load(keyStoreStream, keystorePass.toCharArray());
+        final KeyStore keyStore;
+        try (final FileInputStream keyStoreStream = new FileInputStream(tlsConfiguration.getKeystorePath())) {
+            keyStore = new StandardKeyStoreBuilder()
+                    .type(tlsConfiguration.getKeystoreType().getType())
+                    .inputStream(keyStoreStream)
+                    .password(tlsConfiguration.getKeystorePassword().toCharArray())
+                    .build();
         }
 
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-
-        // load truststore
-        final String truststoreLocation = "./src/test/resources/localhost-ts.jks";
-        final String truststorePass = "localtest";
-        final String truststoreType = "JKS";
-
-        KeyStore truststore = KeyStore.getInstance(truststoreType);
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-        trustManagerFactory.init(truststore);
-
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
+        final KeyStore truststore;
+        try (final FileInputStream trustStoreStream = new FileInputStream(tlsConfiguration.getTruststorePath())) {
+            truststore = new StandardKeyStoreBuilder()
+                    .type(tlsConfiguration.getTruststoreType().getType())
+                    .inputStream(trustStoreStream)
+                    .password(tlsConfiguration.getTruststorePassword().toCharArray())
+                    .build();
         }
 
-        SSLContext tempSslContext;
-        try {
-            tempSslContext = SSLContext.getInstance("TLS");
-        } catch (NoSuchAlgorithmException e) {
-            tempSslContext = SSLContext.getDefault();
-        }
-
-        final SSLContext sslContext = tempSslContext;
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
-
+        final X509TrustManager trustManager = new StandardTrustManagerBuilder().trustStore(truststore).build();
+        final SSLContext sslContext = new StandardSslContextBuilder()
+                .keyStore(keyStore)
+                .keyPassword(tlsConfiguration.getKeyPassword().toCharArray())
+                .trustStore(truststore)
+                .build();
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        clientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+
+        clientBuilder.sslSocketFactory(sslSocketFactory, trustManager);
 
         Thread.sleep(1000);
         url = restChangeIngestor.getURI().toURL().toString();

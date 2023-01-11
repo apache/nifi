@@ -18,6 +18,8 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.nifi.kafka.shared.property.SaslMechanism;
+import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
@@ -44,47 +46,41 @@ public class TestConsumeKafka_2_6 {
     }
 
     @Test
-    public void validateCustomValidatorSettings() throws Exception {
+    public void validateCustomValidatorSettings() {
         ConsumeKafka_2_6 consumeKafka = new ConsumeKafka_2_6();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "okeydokey:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "foo");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
         runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         runner.assertValid();
-        runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "Foo");
-        runner.assertNotValid();
-        runner.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        runner.assertValid();
         runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         runner.assertValid();
-        runner.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-        runner.assertNotValid();
     }
 
     @Test
-    public void validatePropertiesValidation() throws Exception {
+    public void validatePropertiesValidation() {
         ConsumeKafka_2_6 consumeKafka = new ConsumeKafka_2_6();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "okeydokey:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "foo");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafka_2_6.GROUP_ID);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        AssertionError e = assertThrows(AssertionError.class, runner::assertValid);
         assertTrue(e.getMessage().contains("invalid because Group ID is required"));
 
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "");
 
-        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        e = assertThrows(AssertionError.class, runner::assertValid);
         assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "  ");
 
-        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        e = assertThrows(AssertionError.class, runner::assertValid);
         assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 
@@ -92,48 +88,48 @@ public class TestConsumeKafka_2_6 {
     public void testJaasGssApiConfiguration() throws Exception {
         ConsumeKafka_2_6 consumeKafka = new ConsumeKafka_2_6();
         TestRunner runner = TestRunners.newTestRunner(consumeKafka);
-        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(ConsumeKafka_2_6.BOOTSTRAP_SERVERS, "okeydokey:1234");
         runner.setProperty(ConsumeKafka_2_6.TOPICS, "foo");
         runner.setProperty(ConsumeKafka_2_6.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka_2_6.AUTO_OFFSET_RESET, ConsumeKafka_2_6.OFFSET_EARLIEST);
 
-        runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
-        runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.GSSAPI_VALUE);
+        runner.setProperty(ConsumeKafka_2_6.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
+        runner.setProperty(ConsumeKafka_2_6.SASL_MECHANISM, SaslMechanism.GSSAPI.getValue());
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "kafka");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "kafka");
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "nifi@APACHE.COM");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL, "nifi@APACHE.COM");
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "not.A.File");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "not.A.File");
         runner.assertNotValid();
 
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "src/test/resources/server.properties");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "src/test/resources/server.properties");
         runner.assertValid();
 
         runner.setVariable("keytab", "src/test/resources/server.properties");
         runner.setVariable("principal", "nifi@APACHE.COM");
         runner.setVariable("service", "kafka");
-        runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}");
-        runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL, "${principal}");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "${keytab}");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "${service}");
         runner.assertValid();
 
         final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
-        runner.setProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.setProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertNotValid();
 
-        runner.removeProperty(KafkaProcessorUtils.USER_PRINCIPAL);
-        runner.removeProperty(KafkaProcessorUtils.USER_KEYTAB);
+        runner.removeProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL);
+        runner.removeProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB);
         runner.assertValid();
 
         final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
-        runner.setProperty(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
         runner.assertNotValid();
 
-        runner.removeProperty(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        runner.removeProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE);
         runner.assertValid();
     }
 

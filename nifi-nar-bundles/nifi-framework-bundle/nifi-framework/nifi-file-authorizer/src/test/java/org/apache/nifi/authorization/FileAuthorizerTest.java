@@ -26,11 +26,11 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -45,12 +45,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -162,12 +163,12 @@ public class FileAuthorizerTest {
 
     private AuthorizerConfigurationContext configurationContext;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         // primary authorizations
         primaryAuthorizations = new File("target/authorizations/authorizations.xml");
@@ -247,7 +248,7 @@ public class FileAuthorizerTest {
         authorizer.initialize(null);
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws Exception {
         deleteFile(primaryAuthorizations);
         deleteFile(primaryTenants);
@@ -515,17 +516,19 @@ public class FileAuthorizerTest {
         assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(Mockito.eq(FileAccessPolicyProvider.PROP_INITIAL_ADMIN_IDENTITY)))
@@ -536,7 +539,9 @@ public class FileAuthorizerTest {
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
     @Test
@@ -831,37 +836,47 @@ public class FileAuthorizerTest {
         assertEquals(primaryTenants.length(), restoreTenants.length());
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenPrimaryDoesNotExist() throws Exception {
         writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenPrimaryAuthorizationsDifferentThanRestore() throws Exception {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
         writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWhenPrimaryTenantsDifferentThanRestore() throws Exception {
         writeFile(primaryTenants, EMPTY_TENANTS);
         writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWithBadAuthorizationsSchema() throws Exception {
         writeFile(primaryAuthorizations, BAD_SCHEMA_AUTHORIZATIONS);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
-    @Test(expected = AuthorizerCreationException.class)
+    @Test
     public void testOnConfiguredWithBadTenantsSchema() throws Exception {
         writeFile(primaryTenants, BAD_SCHEMA_TENANTS);
-        authorizer.onConfigured(configurationContext);
+
+        assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
     }
 
     @Test

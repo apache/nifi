@@ -43,8 +43,6 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
 
     private static final String DEFAULT_PATH = "/";
 
-    private static final String SAME_SITE_STRICT = "Strict";
-
     private static final boolean SECURE_ENABLED = true;
 
     private static final boolean HTTP_ONLY_ENABLED = true;
@@ -77,7 +75,6 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
     @Override
     public void addSessionCookie(final URI resourceUri, final HttpServletResponse response, final ApplicationCookieName applicationCookieName, final String value) {
         final ResponseCookie.ResponseCookieBuilder responseCookieBuilder = getCookieBuilder(resourceUri, applicationCookieName, value, MAX_AGE_SESSION);
-        responseCookieBuilder.sameSite(SAME_SITE_STRICT);
         setResponseCookie(response, responseCookieBuilder.build());
         logger.debug("Added Session Cookie [{}] URI [{}]", applicationCookieName.getCookieName(), resourceUri);
     }
@@ -110,15 +107,27 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
         logger.debug("Removed Cookie [{}] URI [{}]", applicationCookieName.getCookieName(), resourceUri);
     }
 
-    private ResponseCookie.ResponseCookieBuilder getCookieBuilder(final URI resourceUri,
+    /**
+     * Get Response Cookie Builder with standard properties
+     *
+     * @param resourceUri Resource URI containing path and domain
+     * @param applicationCookieName Application Cookie Name to be used
+     * @param value Cookie value
+     * @param maxAge Max Age
+     * @return Response Cookie Builder
+     */
+    protected ResponseCookie.ResponseCookieBuilder getCookieBuilder(final URI resourceUri,
                                              final ApplicationCookieName applicationCookieName,
                                              final String value,
                                              final Duration maxAge) {
         Objects.requireNonNull(resourceUri, "Resource URI required");
         Objects.requireNonNull(applicationCookieName, "Response Cookie Name required");
+
+        final SameSitePolicy sameSitePolicy = applicationCookieName.getSameSitePolicy();
         return ResponseCookie.from(applicationCookieName.getCookieName(), value)
                 .path(getCookiePath(resourceUri))
                 .domain(resourceUri.getHost())
+                .sameSite(sameSitePolicy.getPolicy())
                 .secure(SECURE_ENABLED)
                 .httpOnly(HTTP_ONLY_ENABLED)
                 .maxAge(maxAge);

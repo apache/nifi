@@ -27,12 +27,18 @@
             This service creates record readers for ASN.1 input.
         </p>
         <p>
-            ASN.1 schema files (with full path) can be defined via the <i>Root Model Name</i> property as a comma separated list.
+            ASN.1 schema files (with full path) can be defined via the <i>ASN.1 Files</i> property as a comma separated list.
             The controller service preprocesses these files and generates sources that it uses for parsing data later.<br/>
             <b>
                 Note that this preprocessing may take a while, especially when the schema files are large.
                 The service remains in the <i>Enabling</i> state until this preprocessing is finished.
                 Processors using the service are ready to be started at this point but probably won't work properly until the service is fully <i>Enabled</i>.
+            </b>
+            <br />
+            <b>
+                Also note that the preprocessing phase can fail if there are problems with the ASN.1 schema files. The bulletin - as per usual -
+                will show error messages related to the failure but interpreting those messages may not be straightforward.
+                For help troubleshooting such messages please refer to the <i>Troubleshooting</i> section below.
             </b>
         </p>
         <p>
@@ -57,6 +63,64 @@
             (Note however that the service should be left <i>Enabled</i> while doing the search as it deletes the temporary directory when it is disabled.
             To be able to set the property the service needs to be disabled in the end - and let it remove the directory,
                 however this shouldn't be an issue as the name of the root model class will be the same in the new temporary directory.)
+        </p>
+
+        <h3>Troubleshooting</h3>
+
+        <p>
+            The preprocessing is done in two phases:
+            <ol>
+                <li>
+                    The first phase reads the ASN.1 schema files and parses them. Formatting errors are usually reported during this phase.
+                    Here are some possible error messages and the potential root causes of the issues:
+                    <ul>
+                        <li>
+                            <i>line NNN:MMM: unexpected token: someFieldName</i> - On the NNNth line, starting at the MMMth position, <i>someFieldName</i> is encountered
+                            which was unexpected. Usually this means <i>someFieldName</i> itself is fine but the previous field declaration doesn't have a comma ',' at the end.
+                        </li>
+                        <li>
+                            <i>line NNN:MMM: unexpected token: [</i> - On the NNNth line, starting at the MMMth position, the opening square bracket '[' is encountered
+                            which was unexpected. Usually this is the index part of the field declaration and for some reason the field declaration is invalid. This can typically
+                            occur if the field name is invalid, e.g. starts with an uppercase letter. (Field names must start with a lowercase letter.)
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    The second phase compiles the ASN.1 schema files into Java classes. Even if the ASN.1 files meet the formal requirements, due to the nature of the created Java
+                    files there are some extra limitations:
+                    <ul>
+                        <li>
+                            On certain systems type names are treated as case-insensitive. Because of this, two types whose names only differ in the cases of their letters may cause errors.
+                            For example if the ASN.1 schema files define both 'SameNameWithDifferentCase' and 'SAMENAMEWithDifferentCase', the following error may be reported:
+                            <br />
+                            <br />
+                            <i>
+                                class SAMENAMEWithDifferentCase is public, should be declared in a file named SAMENAMEWithDifferentCase.java
+                            </i>
+                        </li>
+                        <li>
+                            Certain keywords cannot be used as field names. Known reserved keywords and the corresponding reported error messages are:
+                        </li>
+                        <ul>
+                            <li>
+                                length
+                            </li>
+                            <br />
+                            <i>
+                                incompatible types: com.beanit.asn1bean.ber.types.BerInteger cannot be converted to com.beanit.asn1bean.ber.BerLength
+                            </i>
+                            <br />
+                            <i>
+                                incompatible types: boolean cannot be converted to java.io.OutputStream
+                            </i>
+                            <br />
+                            <i>
+                                Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+                            </i>
+                        </ul>
+                    </ul>
+                </li>
+            </ol>
         </p>
     </body>
 </html>

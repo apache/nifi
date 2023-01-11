@@ -20,11 +20,10 @@ package org.apache.nifi.toolkit.tls;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.security.Permission;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SystemExitCapturer implements Closeable {
     private final SecurityManager originalSecurityManager;
@@ -52,16 +51,13 @@ public class SystemExitCapturer implements Closeable {
     }
 
     public void runAndAssertExitCode(Runnable runnable, ExitCode exitCode) {
-        try {
-            runnable.run();
-            fail("Expecting exit code " + exitCode);
-        } catch (ExitException e) {
-            assertEquals("Expecting exit code: " + exitCode + ", got " + ExitCode.values()[e.getExitCode()], exitCode.ordinal(), e.getExitCode());
-        }
+        final ExitException e = assertThrows(ExitException.class, runnable::run);
+
+        assertEquals(exitCode.ordinal(), e.getExitCode(), "Expecting exit code: " + exitCode + ", got " + ExitCode.values()[e.getExitCode()]);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         System.setSecurityManager(originalSecurityManager);
     }
 }

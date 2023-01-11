@@ -478,6 +478,57 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+
+        runner.clearTransferState()
+
+        flowFileContents = prettyPrint(toJson([
+                [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello" ]
+        ]))
+
+        clientService.evalClosure = { List<IndexOperationRequest> items ->
+            def nullIdCount = items.findAll { it.id == null }.size()
+            def noTimestampCount = items.findAll { it.fields.containsKey("@timestamp") }.size()
+            assertEquals(1, nullIdCount)
+            assertEquals(1, noTimestampCount)
+        }
+
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "\${id_not_exist}")
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "\${not_exist}")
+        runner.enqueue(flowFileContents, [
+                "schema.name": "recordPathTest"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+
+        runner.clearTransferState()
+
+        flowFileContents = prettyPrint(toJson([
+                [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello", empty: "" ]
+        ]))
+
+        clientService.evalClosure = { List<IndexOperationRequest> items ->
+            def nullIdCount = items.findAll { it.id == null }.size()
+            def noTimestampCount = items.findAll { it.fields.containsKey("@timestamp") }.size()
+            assertEquals(1, nullIdCount)
+            assertEquals(1, noTimestampCount)
+        }
+
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "\${will_be_empty}")
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "\${will_be_empty}")
+        runner.enqueue(flowFileContents, [
+                "schema.name": "recordPathTest",
+                "will_be_empty": "/empty"
+        ])
+        runner.run()
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
     }
 
     @Test

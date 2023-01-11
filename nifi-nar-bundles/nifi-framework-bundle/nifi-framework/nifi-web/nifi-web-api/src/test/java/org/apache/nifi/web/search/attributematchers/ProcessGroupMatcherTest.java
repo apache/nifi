@@ -17,8 +17,8 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.groups.ProcessGroup;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -29,9 +29,10 @@ public class ProcessGroupMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ProcessGroup component;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
+        givenDefaultSearchTerm();
         Mockito.when(component.getIdentifier()).thenReturn("LoremId");
         Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
         Mockito.when(component.getName()).thenReturn("LoremName");

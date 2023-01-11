@@ -22,6 +22,7 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.channel.ByteArrayMessageChannelHandler;
+import org.apache.nifi.event.transport.netty.channel.FilteringByteArrayMessageChannelHandler;
 import org.apache.nifi.event.transport.netty.codec.DatagramByteArrayMessageDecoder;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.event.transport.netty.codec.SocketByteArrayMessageDecoder;
@@ -55,9 +56,39 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final byte[] delimiter,
                                                    final int maxFrameLength,
                                                    final BlockingQueue<ByteArrayMessage> messages) {
+        this(log, address, port, protocol, delimiter, maxFrameLength, messages, FilteringStrategy.DISABLED);
+    }
+
+
+    /**
+     * Netty Event Server Factory with configurable delimiter and queue of Byte Array Messages
+     *
+     * @param log Component Log
+     * @param address Listen Address
+     * @param port Listen Port Number
+     * @param protocol Channel Protocol
+     * @param delimiter Message Delimiter
+     * @param maxFrameLength Maximum Frame Length for delimited TCP messages
+     * @param messages Blocking Queue for events received
+     * @param filteringStrategy Message Filtering Strategy
+     */
+    public ByteArrayMessageNettyEventServerFactory(final ComponentLog log,
+                                                   final InetAddress address,
+                                                   final int port,
+                                                   final TransportProtocol protocol,
+                                                   final byte[] delimiter,
+                                                   final int maxFrameLength,
+                                                   final BlockingQueue<ByteArrayMessage> messages,
+                                                   final FilteringStrategy filteringStrategy) {
         super(address, port, protocol);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
-        final ByteArrayMessageChannelHandler byteArrayMessageChannelHandler = new ByteArrayMessageChannelHandler(messages);
+
+        final ByteArrayMessageChannelHandler byteArrayMessageChannelHandler;
+        if (FilteringStrategy.EMPTY == filteringStrategy) {
+            byteArrayMessageChannelHandler = new FilteringByteArrayMessageChannelHandler(messages);
+        } else {
+            byteArrayMessageChannelHandler = new ByteArrayMessageChannelHandler(messages);
+        }
 
         if (TransportProtocol.UDP.equals(protocol)) {
             setHandlerSupplier(() -> Arrays.asList(

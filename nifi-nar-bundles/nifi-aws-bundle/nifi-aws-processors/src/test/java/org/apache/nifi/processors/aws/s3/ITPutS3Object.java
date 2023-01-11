@@ -62,6 +62,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -577,7 +578,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
 
         assertEquals(BUCKET_NAME, context.getProperty(PutS3Object.BUCKET).toString());
-        assertEquals(TESTKEY, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions().toString());
+        assertEquals(TESTKEY, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).toString());
         assertEquals(TEST_ENDPOINT, context.getProperty(PutS3Object.ENDPOINT_OVERRIDE).toString());
 
         String s3url = ((TestablePutS3Object)processor).testable_getClient().getResourceUrl(BUCKET_NAME, TESTKEY);
@@ -598,7 +599,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.KEY, AbstractS3IT.SAMPLE_FILE_RESOURCE_NAME);
 
         assertEquals(BUCKET_NAME, context.getProperty(PutS3Object.BUCKET).toString());
-        assertEquals(SAMPLE_FILE_RESOURCE_NAME, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions().toString());
+        assertEquals(SAMPLE_FILE_RESOURCE_NAME, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).toString());
         assertEquals(TEST_PARTSIZE_LONG.longValue(),
                 context.getProperty(PutS3Object.MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue());
     }
@@ -609,7 +610,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         final String bucket = runner.getProcessContext().getProperty(PutS3Object.BUCKET).getValue();
-        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).getValue();
+        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).getValue();
         final String cacheKey1 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key;
         final String cacheKey2 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-v2";
         final String cacheKey3 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-v3";
@@ -682,7 +683,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         final String bucket = runner.getProcessContext().getProperty(PutS3Object.BUCKET).getValue();
-        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).getValue();
+        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).getValue();
         final String cacheKey1 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-bv1";
         final String cacheKey2 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-bv2";
         final String cacheKey3 = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-bv3";
@@ -758,7 +759,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         final String bucket = runner.getProcessContext().getProperty(PutS3Object.BUCKET).getValue();
-        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).getValue();
+        final String key = runner.getProcessContext().getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).getValue();
         final String cacheKey = runner.getProcessor().getIdentifier() + "/" + bucket + "/" + key + "-sr";
 
         final List<MultipartUpload> uploadList = new ArrayList<>();

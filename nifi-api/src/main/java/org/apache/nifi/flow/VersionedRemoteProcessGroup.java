@@ -32,6 +32,7 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
     private String proxyHost;
     private Integer proxyPort;
     private String proxyUser;
+    private String proxyPassword;
 
     private Set<VersionedRemoteGroupPort> inputPorts;
     private Set<VersionedRemoteGroupPort> outputPorts;
@@ -155,6 +156,14 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
 
     public void setProxyUser(String proxyUser) {
         this.proxyUser = proxyUser;
+    }
+
+    public String getProxyPassword() {
+        return proxyPassword;
+    }
+
+    public void setProxyPassword(String proxyPassword) {
+        this.proxyPassword = proxyPassword;
     }
 
     @Override

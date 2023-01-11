@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository.crypto
 
-import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext
 import org.apache.nifi.controller.repository.claim.ContentClaim
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
@@ -26,13 +25,12 @@ import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.DisabledOnOs
+import org.junit.jupiter.api.condition.OS
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -40,7 +38,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.security.Security
 
-@RunWith(JUnit4.class)
+@DisabledOnOs(OS.WINDOWS)
 class EncryptedFileSystemRepositoryTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepositoryTest.class)
 
@@ -64,10 +62,8 @@ class EncryptedFileSystemRepositoryTest {
             (NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION)            : ""
     ]
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
-
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -75,7 +71,7 @@ class EncryptedFileSystemRepositoryTest {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         // Use mock NiFiProperties w/ encrypted configs
         repository = initializeRepository()
@@ -103,7 +99,7 @@ class EncryptedFileSystemRepositoryTest {
         repository
     }
 
-    @After
+    @AfterEach
     void tearDown() throws Exception {
         repository.shutdown()
     }

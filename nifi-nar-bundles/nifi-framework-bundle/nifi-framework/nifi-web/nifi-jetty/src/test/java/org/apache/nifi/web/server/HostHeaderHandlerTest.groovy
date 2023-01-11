@@ -19,17 +19,12 @@ package org.apache.nifi.web.server
 import org.apache.commons.lang3.StringUtils
 
 import org.apache.nifi.util.NiFiProperties
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-@RunWith(JUnit4.class)
-class HostHeaderHandlerTest extends GroovyTestCase {
+class HostHeaderHandlerTest {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandlerTest.class)
 
     private static final String DEFAULT_HOSTNAME = "nifi.apache.org"
@@ -47,19 +42,11 @@ class HostHeaderHandlerTest extends GroovyTestCase {
     private static
     final List<String> DEFAULT_HOSTS_AND_PORTS = DEFAULT_HOSTS.collectMany { it -> [it, "${it}:${DEFAULT_PORT}"] }
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test

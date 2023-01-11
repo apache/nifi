@@ -24,7 +24,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.integration.DirectInjectionExtensionManager;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
 import org.apache.nifi.processor.Processor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -32,8 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import static org.junit.Assert.assertEquals;
-import static org.testng.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 public class ControllerServiceReferenceIT extends FrameworkIntegrationTest {
     @Override
@@ -66,7 +66,7 @@ public class ControllerServiceReferenceIT extends FrameworkIntegrationTest {
         serviceNode.setProperties(Collections.singletonMap(LongValidatingControllerService.DELAY.getName(), "250 millis"));
         final ValidationStatus validationStatus = serviceNode.performValidation();
         final Collection<ValidationResult> validationErrors = serviceNode.getValidationErrors();
-        assertSame(validationStatus, ValidationStatus.VALID);
+        assertSame(ValidationStatus.VALID, validationStatus);
         assertEquals(0, validationErrors.size());
     }
 

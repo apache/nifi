@@ -16,29 +16,34 @@
 # under the License.
 #
 
-FROM openjdk:8-jre-alpine
+FROM eclipse-temurin:11-jre
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_TOOLKIT_VERSION=
-ARG NIFI_TOOLKIT_BINARY=nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz
+ARG NIFI_TOOLKIT_VERSION=1.19.0
+ARG NIFI_TOOLKIT_BINARY=nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.zip
 
 ENV NIFI_TOOLKIT_BASE_DIR=/opt/nifi-toolkit
-ENV NIFI_TOOLKIT_HOME=${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}
+ENV NIFI_TOOLKIT_HOME=${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-current
 
-ADD ./sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
+RUN mkdir -p ${NIFI_TOOLKIT_BASE_DIR}
+COPY $NIFI_TOOLKIT_BINARY $NIFI_TOOLKIT_BASE_DIR
+ADD sh/ ${NIFI_TOOLKIT_BASE_DIR}/scripts
 
-# Fix docker-entrypoint perms as per https://issues.apache.org/jira/browse/MRESOURCES-236 and Setup NiFi user
-RUN apk add --update curl bash jq openssl \
-    && rm -rf /var/cache/apk/* \
-    && chmod +x /opt/sh/docker-entrypoint.sh \
-    && addgroup -g $GID nifi \
-    && adduser -D -s /bin/ash -u $UID -G nifi nifi \
-    && mkdir -p ${NIFI_TOOLKIT_BASE_DIR}
-
-ADD ${NIFI_TOOLKIT_BINARY} ${NIFI_TOOLKIT_BASE_DIR}
-RUN chown -R nifi:nifi ${NIFI_TOOLKIT_BASE_DIR}
+RUN chmod -R +x ${NIFI_TOOLKIT_BASE_DIR}/scripts/*.sh \
+   && apt-get update \
+   && apt-get install -y unzip jq openssl \
+   && apt-get -y autoremove \
+   && apt-get clean autoclean \
+   && rm -rf /var/lib/apt/lists/* \
+   && groupadd -g ${GID} nifi \
+   && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
+   && unzip ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} -d ${NIFI_TOOLKIT_BASE_DIR} \
+   && rm ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
+   && ln -s ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION} ${NIFI_TOOLKIT_HOME} \
+   && chown -R nifi:nifi ${NIFI_TOOLKIT_BASE_DIR}
 
 USER nifi
 
@@ -48,4 +53,4 @@ EXPOSE 9443
 WORKDIR ${NIFI_TOOLKIT_HOME}
 
 # Startup NiFi
-ENTRYPOINT ["/opt/sh/docker-entrypoint.sh"]
+ENTRYPOINT ["../scripts/docker-entrypoint.sh"]

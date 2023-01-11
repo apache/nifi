@@ -1,0 +1,9 @@
+{
+    "FieldOne": "stringValue",
+    "FieldTwo": 1234,
+    "FieldThree": [
+        {
+            "arrayField": "arrayValue"
+        }
+    ]
+}

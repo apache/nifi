@@ -20,8 +20,10 @@ package org.apache.nifi.processors.iceberg.converter;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import javax.annotation.Nullable;
 import java.io.Serializable;
@@ -94,8 +96,22 @@ public class RecordFieldGetter {
             case RECORD:
                 fieldGetter = record -> record.getAsRecord(fieldName, ((RecordDataType) dataType).getChildSchema());
                 break;
+            case CHOICE:
+                fieldGetter = record -> {
+                    final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+                    final Object value = record.getValue(fieldName);
+                    final DataType chosenDataType = DataTypeUtils.chooseDataType(value, choiceDataType);
+                    if (chosenDataType == null) {
+                        throw new IllegalTypeConversionException(String.format(
+                                "Cannot convert value [%s] of type %s for field %s to any of the following available Sub-Types for a Choice: %s",
+                                value, value.getClass(), fieldName, choiceDataType.getPossibleSubTypes()));
+                    }
+
+                    return DataTypeUtils.convertType(record.getValue(fieldName), chosenDataType, fieldName);
+                };
+                break;
             default:
-                throw new IllegalArgumentException();
+                throw new IllegalArgumentException("Unsupported field type: " + dataType.getFieldType());
         }
 
         if (!isNullable) {

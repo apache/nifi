@@ -21,6 +21,7 @@ package org.apache.nifi.idp;
  */
 public enum IdpType {
 
+    OIDC,
     SAML;
 
 }

@@ -33,7 +33,6 @@ import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -41,10 +40,19 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
+import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
+import org.apache.nifi.processors.aws.signer.AwsSignerType;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
+
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
+import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
@@ -121,14 +129,27 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
     public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
             .name("Signer Override")
-            .description("The AWS libraries use the default signer but this property allows you to specify a custom signer to support older S3-compatible services.")
+            .description("The AWS S3 library uses Signature Version 4 by default but this property allows you to specify the Version 2 signer to support older S3-compatible services" +
+                    " or even to plug in your own custom signer implementation.")
             .required(false)
-            .allowableValues(
-                    new AllowableValue("Default Signature", "Default Signature"),
-                    new AllowableValue("AWSS3V4SignerType", "Signature v4"),
-                    new AllowableValue("S3SignerType", "Signature v2"))
-            .defaultValue("Default Signature")
+            .allowableValues(EnumSet.of(
+                            DEFAULT_SIGNER,
+                            AWS_S3_V4_SIGNER,
+                            AWS_S3_V2_SIGNER,
+                            CUSTOM_SIGNER))
+            .defaultValue(DEFAULT_SIGNER.getValue())
             .build();
+
+    public static final PropertyDescriptor S3_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_CLASS_NAME)
+            .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
+            .build();
+
+    public static final PropertyDescriptor S3_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AwsPropertyDescriptors.CUSTOM_SIGNER_MODULE_LOCATION)
+            .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
+            .build();
+
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
             .name("encryption-service")
             .displayName("Encryption Service")
@@ -201,11 +222,23 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     }
 
     private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
-        String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
+        final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
+        final AwsSignerType signerType = AwsSignerType.forValue(signer);
 
-        if (signer != null && !signer.equals(SIGNER_OVERRIDE.getDefaultValue())) {
+        if (signerType == CUSTOM_SIGNER) {
+            final String signerClassName = context.getProperty(S3_CUSTOM_SIGNER_CLASS_NAME).evaluateAttributeExpressions().getValue();
+
+            config.setSignerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
+        } else if (signerType != DEFAULT_SIGNER) {
             config.setSignerOverride(signer);
         }
+    }
+
+    @Override
+    protected boolean isCustomSignerConfigured(final ProcessContext context) {
+        final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
+        final AwsSignerType signerType = AwsSignerType.forValue(signer);
+        return signerType == CUSTOM_SIGNER;
     }
 
     /**

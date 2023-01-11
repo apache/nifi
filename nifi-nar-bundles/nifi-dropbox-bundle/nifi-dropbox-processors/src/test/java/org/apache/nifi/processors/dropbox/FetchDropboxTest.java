@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static java.lang.String.valueOf;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.mockito.Mockito.when;
 
 import com.dropbox.core.DbxDownloader;
@@ -28,12 +30,9 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,36 +41,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class FetchDropboxTest {
-
-    public static final String FILE_ID_1 = "id:odTlUvbpIEAAAAAAAAAGGQ";
-    public static final String FILE_ID_2 = "id:odTlUvbpIEBBBBBBBBBGGQ";
-    public static final String FILENAME = "file_name";
-    public static final String FOLDER = "/testFolder";
-    public static final String SIZE = "125";
-    public static final String CREATED_TIME = "1659707000";
-    public static final String REVISION = "5e4ddb1320676a5c29261";
-
-    private TestRunner testRunner;
-
-    @Mock
-    private DbxClientV2 mockDropboxClient;
-
-    @Mock
-    private DropboxCredentialService credentialService;
+public class FetchDropboxTest extends AbstractDropboxTest {
 
     @Mock
     private DbxUserFilesRequests mockDbxUserFilesRequest;
-
 
     @Mock
     private DbxDownloader<FileMetadata> mockDbxDownloader;
 
     @BeforeEach
-    void setUp() throws Exception {
+    public void setUp() throws Exception {
         FetchDropbox testSubject = new FetchDropbox() {
             @Override
-            public DbxClientV2 getDropboxApiClient(ProcessContext context, ProxyConfiguration proxyConfiguration, String clientId) {
+            public DbxClientV2 getDropboxApiClient(ProcessContext context, String id) {
                 return mockDropboxClient;
             }
         };
@@ -79,19 +61,18 @@ public class FetchDropboxTest {
         testRunner = TestRunners.newTestRunner(testSubject);
 
         when(mockDropboxClient.files()).thenReturn(mockDbxUserFilesRequest);
-
-        mockStandardDropboxCredentialService();
+        super.setUp();
     }
 
     @Test
     void testFileIsDownloadedById() throws Exception {
-
         testRunner.setProperty(FetchDropbox.FILE, "${dropbox.id}");
 
         when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes(UTF_8)));
+        when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID_1);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -99,17 +80,19 @@ public class FetchDropboxTest {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertContentEquals("content");
-        assertOutFlowFileAttributes(ff0, FILE_ID_1);
+        assertOutFlowFileAttributes(ff0);
+        assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
     @Test
     void testFileIsDownloadedByPath() throws Exception {
         testRunner.setProperty(FetchDropbox.FILE, "${path}/${filename}");
 
-        when(mockDbxUserFilesRequest.download(FOLDER + "/" + FILENAME)).thenReturn(mockDbxDownloader);
+        when(mockDbxUserFilesRequest.download(getPath(TEST_FOLDER, FILENAME_1))).thenReturn(mockDbxDownloader);
         when(mockDbxDownloader.getInputStream()).thenReturn(new ByteArrayInputStream("contentByPath".getBytes(UTF_8)));
+        when(mockDbxDownloader.getResult()).thenReturn(createFileMetadata());
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID_1);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
@@ -117,53 +100,38 @@ public class FetchDropboxTest {
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertContentEquals("contentByPath");
-        assertOutFlowFileAttributes(ff0, FILE_ID_1);
+        assertOutFlowFileAttributes(ff0);
+        assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
     @Test
     void testFetchFails() throws Exception {
         testRunner.setProperty(FetchDropbox.FILE, "${dropbox.id}");
 
-        when(mockDbxUserFilesRequest.download(FILE_ID_2)).thenThrow(new DbxException("Error in Dropbox"));
+        when(mockDbxUserFilesRequest.download(FILE_ID_1)).thenThrow(new DbxException("Error in Dropbox"));
 
-        MockFlowFile inputFlowFile = getMockFlowFile(FILE_ID_2);
+        MockFlowFile inputFlowFile = getMockFlowFile();
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(FetchDropbox.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchDropbox.REL_FAILURE);
         MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals("error.message", "Error in Dropbox");
-        assertOutFlowFileAttributes(ff0, FILE_ID_2);
+        ff0.assertAttributeEquals(ERROR_MESSAGE, "Error in Dropbox");
+        assertOutFlowFileAttributes(ff0);
+        assertNoProvenanceEvent();
     }
 
-    private void mockStandardDropboxCredentialService() throws InitializationException {
-        String credentialServiceId = "dropbox_credentials";
-        when(credentialService.getIdentifier()).thenReturn(credentialServiceId);
-        testRunner.addControllerService(credentialServiceId, credentialService);
-        testRunner.enableControllerService(credentialService);
-        testRunner.setProperty(FetchDropbox.CREDENTIAL_SERVICE, credentialServiceId);
-    }
-
-    private MockFlowFile getMockFlowFile(String fileId) {
+    private MockFlowFile getMockFlowFile() {
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(DropboxFileInfo.ID, fileId);
-        attributes.put(DropboxFileInfo.REVISION, REVISION);
-        attributes.put(DropboxFileInfo.FILENAME, FILENAME);
-        attributes.put(DropboxFileInfo.PATH, FOLDER);
-        attributes.put(DropboxFileInfo.SIZE, SIZE);
-        attributes.put(DropboxFileInfo.TIMESTAMP, CREATED_TIME);
+        attributes.put(DropboxAttributes.ID, FILE_ID_1);
+        attributes.put(DropboxAttributes.REVISION, REVISION);
+        attributes.put(DropboxAttributes.FILENAME, FILENAME_1);
+        attributes.put(DropboxAttributes.PATH, TEST_FOLDER);
+        attributes.put(DropboxAttributes.SIZE, valueOf(SIZE));
+        attributes.put(DropboxAttributes.TIMESTAMP, valueOf(CREATED_TIME));
         inputFlowFile.putAttributes(attributes);
         return inputFlowFile;
-    }
-
-    private void assertOutFlowFileAttributes(MockFlowFile flowFile, String fileId) {
-        flowFile.assertAttributeEquals(DropboxFileInfo.ID, fileId);
-        flowFile.assertAttributeEquals(DropboxFileInfo.REVISION, REVISION);
-        flowFile.assertAttributeEquals(DropboxFileInfo.PATH, FOLDER);
-        flowFile.assertAttributeEquals(DropboxFileInfo.SIZE, SIZE);
-        flowFile.assertAttributeEquals(DropboxFileInfo.TIMESTAMP, CREATED_TIME);
-        flowFile.assertAttributeEquals(DropboxFileInfo.FILENAME, FILENAME);
     }
 }

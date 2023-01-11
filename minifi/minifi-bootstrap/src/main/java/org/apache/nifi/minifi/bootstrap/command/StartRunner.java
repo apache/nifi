@@ -43,6 +43,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.ShutdownHook;
@@ -59,6 +62,8 @@ import org.apache.nifi.util.Tuple;
 
 public class StartRunner implements CommandRunner {
     private static final int STARTUP_WAIT_SECONDS = 60;
+
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(StartRunner.class);
 
     private final CurrentPortProvider currentPortProvider;
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -108,6 +113,11 @@ public class StartRunner implements CommandRunner {
         if (port != null) {
             CMD_LOGGER.info("Apache MiNiFi is already running, listening to Bootstrap on port {}", port);
             return;
+        }
+
+        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
+        if (RuntimeVersionProvider.isMajorVersionDeprecated(javaMajorVersion)) {
+            deprecationLogger.warn("Support for Java {} is deprecated. Java {} is the minimum recommended version", javaMajorVersion, RuntimeVersionProvider.getMinimumMajorVersion());
         }
 
         File prevLockFile = bootstrapFileProvider.getLockFile();

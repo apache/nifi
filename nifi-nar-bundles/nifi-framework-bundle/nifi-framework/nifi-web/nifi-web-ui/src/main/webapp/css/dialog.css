@@ -247,11 +247,24 @@ div.progress-label {
 #import-flow-version-table {
     overflow: hidden;
     position: absolute;
-    top: 190px;
+    top: 270px;
     left: 0px;
     right: 0px;
     bottom: 0px;
-    height: 225px;
+    height: 155px;
+}
+
+#import-flow-description-container {
+    border-color: rgba(0,0,0,0.12);
+    border-style: solid;
+    border-width: 0;
+    height: 48px;
+    overflow-y: auto;
+    width: calc(100% - 2px);
+}
+
+#import-flow-version-details {
+    padding: 2px;
 }
 
 #change-version-percent-complete {

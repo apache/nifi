@@ -172,6 +172,7 @@ public class JoinEnrichment extends BinFiles {
             "does not point to any existing field in the original Record, the enrichment will not be inserted.")
         .required(true)
         .addValidator(new RecordPathValidator())
+        .defaultValue("/")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .dependsOn(JOIN_STRATEGY, JOIN_INSERT_ENRICHMENT_FIELDS)
         .build();

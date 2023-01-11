@@ -34,14 +34,14 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Collections;
 
-
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class StandardControllerServiceProviderTest {
 
@@ -51,7 +51,7 @@ public class StandardControllerServiceProviderTest {
     private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupSuite() {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
 
@@ -63,7 +63,7 @@ public class StandardControllerServiceProviderTest {
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
@@ -91,9 +91,10 @@ public class StandardControllerServiceProviderTest {
         return serviceNode;
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testCallProxiedOnPropertyModified() {
-        proxied.onPropertyModified(null, "oldValue", "newValue");
+        assertThrows(UnsupportedOperationException.class,
+                () -> proxied.onPropertyModified(null, "oldValue", "newValue"));
     }
 
     @Test
@@ -101,9 +102,10 @@ public class StandardControllerServiceProviderTest {
         implementation.onPropertyModified(null, "oldValue", "newValue");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testCallProxiedInitialized() throws InitializationException {
-        proxied.initialize(null);
+        assertThrows(UnsupportedOperationException.class,
+                () -> proxied.initialize(null));
     }
 
     @Test

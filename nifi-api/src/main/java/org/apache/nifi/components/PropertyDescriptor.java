@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -209,7 +210,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         return lastResult;
     }
 
-
     public static final class Builder {
 
         private String displayName = null;
@@ -322,7 +322,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * if the user does not specify a value. When {@link #build()} is
          * called, if Allowable Values have been set (see
          * {@link #allowableValues(AllowableValue...)}) and this value is not
-         * one of those Allowable Values and Exception will be thrown. If the
+         * one of those Allowable Values, an Exception will be thrown. If the
          * Allowable Values have been set using the
          * {@link #allowableValues(AllowableValue...)} method, the default value
          * should be set to the "Value" of the {@link AllowableValue} object
@@ -398,13 +398,27 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
         /**
          * Stores allowable values from an enum class.
-         * @param enumClass an enum class that implements the Allowable interface and contains a set of values
-         * @param <E> generic parameter for an enum class that implements the Allowable interface
+         * @param enumClass an enum class that implements the DescribedValue interface and contains a set of values
+         * @param <E> generic parameter for an enum class that implements the DescribedValue interface
          * @return the builder
          */
         public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
             this.allowableValues = new ArrayList<>();
             for (E enumValue : enumClass.getEnumConstants()) {
+                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
+            }
+            return this;
+        }
+
+        /**
+         * Stores allowable values from a set of enum values.
+         * @param enumValues a set of enum values that implements the DescribedValue interface
+         * @param <E> generic parameter for the enum values' class that implements the DescribedValue interface
+         * @return the builder
+         */
+        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final EnumSet<E> enumValues) {
+            this.allowableValues = new ArrayList<>();
+            for (E enumValue : enumValues) {
                 this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
             }
             return this;
@@ -562,7 +576,6 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             return this;
         }
 
-
         /**
          * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a value equal to one of the given
          * <code>String</code> arguments.
@@ -589,6 +602,38 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
 
             return dependsOn(property, dependentValues);
+        }
+
+        /**
+         * Establishes a relationship between this Property and the given property by declaring that this Property is only relevant if the given Property has a value equal to one of the given
+         * {@link DescribedValue} arguments.
+         * If this method is called multiple times, each with a different dependency, then a relationship is established such that this Property is relevant only if all dependencies are satisfied.
+         *
+         * In the case that this property is NOT considered to be relevant (meaning that it depends on a property whose value is not specified, or whose value does not match one of the given
+         * Described Values), the property will not be shown in the component's configuration in the User Interface. Additionally, this property's value will not be considered for
+         * validation. That is, if this property is configured with an invalid value and this property depends on Property Foo, and Property Foo does not have a value set, then the component
+         * will still be valid, because the value of this property is irrelevant.
+         *
+         * If the given property is not relevant (because its dependencies are not satisfied), this property is also considered not to be valid.
+         *
+         * @param property the property that must be set in order for this property to become relevant
+         * @param firstDependentValue the first value for the given property for which this Property is relevant
+         * @param additionalDependentValues any other values for the given property for which this Property is relevant
+         * @return the builder
+         */
+        public Builder dependsOn(final PropertyDescriptor property, final DescribedValue firstDependentValue, final DescribedValue... additionalDependentValues) {
+            final AllowableValue[] dependentValues = new AllowableValue[additionalDependentValues.length + 1];
+            dependentValues[0] = toAllowableValue(firstDependentValue);
+            int i = 1;
+            for (final DescribedValue additionalDependentValue : additionalDependentValues) {
+                dependentValues[i++] = toAllowableValue(additionalDependentValue);
+            }
+
+            return dependsOn(property, dependentValues);
+        }
+
+        private AllowableValue toAllowableValue(DescribedValue describedValue) {
+            return new AllowableValue(describedValue.getValue(), describedValue.getDisplayName(), describedValue.getDescription());
         }
 
         /**

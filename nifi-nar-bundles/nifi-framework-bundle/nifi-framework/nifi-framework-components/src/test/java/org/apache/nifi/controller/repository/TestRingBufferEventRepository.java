@@ -17,13 +17,16 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 
 public class TestRingBufferEventRepository {
 
@@ -57,21 +60,21 @@ public class TestRingBufferEventRepository {
         repo.updateRepository(generateEvent(), id2);
         RepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
         FlowFileEvent entry = report.getReportEntry(id1);
-        Assert.assertNotNull(entry);
+        assertNotNull(entry);
         entry = report.getReportEntry(id2);
-        Assert.assertNotNull(entry);
+        assertNotNull(entry);
 
         repo.purgeTransferEvents(id1);
         report = repo.reportTransferEvents(System.currentTimeMillis());
         entry = report.getReportEntry(id1);
-        Assert.assertNull(entry);
+        assertNull(entry);
         entry = report.getReportEntry(id2);
-        Assert.assertNotNull(entry);
+        assertNotNull(entry);
 
         repo.purgeTransferEvents(id2);
         report = repo.reportTransferEvents(System.currentTimeMillis());
         entry = report.getReportEntry(id2);
-        Assert.assertNull(entry);
+        assertNull(entry);
 
         repo.close();
     }

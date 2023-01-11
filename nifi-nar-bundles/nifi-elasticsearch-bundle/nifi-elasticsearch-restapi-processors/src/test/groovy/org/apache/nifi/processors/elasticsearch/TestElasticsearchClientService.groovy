@@ -18,7 +18,9 @@
 package org.apache.nifi.processors.elasticsearch
 
 import groovy.json.JsonSlurper
+import org.apache.nifi.components.ConfigVerificationResult
 import org.apache.nifi.controller.AbstractControllerService
+import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.elasticsearch.DeleteOperationResponse
 import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticsearchException
@@ -26,6 +28,7 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.elasticsearch.UpdateOperationResponse
+import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.elasticsearch.mock.MockElasticsearchException
 import org.elasticsearch.client.Response
 import org.elasticsearch.client.ResponseException
@@ -56,6 +59,11 @@ class TestElasticsearchClientService extends AbstractControllerService implement
             }
         }
         this.requestParameters = requestParameters
+    }
+
+    @Override
+    List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        return null
     }
 
     @Override
@@ -99,6 +107,11 @@ class TestElasticsearchClientService extends AbstractControllerService implement
 
     @Override
     void refresh(final String index, final Map<String, String> requestParameters) {
+    }
+
+    @Override
+    boolean exists(final String index, final Map<String, String> requestParameters) {
+        return true
     }
 
     @Override

@@ -69,7 +69,7 @@ public class JwtIdentityProvider extends BearerAuthIdentityProvider implements I
         }
 
         try {
-            final String jwtPrincipal = jwtService.getAuthenticationFromToken(jwtAuthToken);
+            final String jwtPrincipal = jwtService.getUserIdentityFromToken(jwtAuthToken);
             return new AuthenticationResponse(jwtPrincipal, jwtPrincipal, expiration, issuer);
         } catch (JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);

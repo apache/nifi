@@ -26,8 +26,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -39,13 +39,13 @@ import javax.naming.directory.BasicAttribute;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQueryDNS  {
     private QueryDNS queryDNS;
     private TestRunner queryDNSTestRunner;
 
-    @Before
+    @BeforeEach
     public void setupTest() throws Exception {
         this.queryDNS =  new QueryDNS();
         this.queryDNSTestRunner = TestRunners.newTestRunner(queryDNS);

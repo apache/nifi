@@ -61,6 +61,7 @@ public class MiNiFiCommandSender {
             LOGGER.debug("Connecting to MiNiFi instance");
             socket.setSoTimeout(SOCKET_TIMEOUT);
             socket.connect(new InetSocketAddress("localhost", port), CONNECTION_TIMEOUT);
+            socket.setSoTimeout(SOCKET_TIMEOUT);
             LOGGER.debug("Established connection to MiNiFi instance.");
 
             LOGGER.debug("Sending {} Command to port {}", cmd, port);
@@ -76,6 +77,7 @@ public class MiNiFiCommandSender {
             response = Optional.of(responseString);
         } catch (EOFException | SocketTimeoutException e) {
             String message = "Failed to get response for " + cmd + " Potentially due to the process currently being down (restarting or otherwise)";
+            LOGGER.error(message, e);
             throw new RuntimeException(message);
         }
         return response;

@@ -34,6 +34,13 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
+import org.apache.nifi.kafka.shared.property.KeyEncoding;
+import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
+import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
+import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -50,7 +57,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,20 +64,17 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
-
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.6 Consumer API. "
     + "The complementary NiFi processor for sending messages is PublishKafka_2_6.")
 @Tags({"Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "2.6"})
 @WritesAttributes({
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_COUNT, description = "The number of messages written if more than one"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_KEY, description = "The key of message if present and if single message. "
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_COUNT, description = "The number of messages written if more than one"),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_KEY, description = "The key of message if present and if single message. "
             + "How the key is encoded depends on the value of the 'Key Attribute Encoding' property."),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic the message or message bundle is from")
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
+    @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the message or message bundle is from")
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
@@ -79,7 +82,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
-public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiableProcessor {
+public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientComponent, VerifiableProcessor {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
 
@@ -131,10 +134,10 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
     static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
             .name("key-attribute-encoding")
             .displayName("Key Attribute Encoding")
-            .description("FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+            .description("FlowFiles that are emitted have an attribute named '" + KafkaFlowFileAttribute.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
             .required(true)
-            .defaultValue(UTF8_ENCODING.getValue())
-            .allowableValues(UTF8_ENCODING, HEX_ENCODING)
+            .defaultValue(KeyEncoding.UTF8.getValue())
+            .allowableValues(KeyEncoding.class)
             .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -252,7 +255,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
 
     static {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
+        descriptors.add(BOOTSTRAP_SERVERS);
         descriptors.add(TOPICS);
         descriptors.add(TOPIC_TYPE);
         descriptors.add(GROUP_ID);
@@ -261,17 +264,17 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
         descriptors.add(HONOR_TRANSACTIONS);
         descriptors.add(MESSAGE_DEMARCATOR);
         descriptors.add(SEPARATE_BY_KEY);
-        descriptors.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
-        descriptors.add(KafkaProcessorUtils.SASL_MECHANISM);
-        descriptors.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
-        descriptors.add(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        descriptors.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
-        descriptors.add(KafkaProcessorUtils.USER_PRINCIPAL);
-        descriptors.add(KafkaProcessorUtils.USER_KEYTAB);
-        descriptors.add(KafkaProcessorUtils.USERNAME);
-        descriptors.add(KafkaProcessorUtils.PASSWORD);
-        descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
-        descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
+        descriptors.add(SECURITY_PROTOCOL);
+        descriptors.add(SASL_MECHANISM);
+        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        descriptors.add(KERBEROS_SERVICE_NAME);
+        descriptors.add(KERBEROS_PRINCIPAL);
+        descriptors.add(KERBEROS_KEYTAB);
+        descriptors.add(SASL_USERNAME);
+        descriptors.add(SASL_PASSWORD);
+        descriptors.add(TOKEN_AUTHENTICATION);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(MESSAGE_HEADER_ENCODING);
@@ -307,7 +310,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
         return new PropertyDescriptor.Builder()
                 .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
                 .name(propertyDescriptorName)
-                .addValidator(new KafkaProcessorUtils.KafkaConfigValidator(ConsumerConfig.class))
+                .addValidator(new DynamicPropertyValidator(ConsumerConfig.class))
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .build();
@@ -315,7 +318,8 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Collection<ValidationResult> validationResults = KafkaProcessorUtils.validateCommonProperties(validationContext);
+        final KafkaClientCustomValidationFunction validationFunction = new KafkaClientCustomValidationFunction();
+        final Collection<ValidationResult> validationResults = validationFunction.apply(validationContext);
 
         final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
         validationResults.add(consumerPartitionsResult);
@@ -372,8 +376,8 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
 
         final byte[] demarcator = context.getProperty(ConsumeKafka_2_6.MESSAGE_DEMARCATOR).isSet()
                 ? context.getProperty(ConsumeKafka_2_6.MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8) : null;
-        final Map<String, Object> props = new HashMap<>();
-        KafkaProcessorUtils.buildCommonKafkaProperties(context, ConsumerConfig.class, props);
+        final KafkaPropertyProvider propertyProvider = new StandardKafkaPropertyProvider(ConsumerConfig.class);
+        final Map<String, Object> props = propertyProvider.getProperties(context);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
@@ -382,8 +386,8 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
         final String topicType = context.getProperty(ConsumeKafka_2_6.TOPIC_TYPE).evaluateAttributeExpressions().getValue();
         final List<String> topics = new ArrayList<>();
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
-        final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
-        final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
+        final String securityProtocol = context.getProperty(SECURITY_PROTOCOL).getValue();
+        final String bootstrapServers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final boolean honorTransactions = context.getProperty(HONOR_TRANSACTIONS).asBoolean();
         final int commsTimeoutMillis = context.getProperty(COMMS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, commsTimeoutMillis);
@@ -418,7 +422,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
             return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
                 bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume, commitOffsets);
         } else {
-            getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
+            getLogger().error("Subscription type has an unknown value {}", topicType);
             return null;
         }
     }
@@ -443,12 +447,12 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
         if (!activeLeases.isEmpty()) {
             int count = 0;
             for (final ConsumerLease lease : activeLeases) {
-                getLogger().info("Consumer {} has not finished after waiting 30 seconds; will attempt to wake-up the lease", new Object[] {lease});
+                getLogger().info("Consumer {} has not finished after waiting 30 seconds; will attempt to wake-up the lease", lease);
                 lease.wakeup();
                 count++;
             }
 
-            getLogger().info("Woke up {} consumers", new Object[] {count});
+            getLogger().info("Woke up {} consumers", count);
         }
 
         activeLeases.clear();
@@ -479,7 +483,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements VerifiablePro
                 }
             } catch (final WakeupException we) {
                 getLogger().warn("Was interrupted while trying to communicate with Kafka with lease {}. "
-                    + "Will roll back session and discard any partially received data.", new Object[] {lease});
+                    + "Will roll back session and discard any partially received data.", lease);
             } catch (final KafkaException kex) {
                 getLogger().error("Exception while interacting with Kafka so will close the lease {} due to {}",
                         new Object[]{lease, kex}, kex);
