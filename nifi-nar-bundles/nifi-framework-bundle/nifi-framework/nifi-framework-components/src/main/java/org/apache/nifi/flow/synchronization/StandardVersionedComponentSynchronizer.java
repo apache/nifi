@@ -153,6 +153,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private Set<String> preExistingVariables = new HashSet<>();
     private FlowSynchronizationOptions syncOptions;
+    private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
 
     public StandardVersionedComponentSynchronizer(final VersionedFlowSynchronizationContext context) {
         this.context = context;
@@ -2198,6 +2199,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         funnel.setVersionedComponentId(proposed.getIdentifier());
         destination.addFunnel(funnel);
         updateFunnel(funnel, proposed);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), funnel);
 
         return funnel;
     }
@@ -2334,6 +2336,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addInputPort(port);
         updatePort(port, proposed, temporaryName);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);
 
         return port;
     }
@@ -2352,6 +2355,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addOutputPort(port);
         updatePort(port, proposed, temporaryName);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);
 
         return port;
     }
@@ -2391,6 +2395,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
         procNode.onConfigurationRestored(processContext);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), procNode);
 
         return procNode;
     }
@@ -3273,8 +3278,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         // If we're synchronizing and the component is not available by the instance ID, lookup the component by the ID instead.
         final Connectable connectableById = getConnectable(group, connectableComponent, ConnectableComponent::getId);
-        LOG.debug("Found no connectable in Process Group {} by Instance ID. Lookup by ID {} yielded {}", connectable, connectableComponent.getId(), connectableById);
-        return connectableById;
+        LOG.debug("Found no connectable in Process Group {} by Instance ID. Lookup by ID {} yielded {}", group, connectableComponent.getId(), connectableById);
+        if (connectableById != null) {
+            return connectableById;
+        }
+
+        final Optional<Connectable> addedComponent = connectableAdditionTracker.getComponent(group.getIdentifier(), connectableComponent.getId());
+        if (addedComponent.isPresent()) {
+            LOG.debug("Found Connectable in Process Group {} as newly added component {}", group, addedComponent.get());
+        }
+
+        return addedComponent.orElse(null);
     }
 
     private Connectable getConnectable(final ProcessGroup group, final ConnectableComponent connectableComponent, final Function<ConnectableComponent, String> idFunction) {
