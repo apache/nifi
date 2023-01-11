@@ -19,22 +19,23 @@ package org.apache.nifi.registry.revision.entity;
 import org.apache.nifi.registry.revision.api.InvalidRevisionException;
 import org.apache.nifi.registry.revision.api.RevisionManager;
 import org.apache.nifi.registry.revision.naive.NaiveRevisionManager;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStandardRevisableEntityService {
 
     private RevisionManager revisionManager;
     private RevisableEntityService entityService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         revisionManager = new NaiveRevisionManager();
         entityService = new StandardRevisableEntityService(revisionManager);
@@ -62,26 +63,26 @@ public class TestStandardRevisableEntityService {
         assertEquals(userIdentity, createdRevision.getLastModifier());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateWhenMissingRevision() {
         final RevisableEntity requestEntity = new TestEntity("1", null);
-        entityService.create(requestEntity, "user1", () -> requestEntity);
+        assertThrows(IllegalArgumentException.class, () ->  entityService.create(requestEntity, "user1", () -> requestEntity));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateWhenNonZeroRevision() {
         final RevisionInfo requestRevision = new RevisionInfo(null, 99L);
         final RevisableEntity requestEntity = new TestEntity("1", requestRevision);
-        entityService.create(requestEntity, "user1", () -> requestEntity);
+        assertThrows(IllegalArgumentException.class, () ->  entityService.create(requestEntity, "user1", () -> requestEntity));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateWhenTaskThrowsException() {
         final RevisionInfo requestRevision = new RevisionInfo("client1", 0L);
         final RevisableEntity requestEntity = new TestEntity("1", requestRevision);
-        entityService.create(requestEntity, "user1", () -> {
+        assertThrows(IllegalArgumentException.class, () -> entityService.create(requestEntity, "user1", () -> {
             throw new IllegalArgumentException("");
-        });
+        }));
     }
 
     @Test
@@ -161,7 +162,7 @@ public class TestStandardRevisableEntityService {
         assertEquals("user3", updatedEntity2.getRevision().getLastModifier());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testUpdateWhenMissingRevision() {
         final RevisionInfo revisionInfo = new RevisionInfo(null, 0L);
         final TestEntity requestEntity = new TestEntity("1", revisionInfo);
@@ -174,7 +175,7 @@ public class TestStandardRevisableEntityService {
         assertEquals(1, createdEntity.getRevision().getVersion().longValue());
 
         createdEntity.setRevision(null);
-        entityService.update(createdEntity, "user2", () -> createdEntity);
+        assertThrows(IllegalArgumentException.class, () -> entityService.update(createdEntity, "user2", () -> createdEntity));
     }
 
     @Test
@@ -191,7 +192,7 @@ public class TestStandardRevisableEntityService {
         assertNotNull(deletedEntity);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDeleteWhenMissingRevision() {
         final RevisionInfo revisionInfo = new RevisionInfo(null, 0L);
         final TestEntity requestEntity = new TestEntity("1", revisionInfo);
@@ -202,14 +203,13 @@ public class TestStandardRevisableEntityService {
         assertNotNull(createdEntity.getRevision());
 
         createdEntity.setRevision(null);
-        entityService.delete(createdEntity.getIdentifier(), createdEntity.getRevision(), () -> createdEntity);
+        assertThrows(IllegalArgumentException.class, () -> entityService.delete(createdEntity.getIdentifier(), createdEntity.getRevision(), () -> createdEntity));
     }
 
-    @Test(expected = InvalidRevisionException.class)
+    @Test
     public void testDeleteWhenDoesNotExist() {
         final RevisionInfo revisionInfo = new RevisionInfo(null, 1L);
-        final RevisableEntity deletedEntity = entityService.delete("1", revisionInfo, () -> null);
-        assertNull(deletedEntity);
+        assertThrows(InvalidRevisionException.class, () -> entityService.delete("1", revisionInfo, () -> null));
     }
 
     /**
