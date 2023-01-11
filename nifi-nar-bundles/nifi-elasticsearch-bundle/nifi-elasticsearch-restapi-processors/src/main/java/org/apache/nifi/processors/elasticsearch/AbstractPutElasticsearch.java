@@ -166,7 +166,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             if (logErrors) {
                 getLogger().error(output);
             } else {
-                if (getLogger().isDebugEnabled()) {
+            } else if (getLogger().isDebugEnabled()) {
+                    getLogger().debug(output);
+            }
                     getLogger().debug(output);
                 }
             }
