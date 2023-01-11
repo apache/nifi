@@ -799,7 +799,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             entity.writeTo(out);
             out.close();
 
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder(1000);
                 builder.append("Dumping Elasticsearch REST request...\n")
                     .append("HTTP Method: ")
                     .append(method)
