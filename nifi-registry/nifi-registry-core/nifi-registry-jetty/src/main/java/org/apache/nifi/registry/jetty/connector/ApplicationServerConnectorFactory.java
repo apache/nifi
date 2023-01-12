@@ -49,6 +49,8 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
 
     private static final String CIPHER_SUITE_SEPARATOR_PATTERN = ",\\s*";
 
+    private static final String DEFAULT_HOST = null;
+
     private final String includeCipherSuites;
 
     private final String excludeCipherSuites;
@@ -213,7 +215,7 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
             host = properties.getHttpHost();
         }
 
-        return host;
+        return StringUtils.defaultIfEmpty(host, DEFAULT_HOST);
     }
 
     private static int getPort(final NiFiRegistryProperties properties) {
