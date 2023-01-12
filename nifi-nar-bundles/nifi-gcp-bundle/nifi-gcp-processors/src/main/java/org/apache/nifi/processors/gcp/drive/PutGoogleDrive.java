@@ -50,6 +50,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveRequest;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
@@ -59,6 +60,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +110,10 @@ import org.json.JSONObject;
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)})
 public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
 
+    public static final String IGNORE_RESOLUTION = "ignore";
+    public static final String OVERWRITE_RESOLUTION = "overwrite";
+    public static final String FAIL_RESOLUTION = "fail";
+
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
@@ -138,7 +144,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .build();
 
     public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor
-            .Builder().name("file-name")
+            .Builder()
+            .name("file-name")
             .displayName("Filename")
             .description("The name of the file to upload to the specified Google Drive folder.")
             .required(true)
@@ -157,6 +164,15 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .defaultValue("false")
             .description("Specifies whether to check if the folder exists and to automatically create it if it does not. " +
                     "Permission to list folders is required. ")
+            .build();
+
+    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+            .name("conflict-resolution-strategy")
+            .displayName("Conflict Resolution Strategy")
+            .description("Indicates what should happen when a file with the same name already exists in the specified Google Drive folder.")
+            .required(true)
+            .defaultValue(FAIL_RESOLUTION)
+            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, OVERWRITE_RESOLUTION)
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
@@ -184,6 +200,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             FOLDER_ID,
             FOLDER_NAME,
             FILE_NAME,
+            CONFLICT_RESOLUTION,
             CREATE_FOLDER,
             CHUNKED_UPLOAD_THRESHOLD,
             CHUNKED_UPLOAD_SIZE,
@@ -237,33 +254,49 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         try {
             folderId = createFoldersAndGetParentId(context, flowFile);
             final long startNanos = System.nanoTime();
-            final File uploadedFile;
             final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
             final long size = flowFile.getSize();
+
+            final long chunkUploadThreshold = context.getProperty(CHUNKED_UPLOAD_THRESHOLD)
+                    .asDataSize(DataUnit.B)
+                    .longValue();
+
+            final int uploadChunkSize = context.getProperty(CHUNKED_UPLOAD_SIZE)
+                    .asDataSize(DataUnit.B)
+                    .intValue();
+
+            final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
+
+            Optional<File> alreadyExistingFile = checkFileExistence(filename, folderId);
+            final File fileMetadata = alreadyExistingFile.isPresent() ? alreadyExistingFile.get() : createMetadata(filename, folderId);
+
+            if (alreadyExistingFile.isPresent() && FAIL_RESOLUTION.equals(conflictResolution)) {
+                getLogger().error("File '{}' already exists in folder '{}', conflict resolution is '{}' ", filename, folderId, FAIL_RESOLUTION);
+                flowFile = addAttributes(alreadyExistingFile.get(), flowFile, session);
+                session.transfer(flowFile, REL_FAILURE);
+                return;
+            }
+
+            if (alreadyExistingFile.isPresent() && IGNORE_RESOLUTION.equals(conflictResolution)) {
+                getLogger().info("File '{}' already exists in folder '{}', conflict resolution is '{}' ", filename, folderId, IGNORE_RESOLUTION);
+                flowFile = addAttributes(alreadyExistingFile.get(), flowFile, session);
+                session.transfer(flowFile, REL_SUCCESS);
+                return;
+            }
+
+            final File uploadedFile;
 
             try (final InputStream rawIn = session.read(flowFile)) {
                 final InputStreamContent mediaContent = new InputStreamContent(mimeType, new BufferedInputStream(rawIn));
                 mediaContent.setLength(size);
 
-                final long chunkUploadThreshold = context.getProperty(CHUNKED_UPLOAD_THRESHOLD)
-                        .asDataSize(DataUnit.B)
-                        .longValue();
-
-                final int uploadChunkSize = context.getProperty(CHUNKED_UPLOAD_SIZE)
-                        .asDataSize(DataUnit.B)
-                        .intValue();
-
-                final String parentFolderId = folderId;
-
                 uploadedFileFuture = uploadExecutor.submit(() -> {
+                    final DriveRequest<File> driveRequest = createDriveRequest(fileMetadata, mediaContent);
+
                     if (size > chunkUploadThreshold) {
-                        return uploadFileInChunks(parentFolderId, filename, uploadChunkSize, mediaContent);
+                        return uploadFileInChunks(driveRequest, fileMetadata, uploadChunkSize, mediaContent);
                     } else {
-                        final File fileMetadata = createMetadata(filename, parentFolderId);
-                        return driveService.files()
-                                .create(fileMetadata, mediaContent)
-                                .setFields("id, name, createdTime, mimeType, size")
-                                .execute();
+                        return driveRequest.execute();
                     }
                 });
                 uploadedFile = uploadedFileFuture.get();
@@ -272,11 +305,13 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 uploadExecutor.shutdown();
             }
 
-            final Map<String, String> attributes = createAttributeMap(uploadedFile);
-            final String url = DRIVE_URL + uploadedFile.getId();
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, url, transferMillis);
+            if (uploadedFile != null) {
+                final Map<String, String> attributes = createAttributeMap(uploadedFile);
+                final String url = DRIVE_URL + uploadedFile.getId();
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                session.getProvenanceReporter().send(flowFile, url, transferMillis);
+            }
             session.transfer(flowFile, REL_SUCCESS);
         } catch (GoogleJsonResponseException e) {
             getLogger().error("Exception occurred while uploading file '{}' to Google Drive folder '{}'", filename,
@@ -310,16 +345,31 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         }
     }
 
+    private FlowFile addAttributes(File file, FlowFile flowFile, ProcessSession session) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(ID, file.getId());
+        attributes.put(FILENAME, file.getName());
+        return session.putAllAttributes(flowFile, attributes);
+    }
+
     private String getFolder(String folderId, String folderName) {
         return folderId == null ? folderName : folderId;
     }
 
-    private File uploadFileInChunks(final String folderId, final String filename, final int chunkSize, final InputStreamContent mediaContent) throws IOException {
-        final File fileMetadata = createMetadata(filename, folderId);
+    private DriveRequest<File> createDriveRequest(File fileMetadata, final InputStreamContent mediaContent) throws IOException {
+        if (fileMetadata.getId() == null) {
+            return driveService.files()
+                    .create(fileMetadata, mediaContent)
+                    .setFields("id, name, createdTime, mimeType, size");
+        } else {
+            return driveService.files()
+                    .update(fileMetadata.getId(), new File(), mediaContent)
+                    .setFields("id, name, createdTime, mimeType, size");
+        }
+    }
 
-        final HttpResponse response = driveService.files()
-                .create(fileMetadata, mediaContent)
-                .setFields("id, name, createdTime, mimeType, size")
+    private File uploadFileInChunks(DriveRequest<File> driveRequest, File fileMetadata, final int chunkSize, final InputStreamContent mediaContent) throws IOException {
+        final HttpResponse response = driveRequest
                 .getMediaHttpUploader()
                 .setChunkSize(chunkSize)
                 .setDirectUploadEnabled(false)
@@ -332,7 +382,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             fileMetadata.setSize(mediaContent.getLength());
             return fileMetadata;
         } else {
-            throw new ProcessException(format("Upload of file '%s' to folder '%s' failed, HTTP error code: %d", filename, folderId, response.getStatusCode()));
+            throw new ProcessException(format("Upload of file '%s' to folder '%s' failed, HTTP error code: %d", fileMetadata.getName(), fileMetadata.getId(), response.getStatusCode()));
         }
     }
 
@@ -411,14 +461,22 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     private Optional<File> checkFolderExistence(String folderName, String parentId) throws IOException {
+        return checkObjectExistence(folderName, format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, parentId));
+    }
+
+    private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
+        return checkObjectExistence(fileName, format("'%s' in parents", parentId));
+    }
+
+    private Optional<File> checkObjectExistence(String fileName, String query) throws IOException {
         final FileList result = driveService.files()
                 .list()
-                .setQ(format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, parentId))
+                .setQ(query)
                 .setFields("files(name, id)")
                 .execute();
 
         return result.getFiles().stream()
-                .filter(file -> file.getName().equals(folderName))
+                .filter(file -> file.getName().equals(fileName))
                 .findFirst();
     }
 

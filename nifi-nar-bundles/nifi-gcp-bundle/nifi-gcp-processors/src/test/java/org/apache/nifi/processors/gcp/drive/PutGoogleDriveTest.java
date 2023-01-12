@@ -23,6 +23,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveTrait.DRIVE_FOLDER_MIME_TYPE;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.google.api.client.http.HttpTransport;
@@ -133,6 +134,56 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
         assertNoProvenanceEvent();
     }
 
+    @Test
+    void testFileAlreadyExistsFailResolution() throws Exception {
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+
+        mockFileExists();
+
+        runWithFlowFile();
+
+        testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_FAILURE, 1);
+        assertNoProvenanceEvent();
+    }
+
+    @Test
+    void testFileAlreadyExistsIgnoreResolution() throws Exception {
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.IGNORE_RESOLUTION);
+
+        mockFileExists();
+
+        runWithFlowFile();
+
+        testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, FILE_ID);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, FILENAME);
+        assertNoProvenanceEvent();
+    }
+
+    @Test
+    void testFileAlreadyExistsOverwriteResolution() throws Exception {
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.OVERWRITE_RESOLUTION);
+
+        mockFileExists();
+
+        mockFileUpdate(createFile());
+
+        runWithFlowFile();
+
+        testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_SUCCESS, 1);
+        assertFlowFileAttributes(PutGoogleDrive.REL_SUCCESS);
+        assertProvenanceEvent(ProvenanceEventType.SEND);
+    }
+
     private MockFlowFile getMockFlowFile() {
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
@@ -146,7 +197,16 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
     }
 
     private void mockFileUpload(File uploadedFile) throws IOException {
-        when(mockDriverService.files().create(any(File.class), any(InputStreamContent.class))
+        when(mockDriverService.files()
+                .create(any(File.class), any(InputStreamContent.class))
+                .setFields("id, name, createdTime, mimeType, size")
+                .execute())
+                .thenReturn(uploadedFile);
+    }
+
+    private void mockFileUpdate(File uploadedFile) throws IOException {
+        when(mockDriverService.files()
+                .update(eq(uploadedFile.getId()), any(File.class), any(InputStreamContent.class))
                 .setFields("id, name, createdTime, mimeType, size")
                 .execute())
                 .thenReturn(uploadedFile);
@@ -156,5 +216,14 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
         when(mockDriverService.files()
                 .create(any(File.class), any(InputStreamContent.class)))
                 .thenThrow(exception);
+    }
+
+    private void mockFileExists() throws IOException {
+        when(mockDriverService.files()
+                .list()
+                .setQ(format("'%s' in parents", FOLDER_ID))
+                .setFields("files(name, id)")
+                .execute())
+                .thenReturn(new FileList().setFiles(singletonList(createFile())));
     }
 }

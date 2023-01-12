@@ -117,10 +117,87 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         ff0.assertAttributeExists(GoogleDriveAttributes.ERROR_MESSAGE);
     }
 
+    @Test
+    void testUploadedFileAlreadyExistsFailResolution() {
+        // GIVEN
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+
+        // WHEN
+        runWithFileContent();
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+        testRunner.clearTransferState();
+
+        // WHEN
+        runWithFileContent();
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 1);
+
+    }
+
+    @Test
+    void testUploadedFileAlreadyExistsOverwriteResolution() {
+        // GIVEN
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.OVERWRITE_RESOLUTION);
+
+        // WHEN
+        runWithFileContent();
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+        testRunner.clearTransferState();
+
+        // WHEN
+        runWithFileContent("012345678");
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeEquals(GoogleDriveAttributes.SIZE, "9");
+    }
+
+    @Test
+    void testUploadedFileAlreadyExistsIgnoreResolution() {
+        // GIVEN
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.IGNORE_RESOLUTION);
+
+        // WHEN
+        runWithFileContent();
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+        testRunner.clearTransferState();
+
+        // WHEN
+        runWithFileContent();
+
+        // THEN
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+    }
+
     private void runWithFileContent() {
+       runWithFileContent(DEFAULT_FILE_CONTENT);
+    }
+
+    private void runWithFileContent(String content) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-        testRunner.enqueue(DEFAULT_FILE_CONTENT, attributes);
+        testRunner.enqueue(content, attributes);
         testRunner.run();
     }
 
