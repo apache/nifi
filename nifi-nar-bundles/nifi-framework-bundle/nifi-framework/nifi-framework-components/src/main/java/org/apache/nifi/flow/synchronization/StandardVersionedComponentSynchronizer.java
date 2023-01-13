@@ -1340,7 +1340,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     || (versionedDescriptor != null && versionedDescriptor.isSensitive());
 
                 String value;
-                if (descriptor != null && referencesService) {
+                if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
                     // Need to determine if the component's property descriptor for this service is already set to an id
                     // of an existing service that is outside the current processor group, and if it is we want to leave
                     // the property set to that value
