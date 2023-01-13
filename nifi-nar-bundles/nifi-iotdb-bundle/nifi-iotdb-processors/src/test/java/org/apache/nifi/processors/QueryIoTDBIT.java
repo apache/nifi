@@ -20,31 +20,24 @@ import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
-import org.apache.iotdb.session.SessionDataSet;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
-import org.apache.iotdb.tsfile.read.common.Field;
-import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
 
 public class QueryIoTDBIT {
     private static TestRunner testRunner;
     private static MockRecordWriter recordWriter;
     private static Session session;
 
-    @Before
+    @BeforeEach
     public void init() throws IoTDBConnectionException, IoTDBConnectionException, StatementExecutionException {
         testRunner = TestRunners.newTestRunner(QueryIoTDBRecord.class);
         recordWriter = new MockRecordWriter("header", true);
@@ -52,7 +45,6 @@ public class QueryIoTDBIT {
         testRunner.setProperty("Host", "127.0.0.1");
         testRunner.setProperty("Username", "root");
         testRunner.setProperty("Password", "root");
-        EnvironmentUtils.envSetUp();
         session = new Session.Builder().build();
         session.open();
 
@@ -67,7 +59,7 @@ public class QueryIoTDBIT {
         session.insertRecord(deviceId,1L,measurements,values);
     }
 
-    @After
+    @AfterEach
     public void release() throws Exception {
         testRunner.shutdown();
         recordWriter.disabled();
