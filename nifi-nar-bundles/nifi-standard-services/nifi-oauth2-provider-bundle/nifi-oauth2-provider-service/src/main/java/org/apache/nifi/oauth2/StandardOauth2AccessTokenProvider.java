@@ -83,13 +83,19 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public static AllowableValue RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "password",
         "User Password",
-        "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret"
+        "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret."
     );
 
     public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "client_credentials",
         "Client Credentials",
-        "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret"
+        "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret."
+    );
+
+    public static AllowableValue REFRESH_TOKEN_GRANT_TYPE = new AllowableValue(
+        "refresh_token",
+        "Refresh Token",
+        "Refresh Token Grant. Used to get fresh access tokens based on a previously acquired refresh token. Requires Client ID and Client Secret (apart from Refresh Token)."
     );
 
     public static final PropertyDescriptor GRANT_TYPE = new PropertyDescriptor.Builder()
@@ -97,7 +103,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .displayName("Grant Type")
         .description("The OAuth2 Grant Type to be used when acquiring an access token.")
         .required(true)
-        .allowableValues(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE)
+        .allowableValues(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE, REFRESH_TOKEN_GRANT_TYPE)
         .defaultValue(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())
         .build();
 
@@ -119,6 +125,17 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor REFRESH_TOKEN = new PropertyDescriptor.Builder()
+        .name("refresh-token")
+        .displayName("Refresh Token")
+        .description("Refresh Token.")
+        .dependsOn(GRANT_TYPE, REFRESH_TOKEN_GRANT_TYPE)
+        .required(true)
+        .sensitive(true)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
@@ -178,6 +195,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         GRANT_TYPE,
         USERNAME,
         PASSWORD,
+        REFRESH_TOKEN,
         CLIENT_ID,
         CLIENT_SECRET,
         SCOPE,
@@ -224,6 +242,16 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
         scope = context.getProperty(SCOPE).getValue();
+
+        if (context.getProperty(REFRESH_TOKEN).isSet()) {
+            String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
+
+            AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
+            accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
+            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
+
+            this.accessDetails = accessDetailsWithRefreshTokenOnly;
+        }
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
     }
