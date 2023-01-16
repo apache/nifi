@@ -30,11 +30,11 @@ public class DropboxAttributes {
     public static final String SIZE_DESC = "The size of the file";
 
     public static final String TIMESTAMP = "dropbox.timestamp";
-    public static final String TIMESTAMP_DESC = "The server modified time, when the file was uploaded to Dropbox";
+    public static final String TIMESTAMP_DESC = "The server modified time of the file";
 
     public static final String REVISION = "dropbox.revision";
     public static final String REVISION_DESC = "Revision of the file";
 
     public static final String ERROR_MESSAGE = "error.message";
-    public static final String ERROR_MESSAGE_DESC = "The error message returned by Dropbox when the fetch of a file fails";
+    public static final String ERROR_MESSAGE_DESC = "The error message returned by Dropbox";
 }

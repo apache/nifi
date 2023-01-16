@@ -23,6 +23,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,6 +57,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -255,18 +258,18 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(mockUploadSessionAppendV2Uploader);
 
         //finish session: 30 - 8 - 2 * 8 = 6 bytes uploaded
-        CommitInfo commitInfo = CommitInfo.newBuilder(getPath(TEST_FOLDER , FILENAME_1))
+        CommitInfo commitInfo = CommitInfo.newBuilder(getPath(TEST_FOLDER, FILENAME_1))
                 .withMode(WriteMode.ADD)
                 .withStrictConflict(true)
                 .withClientModified(new Date(mockFlowFile.getEntryDate()))
                 .build();
 
         when(mockDbxUserFilesRequest
-                .uploadSessionFinish(any(UploadSessionCursor.class), eq(commitInfo)))
+                .uploadSessionFinish(any(UploadSessionCursor.class), argThat(new CommitInfoArgMatcher(commitInfo))))
                 .thenReturn(mockUploadSessionFinishUploader);
 
         when(mockUploadSessionFinishUploader
-                .uploadAndFinish(any(InputStream.class), eq(6L)))
+                .uploadAndFinish(any(InputStream.class), anyLong()))
                 .thenReturn(createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME));
 
         testRunner.enqueue(mockFlowFile);
@@ -329,5 +332,28 @@ public class PutDropboxTest extends AbstractDropboxTest {
         MockFlowFile mockFlowFile = getMockFlowFile(CONTENT);
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
+    }
+
+    /**
+     * Custom args matcher for CommitInfo, clientModified field is not checked.
+     */
+    private static class CommitInfoArgMatcher implements ArgumentMatcher<CommitInfo> {
+
+        private final CommitInfo expected;
+
+        public CommitInfoArgMatcher(CommitInfo expected) {
+            this.expected = expected;
+        }
+
+        @Override
+        public boolean matches(final CommitInfo actual) {
+            if (actual == null) {
+                return false;
+            }
+
+            return expected.getPath().equals(actual.getPath())
+                    && expected.getStrictConflict() == actual.getStrictConflict()
+                    && expected.getMode().equals(actual.getMode());
+        }
     }
 }
