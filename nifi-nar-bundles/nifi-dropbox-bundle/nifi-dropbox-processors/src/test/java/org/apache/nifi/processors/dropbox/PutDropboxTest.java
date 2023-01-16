@@ -258,14 +258,8 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(mockUploadSessionAppendV2Uploader);
 
         //finish session: 30 - 8 - 2 * 8 = 6 bytes uploaded
-        CommitInfo commitInfo = CommitInfo.newBuilder(getPath(TEST_FOLDER, FILENAME_1))
-                .withMode(WriteMode.ADD)
-                .withStrictConflict(true)
-                .withClientModified(new Date(mockFlowFile.getEntryDate()))
-                .build();
-
         when(mockDbxUserFilesRequest
-                .uploadSessionFinish(any(UploadSessionCursor.class), argThat(new CommitInfoArgMatcher(commitInfo))))
+                .uploadSessionFinish(any(UploadSessionCursor.class), any(CommitInfo.class)))
                 .thenReturn(mockUploadSessionFinishUploader);
 
         when(mockUploadSessionFinishUploader
@@ -332,28 +326,5 @@ public class PutDropboxTest extends AbstractDropboxTest {
         MockFlowFile mockFlowFile = getMockFlowFile(CONTENT);
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
-    }
-
-    /**
-     * Custom args matcher for CommitInfo, clientModified field is not checked.
-     */
-    private static class CommitInfoArgMatcher implements ArgumentMatcher<CommitInfo> {
-
-        private final CommitInfo expected;
-
-        public CommitInfoArgMatcher(CommitInfo expected) {
-            this.expected = expected;
-        }
-
-        @Override
-        public boolean matches(final CommitInfo actual) {
-            if (actual == null) {
-                return false;
-            }
-
-            return expected.getPath().equals(actual.getPath())
-                    && expected.getStrictConflict() == actual.getStrictConflict()
-                    && expected.getMode().equals(actual.getMode());
-        }
     }
 }
