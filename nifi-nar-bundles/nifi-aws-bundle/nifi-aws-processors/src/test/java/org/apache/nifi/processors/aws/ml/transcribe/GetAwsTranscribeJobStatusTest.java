@@ -20,9 +20,9 @@ package org.apache.nifi.processors.aws.ml.transcribe;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.FAILURE_REASON_ATTRIBUTE;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -89,7 +89,7 @@ public class GetAwsTranscribeJobStatusTest {
                 .withTranscriptionJobStatus(TranscriptionJobStatus.IN_PROGRESS);
         GetTranscriptionJobResult taskResult = new GetTranscriptionJobResult().withTranscriptionJob(task);
         when(mockTranscribeClient.getTranscriptionJob(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
@@ -104,7 +104,7 @@ public class GetAwsTranscribeJobStatusTest {
                 .withTranscriptionJobStatus(TranscriptionJobStatus.COMPLETED);
         GetTranscriptionJobResult taskResult = new GetTranscriptionJobResult().withTranscriptionJob(task);
         when(mockTranscribeClient.getTranscriptionJob(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -120,7 +120,7 @@ public class GetAwsTranscribeJobStatusTest {
                 .withTranscriptionJobStatus(TranscriptionJobStatus.FAILED);
         GetTranscriptionJobResult taskResult = new GetTranscriptionJobResult().withTranscriptionJob(task);
         when(mockTranscribeClient.getTranscriptionJob(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(CONTENT_STRING, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(CONTENT_STRING, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);

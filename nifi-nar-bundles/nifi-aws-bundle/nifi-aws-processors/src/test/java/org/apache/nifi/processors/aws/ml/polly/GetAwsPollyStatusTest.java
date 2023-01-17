@@ -18,12 +18,12 @@
 package org.apache.nifi.processors.aws.ml.polly;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_ORIGINAL;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -86,7 +86,7 @@ public class GetAwsPollyStatusTest {
                 .withTaskStatus(TaskStatus.InProgress);
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
@@ -101,7 +101,7 @@ public class GetAwsPollyStatusTest {
                 .withOutputUri("outputLocationPath");
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertTransferCount(REL_SUCCESS, 1);
@@ -119,7 +119,7 @@ public class GetAwsPollyStatusTest {
                 .withTaskStatusReason("reasonOfFailure");
         taskResult.setSynthesisTask(task);
         when(mockPollyClient.getSpeechSynthesisTask(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(AWS_TASK_ID_PROPERTY, TEST_TASK_ID));
+        runner.enqueue(PLACEHOLDER_CONTENT, Collections.singletonMap(TASK_ID.getName(), TEST_TASK_ID));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);

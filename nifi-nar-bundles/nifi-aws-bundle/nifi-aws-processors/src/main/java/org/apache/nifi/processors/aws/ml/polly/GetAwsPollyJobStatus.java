@@ -69,7 +69,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
         }
         GetSpeechSynthesisTaskResult speechSynthesisTask;
         try {
-            speechSynthesisTask = getSynthesisTask(flowFile);
+            speechSynthesisTask = getSynthesisTask(context, flowFile);
         } catch (ThrottlingException e) {
             getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
@@ -107,8 +107,8 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
         }
     }
 
-    private GetSpeechSynthesisTaskResult getSynthesisTask(FlowFile flowFile) {
-        String taskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
+    private GetSpeechSynthesisTaskResult getSynthesisTask(ProcessContext context, FlowFile flowFile) {
+        String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         GetSpeechSynthesisTaskRequest request = new GetSpeechSynthesisTaskRequest().withTaskId(taskId);
         return getClient().getSpeechSynthesisTask(request);
     }

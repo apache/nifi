@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
+import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
+
 import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.ClientConfiguration;
@@ -36,28 +38,39 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStarter;
 
 @Tags({"Amazon", "AWS", "ML", "Machine Learning", "Textract"})
 @CapabilityDescription("Trigger a AWS Textract job. It should be followed by GetAwsTextractJobStatus processor in order to monitor job status.")
 @SeeAlso({GetAwsTextractJobStatus.class})
 public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonTextractClient, AmazonWebServiceRequest, AmazonWebServiceResult> {
-    private static final String DOCUMENT_ANALYSIS = "Document Analysis";
-    private static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
-    private static final String EXPENSE_ANALYSIS = "Expense Analysis";
+    public static final Validator TEXTRACT_TYPE_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            } else if (TextractType.TEXTRACT_TYPES.contains(value)) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Supported Value.").valid(true).build();
+            } else {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Not a supported value, flow file attribute or context parameter.").valid(false).build();
+            }
+        }
+    };
     public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
             .name("textract-type")
             .displayName("Textract Type")
             .required(true)
             .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue(DOCUMENT_ANALYSIS)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(DOCUMENT_ANALYSIS.type)
+            .addValidator(TEXTRACT_TYPE_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
         Collections.unmodifiableList(Stream.concat(PROPERTIES.stream(), Stream.of(TEXTRACT_TYPE)).collect(Collectors.toList()));
@@ -82,7 +95,8 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
 
     @Override
     protected AmazonWebServiceResult sendRequest(AmazonWebServiceRequest request, ProcessContext context, FlowFile flowFile) {
-        String textractType = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
+        TextractType textractType =
+                TextractType.fromString(context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue());
         AmazonWebServiceResult result;
         switch (textractType) {
             case DOCUMENT_ANALYSIS :
@@ -91,7 +105,7 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
             case DOCUMENT_TEXT_DETECTION:
                 result = getClient().startDocumentTextDetection((StartDocumentTextDetectionRequest) request);
                 break;
-            case EXPENSE_ANALYSIS :
+            case EXPENSE_ANALYSIS:
                 result = getClient().startExpenseAnalysis((StartExpenseAnalysisRequest) request);
                 break;
             default: throw new UnsupportedOperationException("Unsupported textract type: " + textractType);
@@ -101,8 +115,9 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
 
     @Override
     protected Class<? extends AmazonWebServiceRequest> getAwsRequestClass(ProcessContext context, FlowFile flowFile) {
-        String typeOfTextract = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
-        Class<? extends AmazonWebServiceRequest>  result;
+        TextractType typeOfTextract =
+                TextractType.fromString(context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue());
+        Class<? extends AmazonWebServiceRequest> result = null;
         switch (typeOfTextract) {
             case DOCUMENT_ANALYSIS:
                 result = StartDocumentAnalysisRequest.class;
@@ -113,14 +128,14 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
             case EXPENSE_ANALYSIS:
                 result = StartExpenseAnalysisRequest.class;
                 break;
-            default: throw new UnsupportedOperationException("Unsupported textract type.");
         }
         return result;
     }
 
     @Override
     protected String getAwsTaskId(ProcessContext context, AmazonWebServiceResult amazonWebServiceResult, FlowFile flowFile) {
-        String textractType = context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue();
+        TextractType textractType =
+                TextractType.fromString(context.getProperty(TEXTRACT_TYPE.getName()).evaluateAttributeExpressions(flowFile).getValue());
         String  result;
         switch (textractType) {
             case DOCUMENT_ANALYSIS:

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.ml.translate;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.services.textract.model.ThrottlingException;
 import com.amazonaws.services.translate.AmazonTranslateClient;
 import com.amazonaws.services.translate.model.DescribeTextTranslationJobRequest;
 import com.amazonaws.services.translate.model.DescribeTextTranslationJobResult;
@@ -55,21 +56,31 @@ public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcess
         if (flowFile == null) {
             return;
         }
-        String awsTaskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
-        DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(awsTaskId);
-        JobStatus status = JobStatus.fromValue(describeTextTranslationJobResult.getTextTranslationJobProperties().getJobStatus());
+        String awsTaskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
+        try {
+            DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(awsTaskId);
+            JobStatus status = JobStatus.fromValue(describeTextTranslationJobResult.getTextTranslationJobProperties().getJobStatus());
 
-        if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
-            writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
-            session.penalize(flowFile);
-            session.transfer(flowFile, REL_RUNNING);
-        } else if (status == JobStatus.COMPLETED) {
-            session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, describeTextTranslationJobResult.getTextTranslationJobProperties().getOutputDataConfig().getS3Uri());
-            writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
-            session.transfer(flowFile, REL_SUCCESS);
-        } else if (status == JobStatus.FAILED || status == JobStatus.COMPLETED_WITH_ERROR) {
-            writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
+            if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
+                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
+                session.penalize(flowFile);
+                session.transfer(flowFile, REL_RUNNING);
+            } else if (status == JobStatus.COMPLETED) {
+                session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, describeTextTranslationJobResult.getTextTranslationJobProperties().getOutputDataConfig().getS3Uri());
+                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
+                session.transfer(flowFile, REL_SUCCESS);
+            } else if (status == JobStatus.FAILED || status == JobStatus.COMPLETED_WITH_ERROR) {
+                writeToFlowFile(session, flowFile, describeTextTranslationJobResult);
+                session.transfer(flowFile, REL_FAILURE);
+            }
+        } catch (ThrottlingException e) {
+            getLogger().info("Request Rate Limit exceeded", e);
+            session.transfer(flowFile, REL_THROTTLED);
+            return;
+        } catch (Exception e) {
+            getLogger().warn("Failed to get Polly Job status", e);
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
     }
 

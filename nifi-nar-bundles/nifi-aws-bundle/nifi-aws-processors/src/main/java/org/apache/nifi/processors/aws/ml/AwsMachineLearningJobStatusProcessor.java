@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.aws.ml;
 
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.ResponseMetadata;
@@ -37,15 +39,24 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
 public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebServiceClient>
         extends AbstractAWSCredentialsProviderProcessor<T>  {
-    public static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE)
                     .required(true)
+                    .build();
+    public static final PropertyDescriptor TASK_ID =
+            new PropertyDescriptor.Builder()
+                    .name("awsTaskId")
+                    .displayName("AWS Task ID")
+                    .defaultValue("${awsTaskId}")
+                    .required(true)
+                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                    .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
                     .build();
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
@@ -79,6 +90,7 @@ public abstract class AwsMachineLearningJobStatusProcessor<T extends AmazonWebSe
             .build();
     public static final String FAILURE_REASON_ATTRIBUTE = "failure.reason";
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            TASK_ID,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             TIMEOUT,

@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.aws.ml;
 
 import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
 
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.AmazonWebServiceRequest;
@@ -80,7 +81,6 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE));
-    protected static final String AWS_TASK_ID_PROPERTY = "awsTaskId";
     private final static ObjectMapper MAPPER = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .build();
@@ -114,7 +114,7 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             postProcessFlowFile(context, session, childFlowFile, response);
             session.transfer(childFlowFile, REL_SUCCESS);
         } catch (Exception e) {
-            if (context.getProperty(JSON_PAYLOAD).isSet()) {
+            if (flowFile != null) {
                 session.transfer(flowFile, REL_FAILURE);
             }
             getLogger().error("Sending AWS ML Request failed", e);
@@ -127,8 +127,8 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     protected void postProcessFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile, RESPONSE response) {
-        session.putAttribute(flowFile, AWS_TASK_ID_PROPERTY, getAwsTaskId(context, response, flowFile));
-        session.putAttribute(flowFile, MIME_TYPE.key(), "application/json");
+        flowFile = session.putAttribute(flowFile, TASK_ID.getName(), getAwsTaskId(context, response, flowFile));
+        flowFile = session.putAttribute(flowFile, MIME_TYPE.key(), "application/json");
         getLogger().debug("AWS ML task has been started with task id: {}", getAwsTaskId(context, response, flowFile));
     }
 

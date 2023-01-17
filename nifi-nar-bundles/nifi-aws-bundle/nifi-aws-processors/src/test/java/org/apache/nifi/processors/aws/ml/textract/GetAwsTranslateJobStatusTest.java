@@ -20,9 +20,8 @@ package org.apache.nifi.processors.aws.ml.textract;
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
-import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_ID_PROPERTY;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
-import static org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus.DOCUMENT_ANALYSIS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEXTRACT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -82,12 +81,12 @@ public class GetAwsTranslateJobStatusTest {
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.IN_PROGRESS);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
+        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
+                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.name()));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 
     @Test
@@ -95,8 +94,8 @@ public class GetAwsTranslateJobStatusTest {
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.SUCCEEDED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
+        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
+                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.name()));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -108,8 +107,8 @@ public class GetAwsTranslateJobStatusTest {
         GetDocumentAnalysisResult taskResult = new GetDocumentAnalysisResult()
                 .withJobStatus(JobStatus.FAILED);
         when(mockTextractClient.getDocumentAnalysis(requestCaptor.capture())).thenReturn(taskResult);
-        runner.enqueue("content", ImmutableMap.of(AWS_TASK_ID_PROPERTY, TEST_TASK_ID,
-                TEXTRACT_TYPE.getName(), DOCUMENT_ANALYSIS));
+        runner.enqueue("content", ImmutableMap.of(TASK_ID.getName(), TEST_TASK_ID,
+                TEXTRACT_TYPE.getName(), TextractType.DOCUMENT_ANALYSIS.type));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.ml.transcribe;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.services.textract.model.ThrottlingException;
 import com.amazonaws.services.transcribe.AmazonTranscribeClient;
 import com.amazonaws.services.transcribe.model.GetTranscriptionJobRequest;
 import com.amazonaws.services.transcribe.model.GetTranscriptionJobResult;
@@ -55,25 +56,35 @@ public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusProces
         if (flowFile == null) {
             return;
         }
-        GetTranscriptionJobResult job = getJob(flowFile);
-        TranscriptionJobStatus jobStatus = TranscriptionJobStatus.fromValue(job.getTranscriptionJob().getTranscriptionJobStatus());
+        try {
+            GetTranscriptionJobResult job = getJob(context, flowFile);
+            TranscriptionJobStatus jobStatus = TranscriptionJobStatus.fromValue(job.getTranscriptionJob().getTranscriptionJobStatus());
 
-        if (TranscriptionJobStatus.COMPLETED == jobStatus) {
-            writeToFlowFile(session, flowFile, job);
-            session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.getTranscriptionJob().getTranscript().getTranscriptFileUri());
-            session.transfer(flowFile, REL_SUCCESS);
-        } else if (TranscriptionJobStatus.IN_PROGRESS == jobStatus) {
-            session.transfer(flowFile, REL_RUNNING);
-        } else if (TranscriptionJobStatus.FAILED == jobStatus) {
-            final String failureReason = job.getTranscriptionJob().getFailureReason();
-            session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
+            if (TranscriptionJobStatus.COMPLETED == jobStatus) {
+                writeToFlowFile(session, flowFile, job);
+                session.putAttribute(flowFile, AWS_TASK_OUTPUT_LOCATION, job.getTranscriptionJob().getTranscript().getTranscriptFileUri());
+                session.transfer(flowFile, REL_SUCCESS);
+            } else if (TranscriptionJobStatus.IN_PROGRESS == jobStatus) {
+                session.transfer(flowFile, REL_RUNNING);
+            } else if (TranscriptionJobStatus.FAILED == jobStatus) {
+                final String failureReason = job.getTranscriptionJob().getFailureReason();
+                session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
+                session.transfer(flowFile, REL_FAILURE);
+                getLogger().error("Transcribe Task Failed for {}: {}", flowFile, failureReason);
+            }
+        } catch (ThrottlingException e) {
+            getLogger().info("Request Rate Limit exceeded", e);
+            session.transfer(flowFile, REL_THROTTLED);
+            return;
+        } catch (Exception e) {
+            getLogger().warn("Failed to get Transcribe Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().error("Transcribe Task Failed for {}: {}", flowFile, failureReason);
+            return;
         }
     }
 
-    private GetTranscriptionJobResult getJob(FlowFile flowFile) {
-        String taskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
+    private GetTranscriptionJobResult getJob(ProcessContext context, FlowFile flowFile) {
+        String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         GetTranscriptionJobRequest request = new GetTranscriptionJobRequest().withTranscriptionJobName(taskId);
         return getClient().getTranscriptionJob(request);
     }

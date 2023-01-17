@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
+import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.textract.AmazonTextractClient;
@@ -24,6 +26,7 @@ import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentTextDetectionRequest;
 import com.amazonaws.services.textract.model.GetExpenseAnalysisRequest;
 import com.amazonaws.services.textract.model.JobStatus;
+import com.amazonaws.services.textract.model.ThrottlingException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,16 +47,14 @@ import org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor;
 @CapabilityDescription("Retrieves the current status of an AWS Textract job.")
 @SeeAlso({StartAwsTextractJob.class})
 public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcessor<AmazonTextractClient> {
-    public static final String DOCUMENT_ANALYSIS = "Document Analysis";
-    public static final String DOCUMENT_TEXT_DETECTION = "Document Text Detection";
-    public static final String EXPENSE_ANALYSIS = "Expense Analysis";
     public static final PropertyDescriptor TEXTRACT_TYPE = new PropertyDescriptor.Builder()
             .name("textract-type")
             .displayName("Textract Type")
             .required(true)
             .description("Supported values: \"Document Analysis\", \"Document Text Detection\", \"Expense Analysis\"")
+            .allowableValues(TextractType.TEXTRACT_TYPES)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue(DOCUMENT_ANALYSIS)
+            .defaultValue(DOCUMENT_ANALYSIS.getType())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> TEXTRACT_PROPERTIES =
@@ -80,23 +81,33 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
         }
         String textractType = context.getProperty(TEXTRACT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
 
-        String awsTaskId = flowFile.getAttribute(AWS_TASK_ID_PROPERTY);
-        JobStatus jobStatus = getTaskStatus(textractType, getClient(), awsTaskId);
-        if (JobStatus.SUCCEEDED == jobStatus) {
-            Object task = getTask(textractType, getClient(), awsTaskId);
-            writeToFlowFile(session, flowFile, task);
-            session.transfer(flowFile, REL_SUCCESS);
-        } else if (JobStatus.IN_PROGRESS == jobStatus) {
-            session.transfer(flowFile, REL_RUNNING);
-        } else if (JobStatus.PARTIAL_SUCCESS == jobStatus) {
+        String awsTaskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
+        try {
+            JobStatus jobStatus = getTaskStatus(TextractType.fromString(textractType), getClient(), awsTaskId);
+            if (JobStatus.SUCCEEDED == jobStatus) {
+                Object task = getTask(TextractType.fromString(textractType), getClient(), awsTaskId);
+                writeToFlowFile(session, flowFile, task);
+                session.transfer(flowFile, REL_SUCCESS);
+            } else if (JobStatus.IN_PROGRESS == jobStatus) {
+                session.transfer(flowFile, REL_RUNNING);
+            } else if (JobStatus.PARTIAL_SUCCESS == jobStatus) {
+                session.transfer(flowFile, REL_THROTTLED);
+            } else if (JobStatus.FAILED == jobStatus) {
+                session.transfer(flowFile, REL_FAILURE);
+                getLogger().error("Amazon Textract reported that the task failed for awsTaskId: {}", awsTaskId);
+            }
+        } catch (ThrottlingException e) {
+            getLogger().info("Request Rate Limit exceeded", e);
             session.transfer(flowFile, REL_THROTTLED);
-        } else if (JobStatus.FAILED == jobStatus) {
+            return;
+        } catch (Exception e) {
+            getLogger().warn("Failed to get Textract Job status", e);
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().error("Amazon Textract reported that the task failed for awsTaskId: {}", awsTaskId);
+            return;
         }
     }
 
-    private Object getTask(String typeOfTextract, AmazonTextractClient client, String awsTaskId) {
+    private Object getTask(TextractType typeOfTextract, AmazonTextractClient client, String awsTaskId) {
         Object job = null;
         switch (typeOfTextract) {
             case DOCUMENT_ANALYSIS:
@@ -112,7 +123,7 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
         return job;
     }
 
-    private JobStatus getTaskStatus(String typeOfTextract, AmazonTextractClient client, String awsTaskId) {
+    private JobStatus getTaskStatus(TextractType typeOfTextract, AmazonTextractClient client, String awsTaskId) {
         JobStatus jobStatus = JobStatus.IN_PROGRESS;
         switch (typeOfTextract) {
             case DOCUMENT_ANALYSIS:
