@@ -514,8 +514,8 @@
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Original.txt</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFile.txt</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFileConcat.txt</exclude>
+                        <exclude>src/test/resources/CompressedData/SampleFile.txt*</exclude>
+                        <exclude>src/test/resources/CompressedData/SampleFileConcat.txt*</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1000bytes.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/1mb.txt</exclude>
                         <exclude>src/test/resources/ExecuteCommand/test.txt</exclude>
@@ -631,11 +631,6 @@
                         <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
                         <exclude>src/test/resources/TestXml/namespaceSplit1.xml</exclude>
                         <exclude>src/test/resources/TestXml/namespaceSplit2.xml</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFile.txt.bz2</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFile.txt.gz</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFile1.txt.bz2</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFile1.txt.gz</exclude>
-                        <exclude>src/test/resources/CompressedData/SampleFileConcat.txt.bz2</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
