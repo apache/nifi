@@ -88,12 +88,12 @@ public class StatelessNiFiSinkTask extends SinkTask {
             final Set<String> inputPorts = dataflow.getInputPortNames();
             if (inputPorts.isEmpty()) {
                 throw new ConfigException("The dataflow specified for <" + dataflowName + "> does not have an Input Port at the root level. Dataflows used for a Kafka Connect Sink Task "
-                    + "must have at least one Input Port at the root level.");
+                        + "must have at least one Input Port at the root level.");
             }
 
             if (inputPorts.size() > 1) {
                 throw new ConfigException("The dataflow specified for <" + dataflowName + "> has multiple Input Ports at the root level (" + inputPorts
-                    + "). The " + StatelessNiFiSinkConfig.INPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be sent to.");
+                        + "). The " + StatelessNiFiSinkConfig.INPUT_PORT_NAME + " property must be set to indicate which of these Ports Kafka records should be sent to.");
             }
 
             inputPortName = inputPorts.iterator().next();
@@ -102,7 +102,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
         // Validate the input port
         if (!dataflow.getInputPortNames().contains(inputPortName)) {
             throw new ConfigException("The dataflow specified for <" + dataflowName + "> does not have Input Port with name <" + inputPortName + "> at the root level. Existing Input Port names are "
-                + dataflow.getInputPortNames());
+                    + dataflow.getInputPortNames());
         }
 
         // Determine the failure Ports, if any are given.
@@ -113,7 +113,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
         for (final String failurePortName : failurePortNames) {
             if (!outputPortNames.contains(failurePortName)) {
                 throw new ConfigException("Dataflow was configured with a Failure Port of " + failurePortName
-                    + " but there is no Port with that name in the dataflow. Valid Port names are " + outputPortNames);
+                        + " but there is no Port with that name in the dataflow. Valid Port names are " + outputPortNames);
             }
         }
     }
@@ -132,6 +132,7 @@ public class StatelessNiFiSinkTask extends SinkTask {
 
     /**
      * Creates a config instance to be used by the task.
+     *
      * @param properties The properties to use in the config.
      * @return The config instance.
      */

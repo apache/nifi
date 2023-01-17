@@ -51,7 +51,7 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
         final int numTasks = primaryNodeOnly ? 1 : maxTasks;
 
         final List<Map<String, String>> configs = new ArrayList<>();
-        for (int i=0; i < numTasks; i++) {
+        for (int i = 0; i < numTasks; i++) {
             final Map<String, String> taskConfig = new HashMap<>(config.originalsStrings());
             taskConfig.put("task.index", String.valueOf(i));
             configs.add(taskConfig);
@@ -77,6 +77,7 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
 
     /**
      * Creates a config instance to be used by the Connector.
+     *
      * @param properties Properties to use in the config.
      * @return The config instance.
      */

@@ -43,7 +43,7 @@ public class StatelessNiFiSinkConnector extends SinkConnector {
     @Override
     public List<Map<String, String>> taskConfigs(final int maxTasks) {
         final List<Map<String, String>> configs = new ArrayList<>();
-        for (int i=0; i < maxTasks; i++) {
+        for (int i = 0; i < maxTasks; i++) {
             configs.add(new HashMap<>(properties));
         }
 
