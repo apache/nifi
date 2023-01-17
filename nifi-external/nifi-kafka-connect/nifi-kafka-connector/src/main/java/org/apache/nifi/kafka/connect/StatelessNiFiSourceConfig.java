@@ -112,8 +112,8 @@ public class StatelessNiFiSourceConfig extends StatelessNiFiCommonConfig {
 
         configDef.define(
                 StatelessNiFiSourceConfig.HEADER_REGEX, ConfigDef.Type.STRING, null, new ConnectRegularExpressionValidator(), ConfigDef.Importance.MEDIUM,
-                "Specifies a Regular Expression to evaluate against all FlowFile attributes. Any attribute whose name"
-                        + " matches the Regular Expression will be converted into a Kafka message header with the name of the attribute used as header key and the value of the attribute used as the header"
+                "Specifies a Regular Expression to evaluate against all FlowFile attributes. Any attribute whose name matches the Regular Expression" +
+                        " will be converted into a Kafka message header with the name of the attribute used as header key and the value of the attribute used as the header"
                         + " value.",
                 RECORD_GROUP, 200, ConfigDef.Width.NONE, "Record header attribute regex");
     }

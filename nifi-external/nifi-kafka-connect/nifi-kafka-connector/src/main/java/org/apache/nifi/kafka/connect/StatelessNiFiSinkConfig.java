@@ -86,8 +86,8 @@ public class StatelessNiFiSinkConfig extends StatelessNiFiCommonConfig {
                 ConfigDef.Width.NONE, "Input port name");
         configDef.define(
                 StatelessNiFiSinkConfig.FAILURE_PORTS, ConfigDef.Type.LIST, null, ConfigDef.Importance.MEDIUM,
-                "A list of Output Ports that are considered failures. If any FlowFile is routed to an Output Ports whose name is provided in this property, the session is rolled back and is considered " +
-                        "a failure", FLOW_GROUP, 200, ConfigDef.Width.NONE, "Failure ports");
+                "A list of Output Ports that are considered failures. If any FlowFile is routed to an Output Ports whose name is provided in this property," +
+                        " the session is rolled back and is considered a failure", FLOW_GROUP, 200, ConfigDef.Width.NONE, "Failure ports");
     }
 
     /**
@@ -98,14 +98,15 @@ public class StatelessNiFiSinkConfig extends StatelessNiFiCommonConfig {
     protected static void addSinkConfigs(ConfigDef configDef) {
         configDef.define(
                 HEADERS_AS_ATTRIBUTES_REGEX, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
-                "A regular expression to evaluate against Kafka message header keys. Any message " +
-                        "header whose key matches the regular expression will be added to the FlowFile as an attribute. The name of the attribute will match the header key (with an optional prefix, as " +
+                "A regular expression to evaluate against Kafka message header keys. Any message header whose key matches the regular expression" +
+                        " will be added to the FlowFile as an attribute. The name of the attribute will match the header key (with an optional prefix, as " +
                         "defined by the attribute.prefix configuration) and the header value will be added as the attribute value.",
                 RECORD_GROUP, 0, ConfigDef.Width.NONE, "Headers as Attributes regex");
         configDef.define(
                 HEADER_ATTRIBUTE_NAME_PREFIX, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
-                "A prefix to add to the key of each header that matches the headers.as.attributes.regex Regular Expression. For example, if a header has the key MyHeader and a value of " +
-                        "MyValue, and the headers.as.attributes.regex is set to My.* and this property is set to kafka. then the FlowFile that is created for the Kafka message will have an attribute" +
+                "A prefix to add to the key of each header that matches the headers.as.attributes.regex Regular Expression. For example," +
+                        " if a header has the key MyHeader and a value of MyValue, and the headers.as.attributes.regex is set to My.* and this property" +
+                        " is set to kafka. then the FlowFile that is created for the Kafka message will have an attribute" +
                         " named kafka.MyHeader with a value of MyValue.",
                 RECORD_GROUP, 1, ConfigDef.Width.NONE, "Headers as Attributes prefix");
     }

@@ -244,8 +244,8 @@ public abstract class StatelessNiFiCommonConfig extends AbstractConfig {
                 FLOW_GROUP, 1, ConfigDef.Width.NONE, "Dataflow processing timeout");
 
         configDef.define(TRUSTSTORE_FILE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
-                "Filename of the truststore that Stateless NiFi should use for connecting to NiFi Registry and for Site-to-Site communications. If not specified, communications will occur only over " +
-                        "http, not https.", TLS_GROUP, 0, ConfigDef.Width.NONE, "Truststore file");
+                "Filename of the truststore that Stateless NiFi should use for connecting to NiFi Registry and for Site-to-Site communications." +
+                        " If not specified, communications will occur only over http, not https.", TLS_GROUP, 0, ConfigDef.Width.NONE, "Truststore file");
         configDef.define(TRUSTSTORE_TYPE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
                 "The type of the Truststore file. Either JKS or PKCS12.", TLS_GROUP, 1, ConfigDef.Width.NONE, "Truststore type");
         configDef.define(TRUSTSTORE_PASSWORD, ConfigDef.Type.PASSWORD, null, ConfigDef.Importance.MEDIUM,
