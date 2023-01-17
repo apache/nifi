@@ -238,8 +238,10 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     private void validateAWSIAMMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
 
-        if (SaslMechanism.AWS_MSK_IAM.getValue().equals(saslMechanism) && !StandardKafkaPropertyProvider.isIAMCallbackHandlerFound()) {
-            final String explanation = String.format("[%s] should be on classpath", StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+        if (SaslMechanism.AWS_MSK_IAM.getValue().equals(saslMechanism) && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+            final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
+                    StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+
             results.add(new ValidationResult.Builder()
                     .subject(SASL_MECHANISM.getDisplayName())
                     .valid(false)

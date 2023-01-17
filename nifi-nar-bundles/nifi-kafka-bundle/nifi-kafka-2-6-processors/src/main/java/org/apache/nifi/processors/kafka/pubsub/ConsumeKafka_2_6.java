@@ -275,7 +275,6 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         descriptors.add(SASL_PASSWORD);
         descriptors.add(TOKEN_AUTHENTICATION);
         descriptors.add(AWS_PROFILE_NAME);
-        descriptors.add(AWS_DEBUG_CREDS);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(AUTO_OFFSET_RESET);

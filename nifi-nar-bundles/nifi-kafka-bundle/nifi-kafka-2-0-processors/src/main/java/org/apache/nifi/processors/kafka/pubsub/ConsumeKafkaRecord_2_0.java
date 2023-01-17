@@ -267,7 +267,6 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaCl
         descriptors.add(SASL_PASSWORD);
         descriptors.add(TOKEN_AUTHENTICATION);
         descriptors.add(AWS_PROFILE_NAME);
-        descriptors.add(AWS_DEBUG_CREDS);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(GROUP_ID);
         descriptors.add(SEPARATE_BY_KEY);

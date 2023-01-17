@@ -306,7 +306,6 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
         properties.add(AWS_PROFILE_NAME);
-        properties.add(AWS_DEBUG_CREDS);
         properties.add(TOKEN_AUTHENTICATION);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(KEY);

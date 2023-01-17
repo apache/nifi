@@ -89,7 +89,7 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(context.getProperty(SASL_MECHANISM).getValue());
             if (SaslMechanism.GSSAPI == saslMechanism && isCustomKerberosLoginFound()) {
                 properties.put(SASL_LOGIN_CLASS.getProperty(), SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
-            } else if (SaslMechanism.AWS_MSK_IAM == saslMechanism && isIAMCallbackHandlerFound()) {
+            } else if (SaslMechanism.AWS_MSK_IAM == saslMechanism && isAwsMskIamCallbackHandlerFound()) {
                 properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
             }
         }
@@ -169,13 +169,13 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
         return isClassFound(SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
     }
 
-    public static boolean isIAMCallbackHandlerFound() {
+    public static boolean isAwsMskIamCallbackHandlerFound() {
         return isClassFound(SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
     }
 
-    private static boolean isClassFound(String clazz) {
+    private static boolean isClassFound(final String className) {
         try {
-            Class.forName(clazz);
+            Class.forName(className);
             return true;
         } catch (final ClassNotFoundException e) {
             return false;

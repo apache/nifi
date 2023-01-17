@@ -21,29 +21,22 @@ import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.util.StringUtils;
 
 /**
- * SASL AWS IAM Login Module implementation of configuration provider
+ * SASL AWS MSK IAM Login Module implementation of configuration provider
  */
-public class IAMLoginConfigProvider implements LoginConfigProvider {
+public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
 
     private static final String MODULE_CLASS = "software.amazon.msk.auth.iam.IAMLoginModule";
 
     private static final String AWS_PROFILE_NAME_FORMAT = "awsProfileName=\"%s\"";
 
-    private static final String AWS_ENABLE_DEBUG_CREDS = "awsDebugCreds=true";
-
     @Override
     public String getConfiguration(PropertyContext context) {
         final String awsProfileName = context.getProperty(KafkaClientComponent.AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
-        final boolean awsDebugCreds = context.getProperty(KafkaClientComponent.AWS_DEBUG_CREDS).asBoolean();
 
         final LoginConfigBuilder builder = new LoginConfigBuilder(MODULE_CLASS);
 
-        if (!StringUtils.isBlank(awsProfileName)) {
+        if (StringUtils.isNotBlank(awsProfileName)) {
             builder.append(String.format(AWS_PROFILE_NAME_FORMAT, awsProfileName));
-        }
-
-        if (awsDebugCreds) {
-            builder.append(AWS_ENABLE_DEBUG_CREDS);
         }
 
         return builder.build();

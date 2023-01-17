@@ -35,7 +35,7 @@ public enum SaslMechanism implements DescribedValue {
 
     SCRAM_SHA_512("SCRAM-SHA-512", "SCRAM-SHA-512", "Salted Challenge Response Authentication Mechanism using SHA-256 with username and password"),
 
-    AWS_MSK_IAM("AWS_MSK_IAM", "AWS IAM", "Allows to use AWS IAM for authentication and authorization against Amazon MSK clusters that have AWS IAM enabled " +
+    AWS_MSK_IAM("AWS_MSK_IAM", "AWS_MSK_IAM", "Allows to use AWS IAM for authentication and authorization against Amazon MSK clusters that have AWS IAM enabled " +
             "as an authentication mechanism. The IAM credentials will be found using the AWS Default Credentials Provider Chain.");
 
     private final String value;
@@ -58,7 +58,7 @@ public enum SaslMechanism implements DescribedValue {
     }
 
     public static EnumSet<SaslMechanism> getAvailableSaslMechanisms() {
-        if (StandardKafkaPropertyProvider.isIAMCallbackHandlerFound()) {
+        if (StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
             return EnumSet.allOf(SaslMechanism.class);
         } else {
             return EnumSet.complementOf(EnumSet.of(SaslMechanism.AWS_MSK_IAM));
