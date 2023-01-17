@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -30,11 +36,6 @@ import java.util.List;
 import java.util.Map;
 
 public class BoxFileInfo implements ListableEntity {
-    public static final String ID = "box.id";
-    public static final String FILENAME = "filename";
-    public static final String PATH = "path";
-    public static final String SIZE = "box.size";
-    public static final String TIMESTAMP = "box.timestamp";
 
     private  static final RecordSchema SCHEMA;
 

@@ -16,28 +16,27 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
+import java.io.ByteArrayInputStream;
+import java.io.FileReader;
+import java.io.Reader;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-
-import java.io.ByteArrayInputStream;
-import java.io.FileReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 /**
  * Set the following constants before running:<br />
@@ -54,7 +53,9 @@ public abstract class AbstractBoxFileIT<T extends Processor> {
     static final String ACCOUNT_ID = "";
     static final String APP_CONFIG_FILE = "";
 
-    protected static final String DEFAULT_FILE_CONTENT = "test_content";
+    public static final String DEFAULT_FILE_CONTENT = "test_content";
+    public static final String CHANGED_FILE_CONTENT = "changed_test_content";
+    public static final String TEST_FILENAME = "test_filename.txt";
     public static final String MAIN_FOLDER_NAME = "main";
 
     protected T testSubject;
@@ -111,18 +112,17 @@ public abstract class AbstractBoxFileIT<T extends Processor> {
     protected BoxFolder.Info createFolder(String folderName, String parentFolderId) {
         BoxFolder parentFolder = new BoxFolder(boxAPIConnection, parentFolderId);
         BoxFolder.Info folderInfo = parentFolder.createFolder(folderName);
-
         return folderInfo;
     }
 
     protected BoxFile.Info createFileWithDefaultContent(String name, String folderId) {
-        return createFile(name, DEFAULT_FILE_CONTENT, folderId);
+        return createFile(name, folderId);
     }
 
-    protected BoxFile.Info createFile(String name, String fileContent, String folderId) {
+    protected BoxFile.Info createFile(String name, String folderId) {
         BoxFolder folder = new BoxFolder(boxAPIConnection, folderId);
 
-        BoxFile.Info fileInfo = folder.uploadFile(new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8)), name);
+        BoxFile.Info fileInfo = folder.uploadFile(new ByteArrayInputStream(DEFAULT_FILE_CONTENT.getBytes(UTF_8)), name);
 
         return fileInfo;
     }

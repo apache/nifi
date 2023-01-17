@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxFile;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.Test;
+import static java.util.Collections.singletonList;
 
-import java.util.Arrays;
+import com.box.sdk.BoxFile;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.Test;
 
 /**
  * See Javadoc {@link AbstractBoxFileIT} for instructions how to run this test.
@@ -40,7 +40,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
     }
 
     @Test
-    void testFetchSingleFile() throws Exception {
+    void testFetchSingleFile() {
         // GIVEN
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
@@ -48,8 +48,8 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
         inputFlowFileAttributes.put("box.id", file.getID());
         inputFlowFileAttributes.put("filename", file.getName());
 
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(Arrays.asList(inputFlowFileAttributes));
-        List<String> expectedContent = Arrays.asList(DEFAULT_FILE_CONTENT);
+        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
+        List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
 
         // WHEN
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
@@ -63,13 +63,13 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
     }
 
     @Test
-    void testInputFlowFileReferencesMissingFile() throws Exception {
+    void testInputFlowFileReferencesMissingFile() {
         // GIVEN
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put("box.id", "111");
         inputFlowFileAttributes.put("filename", "missing_filename");
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
             new HashMap<String, String>() {{
                 put("box.id", "111");
                 put("filename", "missing_filename");
@@ -88,7 +88,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
     }
 
     @Test
-    void testInputFlowFileThrowsExceptionBeforeFetching() throws Exception {
+    void testInputFlowFileThrowsExceptionBeforeFetching() {
         // GIVEN
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
@@ -97,7 +97,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
         inputFlowFileAttributes.put("filename", file.getName());
 
         MockFlowFile input = new MockFlowFile(1) {
-            AtomicBoolean throwException = new AtomicBoolean(true);
+            final AtomicBoolean throwException = new AtomicBoolean(true);
 
             @Override
             public boolean isPenalized() {
@@ -116,7 +116,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
             }
         };
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
             new HashMap<String, String>() {{
                 putAll(inputFlowFileAttributes);
             }}
@@ -137,7 +137,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
         checkedAttributeNames.add(BoxFlowFileAttribute.ID.getName());
         checkedAttributeNames.add(BoxFlowFileAttribute.FILENAME.getName());
-        checkedAttributeNames.add(FetchBoxFile.ERROR_CODE_ATTRIBUTE);
+        checkedAttributeNames.add(BoxFileAttributes.ERROR_CODE);
 
         return checkedAttributeNames;
     }
