@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.util.Collections.singletonList;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
-
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-public interface SimpleListBoxFileTestTrait {
+public interface FileListingTestTrait {
     BoxFolder getMockBoxFolder();
 
     default void mockFetchedFileList(
@@ -40,17 +39,15 @@ public interface SimpleListBoxFileTestTrait {
         Long createdTime,
         Long modifiedTime
     ) {
-        doReturn(
-            Arrays.asList(
-                createFileInfo(
-                    id,
-                    filename,
-                    pathParts,
-                    size,
-                    createdTime,
-                    modifiedTime
+        doReturn(singletonList(createFileInfo(
+                                id,
+                                filename,
+                                pathParts,
+                                size,
+                                createdTime,
+                                modifiedTime
+                        )
                 )
-            )
         ).when(getMockBoxFolder()).getChildren("id",
             "name",
             "item_status",

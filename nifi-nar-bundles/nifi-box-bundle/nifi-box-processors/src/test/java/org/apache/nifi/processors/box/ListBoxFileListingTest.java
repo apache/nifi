@@ -16,44 +16,44 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.util.Collections.singletonList;
+import static org.apache.nifi.util.EqualsWrapper.wrapList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doReturn;
+
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFolder;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-
-import static org.apache.nifi.util.EqualsWrapper.wrapList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-
-public class ListBoxFileSimpleTest implements SimpleListBoxFileTestTrait {
+@ExtendWith(MockitoExtension.class)
+public class ListBoxFileListingTest implements FileListingTestTrait {
     private ListBoxFile testSubject;
 
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private ProcessContext mockProcessContext;
+    @Mock
     private BoxClientService mockBoxClientService;
+    @Mock
     private PropertyValue mockBoxClientServicePropertyValue;
+    @Mock
     private BoxAPIConnection mockBoxAPIConnection;
-
+    @Mock
     private BoxFolder mockBoxFolder;
 
     @BeforeEach
-    void setUp() throws Exception {
-        mockProcessContext = mock(ProcessContext.class, Answers.RETURNS_DEEP_STUBS);
-        mockBoxClientService = mock(BoxClientService.class);
-        mockBoxClientServicePropertyValue = mock(PropertyValue.class);
-        mockBoxAPIConnection = mock(BoxAPIConnection.class);
-
-        mockBoxFolder = mock(BoxFolder.class);
-
+    void setUp() {
         testSubject = new ListBoxFile() {
             @Override
             BoxFolder getFolder(String folderId) {
@@ -69,20 +69,20 @@ public class ListBoxFileSimpleTest implements SimpleListBoxFileTestTrait {
     }
 
     @Test
-    void testCreatedListableEntityContainsCorrectData() throws Exception {
-        // GIVEN
+    void testCreatedListableEntityContainsCorrectData() {
+
         Long minTimestamp = 0L;
 
         String id = "id_1";
         String filename = "file_name_1";
         List<String> pathParts = Arrays.asList("path", "to", "file");
-        Long size = 125L;
+        long size = 125L;
         long createdTime = 123456L;
         long modifiedTime = 234567L;
 
         mockFetchedFileList(id, filename, pathParts, size, createdTime, modifiedTime);
 
-        List<BoxFileInfo> expected = Arrays.asList(
+        List<BoxFileInfo> expected = singletonList(
             new BoxFileInfo.Builder()
                 .id(id)
                 .fileName(filename)
@@ -93,10 +93,8 @@ public class ListBoxFileSimpleTest implements SimpleListBoxFileTestTrait {
                 .build()
         );
 
-        // WHEN
         List<BoxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
-        // THEN
         List<Function<BoxFileInfo, Object>> propertyProviders = Arrays.asList(
             BoxFileInfo::getId,
             BoxFileInfo::getIdentifier,
