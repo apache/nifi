@@ -435,7 +435,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private BinlogLifecycleListener lifecycleListener;
     private GtidSet gtidSet;
 
-    private final BlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>(100);
+    private final BlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>(1000);
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
     private volatile String currentGtidSet = null;
