@@ -28,7 +28,7 @@
     <properties>
         <azure.sdk.bom.version>1.2.6</azure.sdk.bom.version>
         <microsoft.azure-storage.version>8.6.6</microsoft.azure-storage.version>
-        <msal4j.version>1.13.0</msal4j.version>
+        <msal4j.version>1.13.3</msal4j.version>
     </properties>
 
     <modules>
