@@ -97,7 +97,6 @@ limitations under the License.
                                     </buildArgs>
                                     <repository>apacheminifi</repository>
                                     <tag>${minifi.version}</tag>
-                                    <tag>latest</tag>
                                 </configuration>
                             </execution>
                         </executions>
