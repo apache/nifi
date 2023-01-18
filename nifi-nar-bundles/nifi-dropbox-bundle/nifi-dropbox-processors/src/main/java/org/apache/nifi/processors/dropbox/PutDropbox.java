@@ -33,8 +33,8 @@ import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
+import com.dropbox.core.DbxApiException;
 import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxUploader;
 import com.dropbox.core.RateLimitException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
@@ -42,6 +42,7 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.UploadErrorException;
 import com.dropbox.core.v2.files.UploadSessionAppendV2Uploader;
 import com.dropbox.core.v2.files.UploadSessionCursor;
+import com.dropbox.core.v2.files.UploadSessionFinishErrorException;
 import com.dropbox.core.v2.files.UploadSessionFinishUploader;
 import com.dropbox.core.v2.files.UploadSessionStartUploader;
 import com.dropbox.core.v2.files.UploadUploader;
@@ -66,7 +67,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -101,7 +101,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     public static final int SINGLE_UPLOAD_LIMIT_IN_BYTES = 150 * 1024 * 1024;
 
     public static final String IGNORE_RESOLUTION = "ignore";
-    public static final String OVERWRITE_RESOLUTION = "overwrite";
+    public static final String REPLACE_RESOLUTION = "replace";
     public static final String FAIL_RESOLUTION = "fail";
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -141,7 +141,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .description("Indicates what should happen when a file with the same name already exists in the specified Dropbox folder.")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)
-            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, OVERWRITE_RESOLUTION)
+            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, REPLACE_RESOLUTION)
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
@@ -184,9 +184,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         RELATIONSHIPS = Collections.unmodifiableSet(rels);
     }
 
-    private DbxClientV2 dropboxApiClient;
-
-    private DbxUploader<?, ?, ?> dbxUploader;
+    private volatile DbxClientV2 dropboxApiClient;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -239,6 +237,8 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                 }
             } catch (UploadErrorException e) {
                 handleUploadError(conflictResolution, uploadPath, e);
+            } catch (UploadSessionFinishErrorException e) {
+                handleUploadError(conflictResolution, uploadPath, e);
             } catch (RateLimitException e) {
                 context.yield();
                 throw new ProcessException("Dropbox API rate limit exceeded while uploading file", e);
@@ -261,25 +261,29 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    @OnUnscheduled
-    public void shutdown() {
-        if (dbxUploader != null) {
-            dbxUploader.close();
+    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadErrorException e)  {
+        if (e.errorValue.isPath() && e.errorValue.getPathValue().getReason().isConflict()) {
+            handleConflict(conflictResolution, uploadPath, e);
+        } else {
+            throw new ProcessException(e);
         }
     }
 
-    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadErrorException e) throws UploadErrorException {
-        if (e.errorValue.isPath() && e.errorValue.getPathValue().getReason().isConflict()) {
-
-            if (IGNORE_RESOLUTION.equals(conflictResolution)) {
-                getLogger().info("File with the same name [{}] already exists. Remote file is not modified due to {} being set to '{}'.",
-                        uploadPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                return;
-            } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
-                throw new ProcessException(format("File with the same name [%s] already exists.", uploadPath), e);
-            }
+    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadSessionFinishErrorException e) {
+        if (e.errorValue.isPath() && e.errorValue.getPathValue().isConflict()) {
+            handleConflict(conflictResolution, uploadPath, e);
+        } else {
+            throw new ProcessException(e);
         }
-        throw new ProcessException(e);
+    }
+
+    private void handleConflict(final String conflictResolution, final String uploadPath, final DbxApiException e) {
+        if (IGNORE_RESOLUTION.equals(conflictResolution)) {
+            getLogger().info("File with the same name [{}] already exists. Remote file is not modified due to {} being set to '{}'.",
+                    uploadPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
+        } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
+            throw new ProcessException(format("File with the same name [%s] already exists.", uploadPath), e);
+        }
     }
 
     private FileMetadata uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize, String conflictResolution) throws DbxException, IOException {
@@ -314,7 +318,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     private WriteMode getWriteMode(String conflictResolution) {
-        if (OVERWRITE_RESOLUTION.equals(conflictResolution)) {
+        if (REPLACE_RESOLUTION.equals(conflictResolution)) {
             return WriteMode.OVERWRITE;
         } else {
             return WriteMode.ADD;
@@ -322,37 +326,29 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
     }
 
     private UploadUploader createUploadUploader(String path, String conflictResolution) throws DbxException {
-        final UploadUploader uploadUploader = dropboxApiClient
+        return dropboxApiClient
                 .files()
                 .uploadBuilder(path)
                 .withMode(getWriteMode(conflictResolution))
                 .withStrictConflict(true)
                 .start();
-        dbxUploader = uploadUploader;
-        return uploadUploader;
     }
 
     private UploadSessionStartUploader createUploadSessionStartUploader() throws DbxException {
-        final UploadSessionStartUploader sessionStartUploader = dropboxApiClient
+        return dropboxApiClient
                 .files()
                 .uploadSessionStart();
-        dbxUploader = sessionStartUploader;
-        return sessionStartUploader;
     }
 
     private UploadSessionAppendV2Uploader createUploadSessionAppendV2Uploader(UploadSessionCursor cursor) throws DbxException {
-        final UploadSessionAppendV2Uploader sessionAppendV2Uploader = dropboxApiClient
+        return dropboxApiClient
                 .files()
                 .uploadSessionAppendV2(cursor);
-        dbxUploader = sessionAppendV2Uploader;
-        return sessionAppendV2Uploader;
     }
 
     private UploadSessionFinishUploader createUploadSessionFinishUploader(UploadSessionCursor cursor, CommitInfo commitInfo) throws DbxException {
-        final UploadSessionFinishUploader sessionFinishUploader = dropboxApiClient
+        return dropboxApiClient
                 .files()
                 .uploadSessionFinish(cursor, commitInfo);
-        dbxUploader = sessionFinishUploader;
-        return sessionFinishUploader;
     }
 }

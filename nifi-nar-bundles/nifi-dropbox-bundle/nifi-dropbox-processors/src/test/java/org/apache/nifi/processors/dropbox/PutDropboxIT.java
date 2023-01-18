@@ -115,9 +115,9 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     }
 
     @Test
-    void testUploadExistingFileOverwriteStrategy()  {
+    void testUploadExistingFileReplaceStrategy()  {
         testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.OVERWRITE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.REPLACE_RESOLUTION);
 
         testRunner.enqueue(CONTENT);
         testRunner.run();
