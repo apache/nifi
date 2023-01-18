@@ -35,6 +35,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.db.JdbcCommon;
+import org.apache.nifi.util.db.SensitiveValueWrapper;
 
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -274,18 +275,20 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     throw failure.getRight();
                 }
 
-                final Map<String, String> sqlParameters = context.getProperties()
+                final Map<String, SensitiveValueWrapper> sqlParameters = context.getProperties()
                         .entrySet()
                         .stream()
                         .filter(e -> e.getKey().isDynamic())
-                        .collect(Collectors.toMap(e -> e.getKey().getName(), Map.Entry::getValue));
+                        .collect(Collectors.toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
 
                 if (fileToProcess != null) {
-                    sqlParameters.putAll(fileToProcess.getAttributes());
+                    for (Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
+                        sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(),false));
+                    }
                 }
 
                 if (!sqlParameters.isEmpty()) {
-                    JdbcCommon.setParameters(st, sqlParameters);
+                    JdbcCommon.setSensitiveParameters(st, sqlParameters);
                 }
 
                 logger.debug("Executing query {}", selectQuery);

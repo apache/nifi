@@ -699,7 +699,7 @@ public class JdbcCommon {
                 final String parameterFormat = attributes.containsKey(formatAttrName)? attributes.get(formatAttrName):"";
 
                 try {
-                    JdbcCommon.setParameter(stmt, valueAttrName, parameterIndex, parameterValue, jdbcType, parameterFormat);
+                    JdbcCommon.setParameter(stmt, parameterIndex, parameterValue, jdbcType, parameterFormat);
                 } catch (final NumberFormatException nfe) {
                     throw new SQLDataException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted into the necessary data type", nfe);
                 } catch (ParseException pe) {
@@ -712,17 +712,58 @@ public class JdbcCommon {
     }
 
     /**
+     * Sets all of the appropriate parameters on the given PreparedStatement, based on the given FlowFile attributes.
+     *
+     * @param stmt the statement to set the parameters on
+     * @param attributes the attributes from which to derive parameter indices, values, and types
+     * @throws SQLException if the PreparedStatement throws a SQLException when the appropriate setter is called
+     */
+    public static void setSensitiveParameters(final PreparedStatement stmt, final Map<String, SensitiveValueWrapper> attributes) throws SQLException {
+        for (final Map.Entry<String, SensitiveValueWrapper> entry : attributes.entrySet()) {
+            final String key = entry.getKey();
+            final boolean isSensitive = entry.getValue().isSensitive();
+            final String value = entry.getValue().getValue();
+            final String logValue = isSensitive ? "???" : value;
+            final Matcher matcher = SQL_TYPE_ATTRIBUTE_PATTERN.matcher(key);
+            if (matcher.matches()) {
+                final int parameterIndex = Integer.parseInt(matcher.group(1));
+
+                final boolean isNumeric = NUMBER_PATTERN.matcher(value).matches();
+                if (!isNumeric) {
+                    throw new SQLDataException("Value of the " + key + " attribute is '" + logValue + "', which is not a valid JDBC numeral type");
+                }
+
+                final int jdbcType = Integer.parseInt(value);
+                final String valueAttrName = "sql.args." + parameterIndex + ".value";
+                final String parameterValue = attributes.get(valueAttrName).getValue();
+                final String logParameterValue = isSensitive ? "???" : parameterValue;
+                final String formatAttrName = "sql.args." + parameterIndex + ".format";
+                final String parameterFormat = attributes.containsKey(formatAttrName)? attributes.get(formatAttrName).getValue():"";
+
+                try {
+                    JdbcCommon.setParameter(stmt, parameterIndex, parameterValue, jdbcType, parameterFormat);
+                } catch (final NumberFormatException nfe) {
+                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + logParameterValue + "', which cannot be converted into the necessary data type", nfe);
+                } catch (ParseException pe) {
+                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + logParameterValue + "', which cannot be converted to a timestamp", pe);
+                } catch (UnsupportedEncodingException uee) {
+                    throw new SQLDataException("The value of the " + valueAttrName + " is '" + logParameterValue + "', which cannot be converted to UTF-8", uee);
+                }
+            }
+        }
+    }
+
+    /**
      * Determines how to map the given value to the appropriate JDBC data type and sets the parameter on the
      * provided PreparedStatement
      *
      * @param stmt the PreparedStatement to set the parameter on
-     * @param attrName the name of the attribute that the parameter is coming from - for logging purposes
      * @param parameterIndex the index of the SQL parameter to set
      * @param parameterValue the value of the SQL parameter to set
      * @param jdbcType the JDBC Type of the SQL parameter to set
      * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
      */
-    public static void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType,
+    public static void setParameter(final PreparedStatement stmt, final int parameterIndex, final String parameterValue, final int jdbcType,
                               final String valueFormat)
             throws SQLException, ParseException, UnsupportedEncodingException {
         if (parameterValue == null) {
@@ -902,5 +943,4 @@ public class JdbcCommon {
         void processRow(ResultSet resultSet) throws IOException;
         void applyStateChanges();
     }
-
 }
