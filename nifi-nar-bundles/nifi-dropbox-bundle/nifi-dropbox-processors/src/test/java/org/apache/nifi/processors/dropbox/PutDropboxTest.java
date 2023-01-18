@@ -164,9 +164,9 @@ public class PutDropboxTest extends AbstractDropboxTest {
     }
 
     @Test
-    void testFileUploadWithOverwriteConflictResolutionStrategy() throws Exception {
+    void testFileUploadWithReplaceConflictResolutionStrategy() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.OVERWRITE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.REPLACE_RESOLUTION);
 
         mockFileUpload(TEST_FOLDER, FILENAME_1, WriteMode.OVERWRITE);
 
