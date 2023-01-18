@@ -21,7 +21,7 @@ import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.session.SessionCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
-import org.jline.builtins.Completers;
+import org.apache.nifi.toolkit.cli.impl.util.StandardFileNameCompleter;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -76,6 +76,8 @@ public class CLICompleter implements Completer {
      * Second-level commands would be the values in topLevelCommandMap above, and options would arguments likes "-ks" or "-ts".
      */
     private final Map<String, List<String>> commandOptionsMap;
+
+    private final Completer fileNameCompleter = new StandardFileNameCompleter();
 
     /**
      * Initializes the completer based on the top-level commands and command groups.
@@ -185,7 +187,6 @@ public class CLICompleter implements Completer {
                     final String currWord = line.word();
                     final String prevWord = line.words().get(line.wordIndex() - 1);
                     if (FILE_COMPLETION_VARS.contains(prevWord)) {
-                        final Completers.FileNameCompleter fileNameCompleter = new Completers.FileNameCompleter();
                         fileNameCompleter.complete(reader, new ArgumentCompleter.ArgumentLine(currWord, currWord.length()), candidates);
                     }
                 }
@@ -196,7 +197,6 @@ public class CLICompleter implements Completer {
 
                 // determine if the word before the current is an arg that needs file completion, otherwise return all args
                 if (FILE_COMPLETION_ARGS.contains(prevWord)) {
-                    final Completers.FileNameCompleter fileNameCompleter = new Completers.FileNameCompleter();
                     fileNameCompleter.complete(reader, new ArgumentCompleter.ArgumentLine(currWord, currWord.length()), candidates);
                 } else {
                     final List<String> options = commandOptionsMap.get(secondLevel);

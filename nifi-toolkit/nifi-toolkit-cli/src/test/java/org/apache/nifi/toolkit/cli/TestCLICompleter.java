@@ -40,17 +40,23 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
 public class TestCLICompleter {
+
+    private static final String TEST_RESOURCES_DIRECTORY = "src/test/resources";
+    private static final String TEST_PROPERTIES = "test.properties";
 
     private static CLICompleter completer;
     private static LineReader lineReader;
@@ -158,21 +164,13 @@ public class TestCLICompleter {
         final String topCommand = NiFiRegistryCommandGroup.REGISTRY_COMMAND_GROUP;
         final String subCommand = "list-buckets";
 
-        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand, "-p", "src/test/resources/"), 3);
+        final String testResourcesDirectory = getTestResourcesDirectory();
+        final ParsedLine parsedLine = new TestParsedLine(Arrays.asList(topCommand, subCommand, "-p", testResourcesDirectory), 3);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
-        assertTrue(candidates.size() > 0);
 
-        boolean found = false;
-        for (Candidate candidate : candidates) {
-            if (candidate.value().equals("src/test/resources/test.properties")) {
-                found = true;
-                break;
-            }
-        }
-
-        assertTrue(found);
+        assertTestPropertiesFound(candidates);
     }
 
     @Test
@@ -193,27 +191,30 @@ public class TestCLICompleter {
         final String topCommand = "session";
         final String subCommand = "set";
 
+        final String testResourcesDirectory = getTestResourcesDirectory();
         final ParsedLine parsedLine = new TestParsedLine(
                 Arrays.asList(
                         topCommand,
                         subCommand,
                         SessionVariable.NIFI_CLIENT_PROPS.getVariableName(),
-                        "src/test/resources/"),
+                        testResourcesDirectory),
                 3);
 
         final List<Candidate> candidates = new ArrayList<>();
         completer.complete(lineReader, parsedLine, candidates);
-        assertTrue(candidates.size() > 0);
 
-        boolean found = false;
-        for (Candidate candidate : candidates) {
-            if (candidate.value().equals("src/test/resources/test.properties")) {
-                found = true;
-                break;
-            }
-        }
+        assertTestPropertiesFound(candidates);
+    }
 
-        assertTrue(found);
+    private String getTestResourcesDirectory() {
+        return Paths.get(TEST_RESOURCES_DIRECTORY).toAbsolutePath() + File.separator;
+    }
+
+    private void assertTestPropertiesFound(final List<Candidate> candidates) {
+        final Optional<Candidate> candidateFound = candidates.stream()
+                .filter(candidate -> candidate.value().endsWith(TEST_PROPERTIES))
+                .findFirst();
+        assertTrue(candidateFound.isPresent());
     }
 
     private static class TestParsedLine implements ParsedLine {
