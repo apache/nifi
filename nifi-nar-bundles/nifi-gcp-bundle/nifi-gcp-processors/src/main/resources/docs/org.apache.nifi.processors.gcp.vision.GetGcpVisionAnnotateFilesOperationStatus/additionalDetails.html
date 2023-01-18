@@ -26,8 +26,8 @@
 
 <h3>Usage</h3>
 <p>
-    GetGcpVisionAnnotateFilesOperationStatus is designed to periodically check image annotation status. This processor should be used in pair with StartGcpVisionAnnotateFilesOperation Processor.
-    FlowFile will contain the serialized response that contains google storage reference where the result is located and additional metadata as it is documented in <a href="https://cloud.google.com/vision/docs/reference/rest/v1/locations.operations#Operation" target="_blank">Google Vision API Reference</a>.
+    GetGcpVisionAnnotateFilesOperationStatus is designed to periodically check the statuses of file annotation operations. This processor should be used in pair with StartGcpVisionAnnotateFilesOperation Processor.
+    An outgoing FlowFile contains the raw response returned by the Vision server. This response is in JSON json format and contains a google storage reference where the result is located, as well as additional metadata, as written in the <a href="https://cloud.google.com/vision/docs/reference/rest/v1/locations.operations#Operation" target="_blank">Google Vision API Reference document</a>.
 </p>
 
 </body>
