@@ -51,7 +51,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
                     "        {\n" +
                     "            \"inputConfig\": {\n" +
                     "                \"gcsSource\": {\n" +
-                    "                    \"uri\": \"gs://#{bucket}/${filename}\"\n" +
+                    "                    \"uri\": \"gs://${gcs.bucket}/${filename}\"\n" +
                     "                },\n" +
                     "                \"mimeType\": \"application/pdf\"\n" +
                     "            },\n" +
@@ -61,7 +61,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
                     "                }],\n" +
                     "            \"outputConfig\": {\n" +
                     "                \"gcsDestination\": {\n" +
-                    "                    \"uri\": \"gs://#{bucket}/${filename}/\"\n" +
+                    "                    \"uri\": \"gs://${gcs.bucket}/${filename}/\"\n" +
                     "                },\n" +
                     "                \"batchSize\": 2\n" +
                     "            }\n" +

@@ -51,7 +51,7 @@ public class StartGcpVisionAnnotateImagesOperation extends AbstractStartGcpVisio
                     "    \"requests\": [{\n" +
                     "        \"image\": {\n" +
                     "            \"source\": {\n" +
-                    "                \"imageUri\": \"gs://#{bucket}/${filename}\"\n" +
+                    "                \"imageUri\": \"gs://${gcs.bucket}/${filename}\"\n" +
                     "            }\n" +
                     "        },\n" +
                     "        \"features\": [{\n" +
@@ -61,10 +61,11 @@ public class StartGcpVisionAnnotateImagesOperation extends AbstractStartGcpVisio
                     "    }],\n" +
                     "    \"outputConfig\": {\n" +
                     "        \"gcsDestination\": {\n" +
-                    "            \"uri\": \"gs://#{bucket}/${filename}/\"\n" +
+                    "            \"uri\": \"gs://${gcs.bucket}/${filename}/\"\n" +
                     "        },\n" +
                     "        \"batchSize\": 2\n" +
-                    "    }")
+                    "    }\n" +
+                    "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(

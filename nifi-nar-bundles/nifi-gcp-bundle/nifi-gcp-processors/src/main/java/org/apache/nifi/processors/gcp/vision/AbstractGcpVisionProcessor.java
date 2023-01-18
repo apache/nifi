@@ -48,7 +48,7 @@ public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
             REL_SUCCESS,
             REL_FAILURE
     )));
-    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+    protected static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
             GCP_CREDENTIALS_PROVIDER_SERVICE)
     );
 

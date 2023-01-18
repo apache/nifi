@@ -49,7 +49,7 @@ FlowFile will contain the serialized response that contains the result and addit
 	"requests": [{
 		"image": {
 			"source": {
-				"imageUri": "gs://#{bucket}/${filename}"
+				"imageUri": "gs://${gcs.bucket}/${filename}"
 			}
 		},
 		"features": [{
@@ -59,7 +59,7 @@ FlowFile will contain the serialized response that contains the result and addit
 	}],
 	"outputConfig": {
 		"gcsDestination": {
-			"uri": "gs://#{bucket}/${filename}/"
+			"uri": "gs://${gcs.bucket}/${filename}/"
 		},
 		"batchSize": 2
 	}
