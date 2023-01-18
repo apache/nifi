@@ -43,15 +43,15 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends AbstractGcpVisionProcessor {
-    public static final PropertyDescriptor OPERATION_KEY =
-            new PropertyDescriptor.Builder()
-                    .name("operationKey")
-                    .displayName("GCP Operation Key")
-                    .defaultValue("${operationKey}")
-                    .required(true)
-                    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                    .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
-                    .build();
+    public static final PropertyDescriptor OPERATION_KEY = new PropertyDescriptor.Builder()
+            .name("operationKey")
+            .displayName("GCP Operation Key")
+            .description("The unique identifier of the Vision operation.")
+            .defaultValue("${operationKey}")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .build();
     public static final Relationship REL_RUNNING = new Relationship.Builder()
             .name("running")
             .description("The job is currently still being processed")
