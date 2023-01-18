@@ -16,16 +16,13 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-/*
- * This processor uploads objects to Google Drive.
- */
-
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
+import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
@@ -43,6 +40,7 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTA
 import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
 
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.googleapis.media.MediaHttpUploader;
 import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.HttpStatusCodes;
@@ -66,10 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -79,8 +75,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -111,40 +108,32 @@ import org.json.JSONObject;
 public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
 
     public static final String IGNORE_RESOLUTION = "ignore";
-    public static final String OVERWRITE_RESOLUTION = "overwrite";
+    public static final String REPLACE_RESOLUTION = "replace";
     public static final String FAIL_RESOLUTION = "fail";
+    public static final int MIN_ALLOWED_CHUNK_SIZE_IN_BYTES = MediaHttpUploader.MINIMUM_CHUNK_SIZE;
+    public static final int MAX_ALLOWED_CHUNK_SIZE_IN_BYTES = 1024 * 1024 * 1024;
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
-            .description("The ID of the folder to upload files to. In case neither 'Folder ID' nor 'Folder Name' is specified, file is uploaded to the folder " +
-                    " defined by 'Base Folder ID'." +
-                    " For how to setup access to Google Drive and obtain Folder ID please see additional details.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor FOLDER_NAME = new PropertyDescriptor.Builder()
-            .name("folder-name")
-            .displayName("Folder Name")
-            .description("The name (path) of the folder to upload files to. In case 'Folder ID' is also defined, the ID will be used to identify the folder.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor BASE_FOLDER_ID = new PropertyDescriptor.Builder()
-            .name("base-folder-id")
-            .displayName("Base Folder ID")
-            .description("The ID of the shared folder. In case neither 'Folder ID' nor 'Folder Name' is specified, file is uploaded to this folder." +
-                    " For how to setup access to Google Drive and obtain Folder ID please see additional details.")
+            .description("The ID of the shared folder. " +
+                    " Please see Additional Details to set up access to Google Drive and obtain Folder ID.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
 
-    public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor
-            .Builder()
+    public static final PropertyDescriptor SUBFOLDER_NAME = new PropertyDescriptor.Builder()
+            .name("subfolder-name")
+            .displayName("Subfolder Name")
+            .description("The name (path) of the subfolder where files are uploaded. The subfolder name is relative to the shared folder specified by 'Folder ID'."
+            + " Example: subFolder, subFolder1/subfolder2")
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^(?!/).+")))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder()
             .name("file-name")
             .displayName("Filename")
             .description("The name of the file to upload to the specified Google Drive folder.")
@@ -154,15 +143,16 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CREATE_FOLDER = new PropertyDescriptor.Builder()
-            .name("create-folder")
-            .displayName("Create Folder")
+    public static final PropertyDescriptor CREATE_SUBFOLDER = new PropertyDescriptor.Builder()
+            .name("create-subfolder")
+            .displayName("Create Subfolder")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
             .defaultValue("false")
-            .description("Specifies whether to check if the folder exists and to automatically create it if it does not. " +
+            .dependsOn(SUBFOLDER_NAME)
+            .description("Specifies whether to automatically create the subfolder specified by 'Folder Name' if it does not exist. " +
                     "Permission to list folders is required. ")
             .build();
 
@@ -172,15 +162,16 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .description("Indicates what should happen when a file with the same name already exists in the specified Google Drive folder.")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)
-            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, OVERWRITE_RESOLUTION)
+            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, REPLACE_RESOLUTION)
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
             .name("chunked-upload-size")
             .displayName("Chunked Upload Size")
             .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
-                    + "It is recommended to specify chunked upload size smaller than 'Chunked Upload Threshold'.")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+                    + "It is recommended to specify chunked upload size smaller than 'Chunked Upload Threshold'. "
+                    + "Minimum allowed chunk size is 256 KB, maximum allowed chunk size is 1 GB. ")
+            .addValidator(createChunkSizeValidator())
             .defaultValue("10 MB")
             .required(false)
             .build();
@@ -190,18 +181,17 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .displayName("Chunked Upload Threshold")
             .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this threshold are uploaded in chunks.")
             .defaultValue("100 MB")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .addValidator(DATA_SIZE_VALIDATOR)
             .required(false)
             .build();
 
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(asList(
             GCP_CREDENTIALS_PROVIDER_SERVICE,
-            BASE_FOLDER_ID,
             FOLDER_ID,
-            FOLDER_NAME,
+            SUBFOLDER_NAME,
+            CREATE_SUBFOLDER,
             FILE_NAME,
             CONFLICT_RESOLUTION,
-            CREATE_FOLDER,
             CHUNKED_UPLOAD_THRESHOLD,
             CHUNKED_UPLOAD_SIZE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
@@ -227,7 +217,6 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
 
     private volatile Drive driveService;
-    private Future<File> uploadedFileFuture;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -246,15 +235,16 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             return;
         }
 
-        String folderId = null;
+        String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final String subfolderName = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean createFolder = context.getProperty(CREATE_SUBFOLDER).asBoolean();
         final String filename = context.getProperty(FILE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
-        final String folderName = context.getProperty(FOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            folderId = createFoldersAndGetParentId(context, flowFile);
+            folderId = subfolderName != null ? getOrCreateParentSubfolder(subfolderName, folderId, createFolder).getId() : folderId;
+
             final long startNanos = System.nanoTime();
-            final ExecutorService uploadExecutor = Executors.newSingleThreadExecutor();
             final long size = flowFile.getSize();
 
             final long chunkUploadThreshold = context.getProperty(CHUNKED_UPLOAD_THRESHOLD)
@@ -267,18 +257,18 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
 
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
 
-            Optional<File> alreadyExistingFile = checkFileExistence(filename, folderId);
+            final Optional<File> alreadyExistingFile = checkFileExistence(filename, folderId);
             final File fileMetadata = alreadyExistingFile.isPresent() ? alreadyExistingFile.get() : createMetadata(filename, folderId);
 
             if (alreadyExistingFile.isPresent() && FAIL_RESOLUTION.equals(conflictResolution)) {
-                getLogger().error("File '{}' already exists in folder '{}', conflict resolution is '{}' ", filename, folderId, FAIL_RESOLUTION);
+                getLogger().error("File '{}' already exists in {} folder, conflict resolution is '{}'", filename, getFolderName(subfolderName), FAIL_RESOLUTION);
                 flowFile = addAttributes(alreadyExistingFile.get(), flowFile, session);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             if (alreadyExistingFile.isPresent() && IGNORE_RESOLUTION.equals(conflictResolution)) {
-                getLogger().info("File '{}' already exists in folder '{}', conflict resolution is '{}' ", filename, folderId, IGNORE_RESOLUTION);
+                getLogger().info("File '{}' already exists in {} folder, conflict resolution is '{}'", filename,  getFolderName(subfolderName), IGNORE_RESOLUTION);
                 flowFile = addAttributes(alreadyExistingFile.get(), flowFile, session);
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
@@ -286,23 +276,17 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
 
             final File uploadedFile;
 
-            try (final InputStream rawIn = session.read(flowFile)) {
-                final InputStreamContent mediaContent = new InputStreamContent(mimeType, new BufferedInputStream(rawIn));
+            try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedInputStream = new BufferedInputStream(rawIn)) {
+                final InputStreamContent mediaContent = new InputStreamContent(mimeType, bufferedInputStream);
                 mediaContent.setLength(size);
 
-                uploadedFileFuture = uploadExecutor.submit(() -> {
-                    final DriveRequest<File> driveRequest = createDriveRequest(fileMetadata, mediaContent);
+                final DriveRequest<File> driveRequest = createDriveRequest(fileMetadata, mediaContent);
 
-                    if (size > chunkUploadThreshold) {
-                        return uploadFileInChunks(driveRequest, fileMetadata, uploadChunkSize, mediaContent);
-                    } else {
-                        return driveRequest.execute();
-                    }
-                });
-                uploadedFile = uploadedFileFuture.get();
-
-            } finally {
-                uploadExecutor.shutdown();
+                if (size > chunkUploadThreshold) {
+                    uploadedFile = uploadFileInChunks(driveRequest, fileMetadata, uploadChunkSize, mediaContent);
+                } else {
+                    uploadedFile = driveRequest.execute();
+                }
             }
 
             if (uploadedFile != null) {
@@ -314,12 +298,12 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             }
             session.transfer(flowFile, REL_SUCCESS);
         } catch (GoogleJsonResponseException e) {
-            getLogger().error("Exception occurred while uploading file '{}' to Google Drive folder '{}'", filename,
-                    getFolder(folderId, folderName), e);
+            getLogger().error("Exception occurred while uploading file '{}' to {} Google Drive folder", filename,
+                    getFolderName(subfolderName), e);
             handleExpectedError(session, flowFile, e);
         } catch (Exception e) {
-            getLogger().error("Exception occurred while uploading file '{}' to Google Drive folder '{}'", filename,
-                    getFolder(folderId, folderName), e);
+            getLogger().error("Exception occurred while uploading file '{}' to {} Google Drive folder", filename,
+                    getFolderName(subfolderName), e);
 
             if (e.getCause() != null && e.getCause() instanceof GoogleJsonResponseException) {
                 handleExpectedError(session, flowFile, (GoogleJsonResponseException) e.getCause());
@@ -338,13 +322,6 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA);
     }
 
-    @OnUnscheduled
-    public void shutdown() {
-        if (uploadedFileFuture != null) {
-            uploadedFileFuture.cancel(true);
-        }
-    }
-
     private FlowFile addAttributes(File file, FlowFile flowFile, ProcessSession session) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ID, file.getId());
@@ -352,8 +329,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private String getFolder(String folderId, String folderName) {
-        return folderId == null ? folderName : folderId;
+    private String getFolderName(String subFolderName) {
+        return subFolderName == null ? "shared" : format("'%s'", subFolderName);
     }
 
     private DriveRequest<File> createDriveRequest(File fileMetadata, final InputStreamContent mediaContent) throws IOException {
@@ -393,17 +370,21 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         return new JSONObject(contentAsString).getString("id");
     }
 
-    private File handleFolderNames(String folderName, String parentFolderId, boolean createFolder) throws IOException {
-        int index = folderName.indexOf("/");
+    private File getOrCreateParentSubfolder(String folderName, String parentFolderId, boolean createFolder) throws IOException {
+        final int indexOfPathSeparator = folderName.indexOf("/");
 
-        if (index > 0 && index < folderName.length() - 1) {
-            String mainFolderName = folderName.substring(0, index);
-            String subFolders = folderName.substring(index + 1);
+        if (isMultiLevelFolder(indexOfPathSeparator, folderName)) {
+            final String mainFolderName = folderName.substring(0, indexOfPathSeparator);
+            final String subFolders = folderName.substring(indexOfPathSeparator + 1);
             final File mainFolder = getOrCreateFolder(mainFolderName, parentFolderId, createFolder);
-            return handleFolderNames(subFolders, mainFolder.getId(), createFolder);
+            return getOrCreateParentSubfolder(subFolders, mainFolder.getId(), createFolder);
         } else {
             return getOrCreateFolder(folderName, parentFolderId, createFolder);
         }
+    }
+
+    private boolean isMultiLevelFolder(int indexOfPathSeparator, String folderName) {
+        return indexOfPathSeparator > 0 && indexOfPathSeparator < folderName.length() - 1;
     }
 
     private File getOrCreateFolder(String folderName, String parentFolderId, boolean createFolder) throws IOException {
@@ -423,7 +404,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                     .setFields("id, parents")
                     .execute();
         } else {
-            throw new ProcessException(format("The specified (sub)folder '%s' does not exists and '%s' is false.", folderName, CREATE_FOLDER.getDisplayName()));
+            throw new ProcessException(format("The specified subfolder '%s' does not exist and '%s' is false.", folderName, CREATE_SUBFOLDER.getDisplayName()));
         }
     }
 
@@ -432,32 +413,6 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         metadata.setName(name);
         metadata.setParents(singletonList(parentId));
         return metadata;
-    }
-
-    private String createFoldersAndGetParentId(final ProcessContext context, FlowFile flowFile) throws IOException {
-        String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
-        String folderName = context.getProperty(FOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String baseFolderId = context.getProperty(BASE_FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
-        final boolean createFolder = context.getProperty(CREATE_FOLDER).asBoolean();
-
-        if (folderId == null && folderName == null) {
-            getLogger().warn("Neither {} nor {} was defined, file will be uploaded to base folder", FOLDER_ID.getDisplayName(), FOLDER_NAME.getDisplayName());
-            return baseFolderId;
-        }
-
-        if (folderId == null) {
-            if ("/".equals(folderName)) {
-                return baseFolderId;
-            }
-
-            if (folderName.startsWith("/")) {
-                folderName = folderName.substring(1);
-            }
-
-            return handleFolderNames(folderName, baseFolderId, createFolder).getId();
-        }
-
-        return folderId;
     }
 
     private Optional<File> checkFolderExistence(String folderName, String parentId) throws IOException {
@@ -491,5 +446,32 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         flowFile = session.putAttribute(flowFile, GoogleDriveAttributes.ERROR_CODE, valueOf(e.getStatusCode()));
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
+    }
+
+    private static Validator createChunkSizeValidator() {
+        return (subject, input, context) -> {
+            final ValidationResult vr = StandardValidators.createDataSizeBoundsValidator(MIN_ALLOWED_CHUNK_SIZE_IN_BYTES, MAX_ALLOWED_CHUNK_SIZE_IN_BYTES)
+                    .validate(subject, input, context);
+            if (!vr.isValid()) {
+                return vr;
+            }
+
+            final long dataSizeBytes = DataUnit.parseDataSize(input, DataUnit.B).longValue();
+
+            if (dataSizeBytes % MIN_ALLOWED_CHUNK_SIZE_IN_BYTES != 0 ) {
+                return new ValidationResult.Builder()
+                        .subject(subject)
+                        .input(input)
+                        .valid(false)
+                        .explanation("Must be a positive multiple of " + MIN_ALLOWED_CHUNK_SIZE_IN_BYTES + " bytes")
+                        .build();
+            }
+
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .build();
+        };
     }
 }

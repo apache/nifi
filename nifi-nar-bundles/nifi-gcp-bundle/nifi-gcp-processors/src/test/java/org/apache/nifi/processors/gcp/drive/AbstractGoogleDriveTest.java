@@ -43,13 +43,13 @@ import org.mockito.Mockito;
 
 public class AbstractGoogleDriveTest {
     public static final String CONTENT = "1234567890";
-    public static final String FILENAME = "testFile";
-    public static final String FILE_ID = "fileId";
-    public static final String FOLDER_NAME = "testFolder";
-    public static final String BASE_FOLDER_ID = "baseFolderId";
-    public static final String FOLDER_ID = "subFolderId";
+    public static final String TEST_FILENAME = "testFile";
+    public static final String TEST_FILE_ID = "fileId";
+    public static final String SUBFOLDER_NAME = "subFolderName";
+    public static final String SHARED_FOLDER_ID = "sharedFolderId";
+    public static final String SUBFOLDER_ID = "subFolderId";
+    public static final long TEST_SIZE = 42;
     public static final long CREATED_TIME = 1659707000;
-    public static final long SIZE = 42;
     public static final String TEXT_TYPE = "text/plain";
 
     protected TestRunner testRunner;
@@ -72,10 +72,10 @@ public class AbstractGoogleDriveTest {
 
     protected void assertFlowFileAttributes(Relationship relationship) {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(relationship).get(0);
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, FILE_ID);
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, FILENAME);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, TEST_FILE_ID);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.TIMESTAMP, String.valueOf(new DateTime(CREATED_TIME)));
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE, Long.toString(SIZE));
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.SIZE, Long.toString(TEST_SIZE));
         flowFile.assertAttributeEquals(GoogleDriveAttributes.MIME_TYPE, TEXT_TYPE);
     }
 
@@ -92,7 +92,7 @@ public class AbstractGoogleDriveTest {
     }
 
     protected File createFile() {
-        return createFile(FILE_ID, FILENAME, FOLDER_ID, TEXT_TYPE);
+        return createFile(TEST_FILE_ID, TEST_FILENAME, SUBFOLDER_ID, TEXT_TYPE);
     }
 
     protected File createFile(String id, String name, String parentId, String mimeType) {
@@ -101,7 +101,7 @@ public class AbstractGoogleDriveTest {
         file.setName(name);
         file.setParents(singletonList(parentId));
         file.setCreatedTime(new DateTime(CREATED_TIME));
-        file.setSize(SIZE);
+        file.setSize(TEST_SIZE);
         file.setMimeType(mimeType);
         return file;
     }

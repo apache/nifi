@@ -53,9 +53,9 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
 
     @Test
     void testFileFetchFileNameFromProperty() throws IOException {
-        testRunner.setProperty(FetchGoogleDrive.FILE_ID, FILE_ID);
+        testRunner.setProperty(FetchGoogleDrive.FILE_ID, TEST_FILE_ID);
 
-        mockFileDownload(FILE_ID);
+        mockFileDownload(TEST_FILE_ID);
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(FetchGoogleDrive.REL_SUCCESS, 1);
@@ -67,10 +67,10 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     void testFetchFileNameFromFlowFileAttribute() throws Exception {
         final MockFlowFile mockFlowFile = new MockFlowFile(0);
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("drive.id", FILE_ID);
+        attributes.put(GoogleDriveAttributes.ID, TEST_FILE_ID);
         mockFlowFile.putAttributes(attributes);
 
-        mockFileDownload(FILE_ID);
+        mockFileDownload(TEST_FILE_ID);
 
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
@@ -82,9 +82,9 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
 
     @Test
     void testFileFetchError() throws Exception {
-        testRunner.setProperty(FetchGoogleDrive.FILE_ID, FILE_ID);
+        testRunner.setProperty(FetchGoogleDrive.FILE_ID, TEST_FILE_ID);
 
-        mockFileDownloadError(FILE_ID, new RuntimeException("Error during download"));
+        mockFileDownloadError(TEST_FILE_ID, new RuntimeException("Error during download"));
 
         runWithFlowFile();
 

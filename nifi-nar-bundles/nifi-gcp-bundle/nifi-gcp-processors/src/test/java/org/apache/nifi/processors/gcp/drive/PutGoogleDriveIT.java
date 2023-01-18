@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.CREATE_SUBFOLDER;
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FILE_NAME;
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FOLDER_ID;
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.SUBFOLDER_NAME;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +40,6 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @BeforeEach
     public void init() throws Exception {
         super.init();
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, SHARED_FOLDER_ID);
     }
 
     @Override
@@ -46,8 +50,8 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testUploadFileToFolderById() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
 
         // WHEN
         runWithFileContent();
@@ -60,10 +64,10 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testUploadFileFolderByName() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_NAME, "testFolderNew");
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CREATE_FOLDER, "true");
+        testRunner.setProperty(SUBFOLDER_NAME, "testFolderNew");
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(CREATE_SUBFOLDER, "true");
 
         // WHEN
         runWithFileContent();
@@ -81,10 +85,10 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         createFolder("existingFolder", mainFolderId);
 
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_NAME, "existingFolder/new1/new2");
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CREATE_FOLDER, "true");
+        testRunner.setProperty(SUBFOLDER_NAME, "existingFolder/new1/new2");
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(CREATE_SUBFOLDER, "true");
 
         // WHEN
         runWithFileContent();
@@ -101,8 +105,8 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testSpecifiedFolderIdDoesNotExist() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, "nonExistentId");
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, "testFile4");
+        testRunner.setProperty(FOLDER_ID, "nonExistentId");
+        testRunner.setProperty(FILE_NAME, "testFile4");
 
         // WHEN
         runWithFileContent();
@@ -120,8 +124,8 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testUploadedFileAlreadyExistsFailResolution() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
 
         // WHEN
         runWithFileContent();
@@ -143,9 +147,9 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testUploadedFileAlreadyExistsOverwriteResolution() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.OVERWRITE_RESOLUTION);
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.REPLACE_RESOLUTION);
 
         // WHEN
         runWithFileContent();
@@ -170,8 +174,8 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     @Test
     void testUploadedFileAlreadyExistsIgnoreResolution() {
         // GIVEN
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, mainFolderId);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
         testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.IGNORE_RESOLUTION);
 
         // WHEN

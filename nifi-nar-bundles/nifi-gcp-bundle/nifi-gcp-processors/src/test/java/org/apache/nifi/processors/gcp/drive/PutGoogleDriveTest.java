@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -60,13 +61,36 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, SHARED_FOLDER_ID);
+    }
+
+    @Test
+    void testUploadChunkSizeValidity() {
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "40 MB");
+        testRunner.assertValid();
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "1024");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "510 KB");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "2 GB");
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    void testSubfolderNameValidity() {
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "sub1/sub2");
+        testRunner.assertValid();
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "/sub1");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "/");
+        testRunner.assertNotValid();
     }
 
     @Test
     void testFileUploadFileNameFromProperty() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
 
         mockFileUpload(createFile());
         runWithFlowFile();
@@ -78,14 +102,13 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testFileUploadFileNameFromFlowFileAttribute() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
+        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, SHARED_FOLDER_ID);
 
         mockFileUpload(createFile());
 
         final MockFlowFile mockFlowFile = getMockFlowFile();
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("filename", FILENAME);
+        attributes.put(CoreAttributes.FILENAME.key(), TEST_FILENAME);
         mockFlowFile.putAttributes(attributes);
         testRunner.enqueue(mockFlowFile);
         testRunner.run();
@@ -97,16 +120,15 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testFileUploadFileToFolderSpecifiedByNameFolderExists() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_NAME, FOLDER_NAME);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, SUBFOLDER_NAME);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
 
         when(mockDriverService.files()
                 .list()
-                .setQ(format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, BASE_FOLDER_ID))
+                .setQ(format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, SHARED_FOLDER_ID))
                 .setFields("files(name, id)")
                 .execute())
-                .thenReturn(new FileList().setFiles(singletonList(createFile(FOLDER_ID, FOLDER_NAME, BASE_FOLDER_ID, DRIVE_FOLDER_MIME_TYPE))));
+                .thenReturn(new FileList().setFiles(singletonList(createFile(SUBFOLDER_ID, SUBFOLDER_NAME, SHARED_FOLDER_ID, DRIVE_FOLDER_MIME_TYPE))));
 
         mockFileUpload(createFile());
 
@@ -118,9 +140,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testFileUploadError() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
 
         final JsonParseException exception = new JsonParseException("Google Drive error", new FileNotFoundException());
         mockFileUploadError(exception);
@@ -136,9 +156,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testFileAlreadyExistsFailResolution() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
 
         mockFileExists();
 
@@ -150,9 +168,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testFileAlreadyExistsIgnoreResolution() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
         testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.IGNORE_RESOLUTION);
 
         mockFileExists();
@@ -161,17 +177,15 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
         testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, FILE_ID);
-        flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, FILENAME);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, TEST_FILE_ID);
+        flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
         assertNoProvenanceEvent();
     }
 
     @Test
     void testFileAlreadyExistsOverwriteResolution() throws Exception {
-        testRunner.setProperty(PutGoogleDrive.FOLDER_ID, FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.BASE_FOLDER_ID, BASE_FOLDER_ID);
-        testRunner.setProperty(PutGoogleDrive.FILE_NAME, FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.OVERWRITE_RESOLUTION);
+        testRunner.setProperty(PutGoogleDrive.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.REPLACE_RESOLUTION);
 
         mockFileExists();
 
@@ -221,7 +235,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
     private void mockFileExists() throws IOException {
         when(mockDriverService.files()
                 .list()
-                .setQ(format("'%s' in parents", FOLDER_ID))
+                .setQ(format("'%s' in parents", SHARED_FOLDER_ID))
                 .setFields("files(name, id)")
                 .execute())
                 .thenReturn(new FileList().setFiles(singletonList(createFile())));
