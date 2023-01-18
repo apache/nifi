@@ -31,7 +31,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 @CapabilityDescription("Retrieves the current status of an Google Vision operation.")
 @SeeAlso({StartGcpVisionAnnotateImagesOperation.class})
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "operationKey", description = "Unique key of the operation.")
+        @ReadsAttribute(attribute = "operationKey", description = "A unique identifier of the operation designated by the Vision server.")
 })
 public class GetGcpVisionAnnotateImagesOperationStatus extends AbstractGetGcpVisionAnnotateOperationStatus {
     @Override
