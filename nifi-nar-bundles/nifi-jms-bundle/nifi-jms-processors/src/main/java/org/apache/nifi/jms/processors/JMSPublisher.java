@@ -36,7 +36,7 @@ import java.util.Map.Entry;
 /**
  * Generic publisher of messages to JMS compliant messaging system.
  */
-final class JMSPublisher extends JMSWorker {
+class JMSPublisher extends JMSWorker {
 
     JMSPublisher(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(connectionFactory, jmsTemplate, processLog);
