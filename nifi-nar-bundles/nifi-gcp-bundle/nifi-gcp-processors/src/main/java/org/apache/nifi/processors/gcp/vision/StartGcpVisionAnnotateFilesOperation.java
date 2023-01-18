@@ -37,7 +37,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Trigger a Vision operation on file input. It should be followed by GetGcpVisionAnnotateFilesOperationStatus processor in order to monitor operation status.")
 @SeeAlso({GetGcpVisionAnnotateFilesOperationStatus.class})
 @WritesAttributes({
-        @WritesAttribute(attribute = "operationKey", description = "Unique key of the operation.")
+        @WritesAttribute(attribute = "operationKey", description = "A unique identifier of the operation returned by the Vision server.")
 })
 public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVisionOperation<AsyncBatchAnnotateFilesRequest.Builder> {
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
