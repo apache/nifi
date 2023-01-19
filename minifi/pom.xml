@@ -554,7 +554,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.tukaani</groupId>
                 <artifactId>xz</artifactId>
-                <version>1.5</version>
+                <version>1.9</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.saxon</groupId>
