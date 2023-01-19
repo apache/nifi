@@ -144,8 +144,8 @@ public class StandardParameterContext implements ParameterContext {
             parameterUpdates.putAll(updateParameters(currentEffectiveParameters, effectiveParameterUpdates, false));
         } finally {
             writeLock.unlock();
-            alertReferencingComponents(parameterUpdates);
         }
+        alertReferencingComponents(parameterUpdates);
     }
 
     private Map<ParameterDescriptor, Parameter> getProposedParameters(final Map<String, Parameter> proposedParameterUpdates) {
