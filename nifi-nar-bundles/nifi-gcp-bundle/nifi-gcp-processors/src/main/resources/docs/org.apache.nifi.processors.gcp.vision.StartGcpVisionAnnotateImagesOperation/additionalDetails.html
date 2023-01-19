@@ -16,31 +16,31 @@
     -->
 
 <head>
-    <meta charset="utf-8"/>
-    <title>Google Vision</title>
-    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+	<meta charset="utf-8"/>
+	<title>Google Vision</title>
+	<link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
 </head>
 <body>
 
 <h1>Google Cloud Vision - Start Annotate Images Operation</h1>
-
 <p>
 	Prerequisites
 <ul>
-	<li>Make sure Vision API is enabled and the account you are using has rights to use</li>
-	<li>Make sure input image(s) are available in GCS</li>
+	<li>Make sure Vision API is enabled and the account you are using has the right to use it</li>
+	<li>Make sure thne input image(s) are available in a GCS bucket</li>
 </ul>
 </p>
 <h3>Usage</h3>
 <p>
-StartGcpVisionAnnotateImagesOperation is designed to trigger image annotation operation. This processor should be used in pair with GetGcpVisionAnnotateImagesOperationStatus Processor.
-FlowFile will contain the serialized response that contains the result and additional metadata as it is documented in Google Vision API Reference.
+	StartGcpVisionAnnotateImagesOperation is designed to trigger image annotation operations. This processor should be used in pair with the GetGcpVisionAnnotateImagesOperationStatus Processor.
+	Outgoing FlowFiles contain the raw response to the request returned by the Vision server. The response is in JSON format and contains the result and additional metadata as written in the Google Vision API Reference documents.
 </p>
 <h3>Payload</h3>
 <p>
-	The JSON Payload is a request in json format that documented in <a href="https://cloud.google.com/vision/docs/reference/rest/v1/images/asyncBatchAnnotate" target="_blank">Google Vision REST API reference </a>.
-	Payload can be feed to the processor via <code>JSON Payload</code> property or as a flow file content. Property has higher precedence over FlowFile content.
-	JSON payload template example:
+	The JSON Payload is a request in JSON format as documented in the <a href="https://cloud.google.com/vision/docs/reference/rest/v1/images/asyncBatchAnnotate" target="_blank">Google Vision REST API reference document</a>.
+	Payload can be fed to the processor via the <code>JSON Payload</code> property or as a FlowFile content. The property has higher precedence over FlowFile content.
+	Please make sure to delete the default value of the property if you want to use FlowFile content payload.
+	A JSON payload template example:
 </p>
 
 <code>
@@ -75,17 +75,15 @@ FlowFile will contain the serialized response that contains the result and addit
 	<li>LABEL_DETECTION: Provides generalized labels for an image.</li>
 	<li>etc.</li>
 </ul>
-You can find more details on <a href="https://cloud.google.com/vision/docs/features-list" target="_blank">Google Vision Feature List</a>
-<h3>Example: How to setup simple Annotate Image Flow</h3>
+You can find more details at <a href="https://cloud.google.com/vision/docs/features-list" target="_blank">Google Vision Feature List</a>
+<h3>Example: How to setup a simple Annotate Image Flow</h3>
 <p>
 	Prerequisites
 </p>
 <p>
 <ul>
-	<li>Make sure images are available in GCS</li>
-	<li>Setup a parameter context with <code>bucket</code> parameter and its value will be the name of your GCS bucket</li>
-	<li>Bucket must contain only your images.</li>
-	<li>Set Process Group Parameter Context</li>
+	<li>Input image files should be available in a GCS bucket</li>
+	<li>This bucket must not contain anything else but the input image files</li>
 </ul>
 </p>
 <p>Create the following flow</p>
@@ -96,11 +94,11 @@ You can find more details on <a href="https://cloud.google.com/vision/docs/featu
 <p>
 	Execution steps:
 <ul>
-	<li>ListGCSBucket processor will return list of files in the bucket for the first trigger.</li>
-	<li>ListGCSBucket will return new items since the last trigger for the additional runs</li>
-	<li>StartGcpVisionAnnotateImagesOperation processor will trigger GCP Vision jobs based on the json configuration.</li>
-	<li>StartGcpVisionAnnotateImagesOperation processor populate <code>operationKey</code> flow file attribute</li>
-	<li>GetGcpVisionAnnotateImagesOperationStatus processor will periodically query status of the job by the <code>operationKey</code>.</li>
+	<li>ListGCSBucket processor will return a list of files in the bucket at the first run.</li>
+	<li>ListGCSBucket will return only new items at subsequent runs.</li>
+	<li>StartGcpVisionAnnotateImagesOperation processor will trigger GCP Vision image annotation jobs based on the JSON payload.</li>
+	<li>StartGcpVisionAnnotateImagesOperation processor will populate the <code>operationKey</code> flow file attribute.</li>
+	<li>GetGcpVisionAnnotateImagesOperationStatus processor will periodically query status of the job.</li>
 </ul>
 </p>
 </body>
