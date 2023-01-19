@@ -20,6 +20,8 @@ package org.apache.nifi.processors.dropbox;
 import static com.dropbox.core.v2.files.UploadError.path;
 import static com.dropbox.core.v2.files.WriteConflictError.FILE;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
@@ -166,7 +168,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Test
     void testFileUploadWithReplaceConflictResolutionStrategy() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.REPLACE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, REPLACE.getValue());
 
         mockFileUpload(TEST_FOLDER, FILENAME_1, WriteMode.OVERWRITE);
 
@@ -193,7 +195,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Test
     void testFileUploadOtherExceptionIsNotIgnored() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         mockFileUploadError(getException(WriteError.INSUFFICIENT_SPACE));
 
@@ -205,7 +207,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Test
     void testFileUploadConflictIgnoredWithIgnoreResolutionStrategy() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         mockFileUploadError(getException(WriteError.conflict(FILE)));
 

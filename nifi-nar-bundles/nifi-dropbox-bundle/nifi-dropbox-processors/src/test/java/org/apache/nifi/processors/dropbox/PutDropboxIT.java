@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processors.dropbox;
 
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,7 +84,7 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     @Test
     void testUploadExistingFileFailStrategy()  {
         testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.FAIL_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, FAIL.getValue());
 
         testRunner.enqueue(CONTENT);
         testRunner.run();
@@ -98,7 +102,7 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     @Test
     void testUploadExistingFileWithSameContentFailStrategy()  {
         testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.FAIL_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, FAIL.getValue());
 
         testRunner.enqueue(CONTENT);
         testRunner.run();
@@ -117,7 +121,7 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     @Test
     void testUploadExistingFileReplaceStrategy()  {
         testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.REPLACE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, REPLACE.getValue());
 
         testRunner.enqueue(CONTENT);
         testRunner.run();
@@ -135,7 +139,7 @@ public class PutDropboxIT extends AbstractDropboxIT<PutDropbox> {
     @Test
     void testUploadExistingFileIgnoreStrategy()  {
         testRunner.setProperty(PutDropbox.FOLDER, MAIN_FOLDER);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         testRunner.enqueue(CONTENT);
         testRunner.run();

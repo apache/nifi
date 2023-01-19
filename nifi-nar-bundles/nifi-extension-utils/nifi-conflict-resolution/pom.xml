@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -17,32 +17,16 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-extension-utils</artifactId>
         <version>1.20.0-SNAPSHOT</version>
     </parent>
-    <packaging>pom</packaging>
-    <artifactId>nifi-extension-utils</artifactId>
-    <description>
-        This module contains reusable utilities related to extensions that can be shared across NARs.
-    </description>
 
-    <modules>
-        <module>nifi-bin-manager</module>
-        <module>nifi-database-utils</module>
-        <module>nifi-database-test-utils</module>
-        <module>nifi-dbcp-base</module>
-        <module>nifi-event-listen</module>
-        <module>nifi-event-put</module>
-        <module>nifi-event-transport</module>
-        <module>nifi-hadoop-utils</module>
-        <module>nifi-kerberos-test-utils</module>
-        <module>nifi-listed-entity</module>
-        <module>nifi-prometheus-utils</module>
-        <module>nifi-put-pattern</module>
-        <module>nifi-record-utils</module>
-        <module>nifi-reporting-utils</module>
-        <module>nifi-service-utils</module>
-        <module>nifi-syslog-utils</module>
-        <module>nifi-conflict-resolution</module>
-    </modules>
+    <artifactId>nifi-conflict-resolution</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>

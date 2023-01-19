@@ -18,6 +18,9 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
@@ -58,6 +61,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -100,10 +104,6 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
 
     public static final int SINGLE_UPLOAD_LIMIT_IN_BYTES = 150 * 1024 * 1024;
 
-    public static final String IGNORE_RESOLUTION = "ignore";
-    public static final String REPLACE_RESOLUTION = "replace";
-    public static final String FAIL_RESOLUTION = "fail";
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Files that have been successfully written to Dropbox are transferred to this relationship.")
@@ -140,8 +140,8 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
             .displayName("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the specified Dropbox folder.")
             .required(true)
-            .defaultValue(FAIL_RESOLUTION)
-            .allowableValues(FAIL_RESOLUTION, IGNORE_RESOLUTION, REPLACE_RESOLUTION)
+            .defaultValue(FAIL.getValue())
+            .allowableValues(ConflictResolutionStrategy.class)
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
@@ -219,8 +219,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
                 .asDataSize(DataUnit.B)
                 .longValue();
 
-        final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
-
+        final ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.forValue(context.getProperty(CONFLICT_RESOLUTION).getValue());
         final long size = flowFile.getSize();
         final String uploadPath = convertFolderName(folder) + "/" + filename;
         final long startNanos = System.nanoTime();
@@ -261,7 +260,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadErrorException e)  {
+    private void handleUploadError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadErrorException e)  {
         if (e.errorValue.isPath() && e.errorValue.getPathValue().getReason().isConflict()) {
             handleConflict(conflictResolution, uploadPath, e);
         } else {
@@ -269,7 +268,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private void handleUploadError(final String conflictResolution, final String uploadPath, final UploadSessionFinishErrorException e) {
+    private void handleUploadError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadSessionFinishErrorException e) {
         if (e.errorValue.isPath() && e.errorValue.getPathValue().isConflict()) {
             handleConflict(conflictResolution, uploadPath, e);
         } else {
@@ -277,16 +276,17 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private void handleConflict(final String conflictResolution, final String uploadPath, final DbxApiException e) {
-        if (IGNORE_RESOLUTION.equals(conflictResolution)) {
+    private void handleConflict(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final DbxApiException e) {
+        if (conflictResolution == IGNORE) {
             getLogger().info("File with the same name [{}] already exists. Remote file is not modified due to {} being set to '{}'.",
                     uploadPath, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-        } else if (conflictResolution.equals(FAIL_RESOLUTION)) {
+        } else if (conflictResolution == FAIL) {
             throw new ProcessException(format("File with the same name [%s] already exists.", uploadPath), e);
         }
     }
 
-    private FileMetadata uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize, String conflictResolution) throws DbxException, IOException {
+    private FileMetadata uploadLargeFileInChunks(String path, InputStream rawIn, long size, long uploadChunkSize,
+            ConflictResolutionStrategy conflictResolution) throws DbxException, IOException {
         final String sessionId;
         try (UploadSessionStartUploader uploader = createUploadSessionStartUploader()) {
             sessionId = uploader.uploadAndFinish(rawIn, uploadChunkSize).getSessionId();
@@ -317,15 +317,15 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         }
     }
 
-    private WriteMode getWriteMode(String conflictResolution) {
-        if (REPLACE_RESOLUTION.equals(conflictResolution)) {
+    private WriteMode getWriteMode(ConflictResolutionStrategy conflictResolution) {
+        if (conflictResolution == REPLACE) {
             return WriteMode.OVERWRITE;
         } else {
             return WriteMode.ADD;
         }
     }
 
-    private UploadUploader createUploadUploader(String path, String conflictResolution) throws DbxException {
+    private UploadUploader createUploadUploader(String path, ConflictResolutionStrategy conflictResolution) throws DbxException {
         return dropboxApiClient
                 .files()
                 .uploadBuilder(path)
