@@ -222,9 +222,10 @@ class TestPutSFTP {
         secondAttributes.put(TRANSFER_HOST_ATTRIBUTE, LOCALHOST_ADDRESS);
         runner.enqueue(FLOW_FILE_CONTENTS, secondAttributes);
 
-        runner.run();
+        final int flowFilesQueued = runner.getQueueSize().getObjectCount();
+        runner.run(flowFilesQueued);
 
-        runner.assertTransferCount(PutSFTP.REL_SUCCESS, 2);
+        runner.assertTransferCount(PutSFTP.REL_SUCCESS, flowFilesQueued);
 
         final List<ProvenanceEventRecord> records = runner.getProvenanceEvents();
 
