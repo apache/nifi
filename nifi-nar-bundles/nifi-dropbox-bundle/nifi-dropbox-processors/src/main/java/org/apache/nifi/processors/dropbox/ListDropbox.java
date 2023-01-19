@@ -158,7 +158,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
-    private DbxClientV2 dropboxApiClient;
+    private volatile DbxClientV2 dropboxApiClient;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {

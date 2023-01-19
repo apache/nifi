@@ -184,7 +184,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         RELATIONSHIPS = Collections.unmodifiableSet(rels);
     }
 
-    private DbxClientV2 dropboxApiClient;
+    private volatile DbxClientV2 dropboxApiClient;
 
     @Override
     public Set<Relationship> getRelationships() {

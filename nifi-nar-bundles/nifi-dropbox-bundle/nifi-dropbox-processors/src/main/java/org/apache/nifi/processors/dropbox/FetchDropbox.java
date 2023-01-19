@@ -51,7 +51,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -115,9 +114,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
-    private DbxClientV2 dropboxApiClient;
-
-    private DbxDownloader<FileMetadata> dbxDownloader;
+    private volatile DbxClientV2 dropboxApiClient;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -132,13 +129,6 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         dropboxApiClient = getDropboxApiClient(context, getIdentifier());
-    }
-
-    @OnUnscheduled
-    public void shutdown() {
-        if (dbxDownloader != null) {
-            dbxDownloader.close();
-        }
     }
 
     @Override
@@ -170,7 +160,6 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
         try (DbxDownloader<FileMetadata> downloader = dropboxApiClient.files().download(fileId)) {
-            dbxDownloader = downloader;
             final InputStream dropboxInputStream = downloader.getInputStream();
             session.importFrom(dropboxInputStream, outFlowFile);
             return downloader.getResult();
