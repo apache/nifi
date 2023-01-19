@@ -16,10 +16,24 @@
  */
 package org.apache.nifi.kafka.shared.login;
 
+import javax.security.auth.login.AppConfigurationEntry;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
 /**
  * Helper class to build JAAS configuration
  */
 public class LoginConfigBuilder {
+
+    private static final Map<AppConfigurationEntry.LoginModuleControlFlag, String> CONTROL_FLAGS = new LinkedHashMap<>();
+
+    static {
+        CONTROL_FLAGS.put(AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, "optional");
+        CONTROL_FLAGS.put(AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, "required");
+        CONTROL_FLAGS.put(AppConfigurationEntry.LoginModuleControlFlag.REQUISITE, "requisite");
+        CONTROL_FLAGS.put(AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT, "sufficient");
+    }
 
     private static final String SPACE = " ";
 
@@ -29,17 +43,11 @@ public class LoginConfigBuilder {
 
     private static final String SEMI_COLON = ";";
 
-    private static final String REQUIRE_MODULE_CLASS_FORMAT = "%s required";
-
     private final StringBuilder builder;
 
-    public LoginConfigBuilder(String moduleClassName) {
-        this.builder = new StringBuilder(String.format(REQUIRE_MODULE_CLASS_FORMAT, moduleClassName));
-    }
-
-    public LoginConfigBuilder append(String configEntry) {
-        builder.append(SPACE).append(configEntry);
-        return this;
+    public LoginConfigBuilder(final String moduleClassName, final AppConfigurationEntry.LoginModuleControlFlag controlFlag) {
+        final String moduleControlFlag = Objects.requireNonNull(CONTROL_FLAGS.get(controlFlag), "Control Flag not found");
+        this.builder = new StringBuilder(moduleClassName).append(SPACE).append(moduleControlFlag);
     }
 
     public LoginConfigBuilder append(String key, Object value) {
@@ -63,8 +71,4 @@ public class LoginConfigBuilder {
         return builder.toString();
     }
 
-    @Override
-    public String toString() {
-        return build();
-    }
 }
