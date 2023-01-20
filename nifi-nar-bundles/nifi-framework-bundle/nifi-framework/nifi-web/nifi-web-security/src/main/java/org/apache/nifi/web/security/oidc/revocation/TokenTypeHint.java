@@ -14,20 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.oidc;
+package org.apache.nifi.web.security.oidc.revocation;
 
 /**
- * Indicates which truststore should be used when creating an HttpClient for an https URL.
+ * Token Type Hint values as defined in RFC 7009 Section 2.1
  */
-public enum TruststoreStrategy {
+public enum TokenTypeHint {
+    ACCESS_TOKEN("access_token"),
 
-    /**
-     * Use the JDK truststore.
-     */
-    JDK,
+    REFRESH_TOKEN("refresh_token");
 
-    /**
-     * Use NiFi's truststore specified in nifi.properties.
-     */
-    NIFI;
+    private final String hint;
+
+    TokenTypeHint(final String hint) {
+        this.hint = hint;
+    }
+
+    public String getHint() {
+        return hint;
+    }
 }

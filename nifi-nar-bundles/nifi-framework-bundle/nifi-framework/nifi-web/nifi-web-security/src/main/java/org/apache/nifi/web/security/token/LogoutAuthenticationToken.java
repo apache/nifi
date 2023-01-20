@@ -14,19 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
+package org.apache.nifi.web.security.token;
 
-import org.apache.nifi.web.security.logout.StandardLogoutFilter;
-import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+
+import java.util.Objects;
+
 /**
- * SAML 2 Logout Filter completes application Logout Requests
+ * Logout Authentication Token for processing Logout Requests using Spring Security handlers
  */
-public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
-    public Saml2LocalLogoutFilter(
-            final LogoutSuccessHandler logoutSuccessHandler
-    ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
+public class LogoutAuthenticationToken extends AbstractAuthenticationToken {
+    private final String name;
+
+    public LogoutAuthenticationToken(final String name) {
+        super(AuthorityUtils.NO_AUTHORITIES);
+        this.name = Objects.requireNonNull(name, "Name required");
+    }
+
+    @Override
+    public Object getCredentials() {
+        return name;
+    }
+
+    @Override
+    public Object getPrincipal() {
+        return name;
     }
 }

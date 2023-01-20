@@ -627,12 +627,6 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
     </bean>
-    <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
-        <property name="oidcService" ref="oidcService"/>
-        <property name="idpUserGroupService" ref="idpUserGroupService" />
-        <property name="properties" ref="nifiProperties"/>
-        <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
-    </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
         <constructor-arg ref="authorizer"/>

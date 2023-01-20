@@ -14,19 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
+package org.apache.nifi.web.security.oidc.client.web.converter;
 
-import org.apache.nifi.web.security.logout.StandardLogoutFilter;
-import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.apache.nifi.web.security.oidc.client.web.OidcAuthorizedClient;
+
 /**
- * SAML 2 Logout Filter completes application Logout Requests
+ * Abstraction for encoding and decoding OpenID Connect Authorized Client Tokens
  */
-public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
-    public Saml2LocalLogoutFilter(
-            final LogoutSuccessHandler logoutSuccessHandler
-    ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
-    }
+public interface AuthorizedClientConverter {
+    /**
+     * Get encoded representation of Authorized Client
+     *
+     * @param oidcAuthorizedClient OpenID Connect Authorized Client required
+     * @return Encoded representation
+     */
+    String getEncoded(OidcAuthorizedClient oidcAuthorizedClient);
+
+    /**
+     * Get decoded OpenID Connect Authorized Client
+     *
+     * @param encoded Encoded representation required
+     * @return OpenID Connect Authorized Client
+     */
+    OidcAuthorizedClient getDecoded(String encoded);
 }

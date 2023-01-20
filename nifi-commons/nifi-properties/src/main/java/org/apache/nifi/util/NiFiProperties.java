@@ -195,6 +195,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
     public static final String NIFI_SECURITY_USER_OIDC_CLAIM_GROUPS = "nifi.security.user.oidc.claim.groups";
     public static final String SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER = "nifi.security.user.oidc.fallback.claims.identifying.user";
+    public static final String SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW = "nifi.security.user.oidc.token.refresh.window";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -385,6 +386,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_SECURITY_USER_OIDC_CONNECT_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
     public static final String DEFAULT_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY = "JDK";
+    private static final String DEFAULT_SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW = "60 secs";
     public static final String DEFAULT_SECURITY_USER_SAML_METADATA_SIGNING_ENABLED = "false";
     public static final String DEFAULT_SECURITY_USER_SAML_REQUEST_SIGNING_ENABLED = "false";
     public static final String DEFAULT_SECURITY_USER_SAML_WANT_ASSERTIONS_SIGNED = "true";
@@ -1178,6 +1180,10 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getOidcClientTruststoreStrategy() {
         return getProperty(SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY, DEFAULT_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY);
+    }
+
+    public String getOidcTokenRefreshWindow() {
+        return getProperty(SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW, DEFAULT_SECURITY_USER_OIDC_TOKEN_REFRESH_WINDOW);
     }
 
     public boolean shouldSendServerVersion() {

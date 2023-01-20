@@ -14,31 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
-
-import org.springframework.security.authentication.AbstractAuthenticationToken;
-import org.springframework.security.core.authority.AuthorityUtils;
-
-import java.util.Objects;
+package org.apache.nifi.web.security.oidc.revocation;
 
 /**
- * Logout Authentication Token for processing Logout Requests using Spring Security SAML 2 handlers
+ * Abstraction for processing Token Revocation requests according to RFC 7009
  */
-public class LogoutAuthenticationToken extends AbstractAuthenticationToken {
-    private final String name;
-
-    public LogoutAuthenticationToken(final String name) {
-        super(AuthorityUtils.NO_AUTHORITIES);
-        this.name = Objects.requireNonNull(name, "Name required");
-    }
-
-    @Override
-    public Object getCredentials() {
-        return name;
-    }
-
-    @Override
-    public Object getPrincipal() {
-        return name;
-    }
+public interface TokenRevocationResponseClient {
+    /**
+     * Get Token Revocation Response based on Revocation Request
+     *
+     * @param revocationRequest Revocation Request is required
+     * @return Token Revocation Response
+     */
+    TokenRevocationResponse getRevocationResponse(TokenRevocationRequest revocationRequest);
 }

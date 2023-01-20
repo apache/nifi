@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web;
+package org.apache.nifi.web.security.configuration;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
@@ -24,21 +24,26 @@ import org.apache.nifi.web.security.csrf.SkipReplicatedCsrfFilter;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.log.AuthenticationUserFilter;
-import org.apache.nifi.web.security.oidc.OIDCEndpoints;
+import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
+import org.apache.nifi.web.security.oidc.logout.OidcLogoutFilter;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LocalLogoutFilter;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleLogoutFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
-import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationFilter;
-import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationRequestFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationCodeGrantFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
@@ -53,10 +58,13 @@ import java.util.List;
 /**
  * Application Security Configuration using Spring Security
  */
+@Import({
+        AuthenticationSecurityConfiguration.class
+})
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(prePostEnabled = true)
-public class NiFiWebApiSecurityConfiguration {
+@EnableMethodSecurity
+public class WebSecurityConfiguration {
     /**
      * Spring Security Authentication Manager configured using Authentication Providers from specific configuration classes
      *
@@ -77,6 +85,11 @@ public class NiFiWebApiSecurityConfiguration {
             final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
             final KnoxAuthenticationFilter knoxAuthenticationFilter,
             final NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter,
+            final OAuth2LoginAuthenticationFilter oAuth2LoginAuthenticationFilter,
+            final OAuth2AuthorizationCodeGrantFilter oAuth2AuthorizationCodeGrantFilter,
+            final OAuth2AuthorizationRequestRedirectFilter oAuth2AuthorizationRequestRedirectFilter,
+            final OidcBearerTokenRefreshFilter oidcBearerTokenRefreshFilter,
+            final OidcLogoutFilter oidcLogoutFilter,
             final Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter,
             final Saml2WebSsoAuthenticationRequestFilter saml2WebSsoAuthenticationRequestFilter,
             final Saml2MetadataFilter saml2MetadataFilter,
@@ -95,18 +108,14 @@ public class NiFiWebApiSecurityConfiguration {
                 .servletApi().disable()
                 .securityContext().disable()
                 .authorizeHttpRequests(authorize -> authorize
-                        .antMatchers(
+                        .requestMatchers(
                                 "/access",
                                 "/access/config",
                                 "/access/token",
                                 "/access/kerberos",
                                 "/access/knox/callback",
                                 "/access/knox/request",
-                                "/access/logout/complete",
-                                OIDCEndpoints.TOKEN_EXCHANGE,
-                                OIDCEndpoints.LOGIN_REQUEST,
-                                OIDCEndpoints.LOGIN_CALLBACK,
-                                OIDCEndpoints.LOGOUT_CALLBACK
+                                "/access/logout/complete"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -147,6 +156,14 @@ public class NiFiWebApiSecurityConfiguration {
                 http.addFilterBefore(saml2LogoutRequestFilter, CsrfFilter.class);
                 http.addFilterBefore(saml2LogoutResponseFilter, CsrfFilter.class);
             }
+        }
+
+        if (properties.isOidcEnabled()) {
+            http.addFilterBefore(oAuth2LoginAuthenticationFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(oAuth2AuthorizationCodeGrantFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(oAuth2AuthorizationRequestRedirectFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(oidcBearerTokenRefreshFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(oidcLogoutFilter, CsrfFilter.class);
         }
 
         return http.build();

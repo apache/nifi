@@ -16,22 +16,16 @@
  */
 package org.apache.nifi.web.security.oidc;
 
-public interface OIDCEndpoints {
+/**
+ * OpenID Connect Configuration Exception
+ */
+public class OidcConfigurationException extends RuntimeException {
 
-    String OIDC_ACCESS_ROOT = "/access/oidc";
+    public OidcConfigurationException(final String message) {
+        super(message);
+    }
 
-    String LOGIN_REQUEST_RELATIVE = "/request";
-    String LOGIN_REQUEST = OIDC_ACCESS_ROOT + LOGIN_REQUEST_RELATIVE;
-
-    String LOGIN_CALLBACK_RELATIVE = "/callback";
-    String LOGIN_CALLBACK = OIDC_ACCESS_ROOT + LOGIN_CALLBACK_RELATIVE;
-
-    String TOKEN_EXCHANGE_RELATIVE = "/exchange";
-    String TOKEN_EXCHANGE = OIDC_ACCESS_ROOT + TOKEN_EXCHANGE_RELATIVE;
-
-    String LOGOUT_REQUEST_RELATIVE = "/logout";
-    String LOGOUT_REQUEST = OIDC_ACCESS_ROOT + LOGOUT_REQUEST_RELATIVE;
-
-    String LOGOUT_CALLBACK_RELATIVE = "/logoutCallback";
-    String LOGOUT_CALLBACK = OIDC_ACCESS_ROOT + LOGOUT_CALLBACK_RELATIVE;
+    public OidcConfigurationException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }
