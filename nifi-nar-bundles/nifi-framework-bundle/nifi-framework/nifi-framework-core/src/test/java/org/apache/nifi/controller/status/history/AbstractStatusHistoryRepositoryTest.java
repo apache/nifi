@@ -62,6 +62,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setBytesSent(14);
         status.setFlowFilesTransferred(15);
         status.setBytesTransferred(16L);
+        status.setProcessingNanos(68000000+88000000);
         return status;
     }
 
@@ -93,6 +94,7 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setBytesSent(34);
         status.setFlowFilesTransferred(35);
         status.setBytesTransferred(36L);
+        status.setProcessingNanos(88000000);
 
         status.setRemoteProcessGroupStatus(Collections.singleton(givenRemoteProcessGroupStatus()));
         status.setProcessorStatus(Collections.singleton(givenProcessorWithCounterStatus()));
