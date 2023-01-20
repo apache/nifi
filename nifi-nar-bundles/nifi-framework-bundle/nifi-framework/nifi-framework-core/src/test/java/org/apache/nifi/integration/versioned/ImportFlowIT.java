@@ -740,7 +740,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(), Function.identity(),
-            VersionedComponent::getIdentifier);
+            VersionedComponent::getIdentifier, false);
         final FlowComparison flowComparison = flowComparator.compare();
         final Set<FlowDifference> differences = flowComparison.getDifferences().stream()
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)

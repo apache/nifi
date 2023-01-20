@@ -5301,7 +5301,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(),
-            Function.identity(), VersionedComponent::getIdentifier);
+            Function.identity(), VersionedComponent::getIdentifier, false);
         final FlowComparison flowComparison = flowComparator.compare();
 
         final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtosForLocalModifications(flowComparison, localGroup, controllerFacade.getFlowManager());
@@ -5445,7 +5445,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> ancestorServiceIds = group.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor(),
-            Function.identity(), VersionedComponent::getIdentifier);
+            Function.identity(), VersionedComponent::getIdentifier, false);
         final FlowComparison comparison = flowComparator.compare();
 
         final FlowManager flowManager = controllerFacade.getFlowManager();
