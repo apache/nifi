@@ -14,27 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.c2.protocol.component.api;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 
-/**
- * A component that has property descriptors.
- */
-public interface ConfigurableComponentDefinition {
+@ApiModel
+public class DynamicRelationship {
 
-    Map<String, PropertyDescriptor> getPropertyDescriptors();
+    private String name;
+    private String description;
 
-    void setPropertyDescriptors(LinkedHashMap<String, PropertyDescriptor> propertyDescriptors);
+    @ApiModelProperty(value = "The description of the dynamic relationship name")
+    public String getName() {
+        return name;
+    }
 
-    boolean getSupportsDynamicProperties();
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    void setSupportsDynamicProperties(boolean supportsDynamicProperties);
+    @ApiModelProperty(value = "The description of the dynamic relationship")
+    public String getDescription() {
+        return description;
+    }
 
-    List<DynamicProperty> getDynamicProperties();
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-    void setDynamicProperties(List<DynamicProperty> dynamicProperties);
 }
