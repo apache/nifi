@@ -75,7 +75,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         validateKerberosServices(validationContext, results);
         validateKerberosCredentials(validationContext, results);
         validateUsernamePassword(validationContext, results);
-        validateAWSIAMMechanism(validationContext, results);
+        validateAwsMskIamMechanism(validationContext, results);
         return results;
     }
 
@@ -235,10 +235,10 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         }
     }
 
-    private void validateAWSIAMMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
+    private void validateAwsMskIamMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
+        final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(validationContext.getProperty(SASL_MECHANISM).getValue());
 
-        if (SaslMechanism.AWS_MSK_IAM.getValue().equals(saslMechanism) && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+        if (SaslMechanism.AWS_MSK_IAM == saslMechanism && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
             final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
                     StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
 
