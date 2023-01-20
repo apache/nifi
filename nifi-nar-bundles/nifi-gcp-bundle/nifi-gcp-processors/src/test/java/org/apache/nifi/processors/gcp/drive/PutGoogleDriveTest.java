@@ -125,7 +125,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
         when(mockDriverService.files()
                 .list()
-                .setQ(format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, SHARED_FOLDER_ID))
+                .setQ(format("mimeType='%s' and name='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, SUBFOLDER_NAME, SHARED_FOLDER_ID))
                 .setFields("files(name, id)")
                 .execute())
                 .thenReturn(new FileList().setFiles(singletonList(createFile(SUBFOLDER_ID, SUBFOLDER_NAME, SHARED_FOLDER_ID, DRIVE_FOLDER_MIME_TYPE))));
@@ -235,7 +235,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
     private void mockFileExists() throws IOException {
         when(mockDriverService.files()
                 .list()
-                .setQ(format("'%s' in parents", SHARED_FOLDER_ID))
+                .setQ(format("name='%s' and ('%s' in parents)", TEST_FILENAME, SHARED_FOLDER_ID))
                 .setFields("files(name, id)")
                 .execute())
                 .thenReturn(new FileList().setFiles(singletonList(createFile())));

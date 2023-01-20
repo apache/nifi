@@ -416,14 +416,14 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     }
 
     private Optional<File> checkFolderExistence(String folderName, String parentId) throws IOException {
-        return checkObjectExistence(folderName, format("mimeType='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, parentId));
+        return checkObjectExistence(format("mimeType='%s' and name='%s' and ('%s' in parents)", DRIVE_FOLDER_MIME_TYPE, folderName, parentId));
     }
 
     private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
-        return checkObjectExistence(fileName, format("'%s' in parents", parentId));
+        return checkObjectExistence(format("name='%s' and ('%s' in parents)", fileName, parentId));
     }
 
-    private Optional<File> checkObjectExistence(String fileName, String query) throws IOException {
+    private Optional<File> checkObjectExistence(String query) throws IOException {
         final FileList result = driveService.files()
                 .list()
                 .setQ(query)
@@ -431,7 +431,6 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 .execute();
 
         return result.getFiles().stream()
-                .filter(file -> file.getName().equals(fileName))
                 .findFirst();
     }
 
