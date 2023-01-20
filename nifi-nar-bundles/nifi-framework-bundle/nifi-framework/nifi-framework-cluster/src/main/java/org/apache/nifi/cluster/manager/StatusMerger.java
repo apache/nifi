@@ -172,6 +172,8 @@ public class StatusMerger {
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
         target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
+
+        target.setProcessingNanos(target.getProcessingNanos() + toMerge.getProcessingNanos());
         updatePrettyPrintedFields(target);
 
         // connection status
