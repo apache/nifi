@@ -155,6 +155,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         long bytesSent = 0L;
         int flowFilesTransferred = 0;
         long bytesTransferred = 0;
+        long processingNanos = 0;
 
         final boolean populateChildStatuses = currentDepth <= recursiveStatusDepth;
 
@@ -175,6 +176,8 @@ public abstract class AbstractEventAccess implements EventAccess {
             bytesReceived += procStat.getBytesReceived();
             flowFilesSent += procStat.getFlowFilesSent();
             bytesSent += procStat.getBytesSent();
+
+            processingNanos += procStat.getProcessingNanos();
         }
 
         // set status for local child groups
@@ -207,6 +210,8 @@ public abstract class AbstractEventAccess implements EventAccess {
 
             flowFilesTransferred += childGroupStatus.getFlowFilesTransferred();
             bytesTransferred += childGroupStatus.getBytesTransferred();
+
+            processingNanos += childGroupStatus.getProcessingNanos();
         }
 
         // set status for remote child groups
@@ -479,6 +484,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         status.setBytesSent(bytesSent);
         status.setFlowFilesTransferred(flowFilesTransferred);
         status.setBytesTransferred(bytesTransferred);
+        status.setProcessingNanos(processingNanos);
 
         final VersionControlInformation vci = group.getVersionControlInformation();
         if (vci != null) {
