@@ -236,17 +236,20 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     }
 
     private void validateAwsMskIamMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(validationContext.getProperty(SASL_MECHANISM).getValue());
+        final PropertyValue saslMechanismProperty = validationContext.getProperty(SASL_MECHANISM);
+        if (saslMechanismProperty.isSet()) {
+            final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(saslMechanismProperty.getValue());
 
-        if (SaslMechanism.AWS_MSK_IAM == saslMechanism && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
-            final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
-                    StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+            if (SaslMechanism.AWS_MSK_IAM == saslMechanism && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+                final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
+                        StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
 
-            results.add(new ValidationResult.Builder()
-                    .subject(SASL_MECHANISM.getDisplayName())
-                    .valid(false)
-                    .explanation(explanation)
-                    .build());
+                results.add(new ValidationResult.Builder()
+                        .subject(SASL_MECHANISM.getDisplayName())
+                        .valid(false)
+                        .explanation(explanation)
+                        .build());
+            }
         }
     }
 
