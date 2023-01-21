@@ -31,7 +31,6 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAM
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
@@ -57,6 +56,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,6 +76,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -99,10 +100,10 @@ import org.json.JSONObject;
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the Google Drive object.")
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
+        @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
-        @WritesAttribute(attribute = MIME_TYPE, description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)})
 public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
@@ -169,7 +170,6 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .name("chunked-upload-size")
             .displayName("Chunked Upload Size")
             .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
-                    + "It is recommended to specify chunked upload size smaller than 'Chunked Upload Threshold'. "
                     + "Minimum allowed chunk size is 256 KB, maximum allowed chunk size is 1 GB. ")
             .addValidator(createChunkSizeValidator())
             .defaultValue("10 MB")
@@ -226,6 +226,29 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    public List<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final long chunkUploadThreshold = validationContext.getProperty(CHUNKED_UPLOAD_THRESHOLD)
+                .asDataSize(DataUnit.B)
+                .longValue();
+
+        final int uploadChunkSize = validationContext.getProperty(CHUNKED_UPLOAD_SIZE)
+                .asDataSize(DataUnit.B)
+                .intValue();
+
+        if (uploadChunkSize >= chunkUploadThreshold) {
+            results.add(new ValidationResult.Builder()
+                    .subject(CHUNKED_UPLOAD_SIZE.getDisplayName())
+                    .explanation(format("%s should be smaller than %s", CHUNKED_UPLOAD_SIZE.getDisplayName(), CHUNKED_UPLOAD_THRESHOLD.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
+        return results;
     }
 
     @Override

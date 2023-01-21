@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
 public class GoogleDriveAttributes {
 
     public static final String ID = "drive.id";
     public static final String ID_DESC = "The id of the file";
 
-    public static final String FILENAME = "filename";
+    public static final String FILENAME = CoreAttributes.FILENAME.key();
     public static final String FILENAME_DESC = "The name of the file";
 
     public static final String SIZE = "drive.size";
@@ -32,8 +34,8 @@ public class GoogleDriveAttributes {
             " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
             " 'Created time' takes the time when the upload occurs. However uploaded files can still be modified later.";
 
-    public static final String MIME_TYPE = "mime.type";
-    public static final String MIME_TYPE_DESC =  "MimeType of the file";
+    public static final String MIME_TYPE = CoreAttributes.MIME_TYPE.key();
+    public static final String MIME_TYPE_DESC =  "The MIME type of the file";
 
     public static final String ERROR_MESSAGE = "error.message";
     public static final String ERROR_MESSAGE_DESC = "The error message returned by Google Drive";

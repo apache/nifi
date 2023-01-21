@@ -76,6 +76,10 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
         testRunner.assertNotValid();
         testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "2 GB");
         testRunner.assertNotValid();
+
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_THRESHOLD, "100 MB");
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "110 MB");
+        testRunner.assertNotValid();
     }
 
     @Test

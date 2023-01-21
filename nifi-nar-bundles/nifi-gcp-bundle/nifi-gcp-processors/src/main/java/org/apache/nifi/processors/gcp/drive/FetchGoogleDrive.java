@@ -20,11 +20,9 @@ import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_C
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
@@ -71,10 +69,10 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 @SeeAlso({ListGoogleDrive.class, PutGoogleDrive.class})
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
+        @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
         @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
-        @WritesAttribute(attribute = MIME_TYPE, description = MIME_TYPE_DESC),
         @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
