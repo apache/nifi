@@ -23,6 +23,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.createRegexMatchingValidator;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
@@ -129,7 +130,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .displayName("Subfolder Name")
             .description("The name (path) of the subfolder where files are uploaded. The subfolder name is relative to the shared folder specified by 'Folder ID'."
             + " Example: subFolder, subFolder1/subfolder2")
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^(?!/).+")))
+            .addValidator(createRegexMatchingValidator(Pattern.compile("^(?!/).+(?<!/)$"), false,
+                    "Subfolder Name should not contain leading or trailing slash ('/') character."))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
@@ -170,7 +172,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .name("chunked-upload-size")
             .displayName("Chunked Upload Size")
             .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
-                    + "Minimum allowed chunk size is 256 KB, maximum allowed chunk size is 1 GB. ")
+                    + "Minimum allowed chunk size is 256 KB, maximum allowed chunk size is 1 GB.")
             .addValidator(createChunkSizeValidator())
             .defaultValue("10 MB")
             .required(false)
@@ -240,10 +242,10 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
                 .asDataSize(DataUnit.B)
                 .intValue();
 
-        if (uploadChunkSize >= chunkUploadThreshold) {
+        if (uploadChunkSize > chunkUploadThreshold) {
             results.add(new ValidationResult.Builder()
                     .subject(CHUNKED_UPLOAD_SIZE.getDisplayName())
-                    .explanation(format("%s should be smaller than %s", CHUNKED_UPLOAD_SIZE.getDisplayName(), CHUNKED_UPLOAD_THRESHOLD.getDisplayName()))
+                    .explanation(format("%s should not be bigger than %s", CHUNKED_UPLOAD_SIZE.getDisplayName(), CHUNKED_UPLOAD_THRESHOLD.getDisplayName()))
                     .valid(false)
                     .build());
         }

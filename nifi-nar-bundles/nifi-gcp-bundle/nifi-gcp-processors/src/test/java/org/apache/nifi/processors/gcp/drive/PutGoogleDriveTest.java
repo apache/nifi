@@ -84,11 +84,17 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     @Test
     void testSubfolderNameValidity() {
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "sub1");
+        testRunner.assertValid();
         testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "sub1/sub2");
         testRunner.assertValid();
         testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "/sub1");
         testRunner.assertNotValid();
         testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "/");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "sub1/");
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutGoogleDrive.SUBFOLDER_NAME, "/sub1/");
         testRunner.assertNotValid();
     }
 

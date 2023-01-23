@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -67,6 +68,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 @CapabilityDescription("Fetches files from a Google Drive Folder. Designed to be used in tandem with ListGoogleDrive. " +
     "Please see Additional Details to set up access to Google Drive.")
 @SeeAlso({ListGoogleDrive.class, PutGoogleDrive.class})
+@ReadsAttribute(attribute = ID, description = ID_DESC)
 @WritesAttributes({
         @WritesAttribute(attribute = ID, description = ID_DESC),
         @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
@@ -81,7 +83,8 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor
             .Builder().name("drive-file-id")
             .displayName("File ID")
-            .description("The Drive ID of the File to fetch")
+            .description("The Drive ID of the File to fetch. "
+            + "Please see Additional Details to obtain Drive ID.")
             .required(true)
             .defaultValue("${drive.id}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
