@@ -63,6 +63,7 @@
                 <include>*:commons-io</include>
                 <include>*:slf4j-api</include>
                 <include>*:logback-classic</include>
+                <include>*:logback-core</include>
             </includes>
         </dependencySet>
 
