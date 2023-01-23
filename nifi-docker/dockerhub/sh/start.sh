@@ -100,7 +100,7 @@ prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTIC
 # Add NAR provider properties
 # nifi-registry NAR provider
 if [ -n "${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL}" ]; then
-    prop_add 'nifi.nar.library.provider.nifi-registry.implementation' 'org.apache.nifi.registry.extension.NiFiRegistryNarProvider'
+    prop_add 'nifi.nar.library.provider.nifi-registry.implementation' 'org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider'
     prop_add 'nifi.nar.library.provider.nifi-registry.url' "${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL}"
 fi
 
