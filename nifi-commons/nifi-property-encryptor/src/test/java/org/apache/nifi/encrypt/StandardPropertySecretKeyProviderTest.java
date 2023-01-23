@@ -21,8 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class StandardPropertySecretKeyProviderTest {
     private static final String SEED = String.class.getName();
@@ -42,7 +42,7 @@ public class StandardPropertySecretKeyProviderTest {
             final SecretKey secretKey = provider.getSecretKey(propertyEncryptionMethod, SEED);
             final int secretKeyLength = secretKey.getEncoded().length;
             final String message = String.format("Method [%s] Key Length not matched", propertyEncryptionMethod);
-            assertEquals(message, propertyEncryptionMethod.getHashLength(), secretKeyLength);
+            assertEquals(propertyEncryptionMethod.getHashLength(), secretKeyLength, message);
         }
     }
 

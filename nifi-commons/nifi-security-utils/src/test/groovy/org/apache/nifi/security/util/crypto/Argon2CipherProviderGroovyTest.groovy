@@ -20,7 +20,6 @@ import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -33,9 +32,14 @@ import javax.crypto.spec.SecretKeySpec
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
-class Argon2CipherProviderGroovyTest extends GroovyTestCase {
+class Argon2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(Argon2CipherProviderGroovyTest.class)
 
     private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
@@ -92,7 +96,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -128,9 +132,9 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         byte[] rubyCipherBytes = rubyCipher.doFinal(PLAINTEXT.bytes)
         logger.sanity("Created cipher text: ${Hex.encodeHexString(rubyCipherBytes)}")
         rubyCipher.init(Cipher.DECRYPT_MODE, rubyKey, ivSpec)
-        assert rubyCipher.doFinal(rubyCipherBytes) == PLAINTEXT.bytes
+        assertArrayEquals(PLAINTEXT.bytes, rubyCipher.doFinal(rubyCipherBytes))
         logger.sanity("Decrypted generated cipher text successfully")
-        assert rubyCipher.doFinal(cipherBytes) == PLAINTEXT.bytes
+        assertArrayEquals(PLAINTEXT.bytes, rubyCipher.doFinal(cipherBytes))
         logger.sanity("Decrypted external cipher text successfully")
 
         // $argon2id$v=19$m=memory,t=iterations,p=parallelism$saltB64$hashB64
@@ -149,7 +153,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         def saltB64 = hashComponents[4]
         byte[] salt = Base64.decodeBase64(saltB64)
         logger.info("Salt: ${Hex.encodeHexString(salt)}")
-        assert salt == SALT
+        assertArrayEquals(SALT, salt)
 
         logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
         logger.info("External cipher text: ${CIPHER_TEXT} ${cipherBytes.length}")
@@ -161,7 +165,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert PLAINTEXT.equals(recovered)
+        assertEquals(PLAINTEXT, recovered)
     }
 
     @Test
@@ -181,12 +185,11 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, true)
 
             // Decrypt should fail
-            def msg = shouldFail(IllegalArgumentException) {
-                cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false)
-            }
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false))
 
             // Assert
-            assert msg =~ "Cannot decrypt without a valid IV"
+            assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
         }
     }
 
@@ -214,7 +217,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -244,7 +247,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -263,13 +266,12 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         INVALID_SALTS.each { String salt ->
             logger.info("Checking salt ${salt}")
 
-            def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true)
-            }
-            logger.expected(msg)
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true))
+            logger.expected(iae.getMessage())
 
             // Assert
-            assert msg =~ LENGTH_MESSAGE
+            assertTrue(iae.getMessage().contains(LENGTH_MESSAGE))
         }
     }
 
@@ -290,7 +292,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true)
 
             // Assert
-            assert cipher
+            assertNotNull(cipher)
         }
     }
 
@@ -303,14 +305,12 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
 
         // Act
-        def msg =
-                shouldFail(IllegalArgumentException) {
-                    Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true)
-                }
-        logger.expected(msg)
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true))
+        logger.expected(iae.getMessage())
 
         // Assert
-        assert msg =~ "The salt cannot be empty. To generate a salt, use Argon2CipherProvider#generateSalt()"
+        assertTrue(iae.getMessage().contains("The salt cannot be empty. To generate a salt, use Argon2CipherProvider#generateSalt()"))
     }
 
     @Test
@@ -333,13 +333,15 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         // Assert
         boolean isValidFormattedSalt = cipherProvider.isArgon2FormattedSalt(fullSalt)
         logger.info("Salt is Argon2 format: ${isValidFormattedSalt}")
-        assert isValidFormattedSalt
+        assertTrue(isValidFormattedSalt)
 
         boolean fullSaltIsValidLength = FULL_SALT_LENGTH_RANGE.contains(saltBytes.length)
         logger.info("Salt length (${fullSalt.length()}) in valid range (${FULL_SALT_LENGTH_RANGE})")
-        assert fullSaltIsValidLength
+        assertTrue(fullSaltIsValidLength)
 
-        assert rawSaltBytes != [(0x00 as byte) * 16]
+        byte [] notExpected = new byte[16]
+        Arrays.fill(notExpected, 0x00 as byte)
+        assertFalse(Arrays.equals(notExpected, rawSaltBytes))
     }
 
     @Test
@@ -360,13 +362,12 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            def msg = shouldFail(IllegalArgumentException) {
-                cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false)
-            }
-            logger.expected(msg)
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false))
+            logger.expected(iae.getMessage())
 
             // Assert
-            assert msg =~ "Cannot decrypt without a valid IV"
+            assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
         }
     }
 
@@ -397,7 +398,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -415,14 +416,13 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         INVALID_KEY_LENGTHS.each { int keyLength ->
             logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
 
-            // Initialize a cipher for encryption
-            def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true)
-            }
-            logger.expected(msg)
+            // Initialize a cipher for
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true))
+            logger.expected(iae.getMessage())
 
             // Assert
-            assert msg =~ "${keyLength} is not a valid key length for AES"
+            assertTrue(iae.getMessage().contains(keyLength + " is not a valid key length for AES"))
         }
     }
 
@@ -435,12 +435,11 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act
-        def msg = shouldFail(IllegalArgumentException) {
-            cipherProvider.getCipher(encryptionMethod, badPassword, salt, DEFAULT_KEY_LENGTH, true)
-        }
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> cipherProvider.getCipher(encryptionMethod, badPassword, salt, DEFAULT_KEY_LENGTH, true))
 
         // Assert
-        assert msg =~ "Encryption with an empty password is not supported"
+        assertTrue(iae.getMessage().contains("Encryption with an empty password is not supported"))
     }
 
     @Test
@@ -463,10 +462,10 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         cipherProvider.parseSalt(FORMATTED_SALT, rawSalt, params)
 
         // Assert
-        assert rawSalt == EXPECTED_RAW_SALT
-        assert params[0] == EXPECTED_MEMORY
-        assert params[1] == EXPECTED_PARALLELISM
-        assert params[2] == EXPECTED_ITERATIONS
+        assertArrayEquals(EXPECTED_RAW_SALT, rawSalt)
+        assertEquals(EXPECTED_MEMORY, params[0])
+        assertEquals(EXPECTED_PARALLELISM, params[1])
+        assertEquals(EXPECTED_ITERATIONS, params[2])
     }
 
     @Test
@@ -485,7 +484,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         logger.info("Argon2 formatted salt: ${isValid}")
 
         // Assert
-        assert !isValid
+        assertFalse(isValid)
     }
 
     @Test
@@ -505,6 +504,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         logger.info("rawSalt: ${Hex.encodeHexString(rawSalt)}")
 
         // Assert
-        assert rawSalt == EXPECTED_RAW_SALT
+        assertArrayEquals(EXPECTED_RAW_SALT, rawSalt)
     }
 }

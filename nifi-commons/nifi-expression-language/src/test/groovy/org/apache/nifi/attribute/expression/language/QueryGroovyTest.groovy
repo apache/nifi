@@ -25,7 +25,10 @@ import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class QueryGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotEquals
+
+class QueryGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(QueryGroovyTest.class)
 
     @BeforeAll
@@ -79,11 +82,11 @@ class QueryGroovyTest extends GroovyTestCase {
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
-        assert replaceSingleResult.value == EXPECTED_SINGLE_RESULT
-        assert replaceSingleResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_SINGLE_RESULT, replaceSingleResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.resultType)
 
-        assert replaceRepeatingResult.value == EXPECTED_REPEATING_RESULT
-        assert replaceRepeatingResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.resultType)
     }
 
     @Test
@@ -119,11 +122,11 @@ class QueryGroovyTest extends GroovyTestCase {
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
-        assert replaceSingleResult.value == EXPECTED_SINGLE_RESULT
-        assert replaceSingleResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_SINGLE_RESULT, replaceSingleResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.resultType)
 
-        assert replaceRepeatingResult.value == EXPECTED_REPEATING_RESULT
-        assert replaceRepeatingResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.resultType)
     }
 
     @Test
@@ -159,11 +162,11 @@ class QueryGroovyTest extends GroovyTestCase {
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
-        assert replaceSingleResult.value == EXPECTED_SINGLE_RESULT
-        assert replaceSingleResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_SINGLE_RESULT, replaceSingleResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.resultType)
 
-        assert replaceRepeatingResult.value == EXPECTED_REPEATING_RESULT
-        assert replaceRepeatingResult.resultType == AttributeExpression.ResultType.STRING
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.value)
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.resultType)
     }
 
     @Test
@@ -200,10 +203,10 @@ class QueryGroovyTest extends GroovyTestCase {
         logger.info("Replace repeating result: ${replaceFirstRepeatingResult}")
 
         // Assert
-        assert replaceSingleResult != EXPECTED_SINGLE_RESULT
-        assert replaceRepeatingResult != EXPECTED_REPEATING_RESULT
+        assertNotEquals(EXPECTED_SINGLE_RESULT, replaceSingleResult)
+        assertNotEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult)
 
-        assert replaceFirstSingleResult == EXPECTED_SINGLE_RESULT
-        assert replaceFirstRepeatingResult == EXPECTED_REPEATING_RESULT
+        assertEquals(EXPECTED_SINGLE_RESULT, replaceFirstSingleResult)
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceFirstRepeatingResult)
     }
 }

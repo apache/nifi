@@ -27,7 +27,12 @@ import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class Argon2SecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(Argon2SecureHasherTest.class)
@@ -68,7 +73,7 @@ class Argon2SecureHasherTest {
         }
 
         // Assert
-        assert results.every { it == EXPECTED_HASH_HEX }
+        results.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -98,8 +103,8 @@ class Argon2SecureHasherTest {
         }
 
         // Assert
-        assert results.unique().size() == results.size()
-        assert results.every { it != EXPECTED_HASH_HEX }
+        assertTrue(results.unique().size() == results.size())
+        results.forEach(result -> assertNotEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -143,20 +148,20 @@ class Argon2SecureHasherTest {
         String differentSaltHashBase64 = arbitrarySaltHasher.hashBase64(input)
 
         // Assert
-        assert staticSaltHash == EXPECTED_HASH_BYTES
-        assert arbitrarySaltHash == EXPECTED_HASH_BYTES
-        assert differentArbitrarySaltHash != EXPECTED_HASH_BYTES
-        assert differentSaltHash != EXPECTED_HASH_BYTES
+        assertArrayEquals(EXPECTED_HASH_BYTES, staticSaltHash)
+        assertArrayEquals(EXPECTED_HASH_BYTES, arbitrarySaltHash)
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentArbitrarySaltHash))
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentSaltHash))
 
-        assert staticSaltHashHex == EXPECTED_HASH_HEX
-        assert arbitrarySaltHashHex == EXPECTED_HASH_HEX
-        assert differentArbitrarySaltHashHex != EXPECTED_HASH_HEX
-        assert differentSaltHashHex != EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, staticSaltHashHex)
+        assertEquals(EXPECTED_HASH_HEX, arbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentArbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentSaltHashHex)
 
-        assert staticSaltHashBase64 == EXPECTED_HASH_BASE64
-        assert arbitrarySaltHashBase64 == EXPECTED_HASH_BASE64
-        assert differentArbitrarySaltHashBase64 != EXPECTED_HASH_BASE64
-        assert differentSaltHashBase64 != EXPECTED_HASH_BASE64
+        assertEquals(EXPECTED_HASH_BASE64, staticSaltHashBase64)
+        assertEquals(EXPECTED_HASH_BASE64, arbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentArbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentSaltHashBase64)
     }
 
     @Test
@@ -198,7 +203,7 @@ class Argon2SecureHasherTest {
         logger.info("Generated hash: ${hashHex}")
 
         // Assert
-        assert hashHex == EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, hashHex)
     }
 
     @Test
@@ -215,7 +220,7 @@ class Argon2SecureHasherTest {
         logger.info("Generated hash: ${hashB64}")
 
         // Assert
-        assert hashB64 == EXPECTED_HASH_B64
+        assertEquals(EXPECTED_HASH_B64, hashB64)
     }
 
     @Test
@@ -243,8 +248,8 @@ class Argon2SecureHasherTest {
         }
 
         // Assert
-        assert hexResults.every { it == EXPECTED_HASH_HEX }
-        assert b64Results.every { it == EXPECTED_HASH_B64 }
+        hexResults.forEach(hexResult -> assertEquals(EXPECTED_HASH_HEX, hexResult))
+        b64Results.forEach(b64Result -> assertEquals(EXPECTED_HASH_B64, b64Result))
     }
 
     /**
@@ -282,8 +287,8 @@ class Argon2SecureHasherTest {
 
         // Assert
         final long MIN_DURATION_NANOS = 500_000_000 // 500 ms
-        assert resultDurations.min() > MIN_DURATION_NANOS
-        assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
+        assertTrue(resultDurations.min() > MIN_DURATION_NANOS)
+        assertTrue(resultDurations.sum() / testIterations > MIN_DURATION_NANOS)
     }
 
     @Test
@@ -295,7 +300,7 @@ class Argon2SecureHasherTest {
         boolean valid = Argon2SecureHasher.isHashLengthValid(hashLength)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
@@ -312,7 +317,7 @@ class Argon2SecureHasherTest {
         // Assert
         results.each { hashLength, isHashLengthValid ->
             logger.info("For hashLength value ${hashLength}, hashLength is ${isHashLengthValid ? "valid" : "invalid"}")
-            assert !isHashLengthValid
+            assertFalse(isHashLengthValid)
         }
     }
 
@@ -325,7 +330,7 @@ class Argon2SecureHasherTest {
         boolean valid = Argon2SecureHasher.isMemorySizeValid(memory)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
@@ -342,7 +347,7 @@ class Argon2SecureHasherTest {
         // Assert
         results.each { memory, isMemorySizeValid ->
             logger.info("For memory size ${memory}, memory is ${isMemorySizeValid ? "valid" : "invalid"}")
-            assert !isMemorySizeValid
+            assertFalse(isMemorySizeValid)
         }
     }
 
@@ -355,7 +360,7 @@ class Argon2SecureHasherTest {
         boolean valid = Argon2SecureHasher.isParallelismValid(parallelism)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
@@ -372,7 +377,7 @@ class Argon2SecureHasherTest {
         // Assert
         results.each { parallelism, isParallelismValid ->
             logger.info("For parallelization factor ${parallelism}, parallelism is ${isParallelismValid ? "valid" : "invalid"}")
-            assert !isParallelismValid
+            assertFalse(isParallelismValid)
         }
     }
 
@@ -385,7 +390,7 @@ class Argon2SecureHasherTest {
         boolean valid = Argon2SecureHasher.isIterationsValid(iterations)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
@@ -402,7 +407,7 @@ class Argon2SecureHasherTest {
         // Assert
         results.each { iterations, isIterationsValid ->
             logger.info("For iteration counts ${iterations}, iteration is ${isIterationsValid ? "valid" : "invalid"}")
-            assert !isIterationsValid
+            assertFalse(isIterationsValid)
         }
     }
 
@@ -411,17 +416,11 @@ class Argon2SecureHasherTest {
         // Arrange
         def saltLengths = [0, 64]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new Argon2SecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
-            assert isSaltLengthValid
-        }
+        // Act and Assert
+        Argon2SecureHasher argon2SecureHasher = new Argon2SecureHasher()
+        saltLengths.forEach(saltLength -> {
+            assertTrue(argon2SecureHasher.isSaltLengthValid(saltLength))
+        })
     }
 
     @Test
@@ -429,17 +428,9 @@ class Argon2SecureHasherTest {
         // Arrange
         def saltLengths = [-16, 4]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new Argon2SecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            logger.info("For salt length ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
-            assert !isSaltLengthValid
-        }
+        // Act and Assert
+        Argon2SecureHasher argon2SecureHasher = new Argon2SecureHasher()
+        saltLengths.forEach(saltLength -> assertFalse(argon2SecureHasher.isSaltLengthValid(saltLength)))
     }
 
     @Test
@@ -460,7 +451,7 @@ class Argon2SecureHasherTest {
         }
 
         // Assert
-        assert results[16][0..15] != results[32][0..15]
+        assertFalse(Arrays.equals(Arrays.copyOf(results[16], 16), Arrays.copyOf(results[32], 16)))
         // Demonstrates that internal hash truncation is not supported
 //        assert results.every { int k, byte[] v -> v[0..15] as byte[] == EXPECTED_HASH}
     }
