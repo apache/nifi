@@ -513,7 +513,7 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("Flow Registry name must be specified.");
         }
 
-        if (serviceFacade.getRegistryClients().stream().map(rce -> rce.getComponent().getName()).collect(Collectors.toSet()).contains(requestRegistryClient.getName())) {
+        if (serviceFacade.getRegistryClients().stream().anyMatch(rce -> requestRegistryClient.getName().equals(rce.getComponent().getName()))) {
             throw new IllegalArgumentException("A Flow Registry already exists with the name " + requestRegistryClient.getName());
         }
 
