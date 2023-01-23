@@ -21,9 +21,9 @@ import java.util.Map;
 import org.apache.nifi.components.DescribedValue;
 
 public enum ConflictResolutionStrategy implements DescribedValue {
-    FAIL("fail", "fail", "Handle file conflict as failure."),
-    IGNORE("ignore", "ignore", "Ignore conflict, do not change the original file."),
-    REPLACE("replace", "replace", "Replace existing file in case of conflict.");
+    FAIL( "fail", "Handle file conflict as failure."),
+    IGNORE("ignore", "Ignore conflict, do not change the original file."),
+    REPLACE( "replace", "Replace existing file in case of conflict.");
 
     private static final Map<String, ConflictResolutionStrategy> ENUM_MAP = new HashMap<>();
 
@@ -34,12 +34,10 @@ public enum ConflictResolutionStrategy implements DescribedValue {
     }
 
     private final String value;
-    private final String displayName;
     private final String description;
 
-    ConflictResolutionStrategy(final String value, String displayName, String description) {
+    ConflictResolutionStrategy(final String value, String description) {
         this.value = value;
-        this.displayName = displayName;
         this.description = description;
     }
 
@@ -54,7 +52,7 @@ public enum ConflictResolutionStrategy implements DescribedValue {
 
     @Override
     public String getDisplayName() {
-        return this.displayName;
+        return this.value;
     }
 
     @Override
