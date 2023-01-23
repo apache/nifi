@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf
+
 class CipherProviderFactoryGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CipherProviderFactoryGroovyTest.class)
 
@@ -58,7 +60,7 @@ class CipherProviderFactoryGroovyTest extends GroovyTestCase {
             logger.info("Resolved: ${kdf.kdfName} -> ${cp.class.simpleName}")
 
             // Assert
-            assert cp.class == (EXPECTED_CIPHER_PROVIDERS.get(kdf))
+            assertInstanceOf(Class.class, EXPECTED_CIPHER_PROVIDERS.get(kdf))
         }
     }
 }
