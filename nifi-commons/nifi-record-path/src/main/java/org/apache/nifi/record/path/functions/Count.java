@@ -30,7 +30,7 @@ public class Count extends RecordPathSegment {
     private final RecordPathSegment recordPath;
 
     public Count(final RecordPathSegment recordPath, final boolean absolute) {
-        super("replace", null, absolute);
+        super("count", null, absolute);
         this.recordPath = recordPath;
     }
 

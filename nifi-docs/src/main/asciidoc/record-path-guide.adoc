@@ -1097,7 +1097,7 @@ count(/elements[*])
 
 Would yield a value of `2`. We could also use this as a filter, such as:
 ----
-/id[ count(/elements[*]) ]
+/id[ count(/elements[*]) = 2 ]
 ----
 Which will return the `id` element with a value of `1234`.
 
