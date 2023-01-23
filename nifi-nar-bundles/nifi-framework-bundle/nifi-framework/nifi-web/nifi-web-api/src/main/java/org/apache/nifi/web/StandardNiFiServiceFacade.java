@@ -5411,6 +5411,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         externalFlow.setExternalControllerServices(flowSnapshot.getExternalControllerServices());
         externalFlow.setParameterContexts(flowSnapshot.getParameterContexts());
         externalFlow.setMetadata(externalFlowMetadata);
+        externalFlow.setParameterProviders(flowSnapshot.getParameterProviders());
 
         return externalFlow;
     }

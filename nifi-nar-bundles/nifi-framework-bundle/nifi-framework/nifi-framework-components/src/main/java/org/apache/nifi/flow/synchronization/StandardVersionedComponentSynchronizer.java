@@ -252,7 +252,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         context.getFlowManager().withParameterContextResolution(() -> {
             try {
-                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), versionedExternalFlow.getParameterProviders());
+                final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
+                        ? new HashMap<>() : versionedExternalFlow.getParameterProviders();
+                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), parameterProviderReferences);
             } catch (final ProcessorInstantiationException pie) {
                 throw new RuntimeException(pie);
             }
