@@ -442,11 +442,6 @@
                 <version>4.4</version>
             </dependency>
             <dependency>
-                <groupId>org.jasypt</groupId>
-                <artifactId>jasypt</artifactId>
-                <version>1.9.2</version>
-            </dependency>
-            <dependency>
                 <groupId>org.eclipse.jgit</groupId>
                 <artifactId>org.eclipse.jgit</artifactId>
                 <version>4.3.1.201605051710-r</version>
