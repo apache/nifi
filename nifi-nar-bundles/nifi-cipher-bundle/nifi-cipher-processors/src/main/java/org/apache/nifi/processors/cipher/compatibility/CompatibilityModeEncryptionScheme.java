@@ -31,6 +31,27 @@ import static org.apache.nifi.processors.cipher.algorithm.SymmetricCipher.TWOFIS
  * Compatibility Mode Encryption Schemes supporting decryption using legacy algorithms such as PBES1 defined in RFC 8018 Section 6.1
  */
 public enum CompatibilityModeEncryptionScheme implements DescribedValue {
+    PBE_WITH_MD5_AND_AES_CBC_128(
+            "PBEWITHMD5AND128BITAES-CBC-OPENSSL",
+            DigestAlgorithm.MD5,
+            AES,
+            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 128 bit keys."
+    ),
+
+    PBE_WITH_MD5_AND_AES_CBC_192(
+            "PBEWITHMD5AND192BITAES-CBC-OPENSSL",
+            DigestAlgorithm.MD5,
+            AES,
+            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 192 bit keys."
+    ),
+
+    PBE_WITH_MD5_AND_AES_CBC_256(
+            "PBEWITHMD5AND256BITAES-CBC-OPENSSL",
+            DigestAlgorithm.MD5,
+            AES,
+            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 256 bit keys."
+    ),
+
     PBE_WITH_MD5_AND_DES(
             "PBEWITHMD5ANDDES",
             DigestAlgorithm.MD5,
@@ -45,11 +66,46 @@ public enum CompatibilityModeEncryptionScheme implements DescribedValue {
             "PKCS Scheme 1 with MD5 digest and Rivest Cipher 2. OID 1.2.840.113549.1.5.6"
     ),
 
+    PBE_WITH_SHA1_AND_AES_CBC_128(
+            "PBEWITHSHAAND128BITAES-CBC-BC",
+            DigestAlgorithm.SHA1,
+            AES,
+            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 128 bit keys."
+    ),
+
+    PBE_WITH_SHA1_AND_AES_CBC_192(
+            "PBEWITHSHAAND192BITAES-CBC-BC",
+            DigestAlgorithm.SHA1,
+            AES,
+            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 192 bit keys."
+    ),
+
+    PBE_WITH_SHA1_AND_AES_CBC_256(
+            "PBEWITHSHAAND256BITAES-CBC-BC",
+            DigestAlgorithm.SHA1,
+            AES,
+            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 256 bit keys."
+    ),
+
     PBE_WITH_SHA1_AND_DES(
             "PBEWITHSHA1ANDDES",
             DigestAlgorithm.SHA1,
             DES,
             "PKCS5 Scheme 1 with SHA-1 digest and Data Encryption Standard. OID 1.2.840.113549.1.5.10"
+    ),
+
+    PBE_WITH_SHA1_AND_DESEDE_128(
+            "PBEWITHSHAAND2-KEYTRIPLEDES-CBC",
+            DigestAlgorithm.SHA1,
+            DESEDE,
+            "PKCS12 with SHA-1 digest and Triple Data Encryption Standard 128 bit keys. OID 1.2.840.113549.1.12.1.4"
+    ),
+
+    PBE_WITH_SHA1_AND_DESEDE_192(
+            "PBEWITHSHAAND3-KEYTRIPLEDES-CBC",
+            DigestAlgorithm.SHA1,
+            DESEDE,
+            "PKCS12 with SHA-1 digest and Triple Data Encryption Standard 192 bit keys. OID 1.2.840.113549.1.12.1.3"
     ),
 
     PBE_WITH_SHA1_AND_RC2(
@@ -87,60 +143,11 @@ public enum CompatibilityModeEncryptionScheme implements DescribedValue {
             "PKCS12 with SHA-1 digest and Rivest Cipher 4 40 bit keys. OID 1.2.840.113549.1.12.1.2"
     ),
 
-    PBE_WITH_SHA1_AND_DESEDE_192(
-            "PBEWITHSHAAND3-KEYTRIPLEDES-CBC",
+    PBE_WITH_SHA1_AND_TWOFISH(
+            "PBEWITHSHAANDTWOFISH-CBC",
             DigestAlgorithm.SHA1,
-            DESEDE,
-            "PKCS12 with SHA-1 digest and Triple Data Encryption Standard 192 bit keys. OID 1.2.840.113549.1.12.1.3"
-    ),
-
-    PBE_WITH_SHA1_AND_DESEDE_128(
-            "PBEWITHSHAAND2-KEYTRIPLEDES-CBC",
-            DigestAlgorithm.SHA1,
-            DESEDE,
-            "PKCS12 with SHA-1 digest and Triple Data Encryption Standard 128 bit keys. OID 1.2.840.113549.1.12.1.4"
-    ),
-
-    PBE_WITH_MD5_AND_AES_CBC_128(
-            "PBEWITHMD5AND128BITAES-CBC-OPENSSL",
-            DigestAlgorithm.MD5,
-            AES,
-            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 128 bit keys."
-    ),
-
-    PBE_WITH_MD5_AND_AES_CBC_192(
-            "PBEWITHMD5AND192BITAES-CBC-OPENSSL",
-            DigestAlgorithm.MD5,
-            AES,
-            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 192 bit keys."
-    ),
-
-    PBE_WITH_MD5_AND_AES_CBC_256(
-            "PBEWITHMD5AND256BITAES-CBC-OPENSSL",
-            DigestAlgorithm.MD5,
-            AES,
-            "PKCS12 with MD5 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 256 bit keys."
-    ),
-
-    PBE_WITH_SHA1_AND_AES_CBC_128(
-            "PBEWITHSHAAND128BITAES-CBC-BC",
-            DigestAlgorithm.SHA1,
-            AES,
-            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 128 bit keys."
-    ),
-
-    PBE_WITH_SHA1_AND_AES_CBC_192(
-            "PBEWITHSHAAND192BITAES-CBC-BC",
-            DigestAlgorithm.SHA1,
-            AES,
-            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 192 bit keys."
-    ),
-
-    PBE_WITH_SHA1_AND_AES_CBC_256(
-            "PBEWITHSHAAND256BITAES-CBC-BC",
-            DigestAlgorithm.SHA1,
-            AES,
-            "PKCS12 with SHA-1 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 256 bit keys."
+            TWOFISH,
+            "PKCS12 with SHA-1 digest and Twofish in Cipher Block Chaining mode using 256 bit keys."
     ),
 
     PBE_WITH_SHA256_AND_AES_CBC_128(
@@ -162,13 +169,6 @@ public enum CompatibilityModeEncryptionScheme implements DescribedValue {
             DigestAlgorithm.SHA256,
             AES,
             "PKCS12 with SHA-256 digest and Advanced Encryption Standard in Cipher Block Chaining mode using 256 bit keys."
-    ),
-
-    PBE_WITH_SHA1_AND_TWOFISH(
-            "PBEWITHSHAANDTWOFISH-CBC",
-            DigestAlgorithm.SHA1,
-            TWOFISH,
-            "PKCS12 with SHA-1 digest and Twofish in Cipher Block Chaining mode using 256 bit keys."
     );
 
     private final String algorithm;
