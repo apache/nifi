@@ -91,7 +91,7 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
     private static final String CONTENT_TYPE = "test-content-type";
     private static final String CRC32C = "test-crc32c";
     private static final String ENCRYPTION = "test-encryption";
-    private static final String ENCRYPTION_SHA256 = "test-encryption-256";
+    private static final String ENCRYPTION_SHA256 = "12345678";
     private static final String ETAG = "test-etag";
     private static final String GENERATED_ID = "test-generated-id";
     private static final String MD5 = "test-md5";

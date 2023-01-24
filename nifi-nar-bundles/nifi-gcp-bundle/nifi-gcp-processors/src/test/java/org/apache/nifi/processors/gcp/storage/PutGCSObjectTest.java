@@ -78,7 +78,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     private static final String MD5 = "test-md5";
     private static final String CRC32C = "test-crc32c";
     private static final Storage.PredefinedAcl ACL = BUCKET_OWNER_READ;
-    private static final String ENCRYPTION_KEY = "test-encryption-key";
+    private static final String ENCRYPTION_KEY = "12345678";
     private static final Boolean OVERWRITE = false;
     private static final String CONTENT_DISPOSITION_TYPE = "inline";
 
@@ -89,7 +89,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     private static final String CONTENT_ENCODING = "test-content-encoding";
     private static final String CONTENT_LANGUAGE = "test-content-language";
     private static final String ENCRYPTION = "test-encryption";
-    private static final String ENCRYPTION_SHA256 = "test-encryption-256";
+    private static final String ENCRYPTION_SHA256 = "12345678";
     private static final String ETAG = "test-etag";
     private static final String GENERATED_ID = "test-generated-id";
     private static final String MEDIA_LINK = "test-media-link";
