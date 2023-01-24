@@ -200,8 +200,9 @@ public class TlsToolkitStandaloneTest {
 
     @Test
     public void testKeyStoreTypeArg() throws Exception {
+        final String certificateAuthorityHostname = "certificate-authority";
         runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", TlsConfig.DEFAULT_HOSTNAME, "-T", KeystoreType.PKCS12.toString().toLowerCase(),
-                "-K", "change", "-S", "change", "-P", "change");
+                "-K", "change", "-S", "change", "-P", "change", "-c", certificateAuthorityHostname);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
         checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
     }

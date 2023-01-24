@@ -83,7 +83,7 @@ public class KeyStoreUtils {
         Security.addProvider(new BouncyCastleProvider());
 
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.BCFKS.getType(), BouncyCastleProvider.PROVIDER_NAME);
-        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), BouncyCastleProvider.PROVIDER_NAME);
+        KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.PKCS12.getType(), SUN_JSSE_PROVIDER_NAME);
         KEY_STORE_TYPE_PROVIDERS.put(KeystoreType.JKS.getType(), SUN_PROVIDER_NAME);
 
         SECRET_KEY_STORE_PROVIDERS.put(KeystoreType.BCFKS, BouncyCastleProvider.PROVIDER_NAME);
