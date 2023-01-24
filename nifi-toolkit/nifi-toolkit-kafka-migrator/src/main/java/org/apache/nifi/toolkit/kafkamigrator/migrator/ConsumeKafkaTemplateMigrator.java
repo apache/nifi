@@ -16,24 +16,17 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
 
 public class ConsumeKafkaTemplateMigrator extends AbstractKafkaMigrator {
-    private static final String XPATH_FOR_TRANSACTION_PROPERTY = "entry[key=\"honor-transactions\"]/value";
-    private static final String TRANSACTION_TAG_NAME = "honor-transactions";
 
-    public ConsumeKafkaTemplateMigrator(final Map<String, String> arguments, final boolean isVersion8Processor) {
-        super(arguments, isVersion8Processor,
-                new KafkaProcessorDescriptor("Consume"),
-                "entry",
-                "key", "entry",
-                XPATH_FOR_TRANSACTION_PROPERTY, TRANSACTION_TAG_NAME);
+    public ConsumeKafkaTemplateMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        super(configurationBuilder);
     }
 
     @Override
@@ -43,13 +36,17 @@ public class ConsumeKafkaTemplateMigrator extends AbstractKafkaMigrator {
     }
 
     @Override
-    public void configureDescriptors(final Node node) throws XPathExpressionException {
-        super.configureDescriptors(node);
+    public void configureComponentSpecificSteps(final Node node) throws XPathExpressionException {
+        final Element propertyElement = (Element) XPATH.evaluate("config/properties", node, XPathConstants.NODE);
+        super.configureComponentSpecificSteps(propertyElement);
     }
 
     @Override
-    public void configureComponentSpecificSteps(final Node node, final Map<String, String> properties) throws XPathExpressionException {
-        final Element propertyElement = (Element) XPATH.evaluate("config/properties", node, XPathConstants.NODE);
-        super.configureComponentSpecificSteps(propertyElement, properties);
+    public void migrate(final Element className, final Node processor) throws XPathExpressionException {
+        configureProperties(processor);
+        configureComponentSpecificSteps(processor);
+        configureDescriptors(processor);
+        replaceClassName(className);
+        replaceArtifact(processor);
     }
 }

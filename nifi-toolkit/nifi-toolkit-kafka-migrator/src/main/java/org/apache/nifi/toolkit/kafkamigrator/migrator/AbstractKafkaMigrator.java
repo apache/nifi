@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.ProcessorDescriptor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -30,37 +32,40 @@ import java.util.Map;
 
 public abstract class AbstractKafkaMigrator implements Migrator {
     static final XPath XPATH = XPathFactory.newInstance().newXPath();
+    private final static String NEW_KAFKA_PROCESSOR_VERSION = "_2_0";
+    private final static String ARTIFACT = "nifi-kafka-2-0-nar";
+    private final static String PATH_FOR_ARTIFACT = "bundle/artifact";
+
     final boolean isVersion8Processor;
     final boolean isKafkaBrokersPresent;
+
     final Map<String, String> kafkaProcessorProperties;
     final Map<String, String> propertiesToBeSaved;
-
     final Map<String, String> controllerServices;
 
     final String xpathForProperties;
-
     final String propertyKeyTagName;
-
     final String propertyTagName;
 
     final String xpathForTransactionProperty;
     final String transactionTagName;
+    final boolean transaction;
 
-    public AbstractKafkaMigrator(final Map<String, String> arguments, final boolean isVersion8Processor,
-                                 final ProcessorDescriptor processorDescriptor, final String xpathForProperties,
-                                 final String propertyKeyTagName, final String propertyTagName,
-                                 final String xpathForTransactionProperty, final String transactionTagName) {
-        final String kafkaBrokers = arguments.get("kafkaBrokers");
+
+    public AbstractKafkaMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        final MigratorConfiguration configuration = configurationBuilder.build();
+        final String kafkaBrokers = configuration.getKafkaBrokers();
         this.isKafkaBrokersPresent = !kafkaBrokers.isEmpty();
-        this.isVersion8Processor = isVersion8Processor;
-        this.kafkaProcessorProperties = new HashMap<>(processorDescriptor.getProcessorProperties());
-        this.propertiesToBeSaved = processorDescriptor.getPropertiesToBeSaved();
-        this.controllerServices = processorDescriptor.getControllerServicesForTemplates();
-        this.xpathForProperties = xpathForProperties;
-        this.propertyKeyTagName = propertyKeyTagName;
-        this.propertyTagName = propertyTagName;
-        this.xpathForTransactionProperty = xpathForTransactionProperty;
-        this.transactionTagName = transactionTagName;
+        this.isVersion8Processor = configuration.isVersion8Processor();
+        this.kafkaProcessorProperties = new HashMap<>(configuration.getProcessorDescriptor().getProcessorProperties());
+        this.propertiesToBeSaved = configuration.getProcessorDescriptor().getPropertiesToBeSaved();
+        this.controllerServices = configuration.getProcessorDescriptor().getControllerServicesForTemplates();
+        this.xpathForProperties = configuration.getPropertyXpathDescriptor().getXpathForProperties();
+        this.propertyKeyTagName = configuration.getPropertyXpathDescriptor().getPropertyKeyTagName();
+        this.propertyTagName = configuration.getPropertyXpathDescriptor().getPropertyTagName();
+        this.xpathForTransactionProperty = configuration.getPropertyXpathDescriptor().getXpathForTransactionProperty();
+        this.transactionTagName = configuration.getPropertyXpathDescriptor().getTransactionTagName();
+        this.transaction = configuration.isTransaction();
 
         if (isKafkaBrokersPresent) {
             kafkaProcessorProperties.put("bootstrap.servers", kafkaBrokers);
@@ -94,10 +99,8 @@ public abstract class AbstractKafkaMigrator implements Migrator {
     }
 
     @Override
-    public void configureComponentSpecificSteps(final Node node, final Map<String, String> properties) throws XPathExpressionException {
-        final boolean transaction = Boolean.parseBoolean(properties.get("transaction"));
+    public void configureComponentSpecificSteps(final Node node) throws XPathExpressionException {
         final String transactionString = Boolean.toString(transaction);
-
         final Element transactionsElement = (Element) XPATH.evaluate(xpathForTransactionProperty, node, XPathConstants.NODE);
 
         if (transactionsElement != null) {
@@ -107,6 +110,23 @@ public abstract class AbstractKafkaMigrator implements Migrator {
         }
 
         kafkaProcessorProperties.put(transactionTagName, transactionString);
+    }
+
+    public void replaceClassName(final Element className) {
+        final String processorName = StringUtils.substringAfterLast(className.getTextContent(), ".");
+        final String newClassName = replaceClassNameWithNewProcessorName(className.getTextContent(), processorName);
+        className.setTextContent(newClassName);
+    }
+
+    public void replaceArtifact(final Node processor) throws XPathExpressionException {
+        ((Element) XPATH.evaluate(PATH_FOR_ARTIFACT, processor, XPathConstants.NODE)).setTextContent(ARTIFACT);
+    }
+
+    private static String replaceClassNameWithNewProcessorName(final String className, final String processorName) {
+        final String newProcessorName = StringUtils.replaceEach(processorName, new String[]{"Get", "Put"}, new String[]{"pubsub.Consume", "pubsub.Publish"});
+        final String processorNameWithNewVersion =
+                newProcessorName.replaceFirst("$|_0_1\\d?", NEW_KAFKA_PROCESSOR_VERSION);
+        return StringUtils.replace(className, processorName, processorNameWithNewVersion);
     }
 
     private void addNewDescriptors(final Node node) {

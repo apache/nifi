@@ -16,46 +16,59 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.service;
 
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaTemplateMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.Migrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.PublishKafkaTemplateMigrator;
-import org.w3c.dom.Document;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.TemplatePropertyXpathDescriptor;
 
-import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
-
-public class KafkaTemplateMigrationService extends KafkaMigrationService {
+public class KafkaTemplateMigrationService implements KafkaMigrationService {
     private static final String XPATH_FOR_PROCESSORS_IN_TEMPLATE = ".//processors";
-
     private static final String TYPE_TAG_NAME = "type";
 
     public KafkaTemplateMigrationService() {
-        this.path = XPATH_FOR_PROCESSORS_IN_TEMPLATE;
-        this.pathForClass = TYPE_TAG_NAME;
     }
 
     @Override
-    public void replaceKafkaProcessors(final Document document, final Map<String, String> arguments) throws XPathExpressionException {
-        replaceProcessors(document, arguments);
+    public String getPathForProcessors() {
+        return XPATH_FOR_PROCESSORS_IN_TEMPLATE;
     }
 
     @Override
-    protected Migrator createPublishMigrator(final Map<String, String> arguments) {
-        return new PublishKafkaTemplateMigrator(arguments, IS_NOT_VERSION_EIGHT_PROCESSOR);
+    public String getPathForClass() {
+        return TYPE_TAG_NAME;
     }
 
     @Override
-    protected Migrator createConsumeMigrator(final Map<String, String> arguments) {
-        return new ConsumeKafkaTemplateMigrator(arguments, IS_NOT_VERSION_EIGHT_PROCESSOR);
+    public Migrator createPublishMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_NOT_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Publish"))
+                            .setPropertyXpathDescriptor(new TemplatePropertyXpathDescriptor("Publish"));
+        return new PublishKafkaTemplateMigrator(configurationBuilder);
     }
 
     @Override
-    protected Migrator createVersionEightPublishMigrator(final Map<String, String> arguments) {
-        return new PublishKafkaTemplateMigrator(arguments, IS_VERSION_EIGHT_PROCESSOR);
+    public Migrator createConsumeMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_NOT_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Consume"))
+                            .setPropertyXpathDescriptor(new TemplatePropertyXpathDescriptor("Consume"));
+        return new ConsumeKafkaTemplateMigrator(configurationBuilder);
     }
 
     @Override
-    protected Migrator createVersionEightConsumeMigrator(final Map<String, String> arguments) {
-        return new ConsumeKafkaTemplateMigrator(arguments, IS_VERSION_EIGHT_PROCESSOR);
+    public Migrator createVersionEightPublishMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Publish"))
+                            .setPropertyXpathDescriptor(new TemplatePropertyXpathDescriptor("Publish"));
+        return new PublishKafkaTemplateMigrator(configurationBuilder);
+    }
+
+    @Override
+    public Migrator createVersionEightConsumeMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Consume"))
+                            .setPropertyXpathDescriptor(new TemplatePropertyXpathDescriptor("Consume"));
+        return new ConsumeKafkaTemplateMigrator(configurationBuilder);
     }
 }

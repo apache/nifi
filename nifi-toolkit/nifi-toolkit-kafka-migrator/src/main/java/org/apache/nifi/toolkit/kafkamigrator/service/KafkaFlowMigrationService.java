@@ -16,45 +16,60 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.service;
 
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaFlowMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.Migrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.PublishKafkaFlowMigrator;
-import org.w3c.dom.Document;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.FlowPropertyXpathDescriptor;
 
-import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
 
-public class KafkaFlowMigrationService extends KafkaMigrationService {
+public class KafkaFlowMigrationService implements KafkaMigrationService {
     private static final String XPATH_FOR_PROCESSORS_IN_FLOW = ".//processor";
     private static final String CLASS_TAG_NAME = "class";
 
     public KafkaFlowMigrationService() {
-        this.path = XPATH_FOR_PROCESSORS_IN_FLOW;
-        this.pathForClass = CLASS_TAG_NAME;
     }
 
     @Override
-    public void replaceKafkaProcessors(final Document document, final Map<String, String> arguments) throws XPathExpressionException {
-        replaceProcessors(document, arguments);
+    public String getPathForProcessors() {
+        return XPATH_FOR_PROCESSORS_IN_FLOW;
     }
 
     @Override
-    protected Migrator createPublishMigrator(final Map<String, String> arguments) {
-        return new PublishKafkaFlowMigrator(arguments, IS_NOT_VERSION_EIGHT_PROCESSOR);
+    public String getPathForClass() {
+        return CLASS_TAG_NAME;
     }
 
     @Override
-    protected Migrator createConsumeMigrator(final Map<String, String> arguments) {
-        return new ConsumeKafkaFlowMigrator(arguments, IS_NOT_VERSION_EIGHT_PROCESSOR);
+    public Migrator createPublishMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_NOT_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Publish"))
+                            .setPropertyXpathDescriptor(new FlowPropertyXpathDescriptor("Publish"));
+        return new PublishKafkaFlowMigrator(configurationBuilder);
     }
 
     @Override
-    protected Migrator createVersionEightPublishMigrator(final Map<String, String> arguments) {
-        return new PublishKafkaFlowMigrator(arguments, IS_VERSION_EIGHT_PROCESSOR);
+    public Migrator createConsumeMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_NOT_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Consume"))
+                            .setPropertyXpathDescriptor(new FlowPropertyXpathDescriptor("Consume"));
+        return new ConsumeKafkaFlowMigrator(configurationBuilder);
     }
 
     @Override
-    protected Migrator createVersionEightConsumeMigrator(final Map<String, String> arguments) {
-        return new ConsumeKafkaFlowMigrator(arguments, IS_VERSION_EIGHT_PROCESSOR);
+    public Migrator createVersionEightPublishMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Publish"))
+                            .setPropertyXpathDescriptor(new FlowPropertyXpathDescriptor("Publish"));
+        return new PublishKafkaFlowMigrator(configurationBuilder);
+    }
+
+    @Override
+    public Migrator createVersionEightConsumeMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        configurationBuilder.setIsVersion8Processor(IS_VERSION_EIGHT_PROCESSOR)
+                            .setProcessorDescriptor(new KafkaProcessorDescriptor("Consume"))
+                            .setPropertyXpathDescriptor(new FlowPropertyXpathDescriptor("Consume"));
+        return new ConsumeKafkaFlowMigrator(configurationBuilder);
     }
 }

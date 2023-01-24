@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
 
 public interface Migrator {
     void configureProperties(final Node node) throws XPathExpressionException;
     void configureDescriptors(final Node node) throws XPathExpressionException;
-    void configureComponentSpecificSteps(final Node node, final Map<String, String> properties) throws XPathExpressionException;
+    void configureComponentSpecificSteps(final Node node) throws XPathExpressionException;
+    void migrate(final Element className, final Node node) throws XPathExpressionException;
 }

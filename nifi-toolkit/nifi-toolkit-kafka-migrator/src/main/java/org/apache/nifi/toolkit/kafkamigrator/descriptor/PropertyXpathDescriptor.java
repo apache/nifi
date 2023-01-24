@@ -14,25 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.kafkamigrator.migrator;
+package org.apache.nifi.toolkit.kafkamigrator.descriptor;
 
-import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
-import javax.xml.xpath.XPathExpressionException;
-
-public class ConsumeKafkaFlowMigrator extends AbstractKafkaMigrator {
-
-    public ConsumeKafkaFlowMigrator(final MigratorConfigurationBuilder configurationBuilder) {
-        super(configurationBuilder);
-    }
-
-    @Override
-    public void migrate(final Element className, final Node processor) throws XPathExpressionException {
-        configureProperties(processor);
-        configureComponentSpecificSteps(processor);
-        replaceClassName(className);
-        replaceArtifact(processor);
-    }
+public interface PropertyXpathDescriptor {
+    String getXpathForProperties();
+    String getPropertyKeyTagName();
+    String getPropertyTagName();
+    String getXpathForTransactionProperty();
+    String getTransactionTagName();
 }

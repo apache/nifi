@@ -16,24 +16,17 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
 
 public class PublishKafkaTemplateMigrator extends AbstractKafkaMigrator {
-    private static final String XPATH_FOR_TRANSACTION_PROPERTY = "entry[key=\"use-transactions\"]/value";
-    private static final String TRANSACTION_TAG_NAME = "use-transactions";
 
-    public PublishKafkaTemplateMigrator(final Map<String, String> arguments, final boolean isVersion8Processor) {
-        super(arguments, isVersion8Processor,
-                new KafkaProcessorDescriptor("Publish"),
-                "entry",
-                "key", "entry",
-                XPATH_FOR_TRANSACTION_PROPERTY, TRANSACTION_TAG_NAME);
+    public PublishKafkaTemplateMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        super(configurationBuilder);
     }
 
     @Override
@@ -43,18 +36,22 @@ public class PublishKafkaTemplateMigrator extends AbstractKafkaMigrator {
     }
 
     @Override
-    public void configureDescriptors(final Node node) throws XPathExpressionException {
-        super.configureDescriptors(node);
-    }
-
-    @Override
-    public void configureComponentSpecificSteps(final Node node, final Map<String, String> properties) throws XPathExpressionException {
+    public void configureComponentSpecificSteps(final Node node) throws XPathExpressionException {
         //add value if null
         final Element propertyElement = (Element) XPATH.evaluate("config/properties", node, XPathConstants.NODE);
         final Element deliveryGuaranteeValue = (Element) XPATH.evaluate("entry[key=\"acks\"]/value", propertyElement, XPathConstants.NODE);
-        if (Boolean.parseBoolean(properties.get("transaction")) && deliveryGuaranteeValue != null) {
+        if (this.transaction && deliveryGuaranteeValue != null) {
             deliveryGuaranteeValue.setTextContent("all");
         }
-        super.configureComponentSpecificSteps(propertyElement, properties);
+        super.configureComponentSpecificSteps(propertyElement);
+    }
+
+    @Override
+    public void migrate(final Element className, final Node processor) throws XPathExpressionException {
+        configureProperties(processor);
+        configureComponentSpecificSteps(processor);
+        configureDescriptors(processor);
+        replaceClassName(className);
+        replaceArtifact(processor);
     }
 }

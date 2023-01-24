@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.service.KafkaMigrationService;
+import org.apache.nifi.toolkit.kafkamigrator.service.KafkaFlowMigrationService;
+import org.apache.nifi.toolkit.kafkamigrator.service.KafkaTemplateMigrationService;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
@@ -28,10 +29,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 
 public class KafkaMigratorMain {
 
@@ -39,42 +40,55 @@ public class KafkaMigratorMain {
         System.out.println("This application replaces Kafka processors from version 0.8, 0.9, 0.10 and 0.11 to version 2.0 processors" +
                 " in a flow.xml.gz file.");
         System.out.println("\n");
-        System.out.println("Usage: kafka-migrator.sh <path to input flow.xml.gz> <path to output flow.xml.gz>" +
-                " <use transaction true or false>\n<optional: coma separated kafka brokers in <host>:<port> format. " +
+        System.out.println("Usage: kafka-migrator.sh -i <path to input flow.xml.gz> -o <path to output flow.xml.gz>" +
+                " -t <use transaction true or false>\noptional: -k <comma separated kafka brokers in <host>:<port> format. " +
                 "Required for version 0.8 processors only>");
     }
 
     public static void main(final String[] args) throws Exception {
-        if (helpRequested(args)) {
+        if (showingUsageNeeded(args)) {
             printUsage();
             return;
         }
 
-        final String input = args[0];
-        final String output = args[1];
+        String input = "";
+        if (args[0].equalsIgnoreCase("-i")) {
+            input = args[1];
+        }
+
+        String output = "";
+        if (args[2].equalsIgnoreCase("-o")) {
+             output = args[3];
+        }
         if (input.equalsIgnoreCase(output)) {
             System.out.println("Input and output files should be different.");
             return;
         }
-        final String transaction = args[2];
+
+        String transaction = "";
+        if (args[4].equalsIgnoreCase("-t")) {
+            transaction = args[5];
+        }
+
         if (!(transaction.equalsIgnoreCase("true") || transaction.equalsIgnoreCase("false"))) {
             System.out.println("Transaction argument should be either true or false.");
             return;
         }
+
         String kafkaBrokers = "";
-        if (args.length == 4) {
-            if (args[3].matches(".+:\\d+")) {
-                kafkaBrokers = args[3];
+        if (args.length == 8) {
+            if (args[6].equalsIgnoreCase("-k") && args[7].matches(".+:\\d+")) {
+                kafkaBrokers = args[7];
             } else {
-                System.out.println("Kafka Brokers must be in a <host>:<port> format, can be separated by coma. " +
+                System.out.println("Kafka Brokers must be in a <host>:<port> format, can be separated by comma. " +
                         "For example: hostname:1234, host:5678");
                 return;
             }
         }
 
-        final Map<String, String> arguments = new HashMap<>();
-        arguments.put("transaction", transaction);
-        arguments.put("kafkaBrokers", kafkaBrokers);
+        final MigratorConfigurationBuilder configurationBuilder = new MigratorConfigurationBuilder();
+        configurationBuilder.setKafkaBrokers(kafkaBrokers)
+                            .setTransaction(Boolean.parseBoolean(transaction));
 
         final InputStream fileStream = Files.newInputStream(Paths.get(input));
         final OutputStream outputStream = Files.newOutputStream(Paths.get(output));
@@ -87,9 +101,12 @@ public class KafkaMigratorMain {
             final DocumentProvider documentProvider = new StandardDocumentProvider();
             final Document document = documentProvider.parse(gzipStream);
 
-            final KafkaMigrationService migrationService = new KafkaMigrationService();
+            final KafkaFlowMigrationService flowMigrationService = new KafkaFlowMigrationService();
+            final KafkaTemplateMigrationService templateMigrationService = new KafkaTemplateMigrationService();
+
             System.out.println("Replacing processors.");
-            migrationService.replaceKafkaProcessors(document, arguments);
+            flowMigrationService.replaceKafkaProcessors(document, configurationBuilder);
+            templateMigrationService.replaceKafkaProcessors(document, configurationBuilder);
 
             final StreamResult streamResult = new StreamResult(gzipOutStream);
             final StandardTransformProvider transformProvider = new StandardTransformProvider();
@@ -107,7 +124,7 @@ public class KafkaMigratorMain {
         }
     }
 
-    private static boolean helpRequested(String[] args) {
-        return args.length < 3 || args[0].equalsIgnoreCase("-h") || args[0].equalsIgnoreCase("--help");
+    private static boolean showingUsageNeeded(String[] args) {
+        return args.length < 6 || args[0].equalsIgnoreCase("-h") || args[0].equalsIgnoreCase("--help");
     }
 }

@@ -1597,14 +1597,14 @@ Running the script requires 3 mandatory and 1 optional parameters:
 * Input file, the full path of the flow.xml.gz in which the replacement is required.
 * Output file, the full path of the file where the results should be saved.
 * Transaction, whether the new processors should be configured with or without transaction usage.
-* Kafka Brokers, a comma separated list of Kafka Brokers in <host>:<port> format.
+* Optional: Kafka Brokers, a comma separated list of Kafka Brokers in <host>:<port> format.
 
 Different input and output files must be used.
 Kafka Broker argument can be omitted if flow does not contain GetKafka or PutKafka processors.
 
 1. Run script, a possible example:
 
- ./bin/kafka-migrator.sh "/tmp/flow/flow.xml.gz" "/tmp/flow/flow_result.xml.gz" false "mykafkaserver1:1234,mykafkaserver2:1235"
+ ./bin/kafka-migrator.sh -i "/tmp/flow/flow.xml.gz" -o "/tmp/flow/flow_result.xml.gz" -t false -k "mykafkaserver1:1234,mykafkaserver2:1235"
 
 2. Rename flow_result.xml.gz file to flow.xml.gz, do not overwrite your input file.
 3. Copy flow.xml.gz file to all the NiFi nodes conf directory
@@ -1622,8 +1622,8 @@ Kafka Broker argument can be omitted if flow does not contain GetKafka or PutKaf
 ** configure transaction as false
 *** 'Delivery Guarantee' property will keep its original setting.
 *** 'Honor-Transactions' and 'Use-Transactions' will be set to false
-* For version 8.0 processors (when kafka broker list argument provided)
-** remove all version 8.0 properties
+* For version 0.8 processors (when kafka broker list argument provided)
+** remove all version 0.8 properties
 ** add version 2.0 properties with default value except for 'Topic Name', 'Group ID',
 'Partition', 'Kafka Key', 'Delivery Guarantee' (if transaction false) and
 'Compression Codec' values which will be copied over
@@ -1638,8 +1638,8 @@ Kafka Broker argument can be omitted if flow does not contain GetKafka or PutKaf
 ** configure transaction as false
 *** 'Delivery Guarantee' property will keep its original setting.
 *** 'Honor-Transactions' and 'Use-Transactions' will be set to false
-* For version 8.0 processors (when kafka broker list argument provided)
-** remove all version 8.0 properties and descriptors
+* For version 0.8 processors (when kafka broker list argument provided)
+** remove all version 0.8 properties and descriptors
 ** add version 2.0 properties with default value except for 'Topic Name', 'Group ID',
 'Partition', 'Kafka Key', 'Delivery Guarantee' (if transaction false) and
 'Compression Codec' values which will be copied over

@@ -23,15 +23,10 @@ import java.util.Map;
 public class KafkaProcessorDescriptor implements ProcessorDescriptor {
     private static final Map<String, String> CONSUME_KAFKA_PROCESSOR_PROPERTIES;
     private static final Map<String, String> CONSUME_PROPERTIES_TO_BE_SAVED;
-
     private static final Map<String, String> PUBLISH_KAFKA_PROCESSOR_PROPERTIES;
-
     private static final Map<String, String> PUBLISH_PROPERTIES_TO_BE_SAVED;
-
     private static final Map<String, String> CONTROLLER_SERVICES;
-
     private static final Map<String, Map<String, String>> PROPERTIES;
-
     private static final Map<String, Map<String, String>> PROPERTIES_TO_BE_SAVED;
 
     static {

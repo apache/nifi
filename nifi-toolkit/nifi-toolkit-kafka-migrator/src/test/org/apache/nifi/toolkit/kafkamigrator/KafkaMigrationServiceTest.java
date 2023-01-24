@@ -29,10 +29,9 @@ import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import static org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.*;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -47,13 +46,9 @@ class KafkaMigrationServiceTest {
     private static final List<String> EXPECTED_ARTIFACTS =
             Arrays.asList("nifi-kafka-2-0-nar", "nifi-kafka-2-0-nar", "nifi-kafka-2-0-nar");
 
-    private static final Map<String, String> ARGUMENTS;
-    static {
-        ARGUMENTS = new HashMap<>();
-        ARGUMENTS.put("kafkaBrokers","localhost:1234");
-        ARGUMENTS.put("transaction","false");
-    }
-
+    private static final MigratorConfigurationBuilder CONFIGURATION_BUILDER =
+            new MigratorConfigurationBuilder().setKafkaBrokers("kafkaBrokers, localhost:1234")
+                                            .setTransaction(Boolean.FALSE);
     private static final XPath XPATH = XPathFactory.newInstance().newXPath();
     private static final String PATH_FOR_PROCESSORS_IN_FLOWS = ".//processor";
     private static final String PATH_FOR_PROCESSORS_IN_TEMPLATES = ".//processors";
@@ -68,7 +63,7 @@ class KafkaMigrationServiceTest {
         final Document document = KafkaMigrationUtil.parseDocument();
         final List<String> originalClassNames = createClassResultList(document);
 
-        kafkaMigrationService.replaceKafkaProcessors(document, ARGUMENTS);
+        kafkaMigrationService.replaceKafkaProcessors(document, CONFIGURATION_BUILDER);
         final List<String> actualClassNames = createClassResultList(document);
 
         assertSuccess(EXPECTED_CLASS_OR_TYPE_NAMES, actualClassNames, originalClassNames);
@@ -80,7 +75,7 @@ class KafkaMigrationServiceTest {
         final Document document = KafkaMigrationUtil.parseDocument();
         final List<String> originalTypeNames = createTypeResultList(document);
 
-        kafkaMigrationService.replaceKafkaProcessors(document, ARGUMENTS);
+        kafkaMigrationService.replaceKafkaProcessors(document, CONFIGURATION_BUILDER);
         final List<String> actualTypeNames = createTypeResultList(document);
 
         assertSuccess(EXPECTED_CLASS_OR_TYPE_NAMES, actualTypeNames, originalTypeNames);
@@ -92,7 +87,7 @@ class KafkaMigrationServiceTest {
         final Document document = KafkaMigrationUtil.parseDocument();
         final List<String> originalArtifacts = createArtifactResultListForTemplate(document);
 
-        kafkaMigrationService.replaceKafkaProcessors(document, ARGUMENTS);
+        kafkaMigrationService.replaceKafkaProcessors(document, CONFIGURATION_BUILDER);
         final List<String> actualArtifacts = createArtifactResultListForTemplate(document);
 
         assertSuccess(EXPECTED_ARTIFACTS, actualArtifacts, originalArtifacts);
@@ -104,7 +99,7 @@ class KafkaMigrationServiceTest {
         final Document document = KafkaMigrationUtil.parseDocument();
         final List<String> originalArtifacts = createArtifactResultListForFlow(document);
 
-        kafkaMigrationService.replaceKafkaProcessors(document, ARGUMENTS);
+        kafkaMigrationService.replaceKafkaProcessors(document, CONFIGURATION_BUILDER);
         final List<String> actualArtifacts = createArtifactResultListForFlow(document);
 
         assertSuccess(EXPECTED_ARTIFACTS, actualArtifacts, originalArtifacts);

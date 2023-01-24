@@ -16,41 +16,33 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
-import java.util.Map;
 
 public class PublishKafkaFlowMigrator extends AbstractKafkaMigrator {
-    private static final String XPATH_FOR_TRANSACTION_PROPERTY = "property[name=\"use-transactions\"]/value";
-    private static final String TRANSACTION_TAG_NAME = "use-transactions";
 
-    public PublishKafkaFlowMigrator(final Map<String, String> arguments, final boolean isVersion8Processor) {
-        super(arguments, isVersion8Processor,
-                new KafkaProcessorDescriptor("Publish"),
-                "property",
-                "name", "property",
-                XPATH_FOR_TRANSACTION_PROPERTY, TRANSACTION_TAG_NAME);
+    public PublishKafkaFlowMigrator(final MigratorConfigurationBuilder configurationBuilder) {
+        super(configurationBuilder);
     }
 
     @Override
-    public void configureProperties(final Node node) throws XPathExpressionException {
-        super.configureProperties(node);
-    }
-
-    @Override
-    public void configureDescriptors(final Node node) throws XPathExpressionException {
-    }
-
-    @Override
-    public void configureComponentSpecificSteps(final Node node, final Map<String, String> properties) throws XPathExpressionException {
+    public void configureComponentSpecificSteps(final Node node) throws XPathExpressionException {
         final Element deliveryGuaranteeValue = (Element) XPATH.evaluate("property[name=\"acks\"]/value", node, XPathConstants.NODE);
-        if (Boolean.parseBoolean(properties.get("transaction")) && deliveryGuaranteeValue != null) {
+        if (this.transaction && deliveryGuaranteeValue != null) {
             deliveryGuaranteeValue.setTextContent("all");
         }
-        super.configureComponentSpecificSteps(node, properties);
+        super.configureComponentSpecificSteps(node);
+    }
+
+    @Override
+    public void migrate(final Element className, final Node processor) throws XPathExpressionException {
+        configureProperties(processor);
+        configureComponentSpecificSteps(processor);
+        replaceClassName(className);
+        replaceArtifact(processor);
     }
 }
