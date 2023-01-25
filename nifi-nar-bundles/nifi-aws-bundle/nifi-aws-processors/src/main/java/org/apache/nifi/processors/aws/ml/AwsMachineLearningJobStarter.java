@@ -127,9 +127,10 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
     }
 
     protected void postProcessFlowFile(ProcessContext context, ProcessSession session, FlowFile flowFile, RESPONSE response) {
-        flowFile = session.putAttribute(flowFile, TASK_ID.getName(), getAwsTaskId(context, response, flowFile));
+        final String awsTaskId = getAwsTaskId(context, response, flowFile);
+        flowFile = session.putAttribute(flowFile, TASK_ID.getName(), awsTaskId);
         flowFile = session.putAttribute(flowFile, MIME_TYPE.key(), "application/json");
-        getLogger().debug("AWS ML task has been started with task id: {}", getAwsTaskId(context, response, flowFile));
+        getLogger().debug("AWS ML Task [{}] started", awsTaskId);
     }
 
     protected REQUEST buildRequest(ProcessSession session, ProcessContext context, FlowFile flowFile) throws JsonProcessingException {
