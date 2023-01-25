@@ -94,7 +94,7 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
                 session.transfer(flowFile, REL_THROTTLED);
             } else if (JobStatus.FAILED == jobStatus) {
                 session.transfer(flowFile, REL_FAILURE);
-                getLogger().error("Amazon Textract reported that the task failed for awsTaskId: {}", awsTaskId);
+                getLogger().error("Amazon Textract Task [{}] Failed", awsTaskId);
             }
         } catch (ThrottlingException e) {
             getLogger().info("Request Rate Limit exceeded", e);
