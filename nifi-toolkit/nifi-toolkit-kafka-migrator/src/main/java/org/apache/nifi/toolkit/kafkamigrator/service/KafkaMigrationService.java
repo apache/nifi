@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.kafkamigrator.service;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorType;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.Migrator;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -54,11 +55,11 @@ public interface KafkaMigrationService {
             final String processorName = StringUtils.substringAfterLast(className.getTextContent(), ".");
 
             if (processorName.matches(REGEX_FOR_REPLACEABLE_PROCESSOR_NAMES)) {
-                if (processorName.contains("Publish")) {
+                if (processorName.contains(KafkaProcessorType.PUBLISH.getProcessorType())) {
                     migrator = createPublishMigrator(configurationBuilder);
-                } else if (processorName.contains("Put")) {
+                } else if (processorName.contains(KafkaProcessorType.PUT.getProcessorType())) {
                     migrator = createVersionEightPublishMigrator(configurationBuilder);
-                } else if (processorName.contains("Consume")) {
+                } else if (processorName.contains(KafkaProcessorType.CONSUME.getProcessorType())) {
                     migrator = createConsumeMigrator(configurationBuilder);
                 } else {
                     migrator = createVersionEightConsumeMigrator(configurationBuilder);

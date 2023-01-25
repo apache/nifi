@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration;
-import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -52,8 +51,7 @@ public abstract class AbstractKafkaMigrator implements Migrator {
     final boolean transaction;
 
 
-    public AbstractKafkaMigrator(final MigratorConfigurationBuilder configurationBuilder) {
-        final MigratorConfiguration configuration = configurationBuilder.build();
+    public AbstractKafkaMigrator(final MigratorConfiguration configuration) {
         final String kafkaBrokers = configuration.getKafkaBrokers();
         this.isKafkaBrokersPresent = !kafkaBrokers.isEmpty();
         this.isVersion8Processor = configuration.isVersion8Processor();

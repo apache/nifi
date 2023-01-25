@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.PropertyXpathDescriptor;
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.FlowPropertyXpathDescriptor;
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.TemplatePropertyXpathDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.*;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaFlowMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaTemplateMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.PublishKafkaFlowMigrator;
@@ -49,20 +46,18 @@ class KafkaMigratorTest {
 
     private static final String XPATH_FOR_CONSUME_PROCESSOR_IN_FLOW = ".//processor[class='org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10']";
     private static final String XPATH_FOR_CONSUME_PROCESSOR_IN_TEMPLATE = ".//processors[type='org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10']";
-    private static final KafkaProcessorDescriptor PUBLISH_KAFKA_PROCESSOR_DESCRIPTOR = new KafkaProcessorDescriptor("Publish");
+    private static final KafkaProcessorDescriptor PUBLISH_KAFKA_PROCESSOR_DESCRIPTOR = new KafkaProcessorDescriptor(KafkaProcessorType.PUBLISH);
     private static final boolean WITH_TRANSACTION = Boolean.TRUE;
     private static final boolean WITHOUT_TRANSACTION = Boolean.FALSE;
     private static final boolean IS_VERSION_EIGHT_PROCESSOR = Boolean.TRUE;
     private static final boolean IS_NOT_VERSION_EIGHT_PROCESSOR = Boolean.FALSE;
     private static final String FLOW = "Flow";
     private static final String TEMPLATE = "Template";
-    private static final String CONSUME = "Consume";
-    private static final String PUBLISH = "Publish";
 
     @Test
     public void testPropertiesRemoved() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, FLOW);
-        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, FLOW);
+        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -73,8 +68,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testPropertiesAdded() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, FLOW);
-        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR,KafkaProcessorType.PUBLISH, FLOW);
+        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -85,8 +80,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testPropertiesSaved() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, FLOW);
-        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, FLOW);
+        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
         final List<String> oldValues = getOldValues(processor);
@@ -99,8 +94,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testDescriptorsAdded() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, TEMPLATE);
-        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, TEMPLATE);
+        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -111,8 +106,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testDescriptorsRemoved() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, TEMPLATE);
-        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, TEMPLATE);
+        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -123,8 +118,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionFlowPropertyForConsumeProcessorWithTrue() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITH_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, CONSUME, FLOW);
-        final ConsumeKafkaFlowMigrator flowMigrator = new ConsumeKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITH_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.CONSUME, FLOW);
+        final ConsumeKafkaFlowMigrator flowMigrator = new ConsumeKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_CONSUME_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -135,8 +130,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionTemplatePropertyForConsumeProcessorWithTrue() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITH_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, CONSUME, TEMPLATE);
-        final ConsumeKafkaTemplateMigrator templateMigrator = new ConsumeKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITH_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.CONSUME, TEMPLATE);
+        final ConsumeKafkaTemplateMigrator templateMigrator = new ConsumeKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_CONSUME_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -147,8 +142,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionFlowPropertyForConsumeProcessorWithFalse() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, CONSUME, FLOW);
-        final ConsumeKafkaFlowMigrator flowMigrator = new ConsumeKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.CONSUME, FLOW);
+        final ConsumeKafkaFlowMigrator flowMigrator = new ConsumeKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_CONSUME_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -159,8 +154,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionTemplatePropertyForConsumeProcessorWithFalse() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, CONSUME, TEMPLATE);
-        final ConsumeKafkaTemplateMigrator templateMigrator = new ConsumeKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_NOT_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.CONSUME, TEMPLATE);
+        final ConsumeKafkaTemplateMigrator templateMigrator = new ConsumeKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_CONSUME_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -171,8 +166,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionFlowPropertyForPublishProcessorWithTrue() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITH_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, FLOW);
-        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITH_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, FLOW);
+        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -185,8 +180,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionTemplatePropertyForPublishProcessorWithTrue() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITH_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, TEMPLATE);
-        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITH_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, TEMPLATE);
+        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -198,8 +193,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionFlowPropertyForPublishProcessorWithFalse() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, FLOW);
-        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, FLOW);
+        final PublishKafkaFlowMigrator flowMigrator = new PublishKafkaFlowMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW, document, XPathConstants.NODE);
 
@@ -210,8 +205,8 @@ class KafkaMigratorTest {
 
     @Test
     public void testTransactionTemplatePropertyForPublishProcessorWithFalse() throws XPathExpressionException, IOException {
-        final MigratorConfigurationBuilder configurationBuilder = getConfigurationBuilder(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, PUBLISH, TEMPLATE);
-        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configurationBuilder);
+        final MigratorConfiguration configuration = getConfiguration(WITHOUT_TRANSACTION, IS_VERSION_EIGHT_PROCESSOR, KafkaProcessorType.PUBLISH, TEMPLATE);
+        final PublishKafkaTemplateMigrator templateMigrator = new PublishKafkaTemplateMigrator(configuration);
         final Document document = KafkaMigrationUtil.parseDocument();
         final Node processor = (Node) XPATH.evaluate(XPATH_FOR_PUBLISH_PROCESSOR_IN_TEMPLATE, document, XPathConstants.NODE);
 
@@ -258,8 +253,8 @@ class KafkaMigratorTest {
         assertAddSuccess("config/descriptors/entry[key='%s']/key", node);
     }
 
-    private MigratorConfigurationBuilder getConfigurationBuilder(final boolean transaction, final boolean isVersion8Processor,
-                                    final String processorType, final String migrationType) {
+    private MigratorConfiguration getConfiguration(final boolean transaction, final boolean isVersion8Processor,
+                                                   final KafkaProcessorType processorType, final String migrationType) {
         final MigratorConfigurationBuilder configurationBuilder = new MigratorConfigurationBuilder();
         final PropertyXpathDescriptor propertyXpathDescriptor;
 
@@ -273,6 +268,7 @@ class KafkaMigratorTest {
                                     .setTransaction(transaction)
                                     .setIsVersion8Processor(isVersion8Processor)
                                     .setProcessorDescriptor(new KafkaProcessorDescriptor(processorType))
-                                    .setPropertyXpathDescriptor(propertyXpathDescriptor);
+                                    .setPropertyXpathDescriptor(propertyXpathDescriptor)
+                                    .build();
     }
 }

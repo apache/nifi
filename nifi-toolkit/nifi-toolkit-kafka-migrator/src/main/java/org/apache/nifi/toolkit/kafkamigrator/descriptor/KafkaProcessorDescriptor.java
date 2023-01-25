@@ -26,8 +26,8 @@ public class KafkaProcessorDescriptor implements ProcessorDescriptor {
     private static final Map<String, String> PUBLISH_KAFKA_PROCESSOR_PROPERTIES;
     private static final Map<String, String> PUBLISH_PROPERTIES_TO_BE_SAVED;
     private static final Map<String, String> CONTROLLER_SERVICES;
-    private static final Map<String, Map<String, String>> PROPERTIES;
-    private static final Map<String, Map<String, String>> PROPERTIES_TO_BE_SAVED;
+    private static final Map<KafkaProcessorType, Map<String, String>> PROPERTIES;
+    private static final Map<KafkaProcessorType, Map<String, String>> PROPERTIES_TO_BE_SAVED;
 
     static {
         CONSUME_KAFKA_PROCESSOR_PROPERTIES = new HashMap<>();
@@ -97,17 +97,17 @@ public class KafkaProcessorDescriptor implements ProcessorDescriptor {
         CONTROLLER_SERVICES.put("ssl.context.service", "org.apache.nifi.ssl.SSLContextService");
 
         PROPERTIES = new HashMap<>();
-        PROPERTIES.put("Consume", CONSUME_KAFKA_PROCESSOR_PROPERTIES);
-        PROPERTIES.put("Publish", PUBLISH_KAFKA_PROCESSOR_PROPERTIES);
+        PROPERTIES.put(KafkaProcessorType.CONSUME, CONSUME_KAFKA_PROCESSOR_PROPERTIES);
+        PROPERTIES.put(KafkaProcessorType.PUBLISH, PUBLISH_KAFKA_PROCESSOR_PROPERTIES);
 
         PROPERTIES_TO_BE_SAVED = new HashMap<>();
-        PROPERTIES_TO_BE_SAVED.put("Consume", CONSUME_PROPERTIES_TO_BE_SAVED);
-        PROPERTIES_TO_BE_SAVED.put("Publish", PUBLISH_PROPERTIES_TO_BE_SAVED);
+        PROPERTIES_TO_BE_SAVED.put(KafkaProcessorType.CONSUME, CONSUME_PROPERTIES_TO_BE_SAVED);
+        PROPERTIES_TO_BE_SAVED.put(KafkaProcessorType.PUBLISH, PUBLISH_PROPERTIES_TO_BE_SAVED);
     }
 
-    private final String processorType;
+    private final KafkaProcessorType processorType;
 
-    public KafkaProcessorDescriptor(final String processorType) {
+    public KafkaProcessorDescriptor(final KafkaProcessorType processorType) {
         this.processorType = processorType;
     }
 

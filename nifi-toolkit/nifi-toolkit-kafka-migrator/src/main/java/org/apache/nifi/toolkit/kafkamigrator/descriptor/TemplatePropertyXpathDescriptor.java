@@ -23,7 +23,7 @@ public class TemplatePropertyXpathDescriptor implements PropertyXpathDescriptor 
 
     private static final Map<String, String> CONSUME_TRANSACTION_PROPERTIES;
     private static final Map<String, String> PUBLISH_TRANSACTION_PROPERTIES;
-    private static final Map<String, Map<String, String>> TRANSACTION_PROPERTIES;
+    private static final Map<KafkaProcessorType, Map<String, String>> TRANSACTION_PROPERTIES;
     static {
         CONSUME_TRANSACTION_PROPERTIES = new HashMap<>();
         CONSUME_TRANSACTION_PROPERTIES.put("xpathForTransactionProperty", "entry[key=\"honor-transactions\"]/value");
@@ -32,13 +32,13 @@ public class TemplatePropertyXpathDescriptor implements PropertyXpathDescriptor 
         PUBLISH_TRANSACTION_PROPERTIES.put("xpathForTransactionProperty", "entry[key=\"use-transactions\"]/value");
         PUBLISH_TRANSACTION_PROPERTIES.put("transactionTagName", "use-transactions");
         TRANSACTION_PROPERTIES = new HashMap<>();
-        TRANSACTION_PROPERTIES.put("Consume", CONSUME_TRANSACTION_PROPERTIES);
-        TRANSACTION_PROPERTIES.put("Publish", PUBLISH_TRANSACTION_PROPERTIES);
+        TRANSACTION_PROPERTIES.put(KafkaProcessorType.CONSUME, CONSUME_TRANSACTION_PROPERTIES);
+        TRANSACTION_PROPERTIES.put(KafkaProcessorType.PUBLISH, PUBLISH_TRANSACTION_PROPERTIES);
     }
 
-    private final String processorType;
+    private final KafkaProcessorType processorType;
 
-    public TemplatePropertyXpathDescriptor(final String processorType) {
+    public TemplatePropertyXpathDescriptor(final KafkaProcessorType processorType) {
         this.processorType = processorType;
     }
 

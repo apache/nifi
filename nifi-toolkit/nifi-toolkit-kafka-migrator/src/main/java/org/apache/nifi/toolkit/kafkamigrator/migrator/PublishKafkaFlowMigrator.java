@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator.migrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -25,8 +25,8 @@ import javax.xml.xpath.XPathExpressionException;
 
 public class PublishKafkaFlowMigrator extends AbstractKafkaMigrator {
 
-    public PublishKafkaFlowMigrator(final MigratorConfigurationBuilder configurationBuilder) {
-        super(configurationBuilder);
+    public PublishKafkaFlowMigrator(final MigratorConfiguration configuration) {
+        super(configuration);
     }
 
     @Override

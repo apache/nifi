@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.toolkit.kafkamigrator.migrator;
+package org.apache.nifi.toolkit.kafkamigrator.descriptor;
 
-import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
+public enum KafkaProcessorType {
+    PUBLISH("Publish"),
+    CONSUME("Consume"),
+    PUT("Put");
 
-import javax.xml.xpath.XPathExpressionException;
+    private final String processorType;
 
-public class ConsumeKafkaFlowMigrator extends AbstractKafkaMigrator {
-
-    public ConsumeKafkaFlowMigrator(final MigratorConfiguration configuration) {
-        super(configuration);
+    KafkaProcessorType(String processorType) {
+        this.processorType = processorType;
     }
 
-    @Override
-    public void migrate(final Element className, final Node processor) throws XPathExpressionException {
-        configureProperties(processor);
-        configureComponentSpecificSteps(processor);
-        replaceClassName(className);
-        replaceArtifact(processor);
+    public String getProcessorType() {
+        return processorType;
     }
 }
