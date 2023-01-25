@@ -1907,16 +1907,25 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 if (reference == null) {
                     parameterProviderIdToSet = null;
                 } else {
-                    final String newParameterProviderId = componentIdGenerator.generateUuid(parameterProviderId, parameterProviderId, null);
+                    parameterProviderNode = context.getFlowManager().getParameterProvider(reference.getIdentifier());
+                    if (parameterProviderNode != null) {
+                        parameterProviderIdToSet = reference.getIdentifier();
+                    } else {
+                        final String newParameterProviderId = componentIdGenerator.generateUuid(parameterProviderId, parameterProviderId, null);
 
-                    final Bundle bundle = reference.getBundle();
-                    parameterProviderNode = context.getFlowManager().createParameterProvider(reference.getType(), newParameterProviderId,
-                            new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion()), true);
+                        final Bundle bundle = reference.getBundle();
+                        parameterProviderNode = context.getFlowManager().createParameterProvider(reference.getType(), newParameterProviderId,
+                                new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion()), true);
 
-                    parameterProviderNode.pauseValidationTrigger(); // avoid triggering validation multiple times
-                    parameterProviderNode.setName(reference.getName());
-                    parameterProviderNode.resumeValidationTrigger();
-                    parameterProviderIdToSet = parameterProviderNode.getIdentifier();
+                        parameterProviderNode.pauseValidationTrigger(); // avoid triggering validation multiple times
+                        parameterProviderNode.setName(reference.getName());
+                        parameterProviderNode.resumeValidationTrigger();
+                        parameterProviderIdToSet = parameterProviderNode.getIdentifier();
+
+                        // Set the reference id to the new id so it can be picked up by other contexts referencing the same provider
+                        reference.setIdentifier(parameterProviderIdToSet);
+                        parameterProviderReferences.put(parameterProviderIdToSet, reference);
+                    }
                 }
             }
         }
