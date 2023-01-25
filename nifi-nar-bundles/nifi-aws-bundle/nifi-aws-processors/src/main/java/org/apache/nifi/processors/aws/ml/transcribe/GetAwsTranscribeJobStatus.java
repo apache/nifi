@@ -70,7 +70,7 @@ public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusProces
                 final String failureReason = job.getTranscriptionJob().getFailureReason();
                 session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
                 session.transfer(flowFile, REL_FAILURE);
-                getLogger().error("Transcribe Task Failed for {}: {}", flowFile, failureReason);
+                getLogger().error("Transcribe Task Failed {} Reason [{}]", flowFile, failureReason);
             }
         } catch (ThrottlingException e) {
             getLogger().info("Request Rate Limit exceeded", e);
