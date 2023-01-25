@@ -98,7 +98,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
             childFlowFile = session.putAttribute(childFlowFile, AWS_TASK_OUTPUT_LOCATION, outputUri);
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(childFlowFile, REL_SUCCESS);
-            getLogger().info("Amazon Polly reported that the task completed for {}", flowFile);
+            getLogger().info("Amazon Polly Task Completed {}", flowFile);
         } else if (taskStatus == TaskStatus.Failed) {
             final String failureReason =  speechSynthesisTask.getSynthesisTask().getTaskStatusReason();
             flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
