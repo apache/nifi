@@ -68,18 +68,18 @@ public class StandardFlowComparator implements FlowComparator {
     private final DifferenceDescriptor differenceDescriptor;
     private final Function<String, String> propertyDecryptor;
     private final Function<VersionedComponent, String> idLookup;
-    private final boolean includeIndependentlyVersioned;
+    private final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy;
 
     public StandardFlowComparator(final ComparableDataFlow flowA, final ComparableDataFlow flowB, final Set<String> externallyAccessibleServiceIds,
                                   final DifferenceDescriptor differenceDescriptor, final Function<String, String> propertyDecryptor,
-                                  final Function<VersionedComponent, String> idLookup, final boolean includeIndependentlyVersioned) {
+                                  final Function<VersionedComponent, String> idLookup, final FlowComparatorVersionedStrategy flowComparatorVersionedStrategy) {
         this.flowA = flowA;
         this.flowB = flowB;
         this.externallyAccessibleServiceIds = externallyAccessibleServiceIds;
         this.differenceDescriptor = differenceDescriptor;
         this.propertyDecryptor = propertyDecryptor;
         this.idLookup = idLookup;
-        this.includeIndependentlyVersioned = includeIndependentlyVersioned;
+        this.flowComparatorVersionedStrategy = flowComparatorVersionedStrategy;
     }
 
     @Override
@@ -533,7 +533,7 @@ public class StandardFlowComparator implements FlowComparator {
         // OR
         // - explicitly requested comparison for embedded versioned groups
         final boolean shouldCompareVersioned = flowCoordinateDifferences.stream()
-            .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || includeIndependentlyVersioned;
+            .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP;
         final boolean compareGroupContents = (groupACoordinates == null && groupBCoordinates == null)
             || (groupACoordinates != null && groupBCoordinates != null && shouldCompareVersioned);
 
