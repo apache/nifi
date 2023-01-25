@@ -103,7 +103,7 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
             final String failureReason =  speechSynthesisTask.getSynthesisTask().getTaskStatusReason();
             flowFile = session.putAttribute(flowFile, FAILURE_REASON_ATTRIBUTE, failureReason);
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().error("Amazon Polly reported that the task failed for {}: {}", flowFile, failureReason);
+            getLogger().error("Amazon Polly Task Failed {} Reason [{}]", flowFile, failureReason);
         }
     }
 
