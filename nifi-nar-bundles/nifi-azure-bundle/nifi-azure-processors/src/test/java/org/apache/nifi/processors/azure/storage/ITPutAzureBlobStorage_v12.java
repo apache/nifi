@@ -71,7 +71,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runProcessor(BLOB_DATA);
 
         assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
-        assert ((ITProcessor) runner.getProcessor()).blobMetadataApplied;
+        assertTrue(((ITProcessor) runner.getProcessor()).blobMetadataApplied);
     }
 
     @Test
