@@ -75,10 +75,10 @@ public abstract class AwsMachineLearningJobStarter<T extends AmazonWebServiceCli
             .autoTerminateDefault(true)
             .build();
     protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            JSON_PAYLOAD,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             TIMEOUT,
+            JSON_PAYLOAD,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE));
     private final static ObjectMapper MAPPER = JsonMapper.builder()
