@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -54,6 +55,10 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"encode", "base64"})
 @CapabilityDescription("Encodes or decodes content to and from base64")
 @InputRequirement(Requirement.INPUT_REQUIRED)
+@DeprecationNotice(
+        alternatives = EncodeContent.class,
+        reason = "EncodeContent supports Base64 and additional encoding schemes"
+)
 public class Base64EncodeContent extends AbstractProcessor {
 
     public static final String ENCODE_MODE = "Encode";
