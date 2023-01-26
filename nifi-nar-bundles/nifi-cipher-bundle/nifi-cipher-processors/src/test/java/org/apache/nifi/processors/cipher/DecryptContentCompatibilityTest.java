@@ -44,12 +44,12 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DecryptContentCompatibilityModeTest {
+class DecryptContentCompatibilityTest {
     private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 
     private static final String PASSWORD = "password";
 
-    private static final byte[] RAW = DecryptContentCompatibilityMode.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
+    private static final byte[] RAW = DecryptContentCompatibility.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -69,16 +69,16 @@ class DecryptContentCompatibilityModeTest {
 
     @BeforeEach
     void setRunner() {
-        runner = TestRunners.newTestRunner(DecryptContentCompatibilityMode.class);
+        runner = TestRunners.newTestRunner(DecryptContentCompatibility.class);
     }
 
     @ParameterizedTest
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationOpenSslUnsalted(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibilityMode.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.ENCRYPTION_SCHEME, encryptionScheme.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.PASSWORD, PASSWORD);
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
+        runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(encryptionScheme);
         final byte[] encrypted = getEncrypted(cipher, keyDerivationStrategy, EMPTY_SALT, RAW);
@@ -89,9 +89,9 @@ class DecryptContentCompatibilityModeTest {
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationOpenSslSalted(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibilityMode.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.ENCRYPTION_SCHEME, encryptionScheme.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.PASSWORD, PASSWORD);
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
+        runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(encryptionScheme);
         final byte[] encrypted = getEncrypted(cipher, keyDerivationStrategy, OPENSSL_SALT, RAW);
@@ -101,9 +101,9 @@ class DecryptContentCompatibilityModeTest {
     @Test
     void testRunKeyDerivationOpenSslSaltedStream() throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.OPENSSL_EVP_BYTES_TO_KEY;
-        runner.setProperty(DecryptContentCompatibilityMode.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.PASSWORD, PASSWORD);
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
+        runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(SIMPLE_ENCRYPTION_SCHEME);
 
@@ -116,9 +116,9 @@ class DecryptContentCompatibilityModeTest {
     @EnumSource(CompatibilityModeEncryptionScheme.class)
     void testRunKeyDerivationJasyptStandard(final CompatibilityModeEncryptionScheme encryptionScheme) throws Exception {
         final CompatibilityModeKeyDerivationStrategy keyDerivationStrategy = CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD;
-        runner.setProperty(DecryptContentCompatibilityMode.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.ENCRYPTION_SCHEME, encryptionScheme.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.PASSWORD, PASSWORD);
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, keyDerivationStrategy.getValue());
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, encryptionScheme.getValue());
+        runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
 
         final Cipher cipher = getCipher(encryptionScheme);
         final byte[] salt = getSalt(cipher, keyDerivationStrategy);
@@ -136,7 +136,7 @@ class DecryptContentCompatibilityModeTest {
         runner.enqueue(encrypted);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentCompatibilityMode.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContentCompatibility.FAILURE);
 
         assertErrorLogged();
     }
@@ -148,7 +148,7 @@ class DecryptContentCompatibilityModeTest {
         runner.enqueue(EMPTY_SALT);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentCompatibilityMode.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContentCompatibility.FAILURE);
 
         assertErrorLogged();
     }
@@ -160,15 +160,15 @@ class DecryptContentCompatibilityModeTest {
         runner.enqueue(WORD);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentCompatibilityMode.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContentCompatibility.FAILURE);
 
         assertErrorLogged();
     }
 
     private void setSimpleEncryptionScheme() {
-        runner.setProperty(DecryptContentCompatibilityMode.KEY_DERIVATION_STRATEGY, CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
-        runner.setProperty(DecryptContentCompatibilityMode.PASSWORD, PASSWORD);
+        runner.setProperty(DecryptContentCompatibility.KEY_DERIVATION_STRATEGY, CompatibilityModeKeyDerivationStrategy.JASYPT_STANDARD.getValue());
+        runner.setProperty(DecryptContentCompatibility.ENCRYPTION_SCHEME, SIMPLE_ENCRYPTION_SCHEME.getValue());
+        runner.setProperty(DecryptContentCompatibility.PASSWORD, PASSWORD);
     }
 
     private void assertErrorLogged() {
@@ -185,8 +185,8 @@ class DecryptContentCompatibilityModeTest {
         runner.enqueue(encrypted);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentCompatibilityMode.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContentCompatibilityMode.SUCCESS).get(0);
+        runner.assertAllFlowFilesTransferred(DecryptContentCompatibility.SUCCESS);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContentCompatibility.SUCCESS).get(0);
 
         flowFile.assertContentEquals(expected);
 

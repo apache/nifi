@@ -66,7 +66,7 @@ import java.util.Set;
         @WritesAttribute(attribute = CipherAttributeKey.PBE_SYMMETRIC_CIPHER, description = "Password-Based Encryption Block Cipher"),
         @WritesAttribute(attribute = CipherAttributeKey.PBE_DIGEST_ALGORITHM, description = "Password-Based Encryption Digest Algorithm"),
 })
-public class DecryptContentCompatibilityMode extends AbstractProcessor {
+public class DecryptContentCompatibility extends AbstractProcessor {
 
     static final PropertyDescriptor ENCRYPTION_SCHEME = new PropertyDescriptor.Builder()
             .name("encryption-scheme")

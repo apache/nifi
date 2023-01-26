@@ -37,7 +37,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class DecryptContentEncodedTest {
+class DecryptContentTest {
 
     private static final byte[] WORD = {'W', 'O', 'R', 'D'};
 
@@ -83,44 +83,44 @@ class DecryptContentEncodedTest {
 
     @BeforeEach
     void setRunner() {
-        runner = TestRunners.newTestRunner(DecryptContentEncoded.class);
+        runner = TestRunners.newTestRunner(DecryptContent.class);
     }
 
     @Test
     void testRunInitializationVectorNotFound() {
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
 
         runner.enqueue(WORD);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentEncoded.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContent.FAILURE);
         assertErrorLogged();
     }
 
     @Test
     void testRunInputNotFound() {
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
 
         final byte[] bytes = Arrays.concatenate(INITIALIZATION_VECTOR, EncodedDelimiter.IV.getDelimiter());
         runner.enqueue(bytes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentEncoded.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContent.FAILURE);
         assertErrorLogged();
     }
 
     @Test
     void testRunInputInvalid() {
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
 
         final byte[] bytes = Arrays.concatenate(INITIALIZATION_VECTOR, EncodedDelimiter.IV.getDelimiter(), INITIALIZATION_VECTOR);
         runner.enqueue(bytes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(DecryptContentEncoded.FAILURE);
+        runner.assertAllFlowFilesTransferred(DecryptContent.FAILURE);
         assertErrorLogged();
     }
 
@@ -170,10 +170,10 @@ class DecryptContentEncodedTest {
 
     @Test
     void testRunAesCtrNoPaddingRaw() throws IOException {
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
-        runner.setProperty(DecryptContentEncoded.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.CTR.getValue());
-        runner.setProperty(DecryptContentEncoded.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.RAW.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION, HEXADECIMAL_KEY_SPECIFICATION);
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.CTR.getValue());
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
 
         final byte[] encryptedBytes = getHexadecimalKeyEncryptedBytes();
         runner.enqueue(encryptedBytes);
@@ -183,15 +183,15 @@ class DecryptContentEncodedTest {
     }
 
     private void setGcmNoPaddingPassword() {
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
-        runner.setProperty(DecryptContentEncoded.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
-        runner.setProperty(DecryptContentEncoded.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.GCM.getValue());
-        runner.setProperty(DecryptContentEncoded.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION_FORMAT, KeySpecificationFormat.PASSWORD.getValue());
+        runner.setProperty(DecryptContent.KEY_SPECIFICATION, SECRET_KEY_SPECIFICATION);
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_MODE, CipherAlgorithmMode.GCM.getValue());
+        runner.setProperty(DecryptContent.CIPHER_ALGORITHM_PADDING, CipherAlgorithmPadding.NO_PADDING.getValue());
     }
 
     private void assertDecryptedSuccess() {
-        runner.assertAllFlowFilesTransferred(DecryptContentEncoded.SUCCESS);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContentEncoded.SUCCESS).get(0);
+        runner.assertAllFlowFilesTransferred(DecryptContent.SUCCESS);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(DecryptContent.SUCCESS).get(0);
         flowFile.assertContentEquals(UNENCRYPTED);
     }
 

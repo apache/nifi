@@ -70,7 +70,7 @@ import java.util.Set;
         "The salt format indicates the Key Derivation Function that the Processor uses to generate a secret key based on a configured password. " +
         "The Processor derives keys with a size of 128 bits according to the conventions implemented in NiFi 0.5.0."
 )
-public class DecryptContentEncoded extends AbstractProcessor {
+public class DecryptContent extends AbstractProcessor {
 
     static final PropertyDescriptor CIPHER_ALGORITHM_MODE = new PropertyDescriptor.Builder()
             .name("cipher-algorithm-mode")
