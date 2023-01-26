@@ -879,6 +879,10 @@ public class NiFiRegistryFlowMapper {
 
     private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts,
                                      final Map<String, ParameterProviderReference> parameterProviderReferences) {
+        if (parameterContexts.containsKey(parameterContext.getName())) {
+            return;
+        }
+
         // map this process group's parameter context and add to the collection
         final Set<VersionedParameter> parameters = mapParameters(parameterContext);
 
