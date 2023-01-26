@@ -44,7 +44,8 @@ public class TweetStreamService {
     private final BlockingQueue<String> queue;
     private final ComponentLog logger;
 
-    private final ScheduledExecutorService executorService;
+    private ScheduledExecutorService executorService;
+    private final ThreadFactory threadFactory;
 
     private final Set<String> tweetFields;
     private final Set<String> userFields;
@@ -107,8 +108,7 @@ public class TweetStreamService {
         final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
         api.getApiClient().setBasePath(basePath);
 
-        final ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
-        this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
+        threadFactory = new BasicThreadFactory.Builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
     }
 
     public String getTransitUri(final String endpoint) {
@@ -128,6 +128,7 @@ public class TweetStreamService {
      * to run until {@code stop} is called.
      */
     public void start() {
+        this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
         executorService.execute(new TweetStreamStarter());
     }
 
@@ -145,6 +146,7 @@ public class TweetStreamService {
         }
 
         executorService.shutdownNow();
+        executorService = null;
     }
 
     private Long calculateBackoffDelay() {

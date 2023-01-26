@@ -26,6 +26,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -49,6 +51,7 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @PrimaryNodeOnly
@@ -255,6 +258,8 @@ public class ConsumeTwitter extends AbstractProcessor {
 
     private volatile BlockingQueue<String> messageQueue;
 
+    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
+
     @Override
     protected void init(ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -296,13 +301,13 @@ public class ConsumeTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         messageQueue = new LinkedBlockingQueue<>(context.getProperty(QUEUE_SIZE).asInteger());
-
-        tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
-        tweetStreamService.start();
+        isInitialized.set(false);
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        startTweetStreamService(context);
+
         final String firstTweet = messageQueue.poll();
         if (firstTweet == null) {
             context.yield();
@@ -338,14 +343,42 @@ public class ConsumeTwitter extends AbstractProcessor {
         session.getProvenanceReporter().receive(flowFile, transitUri);
     }
 
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeStateChange(final PrimaryNodeState newState) {
+        if (newState == PrimaryNodeState.PRIMARY_NODE_REVOKED) {
+            stopTweetStreamService(true);
+        }
+    }
+
     @OnStopped
     public void onStopped() {
-        if (tweetStreamService != null) {
-            tweetStreamService.stop();
-        }
-        tweetStreamService = null;
+        stopTweetStreamService(false);
         emptyQueue();
     }
+
+    private synchronized void startTweetStreamService(final ProcessContext context) {
+        if (isInitialized.compareAndSet(false, true)) {
+            tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
+            tweetStreamService.start();
+        }
+
+    }
+
+    private synchronized void stopTweetStreamService(final boolean printMessageQueueWarning) {
+        if (isInitialized.compareAndSet(true, false)) {
+            if (tweetStreamService != null) {
+                tweetStreamService.stop();
+            }
+            tweetStreamService = null;
+
+            if (printMessageQueueWarning && !messageQueue.isEmpty()) {
+                final String warningMsg = String.format("There are [%s] tweets remaining in the queue, it will only " +
+                        "be processed once this node becomes the primary node again.", messageQueue.size());
+                getLogger().warn(warningMsg);
+            }
+        }
+    }
+
 
     private void emptyQueue() {
         while (!messageQueue.isEmpty()) {
