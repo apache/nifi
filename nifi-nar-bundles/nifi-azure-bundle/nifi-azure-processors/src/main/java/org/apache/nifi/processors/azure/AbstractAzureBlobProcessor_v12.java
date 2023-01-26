@@ -189,8 +189,12 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         attributes.computeIfAbsent(ATTR_NAME_ETAG, key -> props.get().getETag());
         attributes.computeIfAbsent(ATTR_NAME_BLOBTYPE, key -> props.get().getBlobType().toString());
         attributes.computeIfAbsent(ATTR_NAME_MIME_TYPE, key -> props.get().getContentType());
-        attributes.computeIfAbsent(ATTR_NAME_LANG, key -> props.get().getContentLanguage());
         attributes.computeIfAbsent(ATTR_NAME_TIMESTAMP, key -> String.valueOf(props.get().getLastModified()));
         attributes.computeIfAbsent(ATTR_NAME_LENGTH, key -> String.valueOf(props.get().getBlobSize()));
+        
+        // The LANG attribute is a special case because we allow it to be null.
+        if (!attributes.containsKey(ATTR_NAME_LANG)) {
+            attributes.put(ATTR_NAME_LANG, props.get().getContentLanguage());
+        }
     }
 }
