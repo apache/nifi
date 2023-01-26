@@ -17,9 +17,9 @@
 
 package org.apache.nifi.processors.dropbox;
 
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.FAIL;
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.REPLACE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

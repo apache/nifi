@@ -18,9 +18,9 @@
 package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.FAIL;
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy.REPLACE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.FAIL;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
@@ -61,7 +61,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import org.apache.nifi.processors.conflictresolution.ConflictResolutionStrategy;
+import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
