@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
+import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -30,48 +31,35 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
 
     @Test
     void testUploadFile() {
-
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-   
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
-
-
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
-
     }
 
     @Test
-    void testSubfolderIsCreated()  {
-
+    void testSubfoldersAreCreated()  {
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.SUBFOLDER_NAME, "sub1/sub2/sub3");
         testRunner.setProperty(PutBoxFile.CREATE_SUBFOLDER, "true");
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-   
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
-
-
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
-
     }
 
     @Test
     void testUploadExistingFileFailResolution()  {
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
-
         testRunner.assertTransferCount(PutBoxFile.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutBoxFile.REL_FAILURE, 0);
         testRunner.clearTransferState();
-
         testRunner.enqueue(CHANGED_FILE_CONTENT);
         testRunner.run();
         testRunner.assertTransferCount(PutBoxFile.REL_SUCCESS, 0);
@@ -82,7 +70,7 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
     void testUploadExistingFileIgnoreResolution()  {
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutBoxFile.CONFLICT_RESOLUTION, PutBoxFile.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutBoxFile.CONFLICT_RESOLUTION, ConflictResolutionStrategy.IGNORE.getValue());
 
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
@@ -101,7 +89,7 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
     void testUploadExistingFileReplaceResolution()  {
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutBoxFile.CONFLICT_RESOLUTION, PutBoxFile.REPLACE_RESOLUTION);
+        testRunner.setProperty(PutBoxFile.CONFLICT_RESOLUTION, ConflictResolutionStrategy.REPLACE.getValue());
 
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();

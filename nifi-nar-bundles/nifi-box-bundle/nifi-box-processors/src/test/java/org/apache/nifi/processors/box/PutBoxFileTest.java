@@ -41,7 +41,6 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
     @BeforeEach
     void setUp() throws Exception {
-
         final PutBoxFile testSubject = new PutBoxFile() {
 
             @Override
@@ -71,11 +70,9 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         when(mockFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
         when(mockFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
 
- 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-  
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.get(0);
@@ -95,11 +92,9 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
         when(mockBoxFolder.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenThrow(new RuntimeException("Upload error"));
 
- 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-  
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_FAILURE);
         final MockFlowFile ff0 = flowFiles.get(0);

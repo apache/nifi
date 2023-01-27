@@ -41,7 +41,6 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testFetchSingleFile() {
-   
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
@@ -51,11 +50,9 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
         List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
 
-
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
-  
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
@@ -64,7 +61,6 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testInputFlowFileReferencesMissingFile() {
-   
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(BoxFileAttributes.ID, "111");
         inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, "missing_filename");
@@ -81,7 +77,6 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
-  
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
@@ -89,7 +84,6 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testInputFlowFileThrowsExceptionBeforeFetching() {
-   
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
@@ -122,11 +116,9 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
             }}
         ));
 
-
         testRunner.enqueue(input);
         testRunner.run();
 
-  
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);

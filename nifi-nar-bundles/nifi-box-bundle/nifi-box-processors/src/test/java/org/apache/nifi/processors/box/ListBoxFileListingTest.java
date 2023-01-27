@@ -93,10 +93,8 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
                 .build()
         );
 
- 
         List<BoxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
-  
         List<Function<BoxFileInfo, Object>> propertyProviders = Arrays.asList(
             BoxFileInfo::getId,
             BoxFileInfo::getIdentifier,

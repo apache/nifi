@@ -57,14 +57,11 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime()  {
-  
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
 
-
         testRunner.run();
 
- 
         testRunner.assertAllFlowFilesTransferred(ListBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS).get(0);
 
@@ -77,7 +74,6 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
     @Test
     void testOutputAsContent() throws Exception {
-  
         final List<String> pathParts = Arrays.asList("path", "to", "file");
 
         addJsonRecordWriterFactory();
@@ -98,7 +94,6 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
         testRunner.run();
 
- 
         testRunner.assertContents(ListBoxFile.REL_SUCCESS, expectedContents);
     }
 
