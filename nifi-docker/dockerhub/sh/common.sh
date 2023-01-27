@@ -24,18 +24,23 @@ prop_replace () {
 }
 
 uncomment() {
-        target_file=${2}
-        echo "Uncommenting ${target_file}"
-        sed -i -e "s|^\#$1|$1|" ${target_file}
+  target_file=${2}
+  echo "Uncommenting ${target_file}"
+  sed -i -e "s|^\#$1|$1|" ${target_file}
 }
 
-# 1 - property key to add
+# 1 - property key to add or replace
 # 2 - property value to use
 # 3 - file to perform replacement inline
-prop_add () {
+prop_add_or_replace () {
   target_file=${3:-${nifi_props_file}}
-  echo 'adding target file ' ${target_file}
-  echo "$1=$2" >> ${target_file}    
+  echo 'adding or replacing target file ' ${target_file}
+  isInFile=$(cat ${target_file} | grep -c $1)
+  if [ $isInFile -eq 0 ]; then
+    echo "$1=$2" >> ${target_file}
+  else
+    prop_replace $1 $2 $3  
+  fi
 }
 
 # NIFI_HOME is defined by an ENV command in the backing Dockerfile
