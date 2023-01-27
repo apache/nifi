@@ -42,8 +42,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/test-data.json</exclude>
-                        <exclude>src/test/resources/test-data-user-pass.json</exclude>
+                        <exclude>src/test/resources/flow.xml</exclude>
                     </excludes>
                 </configuration>
             </plugin>

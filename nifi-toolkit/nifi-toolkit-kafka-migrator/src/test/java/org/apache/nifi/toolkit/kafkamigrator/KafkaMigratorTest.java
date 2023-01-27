@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.toolkit.kafkamigrator;
 
-import org.apache.nifi.toolkit.kafkamigrator.descriptor.*;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.FlowPropertyXpathDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.KafkaProcessorType;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.PropertyXpathDescriptor;
+import org.apache.nifi.toolkit.kafkamigrator.descriptor.TemplatePropertyXpathDescriptor;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaFlowMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.ConsumeKafkaTemplateMigrator;
 import org.apache.nifi.toolkit.kafkamigrator.migrator.PublishKafkaFlowMigrator;
@@ -39,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class KafkaMigratorTest {
+public class KafkaMigratorTest {
     private static final XPath XPATH = XPathFactory.newInstance().newXPath();
     private static final String XPATH_FOR_PUBLISH_PROCESSOR_IN_FLOW = ".//processor[class='org.apache.nifi.processors.kafka.PutKafka']";
     private static final String XPATH_FOR_PUBLISH_PROCESSOR_IN_TEMPLATE = ".//processors[type='org.apache.nifi.processors.kafka.PutKafka']";

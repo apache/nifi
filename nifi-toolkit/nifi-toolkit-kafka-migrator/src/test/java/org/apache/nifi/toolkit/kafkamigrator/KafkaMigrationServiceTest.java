@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.kafkamigrator;
 
 import org.apache.nifi.toolkit.kafkamigrator.service.KafkaFlowMigrationService;
 import org.apache.nifi.toolkit.kafkamigrator.service.KafkaTemplateMigrationService;
+import org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.MigratorConfigurationBuilder;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -31,12 +32,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apache.nifi.toolkit.kafkamigrator.MigratorConfiguration.*;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-class KafkaMigrationServiceTest {
+public class KafkaMigrationServiceTest {
 
     private static final List<String> EXPECTED_CLASS_OR_TYPE_NAMES =
         Arrays.asList("org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0",
