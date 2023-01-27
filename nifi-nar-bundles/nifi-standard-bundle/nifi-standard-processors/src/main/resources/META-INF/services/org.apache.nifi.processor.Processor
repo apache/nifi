@@ -132,4 +132,3 @@ org.apache.nifi.processors.standard.ValidateJson
 org.apache.nifi.processors.standard.ValidateRecord
 org.apache.nifi.processors.standard.ValidateXml
 org.apache.nifi.processors.standard.Wait
-org.apache.nifi.processors.standard.VerifyContentMAC

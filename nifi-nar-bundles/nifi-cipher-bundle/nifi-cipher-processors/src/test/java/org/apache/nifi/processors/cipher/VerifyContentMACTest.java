@@ -15,21 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processors.cipher;
 
-import static org.apache.nifi.processors.standard.VerifyContentMAC.FAILURE;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.HMAC_SHA256;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.HMAC_SHA512;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.MAC_ENCODING_ATTRIBUTE;
-import static org.apache.nifi.processors.standard.VerifyContentMAC.SUCCESS;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.FAILURE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA256;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.HMAC_SHA512;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ENCODING_ATTRIBUTE;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.SUCCESS;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.apache.nifi.processors.standard.VerifyContentMAC.Encoding;
+import org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
