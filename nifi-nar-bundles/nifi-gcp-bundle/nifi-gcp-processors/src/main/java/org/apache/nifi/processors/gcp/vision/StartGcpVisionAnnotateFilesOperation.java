@@ -56,12 +56,12 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
                     "                \"mimeType\": \"application/pdf\"\n" +
                     "            },\n" +
                     "            \"features\": [{\n" +
-                    "                    \"type\": \"DOCUMENT_TEXT_DETECTION\",\n" +
+                    "                    \"type\": \"${vision-feature-type}\",\n" +
                     "                    \"maxResults\": 4\n" +
                     "                }],\n" +
                     "            \"outputConfig\": {\n" +
                     "                \"gcsDestination\": {\n" +
-                    "                    \"uri\": \"gs://${gcs.bucket}/${filename}/\"\n" +
+                    "                    \"uri\": \"gs://${output-bucket}/${filename}/\"\n" +
                     "                },\n" +
                     "                \"batchSize\": 2\n" +
                     "            }\n" +
@@ -70,7 +70,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            JSON_PAYLOAD, GCP_CREDENTIALS_PROVIDER_SERVICE));
+            JSON_PAYLOAD, GCP_CREDENTIALS_PROVIDER_SERVICE, OUTPUT_BUCKET, FEATURE_TYPE));
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

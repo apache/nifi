@@ -55,12 +55,12 @@
                 "mimeType": "application/pdf"
             },
             "features": [{
-                    "type": "DOCUMENT_TEXT_DETECTION",
+                    "type": "${vision-feature-type}",
                     "maxResults": 4
                 }],
             "outputConfig": {
                 "gcsDestination": {
-                    "uri": "gs://${gcs.bucket}/${filename}/"
+                    "uri": "gs://${output-bucket}/${filename}/"
                 },
                 "batchSize": 2
             }
@@ -88,7 +88,12 @@ You can find more details at <a href="https://cloud.google.com/vision/docs/featu
 <p>Create the following flow</p>
 <img src="vision-annotate-files.png" style="height: 50%; width: 50%"/>
 <p>
-    Keep the default value of JSON PAYLOAD property in StartGcpVisionAnnotateImagesOperation
+    <li>Create an input and output bucket</li>
+    <li>Make sure the input files(s) are available in the input GCS bucket</li>
+    <li>Set the bucket property of ListGCSBucket processor to your input bucket name</li>
+    <li>Keep the default value of JSON PAYLOAD property in StartGcpVisionAnnotateFilesOperation</li>
+    <li>Set the Output Bucket property to your output bucket name in StartGcpVisionAnnotateFilesOperation</li>
+    <li>Setup GCP Credentials Provider Service for all GCP related processor</li>
 </p>
 <p>
     Execution steps:

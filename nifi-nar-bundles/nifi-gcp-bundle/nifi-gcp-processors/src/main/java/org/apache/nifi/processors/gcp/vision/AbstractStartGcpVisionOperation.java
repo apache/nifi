@@ -24,14 +24,40 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 
 public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.GeneratedMessageV3.Builder<B>> extends AbstractGcpVisionProcessor  {
+    public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
+            .name("vision-feature-type")
+            .displayName("Vision Feature Type")
+            .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. " +
+                    "The JSON Payload property value can use Expression Language to reference the value of ${vision-feature-type}")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("TEXT_DETECTION")
+            .build();
+    public static final PropertyDescriptor OUTPUT_BUCKET = new PropertyDescriptor.Builder()
+            .name("output-bucket")
+            .displayName("Output Bucket")
+            .description("Name of the GCS bucket where the output of the Vision job will be persisted. " +
+                    "The value of this property applies when the JSON Payload property is configured. " +
+                    "The JSON Payload property value can use Expression Language to reference the value of ${output-bucket}")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -70,7 +96,18 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     }
 
     private InputStream getInputStreamFromProperty(ProcessContext context, FlowFile flowFile) {
-        return new ByteArrayInputStream(context.getProperty(getJsonPayloadPropertyDescriptor()).evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8));
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(OUTPUT_BUCKET.getName(), getAttributeValue(context, flowFile, OUTPUT_BUCKET.getName()));
+        attributes.put(FEATURE_TYPE.getName(), getAttributeValue(context, flowFile, FEATURE_TYPE.getName()));
+        final PropertyValue jsonPropertyValue = context.getProperty(getJsonPayloadPropertyDescriptor());
+        final String jsonPayload = jsonPropertyValue.evaluateAttributeExpressions(flowFile, attributes).getValue();
+        return new ByteArrayInputStream(jsonPayload.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String getAttributeValue(ProcessContext context, FlowFile flowFile, String name) {
+        final String flowFileAttribute = flowFile.getAttribute(name);
+        final PropertyValue propertyValue = context.getProperty(name);
+        return flowFileAttribute == null ? propertyValue.getValue() : flowFileAttribute;
     }
 
     abstract B newBuilder();
