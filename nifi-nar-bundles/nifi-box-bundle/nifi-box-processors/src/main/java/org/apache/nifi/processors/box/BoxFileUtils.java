@@ -18,9 +18,10 @@ package org.apache.nifi.processors.box;
 
 import static java.lang.String.valueOf;
 
-import com.box.sdk.BoxFile.Info;
+import com.box.sdk.BoxFile;
+import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -28,18 +29,23 @@ public final class BoxFileUtils {
 
     public static final String BOX_URL = "https://app.box.com/file/";
 
-    public static String getPath(BoxItem.Info info) {
+    public static String getParentPath(BoxItem.Info info) {
         return "/" + info.getPathCollection().stream()
                 .filter(pathItemInfo -> !pathItemInfo.getID().equals("0"))
                 .map(BoxItem.Info::getName)
                 .collect(Collectors.joining("/"));
     }
 
-    public static Map<String, String> createAttributeMap(Info fileInfo) {
-        final Map<String, String> attributes = new HashMap<>();
+    public static String getFolderPath(BoxFolder.Info folderInfo) {
+        final String parentFolderPath = getParentPath(folderInfo);
+        return "/".equals(parentFolderPath) ? parentFolderPath + folderInfo.getName() : parentFolderPath + "/" + folderInfo.getName();
+    }
+
+    public static Map<String, String> createAttributeMap(BoxFile.Info fileInfo) {
+        final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(BoxFileAttributes.ID, fileInfo.getID());
         attributes.put(BoxFileAttributes.FILENAME, fileInfo.getName());
-        attributes.put(BoxFileAttributes.PATH, getPath(fileInfo));
+        attributes.put(BoxFileAttributes.PATH, getParentPath(fileInfo));
         attributes.put(BoxFileAttributes.TIMESTAMP, valueOf(fileInfo.getModifiedAt()));
         attributes.put(BoxFileAttributes.SIZE, valueOf(fileInfo.getSize()));
         return attributes;

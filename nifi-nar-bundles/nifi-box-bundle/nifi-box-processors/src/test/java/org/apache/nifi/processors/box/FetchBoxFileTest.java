@@ -62,14 +62,14 @@ public class FetchBoxFileTest extends AbstractBoxFileTest{
         attributes.put(BoxFileAttributes.ID, TEST_FILE_ID);
         inputFlowFile.putAttributes(attributes);
 
-        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_PATH,  MODIFIED_TIME);
+        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME,  MODIFIED_TIME);
         doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
 
-        // WHEN
+
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        // THEN
+
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.get(0);
@@ -82,15 +82,15 @@ public class FetchBoxFileTest extends AbstractBoxFileTest{
     void testBoxIdFromProperty()  {
         testRunner.setProperty(FetchBoxFile.FILE_ID, TEST_FILE_ID);
 
-        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_PATH, MODIFIED_TIME);
+        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
         doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
 
-        // WHEN
+
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        // THEN
+
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.get(0);
@@ -105,17 +105,16 @@ public class FetchBoxFileTest extends AbstractBoxFileTest{
 
         doThrow(new RuntimeException("Download failed")).when(mockBoxFile).download(any(OutputStream.class));
 
-        // WHEN
+
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        // THEN
+
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_FAILURE);
         final MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Download failed");
-        //TODO: Is the ID filled?
         assertNoProvenanceEvent();
     }
 }

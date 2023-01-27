@@ -242,7 +242,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
                     BoxFileInfo boxFileInfo = new BoxFileInfo.Builder()
                         .id(info.getID())
                         .fileName(info.getName())
-                        .path(BoxFileUtils.getPath(info))
+                        .path(BoxFileUtils.getParentPath(info))
                         .size(info.getSize())
                         .createdTime(info.getCreatedAt().getTime())
                         .modifiedTime(info.getModifiedAt().getTime())

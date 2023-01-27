@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.lang.String.valueOf;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
@@ -109,6 +110,11 @@ public class FetchBoxFile extends AbstractProcessor {
     private volatile BoxAPIConnection boxAPIConnection;
 
     @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
+    @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
@@ -142,16 +148,11 @@ public class FetchBoxFile extends AbstractProcessor {
         }
     }
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
-
     BoxFile getBoxFile(String fileId) {
         return new BoxFile(boxAPIConnection, fileId);
     }
 
-    FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
+    private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
         final BoxFile boxFile = getBoxFile(fileId);
         flowFile = session.write(flowFile, outputStream -> boxFile.download(outputStream));
         flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(boxFile.getInfo()));
@@ -159,16 +160,16 @@ public class FetchBoxFile extends AbstractProcessor {
     }
 
     private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, BoxAPIResponseException e) {
-        getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
+        getLogger().error("Couldn't fetch file with id [{}]", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_CODE, "" + e.getResponseCode());
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
 
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
-        getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
+        getLogger().error("Failed fetching and processing file with id [{}]", fileId, e);
 
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         flowFile = session.penalize(flowFile);

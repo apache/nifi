@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
 import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
@@ -56,27 +57,27 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime()  {
-        // GIVEN
+  
         final List<String> pathParts = Arrays.asList("path", "to", "file");
         mockFetchedFileList(TEST_FILE_ID, TEST_FILENAME, pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
 
-        // WHEN
+
         testRunner.run();
 
-        // THEN
+ 
         testRunner.assertAllFlowFilesTransferred(ListBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS).get(0);
 
         ff0.assertAttributeEquals(ID, TEST_FILE_ID);
         ff0.assertAttributeEquals(FILENAME, TEST_FILENAME);
         ff0.assertAttributeEquals(PATH, "/path/to/file");
-        ff0.assertAttributeEquals(SIZE, "" + TEST_SIZE);
-        ff0.assertAttributeEquals(TIMESTAMP, "" + MODIFIED_TIME);
+        ff0.assertAttributeEquals(SIZE, valueOf(TEST_SIZE));
+        ff0.assertAttributeEquals(TIMESTAMP, valueOf(MODIFIED_TIME));
     }
 
     @Test
     void testOutputAsContent() throws Exception {
-        // GIVEN
+  
         final List<String> pathParts = Arrays.asList("path", "to", "file");
 
         addJsonRecordWriterFactory();
@@ -94,10 +95,10 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
                         "}" +
                         "]");
 
-        // WHEN
+
         testRunner.run();
 
-        // THEN
+ 
         testRunner.assertContents(ListBoxFile.REL_SUCCESS, expectedContents);
     }
 

@@ -45,10 +45,10 @@ public class AbstractBoxFileTest {
     public final String TEST_FILE_ID = "fileId";
     public final String TEST_FOLDER_ID = "folderId";
     public final String TEST_FILENAME = "filename";
-    public final String TEST_PATH = "folderName";
+    public final String TEST_FOLDER_NAME = "folderName";
     public final long TEST_SIZE = 12L;
-    public final Long CREATED_TIME = 123456L;
-    public final Long MODIFIED_TIME = 123456L;
+    public final long CREATED_TIME = 123456L;
+    public final long MODIFIED_TIME = 7891011L;
     public final String CONTENT = "content";
 
     protected TestRunner testRunner;
@@ -107,7 +107,7 @@ public class AbstractBoxFileTest {
     protected void assertOutFlowFileAttributes(MockFlowFile flowFile) {
         flowFile.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(BoxFileAttributes.FILENAME, TEST_FILENAME);
-        flowFile.assertAttributeEquals(BoxFileAttributes.PATH, "/" + TEST_PATH);
+        flowFile.assertAttributeEquals(BoxFileAttributes.PATH, "/" + TEST_FOLDER_NAME);
         flowFile.assertAttributeEquals(BoxFileAttributes.TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
         flowFile.assertAttributeEquals(BoxFileAttributes.SIZE, valueOf(TEST_SIZE));
     }

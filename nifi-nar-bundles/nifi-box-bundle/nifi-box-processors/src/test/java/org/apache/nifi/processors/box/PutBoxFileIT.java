@@ -30,14 +30,14 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
 
     @Test
     void testUploadFile() {
-        // GIVEN
+
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-        // WHEN
+   
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
 
-        // THEN
+
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
 
@@ -45,16 +45,16 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
 
     @Test
     void testSubfolderIsCreated()  {
-        // GIVEN
+
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);
         testRunner.setProperty(PutBoxFile.SUBFOLDER_NAME, "sub1/sub2/sub3");
         testRunner.setProperty(PutBoxFile.CREATE_SUBFOLDER, "true");
         testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
-        // WHEN
+   
         testRunner.enqueue(DEFAULT_FILE_CONTENT);
         testRunner.run();
 
-        // THEN
+
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 1);
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
 

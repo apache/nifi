@@ -70,7 +70,7 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
 
     @Test
     void testCreatedListableEntityContainsCorrectData() {
-        // GIVEN
+
         Long minTimestamp = 0L;
 
         String id = "id_1";
@@ -93,10 +93,10 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
                 .build()
         );
 
-        // WHEN
+ 
         List<BoxFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
-        // THEN
+  
         List<Function<BoxFileInfo, Object>> propertyProviders = Arrays.asList(
             BoxFileInfo::getId,
             BoxFileInfo::getIdentifier,

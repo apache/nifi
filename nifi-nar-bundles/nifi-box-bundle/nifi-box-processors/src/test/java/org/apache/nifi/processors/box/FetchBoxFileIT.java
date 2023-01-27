@@ -41,21 +41,21 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testFetchSingleFile() {
-        // GIVEN
+   
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put("box.id", file.getID());
-        inputFlowFileAttributes.put("filename", file.getName());
+        inputFlowFileAttributes.put(BoxFileAttributes.ID, file.getID());
+        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, file.getName());
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
         List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
 
-        // WHEN
+
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
-        // THEN
+  
         testRunner.assertTransferCount(FetchBoxFile.REL_FAILURE, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_SUCCESS, getCheckedAttributeNames(), expectedAttributes);
@@ -64,24 +64,24 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testInputFlowFileReferencesMissingFile() {
-        // GIVEN
+   
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put("box.id", "111");
-        inputFlowFileAttributes.put("filename", "missing_filename");
+        inputFlowFileAttributes.put(BoxFileAttributes.ID, "111");
+        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, "missing_filename");
 
         Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
             new HashMap<String, String>() {{
-                put("box.id", "111");
-                put("filename", "missing_filename");
-                put("error.code", "404");
+                put(BoxFileAttributes.ID, "111");
+                put(BoxFileAttributes.FILENAME, "missing_filename");
+                put(BoxFileAttributes.ERROR_CODE, "404");
             }}
         ));
 
-        // WHEN
+
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
-        // THEN
+  
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);
@@ -89,12 +89,12 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
     @Test
     void testInputFlowFileThrowsExceptionBeforeFetching() {
-        // GIVEN
+   
         BoxFile.Info file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put("box.id", file.getID());
-        inputFlowFileAttributes.put("filename", file.getName());
+        inputFlowFileAttributes.put(BoxFileAttributes.ID, file.getID());
+        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, file.getName());
 
         MockFlowFile input = new MockFlowFile(1) {
             final AtomicBoolean throwException = new AtomicBoolean(true);
@@ -122,11 +122,11 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
             }}
         ));
 
-        // WHEN
+
         testRunner.enqueue(input);
         testRunner.run();
 
-        // THEN
+  
         testRunner.assertTransferCount(FetchBoxFile.REL_SUCCESS, 0);
 
         testRunner.assertAttributes(FetchBoxFile.REL_FAILURE, getCheckedAttributeNames(), expectedFailureAttributes);

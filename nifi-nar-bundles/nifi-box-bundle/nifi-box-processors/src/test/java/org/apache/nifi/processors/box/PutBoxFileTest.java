@@ -65,17 +65,17 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         inputFlowFile.putAttributes(attributes);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
 
-        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_PATH, MODIFIED_TIME);
+        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
         when(mockBoxFolder.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
         when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
         when(mockFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
-        when(mockFolderInfo.getName()).thenReturn(TEST_PATH);
+        when(mockFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
 
-        // WHEN
+ 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        // THEN
+  
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.get(0);
@@ -91,14 +91,15 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
 
+        when(mockFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
         when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
         when(mockBoxFolder.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenThrow(new RuntimeException("Upload error"));
 
-        // WHEN
+ 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-        // THEN
+  
         testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_FAILURE);
         final MockFlowFile ff0 = flowFiles.get(0);
