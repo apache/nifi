@@ -17,22 +17,31 @@
 
 package org.apache.nifi.processors.standard;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.standard.VerifyContentMAC.Encoding.BASE64;
+import static org.apache.nifi.processors.standard.VerifyContentMAC.Encoding.HEXADECIMAL;
+import static org.apache.nifi.processors.standard.VerifyContentMAC.Encoding.UTF8;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -40,6 +49,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -50,42 +61,62 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"Encryption", "Signing", "MAC", "HMAC"})
-@CapabilityDescription("Calculates MAC using the provided Secret Key and compares it with the provided MAC parameter")
-@EventDriven
+@Tags({"Authentication", "Signing", "MAC", "HMAC"})
+@CapabilityDescription("Calculates a Message Authentication Code using the provided Secret Key and compares it with the provided MAC property")
 @WritesAttributes({
-    @WritesAttribute(attribute = VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE, description = "The calculated MAC value"),
-    @WritesAttribute(attribute = VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE, description = "The MAC algorithm")})
+    @WritesAttribute(attribute = VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE, description = "Calculated Message Authentication Code encoded by the selected encoding"),
+    @WritesAttribute(attribute = VerifyContentMAC.MAC_ENCODING_ATTRIBUTE, description = "The Encoding of the Hashed Message Authentication Code"),
+    @WritesAttribute(attribute = VerifyContentMAC.MAC_ALGORITHM_ATTRIBUTE, description = "Hashed Message Authentication Code Algorithm")})
 public class VerifyContentMAC extends AbstractProcessor {
 
     protected static final String HMAC_SHA256 = "HmacSHA256";
     protected static final String HMAC_SHA512 = "HmacSHA512";
 
     protected static final PropertyDescriptor MAC_ALGORITHM = new PropertyDescriptor.Builder()
-        .name("MAC_ALGORITHM")
+        .name("mac-algorithm")
         .displayName("MAC Algorithm")
-        .description("Cryptographic Hash Function")
+        .description("Hashed Message Authentication Code Function")
         .allowableValues(HMAC_SHA256, HMAC_SHA512)
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     protected static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
-        .name("SECRET_KEY")
-        .displayName("Secret key")
-        .description("Cryptographic key to calculate the hash")
+        .name("secret-key")
+        .displayName("Secret Key")
+        .description("Secret key to calculate the hash")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .sensitive(true)
         .build();
 
+    protected static final PropertyDescriptor SECRET_KEY_ENCODING = new PropertyDescriptor.Builder()
+        .name("secret-key-encoding")
+        .displayName("Secret Key Encoding")
+        .description("Encoding of the Secret Key")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .allowableValues(UTF8.name(), HEXADECIMAL.name(), BASE64.name())
+        .defaultValue(HEXADECIMAL.name())
+        .build();
+
     protected static final PropertyDescriptor MAC = new PropertyDescriptor.Builder()
-        .name("MAC")
+        .name("message-authentication-code")
         .displayName("Message Authentication Code")
         .description("The MAC to compare with the calculated value")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+
+    protected static final PropertyDescriptor MAC_ENCODING = new PropertyDescriptor.Builder()
+        .name("message-authentication-code-encoding")
+        .displayName("Message Authentication Code Encoding")
+        .description("Encoding of the Message Authentication Code")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .allowableValues(HEXADECIMAL.name(), BASE64.name())
+        .defaultValue(HEXADECIMAL.name())
         .build();
 
     protected static final Relationship FAILURE = new Relationship.Builder()
@@ -98,29 +129,32 @@ public class VerifyContentMAC extends AbstractProcessor {
         .description("Signature Verification Succeeded")
         .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(MAC_ALGORITHM, SECRET_KEY, MAC));
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(SUCCESS, FAILURE)));;
-    private static final Charset CHARSET = StandardCharsets.UTF_8;
-    private static final int BUFFER_SIZE = 512000;
-    private static final String HEX_FORMAT = "%02x";
     protected static final String MAC_CALCULATED_ATTRIBUTE = "mac.calculated";
     protected static final String MAC_ALGORITHM_ATTRIBUTE = "mac.algorithm";
+    protected static final String MAC_ENCODING_ATTRIBUTE = "mac.encoding";
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(MAC_ALGORITHM, SECRET_KEY, MAC, SECRET_KEY_ENCODING, MAC_ENCODING));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(SUCCESS, FAILURE)));
+    private static final int BUFFER_SIZE = 512000;
 
     private SecretKeySpec secretKeySpec;
+    private String macAlgorithm;
+    private String macEncoding;
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+    @OnScheduled
+    public void setUp(ProcessContext context)  {
+        macAlgorithm = context.getProperty(MAC_ALGORITHM).getValue();
+        macEncoding = context.getProperty(MAC_ENCODING).getValue();
+        String secretKeyEncoding = context.getProperty(SECRET_KEY_ENCODING).getValue();
+        String inputSecretKey = context.getProperty(SECRET_KEY).getValue();
+
+        byte[] secretKey = Encoding.valueOf(secretKeyEncoding).decode(inputSecretKey);
+
+        secretKeySpec = new SecretKeySpec(secretKey, macAlgorithm);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
-    }
-
-    @OnScheduled
-    public void setUp(ProcessContext context)  {
-        secretKeySpec = new SecretKeySpec(context.getProperty(SECRET_KEY).getValue().getBytes(CHARSET), HMAC_SHA256);
     }
 
     @Override
@@ -131,39 +165,70 @@ public class VerifyContentMAC extends AbstractProcessor {
             return;
         }
 
+        String rawInputMac = context.getProperty(MAC).evaluateAttributeExpressions(flowFile).getValue();
+
         try {
-            String incomingMac = context.getProperty(MAC).evaluateAttributeExpressions(flowFile).getValue();
-            String algorithm = context.getProperty(MAC_ALGORITHM).getValue();
-            String calculatedMac = getCalculatedMac(session, flowFile, algorithm);
+            byte[] inputMac = Encoding.valueOf(macEncoding).decode(rawInputMac);
+            byte[] calculatedMac = getCalculatedMac(session, flowFile);
 
-            flowFile = enrichFlowFileAttributes(session, flowFile, algorithm, calculatedMac);
+            flowFile = setFlowFileAttributes(session, flowFile, calculatedMac);
 
-            if (!incomingMac.equals(calculatedMac)) {
-                session.transfer(flowFile, FAILURE);
-            } else {
+            if (MessageDigest.isEqual(inputMac, calculatedMac)) {
                 session.transfer(flowFile, SUCCESS);
+            } else {
+                session.transfer(flowFile, FAILURE);
             }
-        } catch (IOException e) {
-            getLogger().error("Request Processing failed: {}", flowFile, e);
-            session.penalize(flowFile);
+        } catch (ProcessException e) {
+            getLogger().error(e.getMessage(), e);
             session.transfer(flowFile, FAILURE);
-        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            getLogger().error("Encountered an error during HMAC generation: ", e);
-            context.yield();
         }
     }
 
-    private FlowFile enrichFlowFileAttributes(ProcessSession session, FlowFile flowFile, String algorithm, String calculatedMac) {
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(MAC_ALGORITHM_ATTRIBUTE, algorithm);
-        attributes.put(MAC_CALCULATED_ATTRIBUTE, calculatedMac);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        return flowFile;
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
     }
 
-    private String getCalculatedMac(ProcessSession session, FlowFile flowFile, String algorithm) throws NoSuchAlgorithmException, InvalidKeyException, IOException {
-        Mac mac = Mac.getInstance(algorithm);
-        mac.init(secretKeySpec);
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+
+        String secretKeyEncoding = validationContext.getProperty(SECRET_KEY_ENCODING).getValue();
+        String inputSecretKey = validationContext.getProperty(SECRET_KEY).getValue();
+
+        try {
+            Encoding.valueOf(secretKeyEncoding).decode(inputSecretKey);
+        } catch (Exception e) {
+            problems.add(new ValidationResult.Builder()
+                .valid(false)
+                .subject(SECRET_KEY.getDisplayName())
+                .explanation("The provided Secret Key is not a valid " + secretKeyEncoding + " value")
+                .build());
+        }
+
+        return problems;
+    }
+
+    private FlowFile setFlowFileAttributes(ProcessSession session, FlowFile flowFile, byte[] calculatedMac) {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(MAC_ALGORITHM_ATTRIBUTE, macAlgorithm);
+        attributes.put(MAC_ENCODING_ATTRIBUTE, macEncoding);
+        attributes.put(MAC_CALCULATED_ATTRIBUTE, Encoding.valueOf(macEncoding).encode(calculatedMac));
+        return session.putAllAttributes(flowFile, attributes);
+    }
+
+    private Mac getInitializedMac() {
+        try {
+            Mac mac = Mac.getInstance(macAlgorithm);
+            mac.init(secretKeySpec);
+            return mac;
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new ProcessException("Encountered an error during HMAC generation", e);
+        }
+    }
+
+    private byte[] getCalculatedMac(ProcessSession session, FlowFile flowFile) {
+        Mac mac = getInitializedMac();
 
         byte[] contents = new byte[BUFFER_SIZE];
         int readSize;
@@ -172,16 +237,42 @@ public class VerifyContentMAC extends AbstractProcessor {
             while ((readSize = is.read(contents)) != -1) {
                 mac.update(contents, 0, readSize);
             }
+        } catch (IOException e) {
+            session.penalize(flowFile);
+            session.transfer(flowFile, FAILURE);
+            throw new ProcessException("Request Processing failed", e);
         }
 
-        return bytesToHex(mac.doFinal());
+        return mac.doFinal();
     }
 
-    private String bytesToHex(byte[] in) {
-        StringBuilder builder = new StringBuilder();
-        for (byte b : in) {
-            builder.append(String.format(HEX_FORMAT, b));
+    enum Encoding {
+        HEXADECIMAL(Hex::encodeHexString, Encoding::decodeHex),
+        BASE64(value -> Base64.getEncoder().encodeToString(value), value -> Base64.getDecoder().decode(value)),
+        UTF8(value -> new String(value, UTF_8), value -> value.getBytes(UTF_8));
+
+        private final Function<byte[], String> encodeFunction;
+        private final Function<String, byte[]> decodeFunction;
+
+        Encoding(Function<byte[], String> encodeFunction, Function<String, byte[]> decodeFunction) {
+            this.decodeFunction = decodeFunction;
+            this.encodeFunction = encodeFunction;
         }
-        return builder.toString();
+
+        public byte[] decode(String value) {
+            return decodeFunction.apply(value);
+        }
+
+        public String encode(byte[] value) {
+            return encodeFunction.apply(value);
+        }
+
+        private static byte[] decodeHex(String value) {
+            try {
+                return Hex.decodeHex(value);
+            } catch (DecoderException e) {
+                throw new ProcessException(e);
+            }
+        }
     }
 }
