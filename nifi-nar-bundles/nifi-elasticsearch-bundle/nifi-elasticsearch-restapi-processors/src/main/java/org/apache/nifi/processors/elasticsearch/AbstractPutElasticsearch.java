@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.elasticsearch;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -37,6 +36,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -67,11 +69,26 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         .required(true)
         .build();
 
+    static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
+            .name("put-es-output-error-responses")
+            .displayName("Output Error Responses")
+            .description("If this is enabled, errors will be output to the \"error_responses\" relationship.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All flowfiles that succeed in being transferred into Elasticsearch go here. " +
                     "Documents received by the Elasticsearch _bulk API may still result in errors on the Elasticsearch side. " +
                     "The Elasticsearch response will need to be examined to determine whether any Document(s)/Record(s) resulted in errors.")
+            .build();
+
+    static final Relationship REL_ERROR_RESPONSES = new Relationship.Builder()
+            .name("error_responses")
+            .description("Elasticsearch _bulk API responses marked as \"error\" (and optionally \"not_found\") go here.")
+            .autoTerminateDefault(true)
             .build();
 
     static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
@@ -83,6 +100,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     ));
 
     boolean logErrors;
+    boolean outputErrorResponses;
     boolean notFoundIsSuccessful;
     ObjectMapper errorMapper;
 
@@ -110,8 +128,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
 
         this.logErrors = context.getProperty(LOG_ERROR_RESPONSES).asBoolean();
+        this.outputErrorResponses = context.getProperty(OUTPUT_ERROR_RESPONSES).asBoolean();
 
-        if (errorMapper == null && (logErrors || getLogger().isDebugEnabled())) {
+        if (errorMapper == null && (outputErrorResponses || logErrors || getLogger().isDebugEnabled())) {
             errorMapper = new ObjectMapper();
             errorMapper.enable(SerializationFeature.INDENT_OUTPUT);
         }
@@ -158,15 +177,38 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         }
     }
 
-    void logElasticsearchDocumentErrors(final IndexOperationResponse response) throws JsonProcessingException {
-        if (logErrors || getLogger().isDebugEnabled()) {
-            final List<Map<String, Object>> errors = response.getItems();
-            final String output = String.format("An error was encountered while processing bulk operations. Server response below:%n%n%s", errorMapper.writeValueAsString(errors));
+    void handleElasticsearchDocumentErrors(final IndexOperationResponse response, final List<Integer> errorIndices, final ProcessSession session, final FlowFile parent) throws IOException {
+        if (!errorIndices.isEmpty() && (outputErrorResponses || logErrors || getLogger().isDebugEnabled())) {
+            final List<Map<String, Object>> errorResponses = errorIndices.stream().map(index -> response.getItems().get(index)).collect(Collectors.toList());
 
-            if (logErrors) {
-                getLogger().error(output);
-            } else {
-                getLogger().debug(output);
+            if (logErrors || getLogger().isDebugEnabled()) {
+                final String output = String.format(
+                        "An error was encountered while processing bulk operations. Server response below:%n%n%s",
+                        errorMapper.writeValueAsString(errorResponses)
+                );
+
+                if (logErrors) {
+                    getLogger().error(output);
+                } else {
+                    getLogger().debug(output);
+                }
+            }
+
+            if (outputErrorResponses) {
+                FlowFile errorResponsesFF = null;
+                try {
+                    errorResponsesFF = session.create(parent);
+                    try (final OutputStream errorsOutputStream = session.write(errorResponsesFF)) {
+                        errorMapper.writeValue(errorsOutputStream, errorResponses);
+
+                        errorResponsesFF = session.putAttribute(errorResponsesFF, "elasticsearch.put.error.count", String.valueOf(errorResponses.size()));
+                        session.transfer(errorResponsesFF, REL_ERROR_RESPONSES);
+                    }
+                } catch (final IOException ex) {
+                    getLogger().error("Unable to write error responses", ex);
+                    session.remove(errorResponsesFF);
+                    throw ex;
+                }
             }
         }
     }
@@ -179,16 +221,24 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         return inner -> inner.containsKey("result") && "not_found".equals(inner.get("result"));
     }
 
-    @SafeVarargs
-    final List<Integer> findElasticsearchResponseIndices(final IndexOperationResponse response, final Predicate<Map<String, Object>>... responseItemFilter) {
+    final List<Integer> findElasticsearchResponseErrorIndices(final IndexOperationResponse response) {
         final List<Integer> indices = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
-        if (response.getItems() != null) {
+
+        final List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
+        if (response.hasErrors()) {
+            errorItemFilters.add(isElasticsearchError());
+        }
+        if (!notFoundIsSuccessful) {
+            errorItemFilters.add(isElasticsearchNotFound());
+        }
+
+        if (response.getItems() != null && !errorItemFilters.isEmpty()) {
             for (int index = 0; index < response.getItems().size(); index++) {
                 final Map<String, Object> current = response.getItems().get(index);
                 if (!current.isEmpty()) {
                     final String key = current.keySet().stream().findFirst().orElse(null);
                     @SuppressWarnings("unchecked") final Map<String, Object> inner = (Map<String, Object>) current.get(key);
-                    if (inner != null && Arrays.stream(responseItemFilter).anyMatch(p -> p.test(inner))) {
+                    if (inner != null && errorItemFilters.stream().anyMatch(p -> p.test(inner))) {
                         indices.add(index);
                     }
                 }

@@ -76,7 +76,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
@@ -266,10 +265,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
-        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
+        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER,
+        NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS, REL_ERROR_RESPONSES
     )));
 
     private RecordPathCache recordPathCache;
@@ -290,6 +290,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         return DESCRIPTORS;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
@@ -460,18 +461,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
 
-        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
-        if (response.hasErrors()) {
-            logElasticsearchDocumentErrors(response);
-            errorItemFilters.add(isElasticsearchError());
+        final List<Integer> errorIndices = findElasticsearchResponseErrorIndices(response);
+        if (!errorIndices.isEmpty()) {
+            handleElasticsearchDocumentErrors(response, errorIndices, session, input);
         }
 
-        if (writerFactory != null && !notFoundIsSuccessful) {
-            errorItemFilters.add(isElasticsearchNotFound());
-        }
-
-        @SuppressWarnings("unchecked")
-        final List<Integer> errorIndices = findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]));
         final int numErrors = errorIndices.size();
         final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
         FlowFile errorFF = null;

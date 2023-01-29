@@ -51,7 +51,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -121,11 +120,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE, LOG_ERROR_RESPONSES,
-        OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
+        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
+        LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS, REL_ERROR_RESPONSES
     )));
 
     private boolean outputErrors;
@@ -141,6 +140,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         return DESCRIPTORS;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
@@ -195,7 +195,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
         if (!originals.isEmpty()) {
             try {
-                final List<FlowFile> errorDocuments = indexDocuments(operations, originals, context);
+                final List<FlowFile> errorDocuments = indexDocuments(operations, originals, context, session);
                 session.transfer(errorDocuments, REL_FAILED_DOCUMENTS);
                 errorDocuments.forEach(e ->
                         session.getProvenanceReporter().send(
@@ -239,26 +239,14 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context) throws JsonProcessingException {
+    private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context, final ProcessSession session) throws IOException {
         final IndexOperationResponse response = clientService.get().bulk(operations, getUrlQueryParameters(context, originals.get(0)));
-        final List<FlowFile> errorDocuments = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
 
-        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
-        if (response.hasErrors()) {
-            logElasticsearchDocumentErrors(response);
+        final List<Integer> errorIndices = findElasticsearchResponseErrorIndices(response);
+        final List<FlowFile> errorDocuments = outputErrors ? errorIndices.stream().map(originals::get).collect(Collectors.toList()) : Collections.emptyList();
 
-            if (outputErrors) {
-                errorItemFilters.add(isElasticsearchError());
-            }
-        }
-
-        if (!notFoundIsSuccessful) {
-            errorItemFilters.add(isElasticsearchNotFound());
-        }
-        if (!errorItemFilters.isEmpty()) {
-            findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]))
-                    .forEach(index -> errorDocuments.add(originals.get((Integer) index)));
+        if (!errorIndices.isEmpty()) {
+            handleElasticsearchDocumentErrors(response, errorIndices, session, null);
         }
 
         return errorDocuments;

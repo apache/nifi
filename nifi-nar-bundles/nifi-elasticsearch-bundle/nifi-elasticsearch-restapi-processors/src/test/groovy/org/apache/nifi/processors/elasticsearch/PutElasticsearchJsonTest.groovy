@@ -60,6 +60,7 @@ class PutElasticsearchJsonTest {
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "false")
         runner.setProperty(PutElasticsearchJson.CLIENT_SERVICE, "clientService")
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true")
+        runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "false")
         runner.enableControllerService(clientService)
 
         runner.assertValid()
@@ -98,6 +99,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, retry)
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         assertEquals(success,
                 runner.getProvenanceEvents().stream().filter({
@@ -203,6 +205,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -212,6 +215,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -241,6 +245,8 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("20abcd"))
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
@@ -253,6 +259,7 @@ class PutElasticsearchJsonTest {
         runner.clearProvenanceEvents()
 
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "false")
+        runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "true")
 
         for (final def val : values) {
             runner.enqueue(prettyPrint(toJson(val)))
@@ -264,8 +271,15 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 2)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1)
+
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("not_found"))
         assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1].getContent(), containsString("20abcd"))
+
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES)[0].getContent()
+        assertThat(errorResponses, containsString("not_found"))
+        assertThat(errorResponses, containsString("For input string: 20abc"))
+
         assertEquals(2,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
@@ -285,7 +299,8 @@ class PutElasticsearchJsonTest {
                 [ id: "1", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
-                [ id: "3", field1: 'value1', field2: '20abcd' ]
+                [ id: "3", field1: 'value1', field2: '20abcd' ],
+                [ id: "4", field1: 'value2', field2: '30' ]
         ]
 
         for (final def val : values) {
@@ -294,10 +309,11 @@ class PutElasticsearchJsonTest {
         runner.assertValid()
         runner.run()
 
-        runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 4)
+        runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 5)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -309,6 +325,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE)[0].assertAttributeEquals(
                 "elasticsearch.put.error",
