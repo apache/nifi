@@ -32,7 +32,6 @@ import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
-import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -46,9 +45,14 @@ import java.time.format.DateTimeFormatter
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
-import static org.junit.jupiter.api.Assertions.*
+import static org.hamcrest.CoreMatchers.containsString
+import static org.hamcrest.MatcherAssert.assertThat
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
-class PutElasticsearchRecordTest {
+class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElasticsearchRecord> {
     private static final int DATE_YEAR = 2020
     private static final int DATE_MONTH = 11
     private static final int DATE_DAY = 27
@@ -81,12 +85,17 @@ class PutElasticsearchRecordTest {
 
     static final String flowFileContents = prettyPrint(toJson(flowFileContentMaps))
 
+    @Override
+    PutElasticsearchRecord getProcessor() {
+        return new PutElasticsearchRecord()
+    }
+
     @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
         registry = new MockSchemaRegistry()
         reader   = new JsonTreeReader()
-        runner   = TestRunners.newTestRunner(PutElasticsearchRecord.class)
+        runner   = createRunner()
 
         registry.addSchema("simple", AvroTypeUtil.createSchema(new Schema.Parser().parse(SCHEMA)))
 
@@ -141,6 +150,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         if (success > 0) {
             runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESS).forEach({ ff ->
@@ -319,6 +329,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -374,6 +385,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -416,6 +428,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -455,6 +468,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -477,6 +491,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -502,6 +517,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -528,6 +544,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -604,6 +621,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.clearTransferState()
 
@@ -658,6 +676,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -681,6 +700,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -691,6 +711,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -734,6 +755,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
@@ -760,6 +782,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2")
@@ -776,7 +799,9 @@ class PutElasticsearchRecordTest {
         runner.clearTransferState()
         runner.clearProvenanceEvents()
 
+        // errors still counted/logged even if not outputting to the error relationship
         runner.removeProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER)
+        runner.setProperty(PutElasticsearchRecord.OUTPUT_ERROR_RESPONSES, "true")
         runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
         runner.assertValid()
         runner.run()
@@ -786,10 +811,15 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1)
+
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES)[0].getContent()
+        assertThat(errorResponses, containsString("not_found"))
+        assertThat(errorResponses, containsString("For input string: 20abc"))
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
-                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
                 }).count()
         )
     }
