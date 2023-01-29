@@ -22,3 +22,4 @@ org.apache.nifi.processors.mongodb.PutMongoRecord
 org.apache.nifi.processors.mongodb.gridfs.DeleteGridFS
 org.apache.nifi.processors.mongodb.gridfs.FetchGridFS
 org.apache.nifi.processors.mongodb.gridfs.PutGridFS
+org.apache.nifi.processors.mongodb.PutMongoBulkOperations
