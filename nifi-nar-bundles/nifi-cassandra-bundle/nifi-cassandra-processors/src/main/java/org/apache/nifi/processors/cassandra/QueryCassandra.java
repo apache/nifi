@@ -304,8 +304,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                 fileToProcess = session.putAttribute(fileToProcess, CoreAttributes.MIME_TYPE.key(),
                         JSON_FORMAT.equals(outputFormat) ? "application/json" : "application/avro-binary");
 
-                logger.info("{} contains {} records; transferring to 'success'",
-                        new Object[]{fileToProcess, nrOfRows.get()});
+                if (logger.isDebugEnabled()) {
+                    logger.info("{} contains {} records; transferring to 'success'",
+                            new Object[]{fileToProcess, nrOfRows.get()});
+                }
                 session.getProvenanceReporter().modifyContent(fileToProcess, "Retrieved " + nrOfRows.get() + " rows",
                         stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 session.transfer(fileToProcess, REL_SUCCESS);
@@ -319,17 +321,16 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                         fileToProcess = session.create();
                     }
                 }
-                try {
+//                try {
                     resultSet.fetchMoreResults().get();
-                } catch (Exception e) {
-                    logger.error("ExecutionException : query {} for {} due to {}; routing to failure",
-                            new Object[]{selectQuery, fileToProcess, e});
-                }
-                if (!resultSet.isExhausted()) {
-                    fileToProcess = session.create();
-                } else {
+//                } catch (Exception e) {
+//                    logger.error("ExecutionException : query {} for {} due to {}; routing to failure",
+//                            new Object[]{selectQuery, fileToProcess, e});
+//                }
+                if (resultSet.isExhausted()) {
                     break;
                 }
+                fileToProcess = session.create();
             }
 
         } catch (final NoHostAvailableException nhae) {
@@ -356,7 +357,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             if (context.hasIncomingConnection()) {
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
                                 + "validation problem; routing {} to failure",
-                        new Object[]{selectQuery, fileToProcess}, qve);
+                        selectQuery, fileToProcess, qve);
 
                 if (fileToProcess == null) {
                     fileToProcess = session.create();
@@ -366,7 +367,25 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             } else {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("The CQL query {} is invalid due to syntax error, authorization issue, or another "
-                        + "validation problem", new Object[]{selectQuery}, qve);
+                        + "validation problem", selectQuery, qve);
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
+                context.yield();
+            }
+        } catch (InterruptedException|ExecutionException ex) {
+            if (context.hasIncomingConnection()) {
+                logger.error("The CQL query {} has yielded an unknown error, routing {} to failure",
+                        selectQuery, fileToProcess, ex);
+
+                if (fileToProcess == null) {
+                    fileToProcess = session.create();
+                }
+                fileToProcess = session.penalize(fileToProcess);
+                session.transfer(fileToProcess, REL_FAILURE);
+            } else {
+                // This can happen if any exceptions occur while setting up the connection, statement, etc.
+                logger.error("The CQL query {} has run into an unknown error.", selectQuery, ex);
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
                 }
@@ -375,7 +394,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
         } catch (final ProcessException e) {
             if (context.hasIncomingConnection()) {
                 logger.error("Unable to execute CQL select query {} for {} due to {}; routing to failure",
-                        new Object[]{selectQuery, fileToProcess, e});
+                        selectQuery, fileToProcess, e);
                 if (fileToProcess == null) {
                     fileToProcess = session.create();
                 }
@@ -384,7 +403,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
             } else {
                 logger.error("Unable to execute CQL select query {} due to {}",
-                        new Object[]{selectQuery, e});
+                        selectQuery, e);
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
                 }
@@ -392,6 +411,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }
         }
         session.commitAsync();
+    }
+
+    private void handleException() {
+
     }
 
 
