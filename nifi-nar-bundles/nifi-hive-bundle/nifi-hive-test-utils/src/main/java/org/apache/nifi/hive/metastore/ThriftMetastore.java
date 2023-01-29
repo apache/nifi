@@ -15,24 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.iceberg.metastore;
+package org.apache.nifi.hive.metastore;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** A JUnit Extension that creates a Hive Metastore Thrift service backed by a Hive Metastore using an in-memory Derby database. */
 public class ThriftMetastore implements BeforeEachCallback, AfterEachCallback {
 
     private final MetastoreCore metastoreCore;
 
+    private Map<String, String> configOverrides = new HashMap<>();
+
     public ThriftMetastore() {
         metastoreCore = new MetastoreCore();
     }
 
+    public ThriftMetastore withConfigOverrides(Map<String, String> configs) {
+        configOverrides = configs;
+        return this;
+    }
+
     @Override
     public void beforeEach(ExtensionContext context) throws Exception {
-        metastoreCore.initialize();
+        metastoreCore.initialize(configOverrides);
     }
 
     @Override
@@ -47,4 +59,17 @@ public class ThriftMetastore implements BeforeEachCallback, AfterEachCallback {
     public String getWarehouseLocation() {
         return metastoreCore.getWarehouseLocation();
     }
+
+    public HiveMetaStoreClient getMetaStoreClient() {
+        return metastoreCore.getMetaStoreClient();
+    }
+
+    public Configuration getConfiguration() {
+        return metastoreCore.getConfiguration();
+    }
+
+    public String getConfigurationLocation() {
+        return metastoreCore.getConfigurationLocation();
+    }
+
 }
