@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.iceberg.metastore;
+package org.apache.nifi.hive.metastore;
 
 import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.hadoop.conf.Configuration;
@@ -38,17 +38,18 @@ import org.apache.thrift.transport.TTransportFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -66,35 +67,36 @@ import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.SCHEM
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.THRIFT_URIS;
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.WAREHOUSE;
 
-/** This class wraps Metastore service core functionalities. */
+/**
+ * This class wraps Metastore service core functionalities.
+ */
 class MetastoreCore {
 
-    private final String DB_NAME = "test_metastore";
+    private final String DATABASE_NAME = "test_metastore";
 
     private String thriftConnectionUri;
     private Configuration hiveConf;
-    private HiveMetaStoreClient metastoreClient;
+    private HiveMetaStoreClient metaStoreClient;
     private File tempDir;
     private ExecutorService thriftServer;
     private TServer server;
 
-    public void initialize() throws IOException, TException, InvocationTargetException, NoSuchMethodException,
+    public void initialize(Map<String, String> configOverrides) throws IOException, TException, InvocationTargetException, NoSuchMethodException,
             IllegalAccessException, NoSuchFieldException, SQLException {
         thriftServer = Executors.newSingleThreadExecutor();
         tempDir = createTempDirectory("metastore").toFile();
         setDerbyLogPath();
         setupDB("jdbc:derby:" + getDerbyPath() + ";create=true");
 
-        server = thriftServer();
+        server = thriftServer(configOverrides);
         thriftServer.submit(() -> server.serve());
 
-        metastoreClient = new HiveMetaStoreClient(hiveConf);
-        metastoreClient.createDatabase(new Database(DB_NAME, "description", getDBPath(), new HashMap<>()));
+        metaStoreClient = new HiveMetaStoreClient(hiveConf);
+        metaStoreClient.createDatabase(new Database(DATABASE_NAME, "description", getDBPath(), new HashMap<>()));
     }
 
     public void shutdown() {
-
-        metastoreClient.close();
+        metaStoreClient.close();
 
         if (server != null) {
             server.stop();
@@ -107,7 +109,7 @@ class MetastoreCore {
         }
     }
 
-    private HiveConf hiveConf(int port) {
+    private HiveConf hiveConf(int port, Map<String, String> configOverrides) throws IOException {
         thriftConnectionUri = "thrift://localhost:" + port;
 
         final HiveConf hiveConf = new HiveConf(new Configuration(), this.getClass());
@@ -124,10 +126,12 @@ class MetastoreCore {
         hiveConf.set(HIVE_SUPPORT_CONCURRENCY.getVarname(), "true");
         hiveConf.setBoolean("hcatalog.hive.client.cache.disabled", true);
 
-
         hiveConf.set(CONNECTION_POOLING_TYPE.getVarname(), "NONE");
         hiveConf.set(HMS_HANDLER_FORCE_RELOAD_CONF.getVarname(), "true");
 
+        configOverrides.forEach(hiveConf::set);
+
+        writeHiveConfFile(hiveConf);
         return hiveConf;
     }
 
@@ -140,10 +144,10 @@ class MetastoreCore {
         return new File(tempDir, "metastore_db").getPath();
     }
 
-    private TServer thriftServer() throws TTransportException, MetaException, InvocationTargetException,
-            NoSuchMethodException, IllegalAccessException, NoSuchFieldException {
+    private TServer thriftServer(Map<String, String> configOverrides) throws TTransportException, MetaException, InvocationTargetException,
+            NoSuchMethodException, IllegalAccessException, NoSuchFieldException, IOException {
         final TServerSocketKeepAlive socket = new TServerSocketKeepAlive(new TServerSocket(0));
-        hiveConf = hiveConf(socket.getServerSocket().getLocalPort());
+        hiveConf = hiveConf(socket.getServerSocket().getLocalPort(), configOverrides);
         final HiveMetaStore.HMSHandler baseHandler = new HiveMetaStore.HMSHandler("new db based metaserver", hiveConf);
         final IHMSHandler handler = RetryingHMSHandler.getProxy(hiveConf, baseHandler, true);
         final TTransportFactory transportFactory = new TTransportFactory();
@@ -161,15 +165,20 @@ class MetastoreCore {
 
     private void setupDB(String dbURL) throws SQLException, IOException {
         final Connection connection = DriverManager.getConnection(dbURL);
-        ScriptRunner scriptRunner = new ScriptRunner(connection);
+        final ScriptRunner scriptRunner = new ScriptRunner(connection);
 
-        final URL initScript = getClass().getClassLoader().getResource("hive-schema-4.0.0-alpha-2.derby.sql");
-        final Reader reader = new BufferedReader(new FileReader(initScript.getFile()));
+        final InputStream inputStream = getClass().getClassLoader().getResourceAsStream("hive-schema-4.0.0-alpha-2.derby.sql");
+        final Reader reader = new BufferedReader(new InputStreamReader(inputStream));
         scriptRunner.runScript(reader);
     }
 
     private String getDBPath() {
-        return Paths.get(tempDir.getAbsolutePath(), DB_NAME + ".db").toAbsolutePath().toString();
+        return Paths.get(tempDir.getAbsolutePath(), DATABASE_NAME + ".db").toAbsolutePath().toString();
+    }
+
+    private void writeHiveConfFile(HiveConf hiveConf) throws IOException {
+        File file = new File(tempDir.toPath() + "/hive-site.xml");
+        hiveConf.writeXml(Files.newOutputStream(file.toPath()));
     }
 
     public String getThriftConnectionUri() {
@@ -178,6 +187,18 @@ class MetastoreCore {
 
     public String getWarehouseLocation() {
         return tempDir.getAbsolutePath();
+    }
+
+    public HiveMetaStoreClient getMetaStoreClient() {
+        return metaStoreClient;
+    }
+
+    public Configuration getConfiguration() {
+        return hiveConf;
+    }
+
+    public String getConfigurationLocation() {
+        return tempDir.toPath() + "/hive-site.xml";
     }
 
 }

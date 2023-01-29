@@ -17,3 +17,4 @@ org.apache.nifi.processors.hive.PutHive3QL
 org.apache.nifi.processors.hive.PutHive3Streaming
 org.apache.nifi.processors.orc.PutORC
 org.apache.nifi.processors.hive.UpdateHive3Table
+org.apache.nifi.processors.hive.TriggerHiveMetaStoreEvent

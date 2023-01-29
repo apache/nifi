@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.iceberg.metastore;
+package org.apache.nifi.hive.metastore;
 
 import java.io.IOException;
 import java.io.LineNumberReader;
