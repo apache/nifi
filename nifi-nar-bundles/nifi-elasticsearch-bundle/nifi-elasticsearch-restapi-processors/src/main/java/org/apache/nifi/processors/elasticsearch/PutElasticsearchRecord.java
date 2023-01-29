@@ -76,13 +76,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the documents."),
+        @WritesAttribute(attribute = "elasticsearch.put.error",
+                description = "The error message if there is an issue parsing the FlowFile records, sending the parsed documents to Elasticsearch or parsing the Elasticsearch response."),
         @WritesAttribute(attribute = "elasticsearch.put.error.count", description = "The number of records that generated errors in the Elasticsearch _bulk API."),
         @WritesAttribute(attribute = "elasticsearch.put.success.count", description = "The number of records that were successfully processed by the Elasticsearch _bulk API.")
 })
@@ -207,7 +207,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .displayName("Result Record Writer")
         .description("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
                 "and the failed records will be written to a record set with this record writer service and sent to the \"" +
-                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set" +
+                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set " +
                 "with this record writer service and sent to the \"" + REL_SUCCESSFUL_RECORDS.getName() + "\" relationship.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .addValidator(Validator.VALID)
@@ -216,9 +216,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-record-not_found-is-error")
-        .displayName("Treat \"Not Found\" as Error")
+        .displayName("Treat \"Not Found\" as Success")
         .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
-                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship.")
+                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship. " +
+                "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
+                "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -266,10 +268,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
-        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
+        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER,
+        NOT_FOUND_IS_SUCCESSFUL
     ));
-    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
+    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
     )));
 
     private RecordPathCache recordPathCache;
@@ -281,8 +284,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private volatile String timestampFormat;
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+    Set<Relationship> getBaseRelationships() {
+        return BASE_RELATIONSHIPS;
     }
 
     @Override
@@ -290,6 +293,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         return DESCRIPTORS;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
@@ -460,19 +464,12 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
 
-        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
-        if (response.hasErrors()) {
-            logElasticsearchDocumentErrors(response);
-            errorItemFilters.add(isElasticsearchError());
+        final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);
+        if (!errors.isEmpty()) {
+            handleElasticsearchDocumentErrors(errors, session, input);
         }
 
-        if (writerFactory != null && !notFoundIsSuccessful) {
-            errorItemFilters.add(isElasticsearchNotFound());
-        }
-
-        @SuppressWarnings("unchecked")
-        final List<Integer> errorIndices = findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]));
-        final int numErrors = errorIndices.size();
+        final int numErrors = errors.size();
         final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
         FlowFile errorFF = null;
         FlowFile successFF = null;
@@ -490,7 +487,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     errorWriter.beginRecordSet();
                     successWriter.beginRecordSet();
                     for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
-                        if (errorIndices.contains(o)) {
+                        if (errors.containsKey(o)) {
                             errorWriter.write(bundle.getOriginalRecords().get(o));
                         } else {
                             successWriter.write(bundle.getOriginalRecords().get(o));

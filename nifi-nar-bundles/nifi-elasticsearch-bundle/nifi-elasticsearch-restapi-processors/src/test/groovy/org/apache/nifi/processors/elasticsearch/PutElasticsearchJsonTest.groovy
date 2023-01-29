@@ -22,20 +22,18 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.TestRunner
-import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
-
 import static org.hamcrest.CoreMatchers.containsString
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
 
-class PutElasticsearchJsonTest {
+class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticsearchJson> {
     MockBulkLoadClientService clientService
     TestRunner runner
 
@@ -43,10 +41,15 @@ class PutElasticsearchJsonTest {
             [ msg: "Hello, world", from: "john.smith" ]
     ))
 
+    @Override
+    PutElasticsearchJson getProcessor() {
+        return new PutElasticsearchJson()
+    }
+
     @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
-        runner   = TestRunners.newTestRunner(PutElasticsearchJson.class)
+        runner = createRunner()
 
         clientService.response = new IndexOperationResponse(1500)
 
@@ -60,6 +63,7 @@ class PutElasticsearchJsonTest {
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "false")
         runner.setProperty(PutElasticsearchJson.CLIENT_SERVICE, "clientService")
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true")
+        runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "false")
         runner.enableControllerService(clientService)
 
         runner.assertValid()
@@ -98,6 +102,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, retry)
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         assertEquals(success,
                 runner.getProvenanceEvents().stream().filter({
@@ -203,6 +208,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -212,6 +218,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -241,7 +248,13 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
-        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("20abcd"))
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+
+        def failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0];
+        assertThat(failedDoc.getContent(), containsString("20abcd"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
@@ -253,6 +266,7 @@ class PutElasticsearchJsonTest {
         runner.clearProvenanceEvents()
 
         runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "false")
+        runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_RESPONSES, "true")
 
         for (final def val : values) {
             runner.enqueue(prettyPrint(toJson(val)))
@@ -264,8 +278,24 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 2)
-        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("not_found"))
-        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1].getContent(), containsString("20abcd"))
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1)
+
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0];
+        assertThat(failedDoc.getContent(), containsString("not_found"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("not_found"))
+
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1];
+        assertThat(failedDoc.getContent(), containsString("20abcd"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("number_format_exception"))
+
+        final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES)[0].getContent()
+        assertThat(errorResponses, containsString("not_found"))
+        assertThat(errorResponses, containsString("For input string: 20abc"))
+
         assertEquals(2,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
@@ -285,7 +315,8 @@ class PutElasticsearchJsonTest {
                 [ id: "1", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
-                [ id: "3", field1: 'value1', field2: '20abcd' ]
+                [ id: "3", field1: 'value1', field2: '20abcd' ],
+                [ id: "4", field1: 'value2', field2: '30' ]
         ]
 
         for (final def val : values) {
@@ -294,10 +325,11 @@ class PutElasticsearchJsonTest {
         runner.assertValid()
         runner.run()
 
-        runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 4)
+        runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 5)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
     }
 
     @Test
@@ -309,6 +341,7 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILURE)[0].assertAttributeEquals(
                 "elasticsearch.put.error",
