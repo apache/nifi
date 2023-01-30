@@ -33,7 +33,9 @@ public abstract class AbstractEventWriter<T extends EventInfo> implements EventW
 
     // Common method to create a JSON generator and start the root object. Should be called by sub-classes unless they need their own generator and such.
     protected void startJson(OutputStream outputStream, T event) throws IOException {
-        jsonGenerator = createJsonGenerator(outputStream);
+        if (jsonGenerator == null) {
+            jsonGenerator = createJsonGenerator(outputStream);
+        }
         jsonGenerator.writeStartObject();
         String eventType = event.getEventType();
         if (eventType == null) {
@@ -54,11 +56,15 @@ public abstract class AbstractEventWriter<T extends EventInfo> implements EventW
             throw new IOException("endJson called without a JsonGenerator");
         }
         jsonGenerator.writeEndObject();
-        jsonGenerator.flush();
-        jsonGenerator.close();
     }
 
-    private JsonGenerator createJsonGenerator(OutputStream out) throws IOException {
+    protected void endFile() throws IOException {
+        jsonGenerator.flush();
+        jsonGenerator.close();
+        jsonGenerator = null;
+    }
+
+    protected JsonGenerator createJsonGenerator(OutputStream out) throws IOException {
         return JSON_FACTORY.createGenerator(out);
     }
 }
