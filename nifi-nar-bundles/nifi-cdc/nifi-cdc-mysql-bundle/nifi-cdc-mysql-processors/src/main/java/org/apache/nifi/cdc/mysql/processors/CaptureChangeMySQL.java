@@ -44,7 +44,6 @@ import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.event.RowEventException;
 import org.apache.nifi.cdc.event.TableInfo;
 import org.apache.nifi.cdc.event.TableInfoCacheKey;
-import org.apache.nifi.cdc.event.io.EventWriter;
 import org.apache.nifi.cdc.mysql.event.BeginTransactionEventInfo;
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.event.BinlogEventListener;
@@ -52,9 +51,12 @@ import org.apache.nifi.cdc.mysql.event.BinlogLifecycleListener;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
+import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
+import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
@@ -78,6 +80,8 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -132,6 +136,9 @@ import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
 import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.XID;
+import static org.apache.nifi.cdc.event.io.EventWriter.APPLICATION_JSON;
+import static org.apache.nifi.cdc.event.io.EventWriter.CDC_EVENT_TYPE_ATTRIBUTE;
+import static org.apache.nifi.cdc.event.io.EventWriter.SEQUENCE_ID_KEY;
 
 
 /**
@@ -140,15 +147,17 @@ import static com.github.shyiko.mysql.binlog.event.EventType.XID;
 @TriggerSerially
 @PrimaryNodeOnly
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Tags({"sql", "jdbc", "cdc", "mysql"})
+@Tags({"sql", "jdbc", "cdc", "mysql", "transaction", "event"})
 @CapabilityDescription("Retrieves Change Data Capture (CDC) events from a MySQL database. CDC Events include INSERT, UPDATE, DELETE operations. Events "
-        + "are output as individual flow files ordered by the time at which the operation occurred.")
+        + "are output as either a group of a specified number of events (the default is 1 so each event becomes its own flow file) or grouped as a full transaction (BEGIN to COMMIT). All events "
+        + "are ordered by the time at which the operation occurred. NOTE: If the processor is stopped before the specified number of events have been written to a flow file, "
+        + "the partial flow file will be output in order to maintain the consistency of the event stream.")
 @Stateful(scopes = Scope.CLUSTER, description = "Information such as a 'pointer' to the current CDC event in the database is stored by this processor, such "
         + "that it can continue from the same location if restarted.")
 @WritesAttributes({
-        @WritesAttribute(attribute = EventWriter.SEQUENCE_ID_KEY, description = "A sequence identifier (i.e. strictly increasing integer value) specifying the order "
+        @WritesAttribute(attribute = SEQUENCE_ID_KEY, description = "A sequence identifier (i.e. strictly increasing integer value) specifying the order "
                 + "of the CDC event flow file relative to the other event flow file(s)."),
-        @WritesAttribute(attribute = EventWriter.CDC_EVENT_TYPE_ATTRIBUTE, description = "A string indicating the type of CDC event that occurred, including (but not limited to) "
+        @WritesAttribute(attribute = CDC_EVENT_TYPE_ATTRIBUTE, description = "A string indicating the type of CDC event that occurred, including (but not limited to) "
                 + "'begin', 'insert', 'update', 'delete', 'ddl' and 'commit'."),
         @WritesAttribute(attribute = "mime.type", description = "The processor outputs flow file content in JSON format, and sets the mime.type attribute to "
                 + "application/json")
@@ -184,6 +193,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private static final AllowableValue SSL_MODE_VERIFY_IDENTITY = new AllowableValue(SSLMode.VERIFY_IDENTITY.toString(),
             SSLMode.VERIFY_IDENTITY.toString(),
             "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched");
+
+    private static final AllowableValue N_EVENTS_PER_FLOWFILE_STRATEGY = new AllowableValue(FlowFileEventWriteStrategy.N_EVENTS_PER_FLOWFILE.name(), "N Events Per FlowFile",
+            "This strategy causes the number of events specified in the Events per FlowFile each binlog event to be written to its own FlowFile");
+    private static final AllowableValue ONE_TRANSACTION_PER_FLOWFILE_STRATEGY = new AllowableValue(FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.name(),
+            "One Transaction Per FlowFile", "This strategy causes each event from a transaction (from BEGIN to COMMIT) to be written to a FlowFile");
+
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -267,6 +282,31 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor EVENTS_PER_FLOWFILE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-events-per-flowfile")
+            .displayName("Events Per FlowFile Strategy")
+            .description("Specifies the strategy to use when writing events to FlowFile(s)")
+            .required(true)
+            .sensitive(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(N_EVENTS_PER_FLOWFILE_STRATEGY, ONE_TRANSACTION_PER_FLOWFILE_STRATEGY)
+            .defaultValue(N_EVENTS_PER_FLOWFILE_STRATEGY.getValue())
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    public static final PropertyDescriptor NUMBER_OF_EVENTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
+            .name("capture-change-mysql-number-of-events-per-flowfile")
+            .displayName("Number of Events Per FlowFile")
+            .description("Specifies how many events should be written to a single FlowFile. If the processor is stopped before the specified number of events has been written,"
+                    + "the events will still be written as a FlowFile before stopping.")
+            .required(true)
+            .sensitive(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .dependsOn(EVENTS_PER_FLOWFILE_STRATEGY, N_EVENTS_PER_FLOWFILE_STRATEGY.getValue())
             .build();
 
     public static final PropertyDescriptor SERVER_ID = new PropertyDescriptor.Builder()
@@ -479,6 +519,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
     private final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
 
+    private volatile EventWriterConfiguration eventWriterConfiguration;
+    private volatile BinlogEventInfo currentEventInfo;
+    private AbstractBinlogEventWriter<? extends BinlogEventInfo> currentEventWriter;
+
     static {
 
         final Set<Relationship> r = new HashSet<>();
@@ -491,6 +535,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         pds.add(DRIVER_LOCATION);
         pds.add(USERNAME);
         pds.add(PASSWORD);
+        pds.add(EVENTS_PER_FLOWFILE_STRATEGY);
+        pds.add(NUMBER_OF_EVENTS_PER_FLOWFILE);
         pds.add(SERVER_ID);
         pds.add(DATABASE_NAME_PATTERN);
         pds.add(TABLE_NAME_PATTERN);
@@ -569,6 +615,15 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             return;
         }
 
+        // Build a event writer config object for the event writers to use
+        final FlowFileEventWriteStrategy flowFileEventWriteStrategy = FlowFileEventWriteStrategy.valueOf(context.getProperty(EVENTS_PER_FLOWFILE_STRATEGY).getValue());
+        eventWriterConfiguration = new EventWriterConfiguration(
+                flowFileEventWriteStrategy,
+                0,
+                context.getProperty(NUMBER_OF_EVENTS_PER_FLOWFILE).evaluateAttributeExpressions().asInteger(),
+                null
+        );
+
         PropertyValue dbNameValue = context.getProperty(DATABASE_NAME_PATTERN);
         databaseNamePattern = dbNameValue.isSet() ? Pattern.compile(dbNameValue.getValue()) : null;
 
@@ -624,7 +679,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         // Get current sequence ID from state
-        String seqIdString = stateMap.get(EventWriter.SEQUENCE_ID_KEY);
+        String seqIdString = stateMap.get(SEQUENCE_ID_KEY);
         if (StringUtils.isEmpty(seqIdString)) {
             // Use Initial Sequence ID property if none is found in state
             PropertyValue seqIdProp = context.getProperty(INIT_SEQUENCE_ID);
@@ -713,6 +768,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         if (currentSession == null) {
             currentSession = sessionFactory.createSession();
         }
+        eventWriterConfiguration.setWorkingSession(currentSession);
 
         try {
             outputEvents(currentSession, log);
@@ -888,7 +944,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid) {
                 currentBinlogPosition = header.getPosition();
             }
-            log.debug("Got message event type: {} ", new Object[]{header.getEventType().toString()});
+            log.debug("Got message event type: {} ", header.getEventType().toString());
             switch (eventType) {
                 case TABLE_MAP:
                     // This is sent to inform which table is about to be changed by subsequent events
@@ -952,7 +1008,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             BeginTransactionEventInfo beginEvent = useGtid
                                     ? new BeginTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
                                     : new BeginTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
-                            currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS));
+                            currentEventInfo = beginEvent;
+                            currentEventWriter = beginEventWriter;
+                            currentSequenceId.set(beginEventWriter.writeEvent(currentSession, transitUri, beginEvent, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
+
                         }
                         inTransaction = true;
                         //update inTransaction value to state
@@ -967,13 +1026,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             CommitTransactionEventInfo commitTransactionEvent = useGtid
                                     ? new CommitTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
                                     : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
-                            currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
+                            currentEventInfo = commitTransactionEvent;
+                            currentEventWriter = commitEventWriter;
+                            currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
                         }
+
                         //update inTransaction value to state
                         inTransaction = false;
                         updateState(session);
-                        // Commit the NiFi session
-                        session.commitAsync();
+                        // If there is no FlowFile open, commit the session
+                        if (eventWriterConfiguration.getCurrentFlowFile() == null) {
+                            // Commit the NiFi session
+                            session.commitAsync();
+                        }
                         currentTable = null;
                     } else {
                         // Check for DDL events (alter table, e.g.). Normalize the query to do string matching on the type of change
@@ -993,7 +1058,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 DDLEventInfo ddlEvent = useGtid
                                         ? new DDLEventInfo(ddlTableInfo, timestamp, currentGtidSet, sql)
                                         : new DDLEventInfo(ddlTableInfo, timestamp, currentBinlogFile, currentBinlogPosition, sql);
-                                currentSequenceId.set(ddlEventWriter.writeEvent(currentSession, transitUri, ddlEvent, currentSequenceId.get(), REL_SUCCESS));
+                                currentEventInfo = ddlEvent;
+                                currentEventWriter = ddlEventWriter;
+                                currentSequenceId.set(ddlEventWriter.writeEvent(currentSession, transitUri, ddlEvent, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
                             }
                             // Remove all the keys from the cache that this processor added
                             if (cacheClient != null) {
@@ -1002,7 +1069,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             // If not in a transaction, commit the session so the DDL event(s) will be transferred
                             if (includeDDLEvents && !inTransaction) {
                                 updateState(session);
-                                session.commitAsync();
+                                if (FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy())) {
+                                    if (currentSession != null) {
+                                        FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
+                                        if (flowFile != null && currentEventWriter != null) {
+                                            // Flush the events to the FlowFile when the processor is stopped
+                                            currentEventWriter.finishAndTransferFlowFile(eventWriterConfiguration, transitUri, currentSequenceId.get(), currentEventInfo, REL_SUCCESS);
+                                        }
+                                    }
+                                }
+                                // If there is no FlowFile open, commit the session
+                                if (eventWriterConfiguration.getCurrentFlowFile() == null) {
+                                    session.commitAsync();
+                                }
                             }
                         }
                     }
@@ -1017,15 +1096,19 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         CommitTransactionEventInfo commitTransactionEvent = useGtid
                                 ? new CommitTransactionEventInfo(currentDatabase, timestamp, currentGtidSet)
                                 : new CommitTransactionEventInfo(currentDatabase, timestamp, currentBinlogFile, currentBinlogPosition);
-                        currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS));
+                        currentEventInfo = commitTransactionEvent;
+                        currentEventWriter = commitEventWriter;
+                        currentSequenceId.set(commitEventWriter.writeEvent(currentSession, transitUri, commitTransactionEvent, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
                     }
-                    // Commit the NiFi session
                     // update inTransaction value and save next position
                     // so when restart this processor,we will not read xid event again
                     inTransaction = false;
                     currentBinlogPosition = header.getNextPosition();
                     updateState(session);
-                    session.commitAsync();
+                    // If there is no FlowFile open, commit the session
+                    if (eventWriterConfiguration.getCurrentFlowFile() == null) {
+                        session.commitAsync();
+                    }
                     currentTable = null;
                     currentDatabase = null;
                     break;
@@ -1060,7 +1143,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         InsertRowsEventInfo eventInfo = useGtid
                                 ? new InsertRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
                                 : new InsertRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentEventInfo = eventInfo;
+                        currentEventWriter = insertRowsWriter;
+                        currentSequenceId.set(insertRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
 
                     } else if (eventType == DELETE_ROWS
                             || eventType == EXT_DELETE_ROWS
@@ -1069,14 +1154,18 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         DeleteRowsEventInfo eventInfo = useGtid
                                 ? new DeleteRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
                                 : new DeleteRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentEventInfo = eventInfo;
+                        currentEventWriter = deleteRowsWriter;
+                        currentSequenceId.set(deleteRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
 
                     } else {
                         // Update event
                         UpdateRowsEventInfo eventInfo = useGtid
                                 ? new UpdateRowsEventInfo(currentTable, timestamp, currentGtidSet, event.getData())
                                 : new UpdateRowsEventInfo(currentTable, timestamp, currentBinlogFile, currentBinlogPosition, event.getData());
-                        currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS));
+                        currentEventInfo = eventInfo;
+                        currentEventWriter = updateRowsWriter;
+                        currentSequenceId.set(updateRowsWriter.writeEvent(currentSession, transitUri, eventInfo, currentSequenceId.get(), REL_SUCCESS, eventWriterConfiguration));
                     }
                     break;
 
@@ -1144,6 +1233,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             if (currentSession != null) {
+                FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
+                if (flowFile != null && currentEventWriter != null) {
+                    // Flush the events to the FlowFile when the processor is stopped
+                    currentEventWriter.finishAndTransferFlowFile(eventWriterConfiguration, transitUri, currentSequenceId.get(), currentEventInfo, REL_SUCCESS);
+                }
                 currentSession.commitAsync();
             }
 
@@ -1174,7 +1268,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         newStateMap.put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(binlogPosition));
-        newStateMap.put(EventWriter.SEQUENCE_ID_KEY, String.valueOf(sequenceId));
+        newStateMap.put(SEQUENCE_ID_KEY, String.valueOf(sequenceId));
         //add inTransaction value into state
         newStateMap.put("inTransaction", inTransaction ? "true" : "false");
 
@@ -1239,6 +1333,23 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         }
 
         return tableInfo;
+    }
+
+    protected Map<String, String> getCommonAttributes(final long sequenceId, BinlogEventInfo eventInfo) {
+        return new HashMap<>() {
+            {
+                put(SEQUENCE_ID_KEY, Long.toString(sequenceId));
+                put(CDC_EVENT_TYPE_ATTRIBUTE, eventInfo.getEventType());
+                String gtidSet = eventInfo.getBinlogGtidSet();
+                if (gtidSet == null) {
+                    put(BinlogEventInfo.BINLOG_FILENAME_KEY, eventInfo.getBinlogFilename());
+                    put(BinlogEventInfo.BINLOG_POSITION_KEY, Long.toString(eventInfo.getBinlogPosition()));
+                } else {
+                    put(BinlogEventInfo.BINLOG_GTIDSET_KEY, gtidSet);
+                }
+                put(CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
+            }
+        };
     }
 
     protected Connection getJdbcConnection() throws SQLException {
