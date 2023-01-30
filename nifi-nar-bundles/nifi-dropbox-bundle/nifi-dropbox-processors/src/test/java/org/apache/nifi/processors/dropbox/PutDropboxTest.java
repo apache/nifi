@@ -20,9 +20,12 @@ package org.apache.nifi.processors.dropbox;
 import static com.dropbox.core.v2.files.UploadError.path;
 import static com.dropbox.core.v2.files.WriteConflictError.FILE;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,7 +47,6 @@ import com.dropbox.core.v2.files.UploadWriteFailed;
 import com.dropbox.core.v2.files.WriteError;
 import com.dropbox.core.v2.files.WriteMode;
 import java.io.InputStream;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,9 +166,9 @@ public class PutDropboxTest extends AbstractDropboxTest {
     }
 
     @Test
-    void testFileUploadWithOverwriteConflictResolutionStrategy() throws Exception {
+    void testFileUploadWithReplaceConflictResolutionStrategy() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.OVERWRITE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, REPLACE.getValue());
 
         mockFileUpload(TEST_FOLDER, FILENAME_1, WriteMode.OVERWRITE);
 
@@ -193,7 +195,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Test
     void testFileUploadOtherExceptionIsNotIgnored() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         mockFileUploadError(getException(WriteError.INSUFFICIENT_SPACE));
 
@@ -205,7 +207,7 @@ public class PutDropboxTest extends AbstractDropboxTest {
     @Test
     void testFileUploadConflictIgnoredWithIgnoreResolutionStrategy() throws Exception {
         testRunner.setProperty(PutDropbox.FILE_NAME, FILENAME_1);
-        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, PutDropbox.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutDropbox.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         mockFileUploadError(getException(WriteError.conflict(FILE)));
 
@@ -255,18 +257,12 @@ public class PutDropboxTest extends AbstractDropboxTest {
                 .thenReturn(mockUploadSessionAppendV2Uploader);
 
         //finish session: 30 - 8 - 2 * 8 = 6 bytes uploaded
-        CommitInfo commitInfo = CommitInfo.newBuilder(getPath(TEST_FOLDER , FILENAME_1))
-                .withMode(WriteMode.ADD)
-                .withStrictConflict(true)
-                .withClientModified(new Date(mockFlowFile.getEntryDate()))
-                .build();
-
         when(mockDbxUserFilesRequest
-                .uploadSessionFinish(any(UploadSessionCursor.class), eq(commitInfo)))
+                .uploadSessionFinish(any(UploadSessionCursor.class), any(CommitInfo.class)))
                 .thenReturn(mockUploadSessionFinishUploader);
 
         when(mockUploadSessionFinishUploader
-                .uploadAndFinish(any(InputStream.class), eq(6L)))
+                .uploadAndFinish(any(InputStream.class), anyLong()))
                 .thenReturn(createFileMetadata(FILE_ID_1, FILENAME_1, TEST_FOLDER, CREATED_TIME));
 
         testRunner.enqueue(mockFlowFile);

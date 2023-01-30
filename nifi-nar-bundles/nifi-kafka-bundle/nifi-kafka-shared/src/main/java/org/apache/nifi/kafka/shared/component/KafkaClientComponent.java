@@ -58,7 +58,7 @@ public interface KafkaClientComponent {
             .description("SASL mechanism used for authentication. Corresponds to Kafka Client sasl.mechanism property")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SaslMechanism.class)
+            .allowableValues(SaslMechanism.getAvailableSaslMechanisms())
             .defaultValue(SaslMechanism.GSSAPI.getValue())
             .build();
 
@@ -105,6 +105,19 @@ public interface KafkaClientComponent {
                     SaslMechanism.SCRAM_SHA_256.getValue(),
                     SaslMechanism.SCRAM_SHA_512.getValue()
             )
+            .build();
+
+    PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
+            .name("aws.profile.name")
+            .displayName("AWS Profile Name")
+            .description("The Amazon Web Services Profile to select when multiple profiles are available.")
+            .dependsOn(
+                    SASL_MECHANISM,
+                    SaslMechanism.AWS_MSK_IAM
+            )
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

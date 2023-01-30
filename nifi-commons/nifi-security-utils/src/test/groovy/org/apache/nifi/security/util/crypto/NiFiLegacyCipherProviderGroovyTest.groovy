@@ -21,7 +21,6 @@ import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -31,6 +30,8 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
+
+import static org.junit.jupiter.api.Assertions.assertEquals
 
 class NiFiLegacyCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(NiFiLegacyCipherProviderGroovyTest.class)
@@ -100,7 +101,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assertEquals(plaintext, recovered)
         }
     }
 
@@ -130,7 +131,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assertEquals(plaintext, recovered)
         }
     }
 
@@ -165,7 +166,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assertEquals(plaintext, recovered)
         }
     }
 
@@ -199,7 +200,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assertEquals(plaintext, recovered)
         }
     }
 
@@ -230,7 +231,7 @@ class NiFiLegacyCipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assertEquals(plaintext, recovered)
         }
     }
 }

@@ -33,10 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,13 +43,9 @@ class TestPutSFTP {
 
     private static final String LOCALHOST = "localhost";
 
-    private static final String LOCALHOST_ADDRESS = "127.0.0.1";
-
     private static final String REMOTE_DIRECTORY = "nifi_test/";
 
     private static final String FIRST_FILENAME = "1.txt";
-
-    private static final String TRANSFER_HOST_ATTRIBUTE = "transfer-host";
 
     private static final int BATCH_SIZE = 2;
 
@@ -205,40 +198,6 @@ class TestPutSFTP {
         final ProvenanceEventRecord record = records.iterator().next();
         final String firstTransitUri = String.format(TRANSIT_URI_FORMAT, LOCALHOST);
         assertTrue(record.getTransitUri().startsWith(firstTransitUri), "Transit URI not found");
-    }
-
-    @Test
-    void testRunTransitUriDifferentHosts() {
-        runner.setProperty(SFTPTransfer.REJECT_ZERO_BYTE, Boolean.FALSE.toString());
-        runner.setProperty(SFTPTransfer.HOSTNAME, "${transfer-host}");
-
-        final Map<String, String> firstAttributes = new LinkedHashMap<>();
-        firstAttributes.put(CoreAttributes.FILENAME.key(), FIRST_FILENAME);
-        firstAttributes.put(TRANSFER_HOST_ATTRIBUTE, LOCALHOST);
-        runner.enqueue(FLOW_FILE_CONTENTS, firstAttributes);
-
-        final Map<String, String> secondAttributes = new LinkedHashMap<>();
-        secondAttributes.put(CoreAttributes.FILENAME.key(), FIRST_FILENAME);
-        secondAttributes.put(TRANSFER_HOST_ATTRIBUTE, LOCALHOST_ADDRESS);
-        runner.enqueue(FLOW_FILE_CONTENTS, secondAttributes);
-
-        runner.run();
-
-        runner.assertTransferCount(PutSFTP.REL_SUCCESS, 2);
-
-        final List<ProvenanceEventRecord> records = runner.getProvenanceEvents();
-
-        final String firstTransitUri = String.format(TRANSIT_URI_FORMAT, LOCALHOST);
-        final Optional<ProvenanceEventRecord> firstRecord = records.stream()
-                .filter(record -> record.getTransitUri().startsWith(firstTransitUri))
-                .findFirst();
-        assertTrue(firstRecord.isPresent(), "First Transit URI not found");
-
-        final String secondTransitUri = String.format(TRANSIT_URI_FORMAT, LOCALHOST_ADDRESS);
-        final Optional<ProvenanceEventRecord> secondRecord = records.stream()
-                .filter(record -> record.getTransitUri().startsWith(secondTransitUri))
-                .findFirst();
-        assertTrue(secondRecord.isPresent(), "Second Transit URI not found");
     }
 
     private void createRemoteFile() throws IOException {

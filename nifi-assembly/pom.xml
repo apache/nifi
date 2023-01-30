@@ -114,6 +114,11 @@ language governing permissions and limitations under the License. -->
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
             <scope>compile</scope>
@@ -227,6 +232,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-key-service-nar</artifactId>
+            <version>1.20.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-cipher-nar</artifactId>
             <version>1.20.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
@@ -983,6 +994,9 @@ language governing permissions and limitations under the License. -->
             <id>include-graph</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1018,6 +1032,9 @@ language governing permissions and limitations under the License. -->
             or in Centos6 due to requiring a newer version of GLIBC. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1035,6 +1052,9 @@ language governing permissions and limitations under the License. -->
             larger (60+ MB). -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1049,6 +1069,9 @@ language governing permissions and limitations under the License. -->
             <id>include-hive</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1072,6 +1095,9 @@ language governing permissions and limitations under the License. -->
             larger (150+ MB). -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1095,6 +1121,9 @@ language governing permissions and limitations under the License. -->
             larger (275+ MB). -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1117,6 +1146,9 @@ language governing permissions and limitations under the License. -->
                 through multiple processors. It is not included with the convenience binary due to its size. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1132,6 +1164,9 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles includes of rules related artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1153,6 +1188,9 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles the inclusion of nifi-sql-reporting artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1202,6 +1240,9 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1422,6 +1463,9 @@ language governing permissions and limitations under the License. -->
             <id>include-ranger</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <build>
                 <plugins>
@@ -1470,6 +1514,9 @@ language governing permissions and limitations under the License. -->
             <id>include-asn1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1484,6 +1531,9 @@ language governing permissions and limitations under the License. -->
             <id>include-snowflake</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1571,6 +1621,9 @@ language governing permissions and limitations under the License. -->
             <id>include-iceberg</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
             </activation>
             <dependencies>
                 <dependency>
@@ -1592,6 +1645,15 @@ language governing permissions and limitations under the License. -->
                     <type>nar</type>
                 </dependency>
             </dependencies>
+        </profile>
+        <profile>
+            <id>include-all</id>
+            <properties>
+              <allProfiles>true</allProfiles>
+            </properties>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
         </profile>
     </profiles>
 </project>

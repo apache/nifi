@@ -49,11 +49,10 @@ import java.util.Arrays;
  * WARNING: The creation of a file is not a synchronized operation, may need to adjust tests accordingly!
  */
 public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Processor> {
-    private static final String CREDENTIAL_JSON_FILE_PATH = "";
-    private static final String SHARED_FOLDER_ID = "";
-
+    protected static final String SHARED_FOLDER_ID = "";
     protected static final String DEFAULT_FILE_CONTENT = "test_content";
 
+    private static final String CREDENTIAL_JSON_FILE_PATH = "";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     protected T testSubject;
@@ -101,6 +100,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         GCPCredentialsControllerService gcpCredentialsControllerService = new GCPCredentialsControllerService();
         testRunner.addControllerService("gcp_credentials_provider_service", gcpCredentialsControllerService);
+
         testRunner.setProperty(gcpCredentialsControllerService, CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE, CREDENTIAL_JSON_FILE_PATH);
         testRunner.enableControllerService(gcpCredentialsControllerService);
         testRunner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcp_credentials_provider_service");
@@ -140,7 +140,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         Drive.Files.Create create = driveService.files()
                 .create(fileMetadata, content)
-                .setFields("id, name, modifiedTime");
+                .setFields("id, name, modifiedTime, createdTime");
 
         File file = create.execute();
 
@@ -150,4 +150,6 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
     public TestRunner getTestRunner() {
         return testRunner;
     }
+
+
 }

@@ -26,7 +26,12 @@ import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class BcryptSecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher)
@@ -62,7 +67,7 @@ class BcryptSecureHasherTest {
         }
 
         // Assert
-        assert results.every { it == EXPECTED_HASH_HEX }
+        results.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -90,8 +95,8 @@ class BcryptSecureHasherTest {
         }
 
         // Assert
-        assert results.unique().size() == results.size()
-        assert results.every { it != EXPECTED_HASH_HEX }
+        assertEquals(results.size(), results.unique().size())
+        results.forEach(result -> assertNotEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -131,21 +136,20 @@ class BcryptSecureHasherTest {
         String differentSaltHashBase64 = arbitrarySaltHasher.hashBase64(input)
 
         // Assert
-        assert staticSaltHash == EXPECTED_HASH_BYTES
-        assert arbitrarySaltHash == EXPECTED_HASH_BYTES
-        assert differentArbitrarySaltHash != EXPECTED_HASH_BYTES
-        assert differentSaltHash != EXPECTED_HASH_BYTES
+        assertArrayEquals(EXPECTED_HASH_BYTES, staticSaltHash)
+        assertArrayEquals(EXPECTED_HASH_BYTES, arbitrarySaltHash)
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentArbitrarySaltHash))
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentSaltHash))
 
-        assert staticSaltHashHex == EXPECTED_HASH_HEX
-        assert arbitrarySaltHashHex == EXPECTED_HASH_HEX
-        assert differentArbitrarySaltHashHex != EXPECTED_HASH_HEX
-        assert differentSaltHashHex != EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, staticSaltHashHex)
+        assertEquals(EXPECTED_HASH_HEX, arbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentArbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentSaltHashHex)
 
-        assert staticSaltHashBase64 == EXPECTED_HASH_BASE64
-        assert arbitrarySaltHashBase64 == EXPECTED_HASH_BASE64
-        assert differentArbitrarySaltHashBase64 != EXPECTED_HASH_BASE64
-        assert differentSaltHashBase64 != EXPECTED_HASH_BASE64
-
+        assertEquals(EXPECTED_HASH_BASE64, staticSaltHashBase64)
+        assertEquals(EXPECTED_HASH_BASE64, arbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentArbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentSaltHashBase64)
     }
 
     @Test
@@ -182,7 +186,7 @@ class BcryptSecureHasherTest {
         logger.info("Generated hash: ${hashHex}")
 
         // Assert
-        assert hashHex == EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, hashHex)
     }
 
     @Test
@@ -199,7 +203,7 @@ class BcryptSecureHasherTest {
         logger.info("Generated hash: ${hashB64}")
 
         // Assert
-        assert hashB64 == EXPECTED_HASH_BASE64
+        assertEquals(EXPECTED_HASH_BASE64, hashB64)
     }
 
     @Test
@@ -227,8 +231,8 @@ class BcryptSecureHasherTest {
         }
 
         // Assert
-        assert hexResults.every { it == EXPECTED_HASH_HEX }
-        assert B64Results.every { it == EXPECTED_HASH_BASE64 }
+        hexResults.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
+        B64Results.forEach(result -> assertEquals(EXPECTED_HASH_BASE64, result))
     }
 
     /**
@@ -263,8 +267,8 @@ class BcryptSecureHasherTest {
 
         // Assert
         final long MIN_DURATION_NANOS = 75_000_000 // 75 ms
-        assert resultDurations.min() > MIN_DURATION_NANOS
-        assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
+        assertTrue(resultDurations.min() > MIN_DURATION_NANOS)
+        assertTrue(resultDurations.sum() / testIterations > MIN_DURATION_NANOS)
     }
 
     @Test
@@ -272,11 +276,8 @@ class BcryptSecureHasherTest {
         // Arrange
         final int cost = 14
 
-        // Act
-        boolean valid = BcryptSecureHasher.isCostValid(cost)
-
-        // Assert
-        assert valid
+        // Act and Assert
+       assertTrue(BcryptSecureHasher.isCostValid(cost))
     }
 
     @Test
@@ -284,17 +285,8 @@ class BcryptSecureHasherTest {
         // Arrange
         def costFactors = [-8, 0, 40]
 
-        // Act
-        def results = costFactors.collect { costFactor ->
-            def isValid = BcryptSecureHasher.isCostValid(costFactor)
-            [costFactor, isValid]
-        }
-
-        // Assert
-        results.each { costFactor, isCostValid ->
-            logger.info("For cost factor ${costFactor}, cost is ${isCostValid ? "valid" : "invalid"}")
-            assert !isCostValid
-        }
+        // Act and Assert
+        costFactors.forEach(costFactor -> assertFalse(BcryptSecureHasher.isCostValid(costFactor)))
     }
 
     @Test
@@ -302,16 +294,9 @@ class BcryptSecureHasherTest {
         // Arrange
         def saltLengths = [0, 16]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new BcryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            assert { it == isSaltLengthValid }
-        }
+        // Act and Assert
+        BcryptSecureHasher bcryptSecureHasher = new BcryptSecureHasher()
+        saltLengths.forEach(saltLength -> assertTrue(bcryptSecureHasher.isSaltLengthValid(saltLength)))
     }
 
     @Test
@@ -319,17 +304,9 @@ class BcryptSecureHasherTest {
         // Arrange
         def saltLengths = [-8, 1]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new BcryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            logger.info("For Salt Length value ${saltLength}, saltLength is ${isSaltLengthValid ? "valid" : "invalid"}")
-            assert !isSaltLengthValid
-        }
+        // Act and Assert
+        BcryptSecureHasher bcryptSecureHasher = new BcryptSecureHasher()
+        saltLengths.forEach(saltLength -> assertFalse(bcryptSecureHasher.isSaltLengthValid(saltLength)))
     }
 
     @Test
@@ -350,8 +327,8 @@ class BcryptSecureHasherTest {
         logger.info("Converted (B64) ${convertedBase64} to (R64) ${convertedRadix64}")
 
         // Assert
-        assert convertedBase64 == EXPECTED_MIME_B64
-        assert convertedRadix64 == INPUT_RADIX_64
+        assertEquals(EXPECTED_MIME_B64, convertedBase64)
+        assertEquals(INPUT_RADIX_64, convertedRadix64)
     }
 
     @Test
@@ -372,8 +349,8 @@ class BcryptSecureHasherTest {
         logger.info("Converted (B64) ${convertedBase64} to (R64) ${convertedRadix64}")
 
         // Assert
-        assert convertedBase64 == EXPECTED_MIME_B64
-        assert convertedRadix64 == INPUT_RADIX_64
+        assertEquals(EXPECTED_MIME_B64, convertedBase64)
+        assertEquals(INPUT_RADIX_64, convertedRadix64)
     }
 }
 

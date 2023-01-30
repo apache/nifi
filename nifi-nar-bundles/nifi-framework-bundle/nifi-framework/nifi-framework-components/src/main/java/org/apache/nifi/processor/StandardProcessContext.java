@@ -36,6 +36,8 @@ import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
@@ -62,6 +64,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final String annotationData;
+    private final DeprecationLogger deprecationLogger;
 
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
@@ -89,6 +92,9 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
         this.annotationData = annotationData;
+        final Class<?> componentClass = processorNode.getComponentClass();
+        final Class<?> loggerClass = componentClass == null ? getClass() : componentClass;
+        this.deprecationLogger = DeprecationLoggerFactory.getLogger(loggerClass);
 
         properties = Collections.unmodifiableMap(propertyValues);
 
@@ -227,12 +233,14 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public String encrypt(final String unencrypted) {
         verifyTaskActive();
+        deprecationLogger.warn("ProcessContext.encrypt() should be replaced an alternative implementation");
         return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override
     public String decrypt(final String encrypted) {
         verifyTaskActive();
+        deprecationLogger.warn("ProcessContext.decrypt() should be replaced an alternative implementation");
         return propertyEncryptor.decrypt(encrypted);
     }
 

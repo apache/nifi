@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.oauth2;
 
+import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
@@ -178,6 +179,70 @@ public class StandardOauth2AccessTokenProviderTest {
 
         // THEN
         runner.assertNotValid(testSubject);
+    }
+
+    @Test
+    public void testInvalidWhenRefreshTokenGrantTypeSetWithoutRefreshToken() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.REFRESH_TOKEN_GRANT_TYPE);
+
+        // THEN
+        runner.assertNotValid(testSubject);
+    }
+
+    @Test
+    public void testValidWhenRefreshTokenGrantTypeSetWithRefreshToken() throws Exception {
+        // GIVEN
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.REFRESH_TOKEN_GRANT_TYPE);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.REFRESH_TOKEN, "refresh_token");
+
+        // THEN
+        runner.assertValid(testSubject);
+    }
+
+    @Test
+    public void testAcquireNewTokenWhenGrantTypeIsRefreshToken() throws Exception {
+        // GIVEN
+        String refreshToken = "refresh_token_123";
+        String accessToken = "access_token_123";
+
+        Processor processor = new NoOpProcessor();
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.addControllerService("testSubject", testSubject);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL, AUTHORIZATION_SERVER_URL);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.GRANT_TYPE, StandardOauth2AccessTokenProvider.REFRESH_TOKEN_GRANT_TYPE);
+        runner.setProperty(testSubject, StandardOauth2AccessTokenProvider.REFRESH_TOKEN, refreshToken);
+
+        runner.enableControllerService(testSubject);
+
+        Response response = buildResponse(HTTP_OK, "{\"access_token\":\"" + accessToken + "\"}");
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+
+        // WHEN
+        String actualAccessToken = testSubject.getAccessDetails().getAccessToken();
+
+        // THEN
+        verify(mockHttpClient, atLeast(1)).newCall(requestCaptor.capture());
+        FormBody capturedRequestBody = (FormBody) requestCaptor.getValue().body();
+
+        assertEquals("grant_type", capturedRequestBody.encodedName(0));
+        assertEquals("refresh_token", capturedRequestBody.encodedValue(0));
+
+        assertEquals("refresh_token", capturedRequestBody.encodedName(1));
+        assertEquals("refresh_token_123", capturedRequestBody.encodedValue(1));
+
+        assertEquals(accessToken, actualAccessToken);
     }
 
     @Test

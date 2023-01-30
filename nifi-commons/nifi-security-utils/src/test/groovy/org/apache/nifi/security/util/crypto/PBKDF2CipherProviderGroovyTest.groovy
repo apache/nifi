@@ -28,8 +28,11 @@ import org.slf4j.LoggerFactory
 import javax.crypto.Cipher
 import java.security.Security
 
-import static groovy.test.GroovyAssert.shouldFail
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class PBKDF2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProviderGroovyTest.class)
@@ -85,7 +88,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -108,12 +111,11 @@ class PBKDF2CipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, true)
 
             // Decrypt should fail
-            def msg = shouldFail(IllegalArgumentException) {
-                cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false)
-            }
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false))
 
             // Assert
-            assert msg =~ "Cannot decrypt without a valid IV"
+            assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
         }
     }
 
@@ -143,7 +145,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -174,7 +176,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -192,12 +194,11 @@ class PBKDF2CipherProviderGroovyTest {
 
         // Act
         logger.info("Using PRF ${prf}")
-        def msg = shouldFail(IllegalArgumentException) {
-            cipherProvider = new PBKDF2CipherProvider(prf, TEST_ITERATION_COUNT)
-        }
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> new PBKDF2CipherProvider(prf, TEST_ITERATION_COUNT))
 
         // Assert
-        assert msg =~ "Cannot resolve empty PRF"
+        assertTrue(iae.getMessage().contains("Cannot resolve empty PRF"))
     }
 
     @Test
@@ -234,7 +235,7 @@ class PBKDF2CipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert PLAINTEXT.equals(recovered)
+        assertEquals(PLAINTEXT, recovered)
     }
 
     @Test
@@ -270,7 +271,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -300,7 +301,7 @@ class PBKDF2CipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert PLAINTEXT.equals(recovered)
+        assertEquals(PLAINTEXT, recovered)
     }
 
     @Test
@@ -324,15 +325,15 @@ class PBKDF2CipherProviderGroovyTest {
         byte[] sha512CipherBytes = sha512Cipher.doFinal(PLAINTEXT.bytes)
 
         // Assert
-        assert sha512CipherBytes != sha256CipherBytes
+        assertFalse(Arrays.equals(sha512CipherBytes, sha256CipherBytes))
 
         Cipher sha256DecryptCipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
         byte[] sha256RecoveredBytes = sha256DecryptCipher.doFinal(sha256CipherBytes)
-        assert sha256RecoveredBytes == PLAINTEXT.bytes
+        assertArrayEquals(PLAINTEXT.bytes, sha256RecoveredBytes)
 
         Cipher sha512DecryptCipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
         byte[] sha512RecoveredBytes = sha512DecryptCipher.doFinal(sha512CipherBytes)
-        assert sha512RecoveredBytes == PLAINTEXT.bytes
+        assertArrayEquals(PLAINTEXT.bytes, sha512RecoveredBytes)
     }
 
     @Test
@@ -355,12 +356,11 @@ class PBKDF2CipherProviderGroovyTest {
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            def msg = shouldFail(IllegalArgumentException) {
-                cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false)
-            }
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false))
 
             // Assert
-            assert msg =~ "Cannot decrypt without a valid IV"
+            assertTrue(iae.getMessage().contains( "Cannot decrypt without a valid IV"))
         }
     }
 
@@ -380,12 +380,11 @@ class PBKDF2CipherProviderGroovyTest {
         INVALID_SALTS.each { String salt ->
             logger.info("Checking salt ${salt}")
 
-            def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt?.bytes, DEFAULT_KEY_LENGTH, true)
-            }
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, salt?.bytes, DEFAULT_KEY_LENGTH, true))
 
             // Assert
-            assert msg =~ "The salt must be at least 16 bytes\\. To generate a salt, use PBKDF2CipherProvider#generateSalt"
+            assertTrue(iae.getMessage().contains("The salt must be at least 16 bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt"))
         }
     }
 
@@ -419,7 +418,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert PLAINTEXT.equals(recovered)
+            assertEquals(PLAINTEXT, recovered)
         }
     }
 
@@ -441,12 +440,11 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
 
             // Initialize a cipher for encryption
-            def msg = shouldFail(IllegalArgumentException) {
-                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true)
-            }
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true))
 
             // Assert
-            assert msg =~ "${keyLength} is not a valid key length for AES"
+            assertTrue(iae.getMessage().contains(keyLength + " is not a valid key length for AES"))
         }
     }
 
@@ -537,7 +535,9 @@ class PBKDF2CipherProviderGroovyTest {
         logger.info("Checking salt ${Hex.encodeHexString(salt)}")
 
         // Assert
-        assert salt.length == 16
-        assert salt != [(0x00 as byte) * 16]
+        assertEquals(16,salt.length )
+        byte [] notExpected = new byte[16]
+        Arrays.fill(notExpected, 0x00 as byte)
+        assertFalse(Arrays.equals(notExpected, salt))
     }
 }

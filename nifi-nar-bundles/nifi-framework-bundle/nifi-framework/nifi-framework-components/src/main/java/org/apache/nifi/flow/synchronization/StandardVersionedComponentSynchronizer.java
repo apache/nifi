@@ -153,6 +153,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private Set<String> preExistingVariables = new HashSet<>();
     private FlowSynchronizationOptions syncOptions;
+    private final ConnectableAdditionTracker connectableAdditionTracker = new ConnectableAdditionTracker();
 
     public StandardVersionedComponentSynchronizer(final VersionedFlowSynchronizationContext context) {
         this.context = context;
@@ -252,7 +253,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         context.getFlowManager().withParameterContextResolution(() -> {
             try {
-                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), versionedExternalFlow.getParameterProviders());
+                final Map<String, ParameterProviderReference> parameterProviderReferences = versionedExternalFlow.getParameterProviders() == null
+                        ? new HashMap<>() : versionedExternalFlow.getParameterProviders();
+                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts(), parameterProviderReferences);
             } catch (final ProcessorInstantiationException pie) {
                 throw new RuntimeException(pie);
             }
@@ -1337,7 +1340,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     || (versionedDescriptor != null && versionedDescriptor.isSensitive());
 
                 String value;
-                if (descriptor != null && referencesService) {
+                if (descriptor != null && referencesService && (proposedProperties.get(propertyName) != null)) {
                     // Need to determine if the component's property descriptor for this service is already set to an id
                     // of an existing service that is outside the current processor group, and if it is we want to leave
                     // the property set to that value
@@ -1904,16 +1907,25 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 if (reference == null) {
                     parameterProviderIdToSet = null;
                 } else {
-                    final String newParameterProviderId = componentIdGenerator.generateUuid(parameterProviderId, parameterProviderId, null);
+                    parameterProviderNode = context.getFlowManager().getParameterProvider(reference.getIdentifier());
+                    if (parameterProviderNode != null) {
+                        parameterProviderIdToSet = reference.getIdentifier();
+                    } else {
+                        final String newParameterProviderId = componentIdGenerator.generateUuid(parameterProviderId, parameterProviderId, null);
 
-                    final Bundle bundle = reference.getBundle();
-                    parameterProviderNode = context.getFlowManager().createParameterProvider(reference.getType(), newParameterProviderId,
-                            new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion()), true);
+                        final Bundle bundle = reference.getBundle();
+                        parameterProviderNode = context.getFlowManager().createParameterProvider(reference.getType(), newParameterProviderId,
+                                new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion()), true);
 
-                    parameterProviderNode.pauseValidationTrigger(); // avoid triggering validation multiple times
-                    parameterProviderNode.setName(reference.getName());
-                    parameterProviderNode.resumeValidationTrigger();
-                    parameterProviderIdToSet = parameterProviderNode.getIdentifier();
+                        parameterProviderNode.pauseValidationTrigger(); // avoid triggering validation multiple times
+                        parameterProviderNode.setName(reference.getName());
+                        parameterProviderNode.resumeValidationTrigger();
+                        parameterProviderIdToSet = parameterProviderNode.getIdentifier();
+
+                        // Set the reference id to the new id so it can be picked up by other contexts referencing the same provider
+                        reference.setIdentifier(parameterProviderIdToSet);
+                        parameterProviderReferences.put(parameterProviderIdToSet, reference);
+                    }
                 }
             }
         }
@@ -2198,6 +2210,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         funnel.setVersionedComponentId(proposed.getIdentifier());
         destination.addFunnel(funnel);
         updateFunnel(funnel, proposed);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), funnel);
 
         return funnel;
     }
@@ -2334,6 +2347,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addInputPort(port);
         updatePort(port, proposed, temporaryName);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);
 
         return port;
     }
@@ -2352,6 +2366,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setVersionedComponentId(proposed.getIdentifier());
         destination.addOutputPort(port);
         updatePort(port, proposed, temporaryName);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);
 
         return port;
     }
@@ -2391,6 +2406,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final ProcessContext processContext = context.getProcessContextFactory().apply(procNode);
         procNode.onConfigurationRestored(processContext);
+        connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), procNode);
 
         return procNode;
     }
@@ -3273,8 +3289,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         // If we're synchronizing and the component is not available by the instance ID, lookup the component by the ID instead.
         final Connectable connectableById = getConnectable(group, connectableComponent, ConnectableComponent::getId);
-        LOG.debug("Found no connectable in Process Group {} by Instance ID. Lookup by ID {} yielded {}", connectable, connectableComponent.getId(), connectableById);
-        return connectableById;
+        LOG.debug("Found no connectable in Process Group {} by Instance ID. Lookup by ID {} yielded {}", group, connectableComponent.getId(), connectableById);
+        if (connectableById != null) {
+            return connectableById;
+        }
+
+        final Optional<Connectable> addedComponent = connectableAdditionTracker.getComponent(group.getIdentifier(), connectableComponent.getId());
+        if (addedComponent.isPresent()) {
+            LOG.debug("Found Connectable in Process Group {} as newly added component {}", group, addedComponent.get());
+        }
+
+        return addedComponent.orElse(null);
     }
 
     private Connectable getConnectable(final ProcessGroup group, final ConnectableComponent connectableComponent, final Function<ConnectableComponent, String> idFunction) {

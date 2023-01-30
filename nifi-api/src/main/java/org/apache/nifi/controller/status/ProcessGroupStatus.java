@@ -47,6 +47,7 @@ public class ProcessGroupStatus implements Cloneable {
     private long bytesSent;
     private int flowFilesTransferred;
     private long bytesTransferred;
+    private long processingNanos;
 
     private Collection<ConnectionStatus> connectionStatus = new ArrayList<>();
     private Collection<ProcessorStatus> processorStatus = new ArrayList<>();
@@ -255,6 +256,14 @@ public class ProcessGroupStatus implements Cloneable {
         this.bytesTransferred = bytesTransferred;
     }
 
+    public long getProcessingNanos() {
+        return processingNanos;
+    }
+
+    public void setProcessingNanos(long processingNanos) {
+        this.processingNanos = processingNanos;
+    }
+
     @Override
     public ProcessGroupStatus clone() {
         final ProcessGroupStatus clonedObj = new ProcessGroupStatus();
@@ -277,6 +286,7 @@ public class ProcessGroupStatus implements Cloneable {
         clonedObj.bytesSent = bytesSent;
         clonedObj.flowFilesTransferred = flowFilesTransferred;
         clonedObj.bytesTransferred = bytesTransferred;
+        clonedObj.processingNanos = processingNanos;
 
         if (connectionStatus != null) {
             final Collection<ConnectionStatus> statusList = new ArrayList<>();
@@ -358,6 +368,8 @@ public class ProcessGroupStatus implements Cloneable {
         builder.append(flowFilesSent);
         builder.append(", bytesSent=");
         builder.append(bytesSent);
+        builder.append(", processingNanos=");
+        builder.append(processingNanos);
         builder.append(",\n\tconnectionStatus=");
 
         for (final ConnectionStatus status : connectionStatus) {
@@ -422,6 +434,7 @@ public class ProcessGroupStatus implements Cloneable {
         target.setBytesReceived(target.getBytesReceived() + toMerge.getBytesReceived());
         target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
         target.setBytesSent(target.getBytesSent() + toMerge.getBytesSent());
+        target.setProcessingNanos(target.getProcessingNanos() + toMerge.getProcessingNanos());
 
         // if the versioned flow state to merge is sync failure allow it to take precedence.
         if (VersionedFlowState.SYNC_FAILURE.equals(toMerge.getVersionedFlowState())) {

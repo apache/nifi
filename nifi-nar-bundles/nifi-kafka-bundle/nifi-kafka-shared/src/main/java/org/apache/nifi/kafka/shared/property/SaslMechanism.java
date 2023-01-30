@@ -17,8 +17,10 @@
 package org.apache.nifi.kafka.shared.property;
 
 import org.apache.nifi.components.DescribedValue;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Optional;
 
 /**
@@ -31,7 +33,10 @@ public enum SaslMechanism implements DescribedValue {
 
     SCRAM_SHA_256("SCRAM-SHA-256", "SCRAM-SHA-256", "Salted Challenge Response Authentication Mechanism using SHA-512 with username and password"),
 
-    SCRAM_SHA_512("SCRAM-SHA-512", "SCRAM-SHA-512", "Salted Challenge Response Authentication Mechanism using SHA-256 with username and password");
+    SCRAM_SHA_512("SCRAM-SHA-512", "SCRAM-SHA-512", "Salted Challenge Response Authentication Mechanism using SHA-256 with username and password"),
+
+    AWS_MSK_IAM("AWS_MSK_IAM", "AWS_MSK_IAM", "Allows to use AWS IAM for authentication and authorization against Amazon MSK clusters that have AWS IAM enabled " +
+            "as an authentication mechanism. The IAM credentials will be found using the AWS Default Credentials Provider Chain.");
 
     private final String value;
 
@@ -50,6 +55,14 @@ public enum SaslMechanism implements DescribedValue {
                 .filter(saslMechanism -> saslMechanism.getValue().equals(value))
                 .findFirst();
         return foundSaslMechanism.orElseThrow(() -> new IllegalArgumentException(String.format("SaslMechanism value [%s] not found", value)));
+    }
+
+    public static EnumSet<SaslMechanism> getAvailableSaslMechanisms() {
+        if (StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+            return EnumSet.allOf(SaslMechanism.class);
+        } else {
+            return EnumSet.complementOf(EnumSet.of(SaslMechanism.AWS_MSK_IAM));
+        }
     }
 
     @Override

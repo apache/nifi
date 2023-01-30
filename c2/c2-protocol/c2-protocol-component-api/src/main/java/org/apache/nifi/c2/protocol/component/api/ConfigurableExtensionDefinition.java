@@ -20,12 +20,15 @@ import io.swagger.annotations.ApiModelProperty;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class ConfigurableExtensionDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
 
     private Map<String, PropertyDescriptor> propertyDescriptors;
+
     private boolean supportsDynamicProperties;
+    private List<DynamicProperty> dynamicProperties;
 
     @Override
     @ApiModelProperty("Descriptions of configuration properties applicable to this component.")
@@ -49,4 +52,14 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
         this.supportsDynamicProperties = supportsDynamicProperties;
     }
 
+    @Override
+    @ApiModelProperty("Describes the dynamic properties supported by this component")
+    public List<DynamicProperty> getDynamicProperties() {
+        return dynamicProperties;
+    }
+
+    @Override
+    public void setDynamicProperties(List<DynamicProperty> dynamicProperties) {
+        this.dynamicProperties = dynamicProperties;
+    }
 }

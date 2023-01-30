@@ -29,7 +29,14 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.Security
 
-class HashServiceTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertInstanceOf
+import static org.junit.jupiter.api.Assertions.assertNotEquals
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class HashServiceTest {
     private static final Logger logger = LoggerFactory.getLogger(HashServiceTest.class)
 
     @BeforeAll
@@ -70,9 +77,9 @@ class HashServiceTest extends GroovyTestCase {
 
             // Assert
             if (result instanceof byte[]) {
-                assert result == EXPECTED_HASH_BYTES
+                assertArrayEquals(EXPECTED_HASH_BYTES, result)
             } else {
-                assert result == EXPECTED_HASH
+                assertEquals(EXPECTED_HASH, result)
             }
         }
     }
@@ -90,11 +97,12 @@ class HashServiceTest extends GroovyTestCase {
         logger.info("UTF-16: ${utf16Hash}")
 
         // Assert
-        assert utf8Hash != utf16Hash
+        assertNotEquals(utf8Hash, utf16Hash)
     }
 
     /**
-     * This test ensures that the service properly handles UTF-16 encoded data to return it without the Big Endian Byte Order Mark (BOM). Java treats UTF-16 encoded data without a BOM as Big Endian by default on decoding, but when <em>encoding</em>, it inserts a BE BOM in the data.
+     * This test ensures that the service properly handles UTF-16 encoded data to return it without
+     * the Big Endian Byte Order Mark (BOM). Java treats UTF-16 encoded data without a BOM as Big Endian by default on decoding, but when <em>encoding</em>, it inserts a BE BOM in the data.
      *
      * Examples:
      *
@@ -138,7 +146,7 @@ class HashServiceTest extends GroovyTestCase {
             logger.info("${algorithm.name}(${KNOWN_VALUE}, ${charset.name().padLeft(9)}) = ${hash}")
 
             // Assert
-            assert hash == EXPECTED_SHA_256_HASHES[translateStringToMapKey(charset.name())]
+            assertEquals(EXPECTED_SHA_256_HASHES[translateStringToMapKey(charset.name())], hash)
         }
     }
 
@@ -162,16 +170,15 @@ class HashServiceTest extends GroovyTestCase {
         logger.info("Implicit UTF-8 bytes: ${implicitUTF8HashBytesDefault}")
 
         // Assert
-        assert explicitUTF8Hash == implicitUTF8Hash
-        assert explicitUTF8HashBytes == implicitUTF8HashBytes
-        assert explicitUTF8HashBytes == implicitUTF8HashBytesDefault
+        assertEquals(explicitUTF8Hash, implicitUTF8Hash)
+        assertArrayEquals(explicitUTF8HashBytes, implicitUTF8HashBytes)
+        assertArrayEquals(explicitUTF8HashBytes, implicitUTF8HashBytesDefault)
     }
 
     @Test
     void testShouldRejectNullAlgorithm() {
         // Arrange
         final String KNOWN_VALUE = "apachenifi"
-
         Closure threeArgString = { -> HashService.hashValue(null, KNOWN_VALUE, StandardCharsets.UTF_8) }
         Closure twoArgString = { -> HashService.hashValue(null, KNOWN_VALUE) }
         Closure threeArgStringRaw = { -> HashService.hashValueRaw(null, KNOWN_VALUE, StandardCharsets.UTF_8) }
@@ -186,15 +193,10 @@ class HashServiceTest extends GroovyTestCase {
         ]
 
         // Act
-        scenarios.each { String name, Closure closure ->
-            def msg = shouldFail(IllegalArgumentException) {
-                closure.call()
-            }
-            logger.expected("${name.padLeft(20)}: ${msg}")
-
-            // Assert
-            assert msg =~ "The hash algorithm cannot be null"
-        }
+        scenarios.entrySet().forEach(entry -> {
+            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> entry.getValue().call())
+            assertTrue(iae.message.contains("The hash algorithm cannot be null"))
+        })
     }
 
     @Test
@@ -216,15 +218,10 @@ class HashServiceTest extends GroovyTestCase {
         ]
 
         // Act
-        scenarios.each { String name, Closure closure ->
-            def msg = shouldFail(IllegalArgumentException) {
-                closure.call()
-            }
-            logger.expected("${name.padLeft(20)}: ${msg}")
-
-            // Assert
-            assert msg =~ "The value cannot be null"
-        }
+        scenarios.entrySet().forEach(entry -> {
+                    IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> entry.getValue().call())
+                    assertTrue(iae.message.contains("The value cannot be null"))
+                })
     }
 
     @Test
@@ -266,7 +263,7 @@ class HashServiceTest extends GroovyTestCase {
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
             String key = translateStringToMapKey(algorithmName)
-            assert EXPECTED_HASHES[key] == hash
+            assertEquals(EXPECTED_HASHES[key], hash)
         }
     }
 
@@ -309,7 +306,7 @@ class HashServiceTest extends GroovyTestCase {
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
             String key = translateStringToMapKey(algorithmName)
-            assert EXPECTED_HASHES[key] == hash
+            assertEquals(EXPECTED_HASHES[key], hash)
         }
     }
 
@@ -323,14 +320,14 @@ class HashServiceTest extends GroovyTestCase {
         def allowableValues = HashService.buildHashAlgorithmAllowableValues()
 
         // Assert
-        assert allowableValues instanceof AllowableValue[]
+        assertInstanceOf(AllowableValue[].class, allowableValues)
 
         def valuesList = allowableValues as List<AllowableValue>
-        assert valuesList.size() == EXPECTED_ALGORITHMS.size()
+        assertEquals(EXPECTED_ALGORITHMS.size(), valuesList.size())
         EXPECTED_ALGORITHMS.each { HashAlgorithm expectedAlgorithm ->
             def matchingValue = valuesList.find { it.value == expectedAlgorithm.name }
-            assert matchingValue.displayName == expectedAlgorithm.name
-            assert matchingValue.description == expectedAlgorithm.buildAllowableValueDescription()
+            assertEquals(expectedAlgorithm.name, matchingValue.displayName)
+            assertEquals(expectedAlgorithm.buildAllowableValueDescription(), matchingValue.description)
         }
     }
 
@@ -347,20 +344,21 @@ class HashServiceTest extends GroovyTestCase {
         ]
         logger.info("The consistent list of character sets available [${EXPECTED_CHARACTER_SETS.size()}]: \n${EXPECTED_CHARACTER_SETS.collect { "\t${it.name()}" }.join("\n")}")
 
-        def expectedDescriptions = ["UTF-16": "This character set normally decodes using an optional BOM at the beginning of the data but encodes by inserting a BE BOM. For hashing, it will be replaced with UTF-16BE. "]
+        def expectedDescriptions =
+                ["UTF-16": "This character set normally decodes using an optional BOM at the beginning of the data but encodes by inserting a BE BOM. For hashing, it will be replaced with UTF-16BE. "]
 
         // Act
         def allowableValues = HashService.buildCharacterSetAllowableValues()
 
         // Assert
-        assert allowableValues instanceof AllowableValue[]
+        assertInstanceOf(AllowableValue[].class, allowableValues)
 
         def valuesList = allowableValues as List<AllowableValue>
-        assert valuesList.size() == EXPECTED_CHARACTER_SETS.size()
+        assertEquals(EXPECTED_CHARACTER_SETS.size(), valuesList.size())
         EXPECTED_CHARACTER_SETS.each { Charset charset ->
             def matchingValue = valuesList.find { it.value == charset.name() }
-            assert matchingValue.displayName == charset.name()
-            assert matchingValue.description == (expectedDescriptions[charset.name()] ?: charset.displayName())
+            assertEquals(charset.name(), matchingValue.displayName)
+            assertEquals((expectedDescriptions[charset.name()] ?: charset.displayName()), matchingValue.description)
         }
     }
 
@@ -410,7 +408,7 @@ class HashServiceTest extends GroovyTestCase {
         // Assert
         generatedHashes.each { String algorithmName, String hash ->
             String key = translateStringToMapKey(algorithmName)
-            assert EXPECTED_HASHES[key] == hash
+            assertEquals(EXPECTED_HASHES[key], hash)
         }
     }
 

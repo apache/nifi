@@ -53,12 +53,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRecordPath {
 
@@ -1094,23 +1094,20 @@ public class TestRecordPath {
 
         // Special character cases
         values.put("name", "John Doe");
-        assertEquals("Replacing whitespace to new line",
+        assertEquals(
                 "John\nDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\n')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "John\nDoe");
-        assertEquals("Replacing new line to whitespace",
-                "John Doe", RecordPath.compile("replaceRegex(/name, '\\n', ' ')")
+        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\n', ' ')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "John Doe");
-        assertEquals("Replacing whitespace to tab",
-                "John\tDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\t')")
+        assertEquals("John\tDoe", RecordPath.compile("replaceRegex(/name, '[\\s]', '\\t')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "John\tDoe");
-        assertEquals("Replacing tab to whitespace",
-                "John Doe", RecordPath.compile("replaceRegex(/name, '\\t', ' ')")
+        assertEquals("John Doe", RecordPath.compile("replaceRegex(/name, '\\t', ' ')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
     }
@@ -1132,23 +1129,19 @@ public class TestRecordPath {
         // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't to do so at NiFi UI.
         //       The test record path is equivalent to replaceRegex(/name, '\'', '"')
         values.put("name", "'John' 'Doe'");
-        assertEquals("Replacing quote to double-quote",
-                "\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, '\\'', '\"')")
+        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, '\\'', '\"')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "\"John\" \"Doe\"");
-        assertEquals("Replacing double-quote to single-quote",
-                "'John' 'Doe'", RecordPath.compile("replaceRegex(/name, '\"', '\\'')")
+        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, '\"', '\\'')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "'John' 'Doe'");
-        assertEquals("Replacing quote to double-quote, the function arguments are wrapped by double-quote",
-                "\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, \"'\", \"\\\"\")")
+        assertEquals("\"John\" \"Doe\"", RecordPath.compile("replaceRegex(/name, \"'\", \"\\\"\")")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "\"John\" \"Doe\"");
-        assertEquals("Replacing double-quote to single-quote, the function arguments are wrapped by double-quote",
-                "'John' 'Doe'", RecordPath.compile("replaceRegex(/name, \"\\\"\", \"'\")")
+        assertEquals("'John' 'Doe'", RecordPath.compile("replaceRegex(/name, \"\\\"\", \"'\")")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
     }
@@ -1170,13 +1163,11 @@ public class TestRecordPath {
         // NOTE: At Java code, a single back-slash needs to be escaped with another-back slash, but needn't to do so at NiFi UI.
         //       The test record path is equivalent to replaceRegex(/name, '\\', '/')
         values.put("name", "John\\Doe");
-        assertEquals("Replacing a back-slash to forward-slash",
-                "John/Doe", RecordPath.compile("replaceRegex(/name, '\\\\', '/')")
+        assertEquals("John/Doe", RecordPath.compile("replaceRegex(/name, '\\\\', '/')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "John/Doe");
-        assertEquals("Replacing a forward-slash to back-slash",
-                "John\\Doe", RecordPath.compile("replaceRegex(/name, '/', '\\\\')")
+        assertEquals("John\\Doe", RecordPath.compile("replaceRegex(/name, '/', '\\\\')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
     }
@@ -1196,13 +1187,11 @@ public class TestRecordPath {
 
         // Brackets
         values.put("name", "J[o]hn Do[e]");
-        assertEquals("Square brackets can be escaped with back-slash",
-                "J(o)hn Do(e)", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')")
+        assertEquals("J(o)hn Do(e)", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\[', '('), '\\]', ')')")
                 .evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         values.put("name", "J(o)hn Do(e)");
-        assertEquals("Brackets can be escaped with back-slash",
-                "J[o]hn Do[e]", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')")
+        assertEquals("J[o]hn Do[e]", RecordPath.compile("replaceRegex(replaceRegex(/name, '\\(', '['), '\\)', ']')")
                         .evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
@@ -1870,7 +1859,7 @@ public class TestRecordPath {
         assertEquals("MyString", RecordPath.compile("padRight(/someString, 3)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyString", RecordPath.compile("padRight(/someString, -10)").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("@@@@@@@@@@", RecordPath.compile("padRight(/emptyString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertNull(null, RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertNull(RecordPath.compile("padRight(/nullString, 10, '@')").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringxy", RecordPath.compile("padRight(/someString, 10, \"xy\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringaV", RecordPath.compile("padRight(/someString, 10, \"aVeryLongPadding\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
         assertEquals("MyStringfewfewfewfew", RecordPath.compile("padRight(/someString, 20, \"few\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
@@ -1938,6 +1927,48 @@ public class TestRecordPath {
         assertEquals(Boolean.FALSE, RecordPath.compile("/id > 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         assertEquals(Boolean.FALSE, RecordPath.compile("not(/id = 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testCountArrayElements() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> fieldValues = RecordPath.compile("count(/numbers[*])").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals(1, fieldValues.size());
+        assertEquals(10L, fieldValues.get(0).getValue());
+    }
+
+    @Test
+    public void testCountComparison() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> fieldValues = RecordPath.compile("count(/numbers[*]) > 9").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals(1, fieldValues.size());
+        assertEquals(true, fieldValues.get(0).getValue());
+    }
+
+    @Test
+    public void testCountAsFilter() {
+        final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("numbers", new Object[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+        final Record record = new MapRecord(schema, values);
+
+        final List<FieldValue> fieldValues = RecordPath.compile("/id[count(/numbers[*]) > 2]").evaluate(record).getSelectedFields().collect(Collectors.toList());
+        assertEquals(1, fieldValues.size());
+        assertEquals(48, fieldValues.get(0).getValue());
     }
 
     private List<RecordField> getDefaultFields() {

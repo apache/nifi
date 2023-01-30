@@ -1,0 +1,19 @@
+{
+  "requests": [{
+    "image": {
+      "source": {
+        "imageUri": "gs://qe-dim-external/kjantner-vision-test/vision-test.png"
+      }
+    },
+    "features": [{
+      "type": "FACE_DETECTION",
+      "maxResults": 4
+    }]
+  }],
+  "outputConfig": {
+    "gcsDestination": {
+      "uri": "gs://qe-dim-external/kjantner-vision-test/results/"
+    },
+    "batchSize": 2
+  }
+}

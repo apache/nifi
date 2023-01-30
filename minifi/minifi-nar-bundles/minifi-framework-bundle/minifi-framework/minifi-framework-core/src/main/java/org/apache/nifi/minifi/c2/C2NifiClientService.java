@@ -305,11 +305,15 @@ public class C2NifiClientService {
     }
 
     public void stop() {
+        bootstrapAcknowledgeExecutorService.shutdownNow();
+        heartbeatExecutorService.shutdown();
         try {
-            heartbeatExecutorService.shutdown();
-            heartbeatExecutorService.awaitTermination(TERMINATION_WAIT, TimeUnit.MILLISECONDS);
+            if (!heartbeatExecutorService.awaitTermination(TERMINATION_WAIT, TimeUnit.MILLISECONDS)) {
+                heartbeatExecutorService.shutdownNow();
+            }
         } catch (InterruptedException ignore) {
             LOGGER.info("Stopping C2 Client's thread was interrupted but shutting down anyway the C2NifiClientService");
+            heartbeatExecutorService.shutdownNow();
         }
     }
 

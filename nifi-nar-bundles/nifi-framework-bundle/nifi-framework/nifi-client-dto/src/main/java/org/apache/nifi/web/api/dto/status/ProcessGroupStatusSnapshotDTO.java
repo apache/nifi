@@ -78,6 +78,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
     private Integer activeThreadCount = 0;
     private Integer terminatedThreadCount = 0;
+    private Long processingNanos = 0L;
 
     /**
      * The id for the process group.
@@ -498,6 +499,14 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.sent = sent;
     }
 
+    public Long getProcessingNanos() {
+        return processingNanos;
+    }
+
+    public void setProcessingNanos(Long processingNanos) {
+        this.processingNanos = processingNanos;
+    }
+
     @Override
     public ProcessGroupStatusSnapshotDTO clone() {
         final ProcessGroupStatusSnapshotDTO other = new ProcessGroupStatusSnapshotDTO();
@@ -537,6 +546,8 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
         other.setActiveThreadCount(getActiveThreadCount());
         other.setTerminatedThreadCount(getTerminatedThreadCount());
+
+        other.setProcessingNanos(getProcessingNanos());
 
         other.setConnectionStatusSnapshots(copy(getConnectionStatusSnapshots()));
         other.setProcessorStatusSnapshots(copy(getProcessorStatusSnapshots()));

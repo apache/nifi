@@ -37,9 +37,9 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
-import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
@@ -48,12 +48,12 @@ import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientTypesEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -494,22 +494,26 @@ public class ControllerResource extends ApplicationResource {
         preprocessObsoleteRequest(requestFlowRegistryClientEntity);
 
         if (requestFlowRegistryClientEntity == null || requestFlowRegistryClientEntity.getComponent() == null) {
-            throw new IllegalArgumentException("Flow registry client details must be specified.");
+            throw new IllegalArgumentException("Flow Registry client details must be specified.");
         }
 
         if (requestFlowRegistryClientEntity.getRevision() == null
                 || (requestFlowRegistryClientEntity.getRevision().getVersion() == null
                 || requestFlowRegistryClientEntity.getRevision().getVersion() != 0)) {
-            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Registry.");
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Flow Registry.");
         }
 
         final FlowRegistryClientDTO requestRegistryClient = requestFlowRegistryClientEntity.getComponent();
         if (requestRegistryClient.getId() != null) {
-            throw new IllegalArgumentException("Registry ID cannot be specified.");
+            throw new IllegalArgumentException("Flow Registry ID cannot be specified.");
         }
 
         if (StringUtils.isBlank(requestRegistryClient.getName())) {
-            throw new IllegalArgumentException("Registry name must be specified.");
+            throw new IllegalArgumentException("Flow Registry name must be specified.");
+        }
+
+        if (serviceFacade.getRegistryClients().stream().anyMatch(rce -> requestRegistryClient.getName().equals(rce.getComponent().getName()))) {
+            throw new IllegalArgumentException("A Flow Registry already exists with the name " + requestRegistryClient.getName());
         }
 
         if (isReplicateRequest()) {

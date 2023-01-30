@@ -1,0 +1,21 @@
+{
+  "requests": [
+    {
+      "inputConfig": {
+        "gcsSource": {
+          "uri": "gs://qe-dim-external/kjantner-vision-test/TestDoc.pdf"
+        },
+        "mimeType": "application/pdf"
+      },
+      "features": [{
+        "type": "DOCUMENT_TEXT_DETECTION",
+        "maxResults": 4
+      }],
+      "outputConfig": {
+        "gcsDestination": {
+          "uri": "gs://qe-dim-external/kjantner-vision-test/results-files/"
+        },
+        "batchSize": 2
+      }
+    }]
+}

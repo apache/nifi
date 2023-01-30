@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
+import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 
@@ -74,6 +75,7 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         validateKerberosServices(validationContext, results);
         validateKerberosCredentials(validationContext, results);
         validateUsernamePassword(validationContext, results);
+        validateAwsMskIamMechanism(validationContext, results);
         return results;
     }
 
@@ -226,6 +228,24 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
                 final String explanation = String.format("[%s] required for [%s] values: %s", SASL_PASSWORD.getDisplayName(), SASL_MECHANISM.getDisplayName(), USERNAME_PASSWORD_SASL_MECHANISMS);
                 results.add(new ValidationResult.Builder()
                         .subject(SASL_PASSWORD.getDisplayName())
+                        .valid(false)
+                        .explanation(explanation)
+                        .build());
+            }
+        }
+    }
+
+    private void validateAwsMskIamMechanism(final ValidationContext validationContext, final Collection<ValidationResult> results) {
+        final PropertyValue saslMechanismProperty = validationContext.getProperty(SASL_MECHANISM);
+        if (saslMechanismProperty.isSet()) {
+            final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(saslMechanismProperty.getValue());
+
+            if (SaslMechanism.AWS_MSK_IAM == saslMechanism && !StandardKafkaPropertyProvider.isAwsMskIamCallbackHandlerFound()) {
+                final String explanation = String.format("[%s] required class not found: Kafka modules must be compiled with AWS MSK enabled",
+                        StandardKafkaPropertyProvider.SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+
+                results.add(new ValidationResult.Builder()
+                        .subject(SASL_MECHANISM.getDisplayName())
                         .valid(false)
                         .explanation(explanation)
                         .build());

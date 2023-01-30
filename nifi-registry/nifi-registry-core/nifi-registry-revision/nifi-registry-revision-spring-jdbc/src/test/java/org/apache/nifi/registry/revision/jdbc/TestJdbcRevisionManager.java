@@ -30,17 +30,14 @@ import org.apache.nifi.registry.revision.standard.StandardUpdateResult;
 import org.flywaydb.core.internal.database.DatabaseType;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,13 +52,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Transactional
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestExecutionListeners({DependencyInjectionTestExecutionListener.class, TransactionalTestExecutionListener.class})
 public class TestJdbcRevisionManager {
@@ -89,7 +86,7 @@ public class TestJdbcRevisionManager {
 
     private RevisionManager revisionManager;
 
-    @Before
+    @BeforeEach
     public void setup() throws SQLException {
         revisionManager = new JdbcRevisionManager(jdbcTemplate);
 
@@ -157,7 +154,7 @@ public class TestJdbcRevisionManager {
         verifyRevisionUpdate(entityId, revisionUpdate, new Long(100), null);
     }
 
-    @Test(expected = InvalidRevisionException.class)
+    @Test
     public void testUpdateRevisionWithStaleVersionNoClientId() {
         // create the revision being sent in by the client
         final String entityId = "entity-1";
@@ -168,7 +165,7 @@ public class TestJdbcRevisionManager {
         createRevision(revision.getEntityId(), revision.getVersion() + 1, null);
 
         // perform an update task which should throw InvalidRevisionException
-        revisionManager.updateRevision(revisionClaim, createUpdateTask(entityId));
+        assertThrows(InvalidRevisionException.class, () -> revisionManager.updateRevision(revisionClaim, createUpdateTask(entityId)));
     }
 
     @Test
@@ -246,7 +243,7 @@ public class TestJdbcRevisionManager {
         assertEquals(entityId, deletedEntity.getId());
     }
 
-    @Test(expected = InvalidRevisionException.class)
+    @Test
     public void testDeleteRevisionWithStaleVersionAndNoClientId() {
         // create the revision being sent in by the client
         final String entityId = "entity-1";
@@ -257,7 +254,7 @@ public class TestJdbcRevisionManager {
         createRevision(revision.getEntityId(), revision.getVersion() + 1, null);
 
         // perform an update task which should throw InvalidRevisionException
-        revisionManager.deleteRevision(revisionClaim, createDeleteTask(entityId));
+        assertThrows(InvalidRevisionException.class, () -> revisionManager.deleteRevision(revisionClaim, createDeleteTask(entityId)));
     }
 
     @Test
@@ -366,7 +363,7 @@ public class TestJdbcRevisionManager {
         // verify the entity modification is correctly populated
         final EntityModification entityModification = revisionUpdate.getLastModification();
         assertNotNull(entityModification);
-        Assert.assertEquals("user1", entityModification.getLastModifier());
+        assertEquals("user1", entityModification.getLastModifier());
 
         // verify the revision in the entity modification is set and is the updated revision (i.e. version of 100, not 99)
         final Revision updatedRevision = entityModification.getRevision();

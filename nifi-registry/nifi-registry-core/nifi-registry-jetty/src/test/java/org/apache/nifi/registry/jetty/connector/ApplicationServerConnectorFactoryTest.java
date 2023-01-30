@@ -20,6 +20,7 @@ import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.util.StringUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,6 +92,22 @@ class ApplicationServerConnectorFactoryTest {
 
         assertNotNull(serverConnector);
         assertEquals(LOCALHOST, serverConnector.getHost());
+    }
+
+    @Test
+    void testGetServerConnectorHostPropertyEmpty() {
+        final int port = NetworkUtils.getAvailableTcpPort();
+        final Properties configuredProperties = new Properties();
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_HOST, StringUtils.EMPTY);
+
+        final NiFiRegistryProperties properties = getProperties(configuredProperties);
+        final ApplicationServerConnectorFactory factory = new ApplicationServerConnectorFactory(server, properties);
+
+        final ServerConnector serverConnector = factory.getServerConnector();
+
+        assertNotNull(serverConnector);
+        assertNull(serverConnector.getHost());
     }
 
     @Test

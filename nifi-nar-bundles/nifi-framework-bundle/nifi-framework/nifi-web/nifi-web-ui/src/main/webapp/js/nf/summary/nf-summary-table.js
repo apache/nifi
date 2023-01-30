@@ -1205,6 +1205,47 @@
             return '<div layout="row"><div class="' + classes + '"></div><div class="status-text">' + label + '</div></div>';
         };
 
+        var rootProcessGroupStatus;
+        var getRootProcessGroupStatus = function () {
+            return $.ajax({
+                type: 'GET',
+                url: config.urls.status,
+                dataType: 'json'
+            }).done(function (response) {
+                 rootProcessGroupStatus = response.processGroupStatus;
+            });
+        };
+
+        var rootProcessGroupTotals = {};
+        var getRootProcessGroupTotals = function () {
+            getRootProcessGroupStatus().then( function () {
+                rootProcessGroupTotals['taskDuration'] = rootProcessGroupStatus.aggregateSnapshot.processingNanos;
+                rootProcessGroupTotals['threadCount'] = rootProcessGroupStatus.aggregateSnapshot.activeThreadCount;
+            });
+        };
+
+        getRootProcessGroupTotals();
+
+        var calculateUsage = function (used, total) {
+            var result = 0;
+            if (total != undefined && total > 0) {
+                result = Math.round((used / total) * 100);
+            }
+            return result;
+        };
+
+        //define custom formatter for total task duration (% compared to root process group)
+        var taskDurationFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatDuration(Math.round(dataContext.processingNanos / 1000000)) + '&nbsp;&nbsp;(' +
+                nfCommon.formatValue(calculateUsage(dataContext.processingNanos, rootProcessGroupTotals.taskDuration)) + '%)';
+        };
+
+        //define custom formatter for active thread count (% compared to root process group)
+        var threadCountFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatValue(dataContext.activeThreadCount) + '&nbsp;&nbsp;(' +
+                nfCommon.formatValue(calculateUsage(dataContext.activeThreadCount, rootProcessGroupTotals.threadCount)) + '%)';
+        };
+
         // define the column model for the summary table
         var processGroupsColumnModel = [
             moreDetailsColumn,
@@ -1229,7 +1270,27 @@
             ioColumn,
             outputColumn,
             sentColumn,
-            receivedColumn
+            receivedColumn,
+         {
+            id: 'activeThreads',
+            field: 'activeThreads',
+            name: '<span class="thread-count-title">Active Threads</span>&nbsp;(<span class="thread-count-percentage-title">%</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            toolTip: 'Total active thread count within ProcessGroup (% of total active thread count compared to overall active thread count in root ProcessGroup) in the last 5 min',
+            sortable: true,
+            defaultSortAsc: false,
+            resizable: true,
+            formatter: threadCountFormatter
+        },
+       {
+            id: 'taskDuration',
+            field: 'taskDuration',
+            name: '<span class="duration-title">Total Task Duration</span>&nbsp;(<span class="duration-percentage-title">%</span>)&nbsp;<span style="font-weight: normal; overflow: hidden;">5 min</span>',
+            toolTip: 'Total task duration within ProcessGroup (% of total task duration compared to overall task duration in root ProcessGroup) in the last 5 min',
+            sortable: true,
+            defaultSortAsc: false,
+            resizable: true,
+            formatter: taskDurationFormatter
+        }
         ];
 
         // add an action column if appropriate
@@ -1382,6 +1443,11 @@
                 }
             }
         });
+
+       // update root process group total values on refresh
+       $('#refresh-button').click(function () {
+            getRootProcessGroupTotals();
+       });
 
         // initialize the cluster process group summary dialog
         $('#cluster-process-group-summary-dialog').modal({
@@ -2508,6 +2574,10 @@
         $('#' + tableId + ' span.received-size-title').removeClass('sorted');
         $('#' + tableId + ' span.transferred-title').removeClass('sorted');
         $('#' + tableId + ' span.transferred-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.thread-count-title').removeClass('sorted');
+        $('#' + tableId + ' span.thread-count-percentage-title').removeClass('sorted');
+        $('#' + tableId + ' span.duration-title').removeClass('sorted');
+        $('#' + tableId + ' span.duration-percentage-title').removeClass('sorted');
 
         // update/reset the count as appropriate
         if (sortState[tableId].prevColumn !== sortDetails.columnId) {

@@ -32,6 +32,7 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
     private InputRequirement.Requirement inputRequirement;
     private List<Relationship> supportedRelationships;
     private boolean supportsDynamicRelationships;
+    private DynamicRelationship dynamicRelationship;
 
     private boolean triggerSerially;
     private boolean triggerWhenEmpty;
@@ -49,6 +50,9 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
     private String defaultPenaltyDuration;
     private String defaultYieldDuration;
     private String defaultBulletinLevel;
+
+    private List<Attribute> readsAttributes;
+    private List<Attribute> writesAttributes;
 
     @ApiModelProperty("Any input requirements this processor has.")
     public InputRequirement.Requirement getInputRequirement() {
@@ -75,6 +79,15 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
 
     public void setSupportsDynamicRelationships(boolean supportsDynamicRelationships) {
         this.supportsDynamicRelationships = supportsDynamicRelationships;
+    }
+
+    @ApiModelProperty("If the processor supports dynamic relationships, this describes the dynamic relationship")
+    public DynamicRelationship getDynamicRelationship() {
+        return dynamicRelationship;
+    }
+
+    public void setDynamicRelationship(DynamicRelationship dynamicRelationship) {
+        this.dynamicRelationship = dynamicRelationship;
     }
 
     @ApiModelProperty("Whether or not this processor should be triggered serially (i.e. no concurrent execution).")
@@ -207,5 +220,23 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
 
     public void setDefaultBulletinLevel(String defaultBulletinLevel) {
         this.defaultBulletinLevel = defaultBulletinLevel;
+    }
+
+    @ApiModelProperty("The FlowFile attributes this processor reads")
+    public List<Attribute> getReadsAttributes() {
+        return readsAttributes;
+    }
+
+    public void setReadsAttributes(List<Attribute> readsAttributes) {
+        this.readsAttributes = readsAttributes;
+    }
+
+    @ApiModelProperty("The FlowFile attributes this processor writes/updates")
+    public List<Attribute> getWritesAttributes() {
+        return writesAttributes;
+    }
+
+    public void setWritesAttributes(List<Attribute> writesAttributes) {
+        this.writesAttributes = writesAttributes;
     }
 }

@@ -105,9 +105,22 @@ class TestRuntimeManifest {
         assertFalse(listHdfsDefinition.getSideEffectFree());
         assertFalse(listHdfsDefinition.getTriggerWhenAnyDestinationAvailable());
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
+        assertNull(listHdfsDefinition.getDynamicProperties());
         assertFalse(listHdfsDefinition.getSupportsDynamicRelationships());
+        assertNull(listHdfsDefinition.getDynamicRelationship());
         assertEquals(InputRequirement.Requirement.INPUT_FORBIDDEN, listHdfsDefinition.getInputRequirement());
         assertTrue(listHdfsDefinition.isAdditionalDetails());
+        assertNull(listHdfsDefinition.getReadsAttributes());
+        assertNotNull(listHdfsDefinition.getWritesAttributes());
+        assertFalse(listHdfsDefinition.getWritesAttributes().isEmpty());
+        assertNotNull(listHdfsDefinition.getWritesAttributes().get(0).getName());
+        assertNotNull(listHdfsDefinition.getWritesAttributes().get(0).getDescription());
+        assertNotNull(listHdfsDefinition.getSeeAlso());
+        assertFalse(listHdfsDefinition.getSeeAlso().isEmpty());
+        assertNull(listHdfsDefinition.getSystemResourceConsiderations());
+        assertNull(listHdfsDefinition.getDeprecated());
+        assertNull(listHdfsDefinition.getDeprecationReason());
+        assertNull(listHdfsDefinition.getDeprecationAlternatives());
 
         assertEquals("30 sec", listHdfsDefinition.getDefaultPenaltyDuration());
         assertEquals("1 sec", listHdfsDefinition.getDefaultYieldDuration());
@@ -230,6 +243,48 @@ class TestRuntimeManifest {
         assertEquals(2, joltTransformDefaultSchedulingPeriods.size());
         assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
+
+        // Verify ExecuteSQL has readsAttributes
+        final ProcessorDefinition executeSqlDef = getProcessorDefinition(bundles, "nifi-standard-nar",
+                "org.apache.nifi.processors.standard.ExecuteSQL");
+        assertNotNull(executeSqlDef.getReadsAttributes());
+        assertFalse(executeSqlDef.getReadsAttributes().isEmpty());
+        assertNotNull(executeSqlDef.getReadsAttributes().get(0).getName());
+        assertNotNull(executeSqlDef.getReadsAttributes().get(0).getDescription());
+
+        // Verify RouteOnAttribute dynamic relationships and dynamic properties
+        final ProcessorDefinition routeOnAttributeDef = getProcessorDefinition(bundles, "nifi-standard-nar",
+                "org.apache.nifi.processors.standard.RouteOnAttribute");
+
+        assertTrue(routeOnAttributeDef.getSupportsDynamicRelationships());
+        assertNotNull(routeOnAttributeDef.getDynamicRelationship());
+        assertNotNull(routeOnAttributeDef.getDynamicRelationship().getName());
+        assertNotNull(routeOnAttributeDef.getDynamicRelationship().getDescription());
+
+        assertTrue(routeOnAttributeDef.getSupportsDynamicProperties());
+        assertNotNull(routeOnAttributeDef.getDynamicProperties());
+        assertFalse(routeOnAttributeDef.getDynamicProperties().isEmpty());
+        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getName());
+        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getDescription());
+        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getValue());
+        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getExpressionLanguageScope());
+
+        // Verify DeleteAzureBlobStorage is deprecated
+        final ProcessorDefinition deleteAzureBlobDef = getProcessorDefinition(bundles, "nifi-azure-nar",
+                "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage");
+        assertNotNull(deleteAzureBlobDef.getDeprecated());
+        assertTrue(deleteAzureBlobDef.getDeprecated().booleanValue());
+        assertNotNull(deleteAzureBlobDef.getDeprecationReason());
+        assertNotNull(deleteAzureBlobDef.getDeprecationAlternatives());
+        assertFalse(deleteAzureBlobDef.getDeprecationAlternatives().isEmpty());
+
+        // Verify SplitJson has @SystemResourceConsiderations
+        final ProcessorDefinition splitJsonDef = getProcessorDefinition(bundles, "nifi-standard-nar",
+                "org.apache.nifi.processors.standard.SplitJson");
+        assertNotNull(splitJsonDef.getSystemResourceConsiderations());
+        assertFalse(splitJsonDef.getSystemResourceConsiderations().isEmpty());
+        assertNotNull(splitJsonDef.getSystemResourceConsiderations().get(0).getResource());
+        assertNotNull(splitJsonDef.getSystemResourceConsiderations().get(0).getDescription());
     }
 
     private PropertyDescriptor getPropertyDescriptor(final ProcessorDefinition processorDefinition, final String propName) {

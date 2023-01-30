@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
 import java.util.concurrent.TimeUnit;
@@ -112,20 +111,6 @@ public enum ProcessGroupStatusDescriptor {
     }
 
     private static long calculateTaskMillis(final ProcessGroupStatus status) {
-        return TimeUnit.MILLISECONDS.convert(calculateTaskNanos(status), TimeUnit.NANOSECONDS);
-    }
-
-    private static long calculateTaskNanos(final ProcessGroupStatus status) {
-        long nanos = 0L;
-
-        for (final ProcessorStatus procStatus : status.getProcessorStatus()) {
-            nanos += procStatus.getProcessingNanos();
-        }
-
-        for (final ProcessGroupStatus childStatus : status.getProcessGroupStatus()) {
-            nanos += calculateTaskNanos(childStatus);
-        }
-
-        return nanos;
+        return TimeUnit.MILLISECONDS.convert(status.getProcessingNanos(), TimeUnit.NANOSECONDS);
     }
 }

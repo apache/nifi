@@ -22,17 +22,17 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public enum GoogleDriveFlowFileAttribute {
-    ID(GoogleDriveFileInfo.ID, GoogleDriveFileInfo::getId),
-    FILE_NAME(GoogleDriveFileInfo.FILENAME, GoogleDriveFileInfo::getName),
-    SIZE(GoogleDriveFileInfo.SIZE, fileInfo -> Optional.ofNullable(fileInfo.getSize())
+    ID(GoogleDriveAttributes.ID, GoogleDriveFileInfo::getId),
+    FILENAME(GoogleDriveAttributes.FILENAME, GoogleDriveFileInfo::getName),
+    SIZE(GoogleDriveAttributes.SIZE, fileInfo -> Optional.ofNullable(fileInfo.getSize())
             .map(String::valueOf)
             .orElse(null)
     ),
-    TIME_STAMP(GoogleDriveFileInfo.TIMESTAMP, fileInfo -> Optional.ofNullable(fileInfo.getTimestamp())
+    TIMESTAMP(GoogleDriveAttributes.TIMESTAMP, fileInfo -> Optional.ofNullable(fileInfo.getTimestamp())
             .map(String::valueOf)
             .orElse(null)
     ),
-    MIME_TYPE(GoogleDriveFileInfo.MIME_TYPE, GoogleDriveFileInfo::getMimeType);
+    MIME_TYPE(GoogleDriveAttributes.MIME_TYPE, GoogleDriveFileInfo::getMimeType);
 
     private final String name;
     private final Function<GoogleDriveFileInfo, String> fromFileInfo;

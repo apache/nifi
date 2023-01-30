@@ -25,3 +25,8 @@ org.apache.nifi.processors.gcp.bigquery.PutBigQueryBatch
 org.apache.nifi.processors.gcp.bigquery.PutBigQueryStreaming
 org.apache.nifi.processors.gcp.drive.ListGoogleDrive
 org.apache.nifi.processors.gcp.drive.FetchGoogleDrive
+org.apache.nifi.processors.gcp.drive.PutGoogleDrive
+org.apache.nifi.processors.gcp.vision.StartGcpVisionAnnotateImagesOperation
+org.apache.nifi.processors.gcp.vision.StartGcpVisionAnnotateFilesOperation
+org.apache.nifi.processors.gcp.vision.GetGcpVisionAnnotateImagesOperationStatus
+org.apache.nifi.processors.gcp.vision.GetGcpVisionAnnotateFilesOperationStatus

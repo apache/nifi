@@ -24,8 +24,8 @@ import org.apache.nifi.registry.provider.flow.StandardFlowSnapshotContext;
 import org.apache.nifi.registry.service.MetadataService;
 import org.apache.nifi.registry.service.mapper.BucketMappings;
 import org.apache.nifi.registry.service.mapper.FlowMappings;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 
 import java.nio.charset.StandardCharsets;
@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,6 +44,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class FlowPersistenceProviderMigratorTest {
     private MetadataService metadataService;
@@ -57,7 +58,7 @@ public class FlowPersistenceProviderMigratorTest {
     private Map<String, BucketEntity> flowBuckets;
     private Map<String, List<FlowSnapshotEntity>> flowSnapshots;
 
-    @Before
+    @BeforeEach
     public void setup() {
         metadataService = mock(MetadataService.class);
         fromProvider = mock(FlowPersistenceProvider.class);
