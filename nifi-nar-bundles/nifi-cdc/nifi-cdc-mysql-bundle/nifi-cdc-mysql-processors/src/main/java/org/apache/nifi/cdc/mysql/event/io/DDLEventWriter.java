@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
-import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+
 
 /**
  * A writer class to output MySQL binlog Data Definition Language (DDL) events to flow file(s).
@@ -27,17 +32,27 @@ import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 public class DDLEventWriter extends AbstractBinlogTableEventWriter<DDLEventInfo> {
 
     @Override
-    public long writeEvent(ProcessSession session, String transitUri, DDLEventInfo eventInfo, long currentSequenceId, Relationship relationship) {
-        FlowFile flowFile = session.create();
-        flowFile = session.write(flowFile, (outputStream) -> {
+    public long writeEvent(ProcessSession session, String transitUri, DDLEventInfo eventInfo, long currentSequenceId, Relationship relationship,
+                           final EventWriterConfiguration eventWriterConfiguration) {
+        configureEventWriter(eventWriterConfiguration, session, eventInfo);
+        OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
+
+        try {
             super.startJson(outputStream, eventInfo);
             super.writeJson(eventInfo);
             jsonGenerator.writeStringField("query", eventInfo.getQuery());
             super.endJson();
-        });
-        flowFile = session.putAllAttributes(flowFile, getCommonAttributes(currentSequenceId, eventInfo));
-        session.transfer(flowFile, relationship);
-        session.getProvenanceReporter().receive(flowFile, transitUri);
+        } catch (IOException ioe) {
+            throw new UncheckedIOException("Write JSON start array failed", ioe);
+        }
+
+        eventWriterConfiguration.incrementNumberOfEventsWritten();
+
+        // Check if it is time to finish the FlowFile
+        if (maxEventsPerFlowFile(eventWriterConfiguration)
+                && eventWriterConfiguration.getNumberOfEventsWritten() == eventWriterConfiguration.getNumberOfEventsPerFlowFile()) {
+            finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, currentSequenceId, eventInfo, relationship);
+        }
         return currentSequenceId + 1;
     }
 }
