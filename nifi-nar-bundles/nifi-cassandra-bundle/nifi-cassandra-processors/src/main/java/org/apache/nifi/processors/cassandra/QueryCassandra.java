@@ -318,15 +318,10 @@ public class QueryCassandra extends AbstractCassandraProcessor {
                     if (flowFileCount == outputBatchSize) {
                         session.commitAsync();
                         flowFileCount = 0;
-                        fileToProcess = session.create();
+//                        fileToProcess = session.create();
                     }
                 }
-//                try {
-                    resultSet.fetchMoreResults().get();
-//                } catch (Exception e) {
-//                    logger.error("ExecutionException : query {} for {} due to {}; routing to failure",
-//                            new Object[]{selectQuery, fileToProcess, e});
-//                }
+                resultSet.fetchMoreResults().get();
                 if (resultSet.isExhausted()) {
                     break;
                 }
