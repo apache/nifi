@@ -3612,6 +3612,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             versionControlInformation.getBucketIdentifier(),
             versionControlInformation.getFlowIdentifier(),
             versionControlInformation.getVersion(),
+            versionControlInformation.getStorageLocation(),
             stripContentsFromRemoteDescendantGroups(versionControlInformation.getFlowSnapshot(), true),
             versionControlInformation.getStatus()) {
 
