@@ -147,7 +147,7 @@
         <spring.security.version>5.8.0</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
-        <zookeeper.version>3.8.0</zookeeper.version>
+        <zookeeper.version>3.8.1</zookeeper.version>
     </properties>
     <dependencyManagement>
         <dependencies>
