@@ -27,8 +27,10 @@ import static org.mockito.Mockito.when;
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
+import com.box.sdk.BoxFolder.Info;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -80,12 +82,16 @@ public class AbstractBoxFileTest {
     }
 
     protected BoxFile.Info createFileInfo(String path, Long createdTime) {
+        return createFileInfo(path, createdTime, singletonList(mockFolderInfo));
+    }
+
+    protected BoxFile.Info createFileInfo(String path, Long createdTime, List<Info> pathCollection) {
         when(mockFolderInfo.getName()).thenReturn(path);
         when(mockFolderInfo.getID()).thenReturn("not0");
 
         when(mockFileInfo.getID()).thenReturn(TEST_FILE_ID);
         when(mockFileInfo.getName()).thenReturn(TEST_FILENAME);
-        when(mockFileInfo.getPathCollection()).thenReturn(singletonList(mockFolderInfo));
+        when(mockFileInfo.getPathCollection()).thenReturn(pathCollection);
         when(mockFileInfo.getSize()).thenReturn(TEST_SIZE);
         when(mockFileInfo.getModifiedAt()).thenReturn(new Date(createdTime));
 
@@ -105,9 +111,13 @@ public class AbstractBoxFileTest {
     }
 
     protected void assertOutFlowFileAttributes(MockFlowFile flowFile) {
+        assertOutFlowFileAttributes(flowFile, "/" + TEST_FOLDER_NAME);
+    }
+
+    protected void assertOutFlowFileAttributes(MockFlowFile flowFile, String path) {
         flowFile.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(BoxFileAttributes.FILENAME, TEST_FILENAME);
-        flowFile.assertAttributeEquals(BoxFileAttributes.PATH, "/" + TEST_FOLDER_NAME);
+        flowFile.assertAttributeEquals(BoxFileAttributes.PATH, path);
         flowFile.assertAttributeEquals(BoxFileAttributes.TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
         flowFile.assertAttributeEquals(BoxFileAttributes.SIZE, valueOf(TEST_SIZE));
     }

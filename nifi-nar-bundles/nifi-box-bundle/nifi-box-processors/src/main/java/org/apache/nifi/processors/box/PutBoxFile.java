@@ -42,6 +42,8 @@ import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
+import com.box.sdk.BoxFolder.Info;
+import com.box.sdk.BoxItem;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -264,7 +266,7 @@ public class PutBoxFile extends AbstractProcessor {
     private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile ) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final boolean createFolder = context.getProperty(CREATE_SUBFOLDER).asBoolean();
-        String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         BoxFolder parentFolder = getFolderById(folderId);
 
         if (subfolderPath != null) {
@@ -309,9 +311,9 @@ public class PutBoxFile extends AbstractProcessor {
 
     private BoxFolder.Info getOrCreateSubfolders(Queue<String> subFolderNames, BoxFolder parentFolder, boolean createFolder) {
         final BoxFolder.Info folderInfo = getOrCreateFolder(subFolderNames.poll(), parentFolder, createFolder);
-        final BoxFolder newParentFolder = getFolder(folderInfo.getID());
 
         if (!subFolderNames.isEmpty()) {
+           final BoxFolder newParentFolder = getFolder(folderInfo.getID());
            return getOrCreateSubfolders(subFolderNames, newParentFolder, createFolder);
         } else {
             return folderInfo;
@@ -325,11 +327,28 @@ public class PutBoxFile extends AbstractProcessor {
             return existingFolder.get();
         }
 
-        if (createFolder) {
-            getLogger().debug("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getInfo().getID());
-            return parentFolder.createFolder(folderName);
-        } else {
-            throw new ProcessException(format("The specified subfolder [%s] does not exist and [%s] is false.", folderName, CREATE_SUBFOLDER.getDisplayName()));
+        if (!createFolder) {
+           throw new ProcessException(format("The specified subfolder [%s] does not exist and [%s] is false.",
+                   folderName, CREATE_SUBFOLDER.getDisplayName()));
+        }
+
+        return createFolder(folderName, parentFolder);
+    }
+
+    private Info createFolder(final String folderName, final BoxFolder parentFolder) {
+        getLogger().info("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getInfo().getID());
+
+        try {
+           return parentFolder.createFolder(folderName);
+        } catch (BoxAPIResponseException e) {
+            getLogger().info("Folder [{}], Parent [{}] already existed", folderName, parentFolder.getInfo().getID());
+
+            if (e.getResponseCode() != CONFLICT_RESPONSE_CODE) {
+                throw e;
+            } else {
+                return getFolderByName(folderName, parentFolder).orElseThrow(() ->
+                        new ProcessException(format("Created subfolder [%s] can not be found under [%s]", folderName, parentFolder.getInfo().getID()), e));
+            }
         }
     }
 
@@ -340,25 +359,25 @@ public class PutBoxFile extends AbstractProcessor {
             folder.getInfo();
         } catch (BoxAPIResponseException e) {
             if (e.getResponseCode() == NOT_FOUND_RESPONSE_CODE) {
-                throw new ProcessException(format("The Folder specified by %s [%s] does not exist", FOLDER_ID.getDisplayName(), folderId));
+                throw new ProcessException(format("The Folder [%s] specified by [%s] does not exist", folderId, FOLDER_ID.getDisplayName()));
             }
         }
         return folder;
     }
 
     private Optional<BoxFolder.Info> getFolderByName(final String folderName, final BoxFolder parentFolder) {
-        return StreamSupport.stream(parentFolder.getChildren("name").spliterator(), false)
-                .filter(BoxFolder.Info.class::isInstance)
-                .map(BoxFolder.Info.class::cast)
-                .filter(info -> info.getName().equals(folderName))
-                .findAny();
+        return getItemByName(folderName, parentFolder, BoxFolder.Info.class);
     }
 
     private Optional<BoxFile.Info> getFileByName(final String filename, final BoxFolder parentFolder) {
+        return getItemByName(filename, parentFolder, BoxFile.Info.class);
+    }
+
+    private <T extends BoxItem.Info> Optional<T> getItemByName(final String itemName, final BoxFolder parentFolder, Class<T> type) {
         return StreamSupport.stream(parentFolder.getChildren("name").spliterator(), false)
-                .filter(BoxFile.Info.class::isInstance)
-                .map(BoxFile.Info.class::cast)
-                .filter(info -> info.getName().equals(filename))
+                .filter(type::isInstance)
+                .map(type::cast)
+                .filter(info -> info.getName().equals(itemName))
                 .findAny();
     }
 

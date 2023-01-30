@@ -16,9 +16,14 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.box.sdk.BoxFile;
@@ -34,10 +39,25 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class PutBoxFileTest extends AbstractBoxFileTest {
+
+    public static final String SUBFOLDER1_ID = "aaaa";
+    public static final String SUBFOLDER2_ID = "bbbb";
+    @Mock
+    protected BoxFolder.Info mockSubfolder1Info;
+
+    @Mock
+    protected BoxFolder.Info mockSubfolder2Info;
+
+    @Mock
+    protected BoxFolder mockSubfolder1;
+
+    @Mock
+    protected BoxFolder mockSubfolder2;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -45,6 +65,11 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
             @Override
             BoxFolder getFolder(String folderId) {
+                if (folderId.equals(SUBFOLDER1_ID)) {
+                    return mockSubfolder1;
+                } else if (folderId.equals(SUBFOLDER2_ID)) {
+                    return mockSubfolder2;
+                }
                 return mockBoxFolder;
             }
         };
@@ -78,6 +103,79 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         final MockFlowFile ff0 = flowFiles.get(0);
         assertOutFlowFileAttributes(ff0);
         assertProvenanceEvent(ProvenanceEventType.SEND);
+    }
+
+    @Test
+    void testUploadFileExistingSubfolders()  {
+        testRunner.setProperty(PutBoxFile.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(PutBoxFile.SUBFOLDER_NAME, "sub1/sub2");
+        testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutBoxFile.CREATE_SUBFOLDER, "true");
+
+        when(mockBoxFolder.getChildren("name")).thenReturn(singletonList(mockSubfolder1Info));
+        when(mockSubfolder1.getChildren("name")).thenReturn(singletonList(mockSubfolder2Info));
+
+        when(mockSubfolder1Info.getName()).thenReturn("sub1");
+        when(mockSubfolder2Info.getName()).thenReturn("sub2");
+        when(mockSubfolder1Info.getID()).thenReturn(SUBFOLDER1_ID);
+        when(mockSubfolder2Info.getID()).thenReturn(SUBFOLDER2_ID);
+        when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
+
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        inputFlowFile.setData(CONTENT.getBytes(UTF_8));
+
+        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
+        when(mockSubfolder2.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
+
+        testRunner.enqueue(inputFlowFile);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
+        assertOutFlowFileAttributes(ff0, format("/%s/%s/%s", TEST_FOLDER_NAME, "sub1", "sub2"));
+        assertProvenanceEvent(ProvenanceEventType.SEND);
+    }
+
+    @Test
+    void testUploadFileCreateSubfolders()  {
+        testRunner.setProperty(PutBoxFile.FOLDER_ID, TEST_FOLDER_ID);
+        testRunner.setProperty(PutBoxFile.SUBFOLDER_NAME, "new1/new2");
+        testRunner.setProperty(PutBoxFile.FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutBoxFile.CREATE_SUBFOLDER, "true");
+
+        when(mockBoxFolder.getChildren("name")).thenReturn(emptyList());
+        when(mockSubfolder1.getChildren("name")).thenReturn(emptyList());
+
+        when(mockSubfolder1Info.getName()).thenReturn("new1");
+        when(mockSubfolder2Info.getName()).thenReturn("new2");
+        when(mockSubfolder1Info.getID()).thenReturn(SUBFOLDER1_ID);
+        when(mockSubfolder2Info.getID()).thenReturn(SUBFOLDER2_ID);
+        when(mockFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
+
+        when(mockBoxFolder.createFolder("new1")).thenReturn(mockSubfolder1Info);
+        when(mockSubfolder1.createFolder("new2")).thenReturn(mockSubfolder2Info);
+
+        when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
+        when(mockSubfolder1.getInfo()).thenReturn(mockSubfolder1Info);
+        when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
+
+        final MockFlowFile inputFlowFile = new MockFlowFile(0);
+        inputFlowFile.setData(CONTENT.getBytes(UTF_8));
+
+        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
+        when(mockSubfolder2.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
+
+        testRunner.enqueue(inputFlowFile);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutBoxFile.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutBoxFile.REL_SUCCESS);
+        final MockFlowFile ff0 = flowFiles.get(0);
+        assertOutFlowFileAttributes(ff0, format("/%s/%s/%s", TEST_FOLDER_NAME, "new1", "new2"));
+        assertProvenanceEvent(ProvenanceEventType.SEND);
+        verify(mockBoxFolder).createFolder("new1");
+        verify(mockSubfolder1).createFolder("new2");
     }
 
     @Test
