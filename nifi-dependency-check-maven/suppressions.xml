@@ -180,8 +180,23 @@
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
-        <notes>HTTP server vulnerabilities do not apply to Apache FTP Server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.ftpserver/.*$</packageUrl>
-        <cpe>cpe:/a:apache:apache_http_server</cpe>
+        <notes>CVE-2022-45046 description notes that the initial issue was not a security vulnerability</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.camel/camel\-salesforce@.*$</packageUrl>
+        <cve>CVE-2022-45046</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-36632 applies to JavaScript module named hughsk/flat not flatbuffers</notes>
+        <packageUrl regex="true">^pkg:maven/com\.vlkan/flatbuffers@.*$</packageUrl>
+        <cve>CVE-2020-36632</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-8015 applies to Apache ORC not to Apache Iceberg</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.iceberg/iceberg\-orc@.*$</packageUrl>
+        <cve>CVE-2018-8015</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-39135 applies to Calcite not Calcite Avatica</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica/.*?@.*$</packageUrl>
+        <cve>CVE-2022-39135</cve>
     </suppress>
 </suppressions>
