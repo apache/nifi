@@ -99,7 +99,6 @@ public class QueryIoTDBIT {
         testRunner.enqueue("select s1 from root.sg7.d1");
         testRunner.run();
 
-        // test whether transferred successfully?
         testRunner.assertAllFlowFilesTransferred(PutIoTDBRecord.REL_SUCCESS, 1);
 
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(PutIoTDBRecord.REL_SUCCESS).get(0);
