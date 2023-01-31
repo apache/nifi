@@ -42,7 +42,6 @@ import com.box.sdk.BoxAPIException;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxFolder.Info;
 import com.box.sdk.BoxItem;
 import java.io.IOException;
 import java.io.InputStream;
@@ -96,6 +95,9 @@ import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy
 public class PutBoxFile extends AbstractProcessor {
     public static final int CHUNKED_UPLOAD_LOWER_LIMIT_IN_BYTES = 20 * 1024 * 1024;
     public static final int CHUNKED_UPLOAD_UPPER_LIMIT_IN_BYTES = 50 * 1024 * 1024;
+
+    public static final int NUMBER_OF_RETRIES = 5;
+    public static final int WAIT_TIME_MS = 5000;
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("box-folder-id")
@@ -202,6 +204,13 @@ public class PutBoxFile extends AbstractProcessor {
         return PROPERTIES;
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+
+        boxAPIConnection = boxClientService.getBoxApiConnection();
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -227,15 +236,11 @@ public class PutBoxFile extends AbstractProcessor {
             try (InputStream rawIn = session.read(flowFile)){
 
                 if (REPLACE.equals(conflictResolution)) {
-                    uploadedFileInfo = replaceExistingBoxFile(parentFolder, filename, rawIn, size, chunkUploadThreshold);
+                    uploadedFileInfo = replaceBoxFileIfExists(parentFolder, filename, rawIn, size, chunkUploadThreshold);
                 }
 
                 if (uploadedFileInfo == null) {
-                    if (size > chunkUploadThreshold) {
-                        uploadedFileInfo = parentFolder.uploadLargeFile(rawIn, filename, size);
-                    } else {
-                        uploadedFileInfo = parentFolder.uploadFile(rawIn, filename);
-                    }
+                   uploadedFileInfo = createBoxFile(parentFolder, filename, rawIn, size, chunkUploadThreshold);
                 }
             } catch (BoxAPIResponseException e) {
                 if (e.getResponseCode() == CONFLICT_RESPONSE_CODE) {
@@ -263,6 +268,10 @@ public class PutBoxFile extends AbstractProcessor {
         }
     }
 
+    BoxFolder getFolder(String folderId) {
+        return new BoxFolder(boxAPIConnection, folderId);
+    }
+
     private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile ) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final boolean createFolder = context.getProperty(CREATE_SUBFOLDER).asBoolean();
@@ -271,36 +280,34 @@ public class PutBoxFile extends AbstractProcessor {
 
         if (subfolderPath != null) {
             final Queue<String> subFolderNames = getSubFolderNames(subfolderPath);
-            parentFolder = getFolder(getOrCreateSubfolders(subFolderNames, parentFolder, createFolder).getID());
+            parentFolder = getOrCreateSubfolders(subFolderNames, parentFolder, createFolder);
         }
 
         return parentFolder;
     }
 
-    private BoxFile.Info replaceExistingBoxFile(BoxFolder parentFolder, String filename, final InputStream rawIn, final long size, final long chunkUploadThreshold)
+    private BoxFile.Info replaceBoxFileIfExists(BoxFolder parentFolder, String filename, final InputStream inputStream, final long size, final long chunkUploadThreshold)
             throws IOException, InterruptedException {
-        final Optional<BoxFile.Info> existingBoxFileInfo = getFileByName(filename, parentFolder);
+        final Optional<BoxFile> existingBoxFileInfo = getFileByName(filename, parentFolder);
         if (existingBoxFileInfo.isPresent()) {
-            final BoxFile existingBoxFile = new BoxFile(boxAPIConnection, existingBoxFileInfo.get().getID());
+            final BoxFile existingBoxFile = existingBoxFileInfo.get();
 
             if (size > chunkUploadThreshold) {
-                return existingBoxFile.uploadLargeFile(rawIn, size);
+                return existingBoxFile.uploadLargeFile(inputStream, size);
             } else {
-                return existingBoxFile.uploadNewVersion(rawIn);
+                return existingBoxFile.uploadNewVersion(inputStream);
             }
         }
         return null;
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-
-        boxAPIConnection = boxClientService.getBoxApiConnection();
-    }
-
-    BoxFolder getFolder(String folderId) {
-        return new BoxFolder(boxAPIConnection, folderId);
+    private BoxFile.Info createBoxFile(BoxFolder parentFolder, String filename, InputStream inputStream, long size, final long chunkUploadThreshold)
+            throws IOException, InterruptedException {
+        if (size > chunkUploadThreshold) {
+            return parentFolder.uploadLargeFile(inputStream, filename, size);
+        } else {
+            return parentFolder.uploadFile(inputStream, filename);
+        }
     }
 
     private Queue<String> getSubFolderNames(String subfolderPath)  {
@@ -309,19 +316,18 @@ public class PutBoxFile extends AbstractProcessor {
         return subfolderNames;
     }
 
-    private BoxFolder.Info getOrCreateSubfolders(Queue<String> subFolderNames, BoxFolder parentFolder, boolean createFolder) {
-        final BoxFolder.Info folderInfo = getOrCreateFolder(subFolderNames.poll(), parentFolder, createFolder);
+    private BoxFolder getOrCreateSubfolders(Queue<String> subFolderNames, BoxFolder parentFolder, boolean createFolder) {
+        final BoxFolder newParentFolder = getOrCreateFolder(subFolderNames.poll(), parentFolder, createFolder);
 
         if (!subFolderNames.isEmpty()) {
-           final BoxFolder newParentFolder = getFolder(folderInfo.getID());
            return getOrCreateSubfolders(subFolderNames, newParentFolder, createFolder);
         } else {
-            return folderInfo;
+            return newParentFolder;
         }
     }
 
-    private BoxFolder.Info getOrCreateFolder(String folderName, BoxFolder parentFolder, boolean createFolder) {
-        final Optional<BoxFolder.Info> existingFolder = getFolderByName(folderName, parentFolder);
+    private BoxFolder getOrCreateFolder(String folderName, BoxFolder parentFolder, boolean createFolder) {
+        final Optional<BoxFolder> existingFolder = getFolderByName(folderName, parentFolder);
 
         if (existingFolder.isPresent()) {
             return existingFolder.get();
@@ -335,20 +341,36 @@ public class PutBoxFile extends AbstractProcessor {
         return createFolder(folderName, parentFolder);
     }
 
-    private Info createFolder(final String folderName, final BoxFolder parentFolder) {
+    private BoxFolder createFolder(final String folderName, final BoxFolder parentFolder) {
         getLogger().info("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getInfo().getID());
 
         try {
-           return parentFolder.createFolder(folderName);
+           return parentFolder.createFolder(folderName).getResource();
         } catch (BoxAPIResponseException e) {
-            getLogger().info("Folder [{}], Parent [{}] already existed", folderName, parentFolder.getInfo().getID());
-
             if (e.getResponseCode() != CONFLICT_RESPONSE_CODE) {
                 throw e;
             } else {
-                return getFolderByName(folderName, parentFolder).orElseThrow(() ->
-                        new ProcessException(format("Created subfolder [%s] can not be found under [%s]", folderName, parentFolder.getInfo().getID()), e));
+                Optional<BoxFolder> createdFolder = waitForOngoingFolderCreationToFinish(folderName, parentFolder);
+                return createdFolder.orElseThrow(() -> new ProcessException(format("Created subfolder [%s] can not be found under [%s]",
+                        folderName, parentFolder.getInfo().getID())));
             }
+        }
+    }
+
+    private Optional<BoxFolder> waitForOngoingFolderCreationToFinish(final String folderName, final BoxFolder parentFolder) {
+        try {
+            Optional<BoxFolder> createdFolder = getFolderByName(folderName, parentFolder);
+
+            for (int i = 0; i < NUMBER_OF_RETRIES && !createdFolder.isPresent(); i++) {
+                getLogger().debug("Subfolder [{}] under [{}] has not been created yet, waiting {} ms",
+                        folderName, parentFolder.getInfo().getID(), WAIT_TIME_MS);
+                Thread.sleep(WAIT_TIME_MS);
+                createdFolder = getFolderByName(folderName, parentFolder);
+            }
+            return createdFolder;
+        } catch (InterruptedException ie) {
+            throw new RuntimeException(format("Waiting for creation of subfolder [%s] under [%s] was interrupted",
+                    folderName, parentFolder.getInfo().getID()), ie);
         }
     }
 
@@ -365,12 +387,14 @@ public class PutBoxFile extends AbstractProcessor {
         return folder;
     }
 
-    private Optional<BoxFolder.Info> getFolderByName(final String folderName, final BoxFolder parentFolder) {
-        return getItemByName(folderName, parentFolder, BoxFolder.Info.class);
+    private Optional<BoxFolder> getFolderByName(final String folderName, final BoxFolder parentFolder) {
+        return getItemByName(folderName, parentFolder, BoxFolder.Info.class)
+                .map(BoxFolder.Info::getResource);
     }
 
-    private Optional<BoxFile.Info> getFileByName(final String filename, final BoxFolder parentFolder) {
-        return getItemByName(filename, parentFolder, BoxFile.Info.class);
+    private Optional<BoxFile> getFileByName(final String filename, final BoxFolder parentFolder) {
+        return getItemByName(filename, parentFolder, BoxFile.Info.class)
+                .map(BoxFile.Info::getResource);
     }
 
     private <T extends BoxItem.Info> Optional<T> getItemByName(final String itemName, final BoxFolder parentFolder, Class<T> type) {

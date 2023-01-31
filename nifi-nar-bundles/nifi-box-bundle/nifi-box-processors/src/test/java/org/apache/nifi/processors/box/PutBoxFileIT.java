@@ -52,7 +52,7 @@ public class PutBoxFileIT extends AbstractBoxFileIT<PutBoxFile>{
     }
 
     @Test
-    void testSubfoldersExist()  {
+    void testSubfolderExists()  {
         createFolder("sub1", mainFolderId);
 
         testRunner.setProperty(PutBoxFile.FOLDER_ID, mainFolderId);

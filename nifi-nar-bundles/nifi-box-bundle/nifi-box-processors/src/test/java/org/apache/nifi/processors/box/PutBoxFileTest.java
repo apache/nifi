@@ -119,6 +119,8 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         when(mockSubfolder2Info.getName()).thenReturn("sub2");
         when(mockSubfolder1Info.getID()).thenReturn(SUBFOLDER1_ID);
         when(mockSubfolder2Info.getID()).thenReturn(SUBFOLDER2_ID);
+        when(mockSubfolder1Info.getResource()).thenReturn(mockSubfolder1);
+        when(mockSubfolder2Info.getResource()).thenReturn(mockSubfolder2);
         when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
@@ -159,6 +161,8 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
         when(mockSubfolder1.getInfo()).thenReturn(mockSubfolder1Info);
         when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
+        when(mockSubfolder1Info.getResource()).thenReturn(mockSubfolder1);
+        when(mockSubfolder2Info.getResource()).thenReturn(mockSubfolder2);
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));

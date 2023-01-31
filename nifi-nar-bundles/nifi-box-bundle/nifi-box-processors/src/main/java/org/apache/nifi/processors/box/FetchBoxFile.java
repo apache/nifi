@@ -97,7 +97,7 @@ public class FetchBoxFile extends AbstractProcessor {
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -116,7 +116,7 @@ public class FetchBoxFile extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
