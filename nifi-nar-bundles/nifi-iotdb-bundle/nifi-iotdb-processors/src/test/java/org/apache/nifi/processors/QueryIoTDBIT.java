@@ -95,7 +95,6 @@ public class QueryIoTDBIT {
             throws  InitializationException {
         setUpStandardTestConfig();
 
-        // call the QueryIoTDBProcessor
         testRunner.enqueue("select s1 from root.sg7.d1");
         testRunner.run();
 
