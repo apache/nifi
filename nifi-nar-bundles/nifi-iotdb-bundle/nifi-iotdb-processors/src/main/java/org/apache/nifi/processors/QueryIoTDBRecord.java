@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.processors;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -43,16 +40,18 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
-@EventDriven
 @SupportsBatching
 @Tags({"iotdb", "insert", "tablet"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -136,7 +135,6 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 return;
             }
             fetchSize = context.getProperty(IOTDB_QUERY_FETCH_SIZE).evaluateAttributeExpressions(incomingFlowFile).asInteger();
-            charset = Charset.forName("UTF-8");
             if ( (incomingFlowFile != null ? incomingFlowFile.getSize() : 0) == 0 ) {
                 if ( context.getProperty(IOTDB_QUERY).isSet() ) {
                     query = context.getProperty(IOTDB_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
@@ -149,7 +147,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 }
             } else {
                 try {
-                    query = getQuery(processSession, charset, incomingFlowFile);
+                    query = getQuery(processSession, incomingFlowFile);
                 } catch(IOException ioe) {
                     getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
                     throw new ProcessException(ioe);
@@ -172,8 +170,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 recordFields.add(new RecordField(fieldNames.get(i), getType(fieldType.get(i)).getDataType()));
             }
             final RecordSchema schema = new SimpleRecordSchema(recordFields);
-            PipedInputStream inputStream = new PipedInputStream();
-            final PipedOutputStream outputStream = new PipedOutputStream(inputStream);
+            OutputStream outputStream = processSession.write(outgoingFlowFile);
             RecordSetWriter resultSetWriter =
                     recordSetWriterFactory.createWriter(getLogger(),schema,outputStream,outgoingFlowFile);
             List<Record> records = new ArrayList<>();
@@ -196,7 +193,6 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 getLogger().debug("Query result {} ", result);
             }
             resultSetWriter.close();
-            processSession.importFrom(inputStream, outgoingFlowFile);
             outgoingFlowFile = processSession.putAttribute(outgoingFlowFile, IOTDB_EXECUTED_QUERY, String.valueOf(query));
             processSession.transfer(outgoingFlowFile, REL_SUCCESS);
         } catch (Exception exception) {
@@ -206,13 +202,12 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         }
     }
 
-    protected String getQuery(final ProcessSession processSession, Charset charset, FlowFile incomingFlowFile)
+    protected String getQuery(final ProcessSession processSession, FlowFile incomingFlowFile)
             throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         processSession.exportTo(incomingFlowFile, outputStream);
         outputStream.close();
-
-        return outputStream.toString(StandardCharsets.UTF_8);
+        return outputStream.toString(StandardCharsets.UTF_8.name());
     }
 
     protected FlowFile populateErrorAttributes(final ProcessSession processSession, FlowFile flowFile, String query,

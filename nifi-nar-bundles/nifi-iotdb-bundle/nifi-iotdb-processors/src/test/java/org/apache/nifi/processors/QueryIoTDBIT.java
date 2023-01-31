@@ -79,7 +79,7 @@ public class QueryIoTDBIT {
         setUpStandardTestConfig();
 
         // call the QueryIoTDBProcessor
-        testRunner.setProperty("iotdb-query", "select s0,s1 from root.sg7.d1");
+        testRunner.setProperty("query", "select s0,s1 from root.sg7.d1");
         testRunner.enqueue("");
         testRunner.run();
 
