@@ -132,7 +132,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         if (context.hasIncomingConnection()) {
             FlowFile incomingFlowFile = processSession.get();
 
-            if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
+            if (incomingFlowFile == null && context.hasNonLoopConnection()) {
                 return;
             }
             fetchSize = context.getProperty(IOTDB_QUERY_FETCH_SIZE).evaluateAttributeExpressions(incomingFlowFile).asInteger();
