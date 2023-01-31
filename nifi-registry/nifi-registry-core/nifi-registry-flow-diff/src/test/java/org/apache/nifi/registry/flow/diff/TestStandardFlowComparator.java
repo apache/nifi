@@ -54,7 +54,7 @@ public class TestStandardFlowComparator {
         final ComparableDataFlow flowA = new StandardComparableDataFlow("Flow A", new VersionedProcessGroup());
         final ComparableDataFlow flowB = new StandardComparableDataFlow("Flow B", new VersionedProcessGroup());
         comparator = new StandardFlowComparator(flowA, flowB, Collections.emptySet(),
-            new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getInstanceIdentifier);
+            new StaticDifferenceDescriptor(), decryptor, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
     }
 
     // Ensure that when we are comparing parameter values that we compare the decrypted values, but we don't include any

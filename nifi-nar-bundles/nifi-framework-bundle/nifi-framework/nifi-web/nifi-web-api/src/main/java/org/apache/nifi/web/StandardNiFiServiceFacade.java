@@ -153,6 +153,7 @@ import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
+import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -5301,7 +5302,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(),
-            Function.identity(), VersionedComponent::getIdentifier);
+            Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison flowComparison = flowComparator.compare();
 
         final Set<ComponentDifferenceDTO> differenceDtos = dtoFactory.createComponentDifferenceDtosForLocalModifications(flowComparison, localGroup, controllerFacade.getFlowManager());
@@ -5446,7 +5447,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final Set<String> ancestorServiceIds = group.getAncestorServiceIds();
         final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, ancestorServiceIds, new StaticDifferenceDescriptor(),
-            Function.identity(), VersionedComponent::getIdentifier);
+            Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
         final FlowComparison comparison = flowComparator.compare();
 
         final FlowManager flowManager = controllerFacade.getFlowManager();

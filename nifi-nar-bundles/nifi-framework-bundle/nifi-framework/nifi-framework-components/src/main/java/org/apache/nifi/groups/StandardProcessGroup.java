@@ -96,6 +96,7 @@ import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.EvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
+import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -3611,6 +3612,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             versionControlInformation.getBucketIdentifier(),
             versionControlInformation.getFlowIdentifier(),
             versionControlInformation.getVersion(),
+            versionControlInformation.getStorageLocation(),
             stripContentsFromRemoteDescendantGroups(versionControlInformation.getFlowSnapshot(), true),
             versionControlInformation.getStatus()) {
 
@@ -4052,7 +4054,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
             final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(),
-                new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier);
+                new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.SHALLOW);
             final FlowComparison comparison = flowComparator.compare();
             final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager))
