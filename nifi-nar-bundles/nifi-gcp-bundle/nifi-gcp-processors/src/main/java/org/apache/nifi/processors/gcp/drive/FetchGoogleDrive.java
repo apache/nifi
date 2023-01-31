@@ -183,7 +183,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     }
 
     private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, GoogleJsonResponseException e) {
-        getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
+        getLogger().error("Fetching File [{}] failed", fileId, e);
 
         flowFile = session.putAttribute(flowFile, ERROR_CODE, "" + e.getStatusCode());
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
@@ -193,7 +193,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     }
 
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
-        getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
+        getLogger().error("Fetching File [{}] failed", fileId, e);
 
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
 
