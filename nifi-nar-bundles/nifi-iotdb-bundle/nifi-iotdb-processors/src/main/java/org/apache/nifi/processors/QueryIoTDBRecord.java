@@ -131,7 +131,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         FlowFile outgoingFlowFile;
         int fetchSize = DEFAULT_IOTDB_FETCH_SIZE;
         // If there are incoming connections, prepare query params from flow file
-        if ( context.hasIncomingConnection() ) {
+        if (context.hasIncomingConnection()) {
             FlowFile incomingFlowFile = processSession.get();
 
             if ( incomingFlowFile == null && context.hasNonLoopConnection() ) {
