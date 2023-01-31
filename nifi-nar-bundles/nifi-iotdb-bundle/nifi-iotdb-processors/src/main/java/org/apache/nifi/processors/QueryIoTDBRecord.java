@@ -76,8 +76,8 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
             .build();
 
     public static final PropertyDescriptor IOTDB_QUERY = new PropertyDescriptor.Builder()
-            .name("iotdb-query")
-            .displayName("IoTDB Query")
+            .name("query")
+            .displayName("Query")
             .description("The IoTDB query to execute. "
                     + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content otherwise"
                     + " it is created from this property.")
