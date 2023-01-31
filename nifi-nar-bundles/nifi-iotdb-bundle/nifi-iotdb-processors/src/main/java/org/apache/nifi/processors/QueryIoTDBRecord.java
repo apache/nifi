@@ -215,7 +215,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         processSession.exportTo(incomingFlowFile, outputStream);
         outputStream.close();
 
-        return outputStream.toString(charset.name());
+        return outputStream.toString(StandardCharsets.UTF_8);
     }
 
     protected FlowFile populateErrorAttributes(final ProcessSession processSession, FlowFile flowFile, String query,
