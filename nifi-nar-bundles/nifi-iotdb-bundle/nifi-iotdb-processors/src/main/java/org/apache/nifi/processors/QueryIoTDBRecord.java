@@ -203,8 +203,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
             processSession.transfer(outgoingFlowFile, REL_SUCCESS);
         } catch (Exception exception) {
             outgoingFlowFile = populateErrorAttributes(processSession, outgoingFlowFile, query, exception.getMessage());
-            getLogger().error("Failed to read from IoTDB due to {}",
-                    new Object[]{exception.getLocalizedMessage()}, exception);
+            getLogger().error("IoTDB query failed", exception);
             processSession.transfer(outgoingFlowFile, REL_FAILURE);
             context.yield();
         }
