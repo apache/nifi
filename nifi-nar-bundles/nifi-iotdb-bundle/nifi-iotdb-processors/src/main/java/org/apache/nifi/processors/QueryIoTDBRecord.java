@@ -116,9 +116,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         // Either input connection or scheduled query is required
         if (!context.getProperty(IOTDB_QUERY).isSet()
                 && ! context.hasIncomingConnection()) {
-            String error = "The IoTDB Query processor requires input connection or scheduled IoTDB query";
-            getLogger().error(error);
-            throw new ProcessException(error);
+            throw new ProcessException("The IoTDB Query processor requires input connection or scheduled IoTDB query");
         }
         recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
     }
