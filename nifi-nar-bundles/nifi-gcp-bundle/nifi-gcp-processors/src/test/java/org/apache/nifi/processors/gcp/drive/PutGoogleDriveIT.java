@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.CREATE_SUBFOLDER;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FILE_NAME;
 import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FOLDER_ID;
-import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.SUBFOLDER_NAME;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,66 +58,9 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
-    }
-
-    @Test
-    void testUploadFileFolderByName() {
-        // GIVEN
-        testRunner.setProperty(SUBFOLDER_NAME, "testFolderNew");
-        testRunner.setProperty(FOLDER_ID, mainFolderId);
-        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(CREATE_SUBFOLDER, "true");
-
-        // WHEN
-        runWithFileContent();
-
-        // THEN
-        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.get(0);
         assertFlowFileAttributes(ff0);
-    }
-
-    @Test
-    void testUploadFileCreateMultiLevelFolder() throws IOException {
-        createFolder("existingFolder", mainFolderId);
-
-        // GIVEN
-        testRunner.setProperty(SUBFOLDER_NAME, "existingFolder/new1/new2");
-        testRunner.setProperty(FOLDER_ID, mainFolderId);
-        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(CREATE_SUBFOLDER, "true");
-
-        // WHEN
-        runWithFileContent();
-
-        // THEN
-        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
-        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
-
-        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
-        assertFlowFileAttributes(ff0);
-    }
-
-    @Test
-    void testSpecifiedFolderIdDoesNotExist() {
-        // GIVEN
-        testRunner.setProperty(FOLDER_ID, "nonExistentId");
-        testRunner.setProperty(FILE_NAME, "testFile4");
-
-        // WHEN
-        runWithFileContent();
-
-        // THEN
-        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 0);
-        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 1);
-
-        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_FAILURE);
-        final MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeEquals(GoogleDriveAttributes.ERROR_CODE, "404");
-        ff0.assertAttributeExists(GoogleDriveAttributes.ERROR_MESSAGE);
     }
 
     @Test
@@ -145,11 +87,11 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
     }
 
     @Test
-    void testUploadedFileAlreadyExistsOverwriteResolution() {
+    void testUploadedFileAlreadyExistsReplaceResolution() {
         // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.REPLACE_RESOLUTION);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, REPLACE.getValue());
 
         // WHEN
         runWithFileContent();
@@ -176,7 +118,7 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
         // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
-        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, PutGoogleDrive.IGNORE_RESOLUTION);
+        testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, IGNORE.getValue());
 
         // WHEN
         runWithFileContent();

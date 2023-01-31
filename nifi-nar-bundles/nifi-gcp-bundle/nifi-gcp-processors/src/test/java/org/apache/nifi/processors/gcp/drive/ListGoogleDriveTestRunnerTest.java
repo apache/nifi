@@ -84,7 +84,6 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
     @Test
     void testOutputAsAttributesWhereTimestampIsCreatedTime() throws Exception {
-        // GIVEN
         String id = "id_1";
         String filename = "file_name_1";
         Long size = 125L;
@@ -92,14 +91,10 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Long modifiedTime = null;
         String mimeType = "mime_type_1";
 
-        // WHEN
-        // THEN
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, createdTime);
     }
-
     @Test
     void testOutputAsAttributesWhereTimestampIsModifiedTime() throws Exception {
-        // GIVEN
         String id = "id_1";
         String filename = "file_name_1";
         Long size = 125L;
@@ -107,14 +102,11 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         Long modifiedTime = 123456L + 1L;
         String mimeType = "mime_type_1";
 
-        // WHEN
-        // THEN
         testOutputAsAttributes(id, filename, size, createdTime, modifiedTime, mimeType, modifiedTime);
     }
 
     @Test
     void testOutputAsContent() throws Exception {
-        // GIVEN
         String id = "id_1";
         String filename = "file_name_1";
         Long size = 125L;
@@ -137,10 +129,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
                         "}" +
                         "]");
 
-        // WHEN
         testRunner.run();
-
-        // THEN
         checkContent(ListGoogleDrive.REL_SUCCESS, expectedContents);
     }
 
@@ -172,7 +161,6 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     }
 
     private void testOutputAsAttributes(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType, Long expectedTimestamp) throws IOException {
-        // GIVEN
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
@@ -184,10 +172,8 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(asList(inputFlowFileAttributes));
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         checkAttributes(ListGoogleDrive.REL_SUCCESS, expectedAttributes);
     }
 

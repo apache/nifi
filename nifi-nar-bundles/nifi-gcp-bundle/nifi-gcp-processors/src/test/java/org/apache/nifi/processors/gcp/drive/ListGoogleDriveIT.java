@@ -49,7 +49,6 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
     @Test
     void listFilesFrom3LayerDeepDirectoryTree() throws Exception {
-        // GIVEN
         File main_sub1 = createFolder("main_sub1", mainFolderId);
         File main_sub2 = createFolder("main_sub2", mainFolderId);
 
@@ -78,10 +77,8 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
         // The creation of the files are not (completely) synchronized.
         Thread.sleep(2000);
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
 
         Set<String> actualFileNames = successFlowFiles.stream()
@@ -93,19 +90,17 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
         // Next, list a sub folder, non-recursively this time. (Changing these properties will clear the Processor state as well
         //  so all files are eligible for listing again.)
 
-        // GIVEN
+
         testRunner.clearTransferState();
 
         expectedFileNames = new HashSet<>(Arrays.asList(
                 "main_sub1_file1"
         ));
 
-        // WHEN
         testRunner.setProperty(ListGoogleDrive.FOLDER_ID, main_sub1.getId());
         testRunner.setProperty(ListGoogleDrive.RECURSIVE_SEARCH, "false");
         testRunner.run();
 
-        // THEN
         successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
 
         actualFileNames = successFlowFiles.stream()
@@ -117,7 +112,6 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
     @Test
     void doNotListTooYoungFilesWhenMinAgeIsSet() throws Exception {
-        // GIVEN
         testRunner.setProperty(ListGoogleDrive.MIN_AGE, "15 s");
 
         createFileWithDefaultContent("main_file", mainFolderId);
@@ -125,10 +119,8 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
         // Make sure the file 'arrives' and could be listed
         Thread.sleep(5000);
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
 
         Set<String> actualFileNames = successFlowFiles.stream()
@@ -139,17 +131,15 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
         // Next, wait for another 10+ seconds for MIN_AGE to expire then list again
 
-        // GIVEN
+
         Thread.sleep(10000);
 
         Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
                 "main_file"
         ));
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
 
         actualFileNames = successFlowFiles.stream()
@@ -158,5 +148,4 @@ public class ListGoogleDriveIT extends AbstractGoogleDriveIT<ListGoogleDrive> {
 
         assertEquals(expectedFileNames, actualFileNames);
     }
-
 }
