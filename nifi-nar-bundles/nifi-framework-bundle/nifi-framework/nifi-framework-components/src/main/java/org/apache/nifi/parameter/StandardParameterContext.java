@@ -640,7 +640,8 @@ public class StandardParameterContext implements ParameterContext {
             // If a current parameter is not in the proposed parameters, it was effectively removed
             if (!effectiveProposedParameters.containsKey(currentParameterDescriptor)) {
                 final Parameter parameter = entry.getValue();
-                if (parameter.isProvided() && hasReferencingComponents(parameter)) {
+                final boolean isParameterInherited = !parameter.getParameterContextId().equals(id);
+                if (!isParameterInherited && parameter.isProvided() && hasReferencingComponents(parameter)) {
                     logger.info("Provided parameter [{}] was removed from the source, but it is referenced by a component, so the parameter will be preserved",
                             currentParameterDescriptor.getName());
                 } else {
@@ -651,7 +652,8 @@ public class StandardParameterContext implements ParameterContext {
         return effectiveParameterUpdates;
     }
 
-    private boolean hasReferencingComponents(final Parameter parameter) {
+    @Override
+    public boolean hasReferencingComponents(final Parameter parameter) {
         if (parameter == null) {
             return false;
         }

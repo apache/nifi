@@ -348,7 +348,22 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 if (groupConfiguration == null) {
                     continue;
                 }
-                reference.verifyCanSetParameters(getFetchedParameterUpdateMap(reference, groupConfiguration));
+                final Map<String, Parameter> parameterUpdates = getFetchedParameterUpdateMap(reference, groupConfiguration);
+                final Collection<String> removedParametersWithReferences = new HashSet<>();
+                for (final Map.Entry<String, Parameter> entry : parameterUpdates.entrySet()) {
+                    final String parameterName = entry.getKey();
+                    if (entry.getValue() == null) {
+                        reference.getParameter(parameterName).ifPresent(currentParameter -> {
+                            if (reference.hasReferencingComponents(currentParameter)) {
+                                removedParametersWithReferences.add(parameterName);
+                            }
+                        });
+                    }
+                }
+                // Any deletions of parameters with referencing components should be removed from consideration,
+                // since we do not remove provided parameters that are deleted until they are no longer referenced
+                removedParametersWithReferences.forEach(parameterUpdates::remove);
+                reference.verifyCanSetParameters(parameterUpdates);
             }
         } finally {
             readLock.unlock();

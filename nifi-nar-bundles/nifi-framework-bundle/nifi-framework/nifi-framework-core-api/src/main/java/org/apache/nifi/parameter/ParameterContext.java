@@ -175,6 +175,12 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     List<String> getInheritedParameterContextNames();
 
     /**
+     * @param parameter A parameter
+     * @return True if the parameter has referencing components
+     */
+    boolean hasReferencingComponents(Parameter parameter);
+
+    /**
      * Returns true if this ParameterContext inherits from the given parameter context, either
      * directly or indirectly.
      * @param parameterContextId The ID of the sought parameter context
