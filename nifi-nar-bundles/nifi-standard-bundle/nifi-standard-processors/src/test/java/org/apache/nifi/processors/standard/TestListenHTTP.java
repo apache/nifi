@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
@@ -696,6 +697,7 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
+        runner.setProperty(ListenHTTP.MULTIPART_READ_BUFFER_SIZE, "10 bytes");
 
         final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
         final boolean isSecure = (sslContextService != null);
@@ -769,6 +771,13 @@ public class TestListenHTTP {
         mff.assertAttributeExists("http.multipart.fragments.sequence.number");
         mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
         mff.assertAttributeExists("http.headers.multipart.content-disposition");
+
+        final Path tempDirectoryPath = Paths.get(System.getProperty("java.io.tmpdir"));
+        final long multiPartTempFiles = Files.find(tempDirectoryPath, 1,
+                        (filePath, fileAttributes) -> filePath.getFileName().toString().startsWith("MultiPart")
+                ).count();
+        final String multiPartMessage = String.format("MultiPart files found in temporary directory [%s]", tempDirectoryPath);
+        assertEquals(0, multiPartTempFiles, multiPartMessage);
     }
 
     private byte[] generateRandomBinaryData() {
