@@ -247,9 +247,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 try {
                     flowFileSet = handleMultipartRequest(request, session, foundSubject, foundIssuer);
                 } finally {
-                    for (final Part part : request.getParts()) {
-                        part.delete();
-                    }
+                    deleteMultiPartFiles(request);
                 }
             } else {
                 flowFileSet = handleRequest(request, session, foundSubject, foundIssuer, destinationIsLegacyNiFi, contentType, in);
@@ -257,6 +255,16 @@ public class ListenHTTPServlet extends HttpServlet {
             proceedFlow(request, response, session, foundSubject, foundIssuer, createHold, flowFileSet);
         } catch (final Throwable t) {
             handleException(request, response, session, foundSubject, foundIssuer, t);
+        }
+    }
+
+    private void deleteMultiPartFiles(final HttpServletRequest request) {
+        try {
+            for (final Part part : request.getParts()) {
+                part.delete();
+            }
+        } catch (final Exception e) {
+            logger.warn("Delete MultiPart temporary files failed", e);
         }
     }
 
@@ -281,8 +289,11 @@ public class ListenHTTPServlet extends HttpServlet {
         final Collection<Part> requestParts = request.getParts();
         for (final Part part : requestParts) {
             FlowFile flowFile = session.create();
-            try (OutputStream flowFileOutputStream = session.write(flowFile)) {
-                StreamUtils.copy(part.getInputStream(), flowFileOutputStream);
+            try (
+                    OutputStream flowFileOutputStream = session.write(flowFile);
+                    InputStream partInputStream = part.getInputStream()
+            ) {
+                StreamUtils.copy(partInputStream, flowFileOutputStream);
             }
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             flowFile = savePartDetailsAsAttributes(session, part, flowFile, i, requestParts.size());
