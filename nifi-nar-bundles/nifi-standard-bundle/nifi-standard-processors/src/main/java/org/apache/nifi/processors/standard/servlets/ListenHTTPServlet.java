@@ -62,11 +62,9 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -276,11 +274,9 @@ public class ListenHTTPServlet extends HttpServlet {
         Set<FlowFile> flowFileSet = new HashSet<>();
         String tempDir = System.getProperty("java.io.tmpdir");
         request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
-        Collection<Part> requestParts = Collections.unmodifiableCollection(request.getParts());
-        final Iterator<Part> parts = requestParts.iterator();
         int i = 0;
-        while (parts.hasNext()) {
-            Part part = parts.next();
+        final Collection<Part> requestParts = request.getParts();
+        for (final Part part : requestParts) {
             FlowFile flowFile = session.create();
             try (OutputStream flowFileOutputStream = session.write(flowFile)) {
                 StreamUtils.copy(part.getInputStream(), flowFileOutputStream);
@@ -288,6 +284,7 @@ public class ListenHTTPServlet extends HttpServlet {
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             flowFile = savePartDetailsAsAttributes(session, part, flowFile, i, requestParts.size());
             flowFileSet.add(flowFile);
+            part.delete();
             i++;
         }
         return flowFileSet;
