@@ -18,16 +18,16 @@ package org.apache.nifi.processors.gcp.storage;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests the Util class static methods.
  */
 public class UtilTest {
     @Test
-    public void testContentDispositionParsing() throws Exception {
+    public void testContentDispositionParsing() {
         final String contentDisposition = "attachment; filename=\"plans.pdf\"";
 
         final Util.ParsedContentDisposition parsed = Util.parseContentDisposition(contentDisposition);
@@ -40,7 +40,7 @@ public class UtilTest {
     }
 
     @Test
-    public void testContentDispositionParsingBadParse() throws Exception {
+    public void testContentDispositionParsingBadParse() {
         final String contentDisposition = "bad-header";
 
         assertNull(Util.parseContentDisposition(contentDisposition));

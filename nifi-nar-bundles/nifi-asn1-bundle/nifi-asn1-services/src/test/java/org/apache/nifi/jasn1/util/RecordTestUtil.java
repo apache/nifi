@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecordTestUtil {
     public static Object convertValue(Object value) {
@@ -88,7 +88,7 @@ public class RecordTestUtil {
             assertListsEqual(prefix, (List) value1, (List) value2);
             assertListsEqual(prefix, (List) value2, (List) value1);
         } else {
-            assertEquals(prefix, value1, value2);
+            assertEquals(value1, value2, prefix);
         }
     }
 
@@ -121,7 +121,7 @@ public class RecordTestUtil {
                 assertValuesEqual(prefix + "[" + index + "]", item1, item2);
             }
         } else {
-            assertEquals(prefix, list1, list2);
+            assertEquals(list1, list2, prefix);
         }
     }
 }

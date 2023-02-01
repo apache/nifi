@@ -20,9 +20,8 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -31,20 +30,19 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.sql.Types.BIGINT;
 import static java.sql.Types.INTEGER;
 import static java.sql.Types.SMALLINT;
 import static java.sql.Types.TINYINT;
-import static java.sql.Types.BIGINT;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(Parameterized.class)
 public class TestJdbcCommonConvertToAvro {
 
     private final static boolean SIGNED = true;
@@ -54,8 +52,7 @@ public class TestJdbcCommonConvertToAvro {
         return IntStream.rangeClosed(start, end).toArray();
     }
 
-    @Parameterized.Parameters(name = "{index}: {0}")
-    public static Collection<TestParams> data() {
+    public static Stream<TestParams> data() {
         Map<Integer, int[]> typeWithPrecisionRange = new HashMap<>();
         typeWithPrecisionRange.put(TINYINT, range(1,3));
         typeWithPrecisionRange.put(SMALLINT, range(1,5));
@@ -77,12 +74,8 @@ public class TestJdbcCommonConvertToAvro {
                     &&
             param.signed == UNSIGNED
         );
-
-        return params;
+        return params.stream();
     }
-
-    @Parameterized.Parameter
-    public TestParams testParams;
 
     static class TestParams {
         int sqlType;
@@ -121,8 +114,9 @@ public class TestJdbcCommonConvertToAvro {
         }
     }
 
-    @Test
-    public void testConvertToAvroStreamForNumbers() throws SQLException, IOException {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testConvertToAvroStreamForNumbers(TestParams testParams) throws SQLException, IOException {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(testParams.sqlType);

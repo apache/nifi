@@ -25,9 +25,8 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,9 @@ import javax.net.ssl.SSLContext;
 import java.net.URISyntaxException;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +80,7 @@ public class JMSConnectionFactoryProviderTest {
     private String dummyResource;
     private String allDummyResources;
 
-    @Before
+    @BeforeEach
     public void prepareTest() throws URISyntaxException {
         dummyResource = this.getClass().getResource("/" + DUMMY_JAR_1).toURI().toString();
         allDummyResources = this.getClass().getResource("/" + DUMMY_JAR_1).toURI().toString() + "," +
@@ -137,12 +138,12 @@ public class JMSConnectionFactoryProviderTest {
         runner.assertValid(cfProvider);
 
         ClassLoader loader = runner.getClass().getClassLoader();
-        Assert.assertNotNull(loader.getResource(DUMMY_CONF));
-        Assert.assertNotNull(loader.getResource(DUMMY_JAR_1));
-        Assert.assertNotNull(loader.getResource(DUMMY_JAR_2));
+        assertNotNull(loader.getResource(DUMMY_CONF));
+        assertNotNull(loader.getResource(DUMMY_JAR_1));
+        assertNotNull(loader.getResource(DUMMY_JAR_2));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void validateGetConnectionFactoryFailureIfServiceNotConfigured() {
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider() {
             @Override
@@ -151,7 +152,7 @@ public class JMSConnectionFactoryProviderTest {
             }
         };
         cfProvider.onEnabled(new MockConfigurationContext(Collections.emptyMap(), null));
-        cfProvider.getConnectionFactory();
+        assertThrows(IllegalStateException.class, cfProvider::getConnectionFactory);
     }
 
     @Test

@@ -31,8 +31,8 @@ import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.toJson
 import static org.junit.jupiter.api.Assertions.assertEquals
@@ -46,7 +46,7 @@ class TestRestLookupService {
 
     static final String JSON_TYPE = "application/json"
 
-    @Before
+    @BeforeEach
     void setup() {
         recordReader = new MockRecordParser()
         lookupService = new MockRestLookupService()

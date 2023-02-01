@@ -30,8 +30,8 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 
 public class GCPCredentialsServiceTest {
@@ -98,8 +98,8 @@ public class GCPCredentialsServiceTest {
         final GoogleCredentials credentials = service.getGoogleCredentials();
         assertNotNull(credentials);
 
-        assertEquals("Credentials class should be equal", ServiceAccountCredentials.class,
-                credentials.getClass());
+        assertEquals(ServiceAccountCredentials.class, credentials.getClass(),
+                "Credentials class should be equal");
     }
 
     @Test
@@ -149,7 +149,7 @@ public class GCPCredentialsServiceTest {
         final GoogleCredentials credentials = service.getGoogleCredentials();
         assertNotNull(credentials);
 
-        assertEquals("Credentials class should be equal", ServiceAccountCredentials.class,
-                credentials.getClass());
+        assertEquals(ServiceAccountCredentials.class, credentials.getClass(),
+                "Credentials class should be equal");
     }
 }

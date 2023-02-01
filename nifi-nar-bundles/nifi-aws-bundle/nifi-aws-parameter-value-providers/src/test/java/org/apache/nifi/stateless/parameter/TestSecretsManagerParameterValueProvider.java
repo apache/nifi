@@ -26,29 +26,28 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TestSecretsManagerParameterValueProvider {
     private static final String CONTEXT = "context";
     private static final String PARAMETER = "param";
@@ -66,14 +65,14 @@ public class TestSecretsManagerParameterValueProvider {
     @Mock
     private AWSSecretsManager secretsManager;
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
-        doReturn(secretsManager).when(provider).configureClient(eq(CONFIG_FILE));
-        doReturn(secretsManager).when(provider).configureClient(isNull());
+        doReturn(secretsManager).when(provider).configureClient(CONFIG_FILE);
     }
 
     @Test
-    public void testIsParameterDefined() throws JsonProcessingException {
+    public void testIsParameterDefined() throws IOException {
+        doReturn(secretsManager).when(provider).configureClient(isNull());
         mockGetSecretValue();
         provider.init(createContext(CONFIG_FILE));
 
@@ -84,7 +83,8 @@ public class TestSecretsManagerParameterValueProvider {
     }
 
     @Test
-    public void testGetParameterValue() throws JsonProcessingException {
+    public void testGetParameterValue() throws IOException {
+        doReturn(secretsManager).when(provider).configureClient(isNull());
         mockGetSecretValue();
 
         runGetParameterValueTest(CONFIG_FILE);
