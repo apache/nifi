@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -78,6 +79,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+
+import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
+import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
+import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -249,15 +254,13 @@ public class GetSmbFile extends AbstractProcessor {
         descriptors.add(RECURSE);
         descriptors.add(POLLING_INTERVAL);
         descriptors.add(IGNORE_HIDDEN_FILES);
+        descriptors.add(SMB_DIALECT);
+        descriptors.add(USE_ENCRYPTION);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
         this.relationships = Collections.unmodifiableSet(relationships);
-
-        if (this.smbClient == null) {
-            initSmbClient();
-        }
     }
 
     @Override
@@ -272,6 +275,8 @@ public class GetSmbFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        smbClient = initSmbClient(context);
+
         initiateFilterFile(context);
         fileQueue.clear();
 
@@ -291,6 +296,14 @@ public class GetSmbFile extends AbstractProcessor {
         }
     }
 
+    @OnStopped
+    public void onStopped() {
+        if (smbClient != null) {
+            smbClient.close();
+            smbClient = null;
+        }
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Collection<ValidationResult> set = new ArrayList<>();
@@ -300,12 +313,8 @@ public class GetSmbFile extends AbstractProcessor {
         return set;
     }
 
-    private void initSmbClient() {
-        initSmbClient(new SMBClient());
-    }
-
-    public void initSmbClient(SMBClient smbClient) {
-        this.smbClient = smbClient;
+    SMBClient initSmbClient(final ProcessContext context) {
+        return buildSmbClient(context);
     }
 
     private void initiateFilterFile(final ProcessContext context) {

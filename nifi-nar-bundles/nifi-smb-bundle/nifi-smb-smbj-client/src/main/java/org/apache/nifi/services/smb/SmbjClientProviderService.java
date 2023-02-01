@@ -16,21 +16,8 @@
  */
 package org.apache.nifi.services.smb;
 
-import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
-
 import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import java.io.IOException;
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -43,6 +30,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
+import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
+import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
+import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
+import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
+
 @Tags({"samba, smb, cifs, files"})
 @CapabilityDescription("Provides access to SMB Sessions with shared authentication credentials.")
 public class SmbjClientProviderService extends AbstractControllerService implements SmbClientProviderService {
@@ -54,6 +55,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
+
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
             .displayName("Domain")
             .name("domain")
@@ -62,6 +64,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
             .build();
+
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .displayName("Username")
             .name("username")
@@ -71,6 +74,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .defaultValue("Guest")
             .addValidator(NON_EMPTY_VALIDATOR)
             .build();
+
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .displayName("Password")
             .name("password")
@@ -79,6 +83,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .addValidator(NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .displayName("Port")
             .name("port")
@@ -87,6 +92,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .addValidator(PORT_VALIDATOR)
             .defaultValue("445")
             .build();
+
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
             .displayName("Share")
             .name("share")
@@ -95,14 +101,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
-    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-            .displayName("Timeout")
-            .name("timeout")
-            .description("Timeout for read and write operations.")
-            .required(true)
-            .defaultValue("5 sec")
-            .addValidator(TIME_PERIOD_VALIDATOR)
-            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(asList(
                     HOSTNAME,
@@ -111,8 +110,11 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
                     USERNAME,
                     PASSWORD,
                     DOMAIN,
+                    SMB_DIALECT,
+                    USE_ENCRYPTION,
                     TIMEOUT
             ));
+
     private SMBClient smbClient;
     private AuthenticationContext authenticationContext;
     private String hostname;
@@ -137,7 +139,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         }
     }
 
-    private SmbjClientService connectToShare(Connection connection) throws IOException {
+    private SmbjClientService connectToShare(final Connection connection) throws IOException {
         final Session session;
         final Share share;
 
@@ -166,7 +168,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         smbClient.getServerList().unregister(hostname);
     }
 
-    private void closeConnection(Connection connection) {
+    private void closeConnection(final Connection connection) {
         try {
             if (connection != null) {
                 connection.close(true);
@@ -176,7 +178,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         }
     }
 
-    private void closeSession(Session session) {
+    private void closeSession(final Session session) {
         try {
             if (session != null) {
                 session.close();
@@ -192,13 +194,11 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) {
+    public void onEnabled(final ConfigurationContext context) {
         this.hostname = context.getProperty(HOSTNAME).getValue();
         this.port = context.getProperty(PORT).asInteger();
         this.shareName = context.getProperty(SHARE).getValue();
-        this.smbClient = new SMBClient(SmbConfig.builder()
-                .withTimeout(context.getProperty(TIMEOUT).asTimePeriod(MILLISECONDS), MILLISECONDS)
-                .build());
+        this.smbClient = buildSmbClient(context);
         createAuthenticationContext(context);
     }
 
@@ -216,7 +216,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         return PROPERTIES;
     }
 
-    private void createAuthenticationContext(ConfigurationContext context) {
+    private void createAuthenticationContext(final ConfigurationContext context) {
         if (context.getProperty(USERNAME).isSet()) {
             final String userName = context.getProperty(USERNAME).getValue();
             final String password =
