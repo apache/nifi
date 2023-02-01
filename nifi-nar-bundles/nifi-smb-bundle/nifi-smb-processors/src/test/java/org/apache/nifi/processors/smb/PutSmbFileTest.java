@@ -26,6 +26,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskEntry;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -114,10 +115,6 @@ public class PutSmbFileTest {
         testRunner.setProperty(PutSmbFile.DOMAIN, DOMAIN);
         testRunner.setProperty(PutSmbFile.USERNAME, USERNAME);
         testRunner.setProperty(PutSmbFile.PASSWORD, PASSWORD);
-
-
-        PutSmbFile PutSmbFile = (PutSmbFile) testRunner.getProcessor();
-        PutSmbFile.initSmbClient(smbClient);
     }
 
     private void testDirectoryCreation(String dirFlag, int times) throws IOException {
@@ -147,7 +144,12 @@ public class PutSmbFileTest {
 
     @BeforeEach
     public void init() throws IOException {
-        testRunner = TestRunners.newTestRunner(PutSmbFile.class);
+        testRunner = TestRunners.newTestRunner(new PutSmbFile() {
+            @Override
+            SMBClient initSmbClient(ProcessContext context) {
+                return smbClient;
+            }
+        });
         MockitoAnnotations.initMocks(this);
         setupSmbProcessor();
     }

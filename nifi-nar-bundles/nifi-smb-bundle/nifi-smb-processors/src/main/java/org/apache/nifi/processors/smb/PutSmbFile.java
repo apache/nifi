@@ -16,52 +16,57 @@
  */
 package org.apache.nifi.processors.smb;
 
+
+import com.hierynomus.msdtyp.AccessMask;
+import com.hierynomus.msfscc.FileAttributes;
+import com.hierynomus.mssmb2.SMB2CreateDisposition;
+import com.hierynomus.mssmb2.SMB2CreateOptions;
+import com.hierynomus.mssmb2.SMB2ShareAccess;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.share.DiskEntry;
+import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
 
+import java.io.OutputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.net.URI;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.share.DiskEntry;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.msfscc.FileAttributes;
-import com.hierynomus.msdtyp.AccessMask;
-import com.hierynomus.mssmb2.SMB2ShareAccess;
-import com.hierynomus.mssmb2.SMB2CreateDisposition;
-import com.hierynomus.mssmb2.SMB2CreateOptions;
-import com.hierynomus.smbj.share.File;
-import java.io.OutputStream;
-import java.util.EnumSet;
+import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
+import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
+import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"samba, smb, cifs, files, put"})
@@ -186,16 +191,14 @@ public class PutSmbFile extends AbstractProcessor {
         descriptors.add(CONFLICT_RESOLUTION);
         descriptors.add(BATCH_SIZE);
         descriptors.add(RENAME_SUFFIX);
+        descriptors.add(SMB_DIALECT);
+        descriptors.add(USE_ENCRYPTION);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<Relationship>();
         relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
-
-        if (this.smbClient == null) {
-            initSmbClient();
-        }
     }
 
     @Override
@@ -210,6 +213,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        smbClient = initSmbClient(context);
 
         switch (context.getProperty(SHARE_ACCESS).getValue()) {
             case SHARE_ACCESS_NONE:
@@ -227,6 +231,14 @@ public class PutSmbFile extends AbstractProcessor {
         }
     }
 
+    @OnStopped
+    public void onStopped() {
+        if (smbClient != null) {
+            smbClient.close();
+            smbClient = null;
+        }
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Collection<ValidationResult> set = new ArrayList<>();
@@ -236,12 +248,8 @@ public class PutSmbFile extends AbstractProcessor {
         return set;
     }
 
-    private void initSmbClient() {
-        initSmbClient(new SMBClient());
-    }
-
-    void initSmbClient(SMBClient smbClient) {
-        this.smbClient = smbClient;
+    SMBClient initSmbClient(final ProcessContext context) {
+        return buildSmbClient(context);
     }
 
     private void createMissingDirectoriesRecursevly(ComponentLog logger, DiskShare share, String pathToCreate) {

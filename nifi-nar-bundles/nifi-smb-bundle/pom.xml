@@ -32,6 +32,7 @@
         <module>nifi-smb-smbj-client-nar</module>
         <module>nifi-smb-processors</module>
         <module>nifi-smb-nar</module>
+        <module>nifi-smb-smbj-common</module>
     </modules>
 
     <dependencyManagement>
