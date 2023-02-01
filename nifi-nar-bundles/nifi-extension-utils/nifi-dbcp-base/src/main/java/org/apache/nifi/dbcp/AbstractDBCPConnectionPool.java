@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import java.util.HashMap;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -43,13 +42,14 @@ import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
+import org.apache.nifi.util.FormatUtils;
 
-import javax.security.auth.login.LoginException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +73,9 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
-    private static final String DEFAULT_MAX_IDLE = "8";
+    private static final String DEFAULT_MAX_TOTAL_CONNECTIONS = "8";
+
+    private static final String DEFAULT_MAX_IDLE = DEFAULT_MAX_TOTAL_CONNECTIONS;
     /**
      * Copied from private variable {@link BasicDataSource#maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
@@ -86,11 +88,13 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
-    private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
+    protected static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME_MINS = "30 mins";
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
+    private static final String DEFAULT_MAX_WAIT_MILLIS = "500 millis";
+
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
             .name("Database Connection URL")
@@ -144,7 +148,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             .name("Max Wait Time")
             .description("The maximum amount of time that the pool will wait (when there are no available connections) "
                     + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
-            .defaultValue("500 millis")
+            .defaultValue(DEFAULT_MAX_WAIT_MILLIS)
             .required(true)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -155,7 +159,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             .name("Max Total Connections")
             .description("The maximum number of active connections that can be allocated from this pool at the same time, "
                     + " or negative for no limit.")
-            .defaultValue("8")
+            .defaultValue(DEFAULT_MAX_TOTAL_CONNECTIONS)
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -222,7 +226,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             .displayName("Minimum Evictable Idle Time")
             .name("dbcp-min-evictable-idle-time")
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
-            .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
+            .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME_MINS)
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -373,7 +377,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
      * Configures connection pool by creating an instance of the
      * {@link BasicDataSource} based on configuration provided with
      * {@link ConfigurationContext}.
-     *
+     * <p>
      * This operation makes no guarantees that the actual connection could be
      * made since the underlying system may still go off-line during normal
      * operation of the connection pool.
@@ -390,22 +394,71 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         configureDataSource(dataSource, kerberosUser, context);
     }
 
-    private void configureDataSource(final BasicDataSource dataSource, final KerberosUser kerberosUser,
-                                     final ConfigurationContext context) throws InitializationException {
+    protected void configureDataSource(final BasicDataSource dataSource, final KerberosUser kerberosUser,
+                                       final ConfigurationContext context) throws InitializationException {
         final String dburl = getUrl(context);
 
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
-        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
-        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
-        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
-        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
-        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
-        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+
+        final Integer maxTotal;
+        if (context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().isSet()) {
+            maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
+        } else {
+            maxTotal = Integer.parseInt(DEFAULT_MAX_TOTAL_CONNECTIONS);
+        }
+
+        final Long maxWaitMillis;
+        if (context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions().isSet()) {
+            maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
+        } else {
+            maxWaitMillis = (long) FormatUtils.getPreciseTimeDuration(DEFAULT_MAX_WAIT_MILLIS, TimeUnit.MILLISECONDS);
+        }
+
+        final Integer minIdle;
+        if(context.getProperty(MIN_IDLE).evaluateAttributeExpressions().isSet()) {
+            minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
+        } else {
+            minIdle = Integer.parseInt(DEFAULT_MIN_IDLE);
+        }
+
+        final Integer maxIdle;
+        if (context.getProperty(MAX_IDLE).evaluateAttributeExpressions().isSet()) {
+            maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
+        } else {
+            maxIdle = Integer.parseInt(DEFAULT_MAX_IDLE);
+        }
+
+        final Long maxConnLifetimeMillis;
+        if (context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions().isSet()) {
+            maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        } else {
+            maxConnLifetimeMillis = Long.parseLong(DEFAULT_MAX_CONN_LIFETIME);
+        }
+
+        final Long timeBetweenEvictionRunsMillis;
+        if (context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions().isSet()) {
+            timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
+        } else {
+            timeBetweenEvictionRunsMillis = Long.parseLong(DEFAULT_EVICTION_RUN_PERIOD);
+        }
+
+
+        final Long minEvictableIdleTimeMillis;
+        if (context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions().isSet()) {
+            minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME));
+        } else {
+            minEvictableIdleTimeMillis = (long) FormatUtils.getPreciseTimeDuration(DEFAULT_MIN_EVICTABLE_IDLE_TIME_MINS, TimeUnit.MINUTES);
+        }
+
+        final Long softMinEvictableIdleTimeMillis;
+        if (context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions().isSet()) {
+            softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        } else {
+            softMinEvictableIdleTimeMillis = Long.parseLong(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME);
+        }
 
         if (kerberosUser != null) {
             try {
@@ -440,7 +493,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
 
-        dynamicProperties.forEach((descriptor) -> {
+        dynamicProperties.forEach(descriptor -> {
             final PropertyValue propertyValue = context.getProperty(descriptor);
             if (descriptor.isSensitive()) {
                 final String propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
@@ -453,7 +506,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         getConnectionProperties(context).forEach(dataSource::addConnectionProperty);
     }
 
-    private KerberosUser getKerberosUser(final ConfigurationContext context) {
+    protected KerberosUser getKerberosUser(final ConfigurationContext context) {
         KerberosUser kerberosUser = null;
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
@@ -516,12 +569,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
      * Shutdown pool, close all open connections.
      * If a principal is authenticated with a KDC, that principal is logged out.
      *
-     * If a @{@link LoginException} occurs while attempting to log out the @{@link org.apache.nifi.security.krb.KerberosUser},
-     * an attempt will still be made to shut down the pool and close open connections.
-     *
      * @throws SQLException if there is an error while closing open connections
-     * @throws LoginException if there is an error during the principal log out, and will only be thrown if there was
-     * no exception while closing open connections
      */
     @OnDisabled
     public void shutdown() throws SQLException {
@@ -554,7 +602,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         try {
             final Connection con;
             if (kerberosUser != null) {
-                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, () -> dataSource.getConnection(), getLogger());
+                KerberosAction<Connection> kerberosAction = new KerberosAction<>(kerberosUser, dataSource::getConnection, getLogger());
                 con = kerberosAction.execute();
             } else {
                 con = dataSource.getConnection();
