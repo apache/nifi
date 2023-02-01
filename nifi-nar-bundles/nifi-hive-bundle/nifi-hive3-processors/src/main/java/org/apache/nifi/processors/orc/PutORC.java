@@ -60,6 +60,7 @@ import java.util.List;
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file is stored in this attribute."),
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file is stored in this attribute."),
+        @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute."),
         @WritesAttribute(attribute = "record.count", description = "The number of records written to the ORC file"),
         @WritesAttribute(attribute = "hive.ddl", description = "Creates a partial Hive DDL statement for creating an external table in Hive from the destination folder. "
                 + "This can be used in ReplaceText for setting the content to the DDL. To make it valid DDL, add \"LOCATION '<path_to_orc_file_in_hdfs>'\", where "
