@@ -33,9 +33,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests of the validation and credentials provider capabilities of CredentialsFactory.
@@ -48,7 +48,7 @@ public class CredentialsFactoryTest {
     @Test
     public void testCredentialPropertyDescriptorClassCannotBeInvoked() throws Exception {
         Constructor constructor = CredentialPropertyDescriptors.class.getDeclaredConstructor();
-        assertTrue("Constructor of CredentialPropertyDescriptors should be private", Modifier.isPrivate(constructor.getModifiers()));
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()), "Constructor of CredentialPropertyDescriptors should be private");
         constructor.setAccessible(true);
         constructor.newInstance();
     }
@@ -98,8 +98,8 @@ public class CredentialsFactoryTest {
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
-        assertEquals("credentials class should be equal", ServiceAccountCredentials.class,
-                credentials.getClass());
+        assertEquals(ServiceAccountCredentials.class, credentials.getClass(),
+                "credentials class should be equal");
     }
 
 
@@ -126,8 +126,8 @@ public class CredentialsFactoryTest {
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
-        assertEquals("credentials class should be equal", ServiceAccountCredentials.class,
-                credentials.getClass());
+        assertEquals(ServiceAccountCredentials.class, credentials.getClass(),
+                "credentials class should be equal");
     }
 
     @Test
@@ -141,7 +141,7 @@ public class CredentialsFactoryTest {
         final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
 
         assertNotNull(credentials);
-        assertEquals("credentials class should be equal", ComputeEngineCredentials.class,
-                credentials.getClass());
+        assertEquals(ComputeEngineCredentials.class, credentials.getClass(),
+                "credentials class should be equal");
     }
 }

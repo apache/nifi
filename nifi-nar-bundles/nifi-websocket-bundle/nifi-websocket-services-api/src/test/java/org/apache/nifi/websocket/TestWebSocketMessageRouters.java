@@ -17,12 +17,12 @@
 package org.apache.nifi.websocket;
 
 import org.apache.nifi.processor.Processor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,11 +33,8 @@ public class TestWebSocketMessageRouters {
     public void testRegisterProcessor() throws Exception {
         final String endpointId = "endpoint-id";
         final WebSocketMessageRouters routers = new WebSocketMessageRouters();
-        try {
-            routers.getRouterOrFail(endpointId);
-            fail("Should fail because no route exists with the endpointId.");
-        } catch (WebSocketConfigurationException e) {
-        }
+        assertThrows(WebSocketConfigurationException.class, () -> routers.getRouterOrFail(endpointId),
+                "Should fail because no route exists with the endpointId.");
 
         final Processor processor1 = mock(Processor.class);
         when(processor1.getIdentifier()).thenReturn("processor-1");

@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ENCRYPTION_ALGORITHM_ATTR;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for {@link PutGCSObject} which actually use Google Cloud resources.

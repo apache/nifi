@@ -23,7 +23,7 @@ import org.apache.nifi.processors.elasticsearch.api.PaginationType
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.TestRunner
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import java.time.Instant
 
@@ -31,7 +31,7 @@ import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.fail
 
 class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTest {
     AbstractPaginatedJsonQueryElasticsearch getProcessor() {

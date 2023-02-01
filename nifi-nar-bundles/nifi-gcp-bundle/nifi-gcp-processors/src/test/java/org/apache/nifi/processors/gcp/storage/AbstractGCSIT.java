@@ -32,7 +32,7 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Base class for GCS Integration Tests. Establishes a bucket and helper methods for creating test scenarios.

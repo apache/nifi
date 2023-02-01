@@ -25,14 +25,14 @@ import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.Assert.assertThrows
+import static org.junit.jupiter.api.Assertions.assertThrows
 
 abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractPaginatedJsonQueryElasticsearch> {
     abstract boolean isInput()

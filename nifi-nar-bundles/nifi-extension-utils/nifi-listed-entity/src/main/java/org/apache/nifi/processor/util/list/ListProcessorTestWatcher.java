@@ -18,8 +18,9 @@ package org.apache.nifi.processor.util.list;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
  * This class provides a way to dump list-able entities, processor state and transferred FlowFiles into 'success' relationship,
  * which is useful to debug test issues especially at automation test environment such as Travis that is difficult to debug.
  */
-public class ListProcessorTestWatcher extends TestWatcher {
+public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback {
 
     private static final Logger logger = LoggerFactory.getLogger(ListProcessorTestWatcher.class);
     private static final Consumer<String> logStateDump = logger::info;
@@ -104,25 +105,15 @@ public class ListProcessorTestWatcher extends TestWatcher {
     }
 
     @Override
-    protected void starting(Description description) {
+    public void beforeEach(ExtensionContext extensionContext) {
         startedAtMillis = System.currentTimeMillis();
     }
 
-    /**
-     * Throw additional AssertionError with stateDump as its message.
-     */
     @Override
-    protected void failed(Throwable e, Description description) {
-        if (!(e instanceof AssertionError)) {
+    public void testFailed(ExtensionContext context, Throwable cause) {
+        if (!(cause instanceof AssertionError)) {
             return;
         }
-
-        final StringBuilder msg = new StringBuilder("State dump:\n");
-        dumpState(s -> msg.append(s).append("\n"),
-                stateMapProvider.provide(),
-                entitiesProvider.provide(),
-                successFlowFilesProvider.provide(),
-                startedAtMillis);
-        throw new AssertionError(msg);
+        dumpState(startedAtMillis);
     }
 }

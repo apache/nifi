@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static org.apache.nifi.jasn1.util.RecordTestUtil.assertRecordsEqual;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public interface JASN1ReadRecordTester {
     default void testReadRecord(String dataFile, BerType berObject, Map<String, Object> expectedValues, RecordSchema expectedSchema) throws IOException, MalformedRecordException {

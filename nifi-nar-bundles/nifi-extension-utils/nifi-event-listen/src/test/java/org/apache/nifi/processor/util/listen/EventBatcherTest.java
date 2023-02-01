@@ -28,8 +28,8 @@ import org.apache.nifi.processor.util.listen.event.StandardNetworkEventFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 
 import java.net.InetSocketAddress;
@@ -39,7 +39,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class EventBatcherTest {
@@ -55,7 +55,7 @@ public class EventBatcherTest {
     MockProcessSession session;
     StandardNetworkEventFactory eventFactory;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processor = new SimpleProcessor();
         events = new LinkedBlockingQueue<>();

@@ -51,8 +51,8 @@
         </dependency>
         <dependency>
             <!-- Dependency marked as provided, not test, because ListProcessorTestWatcher uses TestWatcher -->
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
