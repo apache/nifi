@@ -48,7 +48,8 @@ import java.io.IOException;
 @WritesAttributes({
         @WritesAttribute(attribute="fetch.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added " +
                 "indicating why the file could not be fetched from the given filesystem."),
-        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
+        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file"),
+        @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
 @SeeAlso({PutParquet.class})
 @Restricted(restrictions = {

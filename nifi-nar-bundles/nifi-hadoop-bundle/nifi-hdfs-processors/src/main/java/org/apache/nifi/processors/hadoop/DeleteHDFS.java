@@ -72,6 +72,7 @@ import java.util.regex.Pattern;
                 + "If multiple files are deleted, then only the last filename is set."),
         @WritesAttribute(attribute="hdfs.path", description="HDFS Path specified in the delete request. "
                 + "If multiple paths are deleted, then only the last path is set."),
+        @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file to be deleted."),
         @WritesAttribute(attribute="hdfs.error.message", description="HDFS error message related to the hdfs.error.code")
 })
 @SeeAlso({ListHDFS.class, PutHDFS.class})
@@ -176,6 +177,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
                             fileSystem.delete(path, isRecursive(context, session));
                             getLogger().debug("For flowfile {} Deleted file at path {} with name {}", new Object[]{originalFlowFile, path.getParent().toString(), path.getName()});
                             final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                            flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                             session.getProvenanceReporter().invokeRemoteProcess(flowFile, qualifiedPath.toString());
                         } catch (IOException ioe) {
                             // One possible scenario is that the IOException is permissions based, however it would be impractical to check every possible

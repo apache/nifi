@@ -233,6 +233,7 @@ public class PutHDFSTest {
         assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(sendEvent.getTransitUri().endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
 
         verify(spyFileSystem, times(1)).rename(any(Path.class), any(Path.class));
     }
@@ -267,6 +268,8 @@ public class PutHDFSTest {
         assertEquals(FILE_NAME, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(TARGET_DIRECTORY, flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
         assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
+        // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
 
         verify(spyFileSystem, Mockito.never()).rename(any(Path.class), any(Path.class));
     }
@@ -304,6 +307,7 @@ public class PutHDFSTest {
         assertEquals(ProvenanceEventType.SEND, sendEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(sendEvent.getTransitUri().endsWith("target/test-classes/randombytes-1"));
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith("target/test-classes/randombytes-1"));
     }
 
     @Test
@@ -330,6 +334,7 @@ public class PutHDFSTest {
         assertTrue(mockFileSystem.exists(new Path("target/test-classes/randombytes-1.gz")));
         assertEquals("randombytes-1.gz", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith(TARGET_DIRECTORY + "/" + FILE_NAME + ".gz"));
     }
 
     @Test
@@ -423,6 +428,7 @@ public class PutHDFSTest {
         assertTrue(mockFileSystem.exists(new Path("target/data_test/randombytes-1")));
         assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals("target/data_test", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+        assertTrue(flowFile.getAttribute(PutHDFS.HADOOP_FILE_URL_ATTRIBUTE).endsWith("target/data_test/" + FILE_NAME));
     }
 
     @Test

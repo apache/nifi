@@ -378,6 +378,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
                 // Send a provenance event and transfer to success
                 final Path qualifiedPath = destFile.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
+                putFlowFile = session.putAttribute(putFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                 session.getProvenanceReporter().send(putFlowFile, qualifiedPath.toString());
                 session.transfer(putFlowFile, REL_SUCCESS);
 
