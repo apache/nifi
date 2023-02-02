@@ -19,9 +19,6 @@ package org.apache.nifi.smb.common;
 import com.hierynomus.mssmb2.SMB2Dialect;
 import org.apache.nifi.components.DescribedValue;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public enum SmbDialect implements DescribedValue {
 
     AUTO("AUTO", null),
@@ -30,14 +27,6 @@ public enum SmbDialect implements DescribedValue {
     SMB_3_0("SMB 3.0", SMB2Dialect.SMB_3_0),
     SMB_3_0_2("SMB 3.0.2", SMB2Dialect.SMB_3_0_2),
     SMB_3_1_1("SMB 3.1.1", SMB2Dialect.SMB_3_1_1);
-
-    private static final Map<String, SmbDialect> LOOKUP_MAP = new HashMap<>();
-
-    static {
-        for (SmbDialect smbDialect : SmbDialect.values()) {
-            LOOKUP_MAP.put(smbDialect.getValue(), smbDialect);
-        }
-    }
 
     private final String displayName;
 
@@ -65,9 +54,5 @@ public enum SmbDialect implements DescribedValue {
 
     public SMB2Dialect getSmbjDialect() {
         return smbjDialect;
-    }
-
-    public static SmbDialect forValue(final String value) {
-        return LOOKUP_MAP.get(value);
     }
 }

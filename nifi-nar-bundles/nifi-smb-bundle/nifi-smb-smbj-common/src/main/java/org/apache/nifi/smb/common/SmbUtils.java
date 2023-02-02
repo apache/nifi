@@ -39,7 +39,7 @@ public final class SmbUtils {
         final SmbConfig.Builder configBuilder = SmbConfig.builder();
 
         if (context.getProperty(SMB_DIALECT).isSet()) {
-            final SmbDialect dialect = SmbDialect.forValue(context.getProperty(SMB_DIALECT).getValue());
+            final SmbDialect dialect = SmbDialect.valueOf(context.getProperty(SMB_DIALECT).getValue());
 
             if (dialect != SmbDialect.AUTO) {
                 configBuilder.withDialects(dialect.getSmbjDialect());
