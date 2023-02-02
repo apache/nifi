@@ -48,7 +48,7 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     public static final PropertyDescriptor OUTPUT_BUCKET = new PropertyDescriptor.Builder()
             .name("output-bucket")
             .displayName("Output Bucket")
-            .description("Name of the GCS bucket where the output of the Vision job will be persisted.")
+            .description("Name of the GCS bucket where the output of the Vision job will be persisted. The value of this property applies when the JSON Payload property is configured. The JSON Payload property value can use Expression Language to reference the value of ${output-bucket}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
