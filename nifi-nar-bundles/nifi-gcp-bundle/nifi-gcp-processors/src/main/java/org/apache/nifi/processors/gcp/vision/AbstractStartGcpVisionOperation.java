@@ -95,8 +95,9 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
         Map<String, String> attributes = new HashMap<>();
         attributes.put(OUTPUT_BUCKET.getName(), getAttributeValue(context, flowFile, OUTPUT_BUCKET.getName()));
         attributes.put(FEATURE_TYPE.getName(), getAttributeValue(context, flowFile, FEATURE_TYPE.getName()));
-        return new ByteArrayInputStream(context.getProperty(getJsonPayloadPropertyDescriptor())
-                .evaluateAttributeExpressions(flowFile, attributes).getValue().getBytes(StandardCharsets.UTF_8));
+        final PropertyValue jsonPropertyValue = context.getProperty(getJsonPayloadPropertyDescriptor());
+        final String jsonPayload = jsonPropertyValue.evaluateAttributeExpressions(flowFile, attributes).getValue();
+        return new ByteArrayInputStream(jsonPayload.getBytes(StandardCharsets.UTF_8));
     }
 
     private String getAttributeValue(ProcessContext context, FlowFile flowFile, String name) {
