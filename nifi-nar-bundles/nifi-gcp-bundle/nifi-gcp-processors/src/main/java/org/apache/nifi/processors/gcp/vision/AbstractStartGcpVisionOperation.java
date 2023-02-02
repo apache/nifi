@@ -37,7 +37,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.GeneratedMessageV3.Builder<B>> extends AbstractGcpVisionProcessor  {
     public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
-            .name("feature-type")
+            .name("vision-feature-type")
             .displayName("Vision Feature Type")
             .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. The JSON Payload property value can use Expression Language to reference the value of ${vision-feature-type}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
