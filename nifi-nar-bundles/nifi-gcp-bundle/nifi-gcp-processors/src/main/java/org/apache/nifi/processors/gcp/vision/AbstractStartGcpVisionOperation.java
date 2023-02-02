@@ -100,7 +100,9 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     }
 
     private String getAttributeValue(ProcessContext context, FlowFile flowFile, String name) {
-        return flowFile.getAttribute(name) != null ? flowFile.getAttribute(name) : context.getProperty(name).evaluateAttributeExpressions().getValue();
+        final String flowFileAttribute = flowFile.getAttribute(name);
+        final PropertyValue propertyValue = context.getProperty(name);
+        return flowFileAttribute == null ? propertyValue.getValue() : flowFileAttribute;
     }
 
     abstract B newBuilder();
