@@ -56,7 +56,7 @@ public class StartGcpVisionAnnotateFilesOperation extends AbstractStartGcpVision
                     "                \"mimeType\": \"application/pdf\"\n" +
                     "            },\n" +
                     "            \"features\": [{\n" +
-                    "                    \"type\": \"${feature-type}\",\n" +
+                    "                    \"type\": \"${vision-feature-type}\",\n" +
                     "                    \"maxResults\": 4\n" +
                     "                }],\n" +
                     "            \"outputConfig\": {\n" +

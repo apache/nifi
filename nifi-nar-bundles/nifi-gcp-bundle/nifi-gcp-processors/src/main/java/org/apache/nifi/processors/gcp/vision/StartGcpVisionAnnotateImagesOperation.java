@@ -55,7 +55,7 @@ public class StartGcpVisionAnnotateImagesOperation extends AbstractStartGcpVisio
                     "            }\n" +
                     "        },\n" +
                     "        \"features\": [{\n" +
-                    "            \"type\": \"${feature-type}\",\n" +
+                    "            \"type\": \"${vision-feature-type}\",\n" +
                     "            \"maxResults\": 4\n" +
                     "        }]\n" +
                     "    }],\n" +
