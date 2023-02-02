@@ -27,6 +27,7 @@ import org.apache.hadoop.hive.metastore.api.FireEventRequestData;
 import org.apache.hadoop.hive.metastore.api.InsertEventRequestData;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.messaging.EventMessage;
 import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.utils.StringUtils;
@@ -69,14 +70,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"hive", "metastore", "notification", "insert", "partition"})
-@CapabilityDescription("The processor is capable to trigger different type of events in the HiveMetaStore and generate notifications." +
-        "The metastore action to be executed is determined from the incoming path and event type attributes." +
-        "The notifications should be enabled in the metastore configuration to generate them e.g.: the 'hive.metastore.transactional.event.listeners' should have a proper listener configured.")
+@Tags({"hive", "metastore", "notification", "insert", "delete", "partition", "event"})
+@CapabilityDescription("The processor is capable to trigger different type of events in the HiveMetaStore and generate notifications. " +
+        "The metastore action to be executed is determined from the incoming path and event type attributes. " +
+        "The supported event type values are 'put' in case of data insertion or 'delete' in case of data removal. " +
+        "The notifications should be enabled in the metastore configuration to generate them e.g.: the 'hive.metastore.transactional.event.listeners' " +
+        "should have a proper listener configured, for instance 'org.apache.hive.hcatalog.listener.DbNotificationListener'.")
 @WritesAttributes({
         @WritesAttribute(attribute = "metastore.notification.event", description = "The event type of the triggered notification.")
 })
-public class TriggerHMSNotification extends AbstractProcessor {
+public class TriggerHiveMetaStoreEvent extends AbstractProcessor {
 
     public static final String METASTORE_NOTIFICATION_EVENT = "metastore.notification.event";
 
@@ -89,6 +92,16 @@ public class TriggerHMSNotification extends AbstractProcessor {
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
+
+    static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
+            .name("hive-metastore-uri")
+            .displayName("Hive Metastore URI")
+            .description("The URI location(s) for the Hive metastore. This is a comma-separated list of Hive metastore URIs; note that this is not the location of the Hive Server. "
+                    + "The default port for the Hive metastore is 9043. If this field is not set, then the 'hive.metastore.uris' property from any provided configuration resources "
+                    + "will be used, and if none are provided, then the default value from a default hive-site.xml will be used (usually thrift://localhost:9083).")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.URI_LIST_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor HIVE_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hive-config-resources")
@@ -164,6 +177,7 @@ public class TriggerHMSNotification extends AbstractProcessor {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            METASTORE_URI,
             HIVE_CONFIGURATION_RESOURCES,
             EVENT_TYPE,
             PATH,
@@ -215,6 +229,10 @@ public class TriggerHMSNotification extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
+
+        if (context.getProperty(METASTORE_URI).isSet()) {
+            hiveConfig.set(MetastoreConf.ConfVars.THRIFT_URIS.getHiveName(), context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue());
+        }
 
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
@@ -270,7 +288,7 @@ public class TriggerHMSNotification extends AbstractProcessor {
             final Table table = metaStoreClient.getTable(catalogName, databaseName, tableName);
             final boolean isPartitioned = !table.getPartitionKeys().isEmpty();
 
-            switch (eventType) {
+            switch (eventType.toLowerCase().trim()) {
                 case "put":
                     if (isPartitioned) {
                         EventMessage.EventType eventMessageType = handlePartitionedInsert(metaStoreClient, catalogName, databaseName, tableName, path);
@@ -352,6 +370,7 @@ public class TriggerHMSNotification extends AbstractProcessor {
                 partitionValues.add(partitionParts[1]);
             }
         }
+        getLogger().debug("The following partition values were processed from path '{}': {}", path, partitionValues);
         return partitionValues;
     }
 

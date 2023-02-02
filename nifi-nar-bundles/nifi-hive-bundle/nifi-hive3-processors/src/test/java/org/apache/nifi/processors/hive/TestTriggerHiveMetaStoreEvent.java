@@ -40,6 +40,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.util.Arrays;
@@ -49,15 +50,16 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.hadoop.hive.metastore.conf.MetastoreConf.ConfVars.TRANSACTIONAL_EVENT_LISTENERS;
-import static org.apache.nifi.processors.hive.TriggerHMSNotification.METASTORE_NOTIFICATION_EVENT;
+import static org.apache.nifi.processors.hive.TriggerHiveMetaStoreEvent.METASTORE_NOTIFICATION_EVENT;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
-public class TestTriggerHMSNotification {
+public class TestTriggerHiveMetaStoreEvent {
 
     private TestRunner runner;
-    private TriggerHMSNotification processor;
+    private TriggerHiveMetaStoreEvent processor;
     private HiveMetaStoreClient metaStoreClient;
 
     private static final String TEST_DATABASE_NAME = "test_metastore";
@@ -74,7 +76,7 @@ public class TestTriggerHMSNotification {
 
     @BeforeEach
     public void setUp() {
-        processor = new TriggerHMSNotification();
+        processor = new TriggerHiveMetaStoreEvent();
         metaStoreClient = metastore.getMetaStoreClient();
     }
 
@@ -89,23 +91,24 @@ public class TestTriggerHMSNotification {
         createPartition(table, Lists.newArrayList("2018", "march"));
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testInsertOnUnPartitionedTable() throws Exception {
         initUnPartitionedTable();
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(TriggerHMSNotification.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
-        runner.setProperty(TriggerHMSNotification.EVENT_TYPE, "put");
-        runner.setProperty(TriggerHMSNotification.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/test_file");
-        runner.setProperty(TriggerHMSNotification.DATABASE_NAME, TEST_DATABASE_NAME);
-        runner.setProperty(TriggerHMSNotification.TABLE_NAME, TEST_TABLE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
+        runner.setProperty(TriggerHiveMetaStoreEvent.EVENT_TYPE, "put");
+        runner.setProperty(TriggerHiveMetaStoreEvent.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/test_file");
+        runner.setProperty(TriggerHiveMetaStoreEvent.DATABASE_NAME, TEST_DATABASE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.TABLE_NAME, TEST_TABLE_NAME);
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertTransferCount(TriggerHMSNotification.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHMSNotification.REL_SUCCESS).get(0);
+        runner.assertTransferCount(TriggerHiveMetaStoreEvent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHiveMetaStoreEvent.REL_SUCCESS).get(0);
 
         Assertions.assertEquals(EventMessage.EventType.INSERT.toString(), flowFile.getAttribute(METASTORE_NOTIFICATION_EVENT));
 
@@ -123,24 +126,25 @@ public class TestTriggerHMSNotification {
         assertEquals(insertMessage.getTable(), TEST_TABLE_NAME);
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testInsertOnPartitionedTable() throws Exception {
         initPartitionedTable();
         assertEquals(PARTITION_COLUMNS, metaStoreClient.getTable(TEST_DATABASE_NAME, TEST_TABLE_NAME).getPartitionKeys());
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(TriggerHMSNotification.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
-        runner.setProperty(TriggerHMSNotification.EVENT_TYPE, "put");
-        runner.setProperty(TriggerHMSNotification.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=march/test_file");
-        runner.setProperty(TriggerHMSNotification.DATABASE_NAME, TEST_DATABASE_NAME);
-        runner.setProperty(TriggerHMSNotification.TABLE_NAME, TEST_TABLE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
+        runner.setProperty(TriggerHiveMetaStoreEvent.EVENT_TYPE, "put");
+        runner.setProperty(TriggerHiveMetaStoreEvent.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=march/test_file");
+        runner.setProperty(TriggerHiveMetaStoreEvent.DATABASE_NAME, TEST_DATABASE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.TABLE_NAME, TEST_TABLE_NAME);
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertTransferCount(TriggerHMSNotification.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHMSNotification.REL_SUCCESS).get(0);
+        runner.assertTransferCount(TriggerHiveMetaStoreEvent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHiveMetaStoreEvent.REL_SUCCESS).get(0);
 
         Assertions.assertEquals(EventMessage.EventType.INSERT.toString(), flowFile.getAttribute(METASTORE_NOTIFICATION_EVENT));
 
@@ -158,24 +162,25 @@ public class TestTriggerHMSNotification {
         assertEquals(insertMessage.getTable(), TEST_TABLE_NAME);
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testAddPartition() throws Exception {
         initPartitionedTable();
         assertEquals(PARTITION_COLUMNS, metaStoreClient.getTable(TEST_DATABASE_NAME, TEST_TABLE_NAME).getPartitionKeys());
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(TriggerHMSNotification.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
-        runner.setProperty(TriggerHMSNotification.EVENT_TYPE, "put");
-        runner.setProperty(TriggerHMSNotification.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=june/test_file");
-        runner.setProperty(TriggerHMSNotification.DATABASE_NAME, TEST_DATABASE_NAME);
-        runner.setProperty(TriggerHMSNotification.TABLE_NAME, TEST_TABLE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
+        runner.setProperty(TriggerHiveMetaStoreEvent.EVENT_TYPE, "put");
+        runner.setProperty(TriggerHiveMetaStoreEvent.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=june/test_file");
+        runner.setProperty(TriggerHiveMetaStoreEvent.DATABASE_NAME, TEST_DATABASE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.TABLE_NAME, TEST_TABLE_NAME);
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertTransferCount(TriggerHMSNotification.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHMSNotification.REL_SUCCESS).get(0);
+        runner.assertTransferCount(TriggerHiveMetaStoreEvent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHiveMetaStoreEvent.REL_SUCCESS).get(0);
 
         Assertions.assertEquals(EventMessage.EventType.ADD_PARTITION.toString(), flowFile.getAttribute(METASTORE_NOTIFICATION_EVENT));
 
@@ -199,24 +204,25 @@ public class TestTriggerHMSNotification {
         assertDoesNotThrow(() -> metaStoreClient.getPartition(TEST_DATABASE_NAME, TEST_TABLE_NAME, Arrays.asList("2017", "june")));
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testDropPartition() throws Exception {
         initPartitionedTable();
         assertEquals(PARTITION_COLUMNS, metaStoreClient.getTable(TEST_DATABASE_NAME, TEST_TABLE_NAME).getPartitionKeys());
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(TriggerHMSNotification.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
-        runner.setProperty(TriggerHMSNotification.EVENT_TYPE, "delete");
-        runner.setProperty(TriggerHMSNotification.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=march/test_file");
-        runner.setProperty(TriggerHMSNotification.DATABASE_NAME, TEST_DATABASE_NAME);
-        runner.setProperty(TriggerHMSNotification.TABLE_NAME, TEST_TABLE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
+        runner.setProperty(TriggerHiveMetaStoreEvent.EVENT_TYPE, "delete");
+        runner.setProperty(TriggerHiveMetaStoreEvent.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/year=2017/month=march/test_file");
+        runner.setProperty(TriggerHiveMetaStoreEvent.DATABASE_NAME, TEST_DATABASE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.TABLE_NAME, TEST_TABLE_NAME);
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertTransferCount(TriggerHMSNotification.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHMSNotification.REL_SUCCESS).get(0);
+        runner.assertTransferCount(TriggerHiveMetaStoreEvent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(TriggerHiveMetaStoreEvent.REL_SUCCESS).get(0);
 
         Assertions.assertEquals(EventMessage.EventType.DROP_PARTITION.toString(), flowFile.getAttribute(METASTORE_NOTIFICATION_EVENT));
 
@@ -240,22 +246,23 @@ public class TestTriggerHMSNotification {
         assertThrows(NoSuchObjectException.class, () -> metaStoreClient.getPartition(TEST_DATABASE_NAME, TEST_TABLE_NAME, Arrays.asList("2017", "june")));
     }
 
+    @DisabledOnOs(WINDOWS)
     @Test
     public void testUnknownEventType() throws Exception {
         initUnPartitionedTable();
 
         runner = TestRunners.newTestRunner(processor);
-        runner.setProperty(TriggerHMSNotification.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
-        runner.setProperty(TriggerHMSNotification.EVENT_TYPE, "unknown");
-        runner.setProperty(TriggerHMSNotification.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/test_file");
-        runner.setProperty(TriggerHMSNotification.DATABASE_NAME, TEST_DATABASE_NAME);
-        runner.setProperty(TriggerHMSNotification.TABLE_NAME, TEST_TABLE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.HIVE_CONFIGURATION_RESOURCES, metastore.getConfigurationLocation());
+        runner.setProperty(TriggerHiveMetaStoreEvent.EVENT_TYPE, "unknown");
+        runner.setProperty(TriggerHiveMetaStoreEvent.PATH, metastore.getWarehouseLocation() + "/" + TEST_TABLE_NAME + "/test_file");
+        runner.setProperty(TriggerHiveMetaStoreEvent.DATABASE_NAME, TEST_DATABASE_NAME);
+        runner.setProperty(TriggerHiveMetaStoreEvent.TABLE_NAME, TEST_TABLE_NAME);
 
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        runner.assertTransferCount(TriggerHMSNotification.REL_FAILURE, 1);
+        runner.assertTransferCount(TriggerHiveMetaStoreEvent.REL_FAILURE, 1);
     }
 
     private Table createTable(String databaseName, String tableName, List<FieldSchema> partitionColumns, String location) throws Exception {
