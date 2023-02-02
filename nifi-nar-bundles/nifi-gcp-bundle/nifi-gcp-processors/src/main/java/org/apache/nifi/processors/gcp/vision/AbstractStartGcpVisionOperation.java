@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -39,7 +40,8 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
             .name("vision-feature-type")
             .displayName("Vision Feature Type")
-            .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. The JSON Payload property value can use Expression Language to reference the value of ${vision-feature-type}")
+            .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. " +
+                    "The JSON Payload property value can use Expression Language to reference the value of ${vision-feature-type}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -48,7 +50,9 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     public static final PropertyDescriptor OUTPUT_BUCKET = new PropertyDescriptor.Builder()
             .name("output-bucket")
             .displayName("Output Bucket")
-            .description("Name of the GCS bucket where the output of the Vision job will be persisted. The value of this property applies when the JSON Payload property is configured. The JSON Payload property value can use Expression Language to reference the value of ${output-bucket}")
+            .description("Name of the GCS bucket where the output of the Vision job will be persisted. " +
+                    "The value of this property applies when the JSON Payload property is configured. " +
+                    "The JSON Payload property value can use Expression Language to reference the value of ${output-bucket}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
