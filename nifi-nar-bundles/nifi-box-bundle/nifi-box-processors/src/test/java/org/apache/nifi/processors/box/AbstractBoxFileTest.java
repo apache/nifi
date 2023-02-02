@@ -33,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import org.apache.nifi.box.controllerservices.BoxClientService;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -68,7 +69,7 @@ public class AbstractBoxFileTest {
     protected BoxFile.Info mockFileInfo;
 
     @Mock
-    protected BoxFolder.Info mockFolderInfo;
+    protected BoxFolder.Info mockBoxFolderInfo;
 
 
     @BeforeEach
@@ -82,12 +83,12 @@ public class AbstractBoxFileTest {
     }
 
     protected BoxFile.Info createFileInfo(String path, Long createdTime) {
-        return createFileInfo(path, createdTime, singletonList(mockFolderInfo));
+        return createFileInfo(path, createdTime, singletonList(mockBoxFolderInfo));
     }
 
     protected BoxFile.Info createFileInfo(String path, Long createdTime, List<Info> pathCollection) {
-        when(mockFolderInfo.getName()).thenReturn(path);
-        when(mockFolderInfo.getID()).thenReturn("not0");
+        when(mockBoxFolderInfo.getName()).thenReturn(path);
+        when(mockBoxFolderInfo.getID()).thenReturn("not0");
 
         when(mockFileInfo.getID()).thenReturn(TEST_FILE_ID);
         when(mockFileInfo.getName()).thenReturn(TEST_FILENAME);
@@ -116,8 +117,8 @@ public class AbstractBoxFileTest {
 
     protected void assertOutFlowFileAttributes(MockFlowFile flowFile, String path) {
         flowFile.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
-        flowFile.assertAttributeEquals(BoxFileAttributes.FILENAME, TEST_FILENAME);
-        flowFile.assertAttributeEquals(BoxFileAttributes.PATH, path);
+        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
+        flowFile.assertAttributeEquals(CoreAttributes.PATH.key(), path);
         flowFile.assertAttributeEquals(BoxFileAttributes.TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
         flowFile.assertAttributeEquals(BoxFileAttributes.SIZE, valueOf(TEST_SIZE));
     }

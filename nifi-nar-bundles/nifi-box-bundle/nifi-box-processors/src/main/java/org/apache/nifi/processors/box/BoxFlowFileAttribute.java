@@ -17,11 +17,12 @@
 package org.apache.nifi.processors.box;
 
 import java.util.function.Function;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 public enum BoxFlowFileAttribute {
     ID(BoxFileAttributes.ID, BoxFileInfo::getId),
-    FILENAME(BoxFileAttributes.FILENAME, BoxFileInfo::getName),
-    PATH(BoxFileAttributes.PATH, BoxFileInfo::getPath),
+    FILENAME(CoreAttributes.FILENAME.key(), BoxFileInfo::getName),
+    PATH(CoreAttributes.PATH.key(), BoxFileInfo::getPath),
     SIZE(BoxFileAttributes.SIZE, fileInfo -> String.valueOf(fileInfo.getSize())),
     TIMESTAMP(BoxFileAttributes.TIMESTAMP, fileInfo -> String.valueOf(fileInfo.getTimestamp()));
 

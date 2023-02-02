@@ -16,17 +16,13 @@
  */
 package org.apache.nifi.processors.box;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-
 public class BoxFileAttributes {
 
     public static final String ID = "box.id";
     public static final String ID_DESC = "The id of the file";
 
-    public static final String FILENAME = CoreAttributes.FILENAME.key();
     public static final String FILENAME_DESC = "The name of the file";
 
-    public static final String PATH = CoreAttributes.PATH.key();
     public static final String PATH_DESC = "The folder path where the file is located";
 
     public static final String SIZE = "box.size";

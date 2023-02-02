@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +46,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(BoxFileAttributes.ID, file.getID());
-        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, file.getName());
+        inputFlowFileAttributes.put(CoreAttributes.FILENAME.key(), file.getName());
 
         HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
         List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
@@ -63,12 +64,12 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
     void testInputFlowFileReferencesMissingFile() {
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(BoxFileAttributes.ID, "111");
-        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, "missing_filename");
+        inputFlowFileAttributes.put(CoreAttributes.FILENAME.key(), "missing_filename");
 
         Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
             new HashMap<String, String>() {{
                 put(BoxFileAttributes.ID, "111");
-                put(BoxFileAttributes.FILENAME, "missing_filename");
+                put(CoreAttributes.FILENAME.key(), "missing_filename");
                 put(BoxFileAttributes.ERROR_CODE, "404");
             }}
         ));
@@ -88,7 +89,7 @@ public class FetchBoxFileIT extends AbstractBoxFileIT<FetchBoxFile> {
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
         inputFlowFileAttributes.put(BoxFileAttributes.ID, file.getID());
-        inputFlowFileAttributes.put(BoxFileAttributes.FILENAME, file.getName());
+        inputFlowFileAttributes.put(CoreAttributes.FILENAME.key(), file.getName());
 
         MockFlowFile input = new MockFlowFile(1) {
             final AtomicBoolean throwException = new AtomicBoolean(true);

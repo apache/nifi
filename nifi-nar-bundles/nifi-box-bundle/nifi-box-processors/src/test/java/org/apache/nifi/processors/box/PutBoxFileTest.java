@@ -59,23 +59,27 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
     @Mock
     protected BoxFolder mockSubfolder2;
 
+    private final Map<String, BoxFolder> mockBoxFolders = new HashMap<>();
+
+
     @BeforeEach
     void setUp() throws Exception {
+        initMockBoxFolderMap();
         final PutBoxFile testSubject = new PutBoxFile() {
-
             @Override
             BoxFolder getFolder(String folderId) {
-                if (folderId.equals(SUBFOLDER1_ID)) {
-                    return mockSubfolder1;
-                } else if (folderId.equals(SUBFOLDER2_ID)) {
-                    return mockSubfolder2;
-                }
-                return mockBoxFolder;
+               return mockBoxFolders.get(folderId);
             }
         };
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
+    }
+
+    private void initMockBoxFolderMap() {
+        mockBoxFolders.put(TEST_FOLDER_ID, mockBoxFolder);
+        mockBoxFolders.put(SUBFOLDER1_ID, mockSubfolder1);
+        mockBoxFolders.put(SUBFOLDER2_ID, mockSubfolder2);
     }
 
     @Test
@@ -91,9 +95,9 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
 
         final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
         when(mockBoxFolder.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
-        when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
-        when(mockFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
-        when(mockFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
+        when(mockBoxFolder.getInfo()).thenReturn(mockBoxFolderInfo);
+        when(mockBoxFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
+        when(mockBoxFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
@@ -126,7 +130,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
 
-        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
+        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockBoxFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
         when(mockSubfolder2.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
 
         testRunner.enqueue(inputFlowFile);
@@ -149,25 +153,27 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         when(mockBoxFolder.getChildren("name")).thenReturn(emptyList());
         when(mockSubfolder1.getChildren("name")).thenReturn(emptyList());
 
-        when(mockSubfolder1Info.getName()).thenReturn("new1");
-        when(mockSubfolder2Info.getName()).thenReturn("new2");
-        when(mockSubfolder1Info.getID()).thenReturn(SUBFOLDER1_ID);
-        when(mockSubfolder2Info.getID()).thenReturn(SUBFOLDER2_ID);
-        when(mockFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
-
         when(mockBoxFolder.createFolder("new1")).thenReturn(mockSubfolder1Info);
         when(mockSubfolder1.createFolder("new2")).thenReturn(mockSubfolder2Info);
 
-        when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
-        when(mockSubfolder1.getInfo()).thenReturn(mockSubfolder1Info);
-        when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
         when(mockSubfolder1Info.getResource()).thenReturn(mockSubfolder1);
         when(mockSubfolder2Info.getResource()).thenReturn(mockSubfolder2);
+
+        when(mockSubfolder1Info.getName()).thenReturn("new1");
+        when(mockSubfolder1Info.getID()).thenReturn(SUBFOLDER1_ID);
+        when(mockSubfolder2Info.getName()).thenReturn("new2");
+        when(mockSubfolder2Info.getID()).thenReturn(SUBFOLDER2_ID);
+        when(mockSubfolder1.getID()).thenReturn(SUBFOLDER1_ID);
+
+        when(mockSubfolder2.getInfo()).thenReturn(mockSubfolder2Info);
+
+        when(mockBoxFolder.getID()).thenReturn(TEST_FOLDER_ID);
+        when(mockBoxFolderInfo.getID()).thenReturn(TEST_FOLDER_ID);
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
 
-        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
+        final BoxFile.Info mockUploadedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME, asList(mockBoxFolderInfo, mockSubfolder1Info, mockSubfolder2Info));
         when(mockSubfolder2.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenReturn(mockUploadedFileInfo);
 
         testRunner.enqueue(inputFlowFile);
@@ -190,8 +196,8 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         inputFlowFile.setData(CONTENT.getBytes(UTF_8));
 
-        when(mockFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
-        when(mockBoxFolder.getInfo()).thenReturn(mockFolderInfo);
+        when(mockBoxFolderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
+        when(mockBoxFolder.getInfo()).thenReturn(mockBoxFolderInfo);
         when(mockBoxFolder.uploadFile(any(InputStream.class), eq(TEST_FILENAME))).thenThrow(new RuntimeException("Upload error"));
 
         testRunner.enqueue(inputFlowFile);

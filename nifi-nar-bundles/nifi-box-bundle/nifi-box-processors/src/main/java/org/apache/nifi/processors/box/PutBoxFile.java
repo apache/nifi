@@ -96,8 +96,8 @@ public class PutBoxFile extends AbstractProcessor {
     public static final int CHUNKED_UPLOAD_LOWER_LIMIT_IN_BYTES = 20 * 1024 * 1024;
     public static final int CHUNKED_UPLOAD_UPPER_LIMIT_IN_BYTES = 50 * 1024 * 1024;
 
-    public static final int NUMBER_OF_RETRIES = 5;
-    public static final int WAIT_TIME_MS = 5000;
+    public static final int NUMBER_OF_RETRIES = 10;
+    public static final int WAIT_TIME_MS = 1000;
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("box-folder-id")
@@ -244,7 +244,7 @@ public class PutBoxFile extends AbstractProcessor {
                 }
             } catch (BoxAPIResponseException e) {
                 if (e.getResponseCode() == CONFLICT_RESPONSE_CODE) {
-                    handleConflict(conflictResolution, filename, parentFolder, e);
+                    handleConflict(conflictResolution, filename, fullPath, e);
                 } else {
                     throw e;
                 }
@@ -342,7 +342,7 @@ public class PutBoxFile extends AbstractProcessor {
     }
 
     private BoxFolder createFolder(final String folderName, final BoxFolder parentFolder) {
-        getLogger().info("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getInfo().getID());
+        getLogger().info("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getID());
 
         try {
            return parentFolder.createFolder(folderName).getResource();
@@ -352,7 +352,7 @@ public class PutBoxFile extends AbstractProcessor {
             } else {
                 Optional<BoxFolder> createdFolder = waitForOngoingFolderCreationToFinish(folderName, parentFolder);
                 return createdFolder.orElseThrow(() -> new ProcessException(format("Created subfolder [%s] can not be found under [%s]",
-                        folderName, parentFolder.getInfo().getID())));
+                        folderName, parentFolder.getID())));
             }
         }
     }
@@ -363,14 +363,14 @@ public class PutBoxFile extends AbstractProcessor {
 
             for (int i = 0; i < NUMBER_OF_RETRIES && !createdFolder.isPresent(); i++) {
                 getLogger().debug("Subfolder [{}] under [{}] has not been created yet, waiting {} ms",
-                        folderName, parentFolder.getInfo().getID(), WAIT_TIME_MS);
+                        folderName, parentFolder.getID(), WAIT_TIME_MS);
                 Thread.sleep(WAIT_TIME_MS);
                 createdFolder = getFolderByName(folderName, parentFolder);
             }
             return createdFolder;
         } catch (InterruptedException ie) {
             throw new RuntimeException(format("Waiting for creation of subfolder [%s] under [%s] was interrupted",
-                    folderName, parentFolder.getInfo().getID()), ie);
+                    folderName, parentFolder.getID()), ie);
         }
     }
 
@@ -405,9 +405,7 @@ public class PutBoxFile extends AbstractProcessor {
                 .findAny();
     }
 
-    private void handleConflict(final ConflictResolutionStrategy conflictResolution, final String filename, BoxFolder folder, final BoxAPIException e) {
-        final String path = BoxFileUtils.getFolderPath(folder.getInfo());
-
+    private void handleConflict(final ConflictResolutionStrategy conflictResolution, final String filename, String path, final BoxAPIException e) {
         if (conflictResolution == IGNORE) {
             getLogger().info("File with the same name [{}] already exists in [{}]. Remote file is not modified due to [{}] being set to [{}]",
                     filename, path, CONFLICT_RESOLUTION.getDisplayName(), conflictResolution.getDisplayName());

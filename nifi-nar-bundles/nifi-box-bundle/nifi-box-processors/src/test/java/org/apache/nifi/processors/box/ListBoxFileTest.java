@@ -18,15 +18,14 @@ package org.apache.nifi.processors.box;
 
 import static java.lang.String.valueOf;
 import static java.util.Collections.singletonList;
-import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.PATH;
 import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
 
 import com.box.sdk.BoxFolder;
 import java.util.Arrays;
 import java.util.List;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -66,8 +65,8 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
         final MockFlowFile ff0 = testRunner.getFlowFilesForRelationship(ListBoxFile.REL_SUCCESS).get(0);
 
         ff0.assertAttributeEquals(ID, TEST_FILE_ID);
-        ff0.assertAttributeEquals(FILENAME, TEST_FILENAME);
-        ff0.assertAttributeEquals(PATH, "/path/to/file");
+        ff0.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
+        ff0.assertAttributeEquals(CoreAttributes.PATH.key(), "/path/to/file");
         ff0.assertAttributeEquals(SIZE, valueOf(TEST_SIZE));
         ff0.assertAttributeEquals(TIMESTAMP, valueOf(MODIFIED_TIME));
     }

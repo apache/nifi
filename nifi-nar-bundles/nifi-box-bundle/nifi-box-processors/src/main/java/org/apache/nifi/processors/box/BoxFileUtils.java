@@ -24,6 +24,7 @@ import com.box.sdk.BoxItem;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 public final class BoxFileUtils {
 
@@ -44,8 +45,8 @@ public final class BoxFileUtils {
     public static Map<String, String> createAttributeMap(BoxFile.Info fileInfo) {
         final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(BoxFileAttributes.ID, fileInfo.getID());
-        attributes.put(BoxFileAttributes.FILENAME, fileInfo.getName());
-        attributes.put(BoxFileAttributes.PATH, getParentPath(fileInfo));
+        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getName());
+        attributes.put(CoreAttributes.PATH.key(), getParentPath(fileInfo));
         attributes.put(BoxFileAttributes.TIMESTAMP, valueOf(fileInfo.getModifiedAt()));
         attributes.put(BoxFileAttributes.SIZE, valueOf(fileInfo.getSize()));
         return attributes;
