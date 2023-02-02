@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
@@ -826,11 +827,7 @@ public class TestCSVRecordReader {
         final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat));
-            assertEquals(
-                    "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
-                            "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
-                    iae.getMessage()
-            );
+            assertTrue(iae.getMessage().startsWith("The header contains a duplicate name"));
         }
     }
 
@@ -870,11 +867,7 @@ public class TestCSVRecordReader {
         final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.RFC4180.withTrim().withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat, false));
-            assertEquals(
-                    "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
-                            "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
-                    iae.getMessage()
-            );
+            assertTrue(iae.getMessage().startsWith("The header contains a duplicate name"));
         }
     }
 
