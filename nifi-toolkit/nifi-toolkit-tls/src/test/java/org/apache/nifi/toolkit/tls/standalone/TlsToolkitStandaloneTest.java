@@ -522,7 +522,8 @@ public class TlsToolkitStandaloneTest {
         try (FileInputStream fileInputStream = new FileInputStream(new File(tempDir, clientDnFile + ".p12"))) {
             keyStore.load(fileInputStream, password.toCharArray());
         }
-        PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, new char[0]);
+        final char[] keyPassword = password.toCharArray();
+        PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, keyPassword);
         Certificate[] certificateChain = keyStore.getCertificateChain(TlsToolkitStandalone.NIFI_KEY);
         assertEquals(2, certificateChain.length);
         assertEquals(rootCert, certificateChain[1]);
