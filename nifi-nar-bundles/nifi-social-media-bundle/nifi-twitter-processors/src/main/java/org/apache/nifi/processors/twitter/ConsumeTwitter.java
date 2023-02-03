@@ -258,7 +258,7 @@ public class ConsumeTwitter extends AbstractProcessor {
 
     private volatile BlockingQueue<String> messageQueue;
 
-    private final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    private final AtomicBoolean streamStarted = new AtomicBoolean(false);
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -301,7 +301,7 @@ public class ConsumeTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         messageQueue = new LinkedBlockingQueue<>(context.getProperty(QUEUE_SIZE).asInteger());
-        isInitialized.set(false);
+        streamStarted.set(false);
     }
 
     @Override
@@ -346,35 +346,33 @@ public class ConsumeTwitter extends AbstractProcessor {
     @OnPrimaryNodeStateChange
     public void onPrimaryNodeStateChange(final PrimaryNodeState newState) {
         if (newState == PrimaryNodeState.PRIMARY_NODE_REVOKED) {
-            stopTweetStreamService(true);
+            stopTweetStreamService();
         }
     }
 
     @OnStopped
     public void onStopped() {
-        stopTweetStreamService(false);
+        stopTweetStreamService();
         emptyQueue();
     }
 
-    private synchronized void startTweetStreamService(final ProcessContext context) {
-        if (isInitialized.compareAndSet(false, true)) {
+    private void startTweetStreamService(final ProcessContext context) {
+        if (streamStarted.compareAndSet(false, true)) {
             tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
             tweetStreamService.start();
         }
 
     }
 
-    private synchronized void stopTweetStreamService(final boolean printMessageQueueWarning) {
-        if (isInitialized.compareAndSet(true, false)) {
+    private void stopTweetStreamService() {
+        if (streamStarted.compareAndSet(true, false)) {
             if (tweetStreamService != null) {
                 tweetStreamService.stop();
             }
             tweetStreamService = null;
 
-            if (printMessageQueueWarning && !messageQueue.isEmpty()) {
-                final String warningMsg = String.format("There are [%s] tweets remaining in the queue, it will only " +
-                        "be processed once this node becomes the primary node again.", messageQueue.size());
-                getLogger().warn(warningMsg);
+            if (!messageQueue.isEmpty()) {
+                getLogger().warn("Stopped consuming stream: unprocessed messages [{}]", messageQueue.size());
             }
         }
     }
