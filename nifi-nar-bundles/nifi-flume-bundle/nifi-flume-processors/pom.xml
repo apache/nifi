@@ -68,7 +68,18 @@
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
+                <!-- not allowed findbugs version pulled in by guava version - this should be fixed by flume... -->
+                <exclusion>
+                    <groupId>com.google.code.findbugs</groupId>
+                    <artifactId>jsr305</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <!-- pulled in to replace the not allowed version of findbugs -->
+        <dependency>
+            <groupId>com.github.stephenc.findbugs</groupId>
+            <artifactId>findbugs-annotations</artifactId>
+            <version>1.3.9-1</version>
         </dependency>
 
         <!-- Flume Sources -->
