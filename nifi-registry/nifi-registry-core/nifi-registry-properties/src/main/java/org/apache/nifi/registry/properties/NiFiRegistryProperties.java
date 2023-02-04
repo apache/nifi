@@ -25,6 +25,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +52,12 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String WEB_HTTP_HOST = "nifi.registry.web.http.host";
     public static final String WEB_HTTPS_PORT = "nifi.registry.web.https.port";
     public static final String WEB_HTTPS_HOST = "nifi.registry.web.https.host";
+    public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.registry.web.https.network.interface.";
     public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.registry.web.https.ciphersuites.include";
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.registry.web.https.ciphersuites.exclude";
     public static final String WEB_HTTPS_APPLICATION_PROTOCOLS = "nifi.registry.web.https.application.protocols";
+
+
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";
@@ -479,4 +483,25 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
     }
 
+    /**
+     * Returns the network interface list to use for HTTPS. This method returns a mapping of
+     * network interface property names to network interface names.
+     *
+     * @return the property name and network interface name of all HTTPS network interfaces
+     */
+    public Map<String, String> getHttpsNetworkInterfaces() {
+        final Map<String, String> networkInterfaces = new HashMap<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property key
+                final String key = StringUtils.substringAfter(propertyName,
+                        WEB_HTTPS_NETWORK_INTERFACE_PREFIX);
+                networkInterfaces.put(key, getProperty(propertyName));
+            }
+        }
+        return networkInterfaces;
+    }
 }

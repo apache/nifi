@@ -47,6 +47,7 @@ import javax.servlet.Filter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.NetworkInterface;
@@ -62,7 +63,10 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 public class JettyServer {
@@ -147,9 +151,39 @@ public class JettyServer {
     }
 
     private void configureConnectors() {
-        final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
-        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-        server.addConnector(serverConnector);
+        try {
+            final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
+            final Map<String, String> interfaces = properties.isHTTPSConfigured() ? properties.getHttpsNetworkInterfaces() : Collections.emptyMap();
+            final Set<String> interfaceNames = interfaces.values().stream().filter(StringUtils::isNotBlank).collect(Collectors.toSet());
+            if (properties.isHTTPSConfigured() && !interfaceNames.isEmpty()) {
+                interfaceNames.stream()
+                        // Map interface name properties to Network Interfaces
+                        .map(interfaceName -> {
+                            try {
+                                logger.error("Checking {}", interfaceName);
+                                return NetworkInterface.getByName(interfaceName);
+                            } catch (final SocketException e) {
+                                throw new UncheckedIOException(String.format("Network Interface [%s] not found", interfaceName), e);
+                            }
+                        })
+                        // Map Network Interfaces to host addresses
+                        .filter(Objects::nonNull)
+                        .flatMap(networkInterface -> Collections.list(networkInterface.getInetAddresses()).stream())
+                        .map(InetAddress::getHostAddress)
+                        // Map host addresses to Server Connectors
+                        .map(host -> {
+                            final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+                            serverConnector.setHost(host);
+                            return serverConnector;
+                        })
+                        .forEach(server::addConnector);
+            } else {
+                final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+                server.addConnector(serverConnector);
+            }
+        } catch (final Throwable e) {
+            startUpFailure(e);
+        }
     }
 
     private void loadWars() throws IOException {
