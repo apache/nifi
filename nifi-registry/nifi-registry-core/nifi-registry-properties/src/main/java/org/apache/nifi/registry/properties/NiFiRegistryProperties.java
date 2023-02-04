@@ -51,9 +51,12 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String WEB_HTTP_HOST = "nifi.registry.web.http.host";
     public static final String WEB_HTTPS_PORT = "nifi.registry.web.https.port";
     public static final String WEB_HTTPS_HOST = "nifi.registry.web.https.host";
+    public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.registry.web.https.network.interface.";
     public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.registry.web.https.ciphersuites.include";
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.registry.web.https.ciphersuites.exclude";
     public static final String WEB_HTTPS_APPLICATION_PROTOCOLS = "nifi.registry.web.https.application.protocols";
+
+
     public static final String WEB_WORKING_DIR = "nifi.registry.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.registry.web.jetty.threads";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.registry.web.should.send.server.version";
@@ -479,4 +482,25 @@ public class NiFiRegistryProperties extends ApplicationProperties {
         return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
     }
 
+    /**
+     * Returns the network interface list to use for HTTPS
+     *
+     * @return Network interface names of all HTTPS network interface properties
+     */
+    public Set<String> getHttpsNetworkInterfaceNames() {
+        final Set<String> networkInterfaceNames = new HashSet<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property value
+                final String interfaceName = getProperty(propertyName);
+                if (StringUtils.isNotBlank(interfaceName)) {
+                    networkInterfaceNames.add(getProperty(propertyName));
+                }
+            }
+        }
+        return networkInterfaceNames;
+    }
 }

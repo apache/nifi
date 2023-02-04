@@ -173,6 +173,7 @@
         <nifi.registry.web.http.port>18080</nifi.registry.web.http.port>
         <nifi.registry.web.https.host />
         <nifi.registry.web.https.port />
+        <nifi.registry.web.https.network.interface.default />
         <nifi.registry.web.https.application.protocols>http/1.1</nifi.registry.web.https.application.protocols>
         <nifi.registry.jetty.work.dir>./work/jetty</nifi.registry.jetty.work.dir>
         <nifi.registry.web.jetty.threads>200</nifi.registry.web.jetty.threads>
