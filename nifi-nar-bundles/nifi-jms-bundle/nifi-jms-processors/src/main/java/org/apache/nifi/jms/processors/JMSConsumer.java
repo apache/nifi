@@ -83,6 +83,9 @@ final class JMSConsumer extends JMSWorker {
     }
 
 
+    /**
+     * Receives a message from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
+     */
     public void consume(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
                         final String charset, final ConsumerCallback consumerCallback) {
         this.jmsTemplate.execute(new SessionCallback<Void>() {

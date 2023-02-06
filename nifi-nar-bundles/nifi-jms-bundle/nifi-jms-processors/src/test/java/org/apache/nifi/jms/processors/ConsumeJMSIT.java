@@ -384,7 +384,8 @@ public class ConsumeJMSIT {
             runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-            assertThrows(AssertionError.class, () -> runner.run());
+            runner.run();
+
             assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
             if (broker != null) {
@@ -409,8 +410,9 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "foo");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-         assertThrows(AssertionError.class, () -> runner.run());
-         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
+        runner.run();
+
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 
     @Test
@@ -428,7 +430,8 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "myTopic");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-        assertThrows(AssertionError.class, () -> runner.run());
+        runner.run();
+
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 
