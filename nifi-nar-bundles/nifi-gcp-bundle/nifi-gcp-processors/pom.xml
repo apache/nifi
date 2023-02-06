@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-gcp-bundle</artifactId>
-        <version>1.20.0-SNAPSHOT</version>
+        <version>1.20.0</version>
     </parent>
 
     <artifactId>nifi-gcp-processors</artifactId>
@@ -57,18 +57,18 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-listed-entity</artifactId>
-            <version>1.20.0-SNAPSHOT</version>
+            <version>1.20.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-services-api</artifactId>
-            <version>1.20.0-SNAPSHOT</version>
+            <version>1.20.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-conflict-resolution</artifactId>
-            <version>1.20.0-SNAPSHOT</version>
+            <version>1.20.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -182,13 +182,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-json-utils</artifactId>
-            <version>1.20.0-SNAPSHOT</version>
+            <version>1.20.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.20.0-SNAPSHOT</version>
+            <version>1.20.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
