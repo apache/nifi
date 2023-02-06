@@ -204,8 +204,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                 try {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
                 } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e);
+                    Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
                 }
             }
 

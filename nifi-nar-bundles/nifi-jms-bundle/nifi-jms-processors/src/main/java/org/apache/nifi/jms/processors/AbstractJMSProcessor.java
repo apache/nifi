@@ -185,14 +185,12 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             } catch (Exception e) {
                 getLogger().error("Failed to initialize JMS Connection Factory", e);
                 context.yield();
-                return;
+                throw e;
             }
         }
 
         try {
             rendezvousWithJms(context, session, worker);
-        } catch (Exception e) {
-            getLogger().error("Error while trying to process JMS message", e);
         } finally {
             //in case of exception during worker's connection (consumer or publisher),
             //an appropriate service is responsible to invalidate the worker.
@@ -209,7 +207,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                     CachingConnectionFactory currentCF = (CachingConnectionFactory)worker.jmsTemplate.getConnectionFactory();
                     connectionFactoryProvider.resetConnectionFactory(currentCF.getTargetConnectionFactory());
                     worker = buildTargetResource(context);
-                }catch(Exception e) {
+                } catch (Exception e) {
                     getLogger().error("Failed to rebuild:  " + connectionFactoryProvider);
                     worker = null;
                 }
