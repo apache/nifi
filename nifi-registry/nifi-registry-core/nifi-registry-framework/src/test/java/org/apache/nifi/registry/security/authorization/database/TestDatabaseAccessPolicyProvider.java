@@ -34,8 +34,8 @@ import org.apache.nifi.registry.security.exception.SecurityProviderCreationExcep
 import org.apache.nifi.registry.security.identity.DefaultIdentityMapper;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.util.StandardPropertyValue;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -48,11 +48,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -85,7 +86,7 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
     // Class under test
     private ConfigurableAccessPolicyProvider policyProvider;
 
-    @Before
+    @BeforeEach
     public void setup() {
         properties = new NiFiRegistryProperties();
         identityMapper = new DefaultIdentityMapper(properties);
@@ -340,14 +341,14 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
         });
     }
 
-    @Test(expected = SecurityProviderCreationException.class)
+    @Test
     public void testOnConfiguredWhenInitialAdminNotFound() {
-        configure("does-not-exist", null);
+        assertThrows(SecurityProviderCreationException.class, () -> configure("does-not-exist", null));
     }
 
-    @Test(expected = SecurityProviderCreationException.class)
+    @Test
     public void testOnConfiguredWhenNiFiIdentityNotFound() {
-        configure(null, Collections.singleton("does-not-exist"));
+        assertThrows(SecurityProviderCreationException.class, () -> configure(null, Collections.singleton("does-not-exist")));
     }
 
     // -- Test AccessPolicy methods

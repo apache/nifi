@@ -22,29 +22,30 @@ import org.apache.nifi.registry.hook.EventHookException;
 import org.apache.nifi.registry.hook.EventHookProvider;
 import org.apache.nifi.registry.provider.ProviderConfigurationContext;
 import org.apache.nifi.registry.provider.ProviderCreationException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class TestEventService {
 
     private CapturingEventHook eventHook;
     private EventService eventService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         eventHook = new CapturingEventHook();
         eventService = new EventService(Collections.singletonList(eventHook));
         eventService.postConstruct();
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         eventService.destroy();
     }
@@ -63,13 +64,13 @@ public class TestEventService {
         Thread.sleep(1000);
 
         final List<Event> events = eventHook.getEvents();
-        Assert.assertEquals(2, events.size());
+        assertEquals(2, events.size());
 
         final Event firstEvent = events.get(0);
-        Assert.assertEquals(bucketCreatedEvent.getEventType(), firstEvent.getEventType());
+        assertEquals(bucketCreatedEvent.getEventType(), firstEvent.getEventType());
 
         final Event secondEvent = events.get(1);
-        Assert.assertEquals(bucketDeletedEvent.getEventType(), secondEvent.getEventType());
+        assertEquals(bucketDeletedEvent.getEventType(), secondEvent.getEventType());
     }
 
     /**

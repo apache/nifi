@@ -30,27 +30,26 @@ import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.security.authorization.RequestAction;
 import org.apache.nifi.registry.security.authorization.resource.ResourceFactory;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = NiFiRegistryTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -66,22 +65,22 @@ public class SecureDatabaseIT extends IntegrationTestBase {
 
     private NiFiRegistryClient client;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = createClientConfig(baseUrl);
-        Assert.assertNotNull(clientConfig);
+        assertNotNull(clientConfig);
 
         final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder()
                 .config(clientConfig)
                 .build();
-        Assert.assertNotNull(client);
+        assertNotNull(client);
         this.client = client;
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         try {
             client.close();

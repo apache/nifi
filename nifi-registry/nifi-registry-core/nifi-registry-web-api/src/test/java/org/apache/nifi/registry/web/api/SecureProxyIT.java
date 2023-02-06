@@ -25,27 +25,26 @@ import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import javax.ws.rs.core.Response;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = NiFiRegistryTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -64,22 +63,22 @@ public class SecureProxyIT extends IntegrationTestBase {
 
     private NiFiRegistryClient registryClient;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = createClientConfig(baseUrl);
-        Assert.assertNotNull(clientConfig);
+        assertNotNull(clientConfig);
 
         final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder()
                 .config(clientConfig)
                 .build();
-        Assert.assertNotNull(client);
+        assertNotNull(client);
         this.registryClient = client;
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         try {
             registryClient.close();

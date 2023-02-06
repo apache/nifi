@@ -22,7 +22,7 @@ import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.provider.ProviderCreationException;
 import org.apache.nifi.registry.provider.ProviderFactory;
 import org.apache.nifi.registry.provider.StandardProviderFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.sql.DataSource;
@@ -30,12 +30,13 @@ import javax.sql.DataSource;
 import java.net.URL;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 public class TestScriptEventHookProvider {
 
-    @Test(expected = ProviderCreationException.class)
+    @Test
     public void testBadScriptProvider() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/hook/bad-script-provider.xml");
@@ -43,13 +44,16 @@ public class TestScriptEventHookProvider {
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))
-                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0],this.getClass().getClassLoader()));
+                .thenReturn(new ExtensionClassLoader("/tmp", new URL[0], this.getClass().getClassLoader()));
 
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
         final ProviderFactory providerFactory = new StandardProviderFactory(props, extensionManager, dataSource);
-        providerFactory.initialize();
-        providerFactory.getEventHookProviders();
+        assertThrows(ProviderCreationException.class, () -> {
+            providerFactory.initialize();
+            providerFactory.getEventHookProviders();
+        });
+
     }
 
 }
