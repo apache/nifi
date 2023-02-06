@@ -33,6 +33,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import java.security.Security
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertTrue
 
 class SocketRemoteSiteListenerTest {
@@ -94,11 +96,11 @@ class SocketRemoteSiteListenerTest {
      * @param enabledProtocols the actual protocols, either in {@code String[]} or {@code Collection<String>} form
      * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
      */
-    void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
+    static void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
         if (TlsConfiguration.getJavaVersion() > 8) {
-            assert enabledProtocols == expectedProtocols as String[]
+            assertArrayEquals(expectedProtocols as String[], enabledProtocols)
         } else {
-            assert enabledProtocols as Set == expectedProtocols as Set
+            assertEquals(expectedProtocols as Set, enabledProtocols as Set)
         }
     }
 

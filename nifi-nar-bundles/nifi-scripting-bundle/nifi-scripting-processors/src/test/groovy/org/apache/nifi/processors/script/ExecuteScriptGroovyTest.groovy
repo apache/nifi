@@ -26,6 +26,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteScriptGroovyTest.class)
@@ -81,7 +82,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
 
         flowFile.assertAttributeExists("time-updated")
         flowFile.assertAttributeExists("thread")
-        assert flowFile.getAttribute("thread") =~ SINGLE_POOL_THREAD_PATTERN
+        assertTrue((flowFile.getAttribute("thread") =~ SINGLE_POOL_THREAD_PATTERN).find())
     }
 
     @Test
@@ -104,7 +105,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
 
             flowFile.assertAttributeExists("time-updated")
             flowFile.assertAttributeExists("thread")
-            assert flowFile.getAttribute("thread") =~ /pool-\d+-thread-1/
+            assertTrue((flowFile.getAttribute("thread") =~ /pool-\d+-thread-1/).find())
         }
     }
 
@@ -134,7 +135,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
 
             flowFile.assertAttributeExists("time-updated")
             flowFile.assertAttributeExists("thread")
-            assert flowFile.getAttribute("thread") =~ /pool-\d+-thread-[1-${POOL_SIZE}]/
+            assertTrue((flowFile.getAttribute("thread") =~ /pool-\d+-thread-[1-${POOL_SIZE}]/).find())
         }
     }
 

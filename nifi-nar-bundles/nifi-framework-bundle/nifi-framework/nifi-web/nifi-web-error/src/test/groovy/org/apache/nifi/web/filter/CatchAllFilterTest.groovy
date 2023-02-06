@@ -31,6 +31,8 @@ import javax.servlet.ServletResponse
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
+import static org.junit.jupiter.api.Assertions.assertEquals
+
 class CatchAllFilterTest {
     private static final Logger logger = LoggerFactory.getLogger(CatchAllFilterTest.class)
 
@@ -67,7 +69,7 @@ class CatchAllFilterTest {
         logger.info("Allowed context paths: ${caf.getAllowedContextPaths()}")
 
         // Assert
-        assert caf.getAllowedContextPaths() == EXPECTED_ALLOWED_CONTEXT_PATHS
+        assertEquals(EXPECTED_ALLOWED_CONTEXT_PATHS, caf.getAllowedContextPaths())
     }
 
     @Test
@@ -128,6 +130,6 @@ class CatchAllFilterTest {
         caf.doFilter(mockRequest, mockResponse, mockFilterChain)
 
         // Assert
-        assert forwardedRequestTo == EXPECTED_FORWARD_PATH
+        assertEquals(EXPECTED_FORWARD_PATH, forwardedRequestTo)
     }
 }
