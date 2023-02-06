@@ -36,6 +36,10 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertTrue
+
 /**
  * Setup instructions:
  *
@@ -118,14 +122,13 @@ class CassandraDistributedMapCacheIT {
 
     @Test
     void testContainsKey() {
-        def contains = distributedMapCache.containsKey("contains-key", serializer)
-        assert contains
+        assertTrue(distributedMapCache.containsKey("contains-key", serializer))
     }
 
     @Test
     void testGetAndPutIfAbsent() {
-        def result = distributedMapCache.getAndPutIfAbsent('get-and-put-key', 'testing', serializer, serializer, deserializer)
-        assert result == 'testvalue'
+        String result = distributedMapCache.getAndPutIfAbsent('get-and-put-key', 'testing', serializer, serializer, deserializer)
+        assertEquals("testvalue", result)
     }
 
     @Test
@@ -135,20 +138,20 @@ class CassandraDistributedMapCacheIT {
 
     @Test
     void testGet() {
-        def result = distributedMapCache.get("contains-key", serializer, deserializer)
-        assert result == "testvalue"
+        String result = distributedMapCache.get("contains-key", serializer, deserializer)
+        assertEquals("testvalue", result)
     }
 
     @Test
     void testPut() {
         distributedMapCache.put("put-key", "sometestdata", serializer, serializer)
         Thread.sleep(1000)
-        assert distributedMapCache.containsKey("put-key", serializer)
+        assertTrue(distributedMapCache.containsKey("put-key", serializer))
     }
 
     @Test
     void testPutIfAbsent() {
-        assert distributedMapCache.putIfAbsent("put-if-absent-key", "testingthis", serializer, serializer)
-        assert !distributedMapCache.putIfAbsent("put-if-absent-key", "testingthis", serializer, serializer)
+        assertTrue(distributedMapCache.putIfAbsent("put-if-absent-key", "testingthis", serializer, serializer))
+        assertFalse(distributedMapCache.putIfAbsent("put-if-absent-key", "testingthis", serializer, serializer))
     }
 }

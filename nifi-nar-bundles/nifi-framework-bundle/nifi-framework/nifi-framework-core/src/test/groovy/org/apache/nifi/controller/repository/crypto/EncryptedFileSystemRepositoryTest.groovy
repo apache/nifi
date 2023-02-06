@@ -38,6 +38,9 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.security.Security
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+
 @DisabledOnOs(OS.WINDOWS)
 class EncryptedFileSystemRepositoryTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepositoryTest.class)
@@ -108,7 +111,7 @@ class EncryptedFileSystemRepositoryTest {
     void testReadNullContentClaimShouldReturnEmptyInputStream() {
         final InputStream inputStream = repository.read((ContentClaim) null)
         final int read = inputStream.read()
-        assert read == -1
+        assertEquals(-1, read)
     }
 
     /**
@@ -129,8 +132,8 @@ class EncryptedFileSystemRepositoryTest {
         // Assert
 
         // Use the EFSR to decrypt the same content
-        def retrievedBytes = verifyClaimDecryption(claim, plainBytes)
-        assert new String(retrievedBytes, StandardCharsets.UTF_8) == plainContent
+        byte [] retrievedBytes = verifyClaimDecryption(claim, plainBytes)
+        assertEquals(plainContent, new String(retrievedBytes, StandardCharsets.UTF_8))
     }
 
     /**
@@ -175,8 +178,8 @@ class EncryptedFileSystemRepositoryTest {
             String pieceOfContent = content[i]
 
             // Use the EFSR to decrypt the same content
-            def retrievedBytes = verifyClaimDecryption(claim, pieceOfContent.bytes)
-            assert new String(retrievedBytes, StandardCharsets.UTF_8) == pieceOfContent
+            byte [] retrievedBytes = verifyClaimDecryption(claim, pieceOfContent.bytes)
+            assertEquals(pieceOfContent, new String(retrievedBytes, StandardCharsets.UTF_8))
         }
     }
 
@@ -200,7 +203,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes via repository (${retrievedContent.length}): ${pba(retrievedContent)}")
 
         // Assert
-        assert new String(retrievedContent, StandardCharsets.UTF_8) == plainContent
+        assertEquals(plainContent, new String(retrievedContent, StandardCharsets.UTF_8))
     }
 
     /**
@@ -297,7 +300,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes from output stream (${exportedBytes.length}): ${pba(exportedBytes)}")
 
         // Assert
-        assert exportedBytes == plainBytes
+        assertArrayEquals(plainBytes, exportedBytes)
     }
 
     /**
@@ -330,9 +333,9 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes from output stream (${exportedBytes.length}): ${pba(exportedBytes)}")
 
         // Assert
-        assert exportedBytes == plainBytes[offset..<(offset + length)] as byte[]
-        assert exportedBytes.length == length
-        assert bytesWritten == length
+        assertArrayEquals(plainBytes[offset..<(offset + length)] as byte[], exportedBytes)
+        assertEquals(length, exportedBytes.length)
+        assertEquals(length, bytesWritten)
     }
 
     /**
@@ -362,7 +365,7 @@ class EncryptedFileSystemRepositoryTest {
 
         // Assert
         try {
-            assert exportedBytes == plainBytes
+            assertArrayEquals(plainBytes, exportedBytes)
         } finally {
             // Clean up
             tempOutputFile.delete()
@@ -401,9 +404,9 @@ class EncryptedFileSystemRepositoryTest {
 
         // Assert
         try {
-            assert exportedBytes == plainBytes[offset..<(offset + length)] as byte[]
-            assert exportedBytes.length == length
-            assert bytesWritten == length
+            assertArrayEquals(plainBytes[offset..<(offset + length)] as byte[], exportedBytes)
+            assertEquals(length, exportedBytes.length)
+            assertEquals(length, bytesWritten)
         } finally {
             // Clean up
             tempOutputFile.delete()
@@ -431,12 +434,12 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Cloned claim ${claim} to ${clonedClaim}")
 
         // Use the EFSR to decrypt the original claim content
-        def retrievedOriginalBytes = verifyClaimDecryption(claim, plainBytes)
-        assert retrievedOriginalBytes == plainBytes
+        byte [] retrievedOriginalBytes = verifyClaimDecryption(claim, plainBytes)
+        assertArrayEquals(plainBytes, retrievedOriginalBytes)
 
         // Use the EFSR to decrypt the cloned claim content
-        def retrievedClonedBytes = verifyClaimDecryption(clonedClaim, plainBytes)
-        assert retrievedClonedBytes == plainBytes
+        byte [] retrievedClonedBytes = verifyClaimDecryption(clonedClaim, plainBytes)
+        assertArrayEquals(plainBytes, retrievedClonedBytes)
     }
 
     /**
@@ -475,7 +478,9 @@ class EncryptedFileSystemRepositoryTest {
     }
 
     /**
-     * Simple test to merge encrypted content claims and ensure that the merged encryption metadata accurately reflects the new claim and allows for decryption, including the header, demarcator, and footer.
+     * Simple test to merge encrypted content claims and ensure that the merged encryption
+     * metadata accurately reflects the new claim and allows for decryption,
+     * including the header, demarcator, and footer.
      */
     @Test
     void testMergeWithMarkersShouldUpdateEncryptionMetadata() {
@@ -549,7 +554,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read ${description} bytes via repository (${retrievedBytes.length}): ${pba(retrievedBytes)}")
 
         // Assert
-        assert retrievedBytes == plainBytes
+        assertArrayEquals(plainBytes, retrievedBytes)
         return retrievedBytes
     }
 

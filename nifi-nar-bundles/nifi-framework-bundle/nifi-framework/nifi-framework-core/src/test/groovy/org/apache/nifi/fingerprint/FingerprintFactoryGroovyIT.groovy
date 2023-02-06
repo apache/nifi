@@ -30,7 +30,10 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-class FingerprintFactoryGroovyIT extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class FingerprintFactoryGroovyIT {
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyIT.class)
 
     private static PropertyEncryptor mockEncryptor = [
@@ -81,7 +84,7 @@ class FingerprintFactoryGroovyIT extends GroovyTestCase {
         FingerprintFactory fingerprintFactory =
                 new FingerprintFactory(mockEncryptor, extensionManager, mockSensitiveValueEncoder)
 
-        def results = []
+        List<String> results = []
         def resultDurations = []
 
         // Act
@@ -105,15 +108,15 @@ class FingerprintFactoryGroovyIT extends GroovyTestCase {
 
         // Assert
         final long MAX_DURATION_NANOS = 1_000_000_000 // 1 second
-        assert resultDurations.max() <= MAX_DURATION_NANOS * 2
-        assert resultDurations.sum() / testIterations < MAX_DURATION_NANOS
+        assertTrue(resultDurations.max() <= MAX_DURATION_NANOS * 2)
+        assertTrue(resultDurations.sum() / testIterations < MAX_DURATION_NANOS)
 
         // Assert the fingerprint does not contain the password
-        results.each { String fingerprint ->
-            assert !(fingerprint =~ "originalPlaintextPassword")
+        results.forEach(fingerprint -> {
+            assertFalse(fingerprint.contains("originalPlaintextPassword"))
             def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
-            assert maskedValue
+            assertTrue(maskedValue.find())
             logger.info("Masked value: ${maskedValue[0]}")
-        }
+        })
     }
 }

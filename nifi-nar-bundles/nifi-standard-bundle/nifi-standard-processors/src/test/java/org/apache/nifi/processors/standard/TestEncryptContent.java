@@ -235,8 +235,9 @@ public class TestEncryptContent {
                 // Other than the round trip, checks that the provided cipher is actually used, inferring it from the ciphertext
                 InputStream ciphertext = new ByteArrayInputStream(flowFile.toByteArray());
                 BCPGInputStream pgpin = new BCPGInputStream(getDecoderStream(ciphertext));
-                assert pgpin.nextPacketTag() == 3;
-                assert ((SymmetricKeyEncSessionPacket) pgpin.readPacket()).getEncAlgorithm() == Integer.valueOf(cipher.getValue());
+                assertEquals(3, pgpin.nextPacketTag());
+                assertEquals(Integer.parseInt(cipher.getValue()),
+                        ((SymmetricKeyEncSessionPacket) pgpin.readPacket()).getEncAlgorithm());
                 pgpin.close();
             }
         }

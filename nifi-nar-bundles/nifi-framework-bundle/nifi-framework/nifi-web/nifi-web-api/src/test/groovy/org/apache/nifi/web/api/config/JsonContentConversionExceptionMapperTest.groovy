@@ -28,7 +28,10 @@ import org.slf4j.LoggerFactory
 
 import javax.ws.rs.core.Response
 
-class JsonContentConversionExceptionMapperTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+
+class JsonContentConversionExceptionMapperTest {
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResourceTest.class)
 
     @BeforeAll
@@ -57,8 +60,10 @@ class JsonContentConversionExceptionMapperTest extends GroovyTestCase {
         logger.info(response.toString())
 
         // Assert
-        assert response.status == Response.Status.BAD_REQUEST.statusCode
-        assert response.entity == "The provided proxyPort value \'thisIsAnInvalidPort\' is not of required type class java.lang.Integer"
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
+        String expectedEntity = "The provided proxyPort value 'thisIsAnInvalidPort' is not" +
+                " of required type class java.lang.Integer"
+        assertEquals(expectedEntity, response.entity)
     }
 
     @Test
@@ -80,7 +85,7 @@ class JsonContentConversionExceptionMapperTest extends GroovyTestCase {
         logger.info(response.toString())
 
         // Assert
-        assert response.status == Response.Status.BAD_REQUEST.statusCode
-        assert !(response.entity =~ /<script.*>/)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
+        assertFalse((response.entity =~ /<script.*>/).find())
     }
 }

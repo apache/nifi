@@ -44,6 +44,7 @@ import org.wali.SerDe
 import org.wali.SerDeFactory
 import org.wali.SingletonSerDeFactory
 
+import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertTrue
 
@@ -151,11 +152,11 @@ class EncryptedSequentialAccessWriteAheadLogTest {
         final Collection<SerializedRepositoryRecord> recovered = recoveryRepo.recoverRecords()
 
         // Ensure that the same records are returned (order is not guaranteed)
-        assert recovered.size() == records.size()
-        assert recovered.every { it.type == RepositoryRecordType.CREATE }
+        assertEquals(records.size(), recovered.size())
+        recovered.forEach(it -> assertEquals(RepositoryRecordType.CREATE, it.type))
 
         // Check that all attributes (flowfile record) in the recovered records were present in the original list
-        assert recovered.every { (it as SerializedRepositoryRecord).getFlowFileRecord() in records*.getFlowFileRecord() }
+        recovered.forEach(it -> assertTrue(it.getFlowFileRecord() in records*.getFlowFileRecord()))
     }
 
     /** This test creates flowfile records, adds them to the repository, and then recovers them to ensure they were persisted */
@@ -182,8 +183,8 @@ class EncryptedSequentialAccessWriteAheadLogTest {
         final Collection<SerializedRepositoryRecord> recovered = recoveryRepo.recoverRecords()
 
         // Ensure that the same records (except now UPDATE instead of CREATE) are returned (order is not guaranteed)
-        assert recovered.size() == records.size()
-        assert recovered.every { it.type == RepositoryRecordType.CREATE }
+        assertEquals(records.size(), recovered.size())
+        recovered.forEach(it -> assertEquals( RepositoryRecordType.CREATE, it.type))
     }
 
     private EncryptedSchemaRepositoryRecordSerde buildEncryptedSerDe() {

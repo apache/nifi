@@ -22,9 +22,7 @@ import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
@@ -32,7 +30,10 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-class FingerprintFactoryGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class FingerprintFactoryGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyTest.class)
 
     private static PropertyEncryptor mockEncryptor = [
@@ -83,11 +84,10 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         logger.info("Generated flow fingerprint: ${fingerprint}")
 
         // Assert
-
         // Assert the fingerprint does not contain the password
-        assert !(fingerprint =~ "originalPlaintextPassword")
+        assertFalse(fingerprint.contains("originalPlaintextPassword"))
         def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
-        assert maskedValue
+        assertTrue(maskedValue.find())
         logger.info("Masked value: ${maskedValue[0]}")
     }
 }

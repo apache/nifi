@@ -26,6 +26,7 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,7 +84,7 @@ public class VolatileComponentStatusRepositoryForComponentsTest {
 
   private void testFilterDatesReturnAll(VolatileComponentStatusRepository repo) {
     List<Date> dates = repo.filterDates(null, null, Integer.MAX_VALUE);
-    assert repo.timestamps != null;
+    assertNotNull(repo.timestamps);
     assertEquals(repo.timestamps.getSize(), dates.size());
     assertEquals(dates, repo.timestamps.asList());
     repo.timestamps.add(new Date());

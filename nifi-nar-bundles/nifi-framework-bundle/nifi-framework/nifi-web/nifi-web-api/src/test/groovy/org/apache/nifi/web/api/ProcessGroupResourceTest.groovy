@@ -31,6 +31,9 @@ import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.UriInfo
 
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+
 class ProcessGroupResourceTest {
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResourceTest.class)
 
@@ -67,12 +70,12 @@ class ProcessGroupResourceTest {
         // Assert
 
         // Assert that the expected error response was returned
-        assert response.status == Response.Status.OK.statusCode
+        assertEquals(Response.Status.OK.statusCode, response.status)
 
         // Assert that the error response is sanitized
         String responseEntity = response.entity as String
         logger.info("Error response: ${responseEntity}")
-        assert !(responseEntity =~ /<script.*>/)
+        assertFalse((responseEntity =~ /<script.*>/).find())
     }
 
     /** This test creates a malformed template import request to exercise error handling and sanitization */
@@ -143,12 +146,12 @@ class ProcessGroupResourceTest {
         // Assert
         responses.each { Response r ->
             // Assert that the expected error response was returned
-            assert r.status == Response.Status.OK.statusCode
+            assertEquals(Response.Status.OK.statusCode, r.status)
 
             // Assert that the error response is sanitized
             String entity = r.entity as String
             logger.info("Error response: ${entity}")
-            assert !(entity =~ /<script.*>/)
+            assertFalse((entity =~ /<script.*>/).find())
         }
     }
 }
