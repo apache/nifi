@@ -21,7 +21,7 @@ LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
 ARG NIFI_REGISTRY_BINARY
-ARG NIFI_REGISTRY_VERSION=1.19.0
+ARG NIFI_REGISTRY_VERSION=1.20.0
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
