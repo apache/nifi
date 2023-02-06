@@ -26,10 +26,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -42,6 +40,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -95,17 +94,16 @@ import java.util.stream.Collectors;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
 
-@PrimaryNodeOnly
 @TriggerSerially
-@TriggerWhenEmpty
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"salesforce", "sobject", "soql", "query"})
 @CapabilityDescription("Retrieves records from a Salesforce sObject. Users can add arbitrary filter conditions by setting the 'Custom WHERE Condition' property."
         + " The processor can also run a custom query, although record processing is not supported in that case."
         + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
         + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, filtering out all older records"
         + " even for the first run. This processor is intended to be run on the Primary Node only."
-        + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output.")
+        + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output."
+        + " In case of 'Property Based Query' this processor should operate on the primary node.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
         + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
@@ -117,7 +115,7 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class QuerySalesforceObject extends AbstractProcessor {
 
-    static final AllowableValue QUERY_PARAMETERS = new AllowableValue("query-parameters", "Query Parameters", "Provide query by parameters.");
+    static final AllowableValue PROPERTY_BASED_QUERY = new AllowableValue("property-based-query", "Property Based Query", "Provide query by properties.");
     static final AllowableValue CUSTOM_QUERY = new AllowableValue("custom-query", "Custom Query", "Provide custom SOQL query.");
 
     static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
@@ -144,8 +142,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("Query Type")
             .description("Choose to provide the query by parameters or a full custom query.")
             .required(true)
-            .defaultValue(QUERY_PARAMETERS.getValue())
-            .allowableValues(QUERY_PARAMETERS, CUSTOM_QUERY)
+            .defaultValue(PROPERTY_BASED_QUERY.getValue())
+            .allowableValues(PROPERTY_BASED_QUERY, CUSTOM_QUERY)
             .build();
 
     static final PropertyDescriptor CUSTOM_SOQL_QUERY = new PropertyDescriptor.Builder()
@@ -155,6 +153,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(QUERY_TYPE, CUSTOM_QUERY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
@@ -164,7 +163,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -174,7 +173,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
@@ -183,7 +182,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .description("Service used for writing records returned from the Salesforce REST API")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(false)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor CREATE_ZERO_RECORD_FILES = new PropertyDescriptor.Builder()
@@ -205,7 +204,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
@@ -217,7 +216,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .dependsOn(AGE_FIELD)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
@@ -228,7 +227,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(AGE_FIELD)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
@@ -238,7 +237,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .dependsOn(QUERY_TYPE, QUERY_PARAMETERS)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -261,7 +260,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
-    private volatile String totalSize;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -329,28 +327,21 @@ public class QuerySalesforceObject extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
+        AtomicReference<String> totalSize = new AtomicReference<>();
 
         if (isCustomQuery) {
-            String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).getValue();
-            do {
-                FlowFile flowFile = session.create();
-                Map<String, String> attributes = new HashMap<>();
-                try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery)) {
-                    flowFile = session.write(flowFile, parseHttpResponse(response, nextRecordsUrl));
-                    int recordCount = nextRecordsUrl.get() != null ? 2000 : Integer.parseInt(totalSize) % 2000;
-                    attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-                    attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
-                    session.adjustCounter("Salesforce records processed", recordCount, false);
-                    session.putAllAttributes(flowFile, attributes);
-                    session.transfer(flowFile, REL_SUCCESS);
-                } catch (IOException e) {
-                    session.remove(flowFile);
-                    throw new ProcessException("Couldn't get Salesforce records", e);
-                }
-            } while (nextRecordsUrl.get() != null);
+            final FlowFile flowFile = session.get();
+            if (flowFile == null && context.hasIncomingConnection()) {
+                context.yield();
+                return;
+            }
+            processCustomQuery(context, session, flowFile, nextRecordsUrl, totalSize);
             return;
         }
+        processQuery(context, session, nextRecordsUrl);
+    }
 
+    private void processQuery(ProcessContext context, ProcessSession session, AtomicReference<String> nextRecordsUrl) {
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
@@ -403,7 +394,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
         );
 
         do {
-
             FlowFile flowFile = session.create();
             Map<String, String> originalAttributes = flowFile.getAttributes();
             Map<String, String> attributes = new HashMap<>();
@@ -482,7 +472,35 @@ public class QuerySalesforceObject extends AbstractProcessor {
         } while (nextRecordsUrl.get() != null);
     }
 
-    private OutputStreamCallback parseHttpResponse(final InputStream in, AtomicReference<String> nextRecordsUrl) {
+    private void processCustomQuery(ProcessContext context, ProcessSession session, FlowFile flowFile, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
+        String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(flowFile).getValue();
+        do {
+            FlowFile outgoingFlowFile;
+            if (flowFile != null) {
+                outgoingFlowFile = session.create(flowFile);
+            } else {
+                outgoingFlowFile = session.create();
+            }
+            Map<String, String> attributes = new HashMap<>();
+            try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery)) {
+                outgoingFlowFile = session.write(outgoingFlowFile, parseHttpResponse(response, nextRecordsUrl, totalSize));
+                int recordCount = nextRecordsUrl.get() != null ? 2000 : Integer.parseInt(totalSize.get()) % 2000;
+                attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+                attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
+                session.adjustCounter("Salesforce records processed", recordCount, false);
+                session.putAllAttributes(outgoingFlowFile, attributes);
+                session.transfer(outgoingFlowFile, REL_SUCCESS);
+            } catch (IOException e) {
+                session.remove(outgoingFlowFile);
+                throw new ProcessException("Couldn't get Salesforce records", e);
+            }
+        } while (nextRecordsUrl.get() != null);
+        if (flowFile != null) {
+            session.remove(flowFile);
+        }
+    }
+
+    private OutputStreamCallback parseHttpResponse(final InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
         nextRecordsUrl.set(null);
         return out -> {
             try (JsonParser jsonParser = JSON_FACTORY.createParser(in);
@@ -491,7 +509,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
                             .equals(TOTAL_SIZE)) {
                         jsonParser.nextToken();
-                        totalSize = jsonParser.getValueAsString();
+                        totalSize.set(jsonParser.getValueAsString());
                     } else if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
                             .equals(NEXT_RECORDS_URL)) {
                         jsonParser.nextToken();

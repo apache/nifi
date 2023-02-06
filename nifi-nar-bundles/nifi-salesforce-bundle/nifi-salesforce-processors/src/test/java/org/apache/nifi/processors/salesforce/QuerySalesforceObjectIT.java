@@ -63,7 +63,7 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
-        runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.QUERY_PARAMETERS);
+        runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.PROPERTY_BASED_QUERY);
         runner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
         runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
         runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
