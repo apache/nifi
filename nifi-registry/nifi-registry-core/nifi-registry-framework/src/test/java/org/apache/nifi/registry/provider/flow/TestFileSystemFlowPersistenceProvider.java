@@ -20,9 +20,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
 import org.apache.nifi.registry.provider.ProviderConfigurationContext;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -33,6 +32,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class TestFileSystemFlowPersistenceProvider {
@@ -51,7 +56,7 @@ public class TestFileSystemFlowPersistenceProvider {
     private File flowStorageDir;
     private FileSystemFlowPersistenceProvider fileSystemFlowProvider;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         flowStorageDir = new File(FLOW_STORAGE_DIR);
         if (flowStorageDir.exists()) {
@@ -59,11 +64,11 @@ public class TestFileSystemFlowPersistenceProvider {
             flowStorageDir.delete();
         }
 
-        Assert.assertFalse(flowStorageDir.exists());
+        assertFalse(flowStorageDir.exists());
 
         fileSystemFlowProvider = new FileSystemFlowPersistenceProvider();
         fileSystemFlowProvider.onConfigured(CONFIGURATION_CONTEXT);
-        Assert.assertTrue(flowStorageDir.exists());
+        assertTrue(flowStorageDir.exists());
     }
 
     @Test
@@ -95,7 +100,7 @@ public class TestFileSystemFlowPersistenceProvider {
         final byte[] content2 = "XXX".getBytes(StandardCharsets.UTF_8);
         try {
             fileSystemFlowProvider.saveFlowContent(context, content2);
-            Assert.fail("Should have thrown exception");
+            fail("Should have thrown exception");
         } catch (Exception e) {
 
         }
@@ -103,7 +108,7 @@ public class TestFileSystemFlowPersistenceProvider {
         // verify the new content wasn't written
         final File flowSnapshotFile = new File(flowStorageDir, "bucket1/flow1/1/1" + FileSystemFlowPersistenceProvider.SNAPSHOT_EXTENSION);
         try (InputStream in = new FileInputStream(flowSnapshotFile)) {
-            Assert.assertEquals("flow1v1", IOUtils.toString(in, StandardCharsets.UTF_8));
+            assertEquals("flow1v1", IOUtils.toString(in, StandardCharsets.UTF_8));
         }
     }
 
@@ -113,16 +118,16 @@ public class TestFileSystemFlowPersistenceProvider {
         createAndSaveSnapshot(fileSystemFlowProvider,"bucket1", "flow1", 2, "flow1v2");
 
         final byte[] flow1v1 = fileSystemFlowProvider.getFlowContent("bucket1", "flow1", 1);
-        Assert.assertEquals("flow1v1", new String(flow1v1, StandardCharsets.UTF_8));
+        assertEquals("flow1v1", new String(flow1v1, StandardCharsets.UTF_8));
 
         final byte[] flow1v2 = fileSystemFlowProvider.getFlowContent("bucket1", "flow1", 2);
-        Assert.assertEquals("flow1v2", new String(flow1v2, StandardCharsets.UTF_8));
+        assertEquals("flow1v2", new String(flow1v2, StandardCharsets.UTF_8));
     }
 
     @Test
     public void testGetWhenDoesNotExist() {
         final byte[] flow1v1 = fileSystemFlowProvider.getFlowContent("bucket1", "flow1", 1);
-        Assert.assertNull(flow1v1);
+        assertNull(flow1v1);
     }
 
     @Test
@@ -133,13 +138,13 @@ public class TestFileSystemFlowPersistenceProvider {
         createAndSaveSnapshot(fileSystemFlowProvider, bucketId, flowId, 1, "flow1v1");
         createAndSaveSnapshot(fileSystemFlowProvider, bucketId, flowId, 2, "flow1v2");
 
-        Assert.assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
-        Assert.assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
+        assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
+        assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
 
         fileSystemFlowProvider.deleteAllFlowContent(bucketId, flowId);
 
-        Assert.assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
-        Assert.assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
+        assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
+        assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
 
         // delete a flow that doesn't exist
         fileSystemFlowProvider.deleteAllFlowContent(bucketId, "some-other-flow");
@@ -156,18 +161,18 @@ public class TestFileSystemFlowPersistenceProvider {
         createAndSaveSnapshot(fileSystemFlowProvider, bucketId, flowId, 1, "flow1v1");
         createAndSaveSnapshot(fileSystemFlowProvider, bucketId, flowId, 2, "flow1v2");
 
-        Assert.assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
-        Assert.assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
+        assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
+        assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
 
         fileSystemFlowProvider.deleteFlowContent(bucketId, flowId, 1);
 
-        Assert.assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
-        Assert.assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
+        assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
+        assertNotNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
 
         fileSystemFlowProvider.deleteFlowContent(bucketId, flowId, 2);
 
-        Assert.assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
-        Assert.assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
+        assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 1));
+        assertNull(fileSystemFlowProvider.getFlowContent(bucketId, flowId, 2));
 
         // delete a version that doesn't exist
         fileSystemFlowProvider.deleteFlowContent(bucketId, flowId, 3);
@@ -195,10 +200,10 @@ public class TestFileSystemFlowPersistenceProvider {
         // verify the correct snapshot file was created
         final File flowSnapshotFile = new File(flowStorageDir,
                 bucketId + "/" + flowId + "/" + version + "/" + version + FileSystemFlowPersistenceProvider.SNAPSHOT_EXTENSION);
-        Assert.assertTrue(flowSnapshotFile.exists());
+        assertTrue(flowSnapshotFile.exists());
 
         try (InputStream in = new FileInputStream(flowSnapshotFile)) {
-            Assert.assertEquals(contentString, IOUtils.toString(in, StandardCharsets.UTF_8));
+            assertEquals(contentString, IOUtils.toString(in, StandardCharsets.UTF_8));
         }
     }
 }

@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import java.io.File;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.test.annotation.IfProfileValue;
 import org.springframework.test.context.jdbc.Sql;
@@ -34,15 +32,17 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.File;
 
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertBucketsEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowSnapshotMetadataEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowSnapshotsEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowsEqual;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = {"classpath:db/clearDB.sql", "classpath:db/FlowsIT.sql"})
 public class FlowsIT extends UnsecuredITBase {
@@ -72,7 +72,7 @@ public class FlowsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name="current.database.is.h2", value="true")
+    @IfProfileValue(name = "current.database.is.h2", value = "true")
     public void testGetFlows() throws Exception {
 
         // Given: a few buckets and flows have been populated in the DB (see FlowsIT.sql)
@@ -365,7 +365,7 @@ public class FlowsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name="current.database.is.h2", value="true")
+    @IfProfileValue(name = "current.database.is.h2", value = "true")
     public void testGetFlowVersions() throws Exception {
 
         // Given: a bucket "1" with flow "1" with existing snapshots has been populated in the DB (see FlowsIT.sql)
@@ -532,17 +532,15 @@ public class FlowsIT extends UnsecuredITBase {
 
         // saving the flow to bucket 1 should not work because there is a flow with the same name
         flow.setBucketIdentifier("1");
-        try {
-            client.target(createURL("buckets/1/flows"))
-                    .resolveTemplate("bucketId", bucketId)
-                    .request()
-                    .post(Entity.entity(flow, MediaType.APPLICATION_JSON), VersionedFlow.class);
 
-            Assert.fail("Should have thrown exception");
-        } catch (WebApplicationException e) {
-            final String errorMessage = e.getResponse().readEntity(String.class);
-            Assert.assertEquals("A versioned flow with the same name already exists in the selected bucket", errorMessage);
-        }
+        WebApplicationException e = assertThrows(WebApplicationException.class, () -> client.target(createURL("buckets/1/flows"))
+                .resolveTemplate("bucketId", bucketId)
+                .request()
+                .post(Entity.entity(flow, MediaType.APPLICATION_JSON), VersionedFlow.class));
+
+        final String errorMessage = e.getResponse().readEntity(String.class);
+        assertEquals("A versioned flow with the same name already exists in the selected bucket", errorMessage);
+
 
     }
 
@@ -606,10 +604,10 @@ public class FlowsIT extends UnsecuredITBase {
         // GET the versioned Flow that was just imported
 
         final VersionedFlowSnapshotMetadata[] versionedFlowSnapshots = client
-                        .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
-                        .resolveTemplate("bucketId", bucketId)
-                        .resolveTemplate("flowId", flowId)
-                        .request().get(VersionedFlowSnapshotMetadata[].class);
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
+                .resolveTemplate("bucketId", bucketId)
+                .resolveTemplate("flowId", flowId)
+                .request().get(VersionedFlowSnapshotMetadata[].class);
         assertNotNull(versionedFlowSnapshots);
         assertEquals(2, versionedFlowSnapshots.length);
         assertFlowSnapshotMetadataEqual(importedFlowSnapshot.getSnapshotMetadata(), versionedFlowSnapshots[0], true);

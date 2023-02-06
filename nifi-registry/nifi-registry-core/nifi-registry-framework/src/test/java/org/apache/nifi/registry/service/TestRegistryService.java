@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.service;
 
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.FlowEntity;
@@ -29,14 +31,11 @@ import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.serialization.FlowContent;
 import org.apache.nifi.registry.serialization.FlowContentSerializer;
 import org.apache.nifi.registry.service.alias.RegistryUrlAliasService;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -57,9 +56,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -81,7 +81,7 @@ public class TestRegistryService {
 
     private RegistryService registryService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         metadataService = mock(MetadataService.class);
         flowPersistenceProvider = mock(FlowPersistenceProvider.class);
@@ -119,7 +119,7 @@ public class TestRegistryService {
         assertEquals(bucket.getDescription(), createdBucket.getDescription());
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCreateBucketWithSameName() {
         final Bucket bucket = new Bucket();
         bucket.setIdentifier("b2");
@@ -134,14 +134,14 @@ public class TestRegistryService {
         when(metadataService.getBucketsByName(bucket.getName())).thenReturn(Collections.singletonList(existingBucket));
 
         // should throw exception since a bucket with the same name exists
-        registryService.createBucket(bucket);
+        assertThrows(IllegalStateException.class, () -> registryService.createBucket(bucket));
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateBucketWithMissingName() {
         final Bucket bucket = new Bucket();
         when(metadataService.getBucketsByName(bucket.getName())).thenReturn(Collections.emptyList());
-        registryService.createBucket(bucket);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createBucket(bucket));
     }
 
     @Test
@@ -162,33 +162,33 @@ public class TestRegistryService {
         assertEquals(existingBucket.getCreated().getTime(), bucket.getCreatedTimestamp());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testGetBucketDoesNotExist() {
         when(metadataService.getBucketById(any(String.class))).thenReturn(null);
-        registryService.getBucket("does-not-exist");
+        assertThrows(ResourceNotFoundException.class, () -> registryService.getBucket("does-not-exist"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testUpdateBucketWithoutId() {
         final Bucket bucket = new Bucket();
         bucket.setName("My Bucket");
         bucket.setDescription("This is my bucket.");
-        registryService.updateBucket(bucket);
+        assertThrows(IllegalArgumentException.class, () -> registryService.updateBucket(bucket));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testUpdateBucketDoesNotExist() {
         final Bucket bucket = new Bucket();
         bucket.setIdentifier("b1");
         bucket.setName("My Bucket");
         bucket.setDescription("This is my bucket.");
-        registryService.updateBucket(bucket);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.updateBucket(bucket));
 
         when(metadataService.getBucketById(any(String.class))).thenReturn(null);
-        registryService.updateBucket(bucket);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.updateBucket(bucket));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testUpdateBucketWithSameNameAsExistingBucket() {
         final BucketEntity bucketToUpdate = new BucketEntity();
         bucketToUpdate.setId("b1");
@@ -212,7 +212,7 @@ public class TestRegistryService {
         updatedBucket.setName("My Bucket #2");
         updatedBucket.setDescription(bucketToUpdate.getDescription());
 
-        registryService.updateBucket(updatedBucket);
+        assertThrows(IllegalStateException.class, () -> registryService.updateBucket(updatedBucket));
     }
 
     @Test
@@ -262,11 +262,11 @@ public class TestRegistryService {
         assertEquals(bucketToUpdate.getDescription(), result.getDescription());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testDeleteBucketDoesNotExist() {
         final String bucketId = "b1";
         when(metadataService.getBucketById(bucketId)).thenReturn(null);
-        registryService.deleteBucket(bucketId);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.deleteBucket(bucketId));
     }
 
     @Test
@@ -300,13 +300,13 @@ public class TestRegistryService {
 
     // ---------------------- Test VersionedFlow methods ---------------------------------------------
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateFlowInvalid() {
         final VersionedFlow versionedFlow = new VersionedFlow();
-        registryService.createFlow("b1", versionedFlow);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createFlow("b1", versionedFlow));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testCreateFlowBucketDoesNotExist() {
 
         when(metadataService.getBucketById(any(String.class))).thenReturn(null);
@@ -316,10 +316,10 @@ public class TestRegistryService {
         versionedFlow.setName("My Flow");
         versionedFlow.setBucketIdentifier("b1");
 
-        registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCreateFlowWithSameName() {
         final BucketEntity existingBucket = new BucketEntity();
         existingBucket.setId("b1");
@@ -345,7 +345,7 @@ public class TestRegistryService {
         versionedFlow.setName(flowWithSameName.getName());
         versionedFlow.setBucketIdentifier("b1");
 
-        registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow);
+        assertThrows(IllegalStateException.class, () -> registryService.createFlow(versionedFlow.getBucketIdentifier(), versionedFlow));
     }
 
     @Test
@@ -376,16 +376,16 @@ public class TestRegistryService {
         assertEquals(versionedFlow.getDescription(), createdFlow.getDescription());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testGetFlowDoesNotExist() {
         when(metadataService.getFlowById(any(String.class))).thenReturn(null);
-        registryService.getFlow("bucket1","flow1");
+        assertThrows(ResourceNotFoundException.class, () -> registryService.getFlow("bucket1", "flow1"));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testGetFlowDirectDoesNotExist() {
         when(metadataService.getFlowById(any(String.class))).thenReturn(null);
-        registryService.getFlow("flow1");
+        assertThrows(ResourceNotFoundException.class , () -> registryService.getFlow("flow1"));
     }
 
     @Test
@@ -449,10 +449,10 @@ public class TestRegistryService {
         assertEquals(flowEntity.getModified().getTime(), versionedFlow.getModifiedTimestamp());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testGetFlowsByBucketDoesNotExist() {
         when(metadataService.getBucketById(any(String.class))).thenReturn(null);
-        registryService.getFlows("b1");
+        assertThrows(ResourceNotFoundException.class, () -> registryService.getFlows("b1"));
     }
 
     @Test
@@ -492,13 +492,13 @@ public class TestRegistryService {
         assertEquals(2, allFlows.size());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testUpdateFlowWithoutId() {
         final VersionedFlow versionedFlow = new VersionedFlow();
-        registryService.updateFlow(versionedFlow);
+        assertThrows(IllegalArgumentException.class, () -> registryService.updateFlow(versionedFlow));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testUpdateFlowDoesNotExist() {
         final VersionedFlow versionedFlow = new VersionedFlow();
         versionedFlow.setBucketIdentifier("b1");
@@ -506,10 +506,10 @@ public class TestRegistryService {
 
         when(metadataService.getFlowById(versionedFlow.getIdentifier())).thenReturn(null);
 
-        registryService.updateFlow(versionedFlow);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.updateFlow(versionedFlow));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testUpdateFlowWithSameNameAsExistingFlow() {
         final BucketEntity existingBucket = new BucketEntity();
         existingBucket.setId("b1");
@@ -544,7 +544,7 @@ public class TestRegistryService {
         versionedFlow.setBucketIdentifier(existingBucket.getId());
         versionedFlow.setName(otherFlow.getName());
 
-        registryService.updateFlow(versionedFlow);
+        assertThrows(IllegalStateException.class, () -> registryService.updateFlow(versionedFlow));
     }
 
     @Test
@@ -590,10 +590,10 @@ public class TestRegistryService {
         assertEquals(flowToUpdate.getCreated().getTime(), updatedFlow.getCreatedTimestamp());
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testDeleteFlowDoesNotExist() {
         when(metadataService.getFlowById(any(String.class))).thenReturn(null);
-        registryService.deleteFlow("b1", "flow1");
+        assertThrows(ResourceNotFoundException.class, () -> registryService.deleteFlow("b1", "flow1"));
     }
 
     @Test
@@ -647,43 +647,43 @@ public class TestRegistryService {
         return snapshot;
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateSnapshotInvalidMetadata() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
         snapshot.getSnapshotMetadata().setFlowIdentifier(null);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateSnapshotInvalidFlowContents() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
         snapshot.setFlowContents(null);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateSnapshotNullMetadata() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
         snapshot.setSnapshotMetadata(null);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void testCreateSnapshotNullFlowContents() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
         snapshot.setFlowContents(null);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ConstraintViolationException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testCreateSnapshotBucketDoesNotExist() {
         when(metadataService.getBucketById(any(String.class))).thenReturn(null);
 
         final VersionedFlowSnapshot snapshot = createSnapshot();
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testCreateSnapshotFlowDoesNotExist() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
@@ -697,10 +697,10 @@ public class TestRegistryService {
 
         when(metadataService.getFlowById(snapshot.getSnapshotMetadata().getFlowIdentifier())).thenReturn(null);
 
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCreateSnapshotVersionAlreadyExists() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
@@ -734,10 +734,10 @@ public class TestRegistryService {
         final List<FlowSnapshotEntity> existingSnapshots = Arrays.asList(existingSnapshot);
         when(metadataService.getSnapshots(existingFlow.getId())).thenReturn(existingSnapshots);
 
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(IllegalStateException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCreateSnapshotVersionNotNextVersion() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
@@ -770,7 +770,7 @@ public class TestRegistryService {
 
         // set the version to something that is not the next one-up version
         snapshot.getSnapshotMetadata().setVersion(100);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(IllegalStateException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
     @Test
@@ -808,7 +808,7 @@ public class TestRegistryService {
         verify(metadataService, times(1)).createFlowSnapshot(any(FlowSnapshotEntity.class));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testCreateFirstSnapshotWithBadVersion() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
@@ -833,10 +833,10 @@ public class TestRegistryService {
 
         // set the first version to something other than 1
         snapshot.getSnapshotMetadata().setVersion(100);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(IllegalStateException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testCreateFirstSnapshotWithZeroVersion() {
         final VersionedFlowSnapshot snapshot = createSnapshot();
 
@@ -861,7 +861,7 @@ public class TestRegistryService {
 
         // set the first version to something other than 1
         snapshot.getSnapshotMetadata().setVersion(0);
-        registryService.createFlowSnapshot(snapshot);
+        assertThrows(IllegalArgumentException.class, () -> registryService.createFlowSnapshot(snapshot));
     }
 
     @Test
@@ -1086,24 +1086,21 @@ public class TestRegistryService {
 
         when(metadataService.getLatestSnapshot(existingFlow.getId())).thenReturn(null);
 
-        try {
-            registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId());
-            Assert.fail("Should have thrown exception");
-        } catch (ResourceNotFoundException e) {
-            assertEquals("The specified flow ID has no versions", e.getMessage());
-        }
+        ResourceNotFoundException e = assertThrows(ResourceNotFoundException.class, () -> registryService.getLatestFlowSnapshotMetadata(existingBucket.getId(), existingFlow.getId()));
+        assertEquals("The specified flow ID has no versions", e.getMessage());
+
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testGetSnapshotDoesNotExistInMetadataProvider() {
         final String bucketId = "b1";
         final String flowId = "flow1";
         final Integer version = 1;
         when(metadataService.getFlowSnapshot(flowId, version)).thenReturn(null);
-        registryService.getFlowSnapshot(bucketId, flowId, version);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.getFlowSnapshot(bucketId, flowId, version));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testGetSnapshotDoesNotExistInPersistenceProvider() {
         final BucketEntity existingBucket = createBucketEntity("b1");
         final FlowEntity existingFlow = createFlowEntity(existingBucket.getId());
@@ -1126,7 +1123,7 @@ public class TestRegistryService {
                 existingSnapshot.getVersion()
         )).thenReturn(null);
 
-        registryService.getFlowSnapshot(existingBucket.getId(), existingSnapshot.getFlowId(), existingSnapshot.getVersion());
+        assertThrows(IllegalStateException.class, () -> registryService.getFlowSnapshot(existingBucket.getId(), existingSnapshot.getFlowId(), existingSnapshot.getVersion()));
     }
 
     @Test
@@ -1180,13 +1177,13 @@ public class TestRegistryService {
         assertNotNull(bucket);
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test
     public void testDeleteSnapshotDoesNotExist() {
         final String bucketId = "b1";
         final String flowId = "flow1";
         final Integer version = 1;
         when(metadataService.getFlowSnapshot(flowId, version)).thenReturn(null);
-        registryService.deleteFlowSnapshot(bucketId, flowId, version);
+        assertThrows(ResourceNotFoundException.class, () -> registryService.deleteFlowSnapshot(bucketId, flowId, version));
     }
 
     @Test
@@ -1260,14 +1257,14 @@ public class TestRegistryService {
         final VersionedProcessGroup pgB = createVersionedProcessGroupB();
         when(flowContentSerializer.readDataModelVersion(any(InputStream.class))).thenReturn(2);
         when(flowContentSerializer.isProcessGroupVersion(eq(2))).thenReturn(true);
-        when(flowContentSerializer.deserializeProcessGroup(eq(2),any())).thenReturn(pgA, pgB);
+        when(flowContentSerializer.deserializeProcessGroup(eq(2), any())).thenReturn(pgA, pgB);
 
         final VersionedFlowDifference diff = registryService.getFlowDiff(
                 "bucketIdentifier", "flowIdentifier", 1, 2);
 
         assertNotNull(diff);
         Optional<ComponentDifferenceGroup> removedComponent = diff.getComponentDifferenceGroups().stream()
-                .filter(p->p.getComponentId().equals("ID-pg1")).findFirst();
+                .filter(p -> p.getComponentId().equals("ID-pg1")).findFirst();
 
         assertTrue(removedComponent.isPresent());
         assertTrue(removedComponent.get().getDifferences().iterator().next().getDifferenceType().equals("COMPONENT_REMOVED"));
@@ -1283,20 +1280,20 @@ public class TestRegistryService {
         final VersionedProcessGroup pgB = createVersionedProcessGroupB();
         when(flowContentSerializer.readDataModelVersion(any(InputStream.class))).thenReturn(2);
         when(flowContentSerializer.isProcessGroupVersion(eq(2))).thenReturn(true);
-        when(flowContentSerializer.deserializeProcessGroup(eq(2),any())).thenReturn(pgA, pgB);
+        when(flowContentSerializer.deserializeProcessGroup(eq(2), any())).thenReturn(pgA, pgB);
 
         // getFlowDiff orders the changes in ascending order of version number regardless of param order
         final VersionedFlowDifference diff = registryService.getFlowDiff(
-                "bucketIdentifier", "flowIdentifier", 2,1);
+                "bucketIdentifier", "flowIdentifier", 2, 1);
 
         assertNotNull(diff);
         Optional<ComponentDifferenceGroup> nameChangedComponent = diff.getComponentDifferenceGroups().stream()
-                .filter(p->p.getComponentId().equals("ProcessorFirstV1")).findFirst();
+                .filter(p -> p.getComponentId().equals("ProcessorFirstV1")).findFirst();
 
         assertTrue(nameChangedComponent.isPresent());
 
         ComponentDifference nameChangeDifference = nameChangedComponent.get().getDifferences().stream()
-                .filter(d-> d.getDifferenceType().equals("NAME_CHANGED")).findFirst().get();
+                .filter(d -> d.getDifferenceType().equals("NAME_CHANGED")).findFirst().get();
 
         assertEquals("ProcessorFirstV1", nameChangeDifference.getValueA());
         assertEquals("ProcessorFirstV2", nameChangeDifference.getValueB());
@@ -1310,22 +1307,23 @@ public class TestRegistryService {
         return root;
     }
 
-    private VersionedProcessGroup createProcessGroup(String identifier){
+    private VersionedProcessGroup createProcessGroup(String identifier) {
         VersionedProcessGroup processGroup = new VersionedProcessGroup();
         processGroup.setIdentifier(identifier);
         return processGroup;
     }
+
     private VersionedProcessGroup createVersionedProcessGroupB() {
         VersionedProcessGroup updated = createVersionedProcessGroupA();
         // remove a process group
-        updated.getProcessGroups().removeIf(pg->pg.getIdentifier().equals("ID-pg1"));
+        updated.getProcessGroups().removeIf(pg -> pg.getIdentifier().equals("ID-pg1"));
         // change the name of a processor
-        updated.getProcessors().stream().forEach(p->p.setPenaltyDuration(p.getName().equals("ProcessorFirstV1") ? "1" : "2"));
-        updated.getProcessors().stream().forEach(p->p.setName(p.getName().equals("ProcessorFirstV1") ? "ProcessorFirstV2" : p.getName()));
+        updated.getProcessors().stream().forEach(p -> p.setPenaltyDuration(p.getName().equals("ProcessorFirstV1") ? "1" : "2"));
+        updated.getProcessors().stream().forEach(p -> p.setName(p.getName().equals("ProcessorFirstV1") ? "ProcessorFirstV2" : p.getName()));
         return updated;
     }
 
-    private VersionedProcessor createVersionedProcessor(String name){
+    private VersionedProcessor createVersionedProcessor(String name) {
         VersionedProcessor processor = new VersionedProcessor();
         processor.setName(name);
         processor.setIdentifier(name);

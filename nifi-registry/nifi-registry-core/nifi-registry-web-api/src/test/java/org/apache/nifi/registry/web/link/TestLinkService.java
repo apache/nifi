@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.registry.web.link;
 
+import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.bucket.BucketItem;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.extension.ExtensionMetadata;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoExtensionMetadata;
@@ -30,14 +30,16 @@ import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoVersionSummary;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestLinkService {
 
@@ -61,7 +63,7 @@ public class TestLinkService {
     private List<ExtensionRepoVersionSummary> extensionRepoVersions;
     private List<ExtensionRepoExtensionMetadata> extensionRepoExtensionMetadata;
 
-    @Before
+    @BeforeEach
     public void setup() {
         linkService = new LinkService();
 
@@ -224,60 +226,60 @@ public class TestLinkService {
 
     @Test
     public void testPopulateBucketLinks() {
-        buckets.forEach(b -> Assert.assertNull(b.getLink()));
+        buckets.forEach(b -> assertNull(b.getLink()));
         linkService.populateLinks(buckets);
-        buckets.forEach(b -> Assert.assertEquals(
+        buckets.forEach(b -> assertEquals(
                 "buckets/" + b.getIdentifier(), b.getLink().getUri().toString()));
     }
 
     @Test
     public void testPopulateFlowLinks() {
-        flows.forEach(f -> Assert.assertNull(f.getLink()));
+        flows.forEach(f -> assertNull(f.getLink()));
         linkService.populateLinks(flows);
-        flows.forEach(f -> Assert.assertEquals(
+        flows.forEach(f -> assertEquals(
                 "buckets/" + f.getBucketIdentifier() + "/flows/" + f.getIdentifier(), f.getLink().getUri().toString()));
     }
 
     @Test
     public void testPopulateSnapshotLinks() {
-        snapshots.forEach(s -> Assert.assertNull(s.getLink()));
+        snapshots.forEach(s -> assertNull(s.getLink()));
         linkService.populateLinks(snapshots);
-        snapshots.forEach(s -> Assert.assertEquals(
+        snapshots.forEach(s -> assertEquals(
                 "buckets/" + s.getBucketIdentifier() + "/flows/" + s.getFlowIdentifier() + "/versions/" + s.getVersion(), s.getLink().getUri().toString()));
     }
 
     @Test
     public void testPopulateItemLinks() {
-        items.forEach(i -> Assert.assertNull(i.getLink()));
+        items.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(items);
         items.forEach(i -> {
             if (i.getType() == BucketItemType.Flow) {
-                Assert.assertEquals("buckets/" + i.getBucketIdentifier() + "/flows/" + i.getIdentifier(), i.getLink().getUri().toString());
+                assertEquals("buckets/" + i.getBucketIdentifier() + "/flows/" + i.getIdentifier(), i.getLink().getUri().toString());
             } else {
-                Assert.assertEquals("bundles/" + i.getIdentifier(), i.getLink().getUri().toString());
+                assertEquals("bundles/" + i.getIdentifier(), i.getLink().getUri().toString());
             }
         });
     }
 
     @Test
     public void testPopulateExtensionBundleLinks() {
-        bundles.forEach(i -> Assert.assertNull(i.getLink()));
+        bundles.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(bundles);
-        bundles.forEach(eb -> Assert.assertEquals("bundles/" + eb.getIdentifier(), eb.getLink().getUri().toString()));
+        bundles.forEach(eb -> assertEquals("bundles/" + eb.getIdentifier(), eb.getLink().getUri().toString()));
     }
 
     @Test
     public void testPopulateExtensionBundleVersionLinks() {
-        bundleVersionMetadata.forEach(i -> Assert.assertNull(i.getLink()));
+        bundleVersionMetadata.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(bundleVersionMetadata);
-        bundleVersionMetadata.forEach(eb -> Assert.assertEquals(
+        bundleVersionMetadata.forEach(eb -> assertEquals(
                 "bundles/" + eb.getBundleId() + "/versions/" + eb.getVersion(), eb.getLink().getUri().toString()));
     }
 
     @Test
     public void testPopulateExtensionBundleVersionExtensionMetadataLinks() {
-        extensionMetadata.forEach(i -> Assert.assertNull(i.getLink()));
-        extensionMetadata.forEach(i -> Assert.assertNull(i.getLinkDocs()));
+        extensionMetadata.forEach(i -> assertNull(i.getLink()));
+        extensionMetadata.forEach(i -> assertNull(i.getLinkDocs()));
 
         linkService.populateLinks(extensionMetadata);
 
@@ -285,16 +287,16 @@ public class TestLinkService {
             final String extensionUri = "bundles/" + e.getBundleInfo().getBundleId()
                     + "/versions/" + e.getBundleInfo().getVersion()
                     + "/extensions/" + e.getName();
-            Assert.assertEquals(extensionUri, e.getLink().getUri().toString());
-            Assert.assertEquals(extensionUri + "/docs", e.getLinkDocs().getUri().toString());
+            assertEquals(extensionUri, e.getLink().getUri().toString());
+            assertEquals(extensionUri + "/docs", e.getLinkDocs().getUri().toString());
         });
     }
 
     @Test
     public void testPopulateExtensionRepoBucketLinks() {
-        extensionRepoBuckets.forEach(i -> Assert.assertNull(i.getLink()));
+        extensionRepoBuckets.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(extensionRepoBuckets);
-        extensionRepoBuckets.forEach(i -> Assert.assertEquals(
+        extensionRepoBuckets.forEach(i -> assertEquals(
                 "extension-repository/" + i.getBucketName(),
                 i.getLink().getUri().toString())
         );
@@ -302,10 +304,10 @@ public class TestLinkService {
 
     @Test
     public void testPopulateExtensionRepoGroupLinks() {
-        extensionRepoGroups.forEach(i -> Assert.assertNull(i.getLink()));
+        extensionRepoGroups.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(extensionRepoGroups);
         extensionRepoGroups.forEach(i -> {
-            Assert.assertEquals(
+            assertEquals(
                     "extension-repository/" + i.getBucketName() + "/" + i.getGroupId(),
                     i.getLink().getUri().toString()); }
         );
@@ -313,10 +315,10 @@ public class TestLinkService {
 
     @Test
     public void testPopulateExtensionRepoArtifactLinks() {
-        extensionRepoArtifacts.forEach(i -> Assert.assertNull(i.getLink()));
+        extensionRepoArtifacts.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(extensionRepoArtifacts);
         extensionRepoArtifacts.forEach(i -> {
-            Assert.assertEquals(
+            assertEquals(
                     "extension-repository/" + i.getBucketName() + "/" + i.getGroupId() + "/" + i.getArtifactId(),
                     i.getLink().getUri().toString()); }
         );
@@ -324,10 +326,10 @@ public class TestLinkService {
 
     @Test
     public void testPopulateExtensionRepoVersionLinks() {
-        extensionRepoVersions.forEach(i -> Assert.assertNull(i.getLink()));
+        extensionRepoVersions.forEach(i -> assertNull(i.getLink()));
         linkService.populateLinks(extensionRepoVersions);
         extensionRepoVersions.forEach(i -> {
-            Assert.assertEquals(
+            assertEquals(
                     "extension-repository/" + i.getBucketName() + "/" + i.getGroupId() + "/" + i.getArtifactId() + "/" + i.getVersion(),
                     i.getLink().getUri().toString()); }
         );
@@ -335,10 +337,10 @@ public class TestLinkService {
 
     @Test
     public void testPopulateExtensionRepoVersionFullLinks() {
-        extensionRepoVersions.forEach(i -> Assert.assertNull(i.getLink()));
+        extensionRepoVersions.forEach(i -> assertNull(i.getLink()));
         linkService.populateFullLinks(extensionRepoVersions, baseUri);
         extensionRepoVersions.forEach(i -> {
-            Assert.assertEquals(
+            assertEquals(
                     BASE_URI + "/extension-repository/" + i.getBucketName() + "/" + i.getGroupId() + "/" + i.getArtifactId() + "/" + i.getVersion(),
                     i.getLink().getUri().toString()); }
         );
@@ -346,16 +348,16 @@ public class TestLinkService {
 
     @Test
     public void testPopulateExtensionRepoExtensionMetdataFullLinks() {
-        extensionRepoExtensionMetadata.forEach(i -> Assert.assertNull(i.getLink()));
-        extensionRepoExtensionMetadata.forEach(i -> Assert.assertNull(i.getLinkDocs()));
+        extensionRepoExtensionMetadata.forEach(i -> assertNull(i.getLink()));
+        extensionRepoExtensionMetadata.forEach(i -> assertNull(i.getLinkDocs()));
 
         linkService.populateFullLinks(extensionRepoExtensionMetadata, baseUri);
         extensionRepoExtensionMetadata.forEach(i -> {
             final BundleInfo bi = i.getExtensionMetadata().getBundleInfo();
             final String extensionUri = BASE_URI + "/extension-repository/" + bi.getBucketName() + "/" + bi.getGroupId() + "/"
                     + bi.getArtifactId() + "/" + bi.getVersion() + "/extensions/" + i.getExtensionMetadata().getName();
-            Assert.assertEquals(extensionUri, i.getLink().getUri().toString());
-            Assert.assertEquals(extensionUri + "/docs", i.getLinkDocs().getUri().toString());
+            assertEquals(extensionUri, i.getLink().getUri().toString());
+            assertEquals(extensionUri + "/docs", i.getLinkDocs().getUri().toString());
         });
     }
 }

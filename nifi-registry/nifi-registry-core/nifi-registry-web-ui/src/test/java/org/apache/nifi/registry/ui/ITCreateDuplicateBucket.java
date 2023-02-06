@@ -17,9 +17,9 @@
 
 package org.apache.nifi.registry.ui;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -35,8 +35,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ITCreateDuplicateBucket {
     private WebDriver driver;
@@ -45,7 +45,7 @@ public class ITCreateDuplicateBucket {
     private WebDriverWait wait;
     private StringBuffer verificationErrors = new StringBuffer();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         WebDriverManager.chromedriver().setup();
         driver = new ChromeDriver();
@@ -141,7 +141,7 @@ public class ITCreateDuplicateBucket {
         assertEquals(1, bucketCount.size());
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         // bucket cleanup
 
