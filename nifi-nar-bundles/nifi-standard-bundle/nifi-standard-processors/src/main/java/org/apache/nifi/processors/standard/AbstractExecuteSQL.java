@@ -283,7 +283,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
 
                 if (fileToProcess != null) {
                     for (Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
-                        sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(),false));
+                        sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(), false));
                     }
                 }
 
@@ -469,14 +469,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             //  pass the original flow file down the line to trigger downstream processors
             if (fileToProcess == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
-                logger.error("Unable to execute SQL select query {} due to {}. No FlowFile to route to failure", selectQuery, e);
+                logger.error("Unable to execute SQL select query [{}]. No FlowFile to route to failure", selectQuery, e);
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
-                    logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", selectQuery, fileToProcess, e);
+                    logger.error("Unable to execute SQL select query [{}] for {} routing to failure", selectQuery, fileToProcess, e);
                     fileToProcess = session.penalize(fileToProcess);
                 } else {
-                    logger.error("Unable to execute SQL select query {} due to {}; routing to failure", selectQuery, e);
+                    logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
                     context.yield();
                 }
                 session.putAttribute(fileToProcess,RESULT_ERROR_MESSAGE,e.getMessage());

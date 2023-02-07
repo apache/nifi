@@ -52,7 +52,6 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
 import static org.apache.nifi.util.db.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
 import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
-@SupportsSensitiveDynamicProperties
 @EventDriven
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"sql", "select", "jdbc", "query", "database"})
@@ -110,6 +109,7 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         @WritesAttribute(attribute = "input.flowfile.uuid", description = "If the processor has an incoming connection, outgoing FlowFiles will have this attribute "
                 + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added.")
 })
+@SupportsSensitiveDynamicProperties
 @DynamicProperties({
         @DynamicProperty(name = "sql.args.N.type",
                 value = "SQL type argument to be supplied",
