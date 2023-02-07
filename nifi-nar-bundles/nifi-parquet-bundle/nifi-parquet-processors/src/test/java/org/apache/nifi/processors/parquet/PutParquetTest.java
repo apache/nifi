@@ -63,7 +63,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.QUALIFIED_PATH_ATTRIBUTE;
+import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -136,7 +136,7 @@ public class PutParquetTest {
         mockFlowFile.assertAttributeEquals(PutParquet.ABSOLUTE_HDFS_PATH_ATTRIBUTE, avroParquetFile.getParent().toString());
         mockFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), filename);
         mockFlowFile.assertAttributeEquals(PutParquet.RECORD_COUNT_ATTR, "100");
-        assertTrue(mockFlowFile.getAttribute(QUALIFIED_PATH_ATTRIBUTE).endsWith(DIRECTORY + "/" + filename));
+        assertTrue(mockFlowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + filename));
 
         // verify we generated a provenance event
         final List<ProvenanceEventRecord> provEvents = testRunner.getProvenanceEvents();

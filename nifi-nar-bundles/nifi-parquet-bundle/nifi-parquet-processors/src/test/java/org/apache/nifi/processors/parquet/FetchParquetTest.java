@@ -58,7 +58,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.QUALIFIED_PATH_ATTRIBUTE;
+import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -132,7 +132,7 @@ public class FetchParquetTest {
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, String.valueOf(USERS));
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
-        assertTrue(flowFile.getAttribute(QUALIFIED_PATH_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
 
         // the mock record writer will write the header for each record so replace those to get down to just the records
         String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);

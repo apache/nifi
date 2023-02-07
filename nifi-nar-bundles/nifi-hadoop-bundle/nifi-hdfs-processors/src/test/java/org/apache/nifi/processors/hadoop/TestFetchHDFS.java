@@ -34,7 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.QUALIFIED_PATH_ATTRIBUTE;
+import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,7 +74,7 @@ public class TestFetchHDFS {
         assertTrue(fetchEvent.getTransitUri().endsWith(file));
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
-        assertTrue(flowFile.getAttribute(QUALIFIED_PATH_ATTRIBUTE).endsWith(file));
+        assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(file));
     }
 
     @Test

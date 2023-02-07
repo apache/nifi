@@ -36,7 +36,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.QUALIFIED_PATH_ATTRIBUTE;
+import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,7 +80,7 @@ public class TestDeleteHDFS {
         assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", provenanceEvents.get(0).getTransitUri());
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
-        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", flowFile.getAttribute(QUALIFIED_PATH_ATTRIBUTE));
+        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE));
 
     }
 

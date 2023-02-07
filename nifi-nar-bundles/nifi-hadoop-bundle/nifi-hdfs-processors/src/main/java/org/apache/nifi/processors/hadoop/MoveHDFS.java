@@ -76,7 +76,7 @@ import java.util.regex.Pattern;
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute."),
-        @WritesAttribute(attribute = "qualified.path", description = "The qualified path to the file is stored in this attribute.")
+        @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
 @SeeAlso({PutHDFS.class, GetHDFS.class})
 @Restricted(restrictions = {
@@ -429,7 +429,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
                         flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
                         final Path qualifiedPath = newFile.makeQualified(hdfs.getUri(), hdfs.getWorkingDirectory());
-                        flowFile = session.putAttribute(flowFile, QUALIFIED_PATH_ATTRIBUTE, qualifiedPath.toString());
+                        flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                         final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
                         session.getProvenanceReporter().send(flowFile, transitUri);
                         session.transfer(flowFile, REL_SUCCESS);

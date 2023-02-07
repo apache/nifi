@@ -234,7 +234,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
 
 
                 final Path qualifiedPath = path.makeQualified(fileSystem.getUri(), fileSystem.getWorkingDirectory());
-                successFlowFile = session.putAttribute(successFlowFile, QUALIFIED_PATH_ATTRIBUTE, qualifiedPath.toString());
+                successFlowFile = session.putAttribute(successFlowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                 getLogger().info("Successfully received content from {} for {} in {} milliseconds", new Object[] {qualifiedPath, successFlowFile, stopWatch.getDuration()});
                 session.getProvenanceReporter().fetch(successFlowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                 session.transfer(successFlowFile, REL_SUCCESS);

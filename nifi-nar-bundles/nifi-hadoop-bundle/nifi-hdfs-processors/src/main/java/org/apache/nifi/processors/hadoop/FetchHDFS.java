@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttributes({
     @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
         + "not be fetched from HDFS"),
-    @WritesAttribute(attribute = "qualified.path", description = "The qualified path to the file is stored in this attribute.")
+    @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute.")
 })
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
 @Restricted(restrictions = {
@@ -177,7 +177,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
 
                     stopWatch.stop();
                     getLogger().info("Successfully received content from {} for {} in {}", new Object[] {qualifiedPath, flowFile, stopWatch.getDuration()});
-                    flowFile = session.putAttribute(flowFile, QUALIFIED_PATH_ATTRIBUTE, qualifiedPath.toString());
+                    flowFile = session.putAttribute(flowFile, HADOOP_FILE_URL_ATTRIBUTE, qualifiedPath.toString());
                     session.getProvenanceReporter().fetch(flowFile, qualifiedPath.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, getSuccessRelationship());
                 } catch (final FileNotFoundException | AccessControlException e) {
