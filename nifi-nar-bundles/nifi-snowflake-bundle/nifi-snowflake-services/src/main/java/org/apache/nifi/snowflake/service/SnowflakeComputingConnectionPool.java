@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.snowflake.service;
 
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import net.snowflake.client.core.SFSessionProperty;
 import net.snowflake.client.jdbc.SnowflakeDriver;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
@@ -36,16 +28,40 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.AbstractDBCPConnectionPool;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeConnectionProviderService;
 import org.apache.nifi.processors.snowflake.SnowflakeConnectionWrapper;
+import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
-import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
-import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
+import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
+
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_TOTAL_CONNECTIONS;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_WAIT_TIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_IDLE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinite;
 
 /**
  * Implementation of Database Connection Pooling Service for Snowflake. Apache DBCP is used for connection pooling
@@ -54,14 +70,14 @@ import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 @Tags({"snowflake", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Snowflake Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 @DynamicProperties({
-    @DynamicProperty(name = "JDBC property name",
-        value = "Snowflake JDBC property value",
-        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
-        description = "Snowflake JDBC driver property name and value applied to JDBC connections."),
-    @DynamicProperty(name = "SENSITIVE.JDBC property name",
-        value = "Snowflake JDBC property value",
-        expressionLanguageScope = ExpressionLanguageScope.NONE,
-        description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
+        @DynamicProperty(name = "JDBC property name",
+                value = "Snowflake JDBC property value",
+                expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
+                description = "Snowflake JDBC driver property name and value applied to JDBC connections."),
+        @DynamicProperty(name = "SENSITIVE.JDBC property name",
+                value = "Snowflake JDBC property value",
+                expressionLanguageScope = ExpressionLanguageScope.NONE,
+                description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
 public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService {
@@ -76,7 +92,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DATABASE_URL)
+            .fromPropertyDescriptor(DBCPProperties.DATABASE_URL)
             .displayName("Snowflake URL")
             .description("Example connection string: jdbc:snowflake://[account].[region]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX + "/?[connection_params]" +
                     " The connection parameters can include db=DATABASE_NAME to avoid using qualified table names such as DATABASE_NAME.PUBLIC.TABLE_NAME")
@@ -110,13 +126,13 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_USER)
+            .fromPropertyDescriptor(DBCPProperties.DB_USER)
             .displayName("Username")
             .description("The Snowflake user name.")
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractDBCPConnectionPool.DB_PASSWORD)
+            .fromPropertyDescriptor(DBCPProperties.DB_PASSWORD)
             .displayName("Password")
             .description("The password for the Snowflake user.")
             .build();
@@ -170,6 +186,34 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     @Override
+    protected DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context) {
+        final String url = getUrl(context);
+        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+        final String password = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
+        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
+        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
+        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
+        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+
+        return new DataSourceConfiguration.Builder(url, driverName, user, password)
+                .maxTotal(maxTotal)
+                .validationQuery(validationQuery)
+                .maxWaitMillis(maxWaitMillis)
+                .minIdle(minIdle)
+                .maxIdle(maxIdle)
+                .maxConnLifetimeMillis(maxConnLifetimeMillis)
+                .timeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis)
+                .minEvictableIdleTimeMillis(minEvictableIdleTimeMillis)
+                .softMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis)
+                .build();
+    }
+
     protected String getUrl(final ConfigurationContext context) {
         final ConnectionUrlFormat connectionUrlFormat = ConnectionUrlFormat.forName(context.getProperty(CONNECTION_URL_FORMAT)
                 .getValue());
@@ -194,7 +238,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         final String schema = context.getProperty(SnowflakeProperties.SCHEMA).evaluateAttributeExpressions().getValue();
         final String warehouse = context.getProperty(SNOWFLAKE_WAREHOUSE).evaluateAttributeExpressions().getValue();
 
-        final Map<String, String> connectionProperties = new HashMap<>();
+        final Map<String, String> connectionProperties = super.getConnectionProperties(context);
         if (database != null) {
             connectionProperties.put("db", database);
         }

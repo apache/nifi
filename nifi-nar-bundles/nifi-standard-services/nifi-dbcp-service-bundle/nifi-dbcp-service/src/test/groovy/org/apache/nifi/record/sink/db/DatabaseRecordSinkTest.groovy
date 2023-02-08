@@ -51,24 +51,24 @@ import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
 
-import static org.apache.nifi.dbcp.DBCPConnectionPool.DATABASE_URL
-import static org.apache.nifi.dbcp.DBCPConnectionPool.DB_DRIVERNAME
-import static org.apache.nifi.dbcp.DBCPConnectionPool.DB_DRIVER_LOCATION
-import static org.apache.nifi.dbcp.DBCPConnectionPool.DB_PASSWORD
-import static org.apache.nifi.dbcp.DBCPConnectionPool.DB_USER
-import static org.apache.nifi.dbcp.DBCPConnectionPool.EVICTION_RUN_PERIOD
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER
+import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD
 import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE
-import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PASSWORD
 import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PRINCIPAL
-import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_USER_SERVICE
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_CONN_LIFETIME
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_IDLE
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_TOTAL_CONNECTIONS
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MAX_WAIT_TIME
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME
-import static org.apache.nifi.dbcp.DBCPConnectionPool.MIN_IDLE
-import static org.apache.nifi.dbcp.DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME
-import static org.apache.nifi.dbcp.DBCPConnectionPool.VALIDATION_QUERY
+import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PASSWORD
+import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_TOTAL_CONNECTIONS
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_WAIT_TIME
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_EVICTABLE_IDLE_TIME
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_IDLE
+import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME
+import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertFalse
 import static org.junit.jupiter.api.Assertions.assertNotNull
