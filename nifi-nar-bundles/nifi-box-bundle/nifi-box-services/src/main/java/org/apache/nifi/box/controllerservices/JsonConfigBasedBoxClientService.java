@@ -78,7 +78,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
+    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         ACCOUNT_ID,
