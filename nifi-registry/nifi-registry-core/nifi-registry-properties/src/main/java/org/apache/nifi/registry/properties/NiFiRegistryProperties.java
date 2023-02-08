@@ -25,7 +25,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -487,21 +486,19 @@ public class NiFiRegistryProperties extends ApplicationProperties {
      * Returns the network interface list to use for HTTPS. This method returns a mapping of
      * network interface property names to network interface names.
      *
-     * @return the property name and network interface name of all HTTPS network interfaces
+     * @return the network interface names of all HTTPS network interfaces
      */
-    public Map<String, String> getHttpsNetworkInterfaces() {
-        final Map<String, String> networkInterfaces = new HashMap<>();
+    public Set<String> getHttpsNetworkInterfaceNames() {
+        final Set<String> networkInterfaceNames = new HashSet<>();
 
         // go through each property
         for (String propertyName : getPropertyKeys()) {
             // determine if the property is a network interface name
             if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
-                // get the network interface property key
-                final String key = StringUtils.substringAfter(propertyName,
-                        WEB_HTTPS_NETWORK_INTERFACE_PREFIX);
-                networkInterfaces.put(key, getProperty(propertyName));
+                // get the network interface property value
+                networkInterfaceNames.add(getProperty(propertyName));
             }
         }
-        return networkInterfaces;
+        return networkInterfaceNames;
     }
 }

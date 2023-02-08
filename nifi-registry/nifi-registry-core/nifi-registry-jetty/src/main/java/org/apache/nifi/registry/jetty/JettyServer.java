@@ -151,38 +151,32 @@ public class JettyServer {
     }
 
     private void configureConnectors() {
-        try {
-            final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
-            final Map<String, String> interfaces = properties.isHTTPSConfigured() ? properties.getHttpsNetworkInterfaces() : Collections.emptyMap();
-            final Set<String> interfaceNames = interfaces.values().stream().filter(StringUtils::isNotBlank).collect(Collectors.toSet());
-            if (properties.isHTTPSConfigured() && !interfaceNames.isEmpty()) {
-                interfaceNames.stream()
-                        // Map interface name properties to Network Interfaces
-                        .map(interfaceName -> {
-                            try {
-                                logger.error("Checking {}", interfaceName);
-                                return NetworkInterface.getByName(interfaceName);
-                            } catch (final SocketException e) {
-                                throw new UncheckedIOException(String.format("Network Interface [%s] not found", interfaceName), e);
-                            }
-                        })
-                        // Map Network Interfaces to host addresses
-                        .filter(Objects::nonNull)
-                        .flatMap(networkInterface -> Collections.list(networkInterface.getInetAddresses()).stream())
-                        .map(InetAddress::getHostAddress)
-                        // Map host addresses to Server Connectors
-                        .map(host -> {
-                            final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-                            serverConnector.setHost(host);
-                            return serverConnector;
-                        })
-                        .forEach(server::addConnector);
-            } else {
-                final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-                server.addConnector(serverConnector);
-            }
-        } catch (final Throwable e) {
-            startUpFailure(e);
+        final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
+        final Set<String> interfaceNames = properties.isHTTPSConfigured() ? properties.getHttpsNetworkInterfaceNames() : Collections.emptySet();
+        if (interfaceNames.isEmpty()) {
+            final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+            server.addConnector(serverConnector);
+        } else {
+            interfaceNames.stream()
+                    // Map interface name properties to Network Interfaces
+                    .map(interfaceName -> {
+                        try {
+                            return NetworkInterface.getByName(interfaceName);
+                        } catch (final SocketException e) {
+                            throw new UncheckedIOException(String.format("Network Interface [%s] not found", interfaceName), e);
+                        }
+                    })
+                    // Map Network Interfaces to host addresses
+                    .filter(Objects::nonNull)
+                    .flatMap(networkInterface -> Collections.list(networkInterface.getInetAddresses()).stream())
+                    .map(InetAddress::getHostAddress)
+                    // Map host addresses to Server Connectors
+                    .map(host -> {
+                        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+                        serverConnector.setHost(host);
+                        return serverConnector;
+                    })
+                    .forEach(server::addConnector);
         }
     }
 
