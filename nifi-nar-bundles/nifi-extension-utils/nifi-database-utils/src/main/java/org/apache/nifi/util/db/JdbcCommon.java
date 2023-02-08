@@ -68,6 +68,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -721,10 +722,11 @@ public class JdbcCommon {
 
             final int sqlType = Integer.parseInt(flowFileAttributeValue);
             final String sqlArgumentValueAttributeName = "sql.args." + sqlArgumentTypeIndex + ".value";
-            final String sqlArgumentValue = attributes.get(sqlArgumentValueAttributeName).getValue();
-            final String sqlArgumentLogValue = attributes.get(sqlArgumentValueAttributeName).isSensitive() ? MASKED_LOG_VALUE : sqlArgumentValue;
+            final Optional<SensitiveValueWrapper> sqlArgumentValueWrapper = Optional.ofNullable(attributes.get(sqlArgumentValueAttributeName));
+            final String sqlArgumentValue = sqlArgumentValueWrapper.map(SensitiveValueWrapper::getValue).orElse(null);
+            final String sqlArgumentLogValue = sqlArgumentValueWrapper.map(a -> a.isSensitive() ? MASKED_LOG_VALUE : a.getValue()).orElse(null);
             final String sqlArgumentFormatAttributeName = "sql.args." + sqlArgumentTypeIndex + ".format";
-            final String sqlArgumentFormat = attributes.containsKey(sqlArgumentFormatAttributeName)? attributes.get(sqlArgumentFormatAttributeName).getValue():"";
+            final String sqlArgumentFormat = attributes.containsKey(sqlArgumentFormatAttributeName) ? attributes.get(sqlArgumentFormatAttributeName).getValue() : "";
 
             try {
                 JdbcCommon.setParameter(stmt, sqlArgumentTypeIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);

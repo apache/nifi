@@ -18,10 +18,10 @@ package org.apache.nifi.util.db;
 
 public class SensitiveValueWrapper {
 
-    private String value;
-    private boolean sensitive;
+    private final String value;
+    private final boolean sensitive;
 
-    public SensitiveValueWrapper(String value, boolean sensitive) {
+    public SensitiveValueWrapper(final String value, final boolean sensitive) {
         this.value = value;
         this.sensitive = sensitive;
     }
