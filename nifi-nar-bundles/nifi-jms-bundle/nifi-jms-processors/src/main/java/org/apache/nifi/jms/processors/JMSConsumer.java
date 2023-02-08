@@ -46,7 +46,7 @@ import java.util.Map;
 /**
  * Generic consumer of messages from JMS compliant messaging system.
  */
-final class JMSConsumer extends JMSWorker {
+class JMSConsumer extends JMSWorker {
 
     JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);

@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.nifi.jms.processors.helpers.AssertionUtils.assertCausedBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -523,10 +524,12 @@ public class PublishJMSIT {
 
     @Test
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() {
+        final String nonExistentClassName = "DummyInitialContextFactoryClass";
+
         TestRunner runner = TestRunners.newTestRunner(PublishJMS.class);
 
         // using JNDI JMS Connection Factory configured locally on the processor
-        runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, "DummyInitialContextFactoryClass");
+        runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, nonExistentClassName);
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, "DummyProviderUrl");
         runner.setProperty(JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME, "DummyConnectionFactoryName");
 
@@ -535,7 +538,7 @@ public class PublishJMSIT {
 
         runner.enqueue("message");
 
-        runner.run();
+        assertCausedBy(ClassNotFoundException.class, nonExistentClassName, runner::run);
 
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
