@@ -24,7 +24,7 @@
     <description>NiFi: Framework Bundle</description>
     <properties>
         <curator.version>5.4.0</curator.version>
-        <tika.version>2.6.0</tika.version>
+        <tika.version>2.7.0</tika.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
