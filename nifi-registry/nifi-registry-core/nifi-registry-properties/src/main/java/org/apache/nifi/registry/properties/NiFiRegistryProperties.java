@@ -496,7 +496,10 @@ public class NiFiRegistryProperties extends ApplicationProperties {
             // determine if the property is a network interface name
             if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
                 // get the network interface property value
-                networkInterfaceNames.add(getProperty(propertyName));
+                final String interfaceName = getProperty(propertyName);
+                if (StringUtils.isNotBlank(interfaceName)) {
+                    networkInterfaceNames.add(getProperty(propertyName));
+                }
             }
         }
         return networkInterfaceNames;
