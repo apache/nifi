@@ -612,17 +612,32 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         });
     }
 
-    private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {
+    private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) { // remove ones with same id but different source as well
         final Set<String> connectionsRemoved = new HashSet<>(connectionsByVersionedId.keySet());
+        final Set<String> connectionsRemovedDueToChangingSourceId = new HashSet<>();
 
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
             connectionsRemoved.remove(proposedConnection.getIdentifier());
+        }
+
+        for (final VersionedConnection proposedConnection : proposed.getConnections()) {
+            if (connectionsByVersionedId.containsKey(proposedConnection.getIdentifier())
+                &&
+                !proposedConnection.getSource().getId().equals(connectionsByVersionedId.get(proposedConnection.getIdentifier()).getSource().getVersionedComponentId())
+            ) {
+                connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
+                connectionsRemoved.add(proposedConnection.getIdentifier());
+            }
         }
 
         for (final String removedVersionedId : connectionsRemoved) {
             final Connection connection = connectionsByVersionedId.get(removedVersionedId);
             LOG.info("Removing {} from {}", connection, group);
             group.removeConnection(connection);
+        }
+
+        for (final String removedVersionedId : connectionsRemovedDueToChangingSourceId) {
+            connectionsByVersionedId.remove(removedVersionedId);
         }
     }
 
@@ -667,6 +682,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 newDestination == null
                 ||
                 (newDestination.getConnectableType() == ConnectableType.OUTPUT_PORT && !newDestination.getProcessGroup().equals(connection.getProcessGroup()))
+                ||
+                (newDestination.getConnectableType() == ConnectableType.INPUT_PORT && !connection.getDestination().getVersionedComponentId().get().equals(proposedConnection.getDestination().getId()) && connection.getDestination().getName().equals(proposedConnection.getDestination().getName()))
             ) {
                 final Funnel temporaryDestination = getTemporaryFunnel(connection.getProcessGroup());
                 LOG.debug("Updated Connection {} to have a temporary destination of {}", connection, temporaryDestination);
