@@ -36,7 +36,8 @@
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.7</jolt.version>
         <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
-        <tika.version>2.6.0</tika.version>
+        <tika.version>2.7.0</tika.version>
+>>>>>>> a66727c4d1 (NIFI-11160 Upgraded Apache Tika from 2.6.0 to 2.7.0)
     </properties>
     <dependencyManagement>
         <dependencies>
