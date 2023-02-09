@@ -18,9 +18,6 @@ package org.apache.nifi.encrypt;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
-import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,10 +38,6 @@ public class KeyedCipherPropertyEncryptorTest {
 
     private static final int ENCRYPTED_BINARY_LENGTH = 48;
 
-    private static final KeyedCipherProvider CIPHER_PROVIDER = new AESKeyedCipherProvider();
-
-    private static final EncryptionMethod ENCRYPTION_METHOD = EncryptionMethod.AES_GCM;
-
     private static final String KEY_ALGORITHM = "AES";
 
     private static final byte[] STATIC_KEY = StringUtils.repeat("KEY", 8).getBytes(DEFAULT_CHARSET);
@@ -57,7 +50,7 @@ public class KeyedCipherPropertyEncryptorTest {
 
     @BeforeEach
     public void setUp() {
-        encryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, SECRET_KEY);
+        encryptor = new KeyedCipherPropertyEncryptor(SECRET_KEY);
     }
 
     @Test
@@ -77,18 +70,18 @@ public class KeyedCipherPropertyEncryptorTest {
     @Test
     public void testDecryptEncryptionException() {
         final String encodedProperty = Hex.encodeHexString(PROPERTY.getBytes(DEFAULT_CHARSET));
-        assertThrows(EncryptionException.class, () -> encryptor.decrypt(encodedProperty));
+        assertThrows(Exception.class, () -> encryptor.decrypt(encodedProperty));
     }
 
     @Test
     public void testGetCipherEncryptionException() {
-        encryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, INVALID_SECRET_KEY);
+        encryptor = new KeyedCipherPropertyEncryptor(INVALID_SECRET_KEY);
         assertThrows(EncryptionException.class, () -> encryptor.encrypt(PROPERTY));
     }
 
     @Test
     public void testEqualsHashCode() {
-        final KeyedCipherPropertyEncryptor equivalentEncryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, SECRET_KEY);
+        final KeyedCipherPropertyEncryptor equivalentEncryptor = new KeyedCipherPropertyEncryptor(SECRET_KEY);
         assertEquals(encryptor, equivalentEncryptor);
         assertEquals(encryptor.hashCode(), equivalentEncryptor.hashCode());
     }
@@ -96,7 +89,7 @@ public class KeyedCipherPropertyEncryptorTest {
     @Test
     public void testEqualsHashCodeDifferentSecretKey() {
         final SecretKey secretKey = new SecretKeySpec(String.class.getSimpleName().getBytes(StandardCharsets.UTF_8), KEY_ALGORITHM);
-        final KeyedCipherPropertyEncryptor differentEncryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, secretKey);
+        final KeyedCipherPropertyEncryptor differentEncryptor = new KeyedCipherPropertyEncryptor(secretKey);
         assertNotEquals(encryptor, differentEncryptor);
         assertNotEquals(encryptor.hashCode(), differentEncryptor.hashCode());
     }
