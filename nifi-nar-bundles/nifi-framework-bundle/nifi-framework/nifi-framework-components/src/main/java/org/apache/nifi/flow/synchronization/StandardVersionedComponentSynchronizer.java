@@ -612,7 +612,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         });
     }
 
-    private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) { // remove ones with same id but different source as well
+    private void removeMissingConnections(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, Connection> connectionsByVersionedId) {
         final Set<String> connectionsRemoved = new HashSet<>(connectionsByVersionedId.keySet());
         final Set<String> connectionsRemovedDueToChangingSourceId = new HashSet<>();
 
@@ -621,12 +621,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         for (final VersionedConnection proposedConnection : proposed.getConnections()) {
-            if (connectionsByVersionedId.containsKey(proposedConnection.getIdentifier())
-                &&
-                !proposedConnection.getSource().getId().equals(connectionsByVersionedId.get(proposedConnection.getIdentifier()).getSource().getVersionedComponentId())
-            ) {
-                connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
-                connectionsRemoved.add(proposedConnection.getIdentifier());
+            final Connection existingConnection = connectionsByVersionedId.get(proposedConnection.getIdentifier());
+
+            if (existingConnection != null) {
+                final String proposedSourceId = proposedConnection.getSource().getId();
+                final String existingSourceId = existingConnection.getSource().getVersionedComponentId().orElse(null);
+
+                if (!Objects.equals(proposedSourceId, existingSourceId)) {
+                    connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
+                    connectionsRemoved.add(proposedConnection.getIdentifier());
+                }
             }
         }
 
@@ -682,8 +686,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 newDestination == null
                 ||
                 (newDestination.getConnectableType() == ConnectableType.OUTPUT_PORT && !newDestination.getProcessGroup().equals(connection.getProcessGroup()))
-                ||
-                (newDestination.getConnectableType() == ConnectableType.INPUT_PORT && !connection.getDestination().getVersionedComponentId().get().equals(proposedConnection.getDestination().getId()) && connection.getDestination().getName().equals(proposedConnection.getDestination().getName()))
             ) {
                 final Funnel temporaryDestination = getTemporaryFunnel(connection.getProcessGroup());
                 LOG.debug("Updated Connection {} to have a temporary destination of {}", connection, temporaryDestination);
