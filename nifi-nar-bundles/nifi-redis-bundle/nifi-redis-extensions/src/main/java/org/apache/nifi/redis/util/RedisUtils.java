@@ -24,6 +24,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.StringUtils;
@@ -45,6 +46,25 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class RedisUtils {
+
+    // These properties are shared among the controller service(s) and processor(s) that use a RedisConnectionPool
+
+    public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
+            .name("redis-connection-pool")
+            .displayName("Redis Connection Pool")
+            .identifiesControllerService(RedisConnectionPool.class)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
+            .name("redis-cache-ttl")
+            .displayName("TTL")
+            .description("Indicates how long the data should exist in Redis. Setting '0 secs' would mean the data would exist forever")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .required(true)
+            .defaultValue("0 secs")
+            .build();
+
 
     // These properties are shared between the connection pool controller service and the state provider, the name
     // is purposely set to be more human-readable since that will be referenced in state-management.xml

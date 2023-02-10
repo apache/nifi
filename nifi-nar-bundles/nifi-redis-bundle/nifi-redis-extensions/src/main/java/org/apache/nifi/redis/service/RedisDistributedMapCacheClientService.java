@@ -29,7 +29,6 @@ import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.redis.util.RedisAction;
@@ -51,28 +50,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
+import static org.apache.nifi.redis.util.RedisUtils.TTL;
+
 @Tags({ "redis", "distributed", "cache", "map" })
 @CapabilityDescription("An implementation of DistributedMapCacheClient that uses Redis as the backing cache. This service relies on " +
         "the WATCH, MULTI, and EXEC commands in Redis, which are not fully supported when Redis is clustered. As a result, this service " +
         "can only be used with a Redis Connection Pool that is configured for standalone or sentinel mode. Sentinel mode can be used to " +
         "provide high-availability configurations.")
 public class RedisDistributedMapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient<byte[]> {
-
-    public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
-            .name("redis-connection-pool")
-            .displayName("Redis Connection Pool")
-            .identifiesControllerService(RedisConnectionPool.class)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
-            .name("redis-cache-ttl")
-            .displayName("TTL")
-            .description("Indicates how long the data should exist in Redis. Setting '0 secs' would mean the data would exist forever")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .required(true)
-            .defaultValue("0 secs")
-            .build();
 
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
     static {
