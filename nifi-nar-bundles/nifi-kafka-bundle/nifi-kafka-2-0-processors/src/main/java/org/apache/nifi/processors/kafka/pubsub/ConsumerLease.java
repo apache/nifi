@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -43,7 +44,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -359,7 +359,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         }
 
         if (KeyEncoding.HEX.getValue().equals(encoding)) {
-            return DatatypeConverter.printHexBinary(key);
+            return Hex.encodeHexString(key);
         } else if (KeyEncoding.UTF8.getValue().equals(encoding)) {
             return new String(key, StandardCharsets.UTF_8);
         } else {

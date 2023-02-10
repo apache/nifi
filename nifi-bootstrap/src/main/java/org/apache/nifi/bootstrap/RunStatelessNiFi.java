@@ -45,21 +45,6 @@ public class RunStatelessNiFi {
             throw new RuntimeException("Could not find lib directory at " + libDir.getAbsolutePath());
         }
 
-        String runtimeJavaVersion = System.getProperty("java.version");
-        if (Integer.parseInt(runtimeJavaVersion.substring(0, runtimeJavaVersion.indexOf('.'))) >= 11) {
-            /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
-             *
-             * TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
-             * JAXB/activation/annotation will be added as an actual dependency via pom.xml.
-             */
-            final File libJava11Dir = new File(nifi_home + "/lib/java11");
-            if (libJava11Dir.exists()) {
-                for (final File file : Objects.requireNonNull(libJava11Dir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar")))) {
-                    cpURLs.add(file.toURI().toURL());
-                }
-            }
-        }
-
         final URLClassLoader rootClassLoader = new URLClassLoader(cpURLs.toArray(new URL[0]));
         Thread.currentThread().setContextClassLoader(rootClassLoader);
 
