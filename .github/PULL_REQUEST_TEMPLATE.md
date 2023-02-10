@@ -40,7 +40,6 @@ Please indicate the verification steps performed prior to pull request creation.
 ### Build
 
 - [ ] Build completed using `mvn clean install -P contrib-check`
-  - [ ] JDK 8
   - [ ] JDK 11
   - [ ] JDK 17
 

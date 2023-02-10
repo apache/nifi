@@ -2203,7 +2203,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === math
 
-*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: link:https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html[https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html^]
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 11 API can be found here: link:https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Math.html[https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Math.html^]
  +
 In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
 
