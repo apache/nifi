@@ -215,9 +215,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-record-not_found-is-error")
-        .displayName("Treat \"Not Found\" as Error")
+        .displayName("Treat \"Not Found\" as Success")
         .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
-                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship.")
+                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship. " +
+                "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
+                "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -268,8 +270,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER,
         NOT_FOUND_IS_SUCCESSFUL
     ));
-    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS, REL_ERROR_RESPONSES
+    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
     )));
 
     private RecordPathCache recordPathCache;
@@ -281,8 +283,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private volatile String timestampFormat;
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+    Set<Relationship> getBaseRelationships() {
+        return BASE_RELATIONSHIPS;
     }
 
     @Override

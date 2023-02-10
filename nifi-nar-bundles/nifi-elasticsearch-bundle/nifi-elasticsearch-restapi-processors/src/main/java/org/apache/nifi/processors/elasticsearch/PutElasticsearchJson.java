@@ -109,9 +109,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-json-not_found-is-error")
-        .displayName("Treat \"Not Found\" as Error")
+        .displayName("Treat \"Not Found\" as Success")
         .description("If true, \"not_found\" Elasticsearch Document associated FlowFiles will be routed to the \"" + REL_SUCCESS.getName() +
-                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
+                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship. " +
+                "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
+                "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -123,16 +125,16 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
         LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
     ));
-    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS, REL_ERROR_RESPONSES
+    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
     )));
 
     private boolean outputErrors;
     private final ObjectMapper inputMapper = new ObjectMapper();
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+    Set<Relationship> getBaseRelationships() {
+        return BASE_RELATIONSHIPS;
     }
 
     @Override

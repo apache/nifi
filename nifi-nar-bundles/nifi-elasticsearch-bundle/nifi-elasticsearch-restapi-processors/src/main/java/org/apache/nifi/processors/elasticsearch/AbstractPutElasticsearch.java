@@ -42,8 +42,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -72,7 +74,8 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     static final PropertyDescriptor OUTPUT_ERROR_RESPONSES = new PropertyDescriptor.Builder()
             .name("put-es-output-error-responses")
             .displayName("Output Error Responses")
-            .description("If this is enabled, errors will be output to the \"error_responses\" relationship.")
+            .description("If this is enabled, response messages from Elasticsearch marked as \"error\" will be output to the \"error_responses\" relationship." +
+                    "This does not impact the output of flowfiles to the \"success\" or \"errors\" relationships")
             .allowableValues("true", "false")
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -87,8 +90,8 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
 
     static final Relationship REL_ERROR_RESPONSES = new Relationship.Builder()
             .name("error_responses")
-            .description("Elasticsearch _bulk API responses marked as \"error\" (and optionally \"not_found\") go here.")
-            .autoTerminateDefault(true)
+            .description("Elasticsearch _bulk API responses marked as \"error\" go here " +
+                    "(and optionally \"not_found\" when \"Treat \"Not Found\" as Error\" is \"true\").")
             .build();
 
     static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
@@ -99,12 +102,21 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
             IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
     ));
 
+    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>(getBaseRelationships());
+
     boolean logErrors;
     boolean outputErrorResponses;
     boolean notFoundIsSuccessful;
     ObjectMapper errorMapper;
 
     final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
+
+    abstract Set<Relationship> getBaseRelationships();
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships.get();
+    }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -115,6 +127,17 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
+    }
+
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (OUTPUT_ERROR_RESPONSES.equals(descriptor)) {
+            final Set<Relationship> newRelationships = new HashSet<>(getBaseRelationships());
+            if (Boolean.parseBoolean(newValue)) {
+                newRelationships.add(REL_ERROR_RESPONSES);
+            }
+            relationships.set(newRelationships);
+        }
     }
 
     @Override

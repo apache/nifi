@@ -22,20 +22,18 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.TestRunner
-import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
-
 import static org.hamcrest.CoreMatchers.containsString
 import static org.hamcrest.MatcherAssert.assertThat
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
 
-class PutElasticsearchJsonTest {
+class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticsearchJson> {
     MockBulkLoadClientService clientService
     TestRunner runner
 
@@ -43,10 +41,15 @@ class PutElasticsearchJsonTest {
             [ msg: "Hello, world", from: "john.smith" ]
     ))
 
+    @Override
+    PutElasticsearchJson getProcessor() {
+        return new PutElasticsearchJson()
+    }
+
     @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
-        runner   = TestRunners.newTestRunner(PutElasticsearchJson.class)
+        runner = createRunner()
 
         clientService.response = new IndexOperationResponse(1500)
 

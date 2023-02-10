@@ -32,7 +32,6 @@ import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
-import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -53,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
 
-class PutElasticsearchRecordTest {
+class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElasticsearchRecord> {
     private static final int DATE_YEAR = 2020
     private static final int DATE_MONTH = 11
     private static final int DATE_DAY = 27
@@ -86,12 +85,17 @@ class PutElasticsearchRecordTest {
 
     static final String flowFileContents = prettyPrint(toJson(flowFileContentMaps))
 
+    @Override
+    PutElasticsearchRecord getProcessor() {
+        return new PutElasticsearchRecord()
+    }
+
     @BeforeEach
     void setup() {
         clientService = new MockBulkLoadClientService()
         registry = new MockSchemaRegistry()
         reader   = new JsonTreeReader()
-        runner   = TestRunners.newTestRunner(PutElasticsearchRecord.class)
+        runner   = createRunner()
 
         registry.addSchema("simple", AvroTypeUtil.createSchema(new Schema.Parser().parse(SCHEMA)))
 
