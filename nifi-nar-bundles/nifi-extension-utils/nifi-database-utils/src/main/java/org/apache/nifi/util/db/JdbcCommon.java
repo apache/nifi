@@ -30,12 +30,13 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,6 +67,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 import java.util.function.Function;
@@ -833,10 +835,14 @@ public class JdbcCommon {
                             bValue = parameterValue.getBytes("ASCII");
                             break;
                         case "hex":
-                            bValue = DatatypeConverter.parseHexBinary(parameterValue);
+                            try {
+                                bValue = Hex.decodeHex(parameterValue);
+                            } catch (final DecoderException e) {
+                                throw new RuntimeException("Hexadecimal decoding failed", e);
+                            }
                             break;
                         case "base64":
-                            bValue = DatatypeConverter.parseBase64Binary(parameterValue);
+                            bValue = Base64.getDecoder().decode(parameterValue);
                             break;
                         default:
                             throw new ParseException("Unable to parse binary data using the formatter `" + valueFormat + "`.",0);

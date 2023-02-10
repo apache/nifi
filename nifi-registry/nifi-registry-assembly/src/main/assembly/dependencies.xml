@@ -68,22 +68,6 @@
             </includes>
         </dependencySet>
 
-        <!-- Write out the libs for java11 to its own dir -->
-        <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>lib/java11</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-                <include>org.glassfish.jaxb:jaxb-runtime</include>
-                <include>jakarta.activation:jakarta.activation-api</include>
-            </includes>
-        </dependencySet>
-
         <!-- Write out all dependency artifacts to lib directory -->
         <dependencySet>
             <scope>runtime</scope>
@@ -100,11 +84,6 @@
                 <exclude>*:nifi-registry-ranger-assembly</exclude>
                 <exclude>*:nifi-registry-aws-assembly</exclude>
                 <exclude>*:nifi-registry-properties-loader</exclude>
-
-                <!-- Exclude any jaxb dependencies because they will be in lib/java11 -->
-                <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
-                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
-                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
             </excludes>
         </dependencySet>
 

@@ -32,28 +32,6 @@
             <useProjectArtifact>false</useProjectArtifact>
             <directoryMode>0770</directoryMode>
             <fileMode>0660</fileMode>
-            <excludes>
-                <!-- exclude jaxb/activation libs from lib, they'll be included in the java11 subdir -->
-                <!-- TODO: remove these once minimum Java version is 11 -->
-                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
-                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
-            </excludes>
-        </dependencySet>
-        <!-- Write out the bootstrap libs for java11 to its own dir -->
-        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>lib/java11</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>org.glassfish.jaxb:jaxb-runtime</include>
-                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-                <include>com.sun.activation:jakarta.activation</include>
-                <include>jakarta.activation:jakarta.activation-api</include>
-            </includes>
         </dependencySet>
     </dependencySets>
 
@@ -69,15 +47,6 @@
             <outputDirectory>conf/</outputDirectory>
             <fileMode>0600</fileMode>
         </fileSet>
-        <!--<fileSet>-->
-            <!--<directory>${project.build.directory}/nifi-resources/src/main/resources/conf</directory>-->
-            <!--<outputDirectory>conf/</outputDirectory>-->
-            <!--<fileMode>0600</fileMode>-->
-            <!--<includes>-->
-                <!--<include>nifi.properties</include>-->
-                <!--<include>bootstrap.conf</include>-->
-            <!--</includes>-->
-        <!--</fileSet>-->
         <fileSet>
             <directory>${project.basedir}/src/main/resources/classpath</directory>
             <outputDirectory>classpath/</outputDirectory>

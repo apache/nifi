@@ -32,161 +32,59 @@
         </resources>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
+                <groupId>org.jvnet.jaxb2.maven2</groupId>
+                <artifactId>maven-jaxb2-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>authorizations</id>
                         <goals>
-                            <goal>xjc</goal>
+                            <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <sources>
-                                <source>src/main/xsd/authorizations.xsd</source>
-                            </sources>
-                            <packageName>org.apache.nifi.authorization.file.generated</packageName>
+                            <generatePackage>org.apache.nifi.authorization.file.generated</generatePackage>
+                            <schemaDirectory>src/main/xsd</schemaDirectory>
+                            <schemaIncludes>
+                                <include>authorizations.xsd</include>
+                            </schemaIncludes>
                         </configuration>
                     </execution>
                     <execution>
                         <id>tenants</id>
                         <goals>
-                            <goal>xjc</goal>
+                            <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <sources>
-                                <source>src/main/xsd/tenants.xsd</source>
-                            </sources>
-                            <packageName>org.apache.nifi.authorization.file.tenants.generated</packageName>
-                            <clearOutputDir>false</clearOutputDir>
+                            <generatePackage>org.apache.nifi.authorization.file.tenants.generated</generatePackage>
+                            <schemaDirectory>src/main/xsd</schemaDirectory>
+                            <schemaIncludes>
+                                <include>tenants.xsd</include>
+                            </schemaIncludes>
+                            <removeOldOutput>false</removeOldOutput>
+                            <forceRegenerate>true</forceRegenerate>
                         </configuration>
                     </execution>
                     <execution>
                         <id>users</id>
                         <goals>
-                            <goal>xjc</goal>
+                            <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <sources>
-                                <source>src/main/xsd/legacy-users.xsd</source>
-                            </sources>
-                            <packageName>org.apache.nifi.user.generated</packageName>
-                            <clearOutputDir>false</clearOutputDir>
+                            <generatePackage>org.apache.nifi.user.generated</generatePackage>
+                            <schemaDirectory>src/main/xsd</schemaDirectory>
+                            <schemaIncludes>
+                                <include>legacy-users.xsd</include>
+                            </schemaIncludes>
+                            <removeOldOutput>false</removeOldOutput>
+                            <forceRegenerate>true</forceRegenerate>
                         </configuration>
                     </execution>
                 </executions>
                 <configuration>
-                    <outputDirectory>${project.build.directory}/generated-sources/jaxb</outputDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <configuration>
-                    <excludes>**/authorization/file/generated/*.java,**/authorization/file/tenants/generated/*.java,**/user/generated/*.java</excludes>
+                    <generateDirectory>${project.build.directory}/generated-sources/jaxb</generateDirectory>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
-                 allow NiFi to be compiled on those JDKs. -->
-            <id>jigsaw</id>
-            <activation>
-                <jdk>(1.8,)</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>jaxb2-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>authorizations</id>
-                                <configuration>
-                                    <skipXjc>true</skipXjc>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>tenants</id>
-                                <configuration>
-                                    <skipXjc>true</skipXjc>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>users</id>
-                                <configuration>
-                                    <skipXjc>true</skipXjc>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.jvnet.jaxb2.maven2</groupId>
-                        <artifactId>maven-jaxb2-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>authorizations</id>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
-                                <configuration>
-                                    <generatePackage>org.apache.nifi.authorization.file.generated</generatePackage>
-                                    <schemaDirectory>src/main/xsd</schemaDirectory>
-                                    <schemaIncludes>
-                                        <include>authorizations.xsd</include>
-                                    </schemaIncludes>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>tenants</id>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
-                                <configuration>
-                                    <generatePackage>org.apache.nifi.authorization.file.tenants.generated</generatePackage>
-                                    <schemaDirectory>src/main/xsd</schemaDirectory>
-                                    <schemaIncludes>
-                                        <include>tenants.xsd</include>
-                                    </schemaIncludes>
-                                    <removeOldOutput>false</removeOldOutput>
-                                    <forceRegenerate>true</forceRegenerate>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>users</id>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
-                                <configuration>
-                                    <generatePackage>org.apache.nifi.user.generated</generatePackage>
-                                    <schemaDirectory>src/main/xsd</schemaDirectory>
-                                    <schemaIncludes>
-                                        <include>legacy-users.xsd</include>
-                                    </schemaIncludes>
-                                    <removeOldOutput>false</removeOldOutput>
-                                    <forceRegenerate>true</forceRegenerate>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <generateDirectory>${project.build.directory}/generated-sources/jaxb</generateDirectory>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-            <dependencies>
-                <dependency>
-                    <groupId>jakarta.xml.bind</groupId>
-                    <artifactId>jakarta.xml.bind-api</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.glassfish.jaxb</groupId>
-                    <artifactId>jaxb-runtime</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -224,6 +122,14 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>

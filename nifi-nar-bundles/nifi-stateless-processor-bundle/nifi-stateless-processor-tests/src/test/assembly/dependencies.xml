@@ -43,20 +43,6 @@
                 <include>*:slf4j-api</include>
             </includes>
         </dependencySet>
-
-        <!-- Write out the bootstrap libs for java11 to its own dir -->
-        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>./java11</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-            </includes>
-        </dependencySet>
     </dependencySets>
 
 </assembly>

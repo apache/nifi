@@ -149,16 +149,6 @@
             <scope>runtime</scope>
             <type>zip</type>
         </dependency>
-        <!-- Dependencies required for running on Java 11 that will be placed in the lib/java11 dir -->
-        <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
-        </dependency>
         <!-- Dependencies for sensitive properties providers that will be written out to lib/spp and excluded from lib -->
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>

@@ -166,15 +166,6 @@ public class StatelessBootstrap {
 
         findClassNamesInDirectory(narDirectory, narDirectory, classesAllowed, filesAllowed);
 
-        final File java11Directory = new File(narDirectory, "java11");
-        final File[] java11DirectoryFiles = java11Directory.listFiles();
-        if (java11DirectoryFiles != null) {
-            for (final File file : java11DirectoryFiles) {
-                findClassNamesInJar(file, classesAllowed);
-                filesAllowed.add(file.getName());
-            }
-        }
-
         final Set<File> javaHomeFiles = findJavaHomeFiles();
         final Set<String> javaHomeFilenames = new HashSet<>();
         for (final File file : javaHomeFiles) {
