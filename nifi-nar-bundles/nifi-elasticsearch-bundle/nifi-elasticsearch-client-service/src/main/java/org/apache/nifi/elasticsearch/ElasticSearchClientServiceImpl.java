@@ -102,7 +102,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         props.add(PROXY_CONFIGURATION_SERVICE);
         props.add(CONNECT_TIMEOUT);
         props.add(SOCKET_TIMEOUT);
-        props.add(RETRY_TIMEOUT);
         props.add(CHARSET);
         props.add(SUPPRESS_NULLS);
 

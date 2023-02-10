@@ -123,19 +123,6 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
-    /**
-     * @deprecated this setting is no longer used and will be removed in a future version.
-     * Property retained for now to prevent existing Flows with this processor from breaking upon upgrade.
-     */
-    @Deprecated
-    PropertyDescriptor RETRY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el-cs-retry-timeout")
-            .displayName("Retry timeout")
-            .description("Controls the amount of time, in milliseconds, before a timeout occurs when retrying the operation.")
-            .required(true)
-            .defaultValue("60000")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
 
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
