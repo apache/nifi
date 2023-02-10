@@ -25,7 +25,7 @@
 
     <mime-type type="application/flowfile-v3">
         <_comment>NiFi FlowFile V3</_comment>
-        <magic>
+        <magic priority="70">
             <match value="NiFiFF3" type="string" offset="0" />
         </magic>
     </mime-type>
