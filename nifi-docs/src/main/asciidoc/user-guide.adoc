@@ -2949,13 +2949,6 @@ The `WriteAheadProvenanceRepository` can use the Provenance data stored by the `
 ==== Older Existing NiFi Version
 If you are upgrading from an older version of NiFi to 1.2.0 or later, it is recommended that you do not change the provenance configuration to Write Ahead until you confirm your flows and environment are stable in 1.2.0 first.  This reduces the number of variables in your upgrade and can simplify the debugging process if any issues arise.
 
-==== Bootstrap.conf
-While better performance is achieved with the G1 garbage collector, Java 8 bugs may surface more frequently in the Write Ahead configuration.  It is recommended that the following line is commented out in the _bootstrap.conf_ file in the `conf` directory:
-
-....
-java.arg.13=-XX:+UseG1GC
-....
-
 ==== System Properties
 Many of the same system properties are supported by both the Persistent and Write Ahead configurations, however the default values have been chosen for a Persistent Provenance configuration. The following exceptions and recommendations should be noted when changing to a Write Ahead configuration:
 
