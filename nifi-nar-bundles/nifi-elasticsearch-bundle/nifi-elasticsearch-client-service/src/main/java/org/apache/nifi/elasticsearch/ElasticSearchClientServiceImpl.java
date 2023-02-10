@@ -53,6 +53,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
+import org.elasticsearch.client.Node;
 import org.elasticsearch.client.NodeSelector;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.client.Response;
@@ -85,7 +86,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-@Tags({"elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
+@Tags({"elasticsearch", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
 @CapabilityDescription("A controller service for accessing an Elasticsearch client. " +
         "Uses the Elasticsearch REST Client (7.13.4, the last version before client connections verify" +
         "the server is Elastic provided, this should allow for connections to compatible alternatives, e.g. AWS OpenSearch)")
@@ -106,6 +107,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private RestClient client;
 
+    private ElasticsearchNodesSniffer elasticsearchNodesSniffer;
     private Sniffer sniffer;
 
     private String url;
@@ -233,6 +235,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public void onDisabled() throws IOException {
         if (this.sniffer != null) {
             this.sniffer.close();
+            this.elasticsearchNodesSniffer = null;
             this.sniffer = null;
         }
 
@@ -263,26 +266,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             verifyRootConnection(verifyClient, connectionResult, warningsResult);
 
             // try sniffing for cluster nodes
-            try (final Sniffer verifySniffer = setupSniffer(context, verifyClient)) {
-                if (verifySniffer != null) {
-                    verifySniffer.sniffOnFailure();
-                    Thread.sleep(context.getProperty(SNIFFER_REQUEST_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS) + 1000); // allow for sniffer to complete
-                    if (verifyClient.getNodes() != null && !verifyClient.getNodes().isEmpty()) {
-                        snifferResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                                .explanation(String.format("Sniffing for Elasticsearch cluster nodes found %d nodes", verifyClient.getNodes().size()));
-                    } else {
-                        snifferResult.outcome(ConfigVerificationResult.Outcome.FAILED)
-                                .explanation("Sniffing for Elasticsearch cluster nodes did not complete in time");
-                    }
-                } else {
-                    snifferResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation("Sniff on Connection not enabled");
-                }
-            } catch (final Exception ex) {
-                getLogger().warn("Unable to sniff for Elasticsearch cluster nodes", ex);
-
-                snifferResult.outcome(ConfigVerificationResult.Outcome.FAILED)
-                        .explanation("Sniffing for Elasticsearch cluster nodes failed");
-            }
+            verifySniffer(context, verifyClient, snifferResult);
         }catch (final MalformedURLException mue) {
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation("Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName());
@@ -314,6 +298,23 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return results;
     }
 
+    private void verifySniffer(final ConfigurationContext context, final RestClient verifyClient, final ConfigVerificationResult.Builder snifferResult) {
+        try (final Sniffer verifySniffer = setupSniffer(context, verifyClient)) {
+            if (verifySniffer != null && elasticsearchNodesSniffer != null) {
+                final List<Node> nodes = elasticsearchNodesSniffer.sniff();
+                snifferResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                        .explanation(String.format("Sniffing for Elasticsearch cluster nodes found %d nodes", nodes.size()));
+            } else {
+                snifferResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation("Sniff on Connection not enabled");
+            }
+        } catch (final Exception ex) {
+            getLogger().warn("Unable to sniff for Elasticsearch cluster nodes", ex);
+
+            snifferResult.outcome(ConfigVerificationResult.Outcome.FAILED)
+                    .explanation("Sniffing for Elasticsearch cluster nodes failed");
+        }
+    }
+
     private void verifyRootConnection(final RestClient verifyClient, final ConfigVerificationResult.Builder connectionResult, final ConfigVerificationResult.Builder warningsResult) {
         try {
             final Response response = verifyClient.performRequest(new Request("GET", "/"));
@@ -338,10 +339,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     }
 
     private RestClient setupClient(final ConfigurationContext context) throws MalformedURLException, InitializationException {
-        final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
-        final String[] hostsSplit = hosts.split(",\\s*");
-        this.url = hostsSplit[0];
-
         final Integer connectTimeout = context.getProperty(CONNECT_TIMEOUT).asInteger();
         final Integer socketTimeout = context.getProperty(SOCKET_TIMEOUT).asInteger();
 
@@ -367,8 +364,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 .setStrictDeprecationMode(strictDeprecation)
                 .setNodeSelector(nodeSelector);
 
-        if (sniffOnFailure) {
-            builder.setFailureListener(new SniffOnFailureListener());
+        if (sniffOnFailure && sniffer != null) {
+            final SniffOnFailureListener sniffOnFailureListener = new SniffOnFailureListener();
+            sniffOnFailureListener.setSniffer(sniffer);
+            builder.setFailureListener(sniffOnFailureListener);
         }
 
         if (StringUtils.isNotBlank(pathPrefix)) {
@@ -381,15 +380,15 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private HttpHost[] getHttpHosts(final ConfigurationContext context) throws MalformedURLException {
         final String hosts = context.getProperty(HTTP_HOSTS).evaluateAttributeExpressions().getValue();
 
-        final String[] hostsSplit = hosts.split(",\\s*");
-        this.url = hostsSplit[0];
-        final HttpHost[] hh = new HttpHost[hostsSplit.length];
-        for (int x = 0; x < hh.length; x++) {
-            final URL u = new URL(hostsSplit[x]);
-            hh[x] = new HttpHost(u.getHost(), u.getPort(), u.getProtocol());
+        final List<String> hostsSplit = Arrays.stream(hosts.split(",\\s*")).map(String::trim).collect(Collectors.toList());
+        this.url = hostsSplit.get(0);
+        final List<HttpHost> hh = new ArrayList<>(hostsSplit.size());
+        for (final String host : hostsSplit) {
+            final URL u = new URL(host);
+            hh.add(new HttpHost(u.getHost(), u.getPort(), u.getProtocol()));
         }
 
-        return hh;
+        return hh.toArray(new HttpHost[0]);
     }
 
     private RestClientBuilder addAuthAndProxy(final ConfigurationContext context, final RestClientBuilder builder) throws InitializationException {
@@ -488,22 +487,27 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private Sniffer setupSniffer(final ConfigurationContext context, final RestClient restClient) {
         final boolean sniffClusterNodes = context.getProperty(SNIFF_CLUSTER_NODES).asBoolean();
         final int snifferIntervalMillis = context.getProperty(SNIFFER_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Long snifferRequestTimeoutMillis = context.getProperty(SNIFFER_REQUEST_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
         final int snifferFailureDelayMillis = context.getProperty(SNIFFER_FAILURE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         if (sniffClusterNodes) {
-            final ElasticsearchNodesSniffer.Scheme scheme = this.url.toLowerCase(Locale.getDefault()).startsWith("https://")
-                    ? ElasticsearchNodesSniffer.Scheme.HTTPS : ElasticsearchNodesSniffer.Scheme.HTTP;
-
             final SnifferBuilder snifferBuilder = Sniffer.builder(restClient)
                     .setSniffIntervalMillis(snifferIntervalMillis)
                     .setSniffAfterFailureDelayMillis(snifferFailureDelayMillis)
-                    .setNodesSniffer(new ElasticsearchNodesSniffer(restClient, snifferRequestTimeoutMillis, scheme));
+                    .setNodesSniffer(setupElasticsearchNodesSniffer(context, restClient));
 
             return snifferBuilder.build();
         }
 
         return null;
+    }
+
+    private ElasticsearchNodesSniffer setupElasticsearchNodesSniffer(final ConfigurationContext context, final RestClient restClient) {
+        final Long snifferRequestTimeoutMillis = context.getProperty(SNIFFER_REQUEST_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        final ElasticsearchNodesSniffer.Scheme scheme = this.url.toLowerCase(Locale.getDefault()).startsWith("https://")
+                ? ElasticsearchNodesSniffer.Scheme.HTTPS : ElasticsearchNodesSniffer.Scheme.HTTP;
+
+        this.elasticsearchNodesSniffer = new ElasticsearchNodesSniffer(restClient, snifferRequestTimeoutMillis, scheme);
+        return elasticsearchNodesSniffer;
     }
 
     private void appendIndex(final StringBuilder sb, final String index) {
@@ -959,10 +963,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
 
         if (getLogger().isDebugEnabled()) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            entity.writeTo(out);
-            out.close();
-
             StringBuilder builder = new StringBuilder(1000);
             builder.append("Dumping Elasticsearch REST request...\n")
                     .append("HTTP Method: ")
@@ -973,10 +973,17 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     .append("\n")
                     .append("Parameters: ")
                     .append(prettyPrintWriter.writeValueAsString(parameters))
-                    .append("\n")
-                    .append("Request body: ")
-                    .append(new String(out.toByteArray()))
                     .append("\n");
+
+            if (entity != null) {
+                final ByteArrayOutputStream out = new ByteArrayOutputStream();
+                entity.writeTo(out);
+                out.close();
+
+                builder.append("Request body: ")
+                        .append(out)
+                        .append("\n");
+            }
 
             getLogger().debug(builder.toString());
         }

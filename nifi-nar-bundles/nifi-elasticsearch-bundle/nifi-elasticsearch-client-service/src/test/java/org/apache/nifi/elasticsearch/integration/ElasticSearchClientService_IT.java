@@ -99,9 +99,17 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     void testVerifySniffer() {
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "true");
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "false");
+        runner.enableControllerService(service);
+        assertVerifySniffer();
+
+        runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "true");
         runner.enableControllerService(service);
+        assertVerifySniffer();
+    }
 
+    private void assertVerifySniffer() {
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
                 new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
                 runner.getLogger(),

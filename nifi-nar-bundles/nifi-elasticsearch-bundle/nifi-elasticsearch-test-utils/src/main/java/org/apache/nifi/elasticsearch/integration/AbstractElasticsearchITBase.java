@@ -47,11 +47,14 @@ import static org.apache.http.auth.AuthScope.ANY;
 public abstract class AbstractElasticsearchITBase {
     // default Elasticsearch version should (ideally) match that in the nifi-elasticsearch-bundle#pom.xml for the integration-tests profile
     protected static final DockerImageName IMAGE = DockerImageName
-            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.5.0"));
+            .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.6.1"));
     protected static final String ELASTIC_USER_PASSWORD = System.getProperty("elasticsearch.elastic_user.password", RandomStringUtils.randomAlphanumeric(10, 20));
     protected static final ElasticsearchContainer ELASTICSEARCH_CONTAINER = new ElasticsearchContainer(IMAGE)
             .withPassword(ELASTIC_USER_PASSWORD)
             .withEnv("xpack.security.enabled", "true")
+            // use a "special address" to ensure the publish_host is in the bind_hosts list, otherwise the Sniffer won't work
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html#network-interface-values
+            .withEnv("network.bind_host", "_site_")
             // enable API Keys for integration-tests (6.x & 7.x don't enable SSL and therefore API Keys by default, so use a trial license and explicitly enable API Keys)
             .withEnv("xpack.license.self_generated.type", "trial")
             .withEnv("xpack.security.authc.api_key.enabled", "true");

@@ -216,7 +216,13 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     PropertyDescriptor SNIFF_CLUSTER_NODES = new PropertyDescriptor.Builder()
             .name("el-cs-sniff-cluster-nodes")
             .displayName("Sniff Cluster Nodes")
-            .description("Periodically sniff for nodes within the Elasticsearch cluster")
+            .description("Periodically sniff for nodes within the Elasticsearch cluster via the Elasticsearch Node Info API. " +
+                    "If Elasticsearch security features are enabled (default to \"true\" for 8.x+), the Elasticsearch user must " +
+                    "have the \"monitor\" or \"manage\" cluster privilege to use this API." +
+                    "Note that all " + HTTP_HOSTS.getDisplayName() + " (and those that may be discovered within the cluster " +
+                    "using the Sniffer) must use the same protocol, e.g. http or https, but not a mix. " +
+                    "Finally the Elasticsearch network.publish_address must match one of the network.bind_address(es) " +
+                    "see https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html for more information")
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(true)
