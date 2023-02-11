@@ -63,7 +63,6 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.sniff.ElasticsearchNodesSniffer;
 import org.elasticsearch.client.sniff.SniffOnFailureListener;
 import org.elasticsearch.client.sniff.Sniffer;
-import org.elasticsearch.client.sniff.SnifferBuilder;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
@@ -84,6 +83,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Tags({"elasticsearch", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
@@ -107,7 +107,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private RestClient client;
 
-    private ElasticsearchNodesSniffer elasticsearchNodesSniffer;
     private Sniffer sniffer;
 
     private String url;
@@ -235,7 +234,6 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public void onDisabled() throws IOException {
         if (this.sniffer != null) {
             this.sniffer.close();
-            this.elasticsearchNodesSniffer = null;
             this.sniffer = null;
         }
 
@@ -267,7 +265,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
             // try sniffing for cluster nodes
             verifySniffer(context, verifyClient, snifferResult);
-        }catch (final MalformedURLException mue) {
+        } catch (final MalformedURLException mue) {
             clientSetupResult.outcome(ConfigVerificationResult.Outcome.FAILED)
                     .explanation("Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName());
         } catch (final InitializationException ie) {
@@ -300,10 +298,41 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private void verifySniffer(final ConfigurationContext context, final RestClient verifyClient, final ConfigVerificationResult.Builder snifferResult) {
         try (final Sniffer verifySniffer = setupSniffer(context, verifyClient)) {
-            if (verifySniffer != null && elasticsearchNodesSniffer != null) {
+            if (verifySniffer != null) {
+                final List<Node> originalNodes = verifyClient.getNodes();
+                // cannot access the NodesSniffer from the parent Sniffer, so set up a second instance here
+                final ElasticsearchNodesSniffer elasticsearchNodesSniffer = setupElasticsearchNodesSniffer(context, verifyClient);
                 final List<Node> nodes = elasticsearchNodesSniffer.sniff();
-                snifferResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                        .explanation(String.format("Sniffing for Elasticsearch cluster nodes found %d nodes", nodes.size()));
+
+                // attempt to connect to each Elasticsearch Node using the RestClient
+                final AtomicInteger successfulInstances = new AtomicInteger(0);
+                final AtomicInteger warningInstances = new AtomicInteger(0);
+                nodes.forEach(n -> {
+                    try {
+                        verifyClient.setNodes(Collections.singletonList(n));
+                        final List<String> warnings = getElasticsearchRoot(verifyClient);
+                        successfulInstances.getAndIncrement();
+                        if (!warnings.isEmpty()) {
+                            warningInstances.getAndIncrement();
+                        }
+                    } catch (final Exception ex) {
+                        getLogger().warn("Elasticsearch Node {} connection failed", n.getHost().toURI(), ex);
+                    }
+                });
+                // reset Nodes list on RestClient to pre-Sniffer state (match user's Verify settings)
+                verifyClient.setNodes(originalNodes);
+
+                if (successfulInstances.get() < nodes.size()) {
+                    snifferResult.outcome(ConfigVerificationResult.Outcome.FAILED).explanation(
+                            String.format("Sniffing for Elasticsearch cluster nodes found %d nodes but %d could not be contacted (%d with warnings during connection tests)",
+                                    nodes.size(), nodes.size() - successfulInstances.get(), warningInstances.get())
+                    );
+                } else {
+                    snifferResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL).explanation(
+                            String.format("Sniffing for Elasticsearch cluster nodes found %d nodes (%d with warnings during connection tests)",
+                                    nodes.size(), warningInstances.get())
+                    );
+                }
             } else {
                 snifferResult.outcome(ConfigVerificationResult.Outcome.SKIPPED).explanation("Sniff on Connection not enabled");
             }
@@ -315,11 +344,17 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
     }
 
+    private List<String> getElasticsearchRoot(final RestClient verifyClient) throws IOException {
+        final Response response = verifyClient.performRequest(new Request("GET", "/"));
+        final List<String> warnings = parseResponseWarningHeaders(response);
+        parseResponse(response);
+
+        return warnings;
+    }
+
     private void verifyRootConnection(final RestClient verifyClient, final ConfigVerificationResult.Builder connectionResult, final ConfigVerificationResult.Builder warningsResult) {
         try {
-            final Response response = verifyClient.performRequest(new Request("GET", "/"));
-            final List<String> warnings = parseResponseWarningHeaders(response);
-            parseResponse(response);
+            final List<String> warnings = getElasticsearchRoot(verifyClient);
 
             connectionResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL);
             if (warnings.isEmpty()) {
@@ -490,12 +525,11 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final int snifferFailureDelayMillis = context.getProperty(SNIFFER_FAILURE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
         if (sniffClusterNodes) {
-            final SnifferBuilder snifferBuilder = Sniffer.builder(restClient)
+            return Sniffer.builder(restClient)
                     .setSniffIntervalMillis(snifferIntervalMillis)
                     .setSniffAfterFailureDelayMillis(snifferFailureDelayMillis)
-                    .setNodesSniffer(setupElasticsearchNodesSniffer(context, restClient));
-
-            return snifferBuilder.build();
+                    .setNodesSniffer(setupElasticsearchNodesSniffer(context, restClient))
+                    .build();
         }
 
         return null;
@@ -506,8 +540,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         final ElasticsearchNodesSniffer.Scheme scheme = this.url.toLowerCase(Locale.getDefault()).startsWith("https://")
                 ? ElasticsearchNodesSniffer.Scheme.HTTPS : ElasticsearchNodesSniffer.Scheme.HTTP;
 
-        this.elasticsearchNodesSniffer = new ElasticsearchNodesSniffer(restClient, snifferRequestTimeoutMillis, scheme);
-        return elasticsearchNodesSniffer;
+        return new ElasticsearchNodesSniffer(restClient, snifferRequestTimeoutMillis, scheme);
     }
 
     private void appendIndex(final StringBuilder sb, final String index) {
