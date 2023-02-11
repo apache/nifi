@@ -707,6 +707,11 @@
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
+    <bean id="labelAuditor" class="org.apache.nifi.audit.LabelAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
     <bean id="snippetAuditor" class="org.apache.nifi.audit.SnippetAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
@@ -723,6 +728,7 @@
         <property name="processGroupAuditor" ref="processGroupAuditor"/>
         <property name="processorAuditor" ref="processorAuditor"/>
         <property name="relationshipAuditor" ref="relationshipAuditor"/>
+        <property name="labelAuditor" ref="labelAuditor"/>
     </bean>
     <bean id="controllerServiceAuditor" class="org.apache.nifi.audit.ControllerServiceAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
