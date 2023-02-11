@@ -31,7 +31,6 @@ env:
     -Dmaven.wagon.http.pool=false
   MAVEN_COMPILE_COMMAND: >-
     mvn test-compile
-    --threads 2C
     --show-version
     --no-snapshot-updates
     --no-transfer-progress
