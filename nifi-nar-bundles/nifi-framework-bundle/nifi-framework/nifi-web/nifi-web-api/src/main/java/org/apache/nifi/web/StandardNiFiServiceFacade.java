@@ -5928,6 +5928,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case UserGroup:
                     authorizable = authorizableLookup.getTenant();
                     break;
+                case Label:
+                    authorizable = authorizableLookup.getLabel(sourceId);
+                    break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());
             }
