@@ -36,5 +36,6 @@ public enum Component {
     ParameterProvider,
     AccessPolicy,
     User,
-    UserGroup;
+    UserGroup,
+    Label;
 }
