@@ -42,8 +42,8 @@
     There may also be need to set some of the <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html">
     Elasticsearch Networking Advanced Settings</a>, such as <code>network.publish_host</code> to ensure that
     the HTTP Hosts found by the Sniffer are accessible by NiFi. For example, Elasticsearch may use a network internal
-    <code>publish_address</code> that is inaccessible to NiFi, but instead should use an address/IP that NiFi understands.
-    It may also be necessary to add this same address to Elasticsearch's <code>network.bind_address</code> list.
+    <code>publish_host</code> that is inaccessible to NiFi, but instead should use an address/IP that NiFi understands.
+    It may also be necessary to add this same address to Elasticsearch's <code>network.bind_host</code> list.
 </p>
 <p>
     See <a href="https://www.elastic.co/blog/elasticsearch-sniffing-best-practices-what-when-why-how">

@@ -60,7 +60,7 @@ public abstract class AbstractElasticsearchITBase {
             // enable API Keys for integration-tests (6.x & 7.x don't enable SSL and therefore API Keys by default, so use a trial license and explicitly enable API Keys)
             .withEnv("xpack.license.self_generated.type", "trial")
             .withEnv("xpack.security.authc.api_key.enabled", "true")
-            // use a "special address" to ensure the publish_host is in the bind_hosts list, otherwise the Sniffer won't work
+            // use a "special address" to ensure the publish_host is in the bind_host list, otherwise the Sniffer won't work
             // https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html#network-interface-values
             // TestContainers makes Elasticsearch available via localhost/127.0.0.1; Elasticsearch uses the IP Address in publish_host
             .withEnv("network.bind_host", "_local_,_site_")

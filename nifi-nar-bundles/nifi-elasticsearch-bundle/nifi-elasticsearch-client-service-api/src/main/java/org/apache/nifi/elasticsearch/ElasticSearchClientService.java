@@ -221,7 +221,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
                     "have the \"monitor\" or \"manage\" cluster privilege to use this API." +
                     "Note that all " + HTTP_HOSTS.getDisplayName() + " (and those that may be discovered within the cluster " +
                     "using the Sniffer) must use the same protocol, e.g. http or https, and be contactable using the same client settings. " +
-                    "Finally the Elasticsearch \"network.publish_address\" must match one of the \"network.bind_address(es)\" " +
+                    "Finally the Elasticsearch \"network.publish_host\" must match one of the \"network.bind_host\" list entries " +
                     "see https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html for more information")
             .allowableValues("true", "false")
             .defaultValue("false")
