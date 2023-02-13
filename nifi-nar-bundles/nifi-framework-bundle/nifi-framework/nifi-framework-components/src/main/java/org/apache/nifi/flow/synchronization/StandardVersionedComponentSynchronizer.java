@@ -631,7 +631,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final String proposedSourceId = proposedConnection.getSource().getId();
                 final String existingSourceId = existingConnection.getSource().getVersionedComponentId().orElse(null);
 
-                if (!Objects.equals(proposedSourceId, existingSourceId)) {
+                if (existingSourceId != null && !Objects.equals(proposedSourceId, existingSourceId)) {
                     connectionsRemovedDueToChangingSourceId.add(proposedConnection.getIdentifier());
                     connectionsRemoved.add(proposedConnection.getIdentifier());
                 }
