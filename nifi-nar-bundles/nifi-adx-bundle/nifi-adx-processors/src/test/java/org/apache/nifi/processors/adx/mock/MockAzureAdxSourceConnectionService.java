@@ -38,6 +38,9 @@ public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectio
         return new Client() {
 
             @Override
+            public void close() throws IOException {
+            }
+            @Override
             public KustoOperationResult execute(String command) {
                 return null;
             }
