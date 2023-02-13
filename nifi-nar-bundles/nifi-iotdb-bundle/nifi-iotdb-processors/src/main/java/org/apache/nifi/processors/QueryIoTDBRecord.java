@@ -161,7 +161,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
 
         try {
             SessionDataSet dataSet = session.get().executeQueryStatement(query);
-            List<Map<String,Object>> result=new ArrayList<>();
+            List<Map<String,Object>> result = new ArrayList<>();
             dataSet.setFetchSize(fetchSize);
             List<String> fieldType = dataSet.getColumnTypes();
             List<String> fieldNames = dataSet.getColumnNames();
