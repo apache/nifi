@@ -70,10 +70,11 @@ import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
         @WritesAttribute(attribute = "putredisrecord.successful.record.count", description = "The number of records successfully written to Redis. This can be compared to the 'record.count' "
                 + "attribute if it exists on the incoming FlowFile")
 })
-public class PutRedisRecord extends AbstractProcessor {
+public class PutRedisHashRecord extends AbstractProcessor {
 
+    public static final String SUCCESS_RECORD_COUNT = "putredisrecord.successful.record.count";
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("redis-record-reader")
+            .name("record-reader")
             .displayName("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
             .identifiesControllerService(RecordReaderFactory.class)
@@ -81,7 +82,7 @@ public class PutRedisRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor HASH_VALUE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("redis-hash-value-record-path")
+            .name("hash-value-record-path")
             .displayName("Hash Value Record Path")
             .description("Specifies a RecordPath to evaluate against each Record in order to determine the hash value associated with all the record fields/values "
                     + "(see 'hset' in Redis documentation for more details). The RecordPath must point at exactly one field or an error will occur.")
@@ -91,7 +92,7 @@ public class PutRedisRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DATA_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("redis-data-record-path")
+            .name("data-record-path")
             .displayName("Data Record Path")
             .description("This property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
                     " Redis instead of sending the entire incoming Record. The property defaults to the root '/' which corresponds to a 'flat' record (all fields/values at the top level of " +
@@ -102,7 +103,7 @@ public class PutRedisRecord extends AbstractProcessor {
             .expressionLanguageSupported(NONE)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("redis-charset")
+            .name("charset")
             .displayName("Character Set")
             .description("Specifies the character set to use when storing record field values as strings. All fields will be converted to strings using this character set "
                     + "before being stored in Redis.")
@@ -114,12 +115,12 @@ public class PutRedisRecord extends AbstractProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("FlowFiles that are successfully entered into Redis will be routed to this relationship")
+            .description("FlowFiles having all Records stored in Redis will be routed to this relationship")
             .build();
 
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("FlowFiles that are unsuccessfully entered into Redis will be routed to this relationship")
+            .description("FlowFiles containing Records with processing errors will be routed to this relationship")
             .build();
 
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
@@ -198,8 +199,7 @@ public class PutRedisRecord extends AbstractProcessor {
                 final FieldValue hashValueFieldValue = resultList.get(0);
                 final Object hashValueObject = hashValueFieldValue.getValue();
                 if (hashValueObject == null) {
-                    throw new ProcessException("Evaluated RecordPath " + hashValueRecordPath.getPath() + " against Record and received a null value, which is not allowed. Ensure "
-                            + "the RecordPath is pointing at a field that exists at that location and has a non-null value.");
+                    throw new ProcessException(String.format("Null value found for Record [%d] Hash Value Record Path: %s", count, hashValueRecordPath.getPath()));
                 }
                 final String hashValue = (String) DataTypeUtils.convertType(hashValueObject, RecordFieldType.STRING.getDataType(), charset.name());
 
@@ -210,22 +210,22 @@ public class PutRedisRecord extends AbstractProcessor {
 
         } catch (MalformedRecordException e) {
             getLogger().error("Read Records failed {}", flowFile, e);
-            flowFile = session.putAttribute(flowFile, "putredisrecord.successful.record.count", String.valueOf(count));
+            flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (SchemaNotFoundException e) {
-            getLogger().error("Couldn't create record writer. Transferring FlowFile to failure", e);
-            flowFile = session.putAttribute(flowFile, "putredisrecord.successful.record.count", String.valueOf(count));
+            getLogger().error("Record Schema not found {}", flowFile, e);
+            flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (Exception e) {
-            getLogger().error("Failed to put records to Redis. Transferring FlowFile to failure", e);
-            flowFile = session.putAttribute(flowFile, "putredisrecord.successful.record.count", String.valueOf(count));
+            getLogger().error("Put Records failed {}", flowFile, e);
+            flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        flowFile = session.putAttribute(flowFile, "putredisrecord.successful.record.count", String.valueOf(count));
+        flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
