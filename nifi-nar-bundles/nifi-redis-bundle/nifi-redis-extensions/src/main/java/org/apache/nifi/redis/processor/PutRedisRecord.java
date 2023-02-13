@@ -169,7 +169,7 @@ public class PutRedisRecord extends AbstractProcessor {
         }
 
         RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
-        int count = 0;
+        long count = 0;
 
         try (InputStream in = session.read(flowFile);
              RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
@@ -188,11 +188,11 @@ public class PutRedisRecord extends AbstractProcessor {
                 final RecordPathResult recordPathResult = hashValueRecordPath.evaluate(record);
                 final List<FieldValue> resultList = recordPathResult.getSelectedFields().distinct().collect(Collectors.toList());
                 if (resultList.isEmpty()) {
-                    throw new ProcessException("Evaluated RecordPath " + hashValueRecordPath.getPath() + " against Record but got no results");
+                    throw new ProcessException(String.format("No results found for Record [%d] Hash Value Record Path: %s", count, hashValueRecordPath.getPath()));
                 }
 
                 if (resultList.size() > 1) {
-                    throw new ProcessException("Evaluated RecordPath " + hashValueRecordPath.getPath() + " against Record and received multiple distinct results (" + resultList + ")");
+                    throw new ProcessException(String.format("Multiple results [%d] found for Record [%d] Hash Value Record Path: %s", resultList.size(), count, hashValueRecordPath.getPath()));
                 }
 
                 final FieldValue hashValueFieldValue = resultList.get(0);
@@ -205,25 +205,11 @@ public class PutRedisRecord extends AbstractProcessor {
 
                 List<Record> dataRecords = getDataRecords(dataRecordPath, record);
 
-                for (Record dataRecord : dataRecords) {
-                    RecordSchema dataRecordSchema = dataRecord.getSchema();
-
-                    for (RecordField recordField : dataRecordSchema.getFields()) {
-                        final String fieldName = recordField.getFieldName();
-                        final Object value = record.getValue(fieldName);
-                        if (fieldName == null || value == null) {
-                            getLogger().debug("Record fieldname or value is null, skipping this field");
-                        } else {
-                            final String stringValue = (String) DataTypeUtils.convertType(value, RecordFieldType.STRING.getDataType(), charset.name());
-                            redisConnection.hashCommands().hSet(hashValue.getBytes(charset), fieldName.getBytes(charset), stringValue.getBytes(charset));
-                        }
-                    }
-                    count++;
-                }
+                count = putDataRecordsToRedis(dataRecords, redisConnection, hashValue, charset, count);
             }
 
         } catch (MalformedRecordException e) {
-            getLogger().error("Couldn't read records from input. Transferring FlowFile to failure", e);
+            getLogger().error("Read Records failed {}", flowFile, e);
             flowFile = session.putAttribute(flowFile, "putredisrecord.successful.record.count", String.valueOf(count));
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -268,5 +254,25 @@ public class PutRedisRecord extends AbstractProcessor {
         }
 
         return dataRecords;
+    }
+
+    private long putDataRecordsToRedis(final List<Record> dataRecords, final RedisConnection redisConnection, final String hashValue, final Charset charset, final long originalCount) {
+        long count = originalCount;
+        for (Record dataRecord : dataRecords) {
+            RecordSchema dataRecordSchema = dataRecord.getSchema();
+
+            for (RecordField recordField : dataRecordSchema.getFields()) {
+                final String fieldName = recordField.getFieldName();
+                final Object value = dataRecord.getValue(fieldName);
+                if (fieldName == null || value == null) {
+                    getLogger().debug("Record field missing required elements: name [{}] value [{}]", fieldName, value);
+                } else {
+                    final String stringValue = (String) DataTypeUtils.convertType(value, RecordFieldType.STRING.getDataType(), charset.name());
+                    redisConnection.hashCommands().hSet(hashValue.getBytes(charset), fieldName.getBytes(charset), stringValue.getBytes(charset));
+                }
+            }
+            count++;
+        }
+        return count;
     }
 }
