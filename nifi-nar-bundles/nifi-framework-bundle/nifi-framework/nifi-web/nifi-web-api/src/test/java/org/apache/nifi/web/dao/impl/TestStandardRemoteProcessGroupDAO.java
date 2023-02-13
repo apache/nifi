@@ -24,14 +24,14 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -50,11 +50,10 @@ public class TestStandardRemoteProcessGroupDAO {
                 fail("Validation should pass, but failed with: " + e);
             }
             final List<String> validationErrors = e.getValidationErrors();
-            assertEquals("Validation should return one validationErrors", 1, validationErrors.size());
+            assertEquals(1, validationErrors.size(), "Validation should return one validationErrors");
             final String validationError = validationErrors.get(0);
             for (String errMessageKeyword : errMessageKeywords) {
-                assertTrue("validation error message should contain " + errMessageKeyword + ", but was: " + validationError,
-                        validationError.contains(errMessageKeyword));
+                assertTrue(validationError.contains(errMessageKeyword),"validation error message should contain " + errMessageKeyword + ", but was: " + validationError);
             }
         }
     }

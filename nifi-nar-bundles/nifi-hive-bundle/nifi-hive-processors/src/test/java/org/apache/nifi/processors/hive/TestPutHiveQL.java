@@ -42,10 +42,10 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
 public class TestPutHiveQL {
@@ -490,8 +490,8 @@ public class TestPutHiveQL {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
                 assertTrue(rs.next());
-                assertEquals("Record ID mismatch", 1, rs.getInt(1));
-                assertEquals("Record NAME mismatch", "George", rs.getString(2));
+                assertEquals( 1, rs.getInt(1), "Record ID mismatch");
+                assertEquals("George", rs.getString(2), "Record NAME mismatch");
             }
         }
     }
@@ -538,8 +538,8 @@ public class TestPutHiveQL {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
                 assertTrue(rs.next());
-                assertEquals("Record ID mismatch", 1, rs.getInt(1));
-                assertEquals("Record NAME mismatch", "George\\;", rs.getString(2));
+                assertEquals(1, rs.getInt(1), "Record ID mismatch");
+                assertEquals( "George\\;", rs.getString(2), "Record NAME mismatch");
             }
         }
     }

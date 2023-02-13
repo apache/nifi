@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 /**
  * Audits process group creation/removal and configuration changes.
@@ -209,12 +208,12 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(java.util.concurrent.Future<Void> scheduleComponents(String, org.apache.nifi.controller.ScheduledState, java.util.Set<String>)) && "
+        + "execution(void scheduleComponents(String, org.apache.nifi.controller.ScheduledState, java.util.Set<String>)) && "
         + "args(groupId, state, componentIds)")
-    public Future<Void> scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state, Set<String> componentIds) throws Throwable {
+    public void scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state, Set<String> componentIds) throws Throwable {
         final Operation operation;
 
-        final Future<Void> result = (Future<Void>) proceedingJoinPoint.proceed();
+        proceedingJoinPoint.proceed();
 
         // determine the running state
         if (ScheduledState.RUNNING.equals(state)) {
@@ -224,8 +223,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateAction(groupId, operation);
-
-        return result;
     }
 
     /**
@@ -263,12 +260,12 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-        + "execution(java.util.concurrent.Future<Void> activateControllerServices(String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Collection<String>)) && "
+        + "execution(void activateControllerServices(String, org.apache.nifi.controller.service.ControllerServiceState, java.util.Collection<String>)) && "
         + "args(groupId, state, serviceIds)")
-    public Future<Void> activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
+    public void activateControllerServicesAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ControllerServiceState state, Collection<String> serviceIds) throws Throwable {
         final Operation operation;
 
-        final Future<Void> result = (Future<Void>) proceedingJoinPoint.proceed();
+        proceedingJoinPoint.proceed();
 
         // determine the service state
         if (ControllerServiceState.ENABLED.equals(state)) {
@@ -278,8 +275,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateAction(groupId, operation);
-
-        return result;
     }
 
     /**

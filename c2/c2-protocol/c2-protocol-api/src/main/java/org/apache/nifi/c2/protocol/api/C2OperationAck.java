@@ -20,6 +20,7 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
+import java.util.Objects;
 
 @ApiModel
 public class C2OperationAck implements Serializable {
@@ -80,5 +81,34 @@ public class C2OperationAck implements Serializable {
 
     public void setFlowInfo(final FlowInfo flowInfo) {
         this.flowInfo = flowInfo;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        C2OperationAck that = (C2OperationAck) o;
+        return Objects.equals(operationId, that.operationId) && Objects.equals(operationState, that.operationState) && Objects.equals(deviceInfo,
+            that.deviceInfo) && Objects.equals(agentInfo, that.agentInfo) && Objects.equals(flowInfo, that.flowInfo);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(operationId, operationState, deviceInfo, agentInfo, flowInfo);
+    }
+
+    @Override
+    public String toString() {
+        return "C2OperationAck{" +
+            "operationId='" + operationId + '\'' +
+            ", operationState=" + operationState +
+            ", deviceInfo=" + deviceInfo +
+            ", agentInfo=" + agentInfo +
+            ", flowInfo=" + flowInfo +
+            '}';
     }
 }

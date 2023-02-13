@@ -40,6 +40,12 @@ case ${AUTH} in
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
         ;;
+    oidc)
+        echo 'Enabling OIDC user authentication'
+
+        . "${scripts_dir}/secure.sh"
+        . "${scripts_dir}/update_oidc_properties.sh"
+        ;;
 esac
 
 . "${scripts_dir}/update_flow_provider.sh"

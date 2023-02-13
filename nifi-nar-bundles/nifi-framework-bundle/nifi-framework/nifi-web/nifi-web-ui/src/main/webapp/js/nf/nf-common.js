@@ -1084,6 +1084,21 @@
         }()),
 
         /**
+         * Formats the specified value, so new lines are represented as \<br\>
+         * If value is null or not defined an empty string is returned
+         *
+         * @argument {string} value     string value
+         * @returns {string}
+         */
+        formatNewLines: function (value) {
+            if (nfCommon.isDefinedAndNotNull(value)) {
+            	return value.replaceAll(/[\n]/g, "<br>");
+            } else {
+                return '';
+            }
+        },
+
+        /**
          * Determines if the specified property is sensitive.
          *
          * @argument {object} propertyDescriptor        The property descriptor

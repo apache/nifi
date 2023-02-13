@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestActionHandlerLookup {
 
@@ -76,7 +77,7 @@ public class TestActionHandlerLookup {
         action.setType("ALERT");
         action.setAttributes(attributes);
         actionHandlerLookup.execute(null, action, metrics);
-        assert alertHandler.getExecuteContextCalled();
+        assertTrue(alertHandler.getExecuteContextCalled());
     }
 
     @Test
@@ -91,7 +92,7 @@ public class TestActionHandlerLookup {
         action.setType("LOG");
         action.setAttributes(attributes);
         actionHandlerLookup.execute(null, action, metrics);
-        assert logHandler.getExecuteContextCalled();
+        assertTrue(logHandler.getExecuteContextCalled());
     }
 
     @Test

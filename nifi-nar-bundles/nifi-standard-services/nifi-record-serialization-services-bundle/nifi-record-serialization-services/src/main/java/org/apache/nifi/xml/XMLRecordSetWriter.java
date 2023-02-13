@@ -17,7 +17,7 @@
 
 package org.apache.nifi.xml;
 
-import org.apache.nifi.record.NullSuppression;
+import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;

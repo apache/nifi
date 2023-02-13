@@ -19,7 +19,6 @@ package org.apache.nifi.cef;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.junit.Assert;
 
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -29,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestCEFUtil {
     static final String RAW_FIELD = "raw";
@@ -122,7 +123,8 @@ public class TestCEFUtil {
      * Record internally keeps the unknown fields even if they are marked for dropping. Thus direct comparison will not work as expected
      */
     static void assertFieldsAre(final Record record, final Map<String, Object> expectedValues) {
-        Assert.assertEquals(expectedValues.size(), record.getValues().length);
-        expectedValues.entrySet().forEach(field -> Assert.assertEquals("Field " + field.getKey() + " is incorrect" , field.getValue(), record.getValue(field.getKey())));
+        assertEquals(expectedValues.size(), record.getValues().length);
+        expectedValues.entrySet().forEach(field -> assertEquals(field.getValue(), record.getValue(field.getKey()),
+                "Field " + field.getKey() + " is incorrect"));
     }
 }

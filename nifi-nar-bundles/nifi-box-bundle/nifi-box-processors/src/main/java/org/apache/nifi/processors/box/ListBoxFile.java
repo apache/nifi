@@ -16,10 +16,28 @@
  */
 package org.apache.nifi.processors.box;
 
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
+
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -44,18 +62,6 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"box", "storage"})
@@ -64,13 +70,14 @@ import java.util.stream.Collectors;
     "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single FlowFile. " +
     "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
     "previous node left off without duplicating all of the data.")
-@SeeAlso({FetchBoxFile.class})
+@SeeAlso({FetchBoxFile.class, PutBoxFile.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({@WritesAttribute(attribute = BoxFileInfo.ID, description = "The id of the file"),
-    @WritesAttribute(attribute = BoxFileInfo.FILENAME, description = "The name of the file"),
-    @WritesAttribute(attribute = BoxFileInfo.PATH, description = "The path of the file on Box"),
-    @WritesAttribute(attribute = BoxFileInfo.SIZE, description = "The size of the file (in bytes)"),
-    @WritesAttribute(attribute = BoxFileInfo.TIMESTAMP, description = "The last modified time of the file.")})
+@WritesAttributes({
+    @WritesAttribute(attribute = ID, description = ID_DESC),
+    @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
+    @WritesAttribute(attribute = "path", description = PATH_DESC),
+    @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+    @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC)})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
     " What exactly needs to be stored depends on the 'Listing Strategy'.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
@@ -158,7 +165,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) {
         BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
         boxAPIConnection = boxClientService.getBoxApiConnection();
@@ -200,8 +207,8 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     protected List<BoxFileInfo> performListing(
         final ProcessContext context,
         final Long minTimestamp,
-        final ListingMode listingMode
-    ) throws IOException {
+        final ListingMode listingMode)  {
+
         final List<BoxFileInfo> listing = new ArrayList<>();
 
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
@@ -235,10 +242,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
                     BoxFileInfo boxFileInfo = new BoxFileInfo.Builder()
                         .id(info.getID())
                         .fileName(info.getName())
-                        .path("/" + info.getPathCollection().stream()
-                            .filter(pathItemInfo -> !pathItemInfo.getID().equals("0"))
-                            .map(BoxItem.Info::getName)
-                            .collect(Collectors.joining("/")))
+                        .path(BoxFileUtils.getParentPath(info))
                         .size(info.getSize())
                         .createdTime(info.getCreatedAt().getTime())
                         .modifiedTime(info.getModifiedAt().getTime())
@@ -257,7 +261,7 @@ public class ListBoxFile extends AbstractListProcessor<BoxFileInfo> {
     }
 
     @Override
-    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+    protected Integer countUnfilteredListing(final ProcessContext context) {
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
     }
 }

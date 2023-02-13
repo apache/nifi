@@ -350,6 +350,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
         properties.add(TOKEN_AUTHENTICATION);
+        properties.add(AWS_PROFILE_NAME);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(MESSAGE_KEY_FIELD);
         properties.add(MAX_REQUEST_SIZE);

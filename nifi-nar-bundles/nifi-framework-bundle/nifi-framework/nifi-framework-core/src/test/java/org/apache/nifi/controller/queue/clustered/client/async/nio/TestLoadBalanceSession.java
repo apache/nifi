@@ -25,10 +25,10 @@ import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlow
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,9 +49,10 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedOutputStream;
 import java.util.zip.Checksum;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLoadBalanceSession {
 
@@ -70,44 +71,39 @@ public class TestLoadBalanceSession {
     private ServerSocket serverSocket;
     private int port;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         received = new ByteArrayOutputStream();
 
         serverSocket = new ServerSocket(0);
         port = serverSocket.getLocalPort();
 
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try (final Socket socket = serverSocket.accept()) {
-                    final InputStream in = socket.getInputStream();
-                    int data;
+        final Thread thread = new Thread(() -> assertDoesNotThrow(() -> {
+            try (final Socket socket = serverSocket.accept()) {
+                final InputStream in = socket.getInputStream();
+                int data;
 
-                    socket.getOutputStream().write(LoadBalanceProtocolConstants.VERSION_ACCEPTED);
-                    socket.getOutputStream().write(LoadBalanceProtocolConstants.SPACE_AVAILABLE);
-                    socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_CHECKSUM);
-                    socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION);
+                socket.getOutputStream().write(LoadBalanceProtocolConstants.VERSION_ACCEPTED);
+                socket.getOutputStream().write(LoadBalanceProtocolConstants.SPACE_AVAILABLE);
+                socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_CHECKSUM);
+                socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION);
 
-                    while ((data = in.read()) != -1) {
-                        received.write(data);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Assert.fail();
+                while ((data = in.read()) != -1) {
+                    received.write(data);
                 }
             }
-        });
+        }));
         thread.setDaemon(true);
         thread.start();
     }
 
-    @After
+    @AfterEach
     public void shutdown() throws IOException {
         serverSocket.close();
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testSunnyCase() throws InterruptedException, IOException {
         final Queue<FlowFileRecord> flowFiles = new LinkedList<>();
         final FlowFileRecord flowFile1 = new MockFlowFileRecord(5);
@@ -194,7 +190,8 @@ public class TestLoadBalanceSession {
     }
 
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(10)
     public void testLargeContent() throws InterruptedException, IOException {
         final byte[] content = new byte[66000];
         for (int i=0; i < 66000; i++) {

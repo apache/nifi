@@ -37,6 +37,8 @@
         </module>
         <module name="OuterTypeFilename"/>
         <module name="AvoidStarImport"/>
+        <module name="IllegalImport"/>
+        <module name="RedundantImport"/>
         <module name="UnusedImports">
             <property name="processJavadoc" value="true"/>
         </module>

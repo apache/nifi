@@ -18,7 +18,7 @@
 package org.apache.nifi.xml;
 
 import javanet.staxutils.IndentingXMLStreamWriter;
-import org.apache.nifi.record.NullSuppression;
+import org.apache.nifi.NullSuppression;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
 import org.apache.nifi.serialization.AbstractRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;

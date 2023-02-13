@@ -40,9 +40,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
+    public static class ITProcessor extends PutAzureBlobStorage_v12 {
+        public boolean blobMetadataApplied = false;
+        @Override
+        protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
+            super.applyBlobMetadata(attributes, blobClient);
+            blobMetadataApplied = true;
+        }
+    }
+
     @Override
     protected Class<? extends Processor> getProcessorClass() {
-        return PutAzureBlobStorage_v12.class;
+        return ITProcessor.class;
     }
 
     @BeforeEach
@@ -55,6 +64,14 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runProcessor(BLOB_DATA);
 
         assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlobApplyBlobMetadata() throws Exception {
+        runProcessor(BLOB_DATA);
+
+        assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
+        assertTrue(((ITProcessor) runner.getProcessor()).blobMetadataApplied);
     }
 
     @Test

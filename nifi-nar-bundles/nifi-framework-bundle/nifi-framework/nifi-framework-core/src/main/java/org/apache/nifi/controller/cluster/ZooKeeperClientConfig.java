@@ -44,6 +44,7 @@ public class ZooKeeperClientConfig {
     private final int connectionTimeoutMillis;
     private final String rootPath;
     private final boolean clientSecure;
+    private final boolean withEnsembleTracker;
     private final String keyStore;
     private final String keyStoreType;
     private final String keyStorePassword;
@@ -60,7 +61,7 @@ public class ZooKeeperClientConfig {
                                   String rootPath, String authType, String authPrincipal, String removeHostFromPrincipal,
                                   String removeRealmFromPrincipal, boolean clientSecure, String keyStore, String keyStoreType,
                                   String keyStorePassword, String trustStore, String trustStoreType, String trustStorePassword,
-                                  final int juteMaxbuffer) {
+                                  final int juteMaxbuffer, boolean withEnsembleTracker) {
         this.connectString = connectString;
         this.sessionTimeoutMillis = sessionTimeoutMillis;
         this.connectionTimeoutMillis = connectionTimeoutMillis;
@@ -77,6 +78,7 @@ public class ZooKeeperClientConfig {
         this.removeHostFromPrincipal = removeHostFromPrincipal;
         this.removeRealmFromPrincipal = removeRealmFromPrincipal;
         this.juteMaxbuffer = juteMaxbuffer;
+        this.withEnsembleTracker = withEnsembleTracker;
     }
 
     public String getConnectString() {
@@ -97,6 +99,10 @@ public class ZooKeeperClientConfig {
 
     public boolean isClientSecure() {
         return clientSecure;
+    }
+
+    public boolean isWithEnsembleTracker() {
+        return withEnsembleTracker;
     }
 
     public String getConnectionSocket() {
@@ -169,6 +175,7 @@ public class ZooKeeperClientConfig {
         final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
         final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
         final boolean clientSecure = nifiProperties.isZooKeeperClientSecure();
+        final boolean withEnsembleTracker = nifiProperties.isZookeeperClientWithEnsembleTracker();
         final String keyStore = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE, NiFiProperties.SECURITY_KEYSTORE);
         final String keyStoreType = StringUtils.stripToNull(getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_TYPE, NiFiProperties.SECURITY_KEYSTORE_TYPE));
         final String keyStorePassword = getPreferredProperty(nifiProperties, NiFiProperties.ZOOKEEPER_SECURITY_KEYSTORE_PASSWD, NiFiProperties.SECURITY_KEYSTORE_PASSWD);
@@ -205,7 +212,8 @@ public class ZooKeeperClientConfig {
             trustStore,
             trustStoreType,
             trustStorePassword,
-            juteMaxbuffer
+            juteMaxbuffer,
+            withEnsembleTracker
         );
     }
 

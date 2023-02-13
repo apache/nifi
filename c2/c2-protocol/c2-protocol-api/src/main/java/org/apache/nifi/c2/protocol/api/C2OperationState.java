@@ -20,6 +20,7 @@ package org.apache.nifi.c2.protocol.api;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Simple model of operations. The current approach is to capture a shared state ( via agent(s)
@@ -69,6 +70,30 @@ public class C2OperationState implements Serializable {
         this.state = OperationState.fromOrdinal(state);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        C2OperationState that = (C2OperationState) o;
+        return state == that.state && Objects.equals(details, that.details);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(state, details);
+    }
+
+    @Override
+    public String toString() {
+        return "C2OperationState{" +
+            "state=" + state +
+            ", details='" + details + '\'' +
+            '}';
+    }
 
     public enum OperationState {
         FULLY_APPLIED,

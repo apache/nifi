@@ -152,6 +152,13 @@ public class TestUpdateAttribute {
     }
 
     @Test
+    public void testAddAttributeWithIncorrectExpression() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty("NewId", "${UUID(}");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testBasicState() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);

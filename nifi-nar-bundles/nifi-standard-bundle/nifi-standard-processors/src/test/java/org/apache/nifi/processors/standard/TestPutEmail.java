@@ -26,6 +26,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutEmail {
 
@@ -135,6 +139,40 @@ public class TestPutEmail {
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
         assertNull(message.getRecipients(RecipientType.BCC));
         assertNull(message.getRecipients(RecipientType.CC));
+    }
+
+    @Test
+    public void testOAuth() throws Exception {
+        // GIVEN
+        String oauthServiceID = "oauth-access-token-provider";
+        String access_token = "access_token_123";
+
+        OAuth2AccessTokenProvider oauthService = mock(OAuth2AccessTokenProvider.class, RETURNS_DEEP_STUBS);
+        when(oauthService.getIdentifier()).thenReturn(oauthServiceID);
+        when(oauthService.getAccessDetails().getAccessToken()).thenReturn(access_token);
+        runner.addControllerService(oauthServiceID, oauthService);
+        runner.enableControllerService(oauthService);
+
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "unimportant");
+        runner.setProperty(PutEmail.FROM, "unimportant");
+        runner.setProperty(PutEmail.TO, "unimportant");
+        runner.setProperty(PutEmail.MESSAGE, "unimportant");
+        runner.setProperty(PutEmail.AUTHORIZATION_MODE, PutEmail.OAUTH_AUTHORIZATION_MODE);
+        runner.setProperty(PutEmail.OAUTH2_ACCESS_TOKEN_PROVIDER, oauthServiceID);
+
+        // WHEN
+        runner.enqueue("Unimportant flowfile content".getBytes());
+
+        runner.run();
+
+        // THEN
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(PutEmail.REL_SUCCESS);
+
+        assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
+        Message message = processor.getMessages().get(0);
+        assertEquals("XOAUTH2", message.getSession().getProperty("mail.smtp.auth.mechanisms"));
+        assertEquals("access_token_123", message.getSession().getProperty("mail.smtp.password"));
     }
 
     @Test

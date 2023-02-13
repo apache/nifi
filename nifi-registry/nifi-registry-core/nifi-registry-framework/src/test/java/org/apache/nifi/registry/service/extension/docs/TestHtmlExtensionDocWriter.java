@@ -25,8 +25,8 @@ import org.apache.nifi.registry.serialization.ExtensionSerializer;
 import org.apache.nifi.registry.serialization.Serializer;
 import org.apache.nifi.registry.serialization.jackson.ObjectMapperProvider;
 import org.apache.nifi.registry.service.mapper.ExtensionMappings;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,7 +43,7 @@ public class TestHtmlExtensionDocWriter {
     private ExtensionDocWriter docWriter;
     private Serializer<Extension> extensionSerializer;
 
-    @Before
+    @BeforeEach
     public void setup() {
         docWriter = new HtmlExtensionDocWriter();
         extensionSerializer = new ExtensionSerializer();

@@ -19,14 +19,14 @@ package org.apache.nifi.web.security.oidc;
 import com.nimbusds.oauth2.sdk.Scope;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,7 +42,7 @@ public class StandardOidcIdentityProviderTest {
         Scope scope = provider.getScope();
 
         // two additional scopes are set, two (openid, email) are hard-coded
-        assertEquals(scope.toArray().length, 4);
+        assertEquals(4, scope.toArray().length);
         assertTrue(scope.contains("openid"));
         assertTrue(scope.contains("email"));
         assertTrue(scope.contains(additionalScope_profile));
@@ -59,7 +59,7 @@ public class StandardOidcIdentityProviderTest {
 
         // three additional scopes are set but one is duplicated and mustn't be returned; note that there is
         // another one inserted in between the duplicated; two (openid, email) are hard-coded
-        assertEquals(scope.toArray().length, 4);
+        assertEquals(4, scope.toArray().length);
     }
 
     private StandardOidcIdentityProvider createOidcProviderWithAdditionalScopes(String... additionalScopes) throws IllegalAccessException {

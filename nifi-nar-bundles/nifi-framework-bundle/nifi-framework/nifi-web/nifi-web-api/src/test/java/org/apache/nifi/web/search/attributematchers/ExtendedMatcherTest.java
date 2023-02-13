@@ -17,8 +17,7 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.connectable.Connectable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -30,20 +29,15 @@ public class ExtendedMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private Connectable component;
 
-    @Before
-    public void setUp() {
-        super.setUp();
-        Mockito.when(component.getIdentifier()).thenReturn(VALUE + "Id");
-        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of(VALUE + "VersionId"));
-        Mockito.when(component.getName()).thenReturn(VALUE + "Name");
-        Mockito.when(component.getComments()).thenReturn(VALUE + "Comments");
-    }
-
     @Test
     public void testMatchingAddsResultWhenExtended() {
         // given
         final ExtendedMatcher<Connectable> testSubject = new ExtendedMatcher<>();
-
+        givenDefaultSearchTerm();
+        Mockito.when(component.getIdentifier()).thenReturn(VALUE + "Id");
+        Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of(VALUE + "VersionId"));
+        Mockito.when(component.getName()).thenReturn(VALUE + "Name");
+        Mockito.when(component.getComments()).thenReturn(VALUE + "Comments");
         // when
         testSubject.match(component, searchQuery, matches);
 

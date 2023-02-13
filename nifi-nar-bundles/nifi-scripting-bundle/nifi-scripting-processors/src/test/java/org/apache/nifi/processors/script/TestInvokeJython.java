@@ -22,7 +22,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +30,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestInvokeJython extends BaseScriptTest {
 
@@ -56,8 +57,8 @@ public class TestInvokeJython extends BaseScriptTest {
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
 
         final Collection<ValidationResult> results = ((MockProcessContext) runner.getProcessContext()).validate();
-        Assert.assertEquals(1L, results.size());
-        Assert.assertEquals("Never valid.", results.iterator().next().getExplanation());
+        assertEquals(1L, results.size());
+        assertEquals("Never valid.", results.iterator().next().getExplanation());
     }
 
     /**
@@ -71,8 +72,8 @@ public class TestInvokeJython extends BaseScriptTest {
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
 
         final Collection<ValidationResult> results = ((MockProcessContext) runner.getProcessContext()).validate();
-        Assert.assertEquals(1L, results.size());
-        Assert.assertEquals("Never valid.", results.iterator().next().getExplanation());
+        assertEquals(1L, results.size());
+        assertEquals("Never valid.", results.iterator().next().getExplanation());
 
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_update_attribute.py");
         runner.setProperty("for-attributes", "value-1");
@@ -173,7 +174,7 @@ public class TestInvokeJython extends BaseScriptTest {
 
         two.assertAllFlowFilesTransferred("success", 1);
         final List<MockFlowFile> twoResult = two.getFlowFilesForRelationship("success");
-        Assert.assertEquals("test content", new String(twoResult.get(0).toByteArray(), StandardCharsets.UTF_8));
+        assertEquals("test content", new String(twoResult.get(0).toByteArray(), StandardCharsets.UTF_8));
     }
 
     /**

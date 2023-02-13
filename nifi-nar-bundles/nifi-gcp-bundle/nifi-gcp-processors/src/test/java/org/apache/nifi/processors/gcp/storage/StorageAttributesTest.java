@@ -21,13 +21,13 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StorageAttributesTest {
     @Test
     public void testStorageAttributeClassCannotBeInvoked() throws Exception {
         Constructor constructor = StorageAttributes.class.getDeclaredConstructor();
-        assertTrue("Constructor of StorageAttributes should be private", Modifier.isPrivate(constructor.getModifiers()));
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()),"Constructor of StorageAttributes should be private");
         constructor.setAccessible(true);
         constructor.newInstance();
     }

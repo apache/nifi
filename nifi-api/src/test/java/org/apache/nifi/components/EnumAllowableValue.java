@@ -40,6 +40,18 @@ public enum EnumAllowableValue implements DescribedValue {
         public String getDescription() {
             return "RedDescription";
         }
+    },
+
+    BLUE {
+        @Override
+        public String getDisplayName() {
+            return "BlueDisplayName";
+        }
+
+        @Override
+        public String getDescription() {
+            return "BlueDescription";
+        }
     };
 
     @Override

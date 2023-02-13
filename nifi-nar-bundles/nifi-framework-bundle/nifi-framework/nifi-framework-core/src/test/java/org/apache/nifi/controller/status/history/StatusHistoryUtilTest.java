@@ -17,13 +17,15 @@
 package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.web.api.dto.status.StatusDescriptorDTO;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class StatusHistoryUtilTest {
 
@@ -44,10 +46,10 @@ public class StatusHistoryUtilTest {
         final List<StatusDescriptorDTO> result = StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors);
 
         // then
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
 
-    @Test(expected = IndexOutOfBoundsException.class)
+    @Test
     public void testCreateFieldDescriptorDtosWhenNotConsecutive() {
         // given
         final Collection<MetricDescriptor<?>> metricDescriptors = Arrays.asList(
@@ -56,7 +58,8 @@ public class StatusHistoryUtilTest {
         );
 
         // when
-        StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors);
+        assertThrows(IndexOutOfBoundsException.class,
+                () -> StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors));
     }
 
     @Test
@@ -69,7 +72,7 @@ public class StatusHistoryUtilTest {
         final List<StatusDescriptorDTO> result = StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors);
 
         // then
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
 
     @Test
@@ -95,6 +98,6 @@ public class StatusHistoryUtilTest {
         final List<StatusDescriptorDTO> result = StatusHistoryUtil.createFieldDescriptorDtos(metricDescriptors);
 
         // then
-        Assert.assertEquals(expected, result);
+        assertEquals(expected, result);
     }
 }

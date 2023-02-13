@@ -22,7 +22,12 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 import java.nio.charset.StandardCharsets
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class ScryptSecureHasherTest {
 
@@ -51,7 +56,7 @@ class ScryptSecureHasherTest {
         }
 
         // Assert
-        assert results.every { it == EXPECTED_HASH_HEX }
+        results.forEach( result -> assertEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -79,8 +84,8 @@ class ScryptSecureHasherTest {
         }
 
         // Assert
-        assert results.unique().size() == results.size()
-        assert results.every { it != EXPECTED_HASH_HEX }
+        assertTrue(results.unique().size() == results.size())
+        results.forEach(result -> assertNotEquals(EXPECTED_HASH_HEX, result))
     }
 
     @Test
@@ -122,20 +127,20 @@ class ScryptSecureHasherTest {
         String differentSaltHashBase64 = arbitrarySaltHasher.hashBase64(input)
 
         // Assert
-        assert staticSaltHash == EXPECTED_HASH_BYTES
-        assert arbitrarySaltHash == EXPECTED_HASH_BYTES
-        assert differentArbitrarySaltHash != EXPECTED_HASH_BYTES
-        assert differentSaltHash != EXPECTED_HASH_BYTES
+        assertArrayEquals(EXPECTED_HASH_BYTES, staticSaltHash)
+        assertArrayEquals(EXPECTED_HASH_BYTES, arbitrarySaltHash)
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentArbitrarySaltHash))
+        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentSaltHash))
 
-        assert staticSaltHashHex == EXPECTED_HASH_HEX
-        assert arbitrarySaltHashHex == EXPECTED_HASH_HEX
-        assert differentArbitrarySaltHashHex != EXPECTED_HASH_HEX
-        assert differentSaltHashHex != EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, staticSaltHashHex)
+        assertEquals(EXPECTED_HASH_HEX, arbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentArbitrarySaltHashHex)
+        assertNotEquals(EXPECTED_HASH_HEX, differentSaltHashHex)
 
-        assert staticSaltHashBase64 == EXPECTED_HASH_BASE64
-        assert arbitrarySaltHashBase64 == EXPECTED_HASH_BASE64
-        assert differentArbitrarySaltHashBase64 != EXPECTED_HASH_BASE64
-        assert differentSaltHashBase64 != EXPECTED_HASH_BASE64
+        assertEquals(EXPECTED_HASH_BASE64, staticSaltHashBase64)
+        assertEquals(EXPECTED_HASH_BASE64, arbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentArbitrarySaltHashBase64)
+        assertNotEquals(EXPECTED_HASH_BASE64, differentSaltHashBase64)
     }
 
     @Test
@@ -172,7 +177,7 @@ class ScryptSecureHasherTest {
         String hashHex = scryptSH.hashHex(input)
 
         // Assert
-        assert hashHex == EXPECTED_HASH_HEX
+        assertEquals(EXPECTED_HASH_HEX, hashHex)
     }
 
     @Test
@@ -188,7 +193,7 @@ class ScryptSecureHasherTest {
         String hashB64 = scryptSH.hashBase64(input)
 
         // Assert
-        assert hashB64 == EXPECTED_HASH_BASE64
+        assertEquals(EXPECTED_HASH_BASE64, hashB64)
     }
 
     @Test
@@ -214,8 +219,8 @@ class ScryptSecureHasherTest {
         }
 
         // Assert
-        assert hexResults.every { it == EXPECTED_HASH_HEX }
-        assert B64Results.every { it == EXPECTED_HASH_BASE64 }
+        hexResults.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
+        B64Results.forEach(result -> assertEquals(EXPECTED_HASH_BASE64, result))
     }
 
     /**
@@ -249,8 +254,8 @@ class ScryptSecureHasherTest {
 
         // Assert
         final long MIN_DURATION_NANOS = 75_000_000 // 75 ms
-        assert resultDurations.min() > MIN_DURATION_NANOS
-        assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
+        assertTrue(resultDurations.min() > MIN_DURATION_NANOS)
+        assertTrue(resultDurations.sum() / testIterations > MIN_DURATION_NANOS)
     }
 
     @Test
@@ -262,24 +267,16 @@ class ScryptSecureHasherTest {
         boolean valid = ScryptSecureHasher.isRValid(r)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
     void testShouldFailRBoundary() throws Exception {
         // Arrange
-        def rValues = [-8, 0, 2147483647]
+        List<Integer> rValues = [-8, 0, 2147483647]
 
-        // Act
-        def results = rValues.collect { rValue ->
-            def isValid = ScryptSecureHasher.isRValid(rValue)
-            [rValue, isValid]
-        }
-
-        // Assert
-        results.each { rValue, isRValid ->
-            assert !isRValid
-        }
+        // Act and Assert
+        rValues.forEach(rValue -> assertFalse(ScryptSecureHasher.isRValid(rValue)))
     }
 
     @Test
@@ -288,28 +285,19 @@ class ScryptSecureHasherTest {
         final Integer n = 16385
         final int r = 8
 
-        // Act
-        boolean valid = ScryptSecureHasher.isNValid(n, r)
-
-        // Assert
-        assert valid
+        // Act and Assert
+        assertTrue(ScryptSecureHasher.isNValid(n, r))
     }
 
     @Test
     void testShouldFailNBoundary() throws Exception {
         // Arrange
-        Map costParameters = [(-8): 8, 0: 32]
+        Map<Integer, Integer> costParameters = [(-8): 8, 0: 32]
 
-        // Act
-        def results = costParameters.collect { n, p ->
-            def isValid = ScryptSecureHasher.isNValid(n, p)
-            [n, isValid]
-        }
-
-        // Assert
-        results.each { n, isNValid ->
-            assert !isNValid
-        }
+        //Act and Assert
+        costParameters.entrySet().forEach(entry -> {
+            assertFalse(ScryptSecureHasher.isNValid(entry.getKey(), entry.getValue()))
+        })
     }
 
     @Test
@@ -318,19 +306,12 @@ class ScryptSecureHasherTest {
         final List<Integer> ps = [1, 8, 1024]
         final List<Integer> rs = [8, 1024, 4096]
 
-        // Act
-        def pResults = ps.collectEntries { int p ->
-            def rResults = rs.collectEntries { int r ->
-                boolean valid = ScryptSecureHasher.isPValid(p, r)
-                [r, valid]
-            }
-            [p, rResults]
-        }
-
-        // Assert
-        pResults.each { p, rResult ->
-            assert rResult.every { r, isValid -> isValid }
-        }
+        // Act and Assert
+        ps.forEach(p -> {
+            rs.forEach(r -> {
+                assertTrue(ScryptSecureHasher.isPValid(p, r))
+            })
+        })
     }
 
     @Test
@@ -339,19 +320,12 @@ class ScryptSecureHasherTest {
         final List<Integer> ps = [4096 * 64, 1024 * 1024]
         final List<Integer> rs = [4096, 1024 * 1024]
 
-        // Act
-        def pResults = ps.collectEntries { int p ->
-            def rResults = rs.collectEntries { int r ->
-                boolean valid = ScryptSecureHasher.isPValid(p, r)
-                [r, valid]
-            }
-            [p, rResults]
-        }
-
-        // Assert
-        pResults.each { p, rResult ->
-            assert rResult.every { r, isValid -> !isValid }
-        }
+        // Act and Assert
+        ps.forEach(p -> {
+            rs.forEach(r -> {
+                assertFalse(ScryptSecureHasher.isPValid(p, r))
+            })
+        })
     }
 
     @Test
@@ -363,7 +337,7 @@ class ScryptSecureHasherTest {
         boolean valid = ScryptSecureHasher.isDKLengthValid(dkLength)
 
         // Assert
-        assert valid
+        assertTrue(valid)
     }
 
     @Test
@@ -371,16 +345,10 @@ class ScryptSecureHasherTest {
         // Arrange
         def dKLengths = [-8, 0, 2147483647]
 
-        // Act
-        def results = dKLengths.collect { dKLength ->
-            def isValid = ScryptSecureHasher.isDKLengthValid(dKLength)
-            [dKLength, isValid]
-        }
-
-        // Assert
-        results.each { dKLength, isDKLengthValid ->
-            assert !isDKLengthValid
-        }
+        // Act and Assert
+        dKLengths.forEach( dKLength -> {
+            assertFalse(ScryptSecureHasher.isDKLengthValid(dKLength))
+        })
     }
 
     @Test
@@ -388,16 +356,11 @@ class ScryptSecureHasherTest {
         // Arrange
         def saltLengths = [0, 64]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new ScryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            assert { it == isSaltLengthValid }
-        }
+        // Act and Assert
+        ScryptSecureHasher scryptSecureHasher = new ScryptSecureHasher()
+        saltLengths.forEach(saltLength -> {
+            assertTrue(scryptSecureHasher.isSaltLengthValid(saltLength))
+        })
     }
 
     @Test
@@ -405,16 +368,10 @@ class ScryptSecureHasherTest {
         // Arrange
         def saltLengths = [-8, 1, 2147483647]
 
-        // Act
-        def results = saltLengths.collect { saltLength ->
-            def isValid = new ScryptSecureHasher().isSaltLengthValid(saltLength)
-            [saltLength, isValid]
-        }
-
-        // Assert
-        results.each { saltLength, isSaltLengthValid ->
-            assert !isSaltLengthValid
-        }
+        // Act and Assert
+        ScryptSecureHasher scryptSecureHasher = new ScryptSecureHasher()
+        saltLengths.forEach(saltLength -> {
+            assertFalse(scryptSecureHasher.isSaltLengthValid(saltLength))
+        })
     }
-
 }

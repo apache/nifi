@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.box;
 
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -30,11 +35,6 @@ import java.util.List;
 import java.util.Map;
 
 public class BoxFileInfo implements ListableEntity {
-    public static final String ID = "box.id";
-    public static final String FILENAME = "filename";
-    public static final String PATH = "path";
-    public static final String SIZE = "box.size";
-    public static final String TIMESTAMP = "box.timestamp";
 
     private  static final RecordSchema SCHEMA;
 
@@ -42,8 +42,8 @@ public class BoxFileInfo implements ListableEntity {
         final List<RecordField> recordFields = new ArrayList<>();
 
         recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
-        recordFields.add(new RecordField(PATH, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(CoreAttributes.FILENAME.key(), RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(CoreAttributes.PATH.key(), RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(TIMESTAMP, RecordFieldType.LONG.getDataType(), false));
 
@@ -82,8 +82,8 @@ public class BoxFileInfo implements ListableEntity {
         final Map<String, Object> values = new HashMap<>();
 
         values.put(ID, getId());
-        values.put(FILENAME, getName());
-        values.put(PATH, getPath());
+        values.put(CoreAttributes.FILENAME.key(), getName());
+        values.put(CoreAttributes.PATH.key(), getPath());
         values.put(SIZE, getSize());
         values.put(TIMESTAMP, getTimestamp());
 

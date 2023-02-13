@@ -23,7 +23,6 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ComponentType;
-import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
@@ -308,11 +307,12 @@ public class FlowDifferenceFilters {
             return false;
         }
 
-        // If Scheduled State transitions from null to ENABLED or ENABLED to null, consider it a "new" scheduled state.
-        if (fd.getValueA() == null && ScheduledState.ENABLED.equals(fd.getValueB())) {
+        // If Scheduled State transitions from null to a real state or
+        // from a real state to null, consider it a "new" scheduled state.
+        if (fd.getValueA() == null && fd.getValueB() != null) {
             return true;
         }
-        if (fd.getValueB() == null && "ENABLED".equals(fd.getValueA())) {
+        if (fd.getValueB() == null && fd.getValueA() != null) {
             return true;
         }
 

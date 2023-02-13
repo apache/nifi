@@ -137,7 +137,7 @@ public class TestDeleteS3Object {
     public void testGetPropertyDescriptors() {
         DeleteS3Object processor = new DeleteS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(23, pd.size(), "size should be eq");
+        assertEquals(25, pd.size(), "size should be eq");
         assertTrue(pd.contains(processor.ACCESS_KEY));
         assertTrue(pd.contains(processor.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(processor.BUCKET));
@@ -151,6 +151,8 @@ public class TestDeleteS3Object {
         assertTrue(pd.contains(processor.REGION));
         assertTrue(pd.contains(processor.SECRET_KEY));
         assertTrue(pd.contains(processor.SIGNER_OVERRIDE));
+        assertTrue(pd.contains(processor.S3_CUSTOM_SIGNER_CLASS_NAME));
+        assertTrue(pd.contains(processor.S3_CUSTOM_SIGNER_MODULE_LOCATION));
         assertTrue(pd.contains(processor.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(processor.TIMEOUT));
         assertTrue(pd.contains(processor.VERSION_ID));

@@ -17,12 +17,13 @@
 package org.apache.nifi.integration.accesscontrol.anonymous;
 
 import org.apache.nifi.integration.accesscontrol.OneWaySslAccessControlHelper;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Integration test for preventing direct anonymous access.
@@ -31,7 +32,7 @@ public class ITPreventDirectAnonymousAccess extends AbstractAnonymousUserTest {
 
     private static OneWaySslAccessControlHelper helper;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         helper = new OneWaySslAccessControlHelper();
     }
@@ -46,10 +47,10 @@ public class ITPreventDirectAnonymousAccess extends AbstractAnonymousUserTest {
         final Response response = super.testCreateProcessor(helper.getBaseUrl(), helper.getUser());
 
         // ensure the request is not successful
-        Assert.assertEquals(401, response.getStatus());
+        assertEquals(401, response.getStatus());
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() throws Exception {
         helper.cleanup();
     }

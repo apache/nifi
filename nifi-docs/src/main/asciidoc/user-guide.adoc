@@ -1303,7 +1303,7 @@ far-right column. Other buttons in this column include "Enable", "Remove" and "A
 
 image:controller-services-configure-buttons.png["Controller Services Buttons"]
 
-You can obtain information about Controller Services by clicking the "Usage" and "Alerts" buttons in the left-hand column.
+You can obtain information about Controller Services by clicking the "Usage", "Comments" and "Alerts" buttons in the left-hand column.
 
 image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
@@ -1370,7 +1370,7 @@ Once a Reporting Task has been added, the DFM may configure it by clicking the "
 
 image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
 
-You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
+You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", "Comments" and "Alerts" buttons in the left-hand column.
 
 image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
@@ -2814,7 +2814,7 @@ search the information for specific items, and filter the search results. It is 
 replay data at any point within the dataflow, and see a graphical representation of the data's lineage, or path through the flow.
 (These features are described in depth below.)
 
-When authorization is enabled, accessessing Data Provenance information requires the 'query provenance' Global Policy as well as the 'view provenance'
+When authorization is enabled, accessing Data Provenance information requires the 'query provenance' Global Policy as well as the 'view provenance'
 Component Policy for the component which generated the event. In addition, access to event details which include FlowFile attributes and content require
 the 'view the data' Component Policy for the component which generated the event.
 
@@ -2948,13 +2948,6 @@ The `WriteAheadProvenanceRepository` can use the Provenance data stored by the `
 
 ==== Older Existing NiFi Version
 If you are upgrading from an older version of NiFi to 1.2.0 or later, it is recommended that you do not change the provenance configuration to Write Ahead until you confirm your flows and environment are stable in 1.2.0 first.  This reduces the number of variables in your upgrade and can simplify the debugging process if any issues arise.
-
-==== Bootstrap.conf
-While better performance is achieved with the G1 garbage collector, Java 8 bugs may surface more frequently in the Write Ahead configuration.  It is recommended that the following line is commented out in the _bootstrap.conf_ file in the `conf` directory:
-
-....
-java.arg.13=-XX:+UseG1GC
-....
 
 ==== System Properties
 Many of the same system properties are supported by both the Persistent and Write Ahead configurations, however the default values have been chosen for a Persistent Provenance configuration. The following exceptions and recommendations should be noted when changing to a Write Ahead configuration:

@@ -30,8 +30,7 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -51,6 +50,9 @@ import static org.apache.nifi.web.controller.ComponentMockUtil.getPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getProcessorNode;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getPublicPort;
 import static org.apache.nifi.web.controller.ComponentMockUtil.getRemoteProcessGroup;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ControllerSearchServiceIntegrationTest extends AbstractControllerSearchIntegrationTest {
 
@@ -318,19 +320,19 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         whenExecuteSearch("dummy");
 
         // then
-        Assert.assertEquals(1, results.getProcessorResults().size());
+        assertEquals(1, results.getProcessorResults().size());
 
         final ComponentSearchResultDTO componentSearchResultDTO = results.getProcessorResults().get(0);
-        Assert.assertEquals("processor1", componentSearchResultDTO.getId());
-        Assert.assertEquals("name1", componentSearchResultDTO.getName());
-        Assert.assertEquals(2, componentSearchResultDTO.getMatches().size());
+        assertEquals("processor1", componentSearchResultDTO.getId());
+        assertEquals("name1", componentSearchResultDTO.getName());
+        assertEquals(2, componentSearchResultDTO.getMatches().size());
 
         final String firstMatch = componentSearchResultDTO.getMatches().get(0);
         final String secondMatch = componentSearchResultDTO.getMatches().get(1);
 
         if ((!firstMatch.equals("Type: DummyProcessorForTest") || !secondMatch.startsWith("Type: ComponentMockUtil$DummyProcessor$MockitoMock$"))
                 && (!secondMatch.equals("Type: DummyProcessorForTest") || !firstMatch.startsWith("Type: ComponentMockUtil$DummyProcessor$MockitoMock$"))) {
-            Assert.fail();
+            fail();
         }
     }
 
@@ -495,9 +497,9 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
         whenExecuteSearch("dummy");
 
         // then
-        Assert.assertEquals(1, results.getConnectionResults().size());
-        Assert.assertEquals(1, results.getConnectionResults().get(0).getMatches().size());
-        Assert.assertTrue(results.getConnectionResults().get(0).getMatches().get(0)
+        assertEquals(1, results.getConnectionResults().size());
+        assertEquals(1, results.getConnectionResults().get(0).getMatches().size());
+        assertTrue(results.getConnectionResults().get(0).getMatches().get(0)
                 .startsWith("Prioritizer: org.apache.nifi.web.controller.ComponentMockUtil$DummyFlowFilePrioritizer$"));
     }
 

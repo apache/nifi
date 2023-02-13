@@ -17,16 +17,16 @@
 package org.apache.nifi.web.security.knox;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +36,7 @@ public class KnoxAuthenticationFilterTest {
 
     private KnoxAuthenticationFilter knoxAuthenticationFilter;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.isKnoxSsoEnabled()).thenReturn(true);
@@ -47,14 +47,14 @@ public class KnoxAuthenticationFilterTest {
     }
 
     @Test
-    public void testInsecureHttp() throws Exception {
+    public void testInsecureHttp() {
         final HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.isSecure()).thenReturn(false);
         assertNull(knoxAuthenticationFilter.attemptAuthentication(request));
     }
 
     @Test
-    public void testNullCookies() throws Exception {
+    public void testNullCookies() {
         final HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.isSecure()).thenReturn(true);
         when(request.getCookies()).thenReturn(null);
@@ -62,7 +62,7 @@ public class KnoxAuthenticationFilterTest {
     }
 
     @Test
-    public void testNoCookies() throws Exception {
+    public void testNoCookies() {
         final HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.isSecure()).thenReturn(true);
         when(request.getCookies()).thenReturn(new Cookie[] {});
@@ -70,7 +70,7 @@ public class KnoxAuthenticationFilterTest {
     }
 
     @Test
-    public void testWrongCookieName() throws Exception {
+    public void testWrongCookieName() {
         final String jwt = "my-jwt";
 
         final Cookie knoxCookie = mock(Cookie.class);
@@ -86,7 +86,7 @@ public class KnoxAuthenticationFilterTest {
     }
 
     @Test
-    public void testKnoxCookie() throws Exception {
+    public void testKnoxCookie() {
         final String jwt = "my-jwt";
 
         final Cookie knoxCookie = mock(Cookie.class);

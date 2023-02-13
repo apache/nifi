@@ -30,6 +30,7 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -90,10 +91,6 @@ public class GetSmbFileTest {
         testRunner.setProperty(GetSmbFile.DIRECTORY, DIRECTORY);
         testRunner.setProperty(GetSmbFile.USERNAME, USERNAME);
         testRunner.setProperty(GetSmbFile.PASSWORD, PASSWORD);
-
-        GetSmbFile GetSmbFile = (GetSmbFile) testRunner.getProcessor();
-        GetSmbFile.initSmbClient(smbClient);
-
     }
 
     private FileIdBothDirectoryInformation mockFile(String path, String filename, String fileContent, long fileAttributes) {
@@ -161,7 +158,12 @@ public class GetSmbFileTest {
 
     @BeforeEach
     public void init() throws IOException {
-        testRunner = TestRunners.newTestRunner(GetSmbFile.class);
+        testRunner = TestRunners.newTestRunner(new GetSmbFile() {
+            @Override
+            SMBClient initSmbClient(ProcessContext context) {
+                return smbClient;
+            }
+        });
         setupSmbProcessor();
     }
 

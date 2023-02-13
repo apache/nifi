@@ -33,7 +33,7 @@ import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.Processor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
@@ -42,8 +42,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
@@ -125,7 +125,8 @@ public class TestConnectableTask {
         Mockito.when(funnel.getIdentifier()).thenReturn("funnel-1");
 
         final ConnectableTask task = createTask(funnel);
-        assertTrue("If there is no incoming connection, it should be yielded.", task.invoke().isYield());
+        assertTrue(task.invoke().isYield(),
+                "If there is no incoming connection, it should be yielded.");
 
         // Test with only a single connection that is self-looping and empty.
         // Actually, this self-loop input can not be created for Funnels using NiFi API because an outer layer check condition does not allow it.
@@ -145,7 +146,8 @@ public class TestConnectableTask {
         outgoingConnections.add(selfLoopingConnection);
         when(funnel.getConnections()).thenReturn(outgoingConnections);
 
-        assertTrue("If there is no incoming connection from other components, it should be yielded.", task.invoke().isYield());
+        assertTrue(task.invoke().isYield(),
+                "If there is no incoming connection from other components, it should be yielded.");
 
         // Add an incoming connection from another component.
         final ProcessorNode inputProcessor = Mockito.mock(ProcessorNode.class);
@@ -157,8 +159,8 @@ public class TestConnectableTask {
         when(funnel.hasIncomingConnection()).thenReturn(true);
         when(funnel.getIncomingConnections()).thenReturn(Arrays.asList(selfLoopingConnection, incomingFromAnotherComponent));
 
-        assertTrue("Even if there is an incoming connection from another component," +
-                " it should be yielded because there's no outgoing connections.", task.invoke().isYield());
+        assertTrue(task.invoke().isYield(), "Even if there is an incoming connection from another component," +
+                " it should be yielded because there's no outgoing connections.");
 
         // Add an outgoing connection to another component.
         final ProcessorNode outputProcessor = Mockito.mock(ProcessorNode.class);
@@ -167,16 +169,15 @@ public class TestConnectableTask {
         when(outgoingToAnotherComponent.getDestination()).thenReturn(outputProcessor);
         outgoingConnections.add(outgoingToAnotherComponent);
 
-        assertTrue("Even if there is an incoming connection from another component and an outgoing connection as well," +
-                " it should be yielded because there's no incoming FlowFiles to process.", task.invoke().isYield());
+        assertTrue(task.invoke().isYield(),"Even if there is an incoming connection from another component and an outgoing connection as well," +
+                " it should be yielded because there's no incoming FlowFiles to process.");
 
         // Adding input FlowFiles.
         final FlowFileQueue nonEmptyQueue = Mockito.mock(FlowFileQueue.class);
         when(nonEmptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
         when(incomingFromAnotherComponent.getFlowFileQueue()).thenReturn(nonEmptyQueue);
-        assertFalse("When a Funnel has both incoming and outgoing connections and FlowFiles to process, then it should be executed.",
-                task.invoke().isYield());
-
+        assertFalse(task.invoke().isYield(),
+                "When a Funnel has both incoming and outgoing connections and FlowFiles to process," +
+                        " then it should be executed.");
     }
-
 }

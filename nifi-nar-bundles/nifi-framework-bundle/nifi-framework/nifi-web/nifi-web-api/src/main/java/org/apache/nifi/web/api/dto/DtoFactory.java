@@ -1071,6 +1071,7 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
+        snapshot.setProcessingNanos(processGroupStatus.getProcessingNanos());
 
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
         snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
@@ -4247,7 +4248,6 @@ public final class DtoFactory {
                 allowableValueDto.setDescription(allowableValue.getDescription());
                 allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
-            allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
             dto.setAllowableValues(allowableValues);
         }
 

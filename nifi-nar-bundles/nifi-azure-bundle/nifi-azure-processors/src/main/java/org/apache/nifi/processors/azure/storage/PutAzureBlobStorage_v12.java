@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -23,6 +24,8 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobErrorCode;
 import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.BlobType;
+import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -50,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static com.azure.core.http.ContentType.APPLICATION_OCTET_STREAM;
 import static com.azure.core.util.FluxUtil.toFluxByteBuffer;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
@@ -161,7 +165,10 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 try (InputStream rawIn = session.read(flowFile)) {
                     final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(rawIn));
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
-                    blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
+                    Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
+                    BlockBlobItem blob = response.getValue();
+                    long length = flowFile.getSize();
+                    applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, length);
                     applyBlobMetadata(attributes, blobClient);
                     if (ignore) {
                         attributes.put(ATTR_NAME_IGNORED, "false");
@@ -190,5 +197,14 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private static void applyUploadResultAttributes(final Map<String, String> attributes, final BlockBlobItem blob, final BlobType blobType, final long length) {
+        attributes.put(ATTR_NAME_BLOBTYPE, blobType.toString());
+        attributes.put(ATTR_NAME_ETAG, blob.getETag());
+        attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
+        attributes.put(ATTR_NAME_TIMESTAMP, String.valueOf(blob.getLastModified()));
+        attributes.put(ATTR_NAME_LANG, null);
+        attributes.put(ATTR_NAME_MIME_TYPE, APPLICATION_OCTET_STREAM);
     }
 }

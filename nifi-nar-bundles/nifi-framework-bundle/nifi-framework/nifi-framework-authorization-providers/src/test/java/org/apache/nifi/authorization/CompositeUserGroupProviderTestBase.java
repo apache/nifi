@@ -19,7 +19,6 @@ package org.apache.nifi.authorization;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.Assert;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER_GROUP_PROVIDER_PREFIX;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -83,7 +83,7 @@ public class CompositeUserGroupProviderTestBase {
         final UserAndGroups user1AndGroups = userGroupProvider.getUserAndGroups(USER_1_IDENTITY);
         assertNotNull(user1AndGroups);
         assertNotNull(user1AndGroups.getUser());
-        Assert.assertEquals(1, user1AndGroups.getGroups().size());
+        assertEquals(1, user1AndGroups.getGroups().size());
 
         final UserAndGroups user2AndGroups = userGroupProvider.getUserAndGroups(USER_2_IDENTITY);
         assertNotNull(user2AndGroups);
@@ -92,7 +92,7 @@ public class CompositeUserGroupProviderTestBase {
 
         // groups
         assertNotNull(userGroupProvider.getGroup(GROUP_1_IDENTIFIER));
-        Assert.assertEquals(1, userGroupProvider.getGroup(GROUP_1_IDENTIFIER).getUsers().size());
+        assertEquals(1, userGroupProvider.getGroup(GROUP_1_IDENTIFIER).getUsers().size());
     }
 
     protected UserGroupProvider getUserGroupProviderTwo() {
@@ -115,11 +115,11 @@ public class CompositeUserGroupProviderTestBase {
         final UserAndGroups user3AndGroups = userGroupProvider.getUserAndGroups(USER_3_IDENTITY);
         assertNotNull(user3AndGroups);
         assertNotNull(user3AndGroups.getUser());
-        Assert.assertEquals(1, user3AndGroups.getGroups().size());
+        assertEquals(1, user3AndGroups.getGroups().size());
 
         // groups
         assertNotNull(userGroupProvider.getGroup(GROUP_2_IDENTIFIER));
-        Assert.assertEquals(1, userGroupProvider.getGroup(GROUP_2_IDENTIFIER).getUsers().size());
+        assertEquals(1, userGroupProvider.getGroup(GROUP_2_IDENTIFIER).getUsers().size());
     }
 
     protected UserGroupProvider getConflictingUserGroupProvider() {
@@ -146,7 +146,7 @@ public class CompositeUserGroupProviderTestBase {
         final UserAndGroups user1AndGroups = userGroupProvider.getUserAndGroups(USER_1_IDENTITY);
         assertNotNull(user1AndGroups);
         assertNotNull(user1AndGroups.getUser());
-        Assert.assertEquals(1, user1AndGroups.getGroups().size());
+        assertEquals(1, user1AndGroups.getGroups().size());
     }
 
     protected UserGroupProvider getCollaboratingUserGroupProvider() {
@@ -170,11 +170,11 @@ public class CompositeUserGroupProviderTestBase {
         final UserAndGroups user4AndGroups = userGroupProvider.getUserAndGroups(USER_4_IDENTITY);
         assertNotNull(user4AndGroups);
         assertNotNull(user4AndGroups.getUser());
-        Assert.assertEquals(1, user4AndGroups.getGroups().size());
+        assertEquals(1, user4AndGroups.getGroups().size());
 
         // groups
         assertNotNull(userGroupProvider.getGroup(GROUP_2_IDENTIFIER));
-        Assert.assertEquals(2, userGroupProvider.getGroup(GROUP_2_IDENTIFIER).getUsers().size());
+        assertEquals(2, userGroupProvider.getGroup(GROUP_2_IDENTIFIER).getUsers().size());
     }
 
     protected void mockProperties(final AuthorizerConfigurationContext configurationContext) {

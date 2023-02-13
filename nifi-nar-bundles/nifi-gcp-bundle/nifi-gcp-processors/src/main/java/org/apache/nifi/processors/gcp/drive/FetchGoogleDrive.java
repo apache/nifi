@@ -16,10 +16,34 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_CODE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
+import com.google.api.services.drive.model.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -39,31 +63,28 @@ import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "drive", "storage", "fetch"})
 @CapabilityDescription("Fetches files from a Google Drive Folder. Designed to be used in tandem with ListGoogleDrive. " +
-    "For how to setup access to Google Drive please see additional details.")
-@SeeAlso({ListGoogleDrive.class})
+    "Please see Additional Details to set up access to Google Drive.")
+@SeeAlso({ListGoogleDrive.class, PutGoogleDrive.class})
+@ReadsAttribute(attribute = ID, description = ID_DESC)
 @WritesAttributes({
-        @WritesAttribute(attribute = FetchGoogleDrive.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Google Drive when the fetch of a file fails"),
-        @WritesAttribute(attribute = FetchGoogleDrive.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Google Drive when the fetch of a file fails")
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
+        @WritesAttribute(attribute = "mime.type", description = MIME_TYPE_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
+        @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTrait {
-    public static final String ERROR_CODE_ATTRIBUTE = "error.code";
-    public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor
             .Builder().name("drive-file-id")
             .displayName("File ID")
-            .description("The Drive ID of the File to fetch")
+            .description("The Drive ID of the File to fetch. "
+            + "Please see Additional Details to obtain Drive ID.")
             .required(true)
             .defaultValue("${drive.id}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -73,12 +94,12 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder()
                     .name("success")
-                    .description("A flowfile will be routed here for each successfully fetched File.")
+                    .description("A FlowFile will be routed here for each successfully fetched File.")
                     .build();
 
     public static final Relationship REL_FAILURE =
             new Relationship.Builder().name("failure")
-                    .description("A flowfile will be routed here for each File for which fetch was attempted but failed.")
+                    .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
@@ -87,7 +108,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
     ));
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -101,7 +122,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
@@ -122,13 +143,20 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
             return;
         }
 
-        String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
 
-        FlowFile outFlowFile = flowFile;
+        final long startNanos = System.nanoTime();
         try {
-            outFlowFile = fetchFile(fileId, session, outFlowFile);
+            flowFile = fetchFile(fileId, session, flowFile);
 
-            session.transfer(outFlowFile, REL_SUCCESS);
+            final File fileMetadata = fetchFileMetadata(fileId);
+            final Map<String, String> attributes = createAttributeMap(fileMetadata);
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            final String url = DRIVE_URL + fileMetadata.getId();
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (GoogleJsonResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);
         } catch (Exception e) {
@@ -136,31 +164,40 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         }
     }
 
-    FlowFile fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws IOException {
-        InputStream driveFileInputStream = driveService
+    private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) throws IOException {
+        try (final InputStream driveFileInputStream = driveService
                 .files()
                 .get(fileId)
-                .executeMediaAsInputStream();
+                .executeMediaAsInputStream()) {
 
-        outFlowFile = session.importFrom(driveFileInputStream, outFlowFile);
-
-        return outFlowFile;
+            return session.importFrom(driveFileInputStream, flowFile);
+        }
     }
 
-    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile outFlowFile, GoogleJsonResponseException e) {
-        getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
+    private File fetchFileMetadata(String fileId) throws IOException {
+        return driveService
+                .files()
+                .get(fileId)
+                .setFields("id, name, createdTime, mimeType, size")
+                .execute();
+    }
 
-        outFlowFile = session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getStatusCode());
-        outFlowFile = session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, GoogleJsonResponseException e) {
+        getLogger().error("Fetching File [{}] failed", fileId, e);
 
-        session.transfer(outFlowFile, REL_FAILURE);
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, "" + e.getStatusCode());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+
+        flowFile = session.penalize(flowFile);
+        session.transfer(flowFile, REL_FAILURE);
     }
 
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
-        getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
+        getLogger().error("Fetching File [{}] failed", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
 
+        flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
 }

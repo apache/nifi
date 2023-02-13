@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 
 NiFi Registry has the following minimum system requirements:
 
-* Requires Java Development Kit (JDK) 8, newer than 1.8.0_45
+* Requires Java Development Kit (JDK) 11, newer than 11.0.16
 
 WARNING: When running Registry with only a JRE you may encounter the following error as Flyway (database migration tool) attempts to utilize a resource from the JDK: +
  +
@@ -965,7 +965,6 @@ See <<kerberos_properties>> for complete documentation.
   Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:https://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
 * Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
 * The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:https://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide^]), but an example is below.
-* Kerberos tickets may use AES encryption with keys up to 256-bits in length, and therefore unlimited strength encryption policies may be required for the Jave Runtime Environment (JRE) used for NiFi Registry when Kerberos SPNEGO is configured.
 
 Adding a service principal for a server at `nifi.nifi.apache.org` and exporting the keytab from the KDC:
 

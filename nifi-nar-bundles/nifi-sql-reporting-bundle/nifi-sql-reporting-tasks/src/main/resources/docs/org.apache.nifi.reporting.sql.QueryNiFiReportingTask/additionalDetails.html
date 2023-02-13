@@ -142,6 +142,7 @@
     <tr><td>terminatedThreadCount</td><td>int</td></tr>
     <tr><td>queuedCount</td><td>int</td></tr>
     <tr><td>versionedFlowState</td><td>String</td></tr>
+    <tr><td>processingNanos</td><td>long</td></tr>
 </table>
 <br/>
 <h3>JVM_METRICS</h3>
@@ -210,6 +211,33 @@
     <tr><td>remoteIdentifier</td><td>String</td></tr>
     <tr><td>alternateIdentifier</td><td>String</td></tr>
 </table>
+<br/>
+<h3>FLOW_CONFIG_HISTORY</h3>
+<table title="FLOW_CONFIG_HISTORY" border="1" width="500">
+    <tr><th>Column</th><th>Data Type</th></tr>
+    <tr><td>actionId</td><td>int</td></tr>
+    <tr><td>actionTimestamp</td><td>long</td></tr>
+    <tr><td>actionUserIdentity</td><td>String</td></tr>
+    <tr><td>actionSourceId</td><td>String</td></tr>
+    <tr><td>actionSourceName</td><td>String</td></tr>
+    <tr><td>actionSourceType</td><td>String</td></tr>
+    <tr><td>actionOperation</td><td>String</td></tr>
+    <tr><td>configureDetailsName</td><td>String</td></tr>
+    <tr><td>configureDetailsPreviousValue</td><td>String</td></tr>
+    <tr><td>configureDetailsValue</td><td>String</td></tr>
+    <tr><td>connectionSourceId</td><td>String</td></tr>
+    <tr><td>connectionSourceName</td><td>String</td></tr>
+    <tr><td>connectionSourceType</td><td>String</td></tr>
+    <tr><td>connectionDestinationId</td><td>String</td></tr>
+    <tr><td>connectionDestinationName</td><td>String</td></tr>
+    <tr><td>connectionDestinationType</td><td>String</td></tr>
+    <tr><td>connectionRelationship</td><td>String</td></tr>
+    <tr><td>moveGroup</td><td>String</td></tr>
+    <tr><td>moveGroupId</td><td>String</td></tr>
+    <tr><td>movePreviousGroup</td><td>String</td></tr>
+    <tr><td>movePreviousGroupId</td><td>String</td></tr>
+    <tr><td>purgeEndDate</td><td>long</td></tr>
+</table>
 <br/><br/>
 <h2>SQL Query Examples</h2>
 <p>
@@ -233,6 +261,10 @@
 <p>
     <b>Example:</b> Select all fields from the <code>PROVENANCE</code> table with time window:<br/>
 <pre>SELECT * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime</pre>
+</p>
+<p>
+    <b>Example:</b> Select connection-related fields from the <code>FLOW_CONFIG_HISTORY</code> table:<br/>
+<pre>SELECT connectionSourceName, connectionDestinationName, connectionRelationship from FLOW_CONFIG_HISTORY</pre>
 </p>
 <br/>
 </body>

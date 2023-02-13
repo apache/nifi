@@ -22,6 +22,7 @@ import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
 import static org.apache.nifi.c2.protocol.api.OperandType.CONNECTION;
 import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
 import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
+import static org.apache.nifi.c2.protocol.api.OperandType.PROPERTIES;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -36,7 +37,7 @@ public enum OperationType {
     // C2 Server -> C2 Client Commands
     CLEAR(CONNECTION),
     DESCRIBE(MANIFEST),
-    UPDATE(CONFIGURATION, ASSET),
+    UPDATE(CONFIGURATION, ASSET, PROPERTIES),
     RESTART,
     START,
     STOP,

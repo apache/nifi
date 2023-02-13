@@ -66,6 +66,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file is stored in this attribute."),
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file is stored in this attribute."),
+        @WritesAttribute(attribute = "hadoop.file.url", description = "The hadoop url for the file is stored in this attribute."),
         @WritesAttribute(attribute = "record.count", description = "The number of records written to the Parquet file")
 })
 @Restricted(restrictions = {

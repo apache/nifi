@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.shared.property.provider;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SECURITY_PROTOCOL;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_JAAS_CONFIG;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CLASS;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
@@ -56,6 +57,8 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
 
     private static final String SASL_GSSAPI_CUSTOM_LOGIN_CLASS = "org.apache.nifi.processors.kafka.pubsub.CustomKerberosLogin";
 
+    public static final String SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS = "software.amazon.msk.auth.iam.IAMClientCallbackHandler";
+
     private static final LoginConfigProvider LOGIN_CONFIG_PROVIDER = new DelegatingLoginConfigProvider();
 
     private final Set<String> clientPropertyNames;
@@ -86,6 +89,8 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             final SaslMechanism saslMechanism = SaslMechanism.getSaslMechanism(context.getProperty(SASL_MECHANISM).getValue());
             if (SaslMechanism.GSSAPI == saslMechanism && isCustomKerberosLoginFound()) {
                 properties.put(SASL_LOGIN_CLASS.getProperty(), SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
+            } else if (SaslMechanism.AWS_MSK_IAM == saslMechanism && isAwsMskIamCallbackHandlerFound()) {
+                properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
             }
         }
     }
@@ -160,9 +165,17 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
         }
     }
 
-    private boolean isCustomKerberosLoginFound() {
+    private static boolean isCustomKerberosLoginFound() {
+        return isClassFound(SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
+    }
+
+    public static boolean isAwsMskIamCallbackHandlerFound() {
+        return isClassFound(SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+    }
+
+    private static boolean isClassFound(final String className) {
         try {
-            Class.forName(SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
+            Class.forName(className);
             return true;
         } catch (final ClassNotFoundException e) {
             return false;

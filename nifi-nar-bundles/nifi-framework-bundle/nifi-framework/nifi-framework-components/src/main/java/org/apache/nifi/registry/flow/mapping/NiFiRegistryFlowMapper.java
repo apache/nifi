@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow.mapping;
 
 
 import org.apache.commons.lang3.ClassUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -169,7 +170,9 @@ public class NiFiRegistryFlowMapper {
                 }
 
                 coordinates.setRegistryUrl(getRegistryUrl(registry));
-                coordinates.setStorageLocation(versionControlInfo.getStorageLocation() == null ?getRegistryUrl(registry) : versionControlInfo.getStorageLocation());
+
+                final String storageLocation = determineStorageLocation(registry, versionControlInfo);
+                coordinates.setStorageLocation(storageLocation);
                 coordinates.setBucketId(versionControlInfo.getBucketIdentifier());
                 coordinates.setFlowId(versionControlInfo.getFlowIdentifier());
                 coordinates.setVersion(versionControlInfo.getVersion());
@@ -193,11 +196,32 @@ public class NiFiRegistryFlowMapper {
     }
 
 
+    private boolean isNiFiRegistryClient(final FlowRegistryClientNode clientNode) {
+        return clientNode.getComponentType().endsWith("NifiRegistryFlowRegistryClient");
+    }
+
     // This is specific for the {@code NifiRegistryFlowRegistryClient}, purely for backward compatibility
     private String getRegistryUrl(final FlowRegistryClientNode registry) {
-        return registry.getComponentType().endsWith("NifiRegistryFlowRegistryClient")
-               ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
+        return isNiFiRegistryClient(registry) ? registry.getRawPropertyValue(registry.getPropertyDescriptor(REGISTRY_URL_DESCRIPTOR_NAME)) : "";
     }
+
+    private String determineStorageLocation(final FlowRegistryClientNode registryClient, final VersionControlInformation versionControlInformation) {
+        final String explicitStorageLocation = versionControlInformation.getStorageLocation();
+        if (!StringUtils.isEmpty(explicitStorageLocation)) {
+            return explicitStorageLocation;
+        }
+
+        final String registryUrl = getRegistryUrl(registryClient);
+        if (StringUtils.isEmpty(registryUrl)) {
+            return "";
+        }
+
+        final String bucketId = versionControlInformation.getBucketIdentifier();
+        final String flowId = versionControlInformation.getFlowIdentifier();
+        final int version = versionControlInformation.getVersion();
+        return String.format("%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s", registryUrl, bucketId, flowId, version);
+    }
+
 
     private InstantiatedVersionedProcessGroup mapGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
                                                        final BiFunction<ProcessGroup, VersionedProcessGroup, Boolean> applyVersionControlInfo) {
@@ -879,6 +903,10 @@ public class NiFiRegistryFlowMapper {
 
     private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts,
                                      final Map<String, ParameterProviderReference> parameterProviderReferences) {
+        if (parameterContexts.containsKey(parameterContext.getName())) {
+            return;
+        }
+
         // map this process group's parameter context and add to the collection
         final Set<VersionedParameter> parameters = mapParameters(parameterContext);
 

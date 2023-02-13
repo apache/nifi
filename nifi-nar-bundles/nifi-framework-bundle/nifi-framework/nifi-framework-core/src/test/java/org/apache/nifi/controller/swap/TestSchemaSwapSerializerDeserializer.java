@@ -17,8 +17,20 @@
 
 package org.apache.nifi.controller.swap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.SwapContents;
+import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.stream.io.NullOutputStream;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -39,24 +51,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.SwapContents;
-import org.apache.nifi.controller.repository.SwapSummary;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.NullOutputStream;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestSchemaSwapSerializerDeserializer {
 
-    @Before
+    @BeforeEach
     public void setup() {
         MockFlowFile.resetIdGenerator();
     }
@@ -166,7 +166,7 @@ public class TestSchemaSwapSerializerDeserializer {
     }
 
     @Test
-    @Ignore("For manual testing, in order to ensure that changes do not negatively impact performance")
+    @Disabled("For manual testing, in order to ensure that changes do not negatively impact performance")
     public void testWritePerformance() throws IOException, InterruptedException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 

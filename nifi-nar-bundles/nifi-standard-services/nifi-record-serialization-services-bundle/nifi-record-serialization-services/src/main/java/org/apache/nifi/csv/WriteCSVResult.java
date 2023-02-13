@@ -89,6 +89,8 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
 
     @Override
     protected Map<String, String> onFinishRecordSet() throws IOException {
+        // If the header has not yet been written (but should be), write it out now
+        includeHeaderIfNecessary(null, true);
         return schemaWriter.getAttributes(recordSchema);
     }
 

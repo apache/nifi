@@ -17,14 +17,14 @@
 package org.apache.nifi.elasticsearch;
 
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class MapBuilder {
     private final Map<String, Object> toBuild;
 
     public MapBuilder() {
-        toBuild = new HashMap<>();
+        toBuild = new LinkedHashMap<>();
     }
 
     public MapBuilder of(final String key, final Object value) {

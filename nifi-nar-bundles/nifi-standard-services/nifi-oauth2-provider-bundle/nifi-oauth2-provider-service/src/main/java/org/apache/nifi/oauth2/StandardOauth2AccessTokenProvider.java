@@ -19,6 +19,7 @@ package org.apache.nifi.oauth2;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import okhttp3.Credentials;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -58,7 +59,8 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
-    " Uses Resource Owner Password Credentials Grant.")
+    " Can use either Resource Owner Password Credentials Grant or Client Credentials Grant." +
+    " Client authentication can be done with either HTTP Basic authentication or in the request body.")
 public class StandardOauth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider, VerifiableControllerService {
     public static final PropertyDescriptor AUTHORIZATION_SERVER_URL = new PropertyDescriptor.Builder()
         .name("authorization-server-url")
@@ -69,16 +71,31 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
+    public static final PropertyDescriptor CLIENT_AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
+        .name("client-authentication-strategy")
+        .displayName("Client Authentication Strategy")
+        .description("Strategy for authenticating the client against the OAuth2 token provider service.")
+        .required(true)
+        .allowableValues(ClientAuthenticationStrategy.class)
+        .defaultValue(ClientAuthenticationStrategy.REQUEST_BODY.getValue())
+        .build();
+
     public static AllowableValue RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "password",
         "User Password",
-        "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret"
+        "Resource Owner Password Credentials Grant. Used to access resources available to users. Requires username and password and usually Client ID and Client Secret."
     );
 
     public static AllowableValue CLIENT_CREDENTIALS_GRANT_TYPE = new AllowableValue(
         "client_credentials",
         "Client Credentials",
-        "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret"
+        "Client Credentials Grant. Used to access resources available to clients. Requires Client ID and Client Secret."
+    );
+
+    public static AllowableValue REFRESH_TOKEN_GRANT_TYPE = new AllowableValue(
+        "refresh_token",
+        "Refresh Token",
+        "Refresh Token Grant. Used to get fresh access tokens based on a previously acquired refresh token. Requires Client ID and Client Secret (apart from Refresh Token)."
     );
 
     public static final PropertyDescriptor GRANT_TYPE = new PropertyDescriptor.Builder()
@@ -86,7 +103,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .displayName("Grant Type")
         .description("The OAuth2 Grant Type to be used when acquiring an access token.")
         .required(true)
-        .allowableValues(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE)
+        .allowableValues(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE, REFRESH_TOKEN_GRANT_TYPE)
         .defaultValue(RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue())
         .build();
 
@@ -108,6 +125,17 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor REFRESH_TOKEN = new PropertyDescriptor.Builder()
+        .name("refresh-token")
+        .displayName("Refresh Token")
+        .description("Refresh Token.")
+        .dependsOn(GRANT_TYPE, REFRESH_TOKEN_GRANT_TYPE)
+        .required(true)
+        .sensitive(true)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
@@ -136,13 +164,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .build();
 
     public static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
-            .name("refresh-window")
-            .displayName("Refresh Window")
-            .description("The service will attempt to refresh tokens expiring within the refresh window, subtracting the configured duration from the token expiration.")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 s")
-            .required(true)
-            .build();
+        .name("refresh-window")
+        .displayName("Refresh Window")
+        .description("The service will attempt to refresh tokens expiring within the refresh window, subtracting the configured duration from the token expiration.")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("0 s")
+        .required(true)
+        .build();
 
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
         .name("ssl-context-service")
@@ -163,9 +191,11 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
+        CLIENT_AUTHENTICATION_STRATEGY,
         GRANT_TYPE,
         USERNAME,
         PASSWORD,
+        REFRESH_TOKEN,
         CLIENT_ID,
         CLIENT_SECRET,
         SCOPE,
@@ -174,6 +204,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         HTTP_PROTOCOL_STRATEGY
     ));
 
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+
     public static final ObjectMapper ACCESS_DETAILS_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
@@ -181,6 +213,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String authorizationServerUrl;
     private volatile OkHttpClient httpClient;
 
+    private volatile ClientAuthenticationStrategy clientAuthenticationStrategy;
     private volatile String grantType;
     private volatile String username;
     private volatile String password;
@@ -202,12 +235,23 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
         httpClient = createHttpClient(context);
 
+        clientAuthenticationStrategy = ClientAuthenticationStrategy.valueOf(context.getProperty(CLIENT_AUTHENTICATION_STRATEGY).getValue());
         grantType = context.getProperty(GRANT_TYPE).getValue();
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         password = context.getProperty(PASSWORD).getValue();
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
         scope = context.getProperty(SCOPE).getValue();
+
+        if (context.getProperty(REFRESH_TOKEN).isSet()) {
+            String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
+
+            AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
+            accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
+            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
+
+            this.accessDetails = accessDetailsWithRefreshTokenOnly;
+        }
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
     }
@@ -288,7 +332,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             acquireTokenBuilder.add("grant_type", "client_credentials");
         }
 
-        if (clientId != null) {
+        if (ClientAuthenticationStrategy.REQUEST_BODY == clientAuthenticationStrategy && clientId != null) {
             acquireTokenBuilder.add("client_id", clientId);
             acquireTokenBuilder.add("client_secret", clientSecret);
         }
@@ -298,11 +342,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         }
 
         RequestBody acquireTokenRequestBody = acquireTokenBuilder.build();
-
-        Request acquireTokenRequest = new Request.Builder()
+        Request.Builder acquireTokenRequestBuilder = new Request.Builder()
             .url(authorizationServerUrl)
-            .post(acquireTokenRequestBody)
-            .build();
+            .post(acquireTokenRequestBody);
+
+        if (ClientAuthenticationStrategy.BASIC_AUTHENTICATION == clientAuthenticationStrategy && clientId != null) {
+            acquireTokenRequestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
+        }
+
+        Request acquireTokenRequest = acquireTokenRequestBuilder.build();
 
         this.accessDetails = getAccessDetails(acquireTokenRequest);
     }
@@ -314,7 +362,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             .add("grant_type", "refresh_token")
             .add("refresh_token", this.accessDetails.getRefreshToken());
 
-        if (clientId != null) {
+        if (ClientAuthenticationStrategy.REQUEST_BODY == clientAuthenticationStrategy && clientId != null) {
             refreshTokenBuilder.add("client_id", clientId);
             refreshTokenBuilder.add("client_secret", clientSecret);
         }
@@ -325,10 +373,15 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
         RequestBody refreshTokenRequestBody = refreshTokenBuilder.build();
 
-        Request refreshRequest = new Request.Builder()
+        Request.Builder refreshRequestBuilder = new Request.Builder()
             .url(authorizationServerUrl)
-            .post(refreshTokenRequestBody)
-            .build();
+            .post(refreshTokenRequestBody);
+
+        if (ClientAuthenticationStrategy.BASIC_AUTHENTICATION == clientAuthenticationStrategy && clientId != null) {
+            refreshRequestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
+        }
+
+        Request refreshRequest = refreshRequestBuilder.build();
 
         this.accessDetails = getAccessDetails(refreshRequest);
     }

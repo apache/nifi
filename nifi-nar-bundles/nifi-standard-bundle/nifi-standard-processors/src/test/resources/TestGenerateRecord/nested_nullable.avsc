@@ -1,0 +1,52 @@
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [{
+    "name": "System",
+    "type": ["null", {
+      "type": "record",
+      "name": "SystemType",
+      "fields": [{
+        "name": "Provider",
+        "type": ["null", {
+          "type": "record",
+          "name": "ProviderType",
+          "fields": [{
+            "name": "Guid",
+            "type": ["null", "string"]
+          }, {
+            "name": "Name",
+            "type": ["null", "string"]
+          }]
+        }]
+      }, {
+        "name": "EventID",
+        "type": ["null", "int"]
+      }]
+    }]
+  },{
+    "name": "EventData",
+    "type": ["null", {
+      "type": "record",
+      "name": "EventDataType",
+      "fields": [{
+        "name": "Data",
+        "type": [{
+          "type": "array",
+          "items": {
+            "type": "record",
+            "name": "DataElementRecord",
+            "fields": [{
+              "name": "Name",
+              "type": ["null", "string"]
+            }, {
+              "name": "DataElement",
+              "type": ["null", "string"]
+            }]
+          }
+        }, "null"]
+      }]
+    }]
+  }]
+}

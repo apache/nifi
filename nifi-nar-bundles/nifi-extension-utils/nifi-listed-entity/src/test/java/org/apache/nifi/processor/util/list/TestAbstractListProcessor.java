@@ -49,16 +49,16 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.glassfish.jersey.internal.guava.Predicates;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -73,8 +73,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAbstractListProcessor {
 
@@ -92,9 +93,10 @@ public class TestAbstractListProcessor {
 
     private ConcreteListProcessor proc;
     private TestRunner runner;
-
-    @Rule
-    public TestWatcher dumpState = new ListProcessorTestWatcher(
+    @TempDir
+    private Path testFolder;
+    @RegisterExtension
+    private final ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(
             () -> {
                 try {
                     return runner.getStateManager().getState(Scope.LOCAL).toMap();
@@ -106,14 +108,11 @@ public class TestAbstractListProcessor {
             () -> runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).stream().map(m -> (FlowFile) m).collect(Collectors.toList())
     );
 
-    @Before
+    @BeforeEach
     public void setup() {
         proc = new ConcreteListProcessor();
         runner = TestRunners.newTestRunner(proc);
     }
-
-    @Rule
-    public final TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
     public void testStateMigratedWhenPrimaryNodeSwitch() throws IOException {
@@ -137,7 +136,6 @@ public class TestAbstractListProcessor {
             secondProc.addEntity(String.valueOf(i), String.valueOf(i), 88888L);
         }
         secondProc.addEntity("10", "10", 99999999L);
-
         // Create new runner for the second processor and update its state to match that of the last TestRunner.
         final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
         runner = TestRunners.newTestRunner(secondProc);
@@ -191,7 +189,7 @@ public class TestAbstractListProcessor {
     public void testStateMigratedFromLocalFile() throws Exception {
 
         // Create a file that we will populate with the desired state
-        File persistenceFile = testFolder.newFile(proc.persistenceFilename);
+        File persistenceFile = testFolder.resolve(proc.persistenceFilename).toFile();
         // Override the processor's internal persistence file
         proc.persistenceFile = persistenceFile;
 
@@ -207,7 +205,7 @@ public class TestAbstractListProcessor {
         runner.run();
 
         // Verify the local persistence file is removed
-        assertTrue("Failed to remove persistence file", !persistenceFile.exists());
+        assertFalse(persistenceFile.exists(), "Failed to remove persistence file");
 
         // Verify the state manager now maintains the associated state
         final Map<String, String> expectedState = new HashMap<>();
@@ -461,8 +459,8 @@ public class TestAbstractListProcessor {
         assertEquals(1, results.size());
         final ConfigVerificationResult result = results.get(0);
         assertEquals(expectedOutcome, result.getOutcome());
-        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
-                result.getExplanation().matches(expectedExplanationRegex));
+        assertTrue(result.getExplanation().matches(expectedExplanationRegex),
+                String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()));
     }
 
     static class DistributedCache extends AbstractControllerService implements DistributedMapCacheClient {

@@ -47,6 +47,7 @@ import javax.servlet.Filter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.NetworkInterface;
@@ -62,6 +63,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -148,8 +150,32 @@ public class JettyServer {
 
     private void configureConnectors() {
         final ServerConnectorFactory serverConnectorFactory = new ApplicationServerConnectorFactory(server, properties);
-        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
-        server.addConnector(serverConnector);
+        final Set<String> interfaceNames = properties.isHTTPSConfigured() ? properties.getHttpsNetworkInterfaceNames() : Collections.emptySet();
+        if (interfaceNames.isEmpty()) {
+            final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+            server.addConnector(serverConnector);
+        } else {
+            interfaceNames.stream()
+                    // Map interface name properties to Network Interfaces
+                    .map(interfaceName -> {
+                        try {
+                            return NetworkInterface.getByName(interfaceName);
+                        } catch (final SocketException e) {
+                            throw new UncheckedIOException(String.format("Network Interface [%s] not found", interfaceName), e);
+                        }
+                    })
+                    // Map Network Interfaces to host addresses
+                    .filter(Objects::nonNull)
+                    .flatMap(networkInterface -> Collections.list(networkInterface.getInetAddresses()).stream())
+                    .map(InetAddress::getHostAddress)
+                    // Map host addresses to Server Connectors
+                    .map(host -> {
+                        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+                        serverConnector.setHost(host);
+                        return serverConnector;
+                    })
+                    .forEach(server::addConnector);
+        }
     }
 
     private void loadWars() throws IOException {

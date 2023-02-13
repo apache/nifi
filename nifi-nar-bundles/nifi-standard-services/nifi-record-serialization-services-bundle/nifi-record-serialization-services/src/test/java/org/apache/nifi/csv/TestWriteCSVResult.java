@@ -387,6 +387,28 @@ public class TestWriteCSVResult {
         assertEquals("id,name\n1\\,John Doe\n", output);
     }
 
+    @Test
+    public void testWriteHeaderWithNoRecords() throws IOException {
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder().setEscape('\\').setQuoteMode(QuoteMode.NONE).setRecordSeparator(",").build();
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final String output;
+        try (final WriteCSVResult writer = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "ASCII")) {
+
+            writer.beginRecordSet();
+            writer.finishRecordSet();
+            writer.flush();
+            output = baos.toString();
+        }
+
+        assertEquals("id,name,", output);
+    }
+
 
     private DateFormat getDateFormat(final String format) {
         final DateFormat df = new SimpleDateFormat(format);

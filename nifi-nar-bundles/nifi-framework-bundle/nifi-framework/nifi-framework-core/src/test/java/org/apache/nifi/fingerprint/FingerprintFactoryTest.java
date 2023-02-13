@@ -35,8 +35,8 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -48,10 +48,10 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +64,7 @@ public class FingerprintFactoryTest {
     private FingerprintFactory fingerprintFactory;
     private SensitiveValueEncoder sensitiveValueEncoder;
 
-    @Before
+    @BeforeEach
     public void setup() {
         encryptor = createEncryptor();
         sensitiveValueEncoder = createSensitiveValueEncoder();
@@ -368,7 +368,8 @@ public class FingerprintFactoryTest {
         };
 
         for (final String criticalValue : criticalFingerprintValues) {
-            assertTrue("Fingerprint did not contain '" + criticalValue + "'", fingerprint.contains(criticalValue));
+            assertTrue( fingerprint.contains(criticalValue),
+                    "Fingerprint did not contain '" + criticalValue + "'");
         }
 
         // Ensure that 's1' comes before 's2' in the fingerprint

@@ -28,6 +28,7 @@ import java.util.Properties;
 import java.util.Set;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +42,12 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
     private final Set<ConfigurationChangeListener> configurationChangeListeners;
     private final Set<ChangeIngestor> changeIngestors = new HashSet<>();
 
-    private final Properties bootstrapProperties;
+    private final BootstrapFileProvider bootstrapFileProvider;
     private final RunMiNiFi runMiNiFi;
 
-    public ConfigurationChangeCoordinator(Properties bootstrapProperties, RunMiNiFi runMiNiFi,
+    public ConfigurationChangeCoordinator(BootstrapFileProvider bootstrapFileProvider, RunMiNiFi runMiNiFi,
         Set<ConfigurationChangeListener> miNiFiConfigurationChangeListeners) {
-        this.bootstrapProperties = bootstrapProperties;
+        this.bootstrapFileProvider = bootstrapFileProvider;
         this.runMiNiFi = runMiNiFi;
         this.configurationChangeListeners = Optional.ofNullable(miNiFiConfigurationChangeListeners).map(Collections::unmodifiableSet).orElse(Collections.emptySet());
     }
@@ -54,7 +55,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
     /**
      * Begins the associated notification service provided by the given implementation.  In most implementations, no action will occur until this method is invoked.
      */
-    public void start() {
+    public void start() throws IOException{
         initialize();
         changeIngestors.forEach(ChangeIngestor::start);
     }
@@ -102,8 +103,9 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
         }
     }
 
-    private void initialize() {
+    private void initialize() throws IOException {
         close();
+        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
         // cleanup previously initialized ingestors
         String ingestorsCsv = bootstrapProperties.getProperty(NOTIFIER_INGESTORS_KEY);
 

@@ -28,6 +28,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -2396,6 +2397,27 @@ public class TestQuery {
         verifyEquals("${trueAttr:isJson()}", attributes, false);
         verifyEquals("${falseAttr:isJson()}", attributes, false);
         verifyEquals("${nullAttr:isJson()}", attributes, false);
+    }
+
+    @Test
+    void testGetUri() {
+        verifyEquals("${getUri('https', 'admin:admin', 'nifi.apache.org', '1234', '/path/data ', 'key=value &key2=value2', 'frag1')}",
+                null, "https://admin:admin@nifi.apache.org:1234/path/data%20?key=value%20&key2=value2#frag1");
+        verifyEquals("${getUri('https', null, 'nifi.apache.org', 8443, '/docs.html', null, null)}",
+                null, "https://nifi.apache.org:8443/docs.html");
+        verifyEquals("${getUri('http', null, 'nifi.apache.org', -1, '/docs.html', null, null)}",
+                null, "http://nifi.apache.org/docs.html");
+
+        assertInvalid("${getUri()}");
+        assertInvalid("${getUri('http://nifi.apache.org:1234/path/data?key=value&key2=value2#frag1')}");
+        assertInvalid("${getUri('https', 'admin:admin')}");
+        assertInvalid("${getUri('mailto', 'dev@nifi.apache.org', '')}");
+        assertInvalid("${getUri('http', 'nifi.apache.org', '/path/data', 'frag1')}");
+        assertInvalid("${getUri('https', 'admin:admin@nifi.apache.org:1234', '/path/data ', 'key=value&key2=value2', 'frag1')}");
+
+        AttributeExpressionLanguageException thrown = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${getUri('https', 'admin:admin', 'nifi.apache.org', 'notANumber', '/path/data ', 'key=value&key2=value2', 'frag1')}", null, ""));
+        Assertions.assertEquals("Could not evaluate 'getUri' function with argument 'notANumber' which is not a number", thrown.getMessage());
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

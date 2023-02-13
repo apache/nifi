@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.security.jwt.revocation;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
@@ -29,10 +29,10 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardJwtLogoutListenerTest {
     private static final String ID = UUID.randomUUID().toString();
 
@@ -54,7 +54,7 @@ public class StandardJwtLogoutListenerTest {
 
     private StandardJwtLogoutListener listener;
 
-    @Before
+    @BeforeEach
     public void setListener() {
         listener = new StandardJwtLogoutListener(jwtDecoder, jwtRevocationService);
         jwt = Jwt.withTokenValue(TOKEN).header(TYPE_FIELD, JWT_TYPE).jti(ID).expiresAt(EXPIRES).build();
@@ -63,8 +63,8 @@ public class StandardJwtLogoutListenerTest {
     @Test
     public void testLogoutBearerTokenNullZeroInteractions() {
         listener.logout(null);
-        verifyZeroInteractions(jwtDecoder);
-        verifyZeroInteractions(jwtRevocationService);
+        verifyNoInteractions(jwtDecoder);
+        verifyNoInteractions(jwtRevocationService);
     }
 
     @Test

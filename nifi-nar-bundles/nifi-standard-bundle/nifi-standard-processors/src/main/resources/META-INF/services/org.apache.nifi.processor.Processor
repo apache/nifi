@@ -29,6 +29,7 @@ org.apache.nifi.processors.standard.DetectDuplicate
 org.apache.nifi.processors.standard.DeduplicateRecord
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
+org.apache.nifi.processors.standard.EncodeContent
 org.apache.nifi.processors.standard.EncryptContent
 org.apache.nifi.processors.standard.EnforceOrder
 org.apache.nifi.processors.standard.EvaluateJsonPath
@@ -47,6 +48,7 @@ org.apache.nifi.processors.standard.FetchSFTP
 org.apache.nifi.processors.standard.FlattenJson
 org.apache.nifi.processors.standard.ForkRecord
 org.apache.nifi.processors.standard.ForkEnrichment
+org.apache.nifi.processors.standard.GenerateRecord
 org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile

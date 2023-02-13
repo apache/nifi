@@ -45,7 +45,10 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_SIGNER_OVERRIDE;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.CREDENTIALS_FILE;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.SECRET_KEY;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS;
@@ -74,7 +77,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
     public static final PropertyDescriptor ASSUME_ROLE_NAME = CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
     public static final PropertyDescriptor MAX_SESSION_TIME = CredentialPropertyDescriptors.MAX_SESSION_TIME;
-    public static final PropertyDescriptor ASSUME_ROLE_REGION = CredentialPropertyDescriptors.ASSUME_ROLE_REGION;
+    public static final PropertyDescriptor ASSUME_ROLE_STS_REGION = CredentialPropertyDescriptors.ASSUME_ROLE_STS_REGION;
 
     private static final List<PropertyDescriptor> properties;
 
@@ -92,8 +95,11 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_EXTERNAL_ID);
         props.add(ASSUME_ROLE_PROXY_HOST);
         props.add(ASSUME_ROLE_PROXY_PORT);
+        props.add(ASSUME_ROLE_STS_REGION);
         props.add(ASSUME_ROLE_STS_ENDPOINT);
-        props.add(ASSUME_ROLE_REGION);
+        props.add(ASSUME_ROLE_STS_SIGNER_OVERRIDE);
+        props.add(ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME);
+        props.add(ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION);
         properties = Collections.unmodifiableList(props);
     }
 

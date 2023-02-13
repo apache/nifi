@@ -200,8 +200,9 @@ public class TlsToolkitStandaloneTest {
 
     @Test
     public void testKeyStoreTypeArg() throws Exception {
+        final String certificateAuthorityHostname = "certificate-authority";
         runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", TlsConfig.DEFAULT_HOSTNAME, "-T", KeystoreType.PKCS12.toString().toLowerCase(),
-                "-K", "change", "-S", "change", "-P", "change");
+                "-K", "change", "-S", "change", "-P", "change", "-c", certificateAuthorityHostname);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
         checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
     }
@@ -521,7 +522,8 @@ public class TlsToolkitStandaloneTest {
         try (FileInputStream fileInputStream = new FileInputStream(new File(tempDir, clientDnFile + ".p12"))) {
             keyStore.load(fileInputStream, password.toCharArray());
         }
-        PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, new char[0]);
+        final char[] keyPassword = password.toCharArray();
+        PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, keyPassword);
         Certificate[] certificateChain = keyStore.getCertificateChain(TlsToolkitStandalone.NIFI_KEY);
         assertEquals(2, certificateChain.length);
         assertEquals(rootCert, certificateChain[1]);

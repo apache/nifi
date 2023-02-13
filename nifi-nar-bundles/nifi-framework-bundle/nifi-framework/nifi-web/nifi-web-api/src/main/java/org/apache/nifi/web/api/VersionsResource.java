@@ -1214,6 +1214,7 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         versionControlInfo.setGroupId(groupId);
         versionControlInfo.setRegistryId(requestVci.getRegistryId());
         versionControlInfo.setRegistryName(serviceFacade.getFlowRegistryName(requestVci.getRegistryId()));
+        versionControlInfo.setStorageLocation(requestVci.getStorageLocation());
         versionControlInfo.setVersion(metadata.getVersion());
         versionControlInfo.setState(flowSnapshot.isLatest() ? VersionedFlowState.UP_TO_DATE.name() : VersionedFlowState.STALE.name());
 

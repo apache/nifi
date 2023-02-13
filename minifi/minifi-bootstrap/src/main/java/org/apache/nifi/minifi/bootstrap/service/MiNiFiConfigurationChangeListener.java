@@ -61,7 +61,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
             File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
 
-            File swapConfigFile = bootstrapFileProvider.getSwapFile();
+            File swapConfigFile = bootstrapFileProvider.getConfigYmlSwapFile();
             logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
 
             try (FileInputStream configFileInputStream = new FileInputStream(configFile)) {

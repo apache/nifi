@@ -136,4 +136,9 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
     public Map<String, Object> getProperties() {
         return operandPropertiesProvider.getProperties();
     }
+
+    @Override
+    public boolean requiresRestart() {
+        return true;
+    }
 }

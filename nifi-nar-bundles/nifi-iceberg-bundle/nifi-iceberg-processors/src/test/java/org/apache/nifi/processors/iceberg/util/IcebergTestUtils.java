@@ -36,8 +36,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IcebergTestUtils {
 
@@ -96,7 +96,7 @@ public class IcebergTestUtils {
     public static void validatePartitionFolders(String tableLocation, List<String> partitionPaths) {
         for (String partitionPath : partitionPaths) {
             Path path = Paths.get(tableLocation + "/data/" + partitionPath);
-            assertTrue("The expected path doesn't exists: " + path, Files.exists(path));
+            assertTrue(Files.exists(path),"The expected path doesn't exists: " + path);
         }
     }
 

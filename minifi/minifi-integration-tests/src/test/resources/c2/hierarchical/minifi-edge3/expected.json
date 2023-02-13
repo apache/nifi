@@ -3,6 +3,6 @@
     "pattern": "ConfigurationChangeCoordinator Notifying Listeners of a change"
   },
   {
-    "pattern": "MiNiFi has finished reloading successfully and swap file exists. Deleting old configuration"
+    "pattern": "MiNiFi has finished reloading successfully and swap.yml file exists. Deleting old configuration"
   }
 ]

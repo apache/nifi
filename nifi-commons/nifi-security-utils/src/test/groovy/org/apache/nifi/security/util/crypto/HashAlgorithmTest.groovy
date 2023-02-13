@@ -25,7 +25,10 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-class HashAlgorithmTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class HashAlgorithmTest {
     private static final Logger logger = LoggerFactory.getLogger(HashAlgorithmTest.class)
 
 
@@ -48,7 +51,7 @@ class HashAlgorithmTest extends GroovyTestCase {
         logger.info("Broken algorithms: ${brokenAlgorithms}")
 
         // Assert
-        assert brokenAlgorithms == [HashAlgorithm.MD2, HashAlgorithm.MD5, HashAlgorithm.SHA1]
+        assertEquals([HashAlgorithm.MD2, HashAlgorithm.MD5, HashAlgorithm.SHA1], brokenAlgorithms)
     }
 
     @Test
@@ -62,11 +65,11 @@ class HashAlgorithmTest extends GroovyTestCase {
         }
 
         // Assert
-        assert descriptions.every {
-            it =~ /.* \(\d+ byte output\).*/
-        }
+        descriptions.forEach(description -> assertTrue((description =~ /.* \(\d+ byte output\).*/).find()) )
 
-        assert descriptions.findAll { it =~ "MD2|MD5|SHA-1" }.every { it =~ /\[WARNING/ }
+        descriptions.stream()
+        .filter(description -> (description =~ "MD2|MD5|SHA-1").find() )
+        .forEach(description -> assertTrue(description.contains("WARNING")))
     }
 
     @Test
@@ -78,7 +81,7 @@ class HashAlgorithmTest extends GroovyTestCase {
         logger.info("Blake2 algorithms: ${blake2Algorithms}")
 
         // Assert
-        assert blake2Algorithms == [HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512]
+        assertEquals([HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512], blake2Algorithms)
     }
 
     @Test
@@ -95,8 +98,7 @@ class HashAlgorithmTest extends GroovyTestCase {
                 HashAlgorithm found = HashAlgorithm.fromName(name)
 
                 // Assert
-                assert found instanceof HashAlgorithm
-                assert found.name == name.toUpperCase()
+                assertEquals(name.toUpperCase(), found.name)
             }
         }
     }

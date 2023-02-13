@@ -16,16 +16,33 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static java.lang.String.format;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
+import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -49,14 +66,17 @@ import org.apache.nifi.proxy.ProxySpec;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"dropbox", "storage", "fetch"})
 @CapabilityDescription("Fetches files from Dropbox. Designed to be used in tandem with ListDropbox.")
-@WritesAttribute(attribute = "error.message", description = "When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
-        + "not be fetched from Dropbox.")
-@SeeAlso(ListDropbox.class)
-@WritesAttributes(
-        @WritesAttribute(attribute = FetchDropbox.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Dropbox when the fetch of a file fails."))
+@SeeAlso({PutDropbox.class, ListDropbox.class})
+@WritesAttributes({
+        @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC),
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = PATH, description = PATH_DESC),
+        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = REVISION, description = REVISION_DESC)}
+)
 public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
-
-    public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor
             .Builder().name("file")
@@ -83,7 +103,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
                     .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
                     .build();
 
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
@@ -94,11 +114,11 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
-    private DbxClientV2 dropboxApiClient;
+    private volatile DbxClientV2 dropboxApiClient;
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -108,14 +128,12 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
-        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
+        dropboxApiClient = getDropboxApiClient(context, getIdentifier());
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -124,24 +142,34 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
         fileIdentifier = correctFilePath(fileIdentifier);
 
         FlowFile outFlowFile = flowFile;
+        final long startNanos = System.nanoTime();
         try {
-            fetchFile(fileIdentifier, session, outFlowFile);
+            FileMetadata fileMetadata = fetchFile(fileIdentifier, session, outFlowFile);
+
+            final Map<String, String> attributes = createAttributeMap(fileMetadata);
+            outFlowFile = session.putAllAttributes(outFlowFile, attributes);
+            String url = DROPBOX_HOME_URL + fileMetadata.getPathDisplay();
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
+
             session.transfer(outFlowFile, REL_SUCCESS);
         } catch (Exception e) {
             handleError(session, flowFile, fileIdentifier, e);
         }
     }
 
-    private void fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
-        InputStream dropboxInputStream = dropboxApiClient.files()
-                .download(fileId)
-                .getInputStream();
-        session.importFrom(dropboxInputStream, outFlowFile);
+    private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
+        try (DbxDownloader<FileMetadata> downloader = dropboxApiClient.files().download(fileId)) {
+            final InputStream dropboxInputStream = downloader.getInputStream();
+            session.importFrom(dropboxInputStream, outFlowFile);
+            return downloader.getResult();
+        }
     }
 
     private void handleError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
         getLogger().error("Error while fetching and processing file with id '{}'", fileId, e);
-        FlowFile outFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+        final FlowFile outFlowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        session.penalize(outFlowFile);
         session.transfer(outFlowFile, REL_FAILURE);
     }
 

@@ -18,7 +18,6 @@
 package org.apache.nifi.lookup.rest.handlers
 
 import org.apache.nifi.util.StringUtils
-import org.junit.Assert
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -28,6 +27,8 @@ import javax.servlet.http.HttpServletResponse
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
 class VerbTest extends HttpServlet {
     Logger logger = LoggerFactory.getLogger(VerbTest.class)
@@ -62,8 +63,8 @@ class VerbTest extends HttpServlet {
         boolean bodyRequired = !StringUtils.isBlank(needsBody)
         String body = request.inputStream.text
         if (bodyRequired) {
-            Assert.assertNotNull(body)
-            Assert.assertFalse(StringUtils.isBlank(body))
+            assertNotNull(body)
+            assertFalse(StringUtils.isBlank(body))
         }
     }
 }

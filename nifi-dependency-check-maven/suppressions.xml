@@ -25,16 +25,6 @@
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
-        <notes>MySQL Binary Log Connector is incorrectly identified as MySQL server</notes>
-        <packageUrl regex="true">^pkg:maven/com\.zendesk/mysql\-binlog\-connector\-java@.*$</packageUrl>
-        <cpe>cpe:/a:mysql:mysql</cpe>
-    </suppress>
-    <suppress>
-        <notes>Twill ZooKeeper is incorrectly identified with ZooKeeper server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.twill/twill\-zookeeper@.*$</packageUrl>
-        <cpe>cpe:/a:apache:zookeeper</cpe>
-    </suppress>
-    <suppress>
         <notes>H2 1.4.200 is shaded and repackaged without vulnerable components in nifi-h2-database for migration</notes>
         <packageUrl>pkg:maven/com.h2database/h2@1.4.200</packageUrl>
         <vulnerabilityName regex="true">^CVE.*$</vulnerabilityName>
@@ -53,11 +43,6 @@
         <notes>CVE-2020-5408 does not apply to Spring Security Crypto 5.7.1 and later</notes>
         <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-crypto@.*$</packageUrl>
         <vulnerabilityName>CVE-2020-5408</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>Servlet API 2.5 does not include Jetty Server vulnerabilities</notes>
-        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/servlet\-api@.*$</packageUrl>
-        <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
         <notes>Spark 2.13 used in nifi-spark-receiver is not impacted by Spark Server vulnerabilities</notes>
@@ -145,19 +130,9 @@
         <vulnerabilityName>CVE-2014-3643</vulnerabilityName>
     </suppress>
     <suppress>
-        <notes>Fan Platform vulnerabilities do not apply to JUnit Platform libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.junit\.platform/junit\-platform\-engine@.*$</packageUrl>
-        <cpe>cpe:/a:fan_platform_project:fan_platform</cpe>
-    </suppress>
-    <suppress>
         <notes>CVE-2007-6465 applies to Ganglia Server not Ganglia client libraries</notes>
         <packageUrl regex="true">^pkg:maven/com\.yammer\.metrics/metrics\-ganglia@.*$</packageUrl>
         <cve>CVE-2007-6465</cve>
-    </suppress>
-    <suppress>
-        <notes>Pro Search vulnerabilities do not apply to Spatial4j</notes>
-        <packageUrl regex="true">^pkg:maven/org\.locationtech\.spatial4j/spatial4j@.*$</packageUrl>
-        <cpe>cpe:/a:pro_search:pro_search</cpe>
     </suppress>
     <suppress>
         <notes>CVE-2021-43045 applies to the Apache Avro .NET SDK and not to the Java SDK</notes>
@@ -168,11 +143,6 @@
         <notes>CVE-2022-31159 applies to AWS S3 library not the SWF libraries</notes>
         <packageUrl regex="true">^pkg:maven/com\.amazonaws/aws\-java\-sdk\-swf\-libraries@.*$</packageUrl>
         <cve>CVE-2022-31159</cve>
-    </suppress>
-    <suppress>
-        <notes>Hive vulnerabilities do not apply to Iceberg Hive Metadata</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.iceberg/iceberg\-hive\-metastore@.*$</packageUrl>
-        <cpe>cpe:/a:apache:hive</cpe>
     </suppress>
     <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to Elasticsearch Plugin</notes>
@@ -210,8 +180,23 @@
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
-        <notes>HTTP server vulnerabilities do not apply to Apache FTP Server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.ftpserver/.*$</packageUrl>
-        <cpe>cpe:/a:apache:apache_http_server</cpe>
+        <notes>CVE-2022-45046 description notes that the initial issue was not a security vulnerability</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.camel/camel\-salesforce@.*$</packageUrl>
+        <cve>CVE-2022-45046</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2020-36632 applies to JavaScript module named hughsk/flat not flatbuffers</notes>
+        <packageUrl regex="true">^pkg:maven/com\.vlkan/flatbuffers@.*$</packageUrl>
+        <cve>CVE-2020-36632</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-8015 applies to Apache ORC not to Apache Iceberg</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.iceberg/iceberg\-orc@.*$</packageUrl>
+        <cve>CVE-2018-8015</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-39135 applies to Calcite not Calcite Avatica</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica/.*?@.*$</packageUrl>
+        <cve>CVE-2022-39135</cve>
     </suppress>
 </suppressions>

@@ -16,35 +16,17 @@
  */
 package org.apache.nifi.controller.repository.util;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.File;
 
 public class DiskUtils {
 
-    public static void deleteRecursively(final File toDelete, final int numTries) {
-        File unableToDelete = null;
-        for (int i = 0; i < numTries; i++) {
-            unableToDelete = attemptRecursiveDelete(toDelete);
-            if (unableToDelete == null) {
-                return;
-            }
-
-            try {
-                Thread.sleep(50L);
-            } catch (final Exception e) {
-            }
-        }
-
-        assertNull("Unable to delete " + unableToDelete, unableToDelete);
-        assertFalse("Thought that I deleted " + toDelete + " but it still exists", toDelete.exists());
-    }
-
     public static void deleteRecursively(final File toDelete) {
         final File unableToDelete = attemptRecursiveDelete(toDelete);
-        assertNull("Unable to delete " + unableToDelete, unableToDelete);
-        assertFalse("Thought that I deleted " + toDelete + " but it still exists", toDelete.exists());
+        assertNull(unableToDelete, "Unable to delete " + unableToDelete);
+        assertFalse(toDelete.exists(), "Thought that I deleted " + toDelete + " but it still exists");
     }
 
     private static File attemptRecursiveDelete(final File toDelete) {

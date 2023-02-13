@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.dropbox;
 
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,13 +37,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 public class DropboxFileInfo implements ListableEntity {
-
-    public static final String ID = "dropbox.id";
-    public static final String PATH = "path";
-    public static final String FILENAME = "filename";
-    public static final String SIZE = "dropbox.size";
-    public static final String TIMESTAMP = "dropbox.timestamp";
-    public static final String REVISION = "dropbox.revision";
 
     private static final RecordSchema SCHEMA;
 

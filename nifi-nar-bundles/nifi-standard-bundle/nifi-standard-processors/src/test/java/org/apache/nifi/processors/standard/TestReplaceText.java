@@ -1632,6 +1632,41 @@ public class TestReplaceText {
     }
 
     @Test
+    public void testSurroundWithEntireText() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.SURROUND);
+        runner.setProperty(ReplaceText.PREPEND_TEXT, "<pre>");
+        runner.setProperty(ReplaceText.APPEND_TEXT, "<post>");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+
+        final String input = "Hello\nThere\nHow are you\nToday?";
+        runner.enqueue(input);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+
+        final MockFlowFile output = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        output.assertContentEquals("<pre>" + input + "<post>");
+    }
+
+    @Test
+    public void testSurroundLineByLine() {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.SURROUND);
+        runner.setProperty(ReplaceText.PREPEND_TEXT, "<pre>");
+        runner.setProperty(ReplaceText.APPEND_TEXT, "<post>");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+
+        final String input = "Hello\nThere\nHow are you\nToday?";
+        runner.enqueue(input);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+
+        final MockFlowFile output = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        output.assertContentEquals("<pre>Hello<post>\n<pre>There<post>\n<pre>How are you<post>\n<pre>Today?<post>");
+    }
+
+
+    @Test
     public void testBackReferenceEscapeWithRegexReplaceUsingEL() {
         final TestRunner runner = getRunner();
 

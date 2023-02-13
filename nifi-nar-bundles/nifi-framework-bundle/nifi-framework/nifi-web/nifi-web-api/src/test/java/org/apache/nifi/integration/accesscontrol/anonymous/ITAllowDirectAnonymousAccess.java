@@ -19,12 +19,13 @@ package org.apache.nifi.integration.accesscontrol.anonymous;
 import org.apache.nifi.integration.accesscontrol.OneWaySslAccessControlHelper;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Integration test for allowing direct anonymous access.
@@ -33,7 +34,7 @@ public class ITAllowDirectAnonymousAccess extends AbstractAnonymousUserTest {
 
     private static OneWaySslAccessControlHelper helper;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         helper = new OneWaySslAccessControlHelper("src/test/resources/access-control/nifi-anonymous-allowed.properties");
     }
@@ -48,18 +49,18 @@ public class ITAllowDirectAnonymousAccess extends AbstractAnonymousUserTest {
         final Response response = super.testCreateProcessor(helper.getBaseUrl(), helper.getUser());
 
         // ensure the request is successful
-        Assert.assertEquals(201, response.getStatus());
+        assertEquals(201, response.getStatus());
 
         // get the entity body
         final ProcessorEntity entity = response.readEntity(ProcessorEntity.class);
 
         // verify creation
         final ProcessorDTO processor = entity.getComponent();
-        Assert.assertEquals("Copy", processor.getName());
-        Assert.assertEquals("org.apache.nifi.integration.util.SourceTestProcessor", processor.getType());
+        assertEquals("Copy", processor.getName());
+        assertEquals("org.apache.nifi.integration.util.SourceTestProcessor", processor.getType());
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() throws Exception {
         helper.cleanup();
     }

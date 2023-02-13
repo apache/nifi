@@ -23,10 +23,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -96,7 +99,7 @@ public class ConvertExcelToCSVProcessor
             .displayName("Sheets to Extract")
             .description("Comma separated list of Excel document sheet names that should be extracted from the excel document. If this property" +
                     " is left blank then all of the sheets will be extracted from the Excel document. The list of names is case in-sensitive. Any sheets not " +
-                    "specified in this value will be ignored.")
+                    "specified in this value will be ignored. A bulletin will be generated if a specified sheet(s) are not found.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -240,25 +243,35 @@ public class ConvertExcelToCSVProcessor
                                     .split(desiredSheetsDelimited, DESIRED_SHEETS_DELIMITER);
 
                             if (desiredSheets != null) {
+                                Map<String, Boolean> sheetsFound = Arrays.stream(desiredSheets)
+                                        .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE));
                                 while (iter.hasNext()) {
                                     InputStream sheet = iter.next();
                                     String sheetName = iter.getSheetName();
 
-                                    for (int i = 0; i < desiredSheets.length; i++) {
+                                    for (String desiredSheet : desiredSheets) {
                                         //If the sheetName is a desired one parse it
-                                        if (sheetName.equalsIgnoreCase(desiredSheets[i])) {
+                                        if (sheetName.equalsIgnoreCase(desiredSheet)) {
                                             ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheetName, formatValues, sst, styles);
                                             handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
+                                            sheetsFound.put(desiredSheet, Boolean.TRUE);
                                             break;
                                         }
                                     }
+                                }
+                                String sheetsNotFound = sheetsFound.entrySet().stream()
+                                        .filter(entry -> !entry.getValue())
+                                        .map(Map.Entry::getKey)
+                                        .collect(Collectors.joining(","));
+                                if (!sheetsNotFound.isEmpty()) {
+                                    getLogger().warn("Excel sheets not found: {}", sheetsNotFound);
                                 }
                             } else {
                                 getLogger().debug("Excel document was parsed but no sheets with the specified desired names were found.");
                             }
 
                         } else {
-                            //Get all of the sheets in the document.
+                            //Get all the sheets in the document.
                             while (iter.hasNext()) {
                                 InputStream sheet = iter.next();
                                 String sheetName = iter.getSheetName();

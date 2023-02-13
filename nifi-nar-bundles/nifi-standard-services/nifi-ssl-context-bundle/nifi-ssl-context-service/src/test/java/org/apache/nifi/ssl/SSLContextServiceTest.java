@@ -213,9 +213,8 @@ public class SSLContextServiceTest {
         runner.assertValid(service);
 
         // Act
-        boolean isDeleted = tmpKeystore.delete();
-        assert isDeleted;
-        assert !tmpKeystore.exists();
+        assertTrue(tmpKeystore.delete());
+        assertFalse(tmpKeystore.exists());
 
         // Manually validate the service (expecting cached result to be returned)
         final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext();

@@ -21,24 +21,24 @@ import org.apache.nifi.registry.bundle.extract.BundleExtractor;
 import org.apache.nifi.registry.bundle.model.BundleIdentifier;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNarBundleExtractor {
 
     private BundleExtractor extractor;
 
-    @Before
+    @BeforeEach
     public void setup() {
         this.extractor = new NarBundleExtractor();
     }
@@ -88,27 +88,29 @@ public class TestNarBundleExtractor {
         }
     }
 
-    @Test(expected = BundleException.class)
+    @Test
     public void testExtractFromNarMissingRequiredManifestEntries() throws IOException {
         try (final InputStream in = new FileInputStream("src/test/resources/nars/nifi-missing-manifest-entries.nar")) {
-            extractor.extract(in);
-            fail("Should have thrown exception");
+            assertThrows(BundleException.class, () -> extractor.extract(in));
         }
     }
 
-    @Test(expected = BundleException.class)
+    @Test
     public void testExtractFromNarMissingManifest() throws IOException {
         try (final InputStream in = new FileInputStream("src/test/resources/nars/nifi-missing-manifest.nar")) {
-            extractor.extract(in);
-            fail("Should have thrown exception");
+            assertThrows(BundleException.class, () -> extractor.extract(in));
         }
     }
 
-    @Test(expected = BundleException.class)
+    @Test
     public void testExtractFromNarMissingExtensionDescriptor() throws IOException {
         try (final InputStream in = new FileInputStream("src/test/resources/nars/nifi-foo-nar-missing-extension-descriptor.nar")) {
-            extractor.extract(in);
-            fail("Should have thrown exception");
+            final BundleDetails bundleDetails = extractor.extract(in);
+            assertNotNull(bundleDetails);
+            assertNotNull(bundleDetails.getBundleIdentifier());
+            assertNotNull(bundleDetails.getExtensions());
+            assertEquals(0, bundleDetails.getExtensions().size());
+            assertEquals(NarBundleExtractor.NA, bundleDetails.getSystemApiVersion());
         }
     }
 

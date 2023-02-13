@@ -23,6 +23,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.mockito.ArgumentCaptor;
@@ -78,6 +79,7 @@ public class JASN1ReaderTest {
         assertTrue(!testSubject.asnOutDir.toFile().exists());
     }
 
+    @DisabledOnOs({ OS.WINDOWS })
     @Test
     public void testCanLoadClassCompiledFromAsn() throws Exception {
         // GIVEN
@@ -138,6 +140,7 @@ public class JASN1ReaderTest {
         testParseError(asnFile, expectedErrorMessages);
     }
 
+    @DisabledOnOs({ OS.WINDOWS })
     @Test
     /*
      * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
@@ -158,13 +161,13 @@ public class JASN1ReaderTest {
         testCompileError(asnFiles, expectedErrorMessages);
     }
 
-    @EnabledOnOs({ OS.MAC, OS.WINDOWS })
+    @EnabledOnOs({ OS.MAC })
     @Test
     /*
      * Checks reported messages of underlying libraries that are explained in additionalDetails.html.
      * In case of changes to this test additionalDetails.html may need to be updated as well.
      */
-    public void testCantCompileAsnOnMacWindows() throws Exception {
+    public void testCantCompileAsnOnMac() throws Exception {
         // GIVEN
         String asnFiles = Paths.get("src", "test", "resources", "cant_compile_mac_windows.asn").toString();
 

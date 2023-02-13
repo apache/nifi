@@ -19,7 +19,11 @@ package org.apache.nifi.processors.aws.s3;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.Signer;
+import com.amazonaws.auth.SignerFactory;
+import com.amazonaws.auth.SignerParams;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.internal.AWSS3V4Signer;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
 import com.amazonaws.services.s3.model.MultipartUploadListing;
@@ -33,6 +37,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.signer.AwsSignerType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -51,7 +56,10 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 
 public class TestPutS3Object {
@@ -62,7 +70,7 @@ public class TestPutS3Object {
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = Mockito.mock(AmazonS3Client.class);
+        mockS3Client = mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
             @Override
             protected AmazonS3Client getClient() {
@@ -116,11 +124,11 @@ public class TestPutS3Object {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         final List<AllowableValue> allowableSignerValues = PutS3Object.SIGNER_OVERRIDE.getAllowableValues();
-        final String defaultSignerValue = PutS3Object.SIGNER_OVERRIDE.getDefaultValue();
+        final String customSignerValue = AwsSignerType.CUSTOM_SIGNER.getValue(); // Custom Signer is tested separately
 
         for (AllowableValue allowableSignerValue : allowableSignerValues) {
             String signerType = allowableSignerValue.getValue();
-            if (!signerType.equals(defaultSignerValue)) {
+            if (!signerType.equals(customSignerValue)) {
                 runner.setProperty(PutS3Object.SIGNER_OVERRIDE, signerType);
                 ProcessContext context = runner.getProcessContext();
                 assertDoesNotThrow(() -> processor.createClient(context, credentialsProvider, config));
@@ -241,7 +249,7 @@ public class TestPutS3Object {
     public void testGetPropertyDescriptors() {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals(39, pd.size(), "size should be eq");
+        assertEquals(41, pd.size(), "size should be eq");
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -256,6 +264,8 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.REGION));
         assertTrue(pd.contains(PutS3Object.SECRET_KEY));
         assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
+        assertTrue(pd.contains(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
+        assertTrue(pd.contains(PutS3Object.S3_CUSTOM_SIGNER_MODULE_LOCATION));
         assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(PutS3Object.TIMEOUT));
         assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
@@ -281,5 +291,29 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.MULTIPART_S3_AGEOFF_INTERVAL));
         assertTrue(pd.contains(PutS3Object.MULTIPART_S3_MAX_AGE));
         assertTrue(pd.contains(PutS3Object.MULTIPART_TEMP_DIR));
+    }
+
+    @Test
+    public void testCustomSigner() {
+        final AWSCredentialsProvider credentialsProvider = new DefaultAWSCredentialsProviderChain();
+        final ClientConfiguration config = new ClientConfiguration();
+        final PutS3Object processor = new PutS3Object();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutS3Object.SIGNER_OVERRIDE, AwsSignerType.CUSTOM_SIGNER.getValue());
+        runner.setProperty(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME, CustomS3Signer.class.getName());
+
+        ProcessContext context = runner.getProcessContext();
+        processor.createClient(context, credentialsProvider, config);
+
+        final String signerName = config.getSignerOverride();
+        assertNotNull(signerName);
+        final Signer signer = SignerFactory.createSigner(signerName, new SignerParams("s3", "us-west-2"));
+        assertNotNull(signer);
+        assertSame(CustomS3Signer.class, signer.getClass());
+    }
+
+    public static class CustomS3Signer extends AWSS3V4Signer {
+
     }
 }

@@ -1071,6 +1071,37 @@ take the value of the supplied record path and use it as the namespace.
 Please note that the namespace must always be a valid UUID string. An empty string, another data type, etc. will result
 in an error. This is by design because the most common use case for UUID v5 is to uniquely identify records across data sets.
 
+
+=== count
+
+Returns the count of the number of elements. This is commonly used in conjunction with arrays. For example, if we have the following record:
+
+----
+{
+    "id": "1234",
+    "elements": [{
+        "name": "book",
+        "color": "red"
+    }, {
+        "name": "computer",
+        "color": "black"
+    }]
+}
+----
+
+We could determine the number of `elements` by using the `count` function. Using:
+
+----
+count(/elements[*])
+----
+
+Would yield a value of `2`. We could also use this as a filter, such as:
+----
+/id[ count(/elements[*]) = 2 ]
+----
+Which will return the `id` element with a value of `1234`.
+
+
 [[filter_functions]]
 == Filter Functions
 

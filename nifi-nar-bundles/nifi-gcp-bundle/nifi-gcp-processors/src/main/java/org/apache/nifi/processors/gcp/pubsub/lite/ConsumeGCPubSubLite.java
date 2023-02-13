@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.pubsub.lite;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsublite.SubscriptionPath;
@@ -50,7 +51,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.pubsub.AbstractGCPubSubProcessor;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -72,13 +72,12 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MSG_PUBLISH_TIME_DESCRIPTION;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ORDERING_KEY_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.ORDERING_KEY_DESCRIPTION;
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GOOGLE_CLOUD_PLATFORM_SCOPE;
 
 @SeeAlso({PublishGCPubSubLite.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"google", "google-cloud", "gcp", "message", "pubsub", "consume", "lite"})
-@CapabilityDescription("Consumes message from the configured Google Cloud PubSub Lite subscription. In its current state, this processor "
-        + "will only work if running on a Google Cloud Compute Engine instance and if using the GCP Credentials Controller Service with "
-        + "'Use Application Default Credentials' or 'Use Compute Engine Credentials'.")
+@CapabilityDescription("Consumes message from the configured Google Cloud PubSub Lite subscription.")
 @WritesAttributes({
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
         @WritesAttribute(attribute = ORDERING_KEY_ATTRIBUTE, description = ORDERING_KEY_DESCRIPTION),
@@ -118,7 +117,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .build();
 
     private Subscriber subscriber = null;
-    private static final BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
+    private BlockingQueue<Message> messages = new LinkedBlockingQueue<>();
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
@@ -219,7 +218,7 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         message.getConsumer().ack();
     }
 
-    private Subscriber getSubscriber(final ProcessContext context) throws IOException {
+    private Subscriber getSubscriber(final ProcessContext context) {
 
         final SubscriptionPath subscriptionPath = SubscriptionPath.parse(context.getProperty(SUBSCRIPTION).evaluateAttributeExpressions().getValue());
 
@@ -285,5 +284,10 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                     .build());
         }
         return verificationResults;
+    }
+
+    @Override
+    protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
+        return super.getGoogleCredentials(context).createScoped(GOOGLE_CLOUD_PLATFORM_SCOPE);
     }
 }

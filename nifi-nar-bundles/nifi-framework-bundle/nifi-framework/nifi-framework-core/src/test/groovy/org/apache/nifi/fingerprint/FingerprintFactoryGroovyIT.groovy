@@ -17,35 +17,36 @@
 package org.apache.nifi.fingerprint
 
 import org.apache.nifi.encrypt.PropertyEncryptor
+import org.apache.nifi.encrypt.SensitiveValueEncoder
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-@RunWith(JUnit4.class)
-class FingerprintFactoryGroovyIT extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class FingerprintFactoryGroovyIT {
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactoryGroovyIT.class)
 
     private static PropertyEncryptor mockEncryptor = [
             encrypt: { String plaintext -> plaintext.reverse() },
             decrypt: { String cipherText -> cipherText.reverse() }] as PropertyEncryptor
+    private static SensitiveValueEncoder mockSensitiveValueEncoder = [
+            getEncoded: { String plaintext -> "[MASKED] (${plaintext.sha256()})".toString() }] as SensitiveValueEncoder
     private static ExtensionManager extensionManager = new StandardExtensionDiscoveringManager()
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
     private static final String NIFI_PROPERTIES_PATH = "src/test/resources/conf/nifi.properties"
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -54,7 +55,7 @@ class FingerprintFactoryGroovyIT extends GroovyTestCase {
         }
     }
 
-    @AfterClass
+    @AfterAll
     static void tearDownOnce() {
         if (originalPropertiesPath) {
             System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalPropertiesPath)
@@ -80,9 +81,10 @@ class FingerprintFactoryGroovyIT extends GroovyTestCase {
         logger.info("Read initial flow: ${initialFlowXML[0..<100]}...")
 
         // Create the FingerprintFactory with collaborators
-        FingerprintFactory fingerprintFactory = new FingerprintFactory(mockEncryptor, extensionManager)
+        FingerprintFactory fingerprintFactory =
+                new FingerprintFactory(mockEncryptor, extensionManager, mockSensitiveValueEncoder)
 
-        def results = []
+        List<String> results = []
         def resultDurations = []
 
         // Act
@@ -106,15 +108,15 @@ class FingerprintFactoryGroovyIT extends GroovyTestCase {
 
         // Assert
         final long MAX_DURATION_NANOS = 1_000_000_000 // 1 second
-        assert resultDurations.max() <= MAX_DURATION_NANOS * 2
-        assert resultDurations.sum() / testIterations < MAX_DURATION_NANOS
+        assertTrue(resultDurations.max() <= MAX_DURATION_NANOS * 2)
+        assertTrue(resultDurations.sum() / testIterations < MAX_DURATION_NANOS)
 
         // Assert the fingerprint does not contain the password
-        results.each { String fingerprint ->
-            assert !(fingerprint =~ "originalPlaintextPassword")
+        results.forEach(fingerprint -> {
+            assertFalse(fingerprint.contains("originalPlaintextPassword"))
             def maskedValue = (fingerprint =~ /\[MASKED\] \([\w\/\+=]+\)/)
-            assert maskedValue
+            assertTrue(maskedValue.find())
             logger.info("Masked value: ${maskedValue[0]}")
-        }
+        })
     }
 }

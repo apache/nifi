@@ -114,6 +114,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -282,8 +283,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
             .name("capture-change-mysql-dist-map-cache-client")
             .displayName("Distributed Map Cache Client")
-            .description("Identifies a Distributed Map Cache Client controller service to be used for keeping information about the various tables, columns, etc. "
-                    + "needed by the processor. If a client is not specified, the generated events will not include column type or name information.")
+            .description("Identifies a Distributed Map Cache Client controller service to be used for keeping information about the various table columns, datatypes, etc. "
+                    + "needed by the processor. If a client is not specified, the generated events will not include column type or name information (but they will include database "
+                    + "and table information.")
             .identifiesControllerService(DistributedMapCacheClient.class)
             .required(false)
             .build();
@@ -433,7 +435,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
     private BinlogLifecycleListener lifecycleListener;
     private GtidSet gtidSet;
 
-    private final LinkedBlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>();
+    // Set queue capacity to avoid excessive memory consumption
+    private final BlockingQueue<RawBinlogEvent> queue = new LinkedBlockingQueue<>(1000);
     private volatile String currentBinlogFile = null;
     private volatile long currentBinlogPosition = 4;
     private volatile String currentGtidSet = null;
@@ -918,6 +921,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     throw new IOException(se.getMessage(), se);
                                 }
                             }
+                        } else {
+                            // Populate a limited version of TableInfo without column information
+                            currentTable = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(), Collections.emptyList());
                         }
                     } else {
                         // Clear the current table, to force a reload next time we get a TABLE_MAP event we care about
@@ -1188,7 +1194,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param q      A queue used to communicate events between the listener and the NiFi processor thread.
      * @return A BinlogEventListener instance, which will be notified of events associated with the specified client
      */
-    BinlogEventListener createBinlogEventListener(BinaryLogClient client, LinkedBlockingQueue<RawBinlogEvent> q) {
+    BinlogEventListener createBinlogEventListener(BinaryLogClient client, BlockingQueue<RawBinlogEvent> q) {
         return new BinlogEventListener(client, q);
     }
 

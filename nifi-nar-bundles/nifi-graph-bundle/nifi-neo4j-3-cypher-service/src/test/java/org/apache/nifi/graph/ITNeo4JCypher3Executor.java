@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Neo4J Cypher integration tests.
@@ -72,7 +72,7 @@ public class ITNeo4JCypher3Executor {
 
         StatementResult result = executeSession("match (n) return n");
 
-        assertEquals("nodes should be equal", 0, result.list().size());
+        assertEquals(0, result.list().size(), "nodes should be equal");
     }
 
     protected StatementResult executeSession(String statement) {

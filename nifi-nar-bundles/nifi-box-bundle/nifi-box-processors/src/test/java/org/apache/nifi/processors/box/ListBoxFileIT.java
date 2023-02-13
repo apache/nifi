@@ -49,7 +49,6 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
 
     @Test
     void listFilesFrom3LayerDeepDirectoryTree() throws Exception {
-        // GIVEN
         BoxFolder.Info main_sub1 = createFolder("main_sub1", mainFolderId);
         BoxFolder.Info main_sub2 = createFolder("main_sub2", mainFolderId);
 
@@ -78,10 +77,8 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
         // The creation of the files are not (completely) synchronized.
         Thread.sleep(2000);
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         Set<String> actualFileNames = getActualFileNames();
 
         assertEquals(expectedFileNames, actualFileNames);
@@ -89,19 +86,16 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
         // Next, list a sub folder, non-recursively this time. (Changing these properties will clear the Processor state as well
         //  so all files are eligible for listing again.)
 
-        // GIVEN
         testRunner.clearTransferState();
 
         expectedFileNames = new HashSet<>(Arrays.asList(
             "main_sub1_file1"
         ));
 
-        // WHEN
         testRunner.setProperty(ListBoxFile.FOLDER_ID, main_sub1.getID());
         testRunner.setProperty(ListBoxFile.RECURSIVE_SEARCH, "false");
         testRunner.run();
 
-        // THEN
         actualFileNames = getActualFileNames();
 
         assertEquals(expectedFileNames, actualFileNames);
@@ -109,7 +103,6 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
 
     @Test
     void doNotListTooYoungFilesWhenMinAgeIsSet() throws Exception {
-        // GIVEN
         testRunner.setProperty(ListBoxFile.MIN_AGE, "15 s");
 
         createFileWithDefaultContent("main_file", mainFolderId);
@@ -117,27 +110,22 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
         // Make sure the file 'arrives' and could be listed
         Thread.sleep(5000);
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         Set<String> actualFileNames = getActualFileNames();
 
         assertEquals(Collections.emptySet(), actualFileNames);
 
         // Next, wait for another 10+ seconds for MIN_AGE to expire then list again
 
-        // GIVEN
         Thread.sleep(10000);
 
         Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
             "main_file"
         ));
 
-        // WHEN
         testRunner.run();
 
-        // THEN
         actualFileNames = getActualFileNames();
 
         assertEquals(expectedFileNames, actualFileNames);
@@ -152,5 +140,4 @@ public class ListBoxFileIT extends AbstractBoxFileIT<ListBoxFile> {
 
         return actualFileNames;
     }
-
 }

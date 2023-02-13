@@ -55,6 +55,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -205,63 +206,29 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
 
     @Test
     void testBasicSearch() throws Exception {
-        final Map<String, Object> temp = new MapBuilder()
-            .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
-                    "aggs", new MapBuilder()
-                            .of("term_counts", new MapBuilder()
-                                    .of("terms", new MapBuilder()
-                                            .of("field", "msg", "size", 5)
-                                            .build())
-                                    .build())
-                            .build())
-                .build();
-        final String query = prettyJson(temp);
-
-        final SearchResponse response = service.search(query, INDEX, type, null);
-        assertNotNull(response, "Response was null");
-
-        assertEquals(15, response.getNumberOfHits(), "Wrong count");
-        assertFalse(response.isTimedOut(), "Timed out");
-        assertNotNull(response.getHits(), "Hits was null");
-        assertEquals(10, response.getHits().size(), "Wrong number of hits");
-        assertNotNull(response.getAggregations(), "Aggregations are missing");
-        assertEquals(1, response.getAggregations().size(), "Aggregation count is wrong");
-        assertNull(response.getScrollId(), "Unexpected ScrollId");
-        assertNull(response.getSearchAfter(), "Unexpected Search_After");
-        assertNull(response.getPitId(), "Unexpected pitId");
-
-        @SuppressWarnings("unchecked") final Map<String, Object> termCounts = (Map<String, Object>) response.getAggregations().get("term_counts");
-        assertNotNull(termCounts, "Term counts was missing");
-        @SuppressWarnings("unchecked") final List<Map<String, Object>> buckets = (List<Map<String, Object>>) termCounts.get("buckets");
-        assertNotNull(buckets, "Buckets branch was empty");
-        final Map<String, Object> expected = new MapBuilder()
-                .of("one", 1, "two", 2, "three", 3,
-                        "four", 4, "five", 5)
-                .build();
-
-        buckets.forEach( aggRes -> {
-            final String key = (String) aggRes.get("key");
-            final Integer docCount = (Integer) aggRes.get("doc_count");
-            assertEquals(expected.get(key), docCount, "${key} did not match.");
-        });
+        assertBasicSearch(null);
     }
 
     @Test
     void testBasicSearchRequestParameters() throws Exception {
+        assertBasicSearch(createParameters("preference", "_local"));
+    }
+
+    private void assertBasicSearch(final Map<String, String> requestParameters) throws JsonProcessingException {
         final Map<String, Object> temp = new MapBuilder()
                 .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
                         "aggs", new MapBuilder()
-                        .of("term_counts", new MapBuilder()
-                                .of("terms", new MapBuilder()
-                                        .of("field", "msg", "size", 5)
+                                .of("term_counts", new MapBuilder()
+                                        .of("terms", new MapBuilder()
+                                                .of("field", "msg", "size", 5)
+                                                .build())
                                         .build())
                                 .build())
-                        .build())
                 .build();
         final String query = prettyJson(temp);
 
 
-        final SearchResponse response = service.search(query, "messages", type, createParameters("preference", "_local"));
+        final SearchResponse response = service.search(query, "messages", type, requestParameters);
         assertNotNull(response, "Response was null");
 
         assertEquals(15, response.getNumberOfHits(), "Wrong count");
@@ -284,6 +251,47 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
             final String key = (String) aggRes.get("key");
             final Integer docCount = (Integer) aggRes.get("doc_count");
             assertEquals(expected.get(key), docCount, String.format("%s did not match.", key));
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSearchEmptySource() throws Exception {
+        final Map<String, Object> temp = new MapBuilder()
+                .of("size", 2,
+                        "query", new MapBuilder().of("match_all", new HashMap<>()).build())
+                .build();
+        final String query = prettyJson(temp);
+
+
+        final SearchResponse response = service.search(query, "messages", type, createParameters("_source", "not_exists"));
+        assertNotNull(response, "Response was null");
+
+        assertNotNull(response.getHits(), "Hits was null");
+        assertEquals(2, response.getHits().size(), "Wrong number of hits");
+        response.getHits().forEach(h -> {
+            assertInstanceOf(Map.class, h.get("_source"), "Source not a Map");
+            assertTrue(((Map<String, Object>)h.get("_source")).isEmpty(), "Source not empty");
+        });
+    }
+
+    @Test
+    void testSearchNoSource() throws Exception {
+        final Map<String, Object> temp = new MapBuilder()
+                .of("size", 1,
+                        "query", new MapBuilder().of("match_all", new HashMap<>()).build())
+                .build();
+        final String query = prettyJson(temp);
+
+
+        final SearchResponse response = service.search(query, "no_source", type, null);
+        assertNotNull(response, "Response was null");
+
+        assertNotNull(response.getHits(), "Hits was null");
+        assertEquals(1, response.getHits().size(), "Wrong number of hits");
+        response.getHits().forEach(h -> {
+            assertFalse(h.isEmpty(), "Hit was empty");
+            assertFalse(h.containsKey("_source"), "Hit contained _source");
         });
     }
 
@@ -588,6 +596,19 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
             assertNotNull(doc, "Doc was null");
             assertNotNull(doc.get("msg"), "${doc.toString()}\t${doc.keySet().toString()}");
         }
+    }
+
+    @Test
+    void testGetEmptySource() {
+        final Map<String, Object> doc = service.get(INDEX, type, "1", Collections.singletonMap("_source", "not_exist"));
+        assertNotNull(doc, "Doc was null");
+        assertTrue(doc.isEmpty(), "Doc was not empty");
+    }
+    @Test
+    void testGetNoSource() {
+        final Map<String, Object> doc = service.get("no_source", type, "1", null);
+        assertNotNull(doc, "Doc was null");
+        assertTrue(doc.isEmpty(), "Doc was not empty");
     }
 
     @Test

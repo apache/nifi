@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apache/nifi-minifi:1.19.0
+apache/nifi-minifi:2.0.0

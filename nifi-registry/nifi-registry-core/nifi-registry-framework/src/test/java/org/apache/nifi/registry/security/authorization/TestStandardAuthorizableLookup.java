@@ -23,15 +23,15 @@ import org.apache.nifi.registry.security.authorization.resource.ResourceFactory;
 import org.apache.nifi.registry.security.authorization.user.NiFiUser;
 import org.apache.nifi.registry.security.authorization.user.StandardNiFiUser;
 import org.apache.nifi.registry.service.RegistryService;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -57,7 +57,7 @@ public class TestStandardAuthorizableLookup {
     private Bucket bucketPublic;
     private Bucket bucketNotPublic;
 
-    @Before
+    @BeforeEach
     public void setup() {
         authorizer = mock(Authorizer.class);
         registryService = mock(RegistryService.class);
@@ -251,7 +251,7 @@ public class TestStandardAuthorizableLookup {
         final Authorizable bucketAuthorizable = authorizableLookup.getBucketAuthorizable(bucketPublic.getIdentifier());
         try {
             bucketAuthorizable.authorize(authorizer, action, USER_NO_PROXY_CHAIN);
-            Assert.fail("Should have thrown exception");
+            fail("Should have thrown exception");
         } catch (AccessDeniedException e) {
             // Should never call authorizer twice for specific bucket and top-level /buckets
             verify(authorizer, times(2)).authorize(any(AuthorizationRequest.class));
@@ -272,7 +272,7 @@ public class TestStandardAuthorizableLookup {
         final Authorizable bucketAuthorizable = authorizableLookup.getBucketAuthorizable(bucketPublic.getIdentifier());
         try {
             bucketAuthorizable.authorize(authorizer, action, USER_WITH_PROXY_CHAIN);
-            Assert.fail("Should have thrown exception");
+            fail("Should have thrown exception");
         } catch (UntrustedProxyException e) {
             // Should call authorizer once for /proxy and then throw exception
             verify(authorizer, times(1)).authorize(any(AuthorizationRequest.class));
@@ -307,7 +307,7 @@ public class TestStandardAuthorizableLookup {
         final Authorizable bucketAuthorizable = authorizableLookup.getBucketAuthorizable(bucketPublic.getIdentifier());
         try {
             bucketAuthorizable.authorize(authorizer, action, user);
-            Assert.fail("Should have thrown exception");
+            fail("Should have thrown exception");
         } catch (AccessDeniedException e) {
             // Should call authorizer three times for /proxy, /bucket/{id}, and /buckets
             verify(authorizer, times(3)).authorize(any(AuthorizationRequest.class));

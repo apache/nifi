@@ -354,6 +354,16 @@ public final class SnippetUtils {
                 });
         }
 
+        // include services referenced by processor group but not by any processors
+        for (ControllerServiceNode csNode : group.getControllerServices(false)) {
+            if (csNode != null) {
+                ControllerServiceDTO serviceDto = dtoFactory.createControllerServiceDto(csNode);
+                if (allServicesReferenced.add(serviceDto)) {
+                    contents.getControllerServices().add(serviceDto);
+                }
+            }
+        }
+
         // Map child process group ID to the child process group for easy lookup
         final Map<String, ProcessGroupDTO> childGroupMap = contents.getProcessGroups().stream()
             .collect(Collectors.toMap(ComponentDTO::getId, childGroupDto -> childGroupDto));

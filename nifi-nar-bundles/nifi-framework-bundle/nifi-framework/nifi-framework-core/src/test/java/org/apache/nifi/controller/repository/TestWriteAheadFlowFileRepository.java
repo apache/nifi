@@ -44,13 +44,11 @@ import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.WriteAheadRepository;
@@ -70,10 +68,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -83,13 +83,13 @@ public class TestWriteAheadFlowFileRepository {
 
     private static NiFiProperties niFiProperties;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         niFiProperties = NiFiProperties.createBasicNiFiProperties(TestWriteAheadFlowFileRepository.class.getResource("/conf/nifi.properties").getFile());
         clearRepo();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         clearRepo();
     }
@@ -103,7 +103,7 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     @Test
-    @Ignore("Intended only for local performance testing before/after making changes")
+    @Disabled("Intended only for local performance testing before/after making changes")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final FlowFileQueue queue = new FlowFileQueue() {
             private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;
@@ -301,7 +301,7 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
-            public FlowFileRecord getFlowFile(String flowFileUuid) throws IOException {
+            public FlowFileRecord getFlowFile(String flowFileUuid) {
                 return null;
             }
 
@@ -390,12 +390,7 @@ public class TestWriteAheadFlowFileRepository {
                                 records.add(new LiveSerializedRepositoryRecord(record));
                             }
 
-                            try {
-                                repo.update(records, false);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                Assert.fail(e.toString());
-                            }
+                            assertThrows(IOException.class, () -> repo.update(records, false));
                         }
                     }
                 });
@@ -437,7 +432,7 @@ public class TestWriteAheadFlowFileRepository {
     public void testNormalizeSwapLocation() {
         assertEquals("/", WriteAheadFlowFileRepository.normalizeSwapLocation("/"));
         assertEquals("", WriteAheadFlowFileRepository.normalizeSwapLocation(""));
-        assertEquals(null, WriteAheadFlowFileRepository.normalizeSwapLocation(null));
+        assertNull(WriteAheadFlowFileRepository.normalizeSwapLocation(null));
         assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("test.txt"));
         assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/test.txt"));
         assertEquals("test", WriteAheadFlowFileRepository.normalizeSwapLocation("/tmp/test.txt"));
@@ -636,12 +631,9 @@ public class TestWriteAheadFlowFileRepository {
 
         final FlowFileQueue queue = Mockito.mock(FlowFileQueue.class);
         when(queue.getIdentifier()).thenReturn("1234");
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                flowFileCollection.add((FlowFileRecord) invocation.getArguments()[0]);
-                return null;
-            }
+        doAnswer((Answer<Object>) invocation -> {
+            flowFileCollection.add((FlowFileRecord) invocation.getArguments()[0]);
+            return null;
         }).when(queue).put(any(FlowFileRecord.class));
 
         when(connection.getFlowFileQueue()).thenReturn(queue);
@@ -719,7 +711,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
+        public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue, final String partitionName) {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 swapMap = new HashMap<>();
@@ -732,7 +724,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapContents peek(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+        public SwapContents peek(String swapLocation, FlowFileQueue flowFileQueue) {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
@@ -744,7 +736,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) throws IOException {
+        public SwapContents swapIn(String swapLocation, FlowFileQueue flowFileQueue) {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
@@ -756,7 +748,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
+        public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue, final String partitionName) {
             Map<String, List<FlowFileRecord>> swapMap = swappedRecords.get(flowFileQueue);
             if (swapMap == null) {
                 return null;
@@ -766,7 +758,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public SwapSummary getSwapSummary(String swapLocation) throws IOException {
+        public SwapSummary getSwapSummary(String swapLocation) {
             List<FlowFileRecord> records = null;
             for (final Map<String, List<FlowFileRecord>> swapMap : swappedRecords.values()) {
                 records = swapMap.get(swapLocation);
@@ -810,12 +802,12 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        public Set<String> getSwappedPartitionNames(FlowFileQueue queue) throws IOException {
+        public Set<String> getSwappedPartitionNames(FlowFileQueue queue) {
             return Collections.emptySet();
         }
 
         @Override
-        public String changePartitionName(String swapLocation, String newPartitionName) throws IOException {
+        public String changePartitionName(String swapLocation, String newPartitionName) {
             return swapLocation;
         }
     }

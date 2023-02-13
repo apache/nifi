@@ -22,14 +22,8 @@ import org.apache.nifi.web.NiFiServiceFacade
 import org.apache.nifi.web.api.dto.FlowSnippetDTO
 import org.apache.nifi.web.api.dto.TemplateDTO
 import org.apache.nifi.web.api.entity.TemplateEntity
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TestName
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,26 +31,17 @@ import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.UriInfo
 
-@RunWith(JUnit4.class)
-class ProcessGroupResourceTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+
+class ProcessGroupResourceTest {
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResourceTest.class)
 
-    @Rule
-    public TestName testName = new TestName()
-
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.debug("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     /** This test creates a malformed template upload request to exercise error handling and sanitization */
@@ -85,12 +70,12 @@ class ProcessGroupResourceTest extends GroovyTestCase {
         // Assert
 
         // Assert that the expected error response was returned
-        assert response.status == Response.Status.OK.statusCode
+        assertEquals(Response.Status.OK.statusCode, response.status)
 
         // Assert that the error response is sanitized
         String responseEntity = response.entity as String
         logger.info("Error response: ${responseEntity}")
-        assert !(responseEntity =~ /<script.*>/)
+        assertFalse((responseEntity =~ /<script.*>/).find())
     }
 
     /** This test creates a malformed template import request to exercise error handling and sanitization */
@@ -161,12 +146,12 @@ class ProcessGroupResourceTest extends GroovyTestCase {
         // Assert
         responses.each { Response r ->
             // Assert that the expected error response was returned
-            assert r.status == Response.Status.OK.statusCode
+            assertEquals(Response.Status.OK.statusCode, r.status)
 
             // Assert that the error response is sanitized
             String entity = r.entity as String
             logger.info("Error response: ${entity}")
-            assert !(entity =~ /<script.*>/)
+            assertFalse((entity =~ /<script.*>/).find())
         }
     }
 }

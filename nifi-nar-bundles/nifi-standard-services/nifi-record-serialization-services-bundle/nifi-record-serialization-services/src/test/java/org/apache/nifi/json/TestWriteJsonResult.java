@@ -19,7 +19,7 @@ package org.apache.nifi.json;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.record.NullSuppression;
+import org.apache.nifi.NullSuppression;
 import org.apache.nifi.schema.access.SchemaNameAsAttribute;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;

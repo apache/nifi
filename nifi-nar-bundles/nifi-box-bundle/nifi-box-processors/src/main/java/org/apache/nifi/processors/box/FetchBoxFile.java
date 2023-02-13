@@ -16,10 +16,26 @@
  */
 package org.apache.nifi.processors.box;
 
+import static java.lang.String.valueOf;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
+
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -37,7 +53,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,45 +62,50 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "fetch"})
 @CapabilityDescription("Fetches files from a Box Folder. Designed to be used in tandem with ListBoxFile.")
-@SeeAlso({ListBoxFile.class})
+@SeeAlso({ListBoxFile.class, PutBoxFile.class})
+@ReadsAttribute(attribute = ID, description = ID_DESC)
 @WritesAttributes({
-    @WritesAttribute(attribute = FetchBoxFile.ERROR_CODE_ATTRIBUTE, description = "The error code returned by Box when the fetch of a file fails"),
-    @WritesAttribute(attribute = FetchBoxFile.ERROR_MESSAGE_ATTRIBUTE, description = "The error message returned by Box when the fetch of a file fails")
+        @WritesAttribute(attribute = ID, description = ID_DESC),
+        @WritesAttribute(attribute = "filename", description = FILENAME_DESC),
+        @WritesAttribute(attribute = "path", description = PATH_DESC),
+        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
+        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
+        @WritesAttribute(attribute = ERROR_CODE, description = ERROR_CODE_DESC),
+        @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class FetchBoxFile extends AbstractProcessor {
-    public static final String ERROR_CODE_ATTRIBUTE = "error.code";
-    public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor
-        .Builder().name("box-file-id")
-        .displayName("File ID")
-        .description("The ID of the File to fetch")
-        .required(true)
-        .defaultValue("${box.id}")
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .Builder().name("box-file-id")
+            .displayName("File ID")
+            .description("The ID of the File to fetch")
+            .required(true)
+            .defaultValue("${box.id}")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS =
-        new Relationship.Builder()
-            .name("success")
-            .description("A FlowFile will be routed here for each successfully fetched File.")
-            .build();
+            new Relationship.Builder()
+                    .name("success")
+                    .description("A FlowFile will be routed here for each successfully fetched File.")
+                    .build();
 
     public static final Relationship REL_FAILURE =
-        new Relationship.Builder().name("failure")
-            .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
-            .build();
+            new Relationship.Builder()
+                    .name("failure")
+                    .description("A FlowFile will be routed here for each File for which fetch was attempted but failed.")
+                    .build();
+
+    public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-        BoxClientService.BOX_CLIENT_SERVICE,
-        FILE_ID
+            BoxClientService.BOX_CLIENT_SERVICE,
+            FILE_ID
     ));
-
-    public static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS,
-        REL_FAILURE
-    )));
 
     private volatile BoxAPIConnection boxAPIConnection;
 
@@ -96,11 +116,11 @@ public class FetchBoxFile extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) {
         BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
 
         boxAPIConnection = boxClientService.getBoxApiConnection();
@@ -114,11 +134,13 @@ public class FetchBoxFile extends AbstractProcessor {
         }
 
         String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
-        FlowFile outFlowFile = flowFile;
         try {
-            outFlowFile = fetchFile(fileId, session, outFlowFile);
-
-            session.transfer(outFlowFile, REL_SUCCESS);
+            final long startNanos = System.nanoTime();
+            flowFile = fetchFile(fileId, session, flowFile);
+            final String boxUrlOfFile = BoxFileUtils.BOX_URL + fileId;
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            session.getProvenanceReporter().fetch(flowFile, boxUrlOfFile, transferMillis);
+            session.transfer(flowFile, REL_SUCCESS);
         } catch (BoxAPIResponseException e) {
             handleErrorResponse(session, fileId, flowFile, e);
         } catch (Exception e) {
@@ -126,28 +148,31 @@ public class FetchBoxFile extends AbstractProcessor {
         }
     }
 
-    FlowFile fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) {
-        BoxFile boxFile = new BoxFile(boxAPIConnection, fileId);
-
-        outFlowFile = session.write(outFlowFile, outputStream -> boxFile.download(outputStream));
-
-        return outFlowFile;
+    BoxFile getBoxFile(String fileId) {
+        return new BoxFile(boxAPIConnection, fileId);
     }
 
-    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile outFlowFile, BoxAPIResponseException e) {
-        getLogger().error("Couldn't fetch file with id '{}'", fileId, e);
+    private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
+        final BoxFile boxFile = getBoxFile(fileId);
+        flowFile = session.write(flowFile, outputStream -> boxFile.download(outputStream));
+        flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(boxFile.getInfo()));
+        return flowFile;
+    }
 
-        outFlowFile = session.putAttribute(outFlowFile, ERROR_CODE_ATTRIBUTE, "" + e.getResponseCode());
-        outFlowFile = session.putAttribute(outFlowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
+    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, BoxAPIResponseException e) {
+        getLogger().error("Couldn't fetch file with id [{}]", fileId, e);
 
-        session.transfer(outFlowFile, REL_FAILURE);
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        flowFile = session.penalize(flowFile);
+        session.transfer(flowFile, REL_FAILURE);
     }
 
     private void handleUnexpectedError(ProcessSession session, FlowFile flowFile, String fileId, Exception e) {
-        getLogger().error("Unexpected error while fetching and processing file with id '{}'", fileId, e);
+        getLogger().error("Failed fetching and processing file with id [{}]", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE_ATTRIBUTE, e.getMessage());
-
+        flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+        flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
     }
 }

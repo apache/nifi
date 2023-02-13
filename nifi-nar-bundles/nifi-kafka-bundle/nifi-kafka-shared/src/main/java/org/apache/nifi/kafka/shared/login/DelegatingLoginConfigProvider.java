@@ -36,6 +36,7 @@ public class DelegatingLoginConfigProvider implements LoginConfigProvider {
         PROVIDERS.put(SaslMechanism.PLAIN, new PlainLoginConfigProvider());
         PROVIDERS.put(SaslMechanism.SCRAM_SHA_256, SCRAM_PROVIDER);
         PROVIDERS.put(SaslMechanism.SCRAM_SHA_512, SCRAM_PROVIDER);
+        PROVIDERS.put(SaslMechanism.AWS_MSK_IAM, new AwsMskIamLoginConfigProvider());
     }
 
     /**

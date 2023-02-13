@@ -20,7 +20,11 @@ import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x500.style.BCStyle
 import org.bouncycastle.asn1.x500.style.IETFUtils
-import org.bouncycastle.asn1.x509.*
+import org.bouncycastle.asn1.x509.Extension
+import org.bouncycastle.asn1.x509.Extensions
+import org.bouncycastle.asn1.x509.ExtensionsGenerator
+import org.bouncycastle.asn1.x509.GeneralName
+import org.bouncycastle.asn1.x509.GeneralNames
 import org.bouncycastle.operator.OperatorCreationException
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
@@ -35,16 +39,31 @@ import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
-import java.security.*
+import java.security.InvalidKeyException
+import java.security.KeyPair
+import java.security.KeyPairGenerator
+import java.security.NoSuchAlgorithmException
+import java.security.NoSuchProviderException
+import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
-import java.util.concurrent.*
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertInstanceOf
+import static org.junit.jupiter.api.Assertions.assertNull
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
-class CertificateUtilsTest extends GroovyTestCase {
+class CertificateUtilsTest  {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtilsTest.class)
 
     private static final int KEY_SIZE = 2048
@@ -84,10 +103,15 @@ class CertificateUtilsTest extends GroovyTestCase {
      *
      * @param dn the DN
      * @return the certificate
-     * @throws IOException* @throws NoSuchAlgorithmException* @throws java.security.cert.CertificateException* @throws java.security.NoSuchProviderException* @throws java.security.SignatureException* @throws java.security.InvalidKeyException* @throws OperatorCreationException
+     * @throws IOException* @throws NoSuchAlgorithmException
+     * @throws java.security.cert.CertificateException*
+     * @throws java.security.NoSuchProviderException
+     * @throws java.security.SignatureException
+     * @throws OperatorCreationException
      */
     private
-    static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair()
         return CertificateUtils.generateSelfSignedX509Certificate(keyPair, dn, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
     }
@@ -99,10 +123,16 @@ class CertificateUtilsTest extends GroovyTestCase {
      * @param issuerDn the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
-     * @throws IOException* @throws NoSuchAlgorithmException* @throws CertificateException* @throws NoSuchProviderException* @throws SignatureException* @throws InvalidKeyException* @throws OperatorCreationException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws CertificateException
+     * @throws NoSuchProviderException*
+     * @throws SignatureException* @throws InvalidKeyException
+     * @throws OperatorCreationException
      */
     private
-    static X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer, KeyPair issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    static X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer, KeyPair issuerKey) throws IOException,
+            NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair()
         return CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKey, SIGNATURE_ALGORITHM, DAYS_IN_YEAR)
     }
@@ -143,8 +173,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Converted certificate: ${convertedCertificate.class.canonicalName} ${convertedCertificate.subjectDN.toString()} (${convertedCertificate.getSerialNumber()})")
 
         // Assert
-        assert convertedCertificate instanceof X509Certificate
-        assert convertedCertificate == EXPECTED_NEW_CERTIFICATE
+        assertEquals(EXPECTED_NEW_CERTIFICATE, convertedCertificate)
     }
 
     @Test
@@ -163,9 +192,9 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
 
         // Assert
-        assert needClientAuthStatus == ClientAuth.REQUIRED
-        assert wantClientAuthStatus == ClientAuth.WANT
-        assert noneClientAuthStatus == ClientAuth.NONE
+        assertEquals(ClientAuth.REQUIRED, needClientAuthStatus)
+        assertEquals(ClientAuth.WANT, wantClientAuthStatus)
+        assertEquals(ClientAuth.NONE, noneClientAuthStatus)
     }
 
     @Test
@@ -210,9 +239,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         }
 
         // Assert
-        assert resolvedServerDNs.every { String serverDN ->
-            CertificateUtils.compareDNs(serverDN, EXPECTED_DN)
-        }
+        resolvedServerDNs.stream().forEach(serverDN -> assertTrue(CertificateUtils.compareDNs(serverDN, EXPECTED_DN)))
     }
 
     @Test
@@ -231,7 +258,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
-        assert !clientDN
+        assertNull(clientDN)
     }
 
     @Test
@@ -257,7 +284,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
-        assert CertificateUtils.compareDNs(clientDN, EXPECTED_DN)
+        assertTrue(CertificateUtils.compareDNs(clientDN, EXPECTED_DN))
     }
 
     @Test
@@ -280,7 +307,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
-        assert CertificateUtils.compareDNs(clientDN, null)
+        assertTrue(CertificateUtils.compareDNs(clientDN, null))
     }
 
 
@@ -307,7 +334,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
-        assert CertificateUtils.compareDNs(clientDN, EXPECTED_DN)
+        assertTrue(CertificateUtils.compareDNs(clientDN, EXPECTED_DN))
     }
 
     @Test
@@ -326,13 +353,11 @@ class CertificateUtilsTest extends GroovyTestCase {
         ] as SSLSocket
 
         // Act
-        def msg = shouldFail(CertificateException) {
-            String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
-            logger.info("Extracted client DN: ${clientDN}")
-        }
+        CertificateException ce = assertThrows(CertificateException.class,
+                () -> CertificateUtils.extractPeerDNFromSSLSocket(mockSocket))
 
         // Assert
-        assert msg =~ "peer not authenticated"
+        assertTrue(ce.getMessage().contains("peer not authenticated"))
     }
 
     @Test
@@ -374,14 +399,13 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.matches("DN 1, empty: ${dn1MatchesEmpty}")
 
         // Assert
-        assert dn1MatchesSelf
-        assert dn1MatchesReversed
-        assert emptyMatchesEmpty
-        assert nullMatchesNull
+        assertTrue(dn1MatchesReversed)
+        assertTrue(emptyMatchesEmpty)
+        assertTrue(nullMatchesNull)
 
-        assert !dn1MatchesDn2
-        assert !dn1MatchesDn2Reversed
-        assert !dn1MatchesEmpty
+        assertFalse(dn1MatchesDn2)
+        assertFalse(dn1MatchesDn2Reversed)
+        assertFalse(dn1MatchesEmpty)
     }
 
     @Test
@@ -545,10 +569,9 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Issued certificate with subject: ${certificate.getSubjectDN().name} and SAN: ${certificate.getSubjectAlternativeNames().join(",")}")
 
         // Assert
-        assert certificate instanceof X509Certificate
-        assert certificate.getSubjectDN().name == SUBJECT_DN
-        assert certificate.getSubjectAlternativeNames().size() == SANS.size()
-        assert certificate.getSubjectAlternativeNames()*.last().containsAll(SANS)
+        assertEquals(SUBJECT_DN, certificate.getSubjectDN().name)
+        assertEquals(SANS.size(), certificate.getSubjectAlternativeNames().size())
+        assertTrue(certificate.getSubjectAlternativeNames()*.last().containsAll(SANS))
     }
 
     @Test
@@ -575,9 +598,9 @@ class CertificateUtilsTest extends GroovyTestCase {
         logger.info("Unrelated results: ${unrelatedResults}")
 
         // Assert
-        assert directResults.every()
-        assert causedResults.every()
-        assert !unrelatedResults.any()
+        assertTrue(directResults.every())
+        assertTrue(causedResults.every())
+        assertFalse(unrelatedResults.any())
     }
 
     @Test

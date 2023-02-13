@@ -19,13 +19,15 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
     private static final String PARTITION_ATTRIBUTE = "partition";
@@ -124,18 +126,18 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
     }
 
     private void thenNoPartitionExists() {
-        Assert.assertEquals(0, testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS).size());
+        assertEquals(0, testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS).size());
     }
 
     private void thenTheFollowingPartitionsExists(final String... partitions) {
         final List<MockFlowFile> outgoingFlowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS);
 
-        Assert.assertEquals(partitions.length, outgoingFlowFiles.size());
+        assertEquals(partitions.length, outgoingFlowFiles.size());
 
         final Set<String> outgoingPartitions = outgoingFlowFiles.stream().map(ff -> ff.getAttribute(PARTITION_ATTRIBUTE)).collect(Collectors.toSet());
 
         for (final String partition : partitions) {
-            Assert.assertTrue(outgoingPartitions.contains(partition));
+            assertTrue(outgoingPartitions.contains(partition));
         }
     }
 
@@ -153,12 +155,12 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
             }
         }
 
-        Assert.assertEquals(1, outgoingFlowFiles.size());
+        assertEquals(1, outgoingFlowFiles.size());
         final MockFlowFile resultFlowFile = outgoingFlowFiles.iterator().next();
-        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
-        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
-        Assert.assertEquals(String.valueOf(index), resultFlowFile.getAttribute("fragment.index"));
-        Assert.assertEquals(String.valueOf(count), resultFlowFile.getAttribute("fragment.count"));
+        assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
+        assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
+        assertEquals(String.valueOf(index), resultFlowFile.getAttribute("fragment.index"));
+        assertEquals(String.valueOf(count), resultFlowFile.getAttribute("fragment.count"));
 
 
     }

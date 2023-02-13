@@ -18,8 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -30,11 +29,6 @@ public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
 
     @Mock
     private ProcessorNode component;
-
-    @Before
-    public void setUp() {
-        super.setUp();
-    }
 
     @Test
     public void testMatchingAndNotFiltered() {
@@ -71,7 +65,6 @@ public class PropertyMatcherTest extends AbstractAttributeMatcherTest {
     public void testMatchingAndFiltered() {
         // given
         final PropertyMatcher testSubject = new PropertyMatcher();
-        givenProperties(false);
         givenSearchTerm("lorem");
         givenFilter("properties", "exclude");
 

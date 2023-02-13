@@ -20,6 +20,7 @@ package org.apache.nifi.elasticsearch;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -54,6 +55,7 @@ import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -86,6 +88,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
 
     private String url;
     private Charset responseCharset;
+    private ObjectWriter prettyPrintWriter;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -166,6 +169,8 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             }
+
+            prettyPrintWriter = mapper.writerWithDefaultPrettyPrinter();
         } catch (final Exception ex) {
             getLogger().error("Could not initialize ElasticSearch client.", ex);
             throw new InitializationException(ex);
@@ -604,7 +609,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
             parseResponseWarningHeaders(response);
 
-            return (Map<String, Object>) mapper.readValue(body, Map.class).get("_source");
+            return (Map<String, Object>) mapper.readValue(body, Map.class).getOrDefault("_source", Collections.emptyMap());
         } catch (final Exception ex) {
             throw new ElasticsearchException(ex);
         }
@@ -792,6 +797,30 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         if (entity != null) {
             request.setEntity(entity);
         }
+
+        if (getLogger().isDebugEnabled()) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            entity.writeTo(out);
+            out.close();
+
+            StringBuilder builder = new StringBuilder(1000);
+            builder.append("Dumping Elasticsearch REST request...\n")
+                    .append("HTTP Method: ")
+                    .append(method)
+                    .append("\n")
+                    .append("Endpoint: ")
+                    .append(endpoint)
+                    .append("\n")
+                    .append("Parameters: ")
+                    .append(prettyPrintWriter.writeValueAsString(parameters))
+                    .append("\n")
+                    .append("Request body: ")
+                    .append(new String(out.toByteArray()))
+                    .append("\n");
+
+            getLogger().debug(builder.toString());
+        }
+
         return client.performRequest(request);
     }
 }

@@ -194,6 +194,12 @@ public final class ConfigTransformer {
         return schema;
     }
 
+    public static ByteArrayInputStream asByteArrayInputStream(ByteBuffer byteBuffer) {
+        byte[] config = new byte[byteBuffer.remaining()];
+        byteBuffer.get(config);
+        return new ByteArrayInputStream(config);
+    }
+
     protected static void writeNiFiPropertiesFile(ByteArrayOutputStream nifiPropertiesOutputStream, String destPath) throws IOException {
         final Path nifiPropertiesPath = Paths.get(destPath, "nifi.properties");
         try (FileOutputStream nifiProperties = new FileOutputStream(nifiPropertiesPath.toString())) {

@@ -17,6 +17,8 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -168,6 +170,22 @@ public class TestFlowDifferenceFilters {
                 "");
 
         assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+    }
+
+    @Test
+    public void testFilterControllerServiceStatusChangeWhenNewStateIntroduced() {
+        final VersionedControllerService controllerServiceA = new VersionedControllerService();
+        final VersionedControllerService controllerServiceB = new VersionedControllerService();
+        controllerServiceA.setScheduledState(null);
+        controllerServiceB.setScheduledState(ScheduledState.DISABLED);
+
+        final StandardFlowDifference flowDifference = new StandardFlowDifference(
+                DifferenceType.SCHEDULED_STATE_CHANGED,
+                controllerServiceA, controllerServiceB,
+                controllerServiceA.getScheduledState(), controllerServiceB.getScheduledState(),
+                "");
+
+        assertTrue(FlowDifferenceFilters.isScheduledStateNew(flowDifference));
     }
 }
 

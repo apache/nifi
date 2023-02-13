@@ -14,12 +14,12 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>28</version>
+        <version>29</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.20.0-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -89,24 +89,24 @@
         <url>https://issues.apache.org/jira/browse/NIFI</url>
     </issueManagement>
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
         <!-- Set minimum Java version for maven-enforcer-plugin from parent POM -->
-        <minimalJavaBuildVersion>1.8.0-251</minimalJavaBuildVersion>
+        <minimalJavaBuildVersion>11.0.16</minimalJavaBuildVersion>
         <maven.surefire.arguments />
         <!-- Disable maven-site-plugin from parent POM -->
         <maven.site.skip>true</maven.site.skip>
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
-        <nifi.nar.maven.plugin.version>1.3.5</nifi.nar.maven.plugin.version>
-        <project.build.outputTimestamp>1669170166</project.build.outputTimestamp>
+        <nifi.nar.maven.plugin.version>1.4.0</nifi.nar.maven.plugin.version>
+        <project.build.outputTimestamp>1675980972</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <com.amazonaws.version>1.12.299</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.17.270</software.amazon.awssdk.version>
-        <gson.version>2.10</gson.version>
+        <com.amazonaws.version>1.12.371</com.amazonaws.version>
+        <software.amazon.awssdk.version>2.17.295</software.amazon.awssdk.version>
+        <gson.version>2.10.1</gson.version>
         <kotlin.version>1.7.20</kotlin.version>
         <okhttp.version>4.10.0</okhttp.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
@@ -117,19 +117,19 @@
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.71</org.bouncycastle.version>
-        <testcontainers.version>1.17.5</testcontainers.version>
-        <org.slf4j.version>1.7.36</org.slf4j.version>
+        <testcontainers.version>1.17.6</testcontainers.version>
+        <org.slf4j.version>2.0.6</org.slf4j.version>
         <ranger.version>2.3.0</ranger.version>
-        <jetty.version>9.4.49.v20220914</jetty.version>
+        <jetty.version>9.4.50.v20221201</jetty.version>
         <jackson.bom.version>2.14.1</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <json.smart.version>2.4.8</json.smart.version>
-        <nifi.groovy.version>3.0.9</nifi.groovy.version>
+        <nifi.groovy.version>3.0.14</nifi.groovy.version>
         <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
-        <surefire.version>3.0.0-M7</surefire.version>
+        <surefire.version>3.0.0-M8</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
         <hadoop.version>3.3.4</hadoop.version>
@@ -138,16 +138,16 @@
         <aspectj.version>1.9.6</aspectj.version>
         <jersey.bom.version>2.36</jersey.bom.version>
         <log4j2.version>2.18.0</log4j2.version>
-        <logback.version>1.2.11</logback.version>
+        <logback.version>1.3.5</logback.version>
         <mockito.version>3.12.4</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>1.33</snakeyaml.version>
-        <netty.4.version>4.1.85.Final</netty.4.version>
+        <netty.4.version>4.1.87.Final</netty.4.version>
         <spring.version>5.3.24</spring.version>
         <spring.security.version>5.8.0</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
-        <zookeeper.version>3.8.0</zookeeper.version>
+        <zookeeper.version>3.8.1</zookeeper.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -174,6 +174,12 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
                 <version>${logback.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -507,6 +513,11 @@
                 <version>${jetty.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-jmx</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.eclipse.jetty.http2</groupId>
                 <artifactId>http2-client</artifactId>
                 <version>${jetty.version}</version>
@@ -790,7 +801,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -809,7 +820,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>3.0.0-M6</version>
+                    <version>3.0.0-M7</version>
                     <configuration>
                         <useReleaseProfile>true</useReleaseProfile>
                         <releaseProfiles>apache-release</releaseProfiles>
@@ -858,12 +869,12 @@
                 <plugin>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr3-maven-plugin</artifactId>
-                    <version>3.5.2</version>
+                    <version>3.5.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.2.1</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
@@ -875,12 +886,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.rat</groupId>
                     <artifactId>apache-rat-plugin</artifactId>
-                    <version>0.14</version>
+                    <version>0.15</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -941,7 +952,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>enforce-maven-version</id>
@@ -978,7 +989,7 @@
                                         <exclude>org.json:json:*:*:compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
-                                        <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                        <exclude>com.google.code.findbugs:jsr305:[,3.0.0]:compile</exclude>
                                         <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->
                                         <exclude>org.slf4j:slf4j-log4j12</exclude>
                                         <exclude>org.slf4j:slf4j-reload4j</exclude>
@@ -999,10 +1010,6 @@
                                         <!-- Exclude SSHD 2.9.1 and earlier due to CVE-2022-45047 -->
                                         <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
                                     </excludes>
-                                    <includes>
-                                        <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
-                                        <include>com.google.code.findbugs:jsr305:[3.0.0,)</include>
-                                    </includes>
                                 </bannedDependencies>
                             </rules>
                             <fail>true</fail>
@@ -1184,7 +1191,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>7.3.2</version>
+                        <version>8.0.2</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>

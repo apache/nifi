@@ -27,6 +27,7 @@ public enum OperandType {
     DEBUG,
     MANIFEST,
     REPOSITORY,
+    PROPERTIES,
     ASSET;
 
     public static Optional<OperandType> fromString(String value) {

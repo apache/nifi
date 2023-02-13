@@ -22,13 +22,13 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,13 +38,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardVerificationKeyServiceTest {
     private static final String ID = UUID.randomUUID().toString();
 
@@ -72,11 +72,9 @@ public class StandardVerificationKeyServiceTest {
 
     private StandardVerificationKeyService service;
 
-    @Before
+    @BeforeEach
     public void setService() {
         service = new StandardVerificationKeyService(stateManager);
-        when(key.getAlgorithm()).thenReturn(ALGORITHM);
-        when(key.getEncoded()).thenReturn(ENCODED);
     }
 
     @Test
@@ -90,11 +88,13 @@ public class StandardVerificationKeyServiceTest {
 
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
-        assertTrue("Expired Key not deleted", stateSaved.isEmpty());
+        assertTrue(stateSaved.isEmpty(), "Expired Key not deleted");
     }
 
     @Test
     public void testSave() throws IOException {
+        when(key.getAlgorithm()).thenReturn(ALGORITHM);
+        when(key.getEncoded()).thenReturn(ENCODED);
         when(stateManager.getState(eq(SCOPE))).thenReturn(stateMap);
         when(stateMap.toMap()).thenReturn(Collections.emptyMap());
 
@@ -104,7 +104,7 @@ public class StandardVerificationKeyServiceTest {
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
         final String serialized = stateSaved.get(ID);
-        assertNotNull("Serialized Key not found", serialized);
+        assertNotNull(serialized,"Serialized Key not found");
     }
 
     @Test
@@ -121,7 +121,7 @@ public class StandardVerificationKeyServiceTest {
         verify(stateManager).setState(stateCaptor.capture(), eq(SCOPE));
         final Map<String, String> stateSaved = stateCaptor.getValue();
         final String saved = stateSaved.get(ID);
-        assertNotNull("Serialized Key not found", saved);
+        assertNotNull(saved, "Serialized Key not found");
     }
 
     private String getSerializedVerificationKey(final Instant expiration) throws JsonProcessingException {

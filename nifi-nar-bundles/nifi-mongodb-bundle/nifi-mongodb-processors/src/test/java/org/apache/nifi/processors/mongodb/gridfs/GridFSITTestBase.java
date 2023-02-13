@@ -19,7 +19,8 @@
 
 package org.apache.nifi.processors.mongodb.gridfs;
 
-import com.mongodb.MongoClient;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.gridfs.GridFSBucket;
 import com.mongodb.client.gridfs.GridFSBuckets;
@@ -56,10 +57,10 @@ public class GridFSITTestBase extends AbstractMongoIT {
             runner.assertValid();
         }
 
-        client = new MongoClient(MONGO_CONTAINER.getConnectionString());
+        client = MongoClients.create(MONGO_CONTAINER.getConnectionString());
     }
     public void tearDown() {
-        client.dropDatabase(DB);
+        client.getDatabase(DB).drop();
         client.close();
     }
 

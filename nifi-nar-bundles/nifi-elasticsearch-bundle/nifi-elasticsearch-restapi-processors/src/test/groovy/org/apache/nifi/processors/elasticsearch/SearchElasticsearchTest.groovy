@@ -17,11 +17,13 @@
 
 package org.apache.nifi.processors.elasticsearch
 
-import org.apache.nifi.components.AllowableValue
+
 import org.apache.nifi.components.state.Scope
+import org.apache.nifi.processors.elasticsearch.api.PaginationType
+import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
 import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.TestRunner
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import java.time.Instant
 
@@ -29,7 +31,7 @@ import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.Assert.fail
+import static org.junit.jupiter.api.Assertions.fail
 
 class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTest {
     AbstractPaginatedJsonQueryElasticsearch getProcessor() {
@@ -50,7 +52,7 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(2)
         service.setThrowErrorInSearch(false)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue())
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [ msg: "desc"], query: [ match_all: [:] ]])))
 
         // initialise search
@@ -73,25 +75,25 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
 
     @Test
     void testScrollExpiration() {
-        testPaginationExpiration(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL)
+        testPaginationExpiration(PaginationType.SCROLL)
     }
 
     @Test
     void testPitExpiration() {
-        testPaginationExpiration(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME)
+        testPaginationExpiration(PaginationType.POINT_IN_TIME)
     }
 
     @Test
     void testSearchAfterExpiration() {
-        testPaginationExpiration(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SEARCH_AFTER)
+        testPaginationExpiration(PaginationType.SEARCH_AFTER)
     }
 
-    private void testPaginationExpiration(final AllowableValue paginationType) {
+    private void testPaginationExpiration(final PaginationType paginationType) {
         // test flowfile per page
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(2)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "1 sec")
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [ msg: "desc"], query: [ match_all: [:] ]])))
 
@@ -131,12 +133,12 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         runner.clearTransferState()
     }
 
-    void testPagination(final AllowableValue paginationType) {
+    void testPagination(final PaginationType paginationType) {
         // test flowfile per page
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(2)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [ msg: "desc"], query: [ match_all: [:] ]])))
 
         // first page
@@ -163,7 +165,7 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
 
 
         // test hits splitting
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue())
 
         // first page
         runOnce(runner)
@@ -197,7 +199,7 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
 
 
         // test hits combined
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue())
         // hits are combined from all pages within a single trigger of the processor
         runOnce(runner)
         testCounts(runner, 0, 1, 0, 0)
@@ -211,7 +213,7 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         assertThat(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty(), is(true))
     }
 
-    private static void assertState(final MockStateManager stateManager, final AllowableValue paginationType,
+    private static void assertState(final MockStateManager stateManager, final PaginationType paginationType,
                                     final int hitCount, final int pageCount) {
         stateManager.assertStateEquals(SearchElasticsearch.STATE_HIT_COUNT, Integer.toString(hitCount), Scope.LOCAL)
         stateManager.assertStateEquals(SearchElasticsearch.STATE_PAGE_COUNT, Integer.toString(pageCount), Scope.LOCAL)
@@ -220,17 +222,17 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         assertThat(Long.parseLong(pageExpirationTimestamp) > Instant.now().toEpochMilli(), is(true))
 
         switch (paginationType) {
-            case AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL:
+            case PaginationType.SCROLL:
                 stateManager.assertStateEquals(SearchElasticsearch.STATE_SCROLL_ID, "scrollId-${pageCount}", Scope.LOCAL)
                 stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, Scope.LOCAL)
                 stateManager.assertStateNotSet(SearchElasticsearch.STATE_SEARCH_AFTER, Scope.LOCAL)
                 break
-            case AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME:
+            case PaginationType.POINT_IN_TIME:
                 stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, Scope.LOCAL)
                 stateManager.assertStateEquals(SearchElasticsearch.STATE_PIT_ID, "pitId-${pageCount}", Scope.LOCAL)
                 stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-${pageCount}\"]", Scope.LOCAL)
                 break
-            case AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SEARCH_AFTER:
+            case PaginationType.SEARCH_AFTER:
                 stateManager.assertStateNotSet(SearchElasticsearch.STATE_SCROLL_ID, Scope.LOCAL)
                 stateManager.assertStateNotSet(SearchElasticsearch.STATE_PIT_ID, Scope.LOCAL)
                 stateManager.assertStateEquals(SearchElasticsearch.STATE_SEARCH_AFTER, "[\"searchAfter-${pageCount}\"]", Scope.LOCAL)

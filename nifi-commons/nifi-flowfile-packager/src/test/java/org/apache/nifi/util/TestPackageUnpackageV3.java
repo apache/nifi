@@ -21,12 +21,12 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPackageUnpackageV3 {
 
@@ -35,7 +35,7 @@ public class TestPackageUnpackageV3 {
         final FlowFilePackager packager = new FlowFilePackagerV3();
         final FlowFileUnpackager unpackager = new FlowFileUnpackagerV3();
 
-        final byte[] data = "Hello, World!".getBytes("UTF-8");
+        final byte[] data = "Hello, World!".getBytes(StandardCharsets.UTF_8);
         final Map<String, String> map = new HashMap<>();
         map.put("abc", "cba");
 
@@ -50,7 +50,7 @@ public class TestPackageUnpackageV3 {
         final byte[] decoded = decodedOut.toByteArray();
 
         assertEquals(map, unpackagedAttributes);
-        assertTrue(Arrays.equals(data, decoded));
+        assertArrayEquals(data, decoded);
     }
 
 }

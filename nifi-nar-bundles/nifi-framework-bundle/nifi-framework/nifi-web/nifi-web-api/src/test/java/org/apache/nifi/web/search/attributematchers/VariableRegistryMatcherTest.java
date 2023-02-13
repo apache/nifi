@@ -19,8 +19,8 @@ package org.apache.nifi.web.search.attributematchers;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -35,7 +35,7 @@ public class VariableRegistryMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private ProcessGroup processGroup;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         super.setUp();
         Mockito.when(processGroup.getVariableRegistry()).thenReturn(variableRegistry);

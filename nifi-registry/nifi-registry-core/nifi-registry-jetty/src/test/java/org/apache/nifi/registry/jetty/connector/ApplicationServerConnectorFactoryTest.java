@@ -20,6 +20,7 @@ import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.util.StringUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,13 +47,15 @@ class ApplicationServerConnectorFactoryTest {
 
     private static final String LOCALHOST = "127.0.0.1";
 
+    private static final String PROPRIETARY_TRUST_STORE_TYPE = "JKS";
+
     static TlsConfiguration tlsConfiguration;
 
     Server server;
 
     @BeforeAll
     static void setTlsConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType(PROPRIETARY_TRUST_STORE_TYPE).build();
     }
 
     @BeforeEach
@@ -89,6 +92,22 @@ class ApplicationServerConnectorFactoryTest {
 
         assertNotNull(serverConnector);
         assertEquals(LOCALHOST, serverConnector.getHost());
+    }
+
+    @Test
+    void testGetServerConnectorHostPropertyEmpty() {
+        final int port = NetworkUtils.getAvailableTcpPort();
+        final Properties configuredProperties = new Properties();
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_HOST, StringUtils.EMPTY);
+
+        final NiFiRegistryProperties properties = getProperties(configuredProperties);
+        final ApplicationServerConnectorFactory factory = new ApplicationServerConnectorFactory(server, properties);
+
+        final ServerConnector serverConnector = factory.getServerConnector();
+
+        assertNotNull(serverConnector);
+        assertNull(serverConnector.getHost());
     }
 
     @Test

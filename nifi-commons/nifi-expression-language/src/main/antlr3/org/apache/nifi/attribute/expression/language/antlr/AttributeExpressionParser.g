@@ -106,7 +106,7 @@ booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum | zeroOrTwoArgNum | oneOrTwoArgNum | zeroOrOneOrTwoArgNum;
 
 anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool
-                | expression | parameterReference;
+                | expression | parameterReference | NULL;
 
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
 functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
@@ -137,7 +137,8 @@ booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | THREAD | RANDOM) LPAREN! RPAREN!;
 oneArgStandaloneFunction : ((TO_LITERAL | MATH | GET_STATE_VALUE)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
-standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
+sevenArgStandaloneFunction : GET_URI^ LPAREN! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg COMMA! anyArg RPAREN!;
+standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction | sevenArgStandaloneFunction;
 
 attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterReference);
 

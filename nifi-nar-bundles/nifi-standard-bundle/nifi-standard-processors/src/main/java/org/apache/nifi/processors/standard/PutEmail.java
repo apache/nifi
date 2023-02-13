@@ -43,6 +43,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -51,6 +52,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -73,6 +75,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -109,6 +112,37 @@ public class PutEmail extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
+
+    public static final AllowableValue PASSWORD_BASED_AUTHORIZATION_MODE = new AllowableValue(
+            "password-based-authorization-mode",
+            "Use Password",
+            "Use password"
+    );
+
+    public static final AllowableValue OAUTH_AUTHORIZATION_MODE = new AllowableValue(
+            "oauth-based-authorization-mode",
+            "Use OAuth2",
+            "Use OAuth2 to acquire access token"
+    );
+
+    public static final PropertyDescriptor AUTHORIZATION_MODE = new PropertyDescriptor.Builder()
+            .name("authorization-mode")
+            .displayName("Authorization Mode")
+            .description("How to authorize sending email on the user's behalf.")
+            .required(true)
+            .allowableValues(PASSWORD_BASED_AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
+            .defaultValue(PASSWORD_BASED_AUTHORIZATION_MODE.getValue())
+            .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("oauth2-access-token-provider")
+            .displayName("OAuth2 Access Token Provider")
+            .description("OAuth2 service that can provide access tokens.")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .dependsOn(AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
             .name("SMTP Username")
             .description("Username for the SMTP account")
@@ -119,6 +153,7 @@ public class PutEmail extends AbstractProcessor {
     public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
             .name("SMTP Password")
             .description("Password for the SMTP account")
+            .dependsOn(AUTHORIZATION_MODE, PASSWORD_BASED_AUTHORIZATION_MODE)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
@@ -291,6 +326,8 @@ public class PutEmail extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SMTP_HOSTNAME);
         properties.add(SMTP_PORT);
+        properties.add(AUTHORIZATION_MODE);
+        properties.add(OAUTH2_ACCESS_TOKEN_PROVIDER);
         properties.add(SMTP_USERNAME);
         properties.add(SMTP_PASSWORD);
         properties.add(SMTP_AUTH);
@@ -356,10 +393,23 @@ public class PutEmail extends AbstractProcessor {
     }
 
     private volatile Pattern attributeNamePattern = null;
+
+    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final String attributeNameRegex = context.getProperty(ATTRIBUTE_NAME_REGEX).getValue();
         this.attributeNamePattern = attributeNameRegex == null ? null : Pattern.compile(attributeNameRegex);
+
+        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+
+            oauth2AccessTokenProvider.getAccessDetails();
+
+            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+        } else {
+            oauth2AccessTokenProviderOptional = Optional.empty();
+        }
     }
 
     private void setMessageHeader(final String header, final String value, final Message message) throws MessagingException {
@@ -519,6 +569,13 @@ public class PutEmail extends AbstractProcessor {
                 properties.setProperty(property, flowFileValue);
             }
         }
+
+        oauth2AccessTokenProviderOptional.ifPresent(oAuth2AccessTokenProvider -> {
+            String accessToken = oAuth2AccessTokenProvider.getAccessDetails().getAccessToken();
+
+            properties.setProperty("mail.smtp.password", accessToken);
+            properties.put("mail.smtp.auth.mechanisms", "XOAUTH2");
+        });
 
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
