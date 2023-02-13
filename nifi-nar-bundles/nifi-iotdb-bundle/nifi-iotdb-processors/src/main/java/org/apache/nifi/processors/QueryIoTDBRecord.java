@@ -189,9 +189,6 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 records.add(record);
             }
 
-            if ( getLogger().isDebugEnabled() ) {
-                getLogger().debug("Query result {} ", result);
-            }
             resultSetWriter.close();
             outgoingFlowFile = processSession.putAttribute(outgoingFlowFile, IOTDB_EXECUTED_QUERY, String.valueOf(query));
             processSession.transfer(outgoingFlowFile, REL_SUCCESS);
