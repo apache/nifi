@@ -166,7 +166,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
             List<String> fieldType = dataSet.getColumnTypes();
             List<String> fieldNames = dataSet.getColumnNames();
             List<RecordField> recordFields = new ArrayList<>();
-            for(int i = 0; i< fieldNames.size(); i++ ){
+            for (int i = 0; i < fieldNames.size(); i++) {
                 recordFields.add(new RecordField(fieldNames.get(i), getType(fieldType.get(i)).getDataType()));
             }
             final RecordSchema schema = new SimpleRecordSchema(recordFields);
