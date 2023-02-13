@@ -14,7 +14,6 @@
 # limitations under the License.
 org.apache.nifi.processors.standard.AttributesToCSV
 org.apache.nifi.processors.standard.AttributesToJSON
-org.apache.nifi.processors.standard.Base64EncodeContent
 org.apache.nifi.processors.standard.CalculateRecordStats
 org.apache.nifi.processors.standard.CompressContent
 org.apache.nifi.processors.standard.ControlRate
@@ -53,14 +52,9 @@ org.apache.nifi.processors.standard.GenerateFlowFile
 org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
-org.apache.nifi.processors.standard.GetHTTP
-org.apache.nifi.processors.standard.GetJMSQueue
-org.apache.nifi.processors.standard.GetJMSTopic
 org.apache.nifi.processors.standard.GetSFTP
 org.apache.nifi.processors.standard.HandleHttpRequest
 org.apache.nifi.processors.standard.HandleHttpResponse
-org.apache.nifi.processors.standard.HashAttribute
-org.apache.nifi.processors.standard.HashContent
 org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
 org.apache.nifi.processors.standard.JoltTransformJSON
@@ -90,13 +84,11 @@ org.apache.nifi.processors.standard.ParseCEF
 org.apache.nifi.processors.standard.ParseSyslog
 org.apache.nifi.processors.standard.ParseSyslog5424
 org.apache.nifi.processors.standard.PartitionRecord
-org.apache.nifi.processors.standard.PostHTTP
 org.apache.nifi.processors.standard.PutDatabaseRecord
 org.apache.nifi.processors.standard.PutDistributedMapCache
 org.apache.nifi.processors.standard.PutEmail
 org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
-org.apache.nifi.processors.standard.PutJMS
 org.apache.nifi.processors.standard.PutRecord
 org.apache.nifi.processors.standard.PutSFTP
 org.apache.nifi.processors.standard.PutSQL

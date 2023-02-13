@@ -30,6 +30,8 @@ import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.http.HttpHeader;
 import org.apache.nifi.processors.standard.http.HttpMethod;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -47,6 +49,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -169,31 +172,6 @@ public class InvokeHTTPTest {
 
     @Test
     public void testNotValidWithDefaultProperties() {
-        runner.assertNotValid();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testNotValidWithProxyHostWithoutProxyPort() {
-        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROXY_HOST, String.class.getSimpleName());
-        runner.assertNotValid();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testNotValidWithProxyUserWithoutProxyPassword() {
-        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
-        runner.assertNotValid();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testNotValidWithProxyUserAndPasswordWithoutProxyHost() {
-        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROXY_PASSWORD, String.class.getSimpleName());
         runner.assertNotValid();
     }
 
@@ -351,39 +329,26 @@ public class InvokeHTTPTest {
         assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
-    @SuppressWarnings("deprecation")
     @Test
-    public void testRunGetHttp200SuccessProxyHostPortConfigured() throws InterruptedException {
+    public void testRunGetHttp200SuccessProxyHostPortConfigured() throws InterruptedException, InitializationException {
         final String mockWebServerUrl = getMockWebServerUrl();
         final URI uri = URI.create(mockWebServerUrl);
 
-        runner.setProperty(InvokeHTTP.HTTP_URL, mockWebServerUrl);
-        runner.setProperty(InvokeHTTP.PROXY_HOST, uri.getHost());
-        runner.setProperty(InvokeHTTP.PROXY_PORT, Integer.toString(uri.getPort()));
+        final String proxyConfigurationServiceId = ProxyConfigurationService.class.getSimpleName();
+        final ProxyConfigurationService proxyConfigurationService = mock(ProxyConfigurationService.class);
+        when(proxyConfigurationService.getIdentifier()).thenReturn(proxyConfigurationServiceId);
+        runner.addControllerService(proxyConfigurationServiceId, proxyConfigurationService);
+        runner.enableControllerService(proxyConfigurationService);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
-        runner.enqueue(FLOW_FILE_CONTENT);
-        runner.run();
+        final ProxyConfiguration proxyConfiguration = new ProxyConfiguration();
+        proxyConfiguration.setProxyType(Proxy.Type.HTTP);
+        proxyConfiguration.setProxyServerHost(uri.getHost());
+        proxyConfiguration.setProxyServerPort(uri.getPort());
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
-        final RecordedRequest request = takeRequestCompleted();
-        final String requestLine = request.getRequestLine();
-
-        final String proxyRequestLine = String.format("%s %s HTTP/1.1", HttpMethod.GET.name(), mockWebServerUrl);
-        assertEquals(proxyRequestLine, requestLine);
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testRunGetHttp200SuccessProxyHostPortUserPasswordConfigured() throws InterruptedException {
-        final String mockWebServerUrl = getMockWebServerUrl();
-        final URI uri = URI.create(mockWebServerUrl);
+        when(proxyConfigurationService.getConfiguration()).thenReturn(proxyConfiguration);
 
         runner.setProperty(InvokeHTTP.HTTP_URL, mockWebServerUrl);
-        runner.setProperty(InvokeHTTP.PROXY_HOST, uri.getHost());
-        runner.setProperty(InvokeHTTP.PROXY_PORT, Integer.toString(uri.getPort()));
-        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROXY_PASSWORD, String.class.getName());
+        runner.setProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE, proxyConfigurationServiceId);
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
         runner.enqueue(FLOW_FILE_CONTENT);
