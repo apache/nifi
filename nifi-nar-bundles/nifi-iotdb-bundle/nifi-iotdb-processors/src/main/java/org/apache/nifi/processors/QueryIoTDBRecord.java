@@ -175,7 +175,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                     recordSetWriterFactory.createWriter(getLogger(),schema,outputStream,outgoingFlowFile);
             List<Record> records = new ArrayList<>();
             while (dataSet.hasNext()) {
-                Map<String,Object> map = new HashMap<String,Object>();
+                final Map<String, Object> map = new LinkedHashMap<>();
                 RowRecord rowRecord = dataSet.next();
                 map.put(fieldNames.get(0), rowRecord.getTimestamp()); //Put the timestamp
                 List<Field> fields = rowRecord.getFields();
