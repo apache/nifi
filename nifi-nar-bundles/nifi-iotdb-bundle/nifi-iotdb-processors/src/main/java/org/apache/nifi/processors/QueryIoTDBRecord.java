@@ -149,8 +149,8 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
                 try {
                     query = getQuery(processSession, incomingFlowFile);
                 } catch(IOException ioe) {
-                    getLogger().error("Exception while reading from FlowFile " + ioe.getLocalizedMessage(), ioe);
-                    throw new ProcessException(ioe);
+                    final String message = String.format("Reading Query from FlowFile failed %s", incomingFlowFile);
+                    throw new ProcessException(message, ioe);
                 }
             }
             outgoingFlowFile = incomingFlowFile;
