@@ -18,6 +18,7 @@ package org.apache.nifi.reporting.ambari;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -54,6 +55,7 @@ import java.util.concurrent.TimeUnit;
         "works, this reporting task should be scheduled to run every 60 seconds. Each iteration it will send the metrics " +
         "from the previous iteration, and calculate the current metrics to be sent on next iteration. Scheduling this reporting " +
         "task at a frequency other than 60 seconds may produce unexpected results.")
+@DeprecationNotice(reason = "This reporting task is deprecated and will be removed in NiFi 2.x.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class AmbariReportingTask extends AbstractReportingTask {
 
