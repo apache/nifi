@@ -54,6 +54,8 @@ class TestRuntimeManifest {
 
     public static final String LIST_HDFS_DEFAULT_SCHEDULE_TIME = "1 min";
 
+    private static final String REPORTING_TASK_DEFAULT_SCHEDULE_TIME = "60 sec";
+
     @Test
     void testRuntimeManifest() throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
@@ -199,24 +201,24 @@ class TestRuntimeManifest {
         assertEquals(1, propertyMaxUncommitDependency.getDependentValues().size());
         assertEquals("true", propertyMaxUncommitDependency.getDependentValues().get(0));
 
-        // Verify AmbariReportingTask definition which also has @DefaultSchedule
-        final ReportingTaskDefinition ambariReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-ambari-nar",
-                "org.apache.nifi.reporting.ambari.AmbariReportingTask");
+        // Verify PrometheusReportingTask definition which also has @DefaultSchedule
+        final ReportingTaskDefinition prometheusReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-prometheus-nar",
+                "org.apache.nifi.reporting.prometheus.PrometheusReportingTask");
 
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), ambariReportingTaskDef.getDefaultSchedulingStrategy());
+        assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), prometheusReportingTaskDef.getDefaultSchedulingStrategy());
 
-        final List<String> ambariSchedulingStrategies = ambariReportingTaskDef.getSupportedSchedulingStrategies();
-        assertNotNull(ambariSchedulingStrategies);
-        assertEquals(2, ambariSchedulingStrategies.size());
-        assertTrue(ambariSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertTrue(ambariSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
+        final List<String> prometheusSchedulingStrategies = prometheusReportingTaskDef.getSupportedSchedulingStrategies();
+        assertNotNull(prometheusSchedulingStrategies);
+        assertEquals(2, prometheusSchedulingStrategies.size());
+        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
 
-        final Map<String, String> ambariDefaultSchedulingPeriods = ambariReportingTaskDef.getDefaultSchedulingPeriodBySchedulingStrategy();
-        assertNotNull(ambariDefaultSchedulingPeriods);
-        assertEquals(2, ambariDefaultSchedulingPeriods.size());
+        final Map<String, String> prometheusDefaultSchedulingPeriods = prometheusReportingTaskDef.getDefaultSchedulingPeriodBySchedulingStrategy();
+        assertNotNull(prometheusDefaultSchedulingPeriods);
+        assertEquals(2, prometheusDefaultSchedulingPeriods.size());
         // TIMER_DRIVEN period should come from the @DefaultSchedule annotation that overrides the default value
-        assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, ambariDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), ambariDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
+        assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
         // Verify JoltTransformRecord which has @EventDriven
         final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-record-nar",
