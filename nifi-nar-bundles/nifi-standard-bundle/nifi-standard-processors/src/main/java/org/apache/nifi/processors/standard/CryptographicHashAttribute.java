@@ -35,6 +35,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -60,6 +61,10 @@ import org.apache.nifi.security.util.crypto.HashService;
         description = "The property name defines the attribute to look for and hash in the incoming flowfile. "
                 + "The property value defines the name to give the generated attribute. "
                 + "Attribute names must be unique.")
+@DeprecationNotice(
+        classNames = "org.apache.nifi.processors.attributes.UpdateAttribute",
+        reason = "UpdateAttribute can be configured using the hash Expression Language function to digest one or more attributes"
+)
 public class CryptographicHashAttribute extends AbstractProcessor {
     public enum PartialAttributePolicy {
         ALLOW,
