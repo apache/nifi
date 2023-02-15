@@ -62,10 +62,10 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
         reader.addSchemaField("numberOfEmployees", RecordFieldType.STRING);
         reader.addSchemaField("industry", RecordFieldType.STRING);
 
-        reader.addRecord("SampleAccount1", "111111", "www.salesforce1.com", "100", "Banking");
-        reader.addRecord("SampleAccount2", "222222", "www.salesforce2.com", "200", "Banking");
+        reader.addRecord("SampleAccount1", "111111", "www.salesforce1.com", null, "Banking");
+        reader.addRecord("SampleAccount2", null, "www.salesforce2.com", "200", "Banking");
         reader.addRecord("SampleAccount3", "333333", "www.salesforce3.com", "300", "Banking");
-        reader.addRecord("SampleAccount4", "444444", "www.salesforce4.com", "400", "Banking");
+        reader.addRecord("SampleAccount4", "444444", null, "400", "Banking");
         reader.addRecord("SampleAccount5", "555555", "www.salesforce5.com", "500", "Banking");
 
         runner.enqueue("", Collections.singletonMap("objectType", "Account"));
