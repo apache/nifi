@@ -549,7 +549,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
                 eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider, eventDrivenWorkerQueue,
-                repositoryContextFactory, maxEventDrivenThreads.get(), encryptor, extensionManager, this);
+                repositoryContextFactory, maxEventDrivenThreads.get(), extensionManager, this);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
@@ -983,7 +983,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         for (final ProcessorNode procNode : flowManager.getRootGroup().findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), processor.getIdentifier())) {
-                final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor,
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider,
                         getStateManagerProvider().getStateManager(processor.getIdentifier()), () -> false, this);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, processContext);
             }

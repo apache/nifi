@@ -74,17 +74,6 @@ public class TestMockProcessContext {
         assertEquals(2, proc.getUpdateCount(DummyProcessor.DEFAULTED_PROP));
     }
 
-    @Test
-    public void testFakeEncryptionAndDecryption() {
-        final DummyProcessor proc = new DummyProcessor();
-        final MockProcessContext context = new MockProcessContext(proc);
-        String subject = "foo";
-        String encrypted = context.encrypt(subject);
-        assertEquals(encrypted, "enc{foo}");
-        String decrypted = context.decrypt(encrypted);
-        assertEquals(decrypted, subject);
-    }
-
     private static class DummyProcessor extends AbstractProcessor {
         static final PropertyDescriptor REQUIRED_PROP = new PropertyDescriptor.Builder()
             .name("required")

@@ -36,9 +36,6 @@ import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -58,43 +55,67 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final ProcessorNode procNode;
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final String annotationData;
-    private final DeprecationLogger deprecationLogger;
 
+    public StandardProcessContext(
+            final ProcessorNode processorNode,
+            final ControllerServiceProvider controllerServiceProvider,
+            final StateManager stateManager,
+            final TaskTermination taskTermination,
+            final NodeTypeProvider nodeTypeProvider
+    ) {
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
-                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
-
-        this(processorNode, controllerServiceProvider, propertyEncryptor, stateManager, taskTermination, nodeTypeProvider,
-            processorNode.getEffectivePropertyValues(), processorNode.getAnnotationData());
+        this(
+                processorNode,
+                controllerServiceProvider,
+                stateManager,
+                taskTermination,
+                nodeTypeProvider,
+                processorNode.getEffectivePropertyValues(),
+                processorNode.getAnnotationData()
+        );
     }
 
-    public StandardProcessContext(final ProcessorNode processorNode, final Map<String, String> propertiesOverride, final String annotationDataOverride, final ParameterLookup parameterLookup,
-                                  final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
-                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
-
-        this(processorNode, controllerServiceProvider, propertyEncryptor, stateManager, taskTermination, nodeTypeProvider,
-            resolvePropertyValues(processorNode, parameterLookup, propertiesOverride), annotationDataOverride);
+    public StandardProcessContext(
+            final ProcessorNode processorNode,
+            final Map<String, String> propertiesOverride,
+            final String annotationDataOverride,
+            final ParameterLookup parameterLookup,
+            final ControllerServiceProvider controllerServiceProvider,
+            final StateManager stateManager,
+            final TaskTermination taskTermination,
+            final NodeTypeProvider nodeTypeProvider
+    ) {
+        this(
+                processorNode,
+                controllerServiceProvider,
+                stateManager,
+                taskTermination,
+                nodeTypeProvider,
+                resolvePropertyValues(processorNode, parameterLookup, propertiesOverride),
+                annotationDataOverride
+        );
     }
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
-                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider,
-                                  final Map<PropertyDescriptor, String> propertyValues, final String annotationData) {
+    public StandardProcessContext(
+            final ProcessorNode processorNode,
+            final ControllerServiceProvider controllerServiceProvider,
+            final StateManager stateManager,
+            final TaskTermination taskTermination,
+            final NodeTypeProvider nodeTypeProvider,
+            final Map<PropertyDescriptor, String> propertyValues,
+            final String annotationData
+    ) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
-        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
         this.annotationData = annotationData;
-        final Class<?> componentClass = processorNode.getComponentClass();
-        final Class<?> loggerClass = componentClass == null ? getClass() : componentClass;
-        this.deprecationLogger = DeprecationLoggerFactory.getLogger(loggerClass);
 
         properties = Collections.unmodifiableMap(propertyValues);
 
@@ -228,20 +249,6 @@ public class StandardProcessContext implements ProcessContext, ControllerService
             propValueMap.put(entry.getKey().getName(), entry.getValue());
         }
         return propValueMap;
-    }
-
-    @Override
-    public String encrypt(final String unencrypted) {
-        verifyTaskActive();
-        deprecationLogger.warn("ProcessContext.encrypt() should be replaced an alternative implementation");
-        return propertyEncryptor.encrypt(unencrypted);
-    }
-
-    @Override
-    public String decrypt(final String encrypted) {
-        verifyTaskActive();
-        deprecationLogger.warn("ProcessContext.decrypt() should be replaced an alternative implementation");
-        return propertyEncryptor.decrypt(encrypted);
     }
 
     @Override

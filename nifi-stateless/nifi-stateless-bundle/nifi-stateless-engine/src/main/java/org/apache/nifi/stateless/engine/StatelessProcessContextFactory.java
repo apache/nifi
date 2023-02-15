@@ -24,31 +24,27 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
 
 public class StatelessProcessContextFactory implements ProcessContextFactory {
     private static final NodeTypeProvider NODE_TYPE_PROVIDER = new StatelessNodeTypeProvider();
     private final ControllerServiceProvider controllerServiceProvider;
-    private final PropertyEncryptor encryptor;
     private final StateManagerProvider stateManagerProvider;
 
-    public StatelessProcessContextFactory(final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor, final StateManagerProvider stateManagerProvider) {
+    public StatelessProcessContextFactory(final ControllerServiceProvider controllerServiceProvider, final StateManagerProvider stateManagerProvider) {
         this.controllerServiceProvider = controllerServiceProvider;
-        this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
     }
-
 
     public ProcessContext createProcessContext(final Connectable connectable) {
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier());
 
         if (connectable instanceof ProcessorNode) {
             final ProcessorNode processor = (ProcessorNode) connectable;
-            return new StandardProcessContext(processor, controllerServiceProvider, encryptor, stateManager, () -> false, NODE_TYPE_PROVIDER);
+            return new StandardProcessContext(processor, controllerServiceProvider, stateManager, () -> false, NODE_TYPE_PROVIDER);
         }
 
-        return new ConnectableProcessContext(connectable, encryptor, stateManager);
+        return new ConnectableProcessContext(connectable, stateManager);
     }
 }
