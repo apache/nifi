@@ -54,6 +54,8 @@ class TestRuntimeManifest {
 
     public static final String LIST_HDFS_DEFAULT_SCHEDULE_TIME = "1 min";
 
+    private static final String REPORTING_TASK_DEFAULT_SCHEDULE_TIME = "60 sec";
+
     @Test
     void testRuntimeManifest() throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
@@ -215,7 +217,7 @@ class TestRuntimeManifest {
         assertNotNull(prometheusDefaultSchedulingPeriods);
         assertEquals(2, prometheusDefaultSchedulingPeriods.size());
         // TIMER_DRIVEN period should come from the @DefaultSchedule annotation that overrides the default value
-        assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
         // Verify JoltTransformRecord which has @EventDriven
