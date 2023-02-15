@@ -35,7 +35,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.MockSessionFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -202,9 +201,7 @@ public class ConsumeJMSIT {
         try {
             ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send("testMapMessage", __ -> createUnsupportedMessage("unsupportedMessagePropertyKey", "unsupportedMessagePropertyValue"));
+            jmsTemplate.send("testMapMessage", __ -> createUnsupportedMessage("unsupportedMessagePropertyKey", "unsupportedMessagePropertyValue"));
 
             TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -232,9 +229,7 @@ public class ConsumeJMSIT {
     private void testMessageTypeAttribute(String destinationName, final MessageCreator messageCreator, String expectedJmsMessageTypeAttribute) throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send(destinationName, messageCreator);
+            jmsTemplate.send(destinationName, messageCreator);
 
             TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -462,9 +457,7 @@ public class ConsumeJMSIT {
 
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send(destination, session -> session.createTextMessage("msg"));
+            jmsTemplate.send(destination, session -> session.createTextMessage("msg"));
 
             TestRunner runner = TestRunners.newTestRunner(processor);
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -476,8 +469,6 @@ public class ConsumeJMSIT {
             runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
             runner.setProperty(ConsumeJMS.DESTINATION, destination);
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
-
-            ((MockSessionFactory) runner.getProcessSessionFactory()).getCreatedSessions();
 
             assertCausedBy(expectedException, () -> runner.run(1, false));
 

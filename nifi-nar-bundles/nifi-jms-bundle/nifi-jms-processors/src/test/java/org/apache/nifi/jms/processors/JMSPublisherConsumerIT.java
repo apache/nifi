@@ -340,13 +340,10 @@ public class JMSPublisherConsumerIT {
         JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
         final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(threadCount);
 
-        final AtomicInteger test = new AtomicInteger(0);
-
         try {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
             for (int i = 0; i < totalMessageCount; i++) {
                 publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
-                test.incrementAndGet();
             }
 
             final AtomicInteger msgCount = new AtomicInteger(0);
