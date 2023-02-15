@@ -89,18 +89,4 @@ public class QueryIoTDBIT {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(PutIoTDBRecord.REL_SUCCESS).get(0);
         out.assertContentEquals("header\n\"1\",\"5.0\",\"6.0\"\n");
     }
-
-    @Test
-    public void testQueryIoTDBbyEnqueue()
-            throws  InitializationException {
-        setUpStandardTestConfig();
-
-        testRunner.enqueue("select s1 from root.sg7.d1");
-        testRunner.run();
-
-        testRunner.assertAllFlowFilesTransferred(PutIoTDBRecord.REL_SUCCESS, 1);
-
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(PutIoTDBRecord.REL_SUCCESS).get(0);
-        out.assertContentEquals("header\n\"1\",\"6.0\"\n");
-    }
 }

@@ -41,13 +41,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -113,83 +108,39 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IoTDBConnectionException {
         super.onScheduled(context);
-        // Either input connection or scheduled query is required
-        if (!context.getProperty(IOTDB_QUERY).isSet()
-                && ! context.hasIncomingConnection()) {
-            throw new ProcessException("The IoTDB Query processor requires input connection or scheduled IoTDB query");
-        }
         recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
-
         String query;
-        Charset charset;
         FlowFile outgoingFlowFile;
         int fetchSize = DEFAULT_IOTDB_FETCH_SIZE;
         // If there are incoming connections, prepare query params from flow file
-        if (context.hasIncomingConnection()) {
-            FlowFile incomingFlowFile = processSession.get();
+        outgoingFlowFile = processSession.create();
+        query = context.getProperty(IOTDB_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
 
-            if (incomingFlowFile == null && context.hasNonLoopConnection()) {
-                return;
-            }
-            fetchSize = context.getProperty(IOTDB_QUERY_FETCH_SIZE).evaluateAttributeExpressions(incomingFlowFile).asInteger();
-            if ( (incomingFlowFile != null ? incomingFlowFile.getSize() : 0) == 0 ) {
-                if ( context.getProperty(IOTDB_QUERY).isSet() ) {
-                    query = context.getProperty(IOTDB_QUERY).evaluateAttributeExpressions(incomingFlowFile).getValue();
-                } else {
-                    String message = "FlowFile query is empty and no scheduled query is set";
-                    getLogger().error(message);
-                    incomingFlowFile = processSession.putAttribute(incomingFlowFile, "iotdb.error.message", message);
-                    processSession.transfer(incomingFlowFile, REL_FAILURE);
-                    return;
-                }
-            } else {
-                try {
-                    query = getQuery(processSession, incomingFlowFile);
-                } catch(IOException ioe) {
-                    final String message = String.format("Reading Query from FlowFile failed %s", incomingFlowFile);
-                    throw new ProcessException(message, ioe);
-                }
-            }
-            outgoingFlowFile = incomingFlowFile;
-        } else {
-            outgoingFlowFile = processSession.create();
-            query = context.getProperty(IOTDB_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
-        }
-
-        try {
-            SessionDataSet dataSet = session.get().executeQueryStatement(query);
-            List<Map<String,Object>> result = new ArrayList<>();
+        try (SessionDataSet dataSet = session.get().executeQueryStatement(query);
+             OutputStream outputStream = processSession.write(outgoingFlowFile)) {
+            //List<Map<String,Object>> result=new ArrayList<>();
             dataSet.setFetchSize(fetchSize);
             List<String> fieldType = dataSet.getColumnTypes();
             List<String> fieldNames = dataSet.getColumnNames();
-            List<RecordField> recordFields = new ArrayList<>();
-            for (int i = 0; i < fieldNames.size(); i++) {
-                recordFields.add(new RecordField(fieldNames.get(i), getType(fieldType.get(i)).getDataType()));
-            }
-            final RecordSchema schema = new SimpleRecordSchema(recordFields);
-            OutputStream outputStream = processSession.write(outgoingFlowFile);
+            final RecordSchema schema = getRecordSchema(fieldType, fieldNames);
             RecordSetWriter resultSetWriter =
                     recordSetWriterFactory.createWriter(getLogger(),schema,outputStream,outgoingFlowFile);
             List<Record> records = new ArrayList<>();
             while (dataSet.hasNext()) {
-                final Map<String, Object> map = new LinkedHashMap<>();
+                Map<String,Object> map = new HashMap<String,Object>();
                 RowRecord rowRecord = dataSet.next();
-                map.put(fieldNames.get(0), rowRecord.getTimestamp()); //Put the timestamp
-                List<Field> fields = rowRecord.getFields();
-                for(int i = 0; i< fieldNames.size() - 1; i++ ){ //Put the rest data
-                    TSDataType dataType = fields.get(i).getDataType();
-                    map.put(fieldNames.get(i+1), fields.get(i).getObjectValue(dataType));
-                }
-                result.add(map);
-                Record record = new MapRecord(schema, map);
+                Record record = convertRecordFromRowRecord(fieldNames, schema, map, rowRecord);
                 resultSetWriter.write(record);
                 records.add(record);
             }
 
+            if ( getLogger().isDebugEnabled() ) {
+                getLogger().debug("Query result {} ", records);
+            }
             resultSetWriter.close();
             outgoingFlowFile = processSession.putAttribute(outgoingFlowFile, IOTDB_EXECUTED_QUERY, String.valueOf(query));
             processSession.transfer(outgoingFlowFile, REL_SUCCESS);
@@ -200,12 +151,24 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         }
     }
 
-    protected String getQuery(final ProcessSession processSession, FlowFile incomingFlowFile)
-            throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        processSession.exportTo(incomingFlowFile, outputStream);
-        outputStream.close();
-        return outputStream.toString(StandardCharsets.UTF_8.name());
+    private static Record convertRecordFromRowRecord(List<String> fieldNames, RecordSchema schema, Map<String, Object> map, RowRecord rowRecord) {
+        map.put(fieldNames.get(0), rowRecord.getTimestamp()); //Put the timestamp
+        List<Field> fields = rowRecord.getFields();
+        for(int i = 0; i< fieldNames.size() - 1; i++ ){ //Put the rest data
+            TSDataType dataType = fields.get(i).getDataType();
+            map.put(fieldNames.get(i+1), fields.get(i).getObjectValue(dataType));
+        }
+        Record record = new MapRecord(schema, map);
+        return record;
+    }
+
+    private RecordSchema getRecordSchema(List<String> fieldType, List<String> fieldNames) {
+        List<RecordField> recordFields = new ArrayList<>();
+        for(int i = 0; i< fieldNames.size(); i++ ){
+            recordFields.add(new RecordField(fieldNames.get(i), getType(fieldType.get(i)).getDataType()));
+        }
+        final RecordSchema schema = new SimpleRecordSchema(recordFields);
+        return schema;
     }
 
     protected FlowFile populateErrorAttributes(final ProcessSession processSession, FlowFile flowFile, String query,
