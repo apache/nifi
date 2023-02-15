@@ -333,7 +333,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -373,7 +373,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -414,7 +414,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false);
 
         StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState);
@@ -563,7 +563,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, flowController.getEncryptor(), getStateManager(connectable.getIdentifier()));
+            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, getStateManager(connectable.getIdentifier()));
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }

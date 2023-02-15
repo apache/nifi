@@ -444,7 +444,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         properties.put("password", "#{pass}");
         usernamePassword.setProperties(properties);
 
-        final ProcessContext processContext = new StandardProcessContext(usernamePassword, getFlowController().getControllerServiceProvider(), getFlowController().getEncryptor(),
+        final ProcessContext processContext = new StandardProcessContext(usernamePassword, getFlowController().getControllerServiceProvider(),
             getFlowController().getStateManagerProvider().getStateManager(usernamePassword.getIdentifier()), () -> false, getFlowController());
         final PropertyDescriptor descriptor = usernamePassword.getPropertyDescriptor("password");
         final PropertyValue propertyValue = processContext.getProperty(descriptor);

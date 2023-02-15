@@ -86,7 +86,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
             final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id);
             final StandardProcessContext processContext = new StandardProcessContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                statelessEngine.getPropertyEncryptor(), stateManager, () -> false, new StatelessNodeTypeProvider());
+                stateManager, () -> false, new StatelessNodeTypeProvider());
 
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
         } finally {
@@ -107,7 +107,7 @@ public class StatelessReloadComponent implements ReloadComponent {
 
         // Notify the processor node that the configuration (properties, e.g.) has been restored
         final StandardProcessContext processContext = new StandardProcessContext(existingNode, statelessEngine.getControllerServiceProvider(),
-                statelessEngine.getPropertyEncryptor(), statelessEngine.getStateManagerProvider().getStateManager(id), () -> false, new StatelessNodeTypeProvider());
+                statelessEngine.getStateManagerProvider().getStateManager(id), () -> false, new StatelessNodeTypeProvider());
         existingNode.onConfigurationRestored(processContext);
 
         logger.debug("Successfully reloaded {}", existingNode);

@@ -198,7 +198,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
-            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
+            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, stateManagerProvider);
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
             contentRepo = createContentRepository(engineConfiguration);
             flowFileRepo = new StatelessFlowFileRepository();
