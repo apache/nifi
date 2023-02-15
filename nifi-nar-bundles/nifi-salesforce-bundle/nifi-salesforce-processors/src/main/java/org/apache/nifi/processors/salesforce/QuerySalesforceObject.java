@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
@@ -115,6 +116,7 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
+@SeeAlso(PutSalesforceObject.class)
 public class QuerySalesforceObject extends AbstractProcessor {
 
     static final AllowableValue PROPERTY_BASED_QUERY = new AllowableValue("property-based-query", "Property Based Query", "Provide query by properties.");
@@ -398,7 +400,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             Map<String, String> attributes = new HashMap<>();
 
             AtomicInteger recordCountHolder = new AtomicInteger();
-
+            long startNanos = System.nanoTime();
             flowFile = session.write(flowFile, out -> {
                 try (
                         InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl.get(), querySObject);
@@ -464,6 +466,10 @@ public class QuerySalesforceObject extends AbstractProcessor {
             } else {
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(flowFile, REL_SUCCESS);
+
+                long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                session.getProvenanceReporter().receive(flowFile, salesforceRestService.getVersionedBaseUrl() + "/composite/tree/" + sObject,
+                        transferMillis);
 
                 session.adjustCounter("Records Processed", recordCount, false);
                 getLogger().info("Successfully written {} records for {}", recordCount, flowFile);

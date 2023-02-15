@@ -20,6 +20,7 @@ import org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties;
 import org.apache.nifi.processors.salesforce.util.SalesforceConfigAware;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
@@ -77,6 +78,7 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS);
 
         assertNotNull(results.get(0).getContent());
+        runner.assertProvenanceEvent(ProvenanceEventType.RECEIVE);
     }
 
     @Test

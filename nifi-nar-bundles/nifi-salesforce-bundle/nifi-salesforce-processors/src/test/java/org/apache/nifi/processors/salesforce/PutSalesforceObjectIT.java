@@ -20,6 +20,8 @@ import org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties;
 import org.apache.nifi.processors.salesforce.util.SalesforceConfigAware;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
@@ -32,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PutSalesforceObjectIT implements SalesforceConfigAware {
 
@@ -62,25 +65,71 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
         reader.addSchemaField("numberOfEmployees", RecordFieldType.STRING);
         reader.addSchemaField("industry", RecordFieldType.STRING);
 
-        reader.addRecord("SampleAccount1", "111111", "www.salesforce1.com", "100", "Banking");
-        reader.addRecord("SampleAccount2", "222222", "www.salesforce2.com", "200", "Banking");
+        reader.addRecord("SampleAccount1", "111111", "www.salesforce1.com", null, "Banking");
+        reader.addRecord("SampleAccount2", null, "www.salesforce2.com", "200", "Banking");
         reader.addRecord("SampleAccount3", "333333", "www.salesforce3.com", "300", "Banking");
-        reader.addRecord("SampleAccount4", "444444", "www.salesforce4.com", "400", "Banking");
+        reader.addRecord("SampleAccount4", "444444", null, "400", "Banking");
         reader.addRecord("SampleAccount5", "555555", "www.salesforce5.com", "500", "Banking");
 
         runner.enqueue("", Collections.singletonMap("objectType", "Account"));
 
-        runner.addControllerService("reader", reader);
-        runner.enableControllerService(reader);
-
-        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
-        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
-        runner.setProperty(PutSalesforceObject.RECORD_READER_FACTORY, reader.getIdentifier());
+        configureProcessor(reader);
 
         runner.run();
 
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_SUCCESS);
 
         assertEquals(1, results.size());
+
+        runner.assertProvenanceEvent(ProvenanceEventType.SEND);
+    }
+
+    @Test
+    void testMissingObjectType() throws Exception {
+        MockRecordParser reader = new MockRecordParser();
+
+        runner.enqueue("");
+
+        configureProcessor(reader);
+
+        runner.run();
+
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        assertEquals(1, results.size());
+        assertTrue(runner.getProvenanceEvents().isEmpty());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeExists("error.message");
+    }
+
+    @Test
+    void testErrorForInvalidRecordField() throws Exception {
+        MockRecordParser reader = new MockRecordParser();
+        reader.addSchemaField("invalidField", RecordFieldType.STRING);
+        reader.addRecord("invalidField");
+
+        runner.enqueue("", Collections.singletonMap("objectType", "Account"));
+
+        configureProcessor(reader);
+
+        runner.run();
+
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        assertEquals(1, results.size());
+        assertTrue(runner.getProvenanceEvents().isEmpty());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeExists("error.message");
+    }
+
+    private void configureProcessor(final MockRecordParser reader) throws InitializationException {
+        runner.addControllerService("reader", reader);
+        runner.enableControllerService(reader);
+
+        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
+        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+        runner.setProperty(PutSalesforceObject.RECORD_READER_FACTORY, reader.getIdentifier());
     }
 }

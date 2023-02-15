@@ -40,6 +40,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
@@ -72,6 +73,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StandardProcessorTestRunner implements TestRunner {
@@ -366,7 +368,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
 
             )
-            .collect(Collectors.toSet());
+            .collect(toSet());
 
         assertEquals(expectedAttributes, actualAttributes);
     }
@@ -1054,5 +1056,14 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setRunSchedule(long runSchedule) {
         this.runSchedule = runSchedule;
+    }
+
+    @Override
+    public void assertProvenanceEvent(final ProvenanceEventType eventType) {
+        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);
+        Set<ProvenanceEventType> actualEventTypes = getProvenanceEvents().stream()
+                        .map(ProvenanceEventRecord::getEventType)
+                        .collect(toSet());
+        assertEquals(expectedEventTypes, actualEventTypes);
     }
 }

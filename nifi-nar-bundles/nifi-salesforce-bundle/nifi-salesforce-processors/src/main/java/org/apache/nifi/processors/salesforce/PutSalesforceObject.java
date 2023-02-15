@@ -20,7 +20,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.NullSuppression;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -64,9 +66,13 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 @CapabilityDescription("Creates new records for the specified Salesforce sObject. The type of the Salesforce object must be set in the input flowfile's"
         + " 'objectType' attribute. This processor cannot update existing records.")
 @ReadsAttribute(attribute = "objectType", description = "The Salesforce object type to upload records to. E.g. Account, Contact, Campaign.")
+@WritesAttribute(attribute = "error.message", description = "The error message returned by Salesforce.")
+@SeeAlso(QuerySalesforceObject.class)
 public class PutSalesforceObject extends AbstractProcessor {
 
     private static final int MAX_RECORD_COUNT = 200;
+    private static final String ATTR_OBJECT_TYPE = "objectType";
+    private static final String ATTR_ERROR_MESSAGE = "error.message";
 
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -138,15 +144,19 @@ public class PutSalesforceObject extends AbstractProcessor {
             return;
         }
 
-        String objectType = flowFile.getAttribute("objectType");
+        String objectType = flowFile.getAttribute(ATTR_OBJECT_TYPE);
         if (objectType == null) {
-            throw new ProcessException("Salesforce object type not found among the incoming flowfile attributes");
+            getLogger().error("Salesforce object type not found among the incoming FlowFile attributes");
+            flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, "Salesforce object type not found among FlowFile attributes");
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
         }
 
         RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
 
         RecordExtender extender;
-
+        long startNanos = System.nanoTime();
+        try {
         try (InputStream in = session.read(flowFile);
              RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());
              ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -170,22 +180,28 @@ public class PutSalesforceObject extends AbstractProcessor {
                     out.reset();
                 }
             }
-
             if (writer.isActiveRecordSet()) {
                 processRecords(objectType, out, writer, extender);
             }
-            session.transfer(flowFile, REL_SUCCESS);
-
+          }
+          session.transfer(flowFile, REL_SUCCESS);
+          long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+          session.getProvenanceReporter().send(flowFile, salesforceRestService.getVersionedBaseUrl()+ "/composite/tree/" + objectType, transferMillis);
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
-            session.transfer(flowFile, REL_FAILURE);
+            transferToFailure(session, flowFile, e);
         } catch (SchemaNotFoundException e) {
             getLogger().error("Couldn't create record writer", e);
-            session.transfer(flowFile, REL_FAILURE);
+            transferToFailure(session, flowFile, e);
         } catch (Exception e) {
             getLogger().error("Failed to put records to Salesforce.", e);
-            session.transfer(flowFile, REL_FAILURE);
+            transferToFailure(session, flowFile, e);
         }
+    }
+
+    private void transferToFailure(ProcessSession session, FlowFile flowFile, Exception e) {
+        flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, e.getMessage());
+        session.transfer(session.penalize(flowFile), REL_FAILURE);
     }
 
     private void processRecords(String objectType, ByteArrayOutputStream out, WriteJsonResult writer, RecordExtender extender) throws IOException {
