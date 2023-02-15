@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,27 +34,30 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SalesforceToRecordSchemaConverter {
-
+    private static final ObjectMapper OBJECT_MAPPER = JsonUtils.createObjectMapper();
     private final String dateFormat;
     private final String dateTimeFormat;
     private final String timeFormat;
-    private final ObjectMapper objectMapper;
 
     public SalesforceToRecordSchemaConverter(String dateFormat, String dateTimeFormat, String timeFormat) {
         this.dateFormat = dateFormat;
         this.dateTimeFormat = dateTimeFormat;
         this.timeFormat = timeFormat;
-        objectMapper = JsonUtils.createObjectMapper();
     }
 
-    public RecordSchema convertSchema(final InputStream describeSOjbectResultJsonString, final String fieldNamesOfInterest) throws IOException {
+    public SObjectDescription getSalesforceObject(InputStream salesforceObjectResultJsonString) throws IOException {
+        return OBJECT_MAPPER.readValue(salesforceObjectResultJsonString, SObjectDescription.class);
+    }
 
-        final SObjectDescription sObjectDescription = objectMapper.readValue(describeSOjbectResultJsonString, SObjectDescription.class);
-        final List<String> listOfFieldNamesOfInterest = Arrays.asList(fieldNamesOfInterest.toLowerCase().split("\\s*,\\s*"));
-        final List<SObjectField> fields = sObjectDescription.getFields()
-                .stream()
-                .filter(sObjectField -> listOfFieldNamesOfInterest.contains(sObjectField.getName().toLowerCase()))
-                .collect(Collectors.toList());
+    public RecordSchema convertSchema(SObjectDescription salesforceObject, String fieldNamesOfInterest) {
+        List<SObjectField> fields = salesforceObject.getFields();
+        if (StringUtils.isNotBlank(fieldNamesOfInterest)) {
+            final List<String> listOfFieldNamesOfInterest = Arrays.asList(fieldNamesOfInterest.toLowerCase().split("\\s*,\\s*"));
+            fields = fields
+                    .stream()
+                    .filter(sObjectField -> listOfFieldNamesOfInterest.contains(sObjectField.getName().toLowerCase()))
+                    .collect(Collectors.toList());
+        }
 
         final List<RecordField> recordFields = new ArrayList<>();
 
@@ -110,8 +114,8 @@ public class SalesforceToRecordSchemaConverter {
                     recordFields.add(new RecordField(field.getName(), RecordFieldType.RECORD.getRecordDataType(locationSchema), field.getDefaultValue(), field.isNillable()));
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Could not create determine schema for '%s'. Could not convert field '%s' of soap type '%s'.",
-                            sObjectDescription.getName(), field.getName(), soapType));
+                    throw new IllegalArgumentException(String.format("Could not determine schema for '%s'. Could not convert field '%s' of soap type '%s'.",
+                            salesforceObject.getName(), field.getName(), soapType));
             }
         }
 

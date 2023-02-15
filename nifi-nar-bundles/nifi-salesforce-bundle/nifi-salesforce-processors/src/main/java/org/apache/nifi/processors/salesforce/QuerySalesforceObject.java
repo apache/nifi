@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.salesforce;
 
+import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
+import org.apache.camel.component.salesforce.api.dto.SObjectField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -60,6 +62,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,6 +83,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_URL;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
@@ -120,8 +124,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
             .name("field-names")
             .displayName("Field Names")
-            .description("Comma-separated list of field names requested from the sObject to be queried")
-            .required(true)
+            .description("Comma-separated list of field names requested from the sObject to be queried. When this field is left empty, all fields are queried.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -295,7 +299,14 @@ public class QuerySalesforceObject extends AbstractProcessor {
             ageFilterUpper = ageFilterUpperTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
 
-        ConvertedSalesforceSchema convertedSalesforceSchema = getConvertedSalesforceSchema(sObject, fields);
+        SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields);
+
+        if (StringUtils.isBlank(fields)) {
+            fields = salesForceSchemaHolder.getSalesforceObject().getFields()
+                    .stream()
+                    .map(SObjectField::getName)
+                    .collect(Collectors.joining(","));
+        }
 
         String querySObject = buildQuery(
                 sObject,
@@ -324,7 +335,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                         JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
                                 querySObjectResultInputStream,
                                 getLogger(),
-                                convertedSalesforceSchema.recordSchema,
+                                salesForceSchemaHolder.recordSchema,
                                 DATE_FORMAT,
                                 TIME_FORMAT,
                                 DATE_TIME_FORMAT,
@@ -338,7 +349,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                                 getLogger(),
                                 writerFactory.getSchema(
                                         originalAttributes,
-                                        convertedSalesforceSchema.recordSchema
+                                        salesForceSchemaHolder.recordSchema
                                 ),
                                 out,
                                 originalAttributes
@@ -400,7 +411,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return salesforceRestService.getNextRecords(nextRecordsUrl.get());
     }
 
-    private ConvertedSalesforceSchema getConvertedSalesforceSchema(String sObject, String fields) {
+    private SalesforceSchemaHolder getConvertedSalesforceSchema(String sObject, String fields) {
         try (InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject)) {
             return convertSchema(describeSObjectResult, fields);
         } catch (IOException e) {
@@ -416,9 +427,10 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    protected ConvertedSalesforceSchema convertSchema(InputStream describeSObjectResult, String fields) {
+    protected SalesforceSchemaHolder convertSchema(InputStream describeSObjectResult, String fieldsOfInterest) {
         try {
-            RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(describeSObjectResult, fields);
+            SObjectDescription salesforceObject = salesForceToRecordSchemaConverter.getSalesforceObject(describeSObjectResult);
+            RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(salesforceObject, fieldsOfInterest);
 
             RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
                     new RecordField(STARTING_FIELD_NAME, RecordFieldType.ARRAY.getArrayDataType(
@@ -428,7 +440,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     ))
             ));
 
-            return new ConvertedSalesforceSchema(querySObjectResultSchema, recordSchema);
+            return new SalesforceSchemaHolder(querySObjectResultSchema, recordSchema, salesforceObject);
         } catch (IOException e) {
             throw new ProcessException("SObject to Record schema conversion failed", e);
         }
@@ -471,13 +483,19 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return queryBuilder.toString();
     }
 
-    static class ConvertedSalesforceSchema {
+    static class SalesforceSchemaHolder {
         RecordSchema querySObjectResultSchema;
         RecordSchema recordSchema;
+        SObjectDescription salesforceObject;
 
-        public ConvertedSalesforceSchema(RecordSchema querySObjectResultSchema, RecordSchema recordSchema) {
+        public SalesforceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
             this.querySObjectResultSchema = querySObjectResultSchema;
             this.recordSchema = recordSchema;
+            this.salesforceObject = salesforceObject;
+        }
+
+        public SObjectDescription getSalesforceObject() {
+            return salesforceObject;
         }
     }
 }
