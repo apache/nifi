@@ -94,9 +94,12 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             flowStorageDir = new File(flowStorageDirValue);
             final boolean localRepoExists = flowMetaData.localRepoExists(flowStorageDir);
             if (remoteRepo != null && !remoteRepo.isEmpty() && !localRepoExists){
+                logger.info("Validating remote repo '%s'...", remoteRepo);
                 flowMetaData.remoteRepoExists(remoteRepo);
+                logger.info("Cloning remote repo '%s' to '%s'...", remoteRepo, flowStorageDirValue);
                 flowMetaData.cloneRepository(flowStorageDir, remoteRepo);
             }
+            logger.info("Loading remote repo '%s'...", remoteRepo);
             flowMetaData.loadGitRepository(flowStorageDir);
             flowMetaData.startPushThread();
             logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}",
