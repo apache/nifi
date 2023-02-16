@@ -76,6 +76,10 @@ public class ShopifyRestService {
         return retrieveResponse(uri);
     }
 
+    public String getBaseUriString() {
+        return getBaseUri().build().toString();
+    }
+
     private HttpResponseEntity retrieveResponse(URI uri) {
         return webClientServiceProvider.getWebClientService()
                 .get()
