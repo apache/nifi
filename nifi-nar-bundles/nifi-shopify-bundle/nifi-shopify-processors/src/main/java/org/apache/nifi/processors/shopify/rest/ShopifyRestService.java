@@ -118,4 +118,8 @@ public class ShopifyRestService {
 
         return uriBuilder.build();
     }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
 }
