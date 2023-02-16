@@ -24,6 +24,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.shopify.model.IncrementalLoadingParameter;
 import org.apache.nifi.processors.shopify.model.ResourceType;
 import org.apache.nifi.processors.shopify.rest.ShopifyRestService;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -101,6 +102,8 @@ class GetShopifyIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
 
         flowFiles.get(0).assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     @Test
@@ -124,6 +127,7 @@ class GetShopifyIT {
         assertThrows(AssertionError.class, () -> runner.run(1));
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(),
                 "In case of 429 the processor should be yielded.");
+        assertTrue(runner.getProvenanceEvents().isEmpty());
     }
 
     @Test
@@ -148,6 +152,7 @@ class GetShopifyIT {
 
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(),
                 "In case of 404 the processor should be yielded.");
+        assertTrue(runner.getProvenanceEvents().isEmpty());
     }
 
     @Test
@@ -156,8 +161,6 @@ class GetShopifyIT {
                 .setResponseCode(200)
                 .setBody(getResourceAsString("collection_listings.json"));
         server.enqueue(mockResponse);
-
-        final Instant expectedExecutionTime = Instant.parse("2022-08-16T10:15:30Z");
 
         final StandardWebClientServiceProvider standardWebClientServiceProvider =
                 new StandardWebClientServiceProvider();
@@ -177,6 +180,8 @@ class GetShopifyIT {
 
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(GetShopify.REL_SUCCESS);
         assertEquals(1, flowFilesForRelationship.size());
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     static class CustomGetShopify extends GetShopify {
