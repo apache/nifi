@@ -19,7 +19,7 @@
     </parent>
 
     <properties>
-        <accumulo.version>2.0.1</accumulo.version>
+        <accumulo.version>2.1.0</accumulo.version>
     </properties>
 
     <artifactId>nifi-accumulo-bundle</artifactId>
