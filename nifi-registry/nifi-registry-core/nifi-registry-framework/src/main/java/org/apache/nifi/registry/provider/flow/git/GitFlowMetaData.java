@@ -181,16 +181,12 @@ class GitFlowMetaData {
      * @param remoteRepository the URI value of the 'Remote Clone Repository' configuration
      * @throws IOException if creating the repository fails
      */
-    public void remoteRepoExists(String remoteRepository) throws IOException {
+    public void remoteRepoExists(String remoteRepository) throws GitAPIException, IOException {
         final Git git = new Git(FileRepositoryBuilder.create(new File(remoteRepository)));
         final LsRemoteCommand lsCmd = git.lsRemote();
-        try {
-            lsCmd.setRemote(remoteRepository);
-            lsCmd.setCredentialsProvider(this.credentialsProvider);
-            lsCmd.call();
-        } catch (Exception e){
-            throw new IllegalArgumentException("InvalidRemoteRepository : Given remote repository is not valid");
-        }
+        lsCmd.setRemote(remoteRepository);
+        lsCmd.setCredentialsProvider(this.credentialsProvider);
+        lsCmd.call();
     }
 
     /**
