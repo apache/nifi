@@ -99,7 +99,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
                 logger.info("Cloning remote repository [{}] to [{}]", remoteRepo, flowStorageDirValue);
                 flowMetaData.cloneRepository(flowStorageDir, remoteRepo);
             }
-            logger.info("Loading remote repo '%s'...", remoteRepo);
+            logger.info("Loading remote repository [{}]", remoteRepo);
             flowMetaData.loadGitRepository(flowStorageDir);
             flowMetaData.startPushThread();
             logger.info("Configured GitFlowPersistenceProvider with Flow Storage Directory {}",
