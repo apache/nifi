@@ -96,7 +96,7 @@ public class GitFlowPersistenceProvider implements MetadataAwareFlowPersistenceP
             if (remoteRepo != null && !remoteRepo.isEmpty() && !localRepoExists){
                 logger.info("Validating remote repository [{}]", remoteRepo);
                 flowMetaData.remoteRepoExists(remoteRepo);
-                logger.info("Cloning remote repo '%s' to '%s'...", remoteRepo, flowStorageDirValue);
+                logger.info("Cloning remote repository [{}] to [{}]", remoteRepo, flowStorageDirValue);
                 flowMetaData.cloneRepository(flowStorageDir, remoteRepo);
             }
             logger.info("Loading remote repo '%s'...", remoteRepo);
