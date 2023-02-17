@@ -83,7 +83,6 @@ import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
-import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -463,7 +462,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
-            differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
+            differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier);
         return flowComparator.compare();
     }
 

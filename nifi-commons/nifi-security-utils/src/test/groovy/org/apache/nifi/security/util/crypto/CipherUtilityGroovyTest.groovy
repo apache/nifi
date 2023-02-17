@@ -27,12 +27,7 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class CipherUtilityGroovyTest {
+class CipherUtilityGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CipherUtilityGroovyTest.class)
 
     // TripleDES must precede DES for automatic grouping precedence
@@ -98,7 +93,7 @@ class CipherUtilityGroovyTest {
             logger.info("Extracted ${cipher} from ${algorithm}")
 
             // Assert
-            assertTrue(EXPECTED_ALGORITHMS.get(cipher).contains(algorithm))
+            assert EXPECTED_ALGORITHMS.get(cipher).contains(algorithm)
         }
     }
 
@@ -113,7 +108,7 @@ class CipherUtilityGroovyTest {
             logger.info("Extracted ${keyLength} from ${algorithm}")
 
             // Assert
-            assertTrue(EXPECTED_ALGORITHMS.get(keyLength).contains(algorithm))
+            assert EXPECTED_ALGORITHMS.get(keyLength).contains(algorithm)
         }
     }
 
@@ -127,7 +122,7 @@ class CipherUtilityGroovyTest {
                 logger.info("Checking ${keyLength} for ${algorithm}")
 
                 // Assert
-                assertTrue(CipherUtility.isValidKeyLength(keyLength, CipherUtility.parseCipherFromAlgorithm(algorithm)))
+                assert CipherUtility.isValidKeyLength(keyLength, CipherUtility.parseCipherFromAlgorithm(algorithm))
             }
         }
     }
@@ -148,7 +143,9 @@ class CipherUtilityGroovyTest {
                 logger.info("Checking ${invalidKeyLengths.join(", ")} for ${algorithm}")
 
                 // Assert
-                invalidKeyLengths.forEach(invalidKeyLength -> assertFalse(CipherUtility.isValidKeyLength(invalidKeyLength, CipherUtility.parseCipherFromAlgorithm(algorithm))))
+                invalidKeyLengths.each { int invalidKeyLength ->
+                    assert !CipherUtility.isValidKeyLength(invalidKeyLength, CipherUtility.parseCipherFromAlgorithm(algorithm))
+                }
             }
         }
     }
@@ -163,7 +160,7 @@ class CipherUtilityGroovyTest {
                 logger.info("Checking ${keyLength} for ${algorithm}")
 
                 // Assert
-                assertTrue(CipherUtility.isValidKeyLengthForAlgorithm(keyLength, algorithm))
+                assert CipherUtility.isValidKeyLengthForAlgorithm(keyLength, algorithm)
             }
         }
     }
@@ -184,7 +181,9 @@ class CipherUtilityGroovyTest {
                 logger.info("Checking ${invalidKeyLengths.join(", ")} for ${algorithm}")
 
                 // Assert
-                invalidKeyLengths.forEach(invalidKeyLength -> assertFalse(CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)))
+                invalidKeyLengths.each { int invalidKeyLength ->
+                    assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
+                }
             }
         }
 
@@ -192,7 +191,7 @@ class CipherUtilityGroovyTest {
         String algorithm = "PBEWITHSHA256AND256BITAES-CBC-BC"
         int invalidKeyLength = 192
         logger.info("Checking ${invalidKeyLength} for ${algorithm}")
-        assertFalse(CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm))
+        assert !CipherUtility.isValidKeyLengthForAlgorithm(invalidKeyLength, algorithm)
     }
 
     @Test
@@ -224,7 +223,7 @@ class CipherUtilityGroovyTest {
             logger.info("Checking ${algorithm} ${validKeySizes} against expected ${EXPECTED_KEY_SIZES}")
 
             // Assert
-            assertEquals(EXPECTED_KEY_SIZES, validKeySizes)
+            assert validKeySizes == EXPECTED_KEY_SIZES
         }
 
         // Act
@@ -236,7 +235,7 @@ class CipherUtilityGroovyTest {
             logger.info("Checking ${algorithm} ${validKeySizes} against expected ${EXPECTED_KEY_SIZES}")
 
             // Assert
-            assertEquals(EXPECTED_KEY_SIZES, validKeySizes)
+            assert validKeySizes == EXPECTED_KEY_SIZES
         }
     }
 
@@ -270,10 +269,10 @@ the License.  You may obtain a copy of the License at
         logger.info("Looking for ${Hex.encodeHexString(kafka)}; found at ${kafkaIndex}")
 
         // Assert
-        assertEquals(16, apacheIndex)
-        assertEquals(23, softwareIndex)
-        assertEquals(44, asfIndex)
-        assertEquals(-1, kafkaIndex)
+        assert apacheIndex == 16
+        assert softwareIndex == 23
+        assert asfIndex == 44
+        assert kafkaIndex == -1
     }
 
     @Test
@@ -286,7 +285,7 @@ the License.  You may obtain a copy of the License at
         String SCRYPT_SALT = ScryptCipherProvider.formatSaltForScrypt(PLAIN_SALT, 10, 1, 1)
 
         // Act
-        Map<Object, byte[]> results = KeyDerivationFunction.values().findAll { !it.isStrongKDF() }.collectEntries { KeyDerivationFunction weakKdf ->
+        def results = KeyDerivationFunction.values().findAll { !it.isStrongKDF() }.collectEntries { KeyDerivationFunction weakKdf ->
             [weakKdf, CipherUtility.extractRawSalt(PLAIN_SALT, weakKdf)]
         }
 
@@ -296,6 +295,6 @@ the License.  You may obtain a copy of the License at
         results.put(KeyDerivationFunction.PBKDF2, CipherUtility.extractRawSalt(PLAIN_SALT, KeyDerivationFunction.PBKDF2))
 
         // Assert
-        results.values().forEach(v -> assertArrayEquals(PLAIN_SALT, v))
+        assert results.every { k, v -> v == PLAIN_SALT }
     }
 }

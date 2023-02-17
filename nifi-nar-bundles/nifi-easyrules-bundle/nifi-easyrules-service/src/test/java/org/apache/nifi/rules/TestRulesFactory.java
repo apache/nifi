@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRulesFactory {
     @Test
@@ -33,7 +32,7 @@ public class TestRulesFactory {
             String testYamlFile = "src/test/resources/test_nifi_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile, "YAML", "NIFI");
             assertEquals(2, rules.size());
-            assertTrue(confirmEntries(rules));
+            assert confirmEntries(rules);
         });
     }
 
@@ -43,7 +42,7 @@ public class TestRulesFactory {
             String testYamlFile = "src/test/resources/test_mvel_rules.yml";
             List<Rule> rules = RulesFactory.createRulesFromFile(testYamlFile, "YAML", "MVEL");
             assertEquals(2, rules.size());
-            assertTrue(confirmEntries(rules));
+            assert confirmEntries(rules);
             assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
         });
     }
@@ -64,7 +63,7 @@ public class TestRulesFactory {
             String testJsonFile = "src/test/resources/test_nifi_rules.json";
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile, "JSON", "NIFI");
             assertEquals(2, rules.size());
-            assertTrue(confirmEntries(rules));
+            assert confirmEntries(rules);
         });
     }
 
@@ -75,7 +74,7 @@ public class TestRulesFactory {
             List<Rule> rules = RulesFactory.createRulesFromFile(testJsonFile, "JSON", "MVEL");
             assertEquals(2, rules.size());
             assertSame("EXPRESSION", rules.get(0).getActions().get(0).getType());
-            assertTrue(confirmEntries(rules));
+            assert confirmEntries(rules);
         });
     }
 

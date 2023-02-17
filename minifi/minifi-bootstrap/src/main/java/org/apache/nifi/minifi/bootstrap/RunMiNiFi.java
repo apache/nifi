@@ -44,7 +44,6 @@ import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 import org.apache.nifi.minifi.bootstrap.service.ReloadService;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
-import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +74,6 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     public static final int UNINITIALIZED = -1;
     private static final String STATUS_FILE_PORT_KEY = "port";
     private static final String STATUS_FILE_SECRET_KEY = "secret.key";
-    private static final String ACKNOWLEDGE_OPERATION = "ACKNOWLEDGE_OPERATION";
 
     private final BootstrapFileProvider bootstrapFileProvider;
     private final ConfigurationChangeCoordinator configurationChangeCoordinator;
@@ -89,14 +87,10 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     private final Lock startedLock = new ReentrantLock();
     // Is set to true after the MiNiFi instance shuts down in preparation to be reloaded. Will be set to false after MiNiFi is successfully started again.
     private final AtomicBoolean reloading = new AtomicBoolean(false);
-    private final AtomicBoolean commandInProgress = new AtomicBoolean(false);
-    private final MiNiFiCommandSender miNiFiCommandSender;
-    private final CurrentPortProvider currentPortProvider;
-    private final ObjectMapper objectMapper;
 
     public RunMiNiFi(File bootstrapConfigFile) throws IOException {
         bootstrapFileProvider = new BootstrapFileProvider(bootstrapConfigFile);
-        objectMapper = getObjectMapper();
+
         Properties properties = bootstrapFileProvider.getStatusProperties();
 
         miNiFiParameters = new MiNiFiParameters(
@@ -106,19 +100,20 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         );
         ProcessUtils processUtils = new UnixProcessUtils();
 
-        miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters, objectMapper);
+        MiNiFiCommandSender miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters, getObjectMapper());
         MiNiFiStatusProvider miNiFiStatusProvider = new MiNiFiStatusProvider(miNiFiCommandSender, processUtils);
         periodicStatusReporterManager =
             new PeriodicStatusReporterManager(bootstrapFileProvider.getBootstrapProperties(), miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
-        MiNiFiConfigurationChangeListener configurationChangeListener = new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider);
-        configurationChangeCoordinator = new ConfigurationChangeCoordinator(bootstrapFileProvider, this, singleton(configurationChangeListener));
+        configurationChangeCoordinator = new ConfigurationChangeCoordinator(bootstrapFileProvider.getBootstrapProperties(), this,
+            singleton(new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider)));
 
-        currentPortProvider = new CurrentPortProvider(miNiFiCommandSender, miNiFiParameters, processUtils);
+
+        CurrentPortProvider currentPortProvider = new CurrentPortProvider(miNiFiCommandSender, miNiFiParameters, processUtils);
         GracefulShutdownParameterProvider gracefulShutdownParameterProvider = new GracefulShutdownParameterProvider(bootstrapFileProvider);
         reloadService = new ReloadService(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, this, processUtils);
         commandRunnerFactory = new CommandRunnerFactory(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager,
             bootstrapFileProvider, new MiNiFiStdLogHandler(), bootstrapConfigFile, this, gracefulShutdownParameterProvider,
-            new MiNiFiExecCommandProvider(bootstrapFileProvider), processUtils, configurationChangeListener);
+            new MiNiFiExecCommandProvider(bootstrapFileProvider), processUtils);
     }
 
     public int run(BootstrapCommand command, String... args) {
@@ -217,18 +212,6 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         configurationChangeCoordinator.close();
     }
 
-    public void sendAcknowledgeToMiNiFi(MiNiFiCommandState commandState) {
-        try {
-            if (commandInProgress.getAndSet(false)) {
-                Integer currentPort = currentPortProvider.getCurrentPort();
-                CMD_LOGGER.info("Sending acknowledge with state {} to MiNiFi on port {}", commandState, currentPort);
-                miNiFiCommandSender.sendCommand(ACKNOWLEDGE_OPERATION, currentPort, commandState.name());
-            }
-        } catch (Exception e) {
-            CMD_LOGGER.error("Failed to send Acknowledge to MiNiFi", e);
-        }
-    }
-
     public PeriodicStatusReporterManager getPeriodicStatusReporterManager() {
         return periodicStatusReporterManager;
     }
@@ -262,10 +245,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
         return objectMapper;
-    }
-
-    public void setCommandInProgress(boolean value) {
-        commandInProgress.set(value);
     }
 }

@@ -27,6 +27,9 @@ import org.apache.avro.io.DatumReader;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.joda.time.DateTime;
+import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -40,6 +43,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
 
 public class StandardContentViewerController extends HttpServlet {
@@ -111,7 +115,17 @@ public class StandardContentViewerController extends HttpServlet {
                     final StringBuilder sb = new StringBuilder();
                     sb.append("[");
                     // Use Avro conversions to display logical type values in human readable way.
-                    final GenericData genericData = new GenericData();
+                    final GenericData genericData = new GenericData(){
+                        @Override
+                        protected void toString(Object datum, StringBuilder buffer, IdentityHashMap<Object, Object> seenObjects) {
+                            // Since these types are not quoted and produce a malformed JSON string, quote it here.
+                            if (datum instanceof LocalDate || datum instanceof LocalTime || datum instanceof DateTime) {
+                                buffer.append("\"").append(datum).append("\"");
+                                return;
+                            }
+                            super.toString(datum, buffer, seenObjects);
+                        }
+                    };
                     genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
                     genericData.addLogicalTypeConversion(new TimeConversions.DateConversion());
                     genericData.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());

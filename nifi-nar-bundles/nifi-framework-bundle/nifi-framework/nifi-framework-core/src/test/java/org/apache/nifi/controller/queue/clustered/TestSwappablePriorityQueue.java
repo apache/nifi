@@ -29,11 +29,12 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -43,13 +44,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,12 +66,17 @@ public class TestSwappablePriorityQueue {
 
     private SwappablePriorityQueue queue;
 
-    @BeforeEach
+    @Before
     public void setup() {
         swapManager = new MockSwapManager();
 
         events.clear();
-        eventReporter = (severity, category, message) -> events.add(message);
+        eventReporter = new EventReporter() {
+            @Override
+            public void reportEvent(final Severity severity, final String category, final String message) {
+                events.add(message);
+            }
+        };
 
         when(flowFileQueue.getIdentifier()).thenReturn("unit-test");
         queue = new SwappablePriorityQueue(swapManager, 10000, eventReporter, flowFileQueue, dropAction, "local");
@@ -624,7 +629,7 @@ public class TestSwappablePriorityQueue {
 
         for (int i = 0; i < 9998; i++) {
             flowFile = queue.poll(expired, 500000);
-            assertNotNull(flowFile, "Null FlowFile when i = " + i);
+            assertNotNull("Null FlowFile when i = " + i, flowFile);
             queue.acknowledge(Collections.singleton(flowFile));
 
             final QueueSize queueSize = queue.size();
@@ -640,8 +645,7 @@ public class TestSwappablePriorityQueue {
         assertNull(flowFile);
     }
 
-    @Test
-    @Timeout(120)
+    @Test(timeout = 120000)
     public void testDropSwappedFlowFiles() {
         for (int i = 1; i <= 30000; i++) {
             queue.put(new MockFlowFileRecord());
@@ -659,8 +663,7 @@ public class TestSwappablePriorityQueue {
     }
 
 
-    @Test
-    @Timeout(5)
+    @Test(timeout = 5000)
     public void testGetActiveFlowFilesReturnsAllActiveFlowFiles() throws InterruptedException {
         for (int i = 0; i < 9999; i++) {
             queue.put(new MockFlowFileRecord());
@@ -672,8 +675,7 @@ public class TestSwappablePriorityQueue {
     }
 
 
-    @Test
-    @Timeout(5)
+    @Test(timeout = 5000)
     public void testListFlowFilesResultsLimited() throws InterruptedException {
         for (int i = 0; i < 30050; i++) {
             queue.put(new MockFlowFileRecord());
@@ -705,14 +707,24 @@ public class TestSwappablePriorityQueue {
 
         // verify that unexpected ERROR's are handled in such a way that we keep retrying
         for (int i = 0; i < 3; i++) {
-            assertThrows(OutOfMemoryError.class, () -> queue.poll(expiredRecords, 500000));
+            try {
+                queue.poll(expiredRecords, 500000);
+                Assert.fail("Expected OOME to be thrown");
+            } catch (final OutOfMemoryError oome) {
+                // expected
+            }
         }
 
         // verify that unexpected Runtime Exceptions are handled in such a way that we keep retrying
         swapManager.setSwapInFailure(new NullPointerException("Intentional OOME for unit test"));
 
         for (int i = 0; i < 3; i++) {
-            assertThrows(NullPointerException.class, () -> queue.poll(expiredRecords, 500000));
+            try {
+                queue.poll(expiredRecords, 500000);
+                Assert.fail("Expected NPE to be thrown");
+            } catch (final NullPointerException npe) {
+                // expected
+            }
         }
 
         swapManager.failSwapInAfterN = -1;

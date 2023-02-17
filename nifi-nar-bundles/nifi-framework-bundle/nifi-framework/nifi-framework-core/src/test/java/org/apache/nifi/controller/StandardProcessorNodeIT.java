@@ -30,7 +30,10 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
+import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
@@ -44,8 +47,10 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.nar.OSUtil;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -69,11 +74,9 @@ import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.MockVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SynchronousValidationTrigger;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -97,13 +100,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -116,7 +118,7 @@ public class StandardProcessorNodeIT {
 
     private final AtomicReference<InstanceClassLoader> currentInstanceClassLoaderHolder = new AtomicReference<>();
 
-    @BeforeEach
+    @Before
     public void setup() {
         variableRegistry = new MockVariableRegistry();
         niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties");
@@ -136,7 +138,7 @@ public class StandardProcessorNodeIT {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
     }
 
-    @Timeout(10)
+    @Test(timeout = 10000)
     public void testStart() throws InterruptedException {
         final ProcessorThatThrowsExceptionOnScheduled processor = new ProcessorThatThrowsExceptionOnScheduled();
         final String uuid = UUID.randomUUID().toString();
@@ -152,7 +154,7 @@ public class StandardProcessorNodeIT {
             new StandardComponentVariableRegistry(VariableRegistry.EMPTY_REGISTRY), reloadComponent, extensionManager, new SynchronousValidationTrigger());
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestClasspathResources", true);
 
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, () -> false, null);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false, null);
         final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
 
         procNode.performValidation();
@@ -203,9 +205,11 @@ public class StandardProcessorNodeIT {
         }
     }
 
-    @EnabledOnOs(OS.MAC)
     @Test
-    public void testNativeLibLoadedFromDynamicallyModifiesClasspathProperty() {
+    public void testNativeLibLoadedFromDynamicallyModifiesClasspathProperty() throws Exception {
+        // GIVEN
+        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
+
         // Init NiFi
         NarClassLoader narClassLoader = mock(NarClassLoader.class);
         when(narClassLoader.getURLs()).thenReturn(new URL[0]);
@@ -515,18 +519,28 @@ public class StandardProcessorNodeIT {
 
         // should be allowed to update when the group and id are the same but version is different
         final BundleCoordinate diffVersion = new BundleCoordinate(existingCoordinate.getGroup(), existingCoordinate.getId(), "v2");
-        assertNotEquals(existingCoordinate.getVersion(), diffVersion.getVersion());
+        assertTrue(!existingCoordinate.getVersion().equals(diffVersion.getVersion()));
         procNode.verifyCanUpdateBundle(diffVersion);
 
         // should not be allowed to update when the bundle id is different
         final BundleCoordinate diffId = new BundleCoordinate(existingCoordinate.getGroup(), "different-id", existingCoordinate.getVersion());
-        assertNotEquals(existingCoordinate.getId(), diffId.getId());
-        assertThrows(Exception.class,  () -> procNode.verifyCanUpdateBundle(diffId));
+        assertTrue(!existingCoordinate.getId().equals(diffId.getId()));
+        try {
+            procNode.verifyCanUpdateBundle(diffId);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
 
         // should not be allowed to update when the bundle group is different
         final BundleCoordinate diffGroup = new BundleCoordinate("different-group", existingCoordinate.getId(), existingCoordinate.getVersion());
-        assertNotEquals(existingCoordinate.getGroup(), diffGroup.getGroup());
-        assertThrows(Exception.class, () -> procNode.verifyCanUpdateBundle(diffGroup));
+        assertTrue(!existingCoordinate.getGroup().equals(diffGroup.getGroup()));
+        try {
+            procNode.verifyCanUpdateBundle(diffGroup);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
     }
 
     @Test
@@ -535,7 +549,7 @@ public class StandardProcessorNodeIT {
         final ProcessorNode procNode = createProcessorNode(alwaysInvalid, new MockReloadComponent());
 
         final ScheduledExecutorService taskScheduler = new FlowEngine(1, "TestStartInvalidProcessorThenStopFutureTriggered", true);
-        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, () -> false, null);
+        final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, () -> false, null);
         final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
 
         procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true);
@@ -583,7 +597,7 @@ public class StandardProcessorNodeIT {
         }
 
         @Override
-        public void reload(ProcessorNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        public void reload(ProcessorNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ProcessorInstantiationException {
             reload(newType, additionalUrls);
         }
 
@@ -593,17 +607,17 @@ public class StandardProcessorNodeIT {
         }
 
         @Override
-        public void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        public void reload(ReportingTaskNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
             reload(newType, additionalUrls);
         }
 
         @Override
-        public void reload(ParameterProviderNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        public void reload(ParameterProviderNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws ParameterProviderInstantiationException {
             reload(newType, additionalUrls);
         }
 
         @Override
-        public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) {
+        public void reload(FlowRegistryClientNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls) throws FlowRepositoryClientInstantiationException {
             reload(newType, additionalUrls);
         }
 
@@ -634,94 +648,101 @@ public class StandardProcessorNodeIT {
 
 
     private ValidationContextFactory createValidationContextFactory() {
-        return (properties, annotationData, groupId, componentId, context, validateConnections) -> new ValidationContext() {
-
+        return new ValidationContextFactory() {
             @Override
-            public ControllerServiceLookup getControllerServiceLookup() {
-                return null;
+            public ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId,
+                                                          ParameterContext context, boolean validateConnections) {
+                return new ValidationContext() {
+
+                    @Override
+                    public ControllerServiceLookup getControllerServiceLookup() {
+                        return null;
+                    }
+
+                    @Override
+                    public ValidationContext getControllerServiceValidationContext(ControllerService controllerService) {
+                        return null;
+                    }
+
+                    @Override
+                    public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
+                        return null;
+                    }
+
+                    @Override
+                    public PropertyValue getProperty(PropertyDescriptor property) {
+                        final PropertyConfiguration configuration = properties.get(property);
+                        return newPropertyValue(configuration == null ? null : configuration.getRawValue());
+                    }
+
+                    @Override
+                    public PropertyValue newPropertyValue(String value) {
+                        return new MockPropertyValue(value);
+                    }
+
+                    @Override
+                    public Map<PropertyDescriptor, String> getProperties() {
+                        final Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
+                        properties.forEach((k, v) -> propertyMap.put(k, v == null ? null : v.getRawValue()));
+                        return propertyMap;
+                    }
+
+                    @Override
+                    public Map<String, String> getAllProperties() {
+                        final Map<String,String> propValueMap = new LinkedHashMap<>();
+                        for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
+                            propValueMap.put(entry.getKey().getName(), entry.getValue());
+                        }
+                        return propValueMap;
+                    }
+
+                    @Override
+                    public String getAnnotationData() {
+                        return null;
+                    }
+
+                    @Override
+                    public boolean isValidationRequired(ControllerService service) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isExpressionLanguagePresent(String value) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isExpressionLanguageSupported(String propertyName) {
+                        return false;
+                    }
+
+                    @Override
+                    public String getProcessGroupIdentifier() {
+                        return groupId;
+                    }
+
+                    @Override
+                    public Collection<String> getReferencedParameters(final String propertyName) {
+                        return Collections.emptyList();
+                    }
+
+                    @Override
+                    public boolean isParameterDefined(final String parameterName) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isParameterSet(final String parameterName) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
+                        return false;
+                    }
+                };
             }
 
-            @Override
-            public ValidationContext getControllerServiceValidationContext(ControllerService controllerService) {
-                return null;
-            }
-
-            @Override
-            public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-                return null;
-            }
-
-            @Override
-            public PropertyValue getProperty(PropertyDescriptor property) {
-                final PropertyConfiguration configuration = properties.get(property);
-                return newPropertyValue(configuration == null ? null : configuration.getRawValue());
-            }
-
-            @Override
-            public PropertyValue newPropertyValue(String value) {
-                return new MockPropertyValue(value);
-            }
-
-            @Override
-            public Map<PropertyDescriptor, String> getProperties() {
-                final Map<PropertyDescriptor, String> propertyMap = new HashMap<>();
-                properties.forEach((k, v) -> propertyMap.put(k, v == null ? null : v.getRawValue()));
-                return propertyMap;
-            }
-
-            @Override
-            public Map<String, String> getAllProperties() {
-                final Map<String,String> propValueMap = new LinkedHashMap<>();
-                for (final Map.Entry<PropertyDescriptor, String> entry : getProperties().entrySet()) {
-                    propValueMap.put(entry.getKey().getName(), entry.getValue());
-                }
-                return propValueMap;
-            }
-
-            @Override
-            public String getAnnotationData() {
-                return null;
-            }
-
-            @Override
-            public boolean isValidationRequired(ControllerService service) {
-                return false;
-            }
-
-            @Override
-            public boolean isExpressionLanguagePresent(String value) {
-                return false;
-            }
-
-            @Override
-            public boolean isExpressionLanguageSupported(String propertyName) {
-                return false;
-            }
-
-            @Override
-            public String getProcessGroupIdentifier() {
-                return groupId;
-            }
-
-            @Override
-            public Collection<String> getReferencedParameters(final String propertyName) {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public boolean isParameterDefined(final String parameterName) {
-                return false;
-            }
-
-            @Override
-            public boolean isParameterSet(final String parameterName) {
-                return false;
-            }
-
-            @Override
-            public boolean isDependencySatisfied(final PropertyDescriptor propertyDescriptor, final Function<String, PropertyDescriptor> propertyDescriptorLookup) {
-                return false;
-            }
         };
 
     }
@@ -771,7 +792,7 @@ public class StandardProcessorNodeIT {
 
         @Override
         public void trigger() {
-            fail("Should not have completed");
+            Assert.fail("Should not have completed");
         }
     }
 }

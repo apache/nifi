@@ -36,7 +36,6 @@ public class FlowSynchronizationOptions {
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
     private final ScheduledStateChangeListener scheduledStateChangeListener;
-    private final String topLevelGroupId;
 
     private FlowSynchronizationOptions(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
@@ -52,7 +51,6 @@ public class FlowSynchronizationOptions {
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
         this.scheduledStateChangeListener = builder.scheduledStateChangeListener;
-        this.topLevelGroupId = builder.topLevelGroupId;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -107,10 +105,6 @@ public class FlowSynchronizationOptions {
         return scheduledStateChangeListener;
     }
 
-    public String getTopLevelGroupId() {
-        return topLevelGroupId;
-    }
-
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
         private Function<VersionedComponent, String> componentComparisonIdLookup;
@@ -125,7 +119,7 @@ public class FlowSynchronizationOptions {
         private PropertyDecryptor propertyDecryptor = value -> value;
         private Duration componentStopTimeout = Duration.ofSeconds(30);
         private ComponentStopTimeoutAction timeoutAction = ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION;
-        private String topLevelGroupId;
+
 
         /**
          * Specifies the Component ID Generator to use for generating UUID's of components that are to be added to a ProcessGroup
@@ -287,16 +281,6 @@ public class FlowSynchronizationOptions {
             return new FlowSynchronizationOptions(this);
         }
 
-        /**
-         * Specifies the identifier of the top level group that scopes the synchronization.
-         * @param topLevelGroupId the top level group id
-         * @return the builder
-         */
-        public Builder topLevelGroupId(final String topLevelGroupId) {
-            this.topLevelGroupId = topLevelGroupId;
-            return this;
-        }
-
         public static Builder from(final FlowSynchronizationOptions options) {
             final Builder builder = new Builder();
             builder.componentIdGenerator = options.getComponentIdGenerator();
@@ -312,7 +296,6 @@ public class FlowSynchronizationOptions {
             builder.componentStopTimeout = options.getComponentStopTimeout();
             builder.timeoutAction = options.getComponentStopTimeoutAction();
             builder.scheduledStateChangeListener = options.getScheduledStateChangeListener();
-            builder.topLevelGroupId = options.getTopLevelGroupId();
 
             return builder;
         }

@@ -17,9 +17,7 @@
 
 package org.apache.nifi.processors.elasticsearch
 
-
-import org.apache.nifi.processors.elasticsearch.api.PaginationType
-import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
+import org.apache.nifi.components.AllowableValue
 import org.apache.nifi.util.TestRunner
 
 import static groovy.json.JsonOutput.prettyPrint
@@ -40,12 +38,12 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
         return true
     }
 
-    void testPagination(final PaginationType paginationType) {
+    void testPagination(final AllowableValue paginationType) {
         // test flowfile per page
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(2)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [ msg: "desc"], query: [ match_all: [:] ]])))
 
         runOnce(runner)
@@ -62,7 +60,7 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
 
 
         // test hits splitting
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         runOnce(runner)
         testCounts(runner, 1, 20, 0, 0)
         int count = 0
@@ -78,7 +76,7 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
 
 
         // test hits combined
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
         runOnce(runner)
         testCounts(runner, 1, 1, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20")

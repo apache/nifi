@@ -17,9 +17,8 @@
 package org.apache.nifi.registry.provider.flow;
 
 import org.apache.nifi.registry.flow.FlowSnapshotContext;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestStandardFlowSnapshotContext {
 
@@ -45,14 +44,14 @@ public class TestStandardFlowSnapshotContext {
                 .snapshotTimestamp(timestamp)
                 .build();
 
-        assertEquals(bucketId, context.getBucketId());
-        assertEquals(bucketName, context.getBucketName());
-        assertEquals(flowId, context.getFlowId());
-        assertEquals(flowName, context.getFlowName());
-        assertEquals(version, context.getVersion());
-        assertEquals(comments, context.getComments());
-        assertEquals(author, context.getAuthor());
-        assertEquals(timestamp, context.getSnapshotTimestamp());
+        Assert.assertEquals(bucketId, context.getBucketId());
+        Assert.assertEquals(bucketName, context.getBucketName());
+        Assert.assertEquals(flowId, context.getFlowId());
+        Assert.assertEquals(flowName, context.getFlowName());
+        Assert.assertEquals(version, context.getVersion());
+        Assert.assertEquals(comments, context.getComments());
+        Assert.assertEquals(author, context.getAuthor());
+        Assert.assertEquals(timestamp, context.getSnapshotTimestamp());
     }
 
 }

@@ -19,7 +19,7 @@
     <parent>
         <artifactId>nifi-box-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
 
     <artifactId>nifi-box-services-api</artifactId>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.box</groupId>
             <artifactId>box-java-sdk</artifactId>
-            <version>4.0.0</version>
+            <version>3.6.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.bouncycastle</groupId>

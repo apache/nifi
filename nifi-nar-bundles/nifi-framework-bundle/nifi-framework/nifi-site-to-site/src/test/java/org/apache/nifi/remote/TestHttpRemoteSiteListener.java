@@ -16,23 +16,22 @@
  */
 package org.apache.nifi.remote;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
 import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestHttpRemoteSiteListener {
 
-    @BeforeAll
+    @BeforeClass
     public static void setup() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
@@ -43,7 +42,7 @@ public class TestHttpRemoteSiteListener {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
-        assertTrue(transactionManager.isTransactionActive(transactionId),"Transaction should be active.");
+        assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
@@ -54,7 +53,7 @@ public class TestHttpRemoteSiteListener {
         transaction = transactionManager.finalizeTransaction(transactionId);
         assertNotNull(transaction);
 
-        assertFalse(transactionManager.isTransactionActive(transactionId),"Transaction should not be active anymore.");
+        assertFalse("Transaction should not be active anymore.", transactionManager.isTransactionActive(transactionId));
 
     }
 
@@ -63,31 +62,42 @@ public class TestHttpRemoteSiteListener {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         String transactionId = transactionManager.createTransaction();
 
-        assertTrue(transactionManager.isTransactionActive(transactionId),"Transaction should be active.");
+        assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
         transactionManager.holdTransaction(transactionId, transaction, null);
 
-        assertThrows(IllegalStateException.class,
-                () -> transactionManager.holdTransaction(transactionId, transaction, null),
-                "The same transaction id can't hold another transaction");
+        try {
+            transactionManager.holdTransaction(transactionId, transaction, null);
+            fail("The same transaction id can't hold another transaction");
+        } catch (IllegalStateException e) {
+        }
+
     }
 
     @Test
     public void testNoneExistingTransaction() {
         HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
-        final String transactionId = "does-not-exist-1";
-        assertFalse(transactionManager.isTransactionActive(transactionId),"Transaction should not be active.");
+        String transactionId = "does-not-exist-1";
+        assertFalse("Transaction should not be active.", transactionManager.isTransactionActive(transactionId));
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
-        assertDoesNotThrow(() -> transactionManager.holdTransaction(transactionId, transaction, null),
-                "Transaction can be held even if the transaction id is not valid anymore,"
-                        + " in order to support large file or slow network.");
+        try {
+            transactionManager.holdTransaction(transactionId, transaction, null);
+        } catch (IllegalStateException e) {
+            fail("Transaction can be held even if the transaction id is not valid anymore,"
+                    + " in order to support large file or slow network.");
+        }
 
-        assertThrows(IllegalStateException.class, () -> transactionManager.finalizeTransaction("does-not-exist-2"),
-                "But transaction should not be finalized if it isn't active.");
+        transactionId = "does-not-exist-2";
+        try {
+            transactionManager.finalizeTransaction(transactionId);
+            fail("But transaction should not be finalized if it isn't active.");
+        } catch (IllegalStateException e) {
+        }
     }
+
 }

@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -690,7 +689,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -722,7 +721,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -755,7 +754,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -789,7 +788,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");

@@ -52,12 +52,12 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
     }
 
     @AfterEach
-    public void after() {
+    public void after() throws Exception {
         service.onDisable();
     }
 
     @Test
-    public void testInit() {
+    public void testInit() throws Exception {
         runner.assertValid(service);
     }
 

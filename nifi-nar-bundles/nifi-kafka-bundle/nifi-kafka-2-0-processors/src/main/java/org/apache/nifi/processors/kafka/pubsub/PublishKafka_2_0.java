@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
@@ -55,6 +53,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -292,7 +291,6 @@ public class PublishKafka_2_0 extends AbstractProcessor implements KafkaPublishC
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
         properties.add(TOKEN_AUTHENTICATION);
-        properties.add(AWS_PROFILE_NAME);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(TOPIC);
         properties.add(DELIVERY_GUARANTEE);
@@ -528,11 +526,7 @@ public class PublishKafka_2_0 extends AbstractProcessor implements KafkaPublishC
             return uninterpretedKey.getBytes(StandardCharsets.UTF_8);
         }
 
-        try {
-            return Hex.decodeHex(uninterpretedKey);
-        } catch (final DecoderException e) {
-            throw new RuntimeException("Hexadecimal decoding failed", e);
-        }
+        return DatatypeConverter.parseHexBinary(uninterpretedKey);
     }
 
     private Integer getPartition(final ProcessContext context, final FlowFile flowFile) {

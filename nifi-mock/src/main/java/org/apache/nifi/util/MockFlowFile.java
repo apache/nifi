@@ -28,12 +28,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -43,7 +42,7 @@ import org.junit.jupiter.api.Assertions;
 
 public class MockFlowFile implements FlowFileRecord {
 
-    private final Map<String, String> attributes = new LinkedHashMap<>();
+    private final Map<String, String> attributes = new HashMap<>();
 
     private final long id;
     private final long entryDate;

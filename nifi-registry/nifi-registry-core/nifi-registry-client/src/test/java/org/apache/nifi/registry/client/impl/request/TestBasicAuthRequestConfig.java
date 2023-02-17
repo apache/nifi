@@ -17,14 +17,14 @@
 package org.apache.nifi.registry.client.impl.request;
 
 import org.apache.nifi.registry.client.RequestConfig;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 
 public class TestBasicAuthRequestConfig {
 

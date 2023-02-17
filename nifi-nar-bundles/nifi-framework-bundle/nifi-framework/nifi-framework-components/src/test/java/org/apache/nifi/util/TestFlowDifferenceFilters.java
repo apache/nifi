@@ -17,8 +17,6 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.flow.ComponentType;
-import org.apache.nifi.flow.ScheduledState;
-import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -26,10 +24,8 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.StandardFlowDifference;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestFlowDifferenceFilters {
 
@@ -42,7 +38,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -54,7 +50,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, remoteGroupPort, null, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -66,7 +62,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, remoteGroupPort, null, null, "");
 
         // predicate should return false because we don't want to include changes for adding a remote input port
-        assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -78,7 +74,7 @@ public class TestFlowDifferenceFilters {
                 DifferenceType.COMPONENT_ADDED, null, versionedProcessor, null, null, "");
 
         // predicate should return true because we do want to include changes for adding a non-port
-        assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS.test(flowDifference));
     }
 
     @Test
@@ -101,7 +97,7 @@ public class TestFlowDifferenceFilters {
                 coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
                 "");
 
-        assertFalse(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -124,7 +120,7 @@ public class TestFlowDifferenceFilters {
                 coordinatesA.getRegistryUrl(), coordinatesB.getRegistryUrl(),
                 "");
 
-        assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_IGNORABLE_VERSIONED_FLOW_COORDINATE_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -138,7 +134,7 @@ public class TestFlowDifferenceFilters {
                 "http://localhost:18080", "http://localhost:17080",
                 "");
 
-        assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -152,7 +148,7 @@ public class TestFlowDifferenceFilters {
                 "Port A", "Port B",
                 "");
 
-        assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
+        Assert.assertTrue(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 
     @Test
@@ -169,23 +165,7 @@ public class TestFlowDifferenceFilters {
                 "Port A", "Port B",
                 "");
 
-        assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
-    }
-
-    @Test
-    public void testFilterControllerServiceStatusChangeWhenNewStateIntroduced() {
-        final VersionedControllerService controllerServiceA = new VersionedControllerService();
-        final VersionedControllerService controllerServiceB = new VersionedControllerService();
-        controllerServiceA.setScheduledState(null);
-        controllerServiceB.setScheduledState(ScheduledState.DISABLED);
-
-        final StandardFlowDifference flowDifference = new StandardFlowDifference(
-                DifferenceType.SCHEDULED_STATE_CHANGED,
-                controllerServiceA, controllerServiceB,
-                controllerServiceA.getScheduledState(), controllerServiceB.getScheduledState(),
-                "");
-
-        assertTrue(FlowDifferenceFilters.isScheduledStateNew(flowDifference));
+        Assert.assertFalse(FlowDifferenceFilters.FILTER_PUBLIC_PORT_NAME_CHANGES.test(flowDifference));
     }
 }
 

@@ -34,10 +34,9 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertTrue
-import static org.junit.jupiter.api.Assertions.assertThrows
+import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class BcryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptCipherProviderGroovyTest.class)
@@ -89,7 +88,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -119,7 +118,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -151,7 +150,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -172,8 +171,8 @@ class BcryptCipherProviderGroovyTest {
         logger.info("Generated ${secureHasherCalculatedHash}")
 
         // Assert
-        assertEquals(EXPECTED_HASH, secureHasherCalculatedHash)
-        assertEquals(EXPECTED_HASH, secureHasherCalculatedHash)
+        assert secureHasherCalculatedHash == EXPECTED_HASH
+        assert secureHasherCalculatedHash == EXPECTED_HASH
     }
 
     @Test
@@ -218,8 +217,8 @@ class BcryptCipherProviderGroovyTest {
         byte[] rubyCipherBytes = rubyCipher.doFinal(PLAINTEXT.bytes)
         logger.info("Expected cipher text: ${Hex.encodeHexString(rubyCipherBytes)}")
         rubyCipher.init(Cipher.DECRYPT_MODE, rubyKey, ivSpec)
-        assertArrayEquals(PLAINTEXT.bytes, rubyCipher.doFinal(rubyCipherBytes))
-        assertArrayEquals(PLAINTEXT.bytes, rubyCipher.doFinal(cipherBytes))
+        assert rubyCipher.doFinal(rubyCipherBytes) == PLAINTEXT.bytes
+        assert rubyCipher.doFinal(cipherBytes) == PLAINTEXT.bytes
         logger.sanity("Decrypted external cipher text and generated cipher text successfully")
 
         // Sanity for hash generation
@@ -227,7 +226,7 @@ class BcryptCipherProviderGroovyTest {
         logger.sanity("Salt from external: ${FULL_SALT}")
         String generatedHash = new String(BCrypt.withDefaults().hash(WORK_FACTOR, BcryptCipherProvider.extractRawSalt(FULL_SALT), PASSWORD.bytes))
         logger.sanity("Generated hash: ${generatedHash}")
-        assertEquals(FULL_HASH, generatedHash)
+        assert generatedHash == FULL_HASH
 
         // Act
         Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, FULL_SALT.bytes, IV, DEFAULT_KEY_LENGTH, false)
@@ -236,7 +235,7 @@ class BcryptCipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assertEquals(PLAINTEXT, recovered)
+        assert PLAINTEXT.equals(recovered)
     }
 
     private static byte[] customB64Decode(String input) {
@@ -295,7 +294,7 @@ class BcryptCipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assertEquals(PLAINTEXT, recovered)
+        assert PLAINTEXT.equals(recovered)
     }
 
     @Test
@@ -314,12 +313,13 @@ class BcryptCipherProviderGroovyTest {
         INVALID_SALTS.each { String salt ->
             logger.info("Checking salt ${salt}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true))
-            logger.warn(iae.getMessage())
+            def msg = shouldFail(IllegalArgumentException) {
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt.bytes, DEFAULT_KEY_LENGTH, true)
+            }
+            logger.expected(msg)
 
             // Assert
-            assertTrue(iae.getMessage().contains("The salt must be of the format \$2a\$10\$gUVbkVzp79H8YaCOsCVZNu. To generate a salt, use BcryptCipherProvider#generateSalt"))
+            assert msg =~ "The salt must be of the format \\\$2a\\\$10\\\$gUVbkVzp79H8YaCOsCVZNu\\. To generate a salt, use BcryptCipherProvider#generateSalt"
         }
     }
 
@@ -346,12 +346,13 @@ class BcryptCipherProviderGroovyTest {
         // Two different errors -- one explaining the no-salt method is not supported, and the other for an empty byte[] passed
 
         // Act
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true))
-        logger.warn(iae.getMessage())
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true)
+        }
+        logger.expected(msg)
 
         // Assert
-        assertTrue((iae.getMessage() =~ "The salt must be of the format .* To generate a salt, use BcryptCipherProvider#generateSalt").find())
+        assert msg =~ "The salt must be of the format .* To generate a salt, use BcryptCipherProvider#generateSalt"
     }
 
     @Test
@@ -374,11 +375,12 @@ class BcryptCipherProviderGroovyTest {
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false))
+            def msg = shouldFail(IllegalArgumentException) {
+                cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false)
+            }
 
             // Assert
-            assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
+            assert msg =~ "Cannot decrypt without a valid IV"
         }
     }
 
@@ -412,7 +414,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -434,11 +436,12 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()} with key length ${keyLength}")
 
             // Initialize a cipher for encryption
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true))
+            def msg = shouldFail(IllegalArgumentException) {
+                Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true)
+            }
 
             // Assert
-            assertTrue(iae.getMessage().contains(keyLength + " is not a valid key length for AES"))
+            assert msg =~ "${keyLength} is not a valid key length for AES"
         }
     }
 
@@ -454,9 +457,8 @@ class BcryptCipherProviderGroovyTest {
         logger.info("Salt: ${salt}")
 
         // Assert
-
-        assertTrue((salt =~ /^\$2[axy]\$\d{2}\$/).find())
-        assertTrue(salt.contains("\$" + workFactor + "\$"))
+        assert salt =~ /^\$2[axy]\$\d{2}\$/
+        assert salt.contains("\$${workFactor}\$")
     }
 
     /**
@@ -516,8 +518,8 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Verified: ${verificationRecovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
-            assertEquals(PLAINTEXT, verificationRecovered)
+            assert PLAINTEXT == recovered
+            assert PLAINTEXT == verificationRecovered
         }
     }
 
@@ -547,7 +549,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT == recovered
         }
     }
 
@@ -564,22 +566,27 @@ class BcryptCipherProviderGroovyTest {
         logger.info("Using algorithm: ${em.getAlgorithm()}")
 
         // Initialize a cipher for encryption
-        IllegalArgumentException encryptIae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true))
-        
-        logger.warn("Encrypt error: " + encryptIae.getMessage())
+        def encryptMsg = shouldFail(IllegalArgumentException) {
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true)
+            byte[] iv = cipher.getIV()
+            logger.info("IV: ${Hex.encodeHexString(iv)}")
+        }
+        logger.expected("Encrypt error: ${encryptMsg}")
 
         byte[] cipherBytes = PLAINTEXT.reverse().getBytes(StandardCharsets.UTF_8)
         logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-        IllegalArgumentException decryptIae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(em, PASSWORD, SALT, [0x00] * 16 as byte[], DEFAULT_KEY_LENGTH, false))
-
-        logger.warn("Decrypt error: " + decryptIae.getMessage())
+        def decryptMsg = shouldFail(IllegalArgumentException) {
+            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, [0x00] * 16 as byte[], DEFAULT_KEY_LENGTH, false)
+            byte[] recoveredBytes = cipher.doFinal(cipherBytes)
+            String recovered = new String(recoveredBytes, "UTF-8")
+            logger.info("Recovered: ${recovered}")
+        }
+        logger.expected("Decrypt error: ${decryptMsg}")
 
         // Assert
-        assertTrue(encryptIae.getMessage().contains("The salt must be of the format"))
-        assertTrue(decryptIae.getMessage().contains("The salt must be of the format"))
+        assert encryptMsg =~ "The salt must be of the format"
+        assert decryptMsg =~ "The salt must be of the format"
     }
 
     @Disabled("This test can be run on a specific machine to evaluate if the default work factor is sufficient")

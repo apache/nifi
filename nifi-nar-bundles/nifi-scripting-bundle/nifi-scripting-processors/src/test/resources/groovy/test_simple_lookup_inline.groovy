@@ -24,8 +24,8 @@ import org.apache.nifi.reporting.InitializationException
 class SimpleGroovyLookupService implements StringLookupService {
 
     def lookupTable = [
-            'Hello': 'Goodbye',
-            'World': 'Stranger'
+            'Hello': 'Hi',
+            'World': 'there'
     ]
 
 

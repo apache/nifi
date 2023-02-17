@@ -35,7 +35,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -522,7 +521,6 @@ public class ConvertExcelToCSVProcessorTest {
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);  //We aren't expecting any output to success here because the sheet doesn't exist
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
         testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
-        assertFalse(testRunner.getLogger().getWarnMessages().isEmpty());
     }
 
     /**

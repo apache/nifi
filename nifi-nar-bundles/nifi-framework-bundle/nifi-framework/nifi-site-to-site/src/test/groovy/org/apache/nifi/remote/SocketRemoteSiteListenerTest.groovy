@@ -23,9 +23,12 @@ import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -33,11 +36,8 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class SocketRemoteSiteListenerTest {
+@RunWith(JUnit4.class)
+class SocketRemoteSiteListenerTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(SocketRemoteSiteListenerTest.class)
 
     private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
@@ -71,7 +71,7 @@ class SocketRemoteSiteListenerTest {
 
     private SocketRemoteSiteListener srsListener
 
-    @BeforeAll
+    @BeforeClass
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -83,7 +83,11 @@ class SocketRemoteSiteListenerTest {
         sslContext = SslContextFactory.createSslContext(tlsConfiguration)
     }
 
-    @AfterEach
+    @Before
+    void setUp() {
+    }
+
+    @After
     void tearDown() {
         if (srsListener) {
             srsListener.stop()
@@ -96,11 +100,11 @@ class SocketRemoteSiteListenerTest {
      * @param enabledProtocols the actual protocols, either in {@code String[]} or {@code Collection<String>} form
      * @param expectedProtocols the specific protocol versions to be present (ordered as desired)
      */
-    static void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
+    void assertProtocolVersions(def enabledProtocols, def expectedProtocols) {
         if (TlsConfiguration.getJavaVersion() > 8) {
-            assertArrayEquals(expectedProtocols as String[], enabledProtocols)
+            assert enabledProtocols == expectedProtocols as String[]
         } else {
-            assertEquals(expectedProtocols as Set, enabledProtocols as Set)
+            assert enabledProtocols as Set == expectedProtocols as Set
         }
     }
 
@@ -122,6 +126,6 @@ class SocketRemoteSiteListenerTest {
         SSLServerSocket sslServerSocket = srsListener.createServerSocket() as SSLServerSocket
         logger.info("Created SSL server socket: ${KeyStoreUtils.sslServerSocketToString(sslServerSocket)}" as String)
         assertProtocolVersions(sslServerSocket.enabledProtocols, TlsConfiguration.getCurrentSupportedTlsProtocolVersions())
-        assertTrue(sslServerSocket.needClientAuth)
+        assert sslServerSocket.needClientAuth
     }
 }

@@ -20,6 +20,7 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
@@ -28,11 +29,7 @@ import org.slf4j.LoggerFactory
 import java.security.SecureRandom
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
+import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class ScryptGroovyTest {
@@ -74,8 +71,8 @@ class ScryptGroovyTest {
         }
 
         // Assert
-        assertEquals(RUNS, allKeys.size())
-        allKeys.forEach(key -> assertArrayEquals(allKeys.first(), key))
+        assert allKeys.size() == RUNS
+        assert allKeys.every { it == allKeys.first() }
     }
 
     /**
@@ -125,7 +122,7 @@ class ScryptGroovyTest {
             logger.info("Generated ${Hex.encodeHexString(calculatedHash)}")
 
             // Assert
-            assertArrayEquals(params.hash, calculatedHash)
+            assert calculatedHash == params.hash
         }
     }
 
@@ -166,7 +163,7 @@ class ScryptGroovyTest {
         logger.info("Generated ${Hex.encodeHexString(calculatedHash)}")
 
         // Assert
-        assertArrayEquals(HASH, calculatedHash)
+        assert calculatedHash == HASH
     }
 
     @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true")
@@ -206,7 +203,7 @@ class ScryptGroovyTest {
         logger.info("Generated ${Hex.encodeHexString(calculatedHash)}")
 
         // Assert
-        assertArrayEquals(Hex.decodeHex(EXPECTED_KEY_HEX as char[]), calculatedHash)
+        assert calculatedHash == Hex.decodeHex(EXPECTED_KEY_HEX as char[])
     }
 
     @Test
@@ -225,8 +222,8 @@ class ScryptGroovyTest {
         }
 
         // Assert
-        assertEquals(RUNS, allHashes.size())
-        allHashes.forEach(hash -> assertEquals(allHashes.first(), hash))
+        assert allHashes.size() == RUNS
+        assert allHashes.every { it == allHashes.first() }
     }
 
     @Test
@@ -234,14 +231,14 @@ class ScryptGroovyTest {
         // Arrange
 
         // The generated salt should be byte[16], encoded as 22 Base64 chars
-        final EXPECTED_SALT_PATTERN = /\$.+\$[0-9a-zA-Z\/\+]{22}\$.+/
+        final def EXPECTED_SALT_PATTERN = /\$.+\$[0-9a-zA-Z\/\+]{22}\$.+/
 
         // Act
         String calculatedHash = Scrypt.scrypt(PASSWORD, N, R, P, DK_LEN)
         logger.info("Generated ${calculatedHash}")
 
         // Assert
-        assertTrue((calculatedHash =~ EXPECTED_SALT_PATTERN).matches())
+        assert calculatedHash =~ EXPECTED_SALT_PATTERN
     }
 
     @Test
@@ -257,11 +254,12 @@ class ScryptGroovyTest {
         INVALID_NS.each { int invalidN ->
             logger.info("Using N: ${invalidN}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, invalidN, R, P, DK_LEN))
+            def msg = shouldFail(IllegalArgumentException) {
+                Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, invalidN, R, P, DK_LEN)
+            }
 
             // Assert
-            assertTrue((iae.getMessage() =~ "N must be a power of 2 greater than 1|Parameter N is too large").matches())
+            assert msg =~ "N must be a power of 2 greater than 1|Parameter N is too large"
         }
     }
 
@@ -280,11 +278,13 @@ class ScryptGroovyTest {
         INVALID_RS.each { int invalidR ->
             logger.info("Using r: ${invalidR}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, N, invalidR, largeP, DK_LEN))
+            def msg = shouldFail(IllegalArgumentException) {
+                byte[] hash = Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, N, invalidR, largeP, DK_LEN)
+                logger.info("Generated hash: ${Hex.encodeHexString(hash)}")
+            }
 
             // Assert
-            assertTrue((iae.getMessage() =~ "Parameter r must be 1 or greater|Parameter r is too large").matches())
+            assert msg =~ "Parameter r must be 1 or greater|Parameter r is too large"
         }
     }
 
@@ -300,11 +300,13 @@ class ScryptGroovyTest {
         INVALID_PS.each { int invalidP ->
             logger.info("Using p: ${invalidP}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, N, R, invalidP, DK_LEN))
+            def msg = shouldFail(IllegalArgumentException) {
+                byte[] hash = Scrypt.deriveScryptKey(PASSWORD.bytes, SALT_BYTES, N, R, invalidP, DK_LEN)
+                logger.info("Generated hash: ${Hex.encodeHexString(hash)}")
+            }
 
             // Assert
-            assertTrue((iae.getMessage() =~ "Parameter p must be 1 or greater|Parameter p is too large").matches())
+            assert msg =~ "Parameter p must be 1 or greater|Parameter p is too large"
         }
     }
 
@@ -320,7 +322,7 @@ class ScryptGroovyTest {
         logger.info("Check matches: ${matches}")
 
         // Assert
-        assertTrue(matches)
+        assert matches
     }
 
     @Test
@@ -335,7 +337,7 @@ class ScryptGroovyTest {
         logger.info("Check matches: ${matches}")
 
         // Assert
-        assertFalse(matches)
+        assert !matches
     }
 
     @Test
@@ -349,12 +351,14 @@ class ScryptGroovyTest {
         // Act
         INVALID_PASSWORDS.each { String invalidPassword ->
             logger.info("Using password: ${invalidPassword}")
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> Scrypt.check(invalidPassword, HASH))
-            logger.expected(iae.getMessage())
+
+            def msg = shouldFail(IllegalArgumentException) {
+                boolean matches = Scrypt.check(invalidPassword, HASH)
+            }
+            logger.expected(msg)
 
             // Assert
-            assertTrue(iae.getMessage().contains("Password cannot be empty"))
+            assert msg =~ "Password cannot be empty"
         }
     }
 
@@ -369,12 +373,14 @@ class ScryptGroovyTest {
         // Act
         INVALID_HASHES.each { String invalidHash ->
             logger.info("Using hash: ${invalidHash}")
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> Scrypt.check(PASSWORD, invalidHash))
-            logger.expected(iae.getMessage())
+
+            def msg = shouldFail(IllegalArgumentException) {
+                boolean matches = Scrypt.check(PASSWORD, invalidHash)
+            }
+            logger.expected(msg)
 
             // Assert
-            assertTrue((iae.getMessage() =~ "Hash cannot be empty|Hash is not properly formatted").matches())
+            assert msg =~ "Hash cannot be empty|Hash is not properly formatted"
         }
     }
 
@@ -395,8 +401,7 @@ class ScryptGroovyTest {
                 "\$s0\$F0801\$AAAAAAAAAAA\$A",
                 "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$A",
                 "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
-                "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$" +
-                        "ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
+                "\$s0\$40801\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP\$ABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOPABCDEFGHIJKLMNOP",
                 "\$s0\$F0801\$AAAAAAAAAAA\$A",
                 "\$s0\$F0801\$AAAAAAAAAAA\$A",
                 "\$s0\$F0801\$AAAAAAAAAAA\$A",
@@ -412,7 +417,7 @@ class ScryptGroovyTest {
             logger.info("Hash is valid: ${isValidHash}")
 
             // Assert
-            assertTrue(isValidHash)
+            assert isValidHash
         }
     }
 
@@ -431,7 +436,7 @@ class ScryptGroovyTest {
             logger.info("Hash is valid: ${isValidHash}")
 
             // Assert
-            assertFalse(isValidHash)
+            assert !isValidHash
         }
     }
 }

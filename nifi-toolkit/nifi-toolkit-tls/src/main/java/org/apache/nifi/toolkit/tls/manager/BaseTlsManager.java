@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.manager;
 
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
@@ -107,16 +108,21 @@ public class BaseTlsManager {
     }
 
     private String getKeyPassword() {
-        String result = tlsConfig.getKeyPassword();
-        if (StringUtils.isEmpty(result)) {
-            if (differentKeyAndKeyStorePassword) {
-                result = passwordUtil.generatePassword();
-            } else {
-                result = getKeyStorePassword();
+        if (keyStore.getType().equalsIgnoreCase(KeystoreType.PKCS12.toString())) {
+            tlsConfig.setKeyPassword(null);
+            return null;
+        } else {
+            String result = tlsConfig.getKeyPassword();
+            if (StringUtils.isEmpty(result)) {
+                if (differentKeyAndKeyStorePassword) {
+                    result = passwordUtil.generatePassword();
+                } else {
+                    result = getKeyStorePassword();
+                }
+                tlsConfig.setKeyPassword(result);
             }
-            tlsConfig.setKeyPassword(result);
+            return result;
         }
-        return result;
     }
 
     private String getKeyStorePassword() {

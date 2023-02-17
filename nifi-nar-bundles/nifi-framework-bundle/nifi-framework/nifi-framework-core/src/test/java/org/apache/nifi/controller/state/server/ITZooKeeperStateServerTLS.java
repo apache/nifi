@@ -31,10 +31,13 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,11 +48,8 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.apache.nifi.leader.election.ITSecureClientZooKeeperFactory.createSecureClientProperties;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 // Testing setting up a ZooKeeperStateServer with TLS
 public class ITZooKeeperStateServerTLS {
@@ -65,7 +65,10 @@ public class ITZooKeeperStateServerTLS {
 
     private static TlsConfiguration tlsConfiguration;
 
-    @BeforeAll
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @BeforeClass
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
@@ -105,7 +108,7 @@ public class ITZooKeeperStateServerTLS {
     private Properties partialZooKeeperProps;
     private ZooKeeperStateServer server;
 
-    @BeforeEach
+    @Before
     public void setupWithValidProperties() throws IOException, QuorumPeerConfig.ConfigException {
         niFiProps = NiFiProperties.createBasicNiFiProperties(null, SECURE_NIFI_PROPS);
         assertNotNull(niFiProps);
@@ -130,13 +133,21 @@ public class ITZooKeeperStateServerTLS {
         assertNotNull(partialZooKeeperProps);
     }
 
+    @After
+    public void clearConnectionProperties() {
+        Collections.unmodifiableSet(System.getProperties().stringPropertyNames()).stream()
+                .filter(name -> name.startsWith("zookeeper."))
+                .forEach(System::clearProperty);
+
+    }
+
     // This test shows that a ZooKeeperStateServer cannot be created from empty NiFi properties.
     @Test
     public void testCreateFromEmptyNiFiProperties() throws IOException, QuorumPeerConfig.ConfigException {
         final NiFiProperties emptyProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
 
         assertNotNull(emptyProps);
-        assertNull(ZooKeeperStateServer.create(emptyProps));
+        Assert.assertNull(ZooKeeperStateServer.create(emptyProps));
     }
 
     // This test shows that a ZooKeeperStateServer can be created from insecure NiFi properties.
@@ -157,7 +168,7 @@ public class ITZooKeeperStateServerTLS {
             put(ZOOKEEPER_PROPERTIES_FILE_KEY, PARTIAL_ZOOKEEPER_PROPS);
         }});
 
-        assertThrows(QuorumPeerConfig.ConfigException.class, () ->
+        Assert.assertThrows(QuorumPeerConfig.ConfigException.class, () ->
                 ZooKeeperStateServer.create(partialProps));
     }
 
@@ -191,8 +202,8 @@ public class ITZooKeeperStateServerTLS {
     @Test
     public void testCreateRemovesInsecureClientPort() {
         assertNotNull(insecureZooKeeperProps.getProperty("clientPort"));
-        assertNotEquals("", insecureZooKeeperProps.getProperty("clientPort"));
-        assertNull(quorumPeerConfig.getClientPortAddress());
+        Assert.assertNotEquals(insecureZooKeeperProps.getProperty("clientPort"), "");
+        Assert.assertNull(quorumPeerConfig.getClientPortAddress());
     }
 
     // This test shows that a connection class is set when none is specified (QuorumPeerConfig::parseProperties sets the System property):
@@ -213,12 +224,8 @@ public class ITZooKeeperStateServerTLS {
         assertEquals(ZOOKEEPER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
 
-    @AfterEach
+    @After
     public void tearDown() throws Exception {
-        Collections.unmodifiableSet(System.getProperties().stringPropertyNames()).stream()
-                .filter(name -> name.startsWith("zookeeper."))
-                .forEach(System::clearProperty);
-
         if(server != null) {
             File stateDir = server.getQuorumPeerConfig().getDataDir().getParentFile();
             deleteRecursively(stateDir);
@@ -289,7 +296,7 @@ public class ITZooKeeperStateServerTLS {
     }
 
     // Fail to connect to a secure ZooKeeperStateServer with insecure client configuration
-    @Test
+    @Test(expected = KeeperException.ConnectionLossException.class)
     public void testSecureZooKeeperStateServerWithInsecureClient() throws Exception {
         final int actualPort = Integer.parseInt(secureZooKeeperProps.getProperty("secureClientPort", "0"));
         final String connect = "localhost:" + actualPort;
@@ -311,12 +318,11 @@ public class ITZooKeeperStateServerTLS {
         final String testPath = "/test";
 
         // Expect this to fail with ConnectionLossException
-        assertThrows(KeeperException.ConnectionLossException.class,
-                () -> client.create().forPath(testPath, new byte[0]));
+        client.create().forPath(testPath, new byte[0]);
     }
 
     // Fail to connect to a secure ZooKeeperStateServer with missing client configuration
-    @Test
+    @Test(expected = KeeperException.ConnectionLossException.class)
     public void testSecureZooKeeperStateServerWithMissingClientConfiguration() throws Exception {
         final int actualPort = Integer.parseInt(secureZooKeeperProps.getProperty("secureClientPort", "0"));
         final String connect = "localhost:" + actualPort;
@@ -338,8 +344,7 @@ public class ITZooKeeperStateServerTLS {
         final String testPath = "/test";
 
         // Expect this to fail with ConnectionLossException
-        assertThrows(KeeperException.ConnectionLossException.class,
-                () -> client.create().forPath(testPath, new byte[0]));
+        final String createResult = client.create().forPath(testPath, new byte[0]);
     }
 
     // Connect to a secure ZooKeeperStateServer
@@ -397,7 +402,11 @@ public class ITZooKeeperStateServerTLS {
     }
 
     @Test
-    public void testClientSecureFalseWithClientSecurePortAndNoTls() {
+    public void testClientSecureFalseWithClientSecurePortAndNoTls() throws Exception {
+        expectedException.expect(QuorumPeerConfig.ConfigException.class);
+        expectedException.expectMessage("ZooKeeper properties file src/test/resources/TestZooKeeperStateServerConfigurations/secure.zookeeper.properties was " +
+                "configured to be secure but there was no valid TLS config present in nifi.properties or nifi.zookeeper.client.secure was set to false. Check the administration guide");
+
         final int actualPort = Integer.parseInt(secureZooKeeperProps.getProperty("secureClientPort"));
         final String connect = "localhost:" + actualPort;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
@@ -406,16 +415,14 @@ public class ITZooKeeperStateServerTLS {
             put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connect);
         }});
 
-        QuorumPeerConfig.ConfigException configException =
-                assertThrows(QuorumPeerConfig.ConfigException.class, () -> ZooKeeperStateServer.create(validZkClientProps));
-
-        assertEquals("ZooKeeper properties file src/test/resources/TestZooKeeperStateServerConfigurations/secure.zookeeper.properties was " +
-                "configured to be secure but there was no valid TLS config present in nifi.properties or nifi.zookeeper.client.secure was set to false. Check the administration guide",
-                configException.getMessage());
+        server = ZooKeeperStateServer.create(validZkClientProps);
     }
 
     @Test
-    public void testClientSecureTrueWithInsecureZooKeeperAndTlsSet() {
+    public void testClientSecureTrueWithInsecureZooKeeperAndTlsSet() throws Exception {
+        expectedException.expect(QuorumPeerConfig.ConfigException.class);
+        expectedException.expectMessage("NiFi was configured to be secure but secureClientPort could not be retrieved from zookeeper.properties file");
+
         final int actualPort = Integer.parseInt(insecureZooKeeperProps.getProperty("clientPort"));
         final String connect = "localhost:" + actualPort;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
@@ -425,14 +432,14 @@ public class ITZooKeeperStateServerTLS {
             put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connect);
         }});
 
-        QuorumPeerConfig.ConfigException configException =
-                assertThrows(QuorumPeerConfig.ConfigException.class, () -> ZooKeeperStateServer.create(validZkClientProps));
-        assertEquals("NiFi was configured to be secure but secureClientPort could not be retrieved from zookeeper.properties file",
-                configException.getMessage());
+        server = ZooKeeperStateServer.create(validZkClientProps);
     }
 
     @Test
-    public void testClientSecureTrueWithNoTls() {
+    public void testClientSecureTrueWithNoTls() throws Exception {
+        expectedException.expect(QuorumPeerConfig.ConfigException.class);
+        expectedException.expectMessage(NiFiProperties.ZOOKEEPER_CLIENT_SECURE + " is true but no TLS configuration is present in nifi.properties");
+
         final int actualPort = Integer.parseInt(insecureZooKeeperProps.getProperty("clientPort"));
         final String connect = "localhost:" + actualPort;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
@@ -442,14 +449,14 @@ public class ITZooKeeperStateServerTLS {
             put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connect);
         }});
 
-        QuorumPeerConfig.ConfigException configException =
-                assertThrows(QuorumPeerConfig.ConfigException.class, () -> ZooKeeperStateServer.create(validZkClientProps));
-        assertEquals(NiFiProperties.ZOOKEEPER_CLIENT_SECURE + " is true but no TLS configuration is present in nifi.properties",
-                configException.getMessage());
+        server = ZooKeeperStateServer.create(validZkClientProps);
     }
 
     @Test
-    public void testZooKeeperMissingPortSettings() {
+    public void testZooKeeperMissingPortSettings() throws Exception {
+        expectedException.expect(QuorumPeerConfig.ConfigException.class);
+        expectedException.expectMessage("No clientAddress or secureClientAddress is set in zookeeper.properties");
+
         final String connect = "localhost:" + 2181;
         final NiFiProperties validZkClientProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<String, String>() {{
             putAll(SECURE_NIFI_PROPS);
@@ -458,10 +465,7 @@ public class ITZooKeeperStateServerTLS {
             put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connect);
         }});
 
-        QuorumPeerConfig.ConfigException configException =
-                assertThrows(QuorumPeerConfig.ConfigException.class, () -> ZooKeeperStateServer.create(validZkClientProps));
-        assertEquals("No clientAddress or secureClientAddress is set in zookeeper.properties",
-                configException.getMessage());
+        server = ZooKeeperStateServer.create(validZkClientProps);
     }
 
     @Test

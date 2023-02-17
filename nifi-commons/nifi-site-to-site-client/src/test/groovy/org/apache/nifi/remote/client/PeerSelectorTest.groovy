@@ -33,12 +33,7 @@ import org.slf4j.LoggerFactory
 import java.security.Security
 import java.util.concurrent.ArrayBlockingQueue
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertNotNull
-import static org.junit.jupiter.api.Assertions.assertNull
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class PeerSelectorTest {
+class PeerSelectorTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(PeerSelectorTest.class)
 
     private static final BOOTSTRAP_PEER_DESCRIPTION = new PeerDescription("localhost", -1, false)
@@ -140,7 +135,7 @@ class PeerSelectorTest {
                                                       final Map<String, Double> EXPECTED_PERCENTS,
                                                       final int NUM_TIMES = resultsFrequency.values().sum() as int,
                                                       final double TOLERANCE = 0.05) {
-        assertEquals(EXPECTED_PERCENTS.keySet(), resultsFrequency.keySet())
+        assert resultsFrequency.keySet() == EXPECTED_PERCENTS.keySet()
 
         logger.info("  Actual results: ${resultsFrequency.sort()}")
         logger.info("Expected results: ${EXPECTED_PERCENTS.sort().collect { k, v -> "${k}: ${v}%" }}")
@@ -159,7 +154,7 @@ class PeerSelectorTest {
             def count = resultsFrequency[k]
             def difference = Math.abs(expectedCount - count) / NUM_TIMES
             logger.debug("Checking that ${count} is within ±${TOLERANCE * 100}% of ${expectedCount} (${lowerBound}, ${upperBound}) | ${(difference * 100).round(2)}%")
-            assertTrue(count >= lowerBound && count <= upperBound)
+            assert count >= lowerBound && count <= upperBound
         }
     }
 
@@ -174,7 +169,7 @@ class PeerSelectorTest {
         int consecutiveElements = recentPeerSelectionQueue.getMaxConsecutiveElements()
 //        String mcce = recentPeerSelectionQueue.getMostCommonConsecutiveElement()
 //        logger.debug("Most consecutive elements in recentPeerSelectionQueue: ${consecutiveElements} - ${mcce} | ${recentPeerSelectionQueue}")
-        assertTrue(consecutiveElements <= recentPeerSelectionQueue.totalSize - 1)
+        assert consecutiveElements <= recentPeerSelectionQueue.totalSize - 1
     }
 
     private static double calculateMean(Map resultsFrequency) {
@@ -184,9 +179,7 @@ class PeerSelectorTest {
         return meanElements.sum() / meanElements.size()
     }
 
-    private static PeerStatusProvider mockPeerStatusProvider(PeerDescription bootstrapPeerDescription = BOOTSTRAP_PEER_DESCRIPTION,
-                                                             String remoteInstanceUris = DEFAULT_REMOTE_INSTANCE_URIS,
-                                                             Map<PeerDescription, Set<PeerStatus>> peersMap = DEFAULT_PEER_NODES) {
+    private static PeerStatusProvider mockPeerStatusProvider(PeerDescription bootstrapPeerDescription = BOOTSTRAP_PEER_DESCRIPTION, String remoteInstanceUris = DEFAULT_REMOTE_INSTANCE_URIS, Map<PeerDescription, Set<PeerStatus>> peersMap = DEFAULT_PEER_NODES) {
         [getTransportProtocol       : { ->
             SiteToSiteTransportProtocol.HTTP
         },
@@ -237,8 +230,8 @@ class PeerSelectorTest {
         logger.info("Retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // Assert
-        assertEquals(1, peersToQuery.size())
-        assertEquals(BOOTSTRAP_PEER_DESCRIPTION, peersToQuery.first())
+        assert peersToQuery.size() == 1
+        assert peersToQuery.first() == BOOTSTRAP_PEER_DESCRIPTION
     }
 
     @Test
@@ -256,9 +249,9 @@ class PeerSelectorTest {
         logger.info("Retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // Assert
-        assertEquals(restoredPeerStatuses.size() + 1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
-        assertTrue(peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS))
+        assert peersToQuery.size() == restoredPeerStatuses.size() + 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
+        assert peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS)
     }
 
     /**
@@ -282,11 +275,11 @@ class PeerSelectorTest {
         }
 
         // Assert
-        assertEquals(DEFAULT_PEER_STATUSES.size() + 1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
-        assertTrue(peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS))
+        assert peersToQuery.size() == DEFAULT_PEER_STATUSES.size() + 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
+        assert peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS)
 
-        repeatedPeersToQuery.forEach(query -> assertEquals(peersToQuery, query))
+        assert repeatedPeersToQuery.every { it == peersToQuery }
     }
 
     @Test
@@ -299,8 +292,8 @@ class PeerSelectorTest {
         logger.info("Retrieved ${remotePeerStatuses.size()} peer statuses: ${remotePeerStatuses}")
 
         // Assert
-        assertEquals(DEFAULT_PEER_STATUSES.size(), remotePeerStatuses.size())
-        assertTrue(remotePeerStatuses.containsAll(DEFAULT_PEER_STATUSES))
+        assert remotePeerStatuses.size() == DEFAULT_PEER_STATUSES.size()
+        assert remotePeerStatuses.containsAll(DEFAULT_PEER_STATUSES)
     }
 
     /**
@@ -346,10 +339,10 @@ class PeerSelectorTest {
                 }
 
                 // Assert that the send percentage is always between 0% and 80%
-                r.every { k, v -> assertTrue(v.send >= 0 && v.send <= 80) }
+                assert r.every { k, v -> v.send >= 0 && v.send <= 80 }
 
                 // Assert that the receive percentage is always between 0% and 100%
-                r.every { k, v -> assertTrue(v.receive >= 0 && v.receive <= 100) }
+                assert r.every { k, v -> v.receive >= 0 && v.receive <= 100 }
             }
         }
     }
@@ -372,8 +365,8 @@ class PeerSelectorTest {
                 double receiveWeight = PeerSelector.calculateNormalizedWeight(TransferDirection.RECEIVE, totalFlowfileCount, flowfileCount, NODE_COUNT)
 
                 // Assert
-                assertEquals(100, sendWeight)
-                assertEquals(100, receiveWeight)
+                assert sendWeight == 100
+                assert receiveWeight == 100
             }
         }
     }
@@ -399,7 +392,7 @@ class PeerSelectorTest {
         logger.info("Weighted peer map: ${weightedPeerMap}")
 
         // Assert
-        assertEquals(clusterMap.keySet(), weightedPeerMap.keySet())
+        assert new ArrayList<>(weightedPeerMap.keySet()) == new ArrayList(clusterMap.keySet())
     }
 
     @Test
@@ -423,7 +416,7 @@ class PeerSelectorTest {
         logger.info("Weighted peer map: ${weightedPeerMap}")
 
         // Assert
-        assertEquals(clusterMap.keySet(), weightedPeerMap.keySet())
+        assert new ArrayList<>(weightedPeerMap.keySet()) == new ArrayList(clusterMap.keySet())
     }
 
     /**
@@ -457,11 +450,11 @@ class PeerSelectorTest {
                 logger.info("Destination map: ${destinationMap}")
 
                 // Assert
-                assertEquals(peerStatuses, destinationMap.keySet())
+                assert destinationMap.keySet() == peerStatuses
 
                 // For uneven splits, the resulting percentage should be within +/- 1%
                 def totalPercentage = destinationMap.values().sum()
-                assertTrue(totalPercentage >= 99 && totalPercentage <= 100)
+                assert totalPercentage >= 99 && totalPercentage <= 100
             }
         }
     }
@@ -610,7 +603,7 @@ class PeerSelectorTest {
                     // Spot check consecutive selection
                     if (i % 10 == 0) {
                         int consecutiveElements = lastN.getMaxConsecutiveElements()
-                        assertEquals(lastN.size(), consecutiveElements)
+                        assert consecutiveElements == lastN.size()
                     }
                 }
 
@@ -791,8 +784,7 @@ class PeerSelectorTest {
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" +
-                "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS
@@ -809,9 +801,9 @@ class PeerSelectorTest {
         logger.info("Retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // Assert
-        assertEquals(nodes.size() + 1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
-        assertTrue(peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS))
+        assert peersToQuery.size() == nodes.size() + 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
+        assert peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS)
     }
 
     /**
@@ -832,8 +824,7 @@ class PeerSelectorTest {
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" +
-                "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS
@@ -851,16 +842,16 @@ class PeerSelectorTest {
         // Assert
 
         // The loaded cache should be marked as expired and not used
-        assertTrue(ps.isCacheExpired(ps.peerStatusCache))
+        assert ps.isCacheExpired(ps.peerStatusCache)
 
         // This internal method does not refresh or check expiration
         def peersToQuery = ps.getPeersToQuery()
         logger.info("Retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // The cache has (expired) peer statuses present
-        assertEquals(nodes.size() + 1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
-        assertTrue(peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS))
+        assert peersToQuery.size() == nodes.size() + 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
+        assert peersToQuery.containsAll(DEFAULT_PEER_DESCRIPTIONS)
 
         // Trigger the cache expiration detection
         ps.refresh()
@@ -869,8 +860,8 @@ class PeerSelectorTest {
         logger.info("After cache expiration, retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // The cache only contains the bootstrap node
-        assertEquals(1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
+        assert peersToQuery.size() == 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
     }
 
     Throwable generateException(String message, int nestedLevel = 0) {
@@ -904,8 +895,8 @@ class PeerSelectorTest {
         def peersToQuery = ps.getPeersToQuery()
 
         // Assert
-        assertEquals(1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
+        assert peersToQuery.size() == 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
     }
 
     /**
@@ -940,8 +931,8 @@ class PeerSelectorTest {
         logger.info("Retrieved ${peersToQuery.size()} peers to query: ${peersToQuery}")
 
         // Assert
-        assertEquals(1, peersToQuery.size())
-        assertTrue(peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION))
+        assert peersToQuery.size() == 1
+        assert peersToQuery.contains(BOOTSTRAP_PEER_DESCRIPTION)
     }
 
     /**
@@ -1007,7 +998,7 @@ class PeerSelectorTest {
         ps.refresh()
         PeerStatus peerStatus = ps.getNextPeerStatus(TransferDirection.RECEIVE)
         logger.info("Attempt ${currentAttempt} - ${peerStatus}")
-        assertNotNull(peerStatus)
+        assert peerStatus
 
         // Force the selector to refresh the cache
         currentAttempt++
@@ -1018,7 +1009,7 @@ class PeerSelectorTest {
             ps.refresh()
             peerStatus = ps.getNextPeerStatus(TransferDirection.RECEIVE)
             logger.info("Attempt ${currentAttempt} - ${peerStatus}")
-            assertEquals(node2Status, peerStatus)
+            assert peerStatus == node2Status
 
             // Force the selector to refresh the cache
             currentAttempt++
@@ -1029,7 +1020,7 @@ class PeerSelectorTest {
         ps.refresh()
         peerStatus = ps.getNextPeerStatus(TransferDirection.RECEIVE)
         logger.info("Attempt ${currentAttempt} - ${peerStatus}")
-        assertNull(peerStatus)
+        assert !peerStatus
 
         // Force the selector to refresh the cache
         currentAttempt = 5
@@ -1039,7 +1030,7 @@ class PeerSelectorTest {
         ps.refresh()
         peerStatus = ps.getNextPeerStatus(TransferDirection.RECEIVE)
         logger.info("Attempt ${currentAttempt} - ${peerStatus}")
-        assertEquals(bootstrapStatus, peerStatus)
+        assert peerStatus == bootstrapStatus
     }
 
     // PeerQueue definition and tests
@@ -1061,7 +1052,7 @@ class PeerSelectorTest {
             peerQueue.append(nodes.first())
 
             // Assert
-            assertEquals(peerQueue.size(), peerQueue.getMaxConsecutiveElements())
+            assert peerQueue.getMaxConsecutiveElements() == peerQueue.size()
         }
 
         // Never repeating node
@@ -1070,7 +1061,7 @@ class PeerSelectorTest {
             peerQueue.append(nodes.get(i % peerStatuses.size()))
 
             // Assert
-            assertEquals(1, peerQueue.getMaxConsecutiveElements())
+            assert peerQueue.getMaxConsecutiveElements() == 1
         }
 
         // Repeat up to nodes.size() times but no more
@@ -1081,7 +1072,7 @@ class PeerSelectorTest {
 
             // Assert
 //            logger.debug("Most consecutive elements in queue: ${peerQueue.getMaxConsecutiveElements()} | ${peerQueue}")
-            assertTrue(peerQueue.getMaxConsecutiveElements() <= peerStatuses.size())
+            assert peerQueue.getMaxConsecutiveElements() <= peerStatuses.size()
         }
     }
 

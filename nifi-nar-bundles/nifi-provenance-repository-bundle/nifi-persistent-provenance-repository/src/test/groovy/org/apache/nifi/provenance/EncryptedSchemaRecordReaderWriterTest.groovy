@@ -41,11 +41,8 @@ import java.security.KeyManagementException
 import java.security.Security
 import java.util.concurrent.atomic.AtomicLong
 
+import static groovy.test.GroovyAssert.shouldFail
 import static org.apache.nifi.provenance.TestUtil.createFlowFile
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertNotNull
-import static org.junit.jupiter.api.Assertions.assertNull
-import static org.junit.jupiter.api.Assertions.assertThrows
 
 class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWriter {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRecordReaderWriterTest.class)
@@ -98,19 +95,15 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
     }
 
     private static
-    final FlowFile buildFlowFile(Map attributes = [:], long id = idGenerator.getAndIncrement(),
-                                 long fileSize = 3000L) {
+    final FlowFile buildFlowFile(Map attributes = [:], long id = idGenerator.getAndIncrement(), long fileSize = 3000L) {
         if (!attributes?.uuid) {
             attributes.uuid = UUID.randomUUID().toString()
         }
         createFlowFile(id, fileSize, attributes)
     }
 
-    private static ProvenanceEventRecord buildEventRecord(FlowFile flowfile = buildFlowFile(),
-                                                  ProvenanceEventType eventType = ProvenanceEventType.RECEIVE,
-                                                  String transitUri = TRANSIT_URI, String componentId = COMPONENT_ID,
-                                                  String componentType = PROCESSOR_TYPE,
-                                                  long eventTime = System.currentTimeMillis()) {
+    private
+    static ProvenanceEventRecord buildEventRecord(FlowFile flowfile = buildFlowFile(), ProvenanceEventType eventType = ProvenanceEventType.RECEIVE, String transitUri = TRANSIT_URI, String componentId = COMPONENT_ID, String componentType = PROCESSOR_TYPE, long eventTime = System.currentTimeMillis()) {
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder()
         builder.setEventTime(eventTime)
         builder.setEventType(eventType)
@@ -171,18 +164,17 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         logger.info("Generated encrypted reader: ${reader}")
 
         ProvenanceEventRecord encryptedEvent = reader.nextRecord()
-        assertNotNull(encryptedEvent)
-        assertEquals(encryptedRecordId, encryptedEvent.getEventId())
-        assertEquals(record.componentId, encryptedEvent.getComponentId())
-        assertEquals(record.componentType, encryptedEvent.getComponentType())
+        assert encryptedEvent
+        assert encryptedRecordId as long == encryptedEvent.getEventId()
+        assert record.componentId == encryptedEvent.getComponentId()
+        assert record.componentType == encryptedEvent.getComponentType()
         logger.info("Successfully read encrypted record: ${encryptedEvent}")
 
-        assertNull(reader.nextRecord())
+        assert !reader.nextRecord()
     }
 
     /**
-     * Build a record and write it with a standard writer and the encrypted writer to different repositories.
-     * Recover with the standard reader and the contents of the encrypted record should be unreadable.
+     * Build a record and write it with a standard writer and the encrypted writer to different repositories. Recover with the standard reader and the contents of the encrypted record should be unreadable.
      */
     @Test
     void testShouldWriteEncryptedRecordAndPlainRecord() {
@@ -221,13 +213,13 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         logger.info("Generated standard reader: ${reader}")
 
         ProvenanceEventRecord standardEvent = reader.nextRecord()
-        assertNotNull(standardEvent)
-        assertEquals(standardRecordId, standardEvent.getEventId())
-        assertEquals(record.componentId, standardEvent.getComponentId())
-        assertEquals(record.componentType, standardEvent.getComponentType())
+        assert standardEvent
+        assert standardRecordId as long == standardEvent.getEventId()
+        assert record.componentId == standardEvent.getComponentId()
+        assert record.componentType == standardEvent.getComponentType()
         logger.info("Successfully read standard record: ${standardEvent}")
 
-        assertNull(reader.nextRecord())
+        assert !reader.nextRecord()
 
         // Demonstrate unable to read from encrypted file with standard reader
         TocReader incompatibleTocReader = new StandardTocReader(encryptedTocFile)
@@ -235,6 +227,6 @@ class EncryptedSchemaRecordReaderWriterTest extends AbstractTestRecordReaderWrit
         RecordReader incompatibleReader = new EventIdFirstSchemaRecordReader(efis, encryptedJournalFile.getName(), incompatibleTocReader, MAX_ATTRIBUTE_SIZE)
         logger.info("Generated standard reader (attempting to read encrypted file): ${incompatibleReader}")
 
-        assertThrows(EOFException.class, () -> incompatibleReader.nextRecord())
+        shouldFail(EOFException) { incompatibleReader.nextRecord() }
     }
 }

@@ -18,12 +18,7 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NStringEntity;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.VerifiableControllerService;
@@ -36,6 +31,7 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
 import org.apache.nifi.elasticsearch.MapBuilder;
 import org.apache.nifi.elasticsearch.SearchResponse;
+import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
 import org.apache.nifi.elasticsearch.UpdateOperationResponse;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
@@ -43,15 +39,11 @@ import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.elasticsearch.client.Request;
-import org.elasticsearch.client.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,7 +55,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -90,38 +81,13 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
+        assertEquals(3, results.size());
         assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertVerifySnifferSkipped(results);
-    }
-
-    @Test
-    void testVerifySniffer() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "true");
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "false");
-        runner.enableControllerService(service);
-        assertVerifySniffer();
-
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "true");
-        runner.enableControllerService(service);
-        assertVerifySniffer();
-    }
-
-    private void assertVerifySniffer() {
-        final List<ConfigVerificationResult> results = ((VerifiableControllerService) service).verify(
-                new MockConfigurationContext(service, getClientServiceProperties(), runner.getProcessContext().getControllerServiceLookup(), new MockVariableRegistry()),
-                runner.getLogger(),
-                Collections.emptyMap()
-        );
-        assertEquals(4, results.size());
-        assertEquals(4, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
     }
 
     @Test
     void testVerifySuccessWithApiKeyAuth() throws IOException {
-        final Pair<String, String> apiKey = createApiKeyForIndex();
+        final Pair<String, String> apiKey = createApiKeyForIndex("*");
 
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.API_KEY.getValue());
@@ -136,9 +102,8 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
+        assertEquals(3, results.size());
         assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertVerifySnifferSkipped(results);
     }
 
     @Test
@@ -151,8 +116,8 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
-        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(3, results.size());
+        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
                         && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.HTTP_HOSTS.getDisplayName())
@@ -180,8 +145,8 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
-        assertEquals(3, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(3, results.size());
+        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CLIENT_SETUP)
                         && Objects.equals(result.getExplanation(), "Incorrect/invalid " + ElasticSearchClientService.PROP_SSL_CONTEXT_SERVICE.getDisplayName())
@@ -201,9 +166,9 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
+        assertEquals(3, results.size());
         assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
                         && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
@@ -227,9 +192,9 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
                 runner.getLogger(),
                 Collections.emptyMap()
         );
-        assertEquals(4, results.size());
+        assertEquals(3, results.size());
         assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SUCCESSFUL).count(), results.toString());
-        assertEquals(2, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
+        assertEquals(1, results.stream().filter(result -> result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(), results.toString());
         assertEquals(1, results.stream().filter(
                 result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_CONNECTION)
                         && Objects.equals(result.getExplanation(), "Unable to retrieve system summary from Elasticsearch root endpoint")
@@ -240,29 +205,63 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
 
     @Test
     void testBasicSearch() throws Exception {
-        assertBasicSearch(null);
+        final Map<String, Object> temp = new MapBuilder()
+            .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
+                    "aggs", new MapBuilder()
+                            .of("term_counts", new MapBuilder()
+                                    .of("terms", new MapBuilder()
+                                            .of("field", "msg", "size", 5)
+                                            .build())
+                                    .build())
+                            .build())
+                .build();
+        final String query = prettyJson(temp);
+
+        final SearchResponse response = service.search(query, INDEX, type, null);
+        assertNotNull(response, "Response was null");
+
+        assertEquals(15, response.getNumberOfHits(), "Wrong count");
+        assertFalse(response.isTimedOut(), "Timed out");
+        assertNotNull(response.getHits(), "Hits was null");
+        assertEquals(10, response.getHits().size(), "Wrong number of hits");
+        assertNotNull(response.getAggregations(), "Aggregations are missing");
+        assertEquals(1, response.getAggregations().size(), "Aggregation count is wrong");
+        assertNull(response.getScrollId(), "Unexpected ScrollId");
+        assertNull(response.getSearchAfter(), "Unexpected Search_After");
+        assertNull(response.getPitId(), "Unexpected pitId");
+
+        @SuppressWarnings("unchecked") final Map<String, Object> termCounts = (Map<String, Object>) response.getAggregations().get("term_counts");
+        assertNotNull(termCounts, "Term counts was missing");
+        @SuppressWarnings("unchecked") final List<Map<String, Object>> buckets = (List<Map<String, Object>>) termCounts.get("buckets");
+        assertNotNull(buckets, "Buckets branch was empty");
+        final Map<String, Object> expected = new MapBuilder()
+                .of("one", 1, "two", 2, "three", 3,
+                        "four", 4, "five", 5)
+                .build();
+
+        buckets.forEach( aggRes -> {
+            final String key = (String) aggRes.get("key");
+            final Integer docCount = (Integer) aggRes.get("doc_count");
+            assertEquals(expected.get(key), docCount, "${key} did not match.");
+        });
     }
 
     @Test
     void testBasicSearchRequestParameters() throws Exception {
-        assertBasicSearch(createParameters("preference", "_local"));
-    }
-
-    private void assertBasicSearch(final Map<String, String> requestParameters) throws JsonProcessingException {
         final Map<String, Object> temp = new MapBuilder()
                 .of("size", 10, "query", new MapBuilder().of("match_all", new HashMap<>()).build(),
                         "aggs", new MapBuilder()
-                                .of("term_counts", new MapBuilder()
-                                        .of("terms", new MapBuilder()
-                                                .of("field", "msg", "size", 5)
-                                                .build())
+                        .of("term_counts", new MapBuilder()
+                                .of("terms", new MapBuilder()
+                                        .of("field", "msg", "size", 5)
                                         .build())
                                 .build())
+                        .build())
                 .build();
         final String query = prettyJson(temp);
 
 
-        final SearchResponse response = service.search(query, "messages", type, requestParameters);
+        final SearchResponse response = service.search(query, "messages", type, createParameters("preference", "_local"));
         assertNotNull(response, "Response was null");
 
         assertEquals(15, response.getNumberOfHits(), "Wrong count");
@@ -285,47 +284,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
             final String key = (String) aggRes.get("key");
             final Integer docCount = (Integer) aggRes.get("doc_count");
             assertEquals(expected.get(key), docCount, String.format("%s did not match.", key));
-        });
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    void testSearchEmptySource() throws Exception {
-        final Map<String, Object> temp = new MapBuilder()
-                .of("size", 2,
-                        "query", new MapBuilder().of("match_all", new HashMap<>()).build())
-                .build();
-        final String query = prettyJson(temp);
-
-
-        final SearchResponse response = service.search(query, "messages", type, createParameters("_source", "not_exists"));
-        assertNotNull(response, "Response was null");
-
-        assertNotNull(response.getHits(), "Hits was null");
-        assertEquals(2, response.getHits().size(), "Wrong number of hits");
-        response.getHits().forEach(h -> {
-            assertInstanceOf(Map.class, h.get("_source"), "Source not a Map");
-            assertTrue(((Map<String, Object>)h.get("_source")).isEmpty(), "Source not empty");
-        });
-    }
-
-    @Test
-    void testSearchNoSource() throws Exception {
-        final Map<String, Object> temp = new MapBuilder()
-                .of("size", 1,
-                        "query", new MapBuilder().of("match_all", new HashMap<>()).build())
-                .build();
-        final String query = prettyJson(temp);
-
-
-        final SearchResponse response = service.search(query, "no_source", type, null);
-        assertNotNull(response, "Response was null");
-
-        assertNotNull(response.getHits(), "Hits was null");
-        assertEquals(1, response.getHits().size(), "Wrong number of hits");
-        response.getHits().forEach(h -> {
-            assertFalse(h.isEmpty(), "Hit was empty");
-            assertFalse(h.containsKey("_source"), "Hit contained _source");
         });
     }
 
@@ -633,19 +591,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     }
 
     @Test
-    void testGetEmptySource() {
-        final Map<String, Object> doc = service.get(INDEX, type, "1", Collections.singletonMap("_source", "not_exist"));
-        assertNotNull(doc, "Doc was null");
-        assertTrue(doc.isEmpty(), "Doc was not empty");
-    }
-    @Test
-    void testGetNoSource() {
-        final Map<String, Object> doc = service.get("no_source", type, "1", null);
-        assertNotNull(doc, "Doc was null");
-        assertTrue(doc.isEmpty(), "Doc was not empty");
-    }
-
-    @Test
     void testGetNotFound() {
         final ElasticsearchException ee = assertThrows(ElasticsearchException.class, () -> service.get(INDEX, type, "not_found", null));
         assertTrue(ee.isNotFound());
@@ -655,71 +600,6 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     void testExists() {
         assertTrue(service.exists(INDEX, null), "index does not exist");
         assertFalse(service.exists("index-does-not-exist", null), "index exists");
-    }
-
-    @Test
-    void testCompression() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.COMPRESSION, "true");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
-    }
-
-    @Test
-    void testNoMetaHeader() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.SEND_META_HEADER, "false");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
-    }
-
-    @Test
-    void testStrictDeprecation() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.STRICT_DEPRECATION, "true");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
-    }
-
-    @Test
-    void testNodeSelector() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_SKIP_DEDICATED_MASTERS.getValue());
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
-    }
-
-    @Test
-    void testRestClientRequestHeaders() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, "User-Agent", "NiFi Integration Tests");
-        runner.setProperty(service, "X-Extra_header", "Request should still work");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
-    }
-
-    @Test
-    void testSniffer() {
-        runner.disableControllerService(service);
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "false");
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "true");
-        runner.assertNotValid(service);
-
-        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "true");
-        runner.enableControllerService(service);
-        runner.assertValid(service);
-
-        assertTrue(service.exists(INDEX, null), "index does not exist");
     }
 
     @Test
@@ -758,12 +638,13 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
     }
 
     private void suppressNulls(final boolean suppressNulls) {
+        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.disableControllerService(service);
         runner.setProperty(service, ElasticSearchClientService.SUPPRESS_NULLS, suppressNulls
                 ? ElasticSearchClientService.ALWAYS_SUPPRESS.getValue()
                 : ElasticSearchClientService.NEVER_SUPPRESS.getValue());
         runner.enableControllerService(service);
-        runner.assertValid(service);
+        runner.assertValid();
     }
 
     @Test
@@ -921,38 +802,4 @@ class ElasticSearchClientService_IT extends AbstractElasticsearch_IT {
         Thread.sleep(1000);
     }
 
-    private void assertVerifySnifferSkipped(final List<ConfigVerificationResult> results) {
-        assertEquals(1, results.stream().filter(
-                        result -> Objects.equals(result.getVerificationStepName(), ElasticSearchClientServiceImpl.VERIFICATION_STEP_SNIFFER)
-                                && Objects.equals(result.getExplanation(), "Sniff on Connection not enabled")
-                                && result.getOutcome() == ConfigVerificationResult.Outcome.SKIPPED).count(),
-                results.toString()
-        );
-    }
-
-    protected Pair<String, String> createApiKeyForIndex() throws IOException {
-        final String body = prettyJson(new MapBuilder()
-                .of("name", "test-api-key")
-                .of("role_descriptors", new MapBuilder()
-                        .of("test-role", new MapBuilder()
-                                .of("cluster", Collections.singletonList("all"))
-                                .of("index", Collections.singletonList(new MapBuilder()
-                                        .of("names", Collections.singletonList("*"))
-                                        .of("privileges", Collections.singletonList("all"))
-                                        .build()))
-                                .build())
-                        .build())
-                .build());
-        final String endpoint = String.format("%s/%s", elasticsearchHost, "_security/api_key");
-        final Request request = new Request("POST", endpoint);
-        final HttpEntity jsonBody = new NStringEntity(body, ContentType.APPLICATION_JSON);
-        request.setEntity(jsonBody);
-
-        final Response response = testDataManagementClient.performRequest(request);
-        final InputStream inputStream = response.getEntity().getContent();
-        final byte[] result = IOUtils.toByteArray(inputStream);
-        inputStream.close();
-        final Map<String, String> ret = MAPPER.readValue(new String(result, StandardCharsets.UTF_8), new TypeReference<Map<String, String>>() {});
-        return Pair.of(ret.get("id"), ret.get("api_key"));
-    }
 }

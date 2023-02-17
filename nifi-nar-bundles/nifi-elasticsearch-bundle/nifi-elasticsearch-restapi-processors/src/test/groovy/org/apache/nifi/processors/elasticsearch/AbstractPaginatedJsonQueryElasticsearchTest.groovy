@@ -17,22 +17,19 @@
 
 package org.apache.nifi.processors.elasticsearch
 
+import org.apache.nifi.components.AllowableValue
 import org.apache.nifi.flowfile.FlowFile
-import org.apache.nifi.processors.elasticsearch.api.AggregationResultsFormat
-import org.apache.nifi.processors.elasticsearch.api.PaginationType
-import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
-import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
-import org.junit.jupiter.api.Test
+import org.junit.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.Assert.assertThrows
 
 abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractPaginatedJsonQueryElasticsearch> {
     abstract boolean isInput()
@@ -49,7 +46,12 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
                 "'%s' validated against 'not-enum' is invalid because Given value not found in allowed set '%s'\n" +
                 "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> " +
                 "is a non-negative integer and TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n",
-                AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE.getName(), PaginationType.values().collect {p -> p.getValue()}.join(", "),
+                AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE.getName(),
+                [
+                        AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL,
+                        AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SEARCH_AFTER,
+                        AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME
+                ].join(", "),
                 AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE.getName(),
                 AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE.getName()
         )))
@@ -78,7 +80,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // paged query hits splitting
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue())
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         input = runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 10, 0, 0)
         runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
@@ -100,7 +102,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // paged query hits combined
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue())
+        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
         input = runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
         hits = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0)
@@ -122,7 +124,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setThrowErrorInDelete(true)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([sort: [ msg: "desc" ], query: [ match_all: [:] ]])))
 
         // still expect "success" output for exception during final clean-up
@@ -144,9 +146,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setThrowErrorInDelete(true)
-        runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL.getValue())
-        runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL.getValue())
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([sort: [ msg: "desc" ], query: [ match_all: [:] ]])))
 
         // still expect "success" output for exception during final clean-up
@@ -168,7 +168,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setThrowErrorInPit(true)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([sort: [ msg: "desc" ], query: [ match_all: [:] ]])))
 
         // expect "failure" output for exception during query setup
@@ -189,7 +189,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
     void testQuerySortError() {
         // test PiT without sort
         final TestRunner runner = createRunner(false)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME)
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
 
         // expect "failure" output for exception during query setup
@@ -208,7 +208,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // test search_after without sort
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SEARCH_AFTER.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SEARCH_AFTER)
         runOnce(runner)
         testCounts(runner, 0, 0, isInput() ? 1 : 0, 0)
         assertThat(runner.getLogger().getErrorMessages().stream()
@@ -222,27 +222,27 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
 
 
         // test scroll without sort (should succeed)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL)
         runMultiple(runner, 2)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
     }
 
     @Test
     void testScroll() {
-        testPagination(PaginationType.SCROLL)
+        testPagination(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SCROLL)
     }
 
     @Test
     void testPit() {
-        testPagination(PaginationType.POINT_IN_TIME)
+        testPagination(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_POINT_IN_TIME)
     }
 
     @Test
     void testSearchAfter() {
-        testPagination(PaginationType.SEARCH_AFTER)
+        testPagination(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_SEARCH_AFTER)
     }
 
-    abstract void testPagination(final PaginationType paginationType)
+    abstract void testPagination(final AllowableValue paginationType)
 
     private void runMultiple(final TestRunner runner, final int maxIterations) {
         if (isInput()) {
@@ -278,7 +278,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         service.setMaxPages(0)
 
         // test that an empty flow file is produced for a per query setup
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY)
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
 
@@ -288,7 +288,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         reset(runner)
 
         // test that an empty flow file is produced for a per hit setup
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_HIT)
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
 
@@ -298,7 +298,7 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         reset(runner)
 
         // test that an empty flow file is produced for a per response setup
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_RESPONSE.getValue())
+        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE)
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
 

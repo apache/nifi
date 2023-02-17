@@ -38,7 +38,8 @@ import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,8 +51,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiConsumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
 
 public class ParametersIT extends FrameworkIntegrationTest {
 
@@ -444,7 +444,7 @@ public class ParametersIT extends FrameworkIntegrationTest {
         properties.put("password", "#{pass}");
         usernamePassword.setProperties(properties);
 
-        final ProcessContext processContext = new StandardProcessContext(usernamePassword, getFlowController().getControllerServiceProvider(),
+        final ProcessContext processContext = new StandardProcessContext(usernamePassword, getFlowController().getControllerServiceProvider(), getFlowController().getEncryptor(),
             getFlowController().getStateManagerProvider().getStateManager(usernamePassword.getIdentifier()), () -> false, getFlowController());
         final PropertyDescriptor descriptor = usernamePassword.getPropertyDescriptor("password");
         final PropertyValue propertyValue = processContext.getProperty(descriptor);
@@ -466,8 +466,12 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Map<String, String> properties = new HashMap<>();
         properties.put("username", "${#{pass}}");
 
-        assertThrows(IllegalArgumentException.class, () -> usernamePassword.setProperties(properties),
-                "Was able to set properties when referencing sensitive parameter from within EL");
+        try {
+            usernamePassword.setProperties(properties);
+            Assert.fail("Was able to set properties when referencing sensitive parameter from within EL");
+        } catch (final IllegalArgumentException iae) {
+            // Expected. Since the parameter is sensitive, it may referenced by a sensitive property
+        }
     }
 
     @Test
@@ -483,8 +487,12 @@ public class ParametersIT extends FrameworkIntegrationTest {
         final Map<String, String> properties = new HashMap<>();
         properties.put("password", "${#{pass}}");
 
-        assertThrows(IllegalArgumentException.class, () -> usernamePassword.setProperties(properties),
-                "Was able to set properties when referencing sensitive parameter from within EL");
+        try {
+            usernamePassword.setProperties(properties);
+            Assert.fail("Was able to set properties when referencing sensitive parameter from within EL");
+        } catch (final IllegalArgumentException iae) {
+            // Expected. Since the property is sensitive, it may reference a parameter only if that is the only value.
+        }
     }
 
     private ParameterContext createParameterContext(final ParameterReferenceManager referenceManager) {

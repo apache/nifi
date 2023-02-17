@@ -17,7 +17,8 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -27,11 +28,16 @@ public class TargetUriMatcherTest extends AbstractAttributeMatcherTest {
     @Mock
     private RemoteProcessGroup component;
 
+    @Before
+    public void setUp() {
+        super.setUp();
+        Mockito.when(component.getTargetUris()).thenReturn(TARGET_URIS);
+    }
+
     @Test
     public void testMatching() {
         // given
         final TargetUriMatcher testSubject = new TargetUriMatcher();
-        Mockito.when(component.getTargetUris()).thenReturn(TARGET_URIS);
         givenSearchTerm("lorem");
 
         // when

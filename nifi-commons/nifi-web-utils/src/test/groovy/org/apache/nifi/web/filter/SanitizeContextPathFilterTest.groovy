@@ -22,8 +22,6 @@ import javax.servlet.FilterConfig
 import javax.servlet.ServletContext
 import javax.servlet.http.HttpServletRequest
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-
 class SanitizeContextPathFilterTest {
 
     private static String getValue(String parameterName, Map<String, String> params = [:]) {
@@ -47,7 +45,7 @@ class SanitizeContextPathFilterTest {
         scpf.init(mockFilterConfig)
 
         // Assert
-        assertEquals(EXPECTED_ALLOWED_CONTEXT_PATHS, scpf.getAllowedContextPaths())
+        assert scpf.getAllowedContextPaths() == EXPECTED_ALLOWED_CONTEXT_PATHS
     }
 
     @Test
@@ -66,7 +64,7 @@ class SanitizeContextPathFilterTest {
         scpf.init(mockFilterConfig)
 
         // Assert
-        assertEquals(EXPECTED_ALLOWED_CONTEXT_PATHS, scpf.getAllowedContextPaths())
+        assert scpf.getAllowedContextPaths() == EXPECTED_ALLOWED_CONTEXT_PATHS
     }
 
     @Test
@@ -115,6 +113,6 @@ class SanitizeContextPathFilterTest {
         scpf.injectContextPathAttribute(mockRequest)
 
         // Assert
-        assertEquals(EXPECTED_CONTEXT_PATH, requestAttributes["contextPath"])
+        assert requestAttributes["contextPath"] == EXPECTED_CONTEXT_PATH
     }
 }

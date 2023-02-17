@@ -16,7 +16,13 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -31,24 +37,15 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsProviderFactory;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.amazonaws.auth.AWSCredentialsProvider;
 
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ACCESS_KEY;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_ENDPOINT;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_SIGNER_OVERRIDE;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.CREDENTIALS_FILE;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.SECRET_KEY;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS;
@@ -77,7 +74,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
     public static final PropertyDescriptor ASSUME_ROLE_NAME = CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
     public static final PropertyDescriptor MAX_SESSION_TIME = CredentialPropertyDescriptors.MAX_SESSION_TIME;
-    public static final PropertyDescriptor ASSUME_ROLE_STS_REGION = CredentialPropertyDescriptors.ASSUME_ROLE_STS_REGION;
 
     private static final List<PropertyDescriptor> properties;
 
@@ -95,16 +91,11 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_EXTERNAL_ID);
         props.add(ASSUME_ROLE_PROXY_HOST);
         props.add(ASSUME_ROLE_PROXY_PORT);
-        props.add(ASSUME_ROLE_STS_REGION);
         props.add(ASSUME_ROLE_STS_ENDPOINT);
-        props.add(ASSUME_ROLE_STS_SIGNER_OVERRIDE);
-        props.add(ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME);
-        props.add(ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION);
         properties = Collections.unmodifiableList(props);
     }
 
     private volatile AWSCredentialsProvider credentialsProvider;
-    private volatile Map<PropertyDescriptor, String> evaluatedProperties;
     protected final CredentialsProviderFactory credentialsProviderFactory = new CredentialsProviderFactory();
 
     @Override
@@ -118,19 +109,13 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     }
 
     @Override
-    public AwsCredentialsProvider getAwsCredentialsProvider() {
-        // Avoiding instantiation until actually used, in case v1-related configuration is not compatible with v2 clients
-        return credentialsProviderFactory.getAwsCredentialsProvider(evaluatedProperties);
-    }
-
-    @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         return credentialsProviderFactory.validate(validationContext);
     }
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
-        evaluatedProperties = new HashMap<>(context.getProperties());
+        final Map<PropertyDescriptor, String> evaluatedProperties = new HashMap<>(context.getProperties());
         evaluatedProperties.keySet().forEach(propertyDescriptor -> {
             if (propertyDescriptor.isExpressionLanguageSupported()) {
                 evaluatedProperties.put(propertyDescriptor,

@@ -41,7 +41,6 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
-import org.apache.nifi.registry.flow.diff.FlowComparatorVersionedStrategy;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.diff.StandardComparableDataFlow;
@@ -932,7 +931,7 @@ public class RegistryService {
 
         // Compare the two versions of the flow
         final FlowComparator flowComparator = new StandardFlowComparator(comparableFlowA, comparableFlowB,
-                null, new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier, FlowComparatorVersionedStrategy.DEEP);
+                null, new ConciseEvolvingDifferenceDescriptor(), Function.identity(), VersionedComponent::getIdentifier);
         final FlowComparison flowComparison = flowComparator.compare();
 
         final VersionedFlowDifference result = new VersionedFlowDifference();

@@ -21,15 +21,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 import java.nio.charset.StandardCharsets
-import java.util.stream.Collectors
-import java.util.stream.Stream
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertNotEquals
 import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
 
 class PBKDF2SecureHasherTest {
 
@@ -38,21 +31,25 @@ class PBKDF2SecureHasherTest {
         // Arrange
         int cost = 10_000
         int dkLength = 32
+
+        int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
+
         final String EXPECTED_HASH_HEX = "2c47a6d801b71e087f94792079c40880aea29013bfffd0ab94b1bc112ea52511"
 
-        // Act
         PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher(cost, dkLength)
-        List<String> results = Stream.iterate(0, n -> n + 1)
-                .limit(10)
-                .map(iteration -> {
-                    byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
-                    return new String(Hex.encode(hash))
-                })
-                .collect(Collectors.toList())
+
+        def results = []
+
+        // Act
+        testIterations.times { int i ->
+            byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
+            String hashHex = new String(Hex.encode(hash))
+            results << hashHex
+        }
 
         // Assert
-        results.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
+        assert results.every { it == EXPECTED_HASH_HEX }
     }
 
     @Test
@@ -62,22 +59,26 @@ class PBKDF2SecureHasherTest {
         int cost = 10_000
         int saltLength = 16
         int dkLength = 32
+
+        int testIterations = 10
         byte[] inputBytes = "This is a sensitive value".bytes
+
         final String EXPECTED_HASH_HEX = "2c47a6d801b71e087f94792079c40880aea29013bfffd0ab94b1bc112ea52511"
 
-        //Act
         PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher(prf, cost, saltLength, dkLength)
-        List<String> results = Stream.iterate(0, n -> n + 1)
-                .limit(10)
-                .map(iteration -> {
-                    byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
-                    return new String(Hex.encode(hash))
-                })
-                .collect(Collectors.toList())
+
+        def results = []
+
+        // Act
+        testIterations.times { int i ->
+            byte[] hash = pbkdf2SecureHasher.hashRaw(inputBytes)
+            String hashHex = Hex.encode(hash)
+            results << hashHex
+        }
 
         // Assert
-        assertEquals(results.unique().size(), results.size())
-        results.forEach(result -> assertNotEquals(EXPECTED_HASH_HEX, result))
+        assert results.unique().size() == results.size()
+        assert results.every { it != EXPECTED_HASH_HEX }
     }
 
     @Test
@@ -118,20 +119,20 @@ class PBKDF2SecureHasherTest {
         String differentSaltHashBase64 = arbitrarySaltHasher.hashBase64(input)
 
         // Assert
-        assertArrayEquals(EXPECTED_HASH_BYTES, staticSaltHash)
-        assertArrayEquals(EXPECTED_HASH_BYTES, arbitrarySaltHash)
-        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentArbitrarySaltHash))
-        assertFalse(Arrays.equals(EXPECTED_HASH_BYTES, differentSaltHash))
+        assert staticSaltHash == EXPECTED_HASH_BYTES
+        assert arbitrarySaltHash == EXPECTED_HASH_BYTES
+        assert differentArbitrarySaltHash != EXPECTED_HASH_BYTES
+        assert differentSaltHash != EXPECTED_HASH_BYTES
 
-        assertEquals(EXPECTED_HASH_HEX, staticSaltHashHex)
-        assertEquals(EXPECTED_HASH_HEX, arbitrarySaltHashHex)
-        assertNotEquals(EXPECTED_HASH_HEX, differentArbitrarySaltHashHex)
-        assertNotEquals(EXPECTED_HASH_HEX, differentSaltHashHex)
+        assert staticSaltHashHex == EXPECTED_HASH_HEX
+        assert arbitrarySaltHashHex == EXPECTED_HASH_HEX
+        assert differentArbitrarySaltHashHex != EXPECTED_HASH_HEX
+        assert differentSaltHashHex != EXPECTED_HASH_HEX
 
-        assertEquals(EXPECTED_HASH_BASE64, staticSaltHashBase64)
-        assertEquals(EXPECTED_HASH_BASE64, arbitrarySaltHashBase64)
-        assertNotEquals(EXPECTED_HASH_BASE64, differentArbitrarySaltHashBase64)
-        assertNotEquals(EXPECTED_HASH_BASE64, differentSaltHashBase64)
+        assert staticSaltHashBase64 == EXPECTED_HASH_BASE64
+        assert arbitrarySaltHashBase64 == EXPECTED_HASH_BASE64
+        assert differentArbitrarySaltHashBase64 != EXPECTED_HASH_BASE64
+        assert differentSaltHashBase64 != EXPECTED_HASH_BASE64
     }
 
     @Test
@@ -168,7 +169,7 @@ class PBKDF2SecureHasherTest {
         String hashHex = pbkdf2SecureHasher.hashHex(input)
 
         // Assert
-        assertEquals(EXPECTED_HASH_HEX, hashHex)
+        assert hashHex == EXPECTED_HASH_HEX
     }
 
     @Test
@@ -184,7 +185,7 @@ class PBKDF2SecureHasherTest {
         String hashB64 = pbkdf2SecureHasher.hashBase64(input)
 
         // Assert
-        assertEquals(EXPECTED_HASH_BASE64, hashB64)
+        assert hashB64 == EXPECTED_HASH_BASE64
     }
 
     @Test
@@ -195,18 +196,23 @@ class PBKDF2SecureHasherTest {
         final String EXPECTED_HASH_HEX = "7f2d8d8c7aaa45471f6c05a8edfe0a3f75fe01478cc965c5dce664e2ac6f5d0a"
         final String EXPECTED_HASH_BASE64 = "fy2NjHqqRUcfbAWo7f4KP3X+AUeMyWXF3OZk4qxvXQo"
 
-        // Act
         PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
-        List<String> hexResults = inputs.stream()
-                .map(input -> pbkdf2SecureHasher.hashHex(input))
-                .collect(Collectors.toList())
-        List<String> B64Results = inputs.stream()
-                .map(input ->  pbkdf2SecureHasher.hashBase64(input))
-                .collect(Collectors.toList())
+
+        def hexResults = []
+        def B64Results = []
+
+        // Act
+        inputs.each { String input ->
+            String hashHex = pbkdf2SecureHasher.hashHex(input)
+            hexResults << hashHex
+
+            String hashB64 = pbkdf2SecureHasher.hashBase64(input)
+            B64Results << hashB64
+        }
 
         // Assert
-        hexResults.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result))
-        B64Results.forEach(result -> assertEquals(EXPECTED_HASH_BASE64, result))
+        assert hexResults.every { it == EXPECTED_HASH_HEX }
+        assert B64Results.every { it == EXPECTED_HASH_BASE64 }
     }
 
     /**
@@ -240,8 +246,8 @@ class PBKDF2SecureHasherTest {
 
         // Assert
         final long MIN_DURATION_NANOS = 75_000_000 // 75 ms
-        assertTrue(resultDurations.min() > MIN_DURATION_NANOS)
-        assertTrue(resultDurations.sum() / testIterations > MIN_DURATION_NANOS)
+        assert resultDurations.min() > MIN_DURATION_NANOS
+        assert resultDurations.sum() / testIterations > MIN_DURATION_NANOS
     }
 
     @Test
@@ -256,67 +262,99 @@ class PBKDF2SecureHasherTest {
         }
 
         // Assert
-        assertTrue(results.every())
+        assert results.every()
     }
 
     @Test
     void testShouldFailIterationCountBoundary() throws Exception {
         // Arrange
-        List<Integer> invalidIterationCounts = [-1, 0, Integer.MAX_VALUE + 1]
+        def invalidIterationCounts = [-1, 0, Integer.MAX_VALUE + 1]
 
-        // Act and Assert
-        invalidIterationCounts.forEach(i -> assertFalse(PBKDF2SecureHasher.isIterationCountValid(i)))
+        // Act
+        def results = invalidIterationCounts.collect { i ->
+            boolean valid = PBKDF2SecureHasher.isIterationCountValid(i)
+            valid
+        }
+
+        // Assert
+        results.each { valid ->
+            assert !valid
+        }
     }
 
     @Test
     void testShouldVerifyDKLengthBoundary() throws Exception {
         // Arrange
-        List<Integer> validHLengths = [32, 64]
+        def validHLengths = [32, 64]
 
         // 1 and MAX_VALUE are the length boundaries, inclusive
-        List<Integer> validDKLengths = [1, 1000, 1_000_000, Integer.MAX_VALUE]
+        def validDKLengths = [1, 1000, 1_000_000, Integer.MAX_VALUE]
 
-        // Act and Assert
-        validHLengths.forEach(hLen -> {
-            validDKLengths.forEach(dkLength -> {
-                assertTrue(PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength))
-            })
-        })
+        // Act
+        def results = validHLengths.collectEntries { int hLen ->
+            def dkResults = validDKLengths.collect { int dkLength ->
+                boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
+                valid
+            }
+            [hLen, dkResults]
+        }
+
+        // Assert
+        results.each { int hLen, def dkResults ->
+            assert dkResults.every()
+        }
     }
 
     @Test
     void testShouldFailDKLengthBoundary() throws Exception {
         // Arrange
-        List<Integer> validHLengths = [32, 64]
+        def validHLengths = [32, 64]
 
         // MAX_VALUE + 1 will become MIN_VALUE because of signed integer math
-        List<Integer> invalidDKLengths = [-1, 0, Integer.MAX_VALUE + 1, new Integer(Integer.MAX_VALUE * 2 - 1)]
+        def invalidDKLengths = [-1, 0, Integer.MAX_VALUE + 1, new Integer(Integer.MAX_VALUE * 2 - 1)]
 
-        // Act and Assert
-        validHLengths.forEach(hLen -> {
-            invalidDKLengths.forEach(dkLength -> {
-                assertFalse(PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength))
-            })
-        })
+        // Act
+        def results = validHLengths.collectEntries { int hLen ->
+            def dkResults = invalidDKLengths.collect { int dkLength ->
+                boolean valid = PBKDF2SecureHasher.isDKLengthValid(hLen, dkLength)
+                valid
+            }
+            [hLen, dkResults]
+        }
+
+        // Assert
+        results.each { int hLen, def dkResults ->
+            assert dkResults.every { boolean valid -> !valid }
+        }
     }
 
     @Test
     void testShouldVerifySaltLengthBoundary() throws Exception {
         // Arrange
-        List<Integer> saltLengths = [0, 16, 64]
+        def saltLengths = [0, 16, 64]
 
-        // Act and Assert
-        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
-        saltLengths.forEach(saltLength -> assertTrue(pbkdf2SecureHasher.isSaltLengthValid(saltLength)))
+        // Act
+        def results = saltLengths.collect { saltLength ->
+            def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
+            isValid
+        }
+
+        // Assert
+        assert results.every()
     }
 
     @Test
     void testShouldFailSaltLengthBoundary() throws Exception {
         // Arrange
-        List<Integer> saltLengths = [-8, 1, Integer.MAX_VALUE + 1]
+        def saltLengths = [-8, 1, Integer.MAX_VALUE + 1]
 
-        // Act and Assert
-        PBKDF2SecureHasher pbkdf2SecureHasher = new PBKDF2SecureHasher()
-        saltLengths.forEach(saltLength -> assertFalse(pbkdf2SecureHasher.isSaltLengthValid(saltLength)))
+        // Act
+        def results = saltLengths.collect { saltLength ->
+            def isValid = new PBKDF2SecureHasher().isSaltLengthValid(saltLength)
+            isValid
+        }
+
+        // Assert
+        results.each { assert !it }
     }
 }

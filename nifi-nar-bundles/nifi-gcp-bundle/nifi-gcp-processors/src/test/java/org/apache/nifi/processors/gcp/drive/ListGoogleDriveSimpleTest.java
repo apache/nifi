@@ -38,6 +38,7 @@ import static org.mockito.Mockito.when;
 
 public class ListGoogleDriveSimpleTest {
     private ListGoogleDrive testSubject;
+
     private ProcessContext mockProcessContext;
     private Drive mockDriverService;
 

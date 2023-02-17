@@ -24,11 +24,10 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -43,7 +42,7 @@ public class ProvenanceDataAuthorizableTest {
     private Authorizer testAuthorizer;
     private ProvenanceDataAuthorizable testProvenanceDataAuthorizable;
 
-    @BeforeEach
+    @Before
     public void setup() {
         Authorizable testProcessorAuthorizable;
         testProcessorAuthorizable = mock(Authorizable.class);
@@ -64,11 +63,9 @@ public class ProvenanceDataAuthorizableTest {
         testProvenanceDataAuthorizable = new ProvenanceDataAuthorizable(testProcessorAuthorizable);
     }
 
-    @Test
+    @Test(expected = AccessDeniedException.class)
     public void testAuthorizeNullUser() {
-        assertThrows( AccessDeniedException.class, () ->
-            testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ,
-                    null, null));
+        testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, null, null);
     }
 
     @Test
@@ -77,13 +74,10 @@ public class ProvenanceDataAuthorizableTest {
         assertEquals(Result.Denied, result.getResult());
     }
 
-    @Test
+    @Test(expected = AccessDeniedException.class)
     public void testAuthorizeUnauthorizedUser() {
         final NiFiUser user = new Builder().identity("unknown").build();
-
-        assertThrows(AccessDeniedException.class, () ->
-            testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user,
-                    null));
+        testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
     }
 
     @Test

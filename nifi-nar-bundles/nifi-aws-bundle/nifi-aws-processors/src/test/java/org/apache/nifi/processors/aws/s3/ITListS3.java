@@ -41,7 +41,6 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
-        waitForFilesAvailable();
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
@@ -63,7 +62,6 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
-        waitForFilesAvailable();
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
@@ -93,7 +91,6 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
-        waitForFilesAvailable();
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
@@ -114,7 +111,6 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
-        waitForFilesAvailable();
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
@@ -135,7 +131,6 @@ public class ITListS3 extends AbstractS3IT {
         putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
-        waitForFilesAvailable();
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
@@ -158,13 +153,12 @@ public class ITListS3 extends AbstractS3IT {
         objectTags.add(new Tag("dummytag1", "dummyvalue1"));
         objectTags.add(new Tag("dummytag2", "dummyvalue2"));
 
-        putFileWithObjectTag("t/fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
-        waitForFilesAvailable();
+        putFileWithObjectTag("b/fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
         runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.PREFIX, "t/");
+        runner.setProperty(ListS3.PREFIX, "b/");
         runner.setProperty(ListS3.REGION, REGION);
         runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
         runner.setProperty(ListS3.WRITE_OBJECT_TAGS, "true");
@@ -175,7 +169,7 @@ public class ITListS3 extends AbstractS3IT {
 
         MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
 
-        flowFiles.assertAttributeEquals("filename", "t/fileWithTag");
+        flowFiles.assertAttributeEquals("filename", "b/fileWithTag");
         flowFiles.assertAttributeExists("s3.tag.dummytag1");
         flowFiles.assertAttributeExists("s3.tag.dummytag2");
         flowFiles.assertAttributeEquals("s3.tag.dummytag1", "dummyvalue1");
@@ -188,13 +182,12 @@ public class ITListS3 extends AbstractS3IT {
         userMetadata.put("dummy.metadata.1", "dummyvalue1");
         userMetadata.put("dummy.metadata.2", "dummyvalue2");
 
-        putFileWithUserMetadata("m/fileWithUserMetadata", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), userMetadata);
-        waitForFilesAvailable();
+        putFileWithUserMetadata("b/fileWithUserMetadata", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), userMetadata);
 
         final TestRunner runner = TestRunners.newTestRunner(new ListS3());
 
         runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(ListS3.PREFIX, "m/");
+        runner.setProperty(ListS3.PREFIX, "b/");
         runner.setProperty(ListS3.REGION, REGION);
         runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
         runner.setProperty(ListS3.WRITE_USER_METADATA, "true");
@@ -205,19 +198,11 @@ public class ITListS3 extends AbstractS3IT {
 
         MockFlowFile flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS).get(0);
 
-        flowFiles.assertAttributeEquals("filename", "m/fileWithUserMetadata");
+        flowFiles.assertAttributeEquals("filename", "b/fileWithUserMetadata");
         flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.1");
         flowFiles.assertAttributeExists("s3.user.metadata.dummy.metadata.2");
         flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.1", "dummyvalue1");
         flowFiles.assertAttributeEquals("s3.user.metadata.dummy.metadata.2", "dummyvalue2");
-    }
-
-    private void waitForFilesAvailable() {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 
 }

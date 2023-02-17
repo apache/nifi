@@ -30,10 +30,7 @@ import javax.crypto.spec.SecretKeySpec
 import java.security.SecureRandom
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
+import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class AESKeyedCipherProviderGroovyTest {
@@ -83,7 +80,7 @@ class AESKeyedCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -110,7 +107,7 @@ class AESKeyedCipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assertEquals(PLAINTEXT, recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -151,7 +148,7 @@ class AESKeyedCipherProviderGroovyTest {
                 logger.info("Recovered: ${recovered}")
 
                 // Assert
-                assertEquals(PLAINTEXT, recovered)
+                assert PLAINTEXT.equals(recovered)
             }
         }
     }
@@ -164,11 +161,12 @@ class AESKeyedCipherProviderGroovyTest {
         final EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, null, true))
+        def msg = shouldFail(IllegalArgumentException) {
+            cipherProvider.getCipher(encryptionMethod, null, true)
+        }
 
         // Assert
-        assertTrue(iae.message.contains("The key must be specified"))
+        assert msg =~ "The key must be specified"
     }
 
     @Test
@@ -177,16 +175,17 @@ class AESKeyedCipherProviderGroovyTest {
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
         SecretKey localKey = new SecretKeySpec(Hex.decodeHex("0123456789ABCDEF" as char[]), "AES")
-        assertFalse([128, 192, 256].contains(localKey.encoded.length))
+        assert ![128, 192, 256].contains(localKey.encoded.length)
 
         final EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, localKey, true))
+        def msg = shouldFail(IllegalArgumentException) {
+            cipherProvider.getCipher(encryptionMethod, localKey, true)
+        }
 
         // Assert
-        assertTrue(iae.message.contains("The key must be of length [128, 192, 256]"))
+        assert msg =~ "The key must be of length \\[128, 192, 256\\]"
     }
 
     @Test
@@ -195,11 +194,12 @@ class AESKeyedCipherProviderGroovyTest {
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider()
 
         // Act
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(null, key, true))
+        def msg = shouldFail(IllegalArgumentException) {
+            cipherProvider.getCipher(null, key, true)
+        }
 
         // Assert
-        assertTrue(iae.message.contains("The encryption method must be specified"))
+        assert msg =~ "The encryption method must be specified"
     }
 
     @Test
@@ -210,11 +210,12 @@ class AESKeyedCipherProviderGroovyTest {
         final EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES
 
         // Act
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, key, true))
+        def msg = shouldFail(IllegalArgumentException) {
+            cipherProvider.getCipher(encryptionMethod, key, true)
+        }
 
         // Assert
-        assertTrue(iae.message.contains("requires a PBECipherProvider"))
+        assert msg =~ " requires a PBECipherProvider"
     }
 
     @Test
@@ -243,7 +244,7 @@ class AESKeyedCipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assertEquals(plaintext, recovered)
+        assert plaintext.equals(recovered)
     }
 
     @Test
@@ -263,11 +264,12 @@ class AESKeyedCipherProviderGroovyTest {
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(em, key, false))
+            def msg = shouldFail(IllegalArgumentException) {
+                cipher = cipherProvider.getCipher(em, key, false)
+            }
 
             // Assert
-            assertTrue(iae.message.contains("Cannot decrypt without a valid IV"))
+            assert msg =~ "Cannot decrypt without a valid IV"
         }
     }
 
@@ -288,12 +290,13 @@ class AESKeyedCipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, true)
 
             // Decrypt should fail
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, key, badIV, false))
-            logger.warn(iae.getMessage())
+            def msg = shouldFail(IllegalArgumentException) {
+                cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, false)
+            }
+            logger.expected(msg)
 
             // Assert
-            assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
+            assert msg =~ "Cannot decrypt without a valid IV"
         }
     }
 
@@ -314,11 +317,12 @@ class AESKeyedCipherProviderGroovyTest {
         logger.info("IV after encrypt: ${Hex.encodeHexString(cipher.getIV())}")
 
         // Decrypt should fail
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, key, badIV, false))
-        logger.warn(iae.getMessage())
+        def msg = shouldFail(IllegalArgumentException) {
+            cipher = cipherProvider.getCipher(encryptionMethod, key, badIV, false)
+        }
+        logger.expected(msg)
 
         // Assert
-        assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"))
+        assert msg =~ "Cannot decrypt without a valid IV"
     }
 }

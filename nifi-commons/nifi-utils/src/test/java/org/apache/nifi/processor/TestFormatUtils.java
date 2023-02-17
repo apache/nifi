@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.text.DecimalFormatSymbols;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestFormatUtils {
 
@@ -38,7 +38,7 @@ public class TestFormatUtils {
     }
 
     @Test
-    public void testFormatTime() {
+    public void testFormatTime() throws Exception {
         assertEquals("00:00:00.000", FormatUtils.formatHoursMinutesSeconds(0, TimeUnit.DAYS));
         assertEquals("01:00:00.000", FormatUtils.formatHoursMinutesSeconds(1, TimeUnit.HOURS));
         assertEquals("02:00:00.000", FormatUtils.formatHoursMinutesSeconds(2, TimeUnit.HOURS));

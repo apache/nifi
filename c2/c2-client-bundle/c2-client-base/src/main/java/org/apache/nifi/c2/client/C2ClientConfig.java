@@ -40,8 +40,6 @@ public class C2ClientConfig {
     private final long callTimeout;
     private final long readTimeout;
     private final long connectTimeout;
-    private final int maxIdleConnections;
-    private final long keepAliveDuration;
     private final String c2RequestCompression;
     private final String c2AssetDirectory;
 
@@ -65,8 +63,6 @@ public class C2ClientConfig {
         this.truststoreType = builder.truststoreType;
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
-        this.maxIdleConnections = builder.maxIdleConnections;
-        this.keepAliveDuration = builder.keepAliveDuration;
         this.c2RequestCompression = builder.c2RequestCompression;
         this.c2AssetDirectory = builder.c2AssetDirectory;
     }
@@ -155,14 +151,6 @@ public class C2ClientConfig {
         return c2AssetDirectory;
     }
 
-    public int getMaxIdleConnections() {
-        return maxIdleConnections;
-    }
-
-    public long getKeepAliveDuration() {
-        return keepAliveDuration;
-    }
-
     /**
      * Builder for client configuration.
      */
@@ -187,8 +175,6 @@ public class C2ClientConfig {
         private String truststoreType;
         private long readTimeout;
         private long connectTimeout;
-        private int maxIdleConnections;
-        private long keepAliveDuration;
         private String c2RequestCompression;
         private String c2AssetDirectory;
 
@@ -284,16 +270,6 @@ public class C2ClientConfig {
 
         public Builder connectTimeout(final long connectTimeout) {
             this.connectTimeout = connectTimeout;
-            return this;
-        }
-
-        public Builder maxIdleConnections(final int maxIdleConnections) {
-            this.maxIdleConnections = maxIdleConnections;
-            return this;
-        }
-
-        public Builder keepAliveDuration(final long keepAliveDuration) {
-            this.keepAliveDuration = keepAliveDuration;
             return this;
         }
 

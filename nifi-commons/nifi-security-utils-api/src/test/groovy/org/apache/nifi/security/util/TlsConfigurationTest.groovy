@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.security.util
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class TlsConfigurationTest {
+class TlsConfigurationTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TlsConfigurationTest.class)
 
     @BeforeAll
@@ -33,6 +31,17 @@ class TlsConfigurationTest {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+    }
+
+    @BeforeEach
+    void setUp() {
+        super.setUp()
+
+    }
+
+    @AfterEach
+    void tearDown() {
+
     }
 
     @Test
@@ -48,8 +57,7 @@ class TlsConfigurationTest {
         logger.info("Major versions: ${majorVersions}")
 
         // Assert
-        assertTrue(majorVersions.stream()
-                .allMatch(num -> num >= 5 && num <= 12))
+        assert majorVersions == (5..12)
     }
 
     @Test
@@ -64,9 +72,9 @@ class TlsConfigurationTest {
 
         // Assert
         if (javaMajorVersion < 11) {
-            assertArrayEquals(new String[]{"TLSv1.2"}, tlsVersions)
+            assert tlsVersions == ["TLSv1.2"] as String[]
         } else {
-            assertArrayEquals(new String[]{"TLSv1.3", "TLSv1.2"}, tlsVersions)
+            assert tlsVersions == ["TLSv1.3", "TLSv1.2"] as String[]
         }
     }
 
@@ -82,9 +90,9 @@ class TlsConfigurationTest {
 
         // Assert
         if (javaMajorVersion < 11) {
-            assertEquals("TLSv1.2", tlsVersion)
+            assert tlsVersion == "TLSv1.2"
         } else {
-            assertEquals("TLSv1.3", tlsVersion)
+            assert tlsVersion == "TLSv1.3"
         }
     }
 }

@@ -39,14 +39,13 @@ import org.apache.nifi.web.search.ComponentMatcher;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricher;
 import org.apache.nifi.web.search.resultenrichment.ComponentSearchResultEnricherFactory;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,11 +56,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-@ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
+@RunWith(MockitoJUnitRunner.class)
 public class ControllerSearchServiceTest  {
 
     public static final String PROCESS_GROUP_SECOND_LEVEL_A = "secondLevelA";
@@ -131,7 +126,7 @@ public class ControllerSearchServiceTest  {
 
     private SearchResultsDTO results;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         Mockito.when(resultEnricherFactory.getComponentResultEnricher(Mockito.any(ProcessGroup.class), Mockito.any(NiFiUser.class))).thenReturn(resultEnricher);
         Mockito.when(resultEnricherFactory.getProcessGroupResultEnricher(Mockito.any(ProcessGroup.class), Mockito.any(NiFiUser.class))).thenReturn(resultEnricher);
@@ -582,16 +577,16 @@ public class ControllerSearchServiceTest  {
     }
 
     private void thenAllComponentResultsAreCollected() {
-        assertEquals(1, results.getProcessorResults().size());
-        assertEquals(1, results.getConnectionResults().size());
-        assertEquals(1, results.getRemoteProcessGroupResults().size());
-        assertEquals(1, results.getInputPortResults().size());
-        assertEquals(1, results.getOutputPortResults().size());
-        assertEquals(1, results.getFunnelResults().size());
-        assertEquals(1, results.getLabelResults().size());
-        assertEquals(1, results.getParameterProviderNodeResults().size());
-        assertTrue(results.getParameterContextResults().isEmpty());
-        assertTrue(results.getParameterResults().isEmpty());
+        Assert.assertEquals(1, results.getProcessorResults().size());
+        Assert.assertEquals(1, results.getConnectionResults().size());
+        Assert.assertEquals(1, results.getRemoteProcessGroupResults().size());
+        Assert.assertEquals(1, results.getInputPortResults().size());
+        Assert.assertEquals(1, results.getOutputPortResults().size());
+        Assert.assertEquals(1, results.getFunnelResults().size());
+        Assert.assertEquals(1, results.getLabelResults().size());
+        Assert.assertEquals(1, results.getParameterProviderNodeResults().size());
+        Assert.assertTrue(results.getParameterContextResults().isEmpty());
+        Assert.assertTrue(results.getParameterResults().isEmpty());
     }
 
     private void thenParameterComponentTypesAreChecked() {
@@ -600,16 +595,16 @@ public class ControllerSearchServiceTest  {
     }
 
     private void thenAllParameterComponentResultsAreCollected() {
-        assertTrue(results.getProcessGroupResults().isEmpty());
-        assertTrue(results.getProcessorResults().isEmpty());
-        assertTrue(results.getConnectionResults().isEmpty());
-        assertTrue(results.getRemoteProcessGroupResults().isEmpty());
-        assertTrue(results.getInputPortResults().isEmpty());
-        assertTrue(results.getOutputPortResults().isEmpty());
-        assertTrue(results.getFunnelResults().isEmpty());
-        assertTrue(results.getLabelResults().isEmpty());
-        assertEquals(1, results.getParameterContextResults().size());
-        assertEquals(1, results.getParameterResults().size());
+        Assert.assertTrue(results.getProcessGroupResults().isEmpty());
+        Assert.assertTrue(results.getProcessorResults().isEmpty());
+        Assert.assertTrue(results.getConnectionResults().isEmpty());
+        Assert.assertTrue(results.getRemoteProcessGroupResults().isEmpty());
+        Assert.assertTrue(results.getInputPortResults().isEmpty());
+        Assert.assertTrue(results.getOutputPortResults().isEmpty());
+        Assert.assertTrue(results.getFunnelResults().isEmpty());
+        Assert.assertTrue(results.getLabelResults().isEmpty());
+        Assert.assertEquals(1, results.getParameterContextResults().size());
+        Assert.assertEquals(1, results.getParameterResults().size());
     }
 
     private void thenParameterSpecificComponentTypesAreNotChecked() {

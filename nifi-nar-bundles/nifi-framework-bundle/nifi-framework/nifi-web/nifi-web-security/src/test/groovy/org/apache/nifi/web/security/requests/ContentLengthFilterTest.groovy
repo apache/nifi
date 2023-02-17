@@ -23,9 +23,13 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.servlet.FilterHolder
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.eclipse.jetty.servlet.ServletHolder
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Assert
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,10 +41,8 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.TimeUnit
 
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class ContentLengthFilterTest {
+@RunWith(JUnit4.class)
+class ContentLengthFilterTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ContentLengthFilterTest.class)
 
     private static final int MAX_CONTENT_LENGTH = 1000
@@ -61,12 +63,19 @@ class ContentLengthFilterTest {
     private LocalConnector localConnector
     private ServletContextHandler contextUnderTest
 
-    @BeforeEach
-    void setUp() {
-        createSimpleReadServer()
+    @BeforeClass
+    static void setUpOnce() {
+        logger.metaClass.methodMissing = { String name, args ->
+            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
+        }
     }
 
-    @AfterEach
+    @Before
+    void setUp() {
+
+    }
+
+    @After
     void tearDown() {
         stopServer()
     }
@@ -126,9 +135,11 @@ class ContentLengthFilterTest {
 
     @Test
     void testRequestsWithMissingContentLengthHeader() throws Exception {
+        createSimpleReadServer()
+
         // This shows that the ContentLengthFilter allows a request that does not have a content-length header.
         String response = localConnector.getResponse("POST / HTTP/1.0\r\n\r\n")
-        assertFalse(StringUtils.containsIgnoreCase(response, "411 Length Required"))
+        Assert.assertFalse(StringUtils.containsIgnoreCase(response, "411 Length Required"))
     }
 
     /**
@@ -138,6 +149,7 @@ class ContentLengthFilterTest {
     @Test
     void testShouldRejectRequestWithLongContentLengthHeader() throws Exception {
         // Arrange
+        createSimpleReadServer()
         final String requestBody = String.format(POST_REQUEST, LARGE_CLAIM_SIZE_BYTES, LARGE_PAYLOAD)
         logger.info("Making request with CL: ${LARGE_CLAIM_SIZE_BYTES} and actual length: ${LARGE_PAYLOAD.length()}")
 
@@ -146,7 +158,7 @@ class ContentLengthFilterTest {
         logResponse(response)
 
         // Assert
-        assertTrue(response.contains("413 Payload Too Large"))
+        assert response =~ "413 Payload Too Large"
     }
 
     /**
@@ -156,6 +168,8 @@ class ContentLengthFilterTest {
     @Test
     void testShouldRejectRequestWithLongContentLengthHeaderAndSmallPayload() throws Exception {
         // Arrange
+        createSimpleReadServer()
+
         String incompletePayload = "1" * (SMALL_CLAIM_SIZE_BYTES / 2)
         final String requestBody = String.format(POST_REQUEST, LARGE_CLAIM_SIZE_BYTES, incompletePayload)
         logger.info("Making request with CL: ${LARGE_CLAIM_SIZE_BYTES} and actual length: ${incompletePayload.length()}")
@@ -165,7 +179,7 @@ class ContentLengthFilterTest {
         logResponse(response)
 
         // Assert
-        assertTrue(response.contains("413 Payload Too Large"))
+        assert response =~ "413 Payload Too Large"
     }
 
     /**
@@ -176,6 +190,7 @@ class ContentLengthFilterTest {
     @Test
     void testShouldRejectRequestWithSmallContentLengthHeaderAndLargePayload() throws Exception {
         // Arrange
+        createSimpleReadServer()
         final String requestBody = String.format(POST_REQUEST, SMALL_CLAIM_SIZE_BYTES, LARGE_PAYLOAD)
         logger.info("Making request with CL: ${SMALL_CLAIM_SIZE_BYTES} and actual length: ${LARGE_PAYLOAD.length()}")
 
@@ -184,9 +199,10 @@ class ContentLengthFilterTest {
         logResponse(response)
 
         // Assert
-        assertTrue(response.contains("200"))
-        assertTrue(response.contains("Bytes-Read: " + SMALL_CLAIM_SIZE_BYTES))
-        assertTrue(response.contains("Read " + SMALL_CLAIM_SIZE_BYTES + " bytes"))
+        assert response =~ "200"
+        assert response =~ "Bytes-Read: ${SMALL_CLAIM_SIZE_BYTES}"
+        assert response =~ "Read ${SMALL_CLAIM_SIZE_BYTES} bytes"
+
     }
 
     /**
@@ -196,6 +212,8 @@ class ContentLengthFilterTest {
     @Test
     void testShouldTimeoutRequestWithSmallContentLengthHeaderAndSmallerPayload() throws Exception {
         // Arrange
+        createSimpleReadServer()
+
         String smallerPayload = SMALL_PAYLOAD[0..(SMALL_PAYLOAD.length() / 2)]
         final String requestBody = String.format(POST_REQUEST, SMALL_CLAIM_SIZE_BYTES, smallerPayload)
         logger.info("Making request with CL: ${SMALL_CLAIM_SIZE_BYTES} and actual length: ${smallerPayload.length()}")
@@ -205,13 +223,15 @@ class ContentLengthFilterTest {
         logResponse(response)
 
         // Assert
-        assertTrue(response.contains("500 Server Error"))
-        assertTrue(response.contains("Timeout"))
+        assert response =~ "500 Server Error"
+        assert response =~ "Timeout"
     }
 
     @Test
     void testFilterShouldAllowSiteToSiteTransfer() throws Exception {
         // Arrange
+        createSimpleReadServer()
+
         final String SITE_TO_SITE_POST_REQUEST = "POST /nifi-api/data-transfer/input-ports HTTP/1.1\r\nContent-Length: %d\r\nHost: h\r\n\r\n%s"
 
         final String siteToSiteRequest = String.format(SITE_TO_SITE_POST_REQUEST, LARGE_CLAIM_SIZE_BYTES, LARGE_PAYLOAD)
@@ -222,7 +242,7 @@ class ContentLengthFilterTest {
         logResponse(response)
 
         // Assert
-        assertTrue(response.contains("200 OK"))
+        assert response =~ "200 OK"
     }
 
     @Test
@@ -267,11 +287,11 @@ class ContentLengthFilterTest {
         String form = "a=" + "1" * FORM_CONTENT_SIZE
         String response = localConnector.getResponse(String.format(FORM_REQUEST, form.length(), form))
         logResponse(response)
-        assertTrue(response.contains("413 Payload Too Large"))
+        assert response =~ "413 Payload Too Large"
 
 
         // But it does not catch requests like this:
         response = localConnector.getResponse(String.format(POST_REQUEST, form.length(), form + form))
-        assertTrue(response.contains("417 Read Too Many Bytes"))
+        assert response =~ "417 Read Too Many Bytes"
     }
 }

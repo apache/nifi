@@ -19,7 +19,7 @@ package org.apache.nifi.web.search.attributematchers;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -131,6 +131,7 @@ public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ScheduledStateMatcher testSubject = new ScheduledStateMatcher();
         givenScheduledState(ScheduledState.DISABLED);
+        givenValidationStatus(ValidationStatus.INVALID);
         givenSearchTerm("invalid");
 
         // when
@@ -145,6 +146,7 @@ public class ScheduledStateMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ScheduledStateMatcher testSubject = new ScheduledStateMatcher();
         givenScheduledState(ScheduledState.DISABLED);
+        givenValidationStatus(ValidationStatus.VALIDATING);
         givenSearchTerm("validating");
 
         // when

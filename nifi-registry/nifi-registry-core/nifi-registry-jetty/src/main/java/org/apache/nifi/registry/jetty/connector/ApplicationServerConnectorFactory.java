@@ -49,8 +49,6 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
 
     private static final String CIPHER_SUITE_SEPARATOR_PATTERN = ",\\s*";
 
-    private static final String DEFAULT_HOST = null;
-
     private final String includeCipherSuites;
 
     private final String excludeCipherSuites;
@@ -164,7 +162,7 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
 
     private KeyStore buildTrustStore(final NiFiRegistryProperties properties) {
         final String trustStore = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE);
-        final String trustStoreType = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE_TYPE);
+        final String trustStoreType = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_KEYSTORE_TYPE);
         final String trustStorePassword = getRequiredProperty(properties, NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD);
         return buildStore(trustStore, trustStoreType, trustStorePassword);
     }
@@ -215,7 +213,7 @@ public class ApplicationServerConnectorFactory extends StandardServerConnectorFa
             host = properties.getHttpHost();
         }
 
-        return StringUtils.defaultIfEmpty(host, DEFAULT_HOST);
+        return host;
     }
 
     private static int getPort(final NiFiRegistryProperties properties) {

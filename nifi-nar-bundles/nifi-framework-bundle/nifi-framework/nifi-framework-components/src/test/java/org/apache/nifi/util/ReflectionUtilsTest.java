@@ -16,26 +16,25 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.logging.ComponentLog;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.logging.ComponentLog;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class ReflectionUtilsTest {
 
-    private final List<String> invocations = new ArrayList<>();
+    private List<String> invocations = new ArrayList<>();
 
-    @BeforeEach
+    @Before
     public void reset() {
         this.invocations.clear();
     }
@@ -67,10 +66,9 @@ public class ReflectionUtilsTest {
         assertEquals("D", this.invocations.get(0));
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void validateFailureWithWrongArgumentType() throws Exception {
-        assertThrows(IllegalArgumentException.class, () ->
-                ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new B(), "foo"));
+        ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new B(), "foo");
     }
 
     @Test
@@ -88,10 +86,9 @@ public class ReflectionUtilsTest {
         assertEquals("E", this.invocations.get(0));
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void validateFailureIfOneOfArgumentsWrongType() throws Exception {
-        assertThrows(IllegalArgumentException.class, () ->
-            ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new E(), 3, "hjk", "hjk"));
+        ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new E(), 3, "hjk", "hjk");
     }
 
     @Test
@@ -101,10 +98,9 @@ public class ReflectionUtilsTest {
         verify(pl, Mockito.atMost(1)).error(Mockito.anyString());
     }
 
-    @Test
+    @Test(expected = InvocationTargetException.class)
     public void validateInvocationFailure() throws Exception {
-        assertThrows(InvocationTargetException.class, () ->
-            ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new F(), 3));
+        ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, new F(), 3);
     }
 
     @Test

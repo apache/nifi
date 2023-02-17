@@ -33,7 +33,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -46,8 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
 
 public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
 
@@ -127,8 +127,11 @@ public class ProcessorParameterTokenIT extends FrameworkIntegrationTest {
         properties.put(WriteText.TEXT.getName(), text);
         properties.put(WriteText.PASSWORD.getName(), password);
 
-        assertThrows(IllegalArgumentException.class, () -> procNode.setProperties(properties),
-                "Expected to fail when setting properties to " + properties);
+        try {
+            procNode.setProperties(properties);
+            Assert.fail("Expected to fail when setting properties to " + properties);
+        } catch (final IllegalArgumentException expected) {
+        }
     }
 
     private void verifyText(final ProcessorNode procNode, final String text, final String expectedOutput) throws ExecutionException, InterruptedException {

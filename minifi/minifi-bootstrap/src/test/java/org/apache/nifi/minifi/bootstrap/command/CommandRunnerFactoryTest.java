@@ -30,11 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
@@ -74,10 +72,6 @@ class CommandRunnerFactoryTest {
     private GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
     @Mock
     private MiNiFiExecCommandProvider miNiFiExecCommandProvider;
-    @Mock
-    private ObjectMapper objectMapper;
-    @Mock
-    private ConfigurationChangeListener configurationChangeListener;
 
     @InjectMocks
     private CommandRunnerFactory commandRunnerFactory;
@@ -87,7 +81,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(START);
 
         assertInstanceOf(StartRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -95,7 +90,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(RUN);
 
         assertInstanceOf(StartRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -103,7 +99,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(STOP);
 
         assertInstanceOf(StopRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -111,7 +108,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(ENV);
 
         assertInstanceOf(EnvRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -119,7 +117,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(DUMP);
 
         assertInstanceOf(DumpRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -127,7 +126,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(FLOWSTATUS);
 
         assertInstanceOf(FlowStatusRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -135,7 +135,8 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(STATUS);
 
         assertInstanceOf(StatusRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
@@ -143,16 +144,12 @@ class CommandRunnerFactoryTest {
         CommandRunner runner = commandRunnerFactory.getRunner(RESTART);
 
         assertInstanceOf(CompositeCommandRunner.class, runner);
-        verify();
+        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
+            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider);
     }
 
     @Test
     void testRunCommandShouldThrowIllegalArgumentExceptionInCaseOfUnknownCommand() {
         assertThrows(IllegalArgumentException.class, () -> commandRunnerFactory.getRunner(UNKNOWN));
-    }
-
-    private void verify() {
-        verifyNoInteractions(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager, bootstrapFileProvider,
-            miNiFiStdLogHandler, bootstrapConfigFile, runMiNiFi, gracefulShutdownParameterProvider, miNiFiExecCommandProvider, objectMapper, configurationChangeListener);
     }
 }

@@ -19,15 +19,17 @@ package org.apache.nifi.web.server
 import org.apache.commons.lang3.StringUtils
 
 import org.apache.nifi.util.NiFiProperties
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class HostHeaderHandlerTest {
+@RunWith(JUnit4.class)
+class HostHeaderHandlerTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(HostHeaderHandlerTest.class)
 
     private static final String DEFAULT_HOSTNAME = "nifi.apache.org"
@@ -45,11 +47,19 @@ class HostHeaderHandlerTest {
     private static
     final List<String> DEFAULT_HOSTS_AND_PORTS = DEFAULT_HOSTS.collectMany { it -> [it, "${it}:${DEFAULT_PORT}"] }
 
-    @BeforeAll
+    @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+    }
+
+    @Before
+    void setUp() throws Exception {
+    }
+
+    @After
+    void tearDown() throws Exception {
     }
 
     @Test
@@ -64,8 +74,8 @@ class HostHeaderHandlerTest {
         logger.info("Handler: ${handler}")
 
         // Assert
-        assertTrue(handler.hostHeaderIsValid(hostname))
-        assertTrue(handler.hostHeaderIsValid("${hostname}:${port}"))
+        assert handler.hostHeaderIsValid(hostname)
+        assert handler.hostHeaderIsValid("${hostname}:${port}")
     }
 
     /**
@@ -86,7 +96,7 @@ class HostHeaderHandlerTest {
         // Assert
         DEFAULT_HOSTS_AND_PORTS_1_5_0.each { String host ->
             logger.debug("Validating ${host}")
-            assertTrue(handler.hostHeaderIsValid(host))
+            assert handler.hostHeaderIsValid(host)
         }
     }
 
@@ -111,7 +121,7 @@ class HostHeaderHandlerTest {
         // Assert
         DEFAULT_HOSTS_AND_PORTS.each { String host ->
             logger.debug("Validating ${host}")
-            assertTrue(handler.hostHeaderIsValid(host))
+            assert handler.hostHeaderIsValid(host)
         }
     }
 
@@ -141,13 +151,13 @@ class HostHeaderHandlerTest {
         logger.info("Parsed custom hostnames: ${customHostnames}")
 
         // Assert
-        assertEquals(otherHosts.size() + 2, customHostnames.size()) // Two provided hostnames had ports
+        assert customHostnames.size() == otherHosts.size() + 2 // Two provided hostnames had ports
         otherHosts.each { String host ->
             logger.debug("Checking ${host}")
-            assertTrue(customHostnames.contains(host))
+            assert customHostnames.contains(host)
             String portlessHost = "${host.split(":", 2)[0]}".toString()
             logger.debug("Checking ${portlessHost}")
-            assertTrue(customHostnames.contains(portlessHost))
+            assert customHostnames.contains(portlessHost)
         }
     }
 
@@ -190,10 +200,10 @@ class HostHeaderHandlerTest {
         logger.info("Parsed custom hostnames: ${customHostnames}")
 
         // Assert
-        assertEquals(ipv6Hosts.size(), customHostnames.size())
+        assert customHostnames.size() == ipv6Hosts.size()
         ipv6Hosts.each { String host ->
             logger.debug("Checking ${host}")
-            assertTrue(customHostnames.contains(host))
+            assert customHostnames.contains(host)
         }
     }
 
@@ -236,13 +246,13 @@ class HostHeaderHandlerTest {
         logger.info("Parsed custom hostnames: ${customHostnames}")
 
         // Assert
-        assertEquals(ipv6Hosts.size() * 2, customHostnames.size())
+        assert customHostnames.size() == ipv6Hosts.size() * 2
         ipv6Hosts.each { String host ->
             logger.debug("Checking ${host}")
-            assertTrue(customHostnames.contains(host))
+            assert customHostnames.contains(host)
             String portlessHost = "${StringUtils.substringBeforeLast(host, ":")}".toString()
             logger.debug("Checking ${portlessHost}")
-            assertTrue(customHostnames.contains(portlessHost))
+            assert customHostnames.contains(portlessHost)
         }
     }
 
@@ -272,6 +282,6 @@ class HostHeaderHandlerTest {
         }
 
         // Assert
-        hostsAreIPv6.forEach(hostIsIPv6 -> assertTrue(hostIsIPv6))
+        assert hostsAreIPv6.every()
     }
 }

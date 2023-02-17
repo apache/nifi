@@ -20,6 +20,7 @@ import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
 
 /**
  * Builder for creating a RuntimeManifest.
@@ -56,7 +57,7 @@ public interface RuntimeManifestBuilder {
      * @param extensionManifest the extension manifest to add
      * @return the builder
      */
-    RuntimeManifestBuilder addBundle(ExtensionManifestContainer extensionManifest);
+    RuntimeManifestBuilder addBundle(ExtensionManifest extensionManifest);
 
     /**
      * Adds a Bundle for each of the given ExtensionManifests.
@@ -64,7 +65,7 @@ public interface RuntimeManifestBuilder {
      * @param extensionManifests the extension manifests to add
      * @return the builder
      */
-    RuntimeManifestBuilder addBundles(Iterable<ExtensionManifestContainer> extensionManifests);
+    RuntimeManifestBuilder addBundles(Iterable<ExtensionManifest> extensionManifests);
 
     /**
      * Adds the given Bundle.

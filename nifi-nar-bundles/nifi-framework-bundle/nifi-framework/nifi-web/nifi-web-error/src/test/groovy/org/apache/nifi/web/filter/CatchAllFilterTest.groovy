@@ -17,8 +17,12 @@
 package org.apache.nifi.web.filter
 
 
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
+import org.junit.After
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -31,16 +35,25 @@ import javax.servlet.ServletResponse
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-
-class CatchAllFilterTest {
+@RunWith(JUnit4.class)
+class CatchAllFilterTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CatchAllFilterTest.class)
 
-    @BeforeAll
+    @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+    }
+
+    @Before
+    void setUp() throws Exception {
+
+    }
+
+    @After
+    void tearDown() throws Exception {
+
     }
 
     private static String getValue(String parameterName, Map<String, String> params = [:]) {
@@ -69,7 +82,7 @@ class CatchAllFilterTest {
         logger.info("Allowed context paths: ${caf.getAllowedContextPaths()}")
 
         // Assert
-        assertEquals(EXPECTED_ALLOWED_CONTEXT_PATHS, caf.getAllowedContextPaths())
+        assert caf.getAllowedContextPaths() == EXPECTED_ALLOWED_CONTEXT_PATHS
     }
 
     @Test
@@ -130,6 +143,6 @@ class CatchAllFilterTest {
         caf.doFilter(mockRequest, mockResponse, mockFilterChain)
 
         // Assert
-        assertEquals(EXPECTED_FORWARD_PATH, forwardedRequestTo)
+        assert forwardedRequestTo == EXPECTED_FORWARD_PATH
     }
 }

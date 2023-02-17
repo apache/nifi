@@ -137,7 +137,7 @@ public class StandardVersionControlInformation implements VersionControlInformat
             Objects.requireNonNull(version, "Version must be specified");
 
             final StandardVersionControlInformation svci = new StandardVersionControlInformation(registryIdentifier, registryName,
-                bucketIdentifier, flowIdentifier, version, storageLocation, flowSnapshot, status);
+                bucketIdentifier, flowIdentifier, version, flowSnapshot, status);
 
             svci.setBucketName(bucketName);
             svci.setFlowName(flowName);
@@ -150,13 +150,12 @@ public class StandardVersionControlInformation implements VersionControlInformat
 
 
     public StandardVersionControlInformation(final String registryId, final String registryName, final String bucketId, final String flowId, final int version,
-        final String storageLocation, final VersionedProcessGroup snapshot, final VersionedFlowStatus status) {
+        final VersionedProcessGroup snapshot, final VersionedFlowStatus status) {
         this.registryIdentifier = registryId;
         this.registryName = registryName;
         this.bucketIdentifier = bucketId;
         this.flowIdentifier = flowId;
         this.version = version;
-        this.storageLocation = storageLocation;
         this.flowSnapshot = snapshot;
         this.status = status;
     }

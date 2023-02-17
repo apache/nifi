@@ -20,14 +20,14 @@ import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.id.State;
+import java.io.IOException;
 import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -37,23 +37,23 @@ public class OidcServiceTest {
     public static final String TEST_REQUEST_IDENTIFIER = "test-request-identifier";
     public static final String TEST_STATE = "test-state";
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testOidcNotEnabledCreateState() {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () -> service.createState(TEST_REQUEST_IDENTIFIER));
+        service.createState(TEST_REQUEST_IDENTIFIER);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testCreateStateMultipleInvocations() {
         final OidcService service = getServiceWithOidcSupport();
         service.createState(TEST_REQUEST_IDENTIFIER);
-        assertThrows(IllegalStateException.class, () -> service.createState(TEST_REQUEST_IDENTIFIER));
+        service.createState(TEST_REQUEST_IDENTIFIER);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testOidcNotEnabledValidateState() {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () -> service.isStateValid(TEST_REQUEST_IDENTIFIER, new State(TEST_STATE)));
+        service.isStateValid(TEST_REQUEST_IDENTIFIER, new State(TEST_STATE));
     }
 
     @Test
@@ -79,7 +79,7 @@ public class OidcServiceTest {
         assertFalse(service.isStateValid(TEST_REQUEST_IDENTIFIER, state));
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testStoreJwtMultipleInvocation() {
         final OidcService service = getServiceWithOidcSupport();
 
@@ -93,31 +93,31 @@ public class OidcServiceTest {
                 "uYXBhY2hlLm9yZyJ9.nlYhplDLXeGAwW62rJ_ZnEaG7nxEB4TbaJNK-_pC4WQ";
 
         service.storeJwt(TEST_REQUEST_IDENTIFIER, TEST_JWT1);
-        assertThrows(IllegalStateException.class, () -> service.storeJwt(TEST_REQUEST_IDENTIFIER, TEST_JWT2));
+        service.storeJwt(TEST_REQUEST_IDENTIFIER, TEST_JWT2);
     }
 
-    @Test
-    public void testOidcNotEnabledExchangeCodeForLoginAuthenticationToken() {
+    @Test(expected = IllegalStateException.class)
+    public void testOidcNotEnabledExchangeCodeForLoginAuthenticationToken() throws Exception {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () -> service.exchangeAuthorizationCodeForLoginAuthenticationToken(getAuthorizationGrant()));
+        service.exchangeAuthorizationCodeForLoginAuthenticationToken(getAuthorizationGrant());
     }
 
-    @Test
-    public void testOidcNotEnabledExchangeCodeForAccessToken() {
+    @Test(expected = IllegalStateException.class)
+    public void testOidcNotEnabledExchangeCodeForAccessToken() throws Exception {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () ->service.exchangeAuthorizationCodeForAccessToken(getAuthorizationGrant()));
+        service.exchangeAuthorizationCodeForAccessToken(getAuthorizationGrant());
     }
 
-    @Test
-    public void testOidcNotEnabledExchangeCodeForIdToken() {
+    @Test(expected = IllegalStateException.class)
+    public void testOidcNotEnabledExchangeCodeForIdToken() throws IOException {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () -> service.exchangeAuthorizationCodeForIdToken(getAuthorizationGrant()));
+        service.exchangeAuthorizationCodeForIdToken(getAuthorizationGrant());
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testOidcNotEnabledGetJwt() {
         final OidcService service = getServiceWithNoOidcSupport();
-        assertThrows(IllegalStateException.class, () -> service.getJwt(TEST_REQUEST_IDENTIFIER));
+        service.getJwt(TEST_REQUEST_IDENTIFIER);
     }
 
     private OidcService getServiceWithNoOidcSupport() {

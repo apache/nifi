@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-extension-utils</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
     <artifactId>nifi-listed-entity</artifactId>
     <packaging>jar</packaging>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -51,8 +51,8 @@
         </dependency>
         <dependency>
             <!-- Dependency marked as provided, not test, because ListProcessorTestWatcher uses TestWatcher -->
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

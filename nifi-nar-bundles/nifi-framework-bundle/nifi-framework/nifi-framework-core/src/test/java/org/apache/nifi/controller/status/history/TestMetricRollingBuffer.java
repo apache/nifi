@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestMetricRollingBuffer {
     private static final Set<MetricDescriptor<?>> PROCESSOR_METRICS = Arrays.stream(ProcessorStatusDescriptor.values())
@@ -48,7 +48,7 @@ public class TestMetricRollingBuffer {
             snapshot.setTimestamp(new Date(startTime + i * 1000));
             timestamps.add(snapshot.getTimestamp());
 
-            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), (long) i);
+            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), Long.valueOf(i));
 
             buffer.update(snapshot);
         }
@@ -65,8 +65,7 @@ public class TestMetricRollingBuffer {
         for (int i=0; i < iterations; i++) {
             final StatusSnapshot snapshot = snapshots.get(i);
             if (i < expectedEmptyCount) {
-                assertInstanceOf(EmptyStatusSnapshot.class, snapshot,
-                        "Snapshot at i=" + i + " is not an EmptyStatusSnapshot");
+                assertTrue("Snapshot at i=" + i + " is not an EmptyStatusSnapshot", snapshot instanceof EmptyStatusSnapshot);
             } else {
                 assertEquals(Long.valueOf(i), snapshot.getStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor()));
                 assertFalse(snapshot instanceof EmptyStatusSnapshot);
@@ -87,7 +86,7 @@ public class TestMetricRollingBuffer {
             final StandardStatusSnapshot snapshot = new StandardStatusSnapshot(PROCESSOR_METRICS);
             snapshot.setTimestamp(new Date(startTime + i * 1000));
 
-            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), (long) i);
+            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), Long.valueOf(i));
             buffer.update(snapshot);
         }
 
@@ -112,7 +111,7 @@ public class TestMetricRollingBuffer {
             snapshot.setTimestamp(new Date(insertStart + i * 1000));
             timestamps.add(snapshot.getTimestamp());
 
-            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), (long) i);
+            snapshot.addStatusMetric(ProcessorStatusDescriptor.BYTES_WRITTEN.getDescriptor(), Long.valueOf(i));
             buffer.update(snapshot);
         }
 

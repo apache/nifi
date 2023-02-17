@@ -18,7 +18,6 @@
 package org.apache.nifi.c2.protocol.component.api;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +33,4 @@ public interface ConfigurableComponentDefinition {
 
     void setSupportsDynamicProperties(boolean supportsDynamicProperties);
 
-    List<DynamicProperty> getDynamicProperties();
-
-    void setDynamicProperties(List<DynamicProperty> dynamicProperties);
 }

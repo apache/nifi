@@ -61,10 +61,10 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionSnapshot;
+import org.junit.Assert;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.ArrayList;
@@ -75,8 +75,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class Node {
     private final NodeIdentifier nodeId;
@@ -301,7 +299,8 @@ public class Node {
             return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
                     revisionManager, nodeProperties, extensionManager, protocolSender);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            Assert.fail(e.toString());
+            return null;
         }
     }
 
@@ -383,7 +382,7 @@ public class Node {
      * @param nodeId id of the node
      */
     public void assertNodeIsConnected(final NodeIdentifier nodeId) {
-        assertEquals(NodeConnectionState.CONNECTED, getClusterCoordinator().getConnectionStatus(nodeId).getState());
+        Assert.assertEquals(NodeConnectionState.CONNECTED, getClusterCoordinator().getConnectionStatus(nodeId).getState());
     }
 
     /**

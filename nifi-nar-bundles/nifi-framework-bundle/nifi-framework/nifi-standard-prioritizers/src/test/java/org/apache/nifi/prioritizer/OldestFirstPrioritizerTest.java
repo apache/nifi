@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.prioritizer;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -24,17 +26,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class OldestFirstPrioritizerTest {
 
     @Test
-    public void testPrioritizer() {
+    public void testPrioritizer() throws InstantiationException, IllegalAccessException {
         final Processor processor = new SimpleProcessor();
         final AtomicLong idGenerator = new AtomicLong(0L);
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
@@ -47,13 +46,13 @@ public class OldestFirstPrioritizerTest {
         final MockFlowFile flowFile2 = session.create();
 
         final OldestFlowFileFirstPrioritizer prioritizer = new OldestFlowFileFirstPrioritizer();
-        assertEquals(0, prioritizer.compare(null, null));
-        assertEquals(-1, prioritizer.compare(flowFile1, null));
-        assertEquals(1, prioritizer.compare(null, flowFile1));
-        assertEquals(0, prioritizer.compare(flowFile1, flowFile1));
-        assertEquals(0, prioritizer.compare(flowFile2, flowFile2));
-        assertEquals(-1, prioritizer.compare(flowFile1, flowFile2));
-        assertEquals(1, prioritizer.compare(flowFile2, flowFile1));
+        Assert.assertEquals(0, prioritizer.compare(null, null));
+        Assert.assertEquals(-1, prioritizer.compare(flowFile1, null));
+        Assert.assertEquals(1, prioritizer.compare(null, flowFile1));
+        Assert.assertEquals(0, prioritizer.compare(flowFile1, flowFile1));
+        Assert.assertEquals(0, prioritizer.compare(flowFile2, flowFile2));
+        Assert.assertEquals(-1, prioritizer.compare(flowFile1, flowFile2));
+        Assert.assertEquals(1, prioritizer.compare(flowFile2, flowFile1));
     }
 
     public class SimpleProcessor extends AbstractProcessor {

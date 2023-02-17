@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -48,10 +49,12 @@ import java.util.concurrent.TimeUnit;
 public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
+    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
 
-    public ConnectableProcessContext(final Connectable connectable, final StateManager stateManager) {
+    public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor propertyEncryptor, final StateManager stateManager) {
         this.connectable = connectable;
+        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
     }
 
@@ -217,6 +220,16 @@ public class ConnectableProcessContext implements ProcessContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return new HashMap<>();
+    }
+
+    @Override
+    public String decrypt(String encrypted) {
+        return propertyEncryptor.decrypt(encrypted);
+    }
+
+    @Override
+    public String encrypt(String unencrypted) {
+        return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override

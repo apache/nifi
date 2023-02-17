@@ -29,9 +29,8 @@ import java.util.List;
 
 import static org.apache.nifi.processor.util.pattern.TestExceptionHandler.createArrayInputErrorHandler;
 import static org.apache.nifi.processor.util.pattern.TestExceptionHandler.exceptionMapping;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class TestRollbackOnFailure {
 
@@ -77,9 +76,13 @@ public class TestRollbackOnFailure {
         Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
-        assertDoesNotThrow(() -> processInputs(context, inputs, results),
-                "ProcessException should NOT be thrown");
-        assertEquals( 2, context.getProcessedCount(), "Successful inputs");
+        try {
+            processInputs(context, inputs, results);
+        } catch (ProcessException e) {
+            fail("ProcessException should NOT be thrown");
+        }
+
+        assertEquals("Successful inputs", 2, context.getProcessedCount());
     }
 
     @Test
@@ -91,8 +94,14 @@ public class TestRollbackOnFailure {
         Integer[][] inputs = new Integer[][]{{null, 2, 999}, {4, 2, 2}, {2, 0, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
-        assertThrows(ProcessException.class, () -> processInputs(context, inputs, results));
-        assertEquals( 0, context.getProcessedCount(), "Successful inputs");
+        try {
+            processInputs(context, inputs, results);
+            fail("ProcessException should be thrown");
+        } catch (ProcessException e) {
+            logger.info("Exception was thrown as expected.");
+        }
+
+        assertEquals("Successful inputs", 0, context.getProcessedCount());
     }
 
     @Test
@@ -105,9 +114,13 @@ public class TestRollbackOnFailure {
         Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
-        assertDoesNotThrow(() -> processInputs(context, inputs, results),
-                "ProcessException should NOT be thrown");
-        assertEquals( 2, context.getProcessedCount(), "Successful inputs");
+        try {
+            processInputs(context, inputs, results);
+        } catch (ProcessException e) {
+            fail("ProcessException should NOT be thrown");
+        }
+
+        assertEquals("Successful inputs", 2, context.getProcessedCount());
     }
 
     @Test
@@ -120,6 +133,12 @@ public class TestRollbackOnFailure {
         Integer[][] inputs = new Integer[][]{{4, 2, 2}, {2, 0, 999}, {null, 2, 999}, {10, 2, 999}, {8, 2, 4}};
 
         final List<Integer> results = new ArrayList<>();
-        assertThrows(ProcessException.class, () -> processInputs(context, inputs, results));
+        try {
+            processInputs(context, inputs, results);
+            fail("ProcessException should be thrown");
+        } catch (ProcessException e) {
+            logger.info("Exception was thrown as expected.");
+        }
+
     }
 }

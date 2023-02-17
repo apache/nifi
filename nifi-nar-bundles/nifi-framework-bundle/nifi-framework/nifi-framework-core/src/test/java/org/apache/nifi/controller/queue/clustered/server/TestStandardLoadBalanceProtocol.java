@@ -32,8 +32,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -69,10 +70,9 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SKIP_SPACE_CHECK;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
@@ -94,7 +94,7 @@ public class TestStandardLoadBalanceProtocol {
     private ConcurrentMap<ContentClaim, byte[]> claimContents;
 
 
-    @BeforeEach
+    @Before
     public void setup() throws IOException, IllegalClusterStateException {
         flowFileQueuePutRecords = new ArrayList<>();
         flowFileQueueReceiveRecords = new ArrayList<>();
@@ -395,9 +395,12 @@ public class TestStandardLoadBalanceProtocol {
         dos.flush();
         dos.close();
 
-        assertThrows(EOFException.class,
-                () -> protocol.receiveFlowFiles(serverInput, serverOutput,
-                        "Unit Test", 1));
+        try {
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
+            Assert.fail("Expected EOFException but none was thrown");
+        } catch (final EOFException eof) {
+            // expected
+        }
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(1, serverResponse.length);
@@ -439,9 +442,12 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(1L); // Write bad checksum.
         dos.write(COMPLETE_TRANSACTION);
 
-        assertThrows(TransactionAbortedException.class,
-                () -> protocol.receiveFlowFiles(serverInput, serverOutput,
-                        "Unit Test", 1));
+        try {
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
+            Assert.fail("Expected TransactionAbortedException but none was thrown");
+        } catch (final TransactionAbortedException e) {
+            // expected
+        }
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);
@@ -490,8 +496,12 @@ public class TestStandardLoadBalanceProtocol {
         dos.flush();
         dos.close();
 
-        assertThrows(EOFException.class,
-                () -> protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1));
+        try {
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
+            Assert.fail("Expected EOFException but none was thrown");
+        } catch (final EOFException e) {
+            // expected
+        }
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(1, serverResponse.length);
@@ -537,9 +547,12 @@ public class TestStandardLoadBalanceProtocol {
         dos.writeLong(checksum.getValue());
         dos.write(ABORT_TRANSACTION);
 
-        assertThrows(TransactionAbortedException.class,
-                () -> protocol.receiveFlowFiles(serverInput, serverOutput,
-                        "Unit Test", 1));
+        try {
+            protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
+            Assert.fail("Expected TransactionAbortedException but none was thrown");
+        } catch (final TransactionAbortedException e) {
+            // expected
+        }
 
         final byte[] serverResponse = serverOutput.toByteArray();
         assertEquals(2, serverResponse.length);

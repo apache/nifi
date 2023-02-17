@@ -21,15 +21,15 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 /*
  * As of JanusGraph 0.3.X these tests can be a little inconsistent for a few runs at first.
  */
@@ -37,7 +37,7 @@ public class GremlinClientServiceIT {
     private TestRunner runner;
     private TestableGremlinClientService clientService;
 
-    @BeforeEach
+    @Before
     public void setup() throws Exception {
         clientService = new TestableGremlinClientService();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
@@ -49,10 +49,10 @@ public class GremlinClientServiceIT {
         String setup = IOUtils.toString(getClass().getResourceAsStream("/setup.gremlin"), "UTF-8");
         clientService.getClient().submit(setup);
 
-        assertEquals("gremlin://localhost:8182/gremlin", clientService.getTransitUrl());
+        Assert.assertEquals("gremlin://localhost:8182/gremlin", clientService.getTransitUrl());
     }
 
-    @AfterEach
+    @After
     public void tearDown() throws Exception {
         String teardown = IOUtils.toString(getClass().getResourceAsStream("/teardown.gremlin"), "UTF-8");
         clientService.getClient().submit(teardown);
@@ -64,7 +64,7 @@ public class GremlinClientServiceIT {
         AtomicInteger integer = new AtomicInteger();
         Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
 
-        assertEquals(2, integer.get());
+        Assert.assertEquals(2, integer.get());
     }
 
     @Test
@@ -72,6 +72,6 @@ public class GremlinClientServiceIT {
         String gremlin = "g.V().hasLabel('dog').count()";
         AtomicInteger integer = new AtomicInteger();
         Map<String, String> result = clientService.executeQuery(gremlin, new HashMap<>(), (record, isMore) -> integer.incrementAndGet());
-        assertEquals(1, integer.get());
+        Assert.assertEquals(1, integer.get());
     }
 }

@@ -18,7 +18,6 @@ package org.apache.nifi.minifi.bootstrap.service;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.STATUS_FILE_PID_KEY;
 import static org.apache.nifi.minifi.bootstrap.SensitiveProperty.SENSITIVE_PROPERTIES;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BOOTSTRAP_UPDATED_FILE_NAME;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -94,28 +93,12 @@ public class BootstrapFileProvider {
         return reloadFile;
     }
 
-    public File getConfigYmlSwapFile() {
+    public File getSwapFile() {
         File confDir = bootstrapConfigFile.getParentFile();
         File swapFile = new File(confDir, "swap.yml");
 
         LOGGER.debug("Swap File: {}", swapFile);
         return swapFile;
-    }
-
-    public File getBootstrapConfSwapFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File swapFile = new File(confDir, "bootstrap-swap.conf");
-
-        LOGGER.debug("Bootstrap Swap File: {}", swapFile);
-        return swapFile;
-    }
-
-    public File getBootstrapConfNewFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File newFile = new File(confDir, BOOTSTRAP_UPDATED_FILE_NAME);
-
-        LOGGER.debug("Bootstrap new File: {}", newFile);
-        return newFile;
     }
 
     public Properties getBootstrapProperties() throws IOException {

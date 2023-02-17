@@ -18,18 +18,6 @@ package org.apache.nifi.processors.dropbox;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
@@ -81,19 +69,17 @@ import org.apache.nifi.serialization.record.RecordSchema;
         " This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the" +
         " previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({
-        @WritesAttribute(attribute = ID, description = ID_DESC),
-        @WritesAttribute(attribute = PATH, description = PATH_DESC),
-        @WritesAttribute(attribute = FILENAME, description = FILENAME_DESC),
-        @WritesAttribute(attribute = SIZE, description = SIZE_DESC),
-        @WritesAttribute(attribute = TIMESTAMP, description = TIMESTAMP_DESC),
-        @WritesAttribute(attribute = REVISION, description = REVISION_DESC)})
+@WritesAttributes({@WritesAttribute(attribute = DropboxFileInfo.ID, description = "The Dropbox identifier of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.PATH, description = "The folder path where the file is located"),
+        @WritesAttribute(attribute = DropboxFileInfo.FILENAME, description = "The name of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.SIZE, description = "The size of the file"),
+        @WritesAttribute(attribute = DropboxFileInfo.TIMESTAMP, description = "The server modified time, when the file was uploaded to Dropbox"),
+        @WritesAttribute(attribute = DropboxFileInfo.REVISION, description = "Revision of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already. " +
         "What exactly needs to be stored depends on the 'Listing Strategy'.")
-@SeeAlso({FetchDropbox.class, PutDropbox.class})
+@SeeAlso(FetchDropbox.class)
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implements DropboxTrait {
-
     public static final PropertyDescriptor FOLDER = new PropertyDescriptor.Builder()
             .name("folder")
             .displayName("Folder")
@@ -158,11 +144,13 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxySpec.HTTP_AUTH)
     ));
 
-    private volatile DbxClientV2 dropboxApiClient;
+    private DbxClientV2 dropboxApiClient;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        dropboxApiClient = getDropboxApiClient(context, getIdentifier());
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        String dropboxClientId = format("%s-%s", getClass().getSimpleName(), getIdentifier());
+        dropboxApiClient = getDropboxApiClient(context, proxyConfiguration, dropboxClientId);
     }
 
     @Override
@@ -201,20 +189,20 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         try {
             Predicate<FileMetadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
 
-            final ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
+            ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
             ListFolderResult result = listFolderBuilder
                     .withRecursive(recursive)
                     .start();
 
-            final List<FileMetadata> metadataList = new ArrayList<>(filterMetadata(result, metadataFilter));
+            List<FileMetadata> metadataList = new ArrayList<>(filterMetadata(result, metadataFilter));
 
             while (result.getHasMore()) {
                 result = dropboxApiClient.files().listFolderContinue(result.getCursor());
                 metadataList.addAll(filterMetadata(result, metadataFilter));
             }
 
-            for (final FileMetadata metadata : metadataList) {
-                final DropboxFileInfo.Builder builder = new DropboxFileInfo.Builder()
+            for (FileMetadata metadata : metadataList) {
+                DropboxFileInfo.Builder builder = new DropboxFileInfo.Builder()
                         .id(metadata.getId())
                         .path(getParentPath(metadata.getPathDisplay()))
                         .name(metadata.getName())
@@ -280,5 +268,13 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
                 .collect(toList());
     }
 
+    private String getParentPath(String fullPath) {
+        int idx = fullPath.lastIndexOf("/");
+        String parentPath = fullPath.substring(0, idx);
+        return "".equals(parentPath) ? "/" : parentPath;
+    }
 
+    private String convertFolderName(String folderName) {
+        return "/".equals(folderName) ? "" : folderName;
+    }
 }

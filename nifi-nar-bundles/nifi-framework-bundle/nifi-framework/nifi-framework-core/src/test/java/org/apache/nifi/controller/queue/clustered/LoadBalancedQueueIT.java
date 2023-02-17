@@ -59,9 +59,8 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -94,10 +93,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.doAnswer;
@@ -140,7 +139,7 @@ public class LoadBalancedQueueIT {
     private final Set<ClusterTopologyEventListener> clusterEventListeners = Collections.synchronizedSet(new HashSet<>());
     private final AtomicReference<LoadBalanceCompression> compressionReference = new AtomicReference<>();
 
-    @BeforeEach
+    @Before
     public void setup() throws IOException, GeneralSecurityException {
         compressionReference.set(LoadBalanceCompression.DO_NOT_COMPRESS);
 
@@ -217,8 +216,7 @@ public class LoadBalancedQueueIT {
         return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec(), clusterCoordinator);
     }
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testNewNodeAdded() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -280,7 +278,7 @@ public class LoadBalancedQueueIT {
                 Thread.sleep(10L);
             }
 
-            assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never fully updated");
+            assertFalse("Server's FlowFile Repo was never fully updated", serverRepoRecords.isEmpty());
 
             assertEquals(totalFlowFileCount, serverRepoRecords.size());
 
@@ -308,8 +306,7 @@ public class LoadBalancedQueueIT {
         }
     }
 
-    @Test
-    @Timeout(90)
+    @Test(timeout = 90_000)
     public void testFailover() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -378,7 +375,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never fully updated");
+                assertFalse("Server's FlowFile Repo was never fully updated", serverRepoRecords.isEmpty());
 
                 assertEquals(expectedFlowFileReceiveCount, serverRepoRecords.size());
 
@@ -412,8 +409,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testTransferToRemoteNode() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -470,7 +466,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -501,8 +497,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testContentNotFound() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -572,8 +567,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testTransferToRemoteNodeAttributeCompression() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -632,7 +626,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -663,8 +657,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testTransferToRemoteNodeContentCompression() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -723,7 +716,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -753,8 +746,7 @@ public class LoadBalancedQueueIT {
         }
     }
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testWithSSLContext() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -811,7 +803,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(), "Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -842,8 +834,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(60)
+    @Test(timeout = 60_000)
     public void testReusingClient() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -930,8 +921,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testLargePayload() throws IOException, InterruptedException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -990,7 +980,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -1021,8 +1011,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(60)
+    @Test(timeout = 60_000)
     public void testServerClosesUnexpectedly() throws IOException, InterruptedException {
 
         doAnswer(new Answer<OutputStream>() {
@@ -1122,7 +1111,7 @@ public class LoadBalancedQueueIT {
                     Thread.sleep(10L);
                 }
 
-                assertFalse(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was never updated");
+                assertFalse("Server's FlowFile Repo was never updated", serverRepoRecords.isEmpty());
 
                 assertEquals(1, serverRepoRecords.size());
 
@@ -1153,8 +1142,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(20)
+    @Test(timeout = 20_000)
     public void testNotAuthorized() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -1206,7 +1194,7 @@ public class LoadBalancedQueueIT {
 
                 Thread.sleep(5000L);
 
-                assertTrue(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was updated");
+                assertTrue("Server's FlowFile Repo was updated", serverRepoRecords.isEmpty());
                 assertTrue(clientRepoRecords.isEmpty());
 
                 assertEquals(2, flowFileQueue.size().getObjectCount());
@@ -1220,8 +1208,7 @@ public class LoadBalancedQueueIT {
     }
 
 
-    @Test
-    @Timeout(35)
+    @Test(timeout = 35_000)
     public void testDestinationNodeQueueFull() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
@@ -1275,7 +1262,7 @@ public class LoadBalancedQueueIT {
 
                 Thread.sleep(5000L);
 
-                assertTrue(serverRepoRecords.isEmpty(),"Server's FlowFile Repo was updated");
+                assertTrue("Server's FlowFile Repo was updated", serverRepoRecords.isEmpty());
                 assertTrue(clientRepoRecords.isEmpty());
 
                 assertEquals(2, flowFileQueue.size().getObjectCount());

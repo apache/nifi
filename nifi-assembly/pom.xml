@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -32,13 +32,16 @@ language governing permissions and limitations under the License. -->
                         <phase>generate-resources</phase>
                         <configuration>
                             <includeTypes>nar</includeTypes>
-                            <includes>**/docs/**</includes>
+                            <includes>**/extension-manifest.xml</includes>
                             <excludeTransitive>false</excludeTransitive>
                             <outputDirectory>${project.build.directory}/extension-manifests</outputDirectory>
                             <useSubDirectoryPerArtifact>true</useSubDirectoryPerArtifact>
                             <stripClassifier>true</stripClassifier>
                             <stripVersion>true</stripVersion>
                             <silent>true</silent>
+                            <fileMappers>
+                                <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper />
+                            </fileMappers>
                         </configuration>
                     </execution>
                 </executions>
@@ -114,11 +117,6 @@ language governing permissions and limitations under the License. -->
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jcl-over-slf4j</artifactId>
             <scope>compile</scope>
@@ -141,53 +139,53 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-bootstrap</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-bootstrap-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-factory</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-resources</artifactId>
             <classifier>resources</classifier>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>runtime</scope>
             <type>zip</type>
         </dependency>
@@ -195,758 +193,769 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-docs</artifactId>
             <classifier>resources</classifier>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>runtime</scope>
             <type>zip</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-provenance-repository-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-key-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cipher-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-datadog-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jetty-bundle</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-update-attribute-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-bootstrap</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-libraries-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-1-0-nar</artifactId>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-2-0-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kafka-2-6-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-confluent-platform-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-http-context-map-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-html-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lookup-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-poi-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kudu-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ldap-iaa-providers-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-iaa-providers-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-single-user-iaa-providers-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-dbcp-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
 	<dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-client-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mongodb-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-solr-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-social-media-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ccda-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-language-translation-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-enrich-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-geohash-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ambari-nar</artifactId>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-rethinkdb-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-prometheus-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-network-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-couchbase-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-couchbase-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-riemann-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase_2-client-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-oauth2-provider-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-azure-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-scripting-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-groovyx-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-nar</artifactId>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-client-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-client-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-elasticsearch-restapi-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cybersecurity-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-email-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-amqp-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-splunk-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jms-cf-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jms-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-spring-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-registry-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-reporting-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mqtt-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snmp-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-evtx-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-slack-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-smb-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-smb-client-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-smb-smbj-client-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-windows-event-log-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-websocket-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-websocket-services-jetty-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-websocket-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-workday-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-tcp-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-gcp-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateful-analysis-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cdc-mysql-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-parquet-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hwx-schema-registry-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-redis-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-redis-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-asana-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-asana-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-asana-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporter-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics-reporting-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
 	    <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-user-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-proxy-configuration-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jolt-record-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-sink-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-client-service-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-processor-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-salesforce-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-box-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-box-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-box-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-client-provider-service-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hubspot-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-zendesk-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dropbox-processors-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dropbox-services-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dropbox-services-api-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-airtable-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flow-registry-client-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-shopify-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jslt-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
+        </dependency>
+        <!-- dependencies for jaxb/activation/annotation for running NiFi on Java 11 -->
+        <!-- TODO: remove these once minimum Java version is 11 -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>${jakarta.xml.bind-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>${jaxb.runtime.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>${javax.annotation-api.version}</version>
         </dependency>
         <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
         <dependency>
@@ -959,33 +968,30 @@ language governing permissions and limitations under the License. -->
             <id>include-graph</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-graph-client-service-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-neo4j-cypher-service-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-graph-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-other-graph-services-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -997,15 +1003,12 @@ language governing permissions and limitations under the License. -->
             or in Centos6 due to requiring a newer version of GLIBC. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-grpc-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1017,15 +1020,55 @@ language governing permissions and limitations under the License. -->
             larger (60+ MB). -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-atlas-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-hive</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive-nar</artifactId>
+                    <version>1.19.1</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive-services-api-nar</artifactId>
+                    <version>1.19.1</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-hive1_1</id>
+            <!-- This profile handles the inclusion of Hive 1.1.x artifacts. The NAR
+            is quite large and makes the resultant binary distribution significantly
+            larger (150+ MB). -->
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive_1_1-nar</artifactId>
+                    <version>1.19.1</version>
+                    <type>nar</type>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hive-services-api-nar</artifactId>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1037,21 +1080,18 @@ language governing permissions and limitations under the License. -->
             larger (275+ MB). -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-hive3-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-hive-services-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1062,15 +1102,12 @@ language governing permissions and limitations under the License. -->
                 through multiple processors. It is not included with the convenience binary due to its size. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-media-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1080,21 +1117,18 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles includes of rules related artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-easyrules-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-rules-action-handler-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1104,27 +1138,24 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles the inclusion of nifi-sql-reporting artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-sql-reporting-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-easyrules-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-rules-action-handler-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1139,14 +1170,14 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-server-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-headless-server-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1156,27 +1187,24 @@ language governing permissions and limitations under the License. -->
             <!-- This profile handles the inclusion of nifi-accumulo artifacts. -->
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
 	    	</dependency>
 		<dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
 		</dependency>
 		<dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-accumulo-services-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1379,9 +1407,6 @@ language governing permissions and limitations under the License. -->
             <id>include-ranger</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <build>
                 <plugins>
@@ -1416,13 +1441,13 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-ranger-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-ranger-resources</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -1430,15 +1455,12 @@ language governing permissions and limitations under the License. -->
             <id>include-asn1</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-asn1-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1447,27 +1469,24 @@ language governing permissions and limitations under the License. -->
             <id>include-snowflake</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-snowflake-services-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-snowflake-services-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-snowflake-processors-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
@@ -1537,39 +1556,27 @@ language governing permissions and limitations under the License. -->
             <id>include-iceberg</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>allProfiles</name>
-                </property>
             </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-iceberg-processors-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-iceberg-services-api-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-iceberg-services-nar</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <type>nar</type>
                 </dependency>
             </dependencies>
-        </profile>
-        <profile>
-            <id>include-all</id>
-            <properties>
-              <allProfiles>true</allProfiles>
-            </properties>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
         </profile>
     </profiles>
 </project>

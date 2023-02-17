@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.runtime.manifest;
 
+import org.apache.nifi.extension.manifest.ExtensionManifest;
+
 import java.util.List;
 
 /**
@@ -23,6 +25,6 @@ import java.util.List;
  */
 public interface ExtensionManifestProvider {
 
-    List<ExtensionManifestContainer> getExtensionManifests();
+    List<ExtensionManifest> getExtensionManifests();
 
 }

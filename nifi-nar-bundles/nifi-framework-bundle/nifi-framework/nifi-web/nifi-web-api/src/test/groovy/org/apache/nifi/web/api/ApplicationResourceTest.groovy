@@ -18,7 +18,9 @@ package org.apache.nifi.web.api
 
 import org.apache.nifi.util.NiFiProperties
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder
-import org.junit.jupiter.api.Test
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
@@ -34,10 +36,8 @@ import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PREFIX_HTTP_HEADER
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertThrows
-
-class ApplicationResourceTest {
+@RunWith(JUnit4.class)
+class ApplicationResourceTest extends GroovyTestCase {
     static final String PROXY_CONTEXT_PATH_PROP = NiFiProperties.WEB_PROXY_CONTEXT_PATH
     static final String ALLOWED_PATH = "/some/context/path"
 
@@ -93,7 +93,9 @@ class ApplicationResourceTest {
     @Test
     void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource()
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
+        }
     }
 
     @Test
@@ -101,10 +103,10 @@ class ApplicationResourceTest {
         ApplicationResource resource = buildApplicationResource()
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
+
         String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
@@ -113,24 +115,28 @@ class ApplicationResourceTest {
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
+
         String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
     void testGenerateUriShouldBlockForwardedContextHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
 
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
+        }
     }
 
     @Test
     void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
 
-        assertThrows(UriBuilderException.class, () -> resource.generateResourceUri('actualResource'))
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
+        }
     }
 
     @Test
@@ -138,10 +144,9 @@ class ApplicationResourceTest {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
-        String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        String generatedUri = resource.generateResourceUri('actualResource')
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
@@ -149,10 +154,9 @@ class ApplicationResourceTest {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
-        String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        String generatedUri = resource.generateResourceUri('actualResource')
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
@@ -161,10 +165,9 @@ class ApplicationResourceTest {
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
-        String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        String generatedUri = resource.generateResourceUri('actualResource')
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
@@ -173,9 +176,8 @@ class ApplicationResourceTest {
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
-        String expectedUri = "https://nifi.apache.org:8081" + ALLOWED_PATH + "/actualResource"
-        String generatedUri = resource.generateResourceUri('actualResource')
 
-        assertEquals(expectedUri, generatedUri)
+        String generatedUri = resource.generateResourceUri('actualResource')
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 }

@@ -31,11 +31,8 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.PBEParameterSpec
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
-import static org.junit.jupiter.api.Assertions.fail
+import static groovy.test.GroovyAssert.shouldFail
+import static org.junit.Assert.fail
 
 class OpenSSLPKCS5CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(OpenSSLPKCS5CipherProviderGroovyTest.class)
@@ -102,7 +99,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assertEquals(plaintext, recovered)
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -131,7 +128,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assertEquals(plaintext, recovered)
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -165,7 +162,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-            assertEquals(plaintext, recovered)
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -199,7 +196,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-             assertEquals(plaintext, recovered)
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -230,7 +227,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
             String recovered = new String(recoveredBytes, "UTF-8")
 
             // Assert
-             assertEquals(plaintext, recovered)
+            assert plaintext.equals(recovered)
         }
     }
 
@@ -245,11 +242,12 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
         // Act
         logger.info("Using algorithm: null")
 
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(null, PASSWORD, SALT, false))
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(null, PASSWORD, SALT, false)
+        }
 
         // Assert
-        assertTrue(iae.getMessage().contains("The encryption method must be specified"))
+        assert msg =~ "The encryption method must be specified"
     }
 
     @Test
@@ -263,11 +261,12 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
         // Act
         logger.info("Using algorithm: ${encryptionMethod}")
 
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () ->  cipherProvider.getCipher(encryptionMethod, "", SALT, false))
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, "", SALT, false)
+        }
 
         // Assert
-        assertTrue(iae.getMessage().contains("Encryption with an empty password is not supported"))
+        assert msg =~ "Encryption with an empty password is not supported"
     }
 
     @Test
@@ -281,11 +280,13 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
 
         // Act
         logger.info("Using algorithm: ${encryptionMethod}")
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, false))
+
+        def msg = shouldFail(IllegalArgumentException) {
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, false)
+        }
 
         // Assert
-        assertTrue(iae.getMessage().contains("Salt must be 8 bytes US-ASCII encoded"))
+        assert msg =~ "Salt must be 8 bytes US-ASCII encoded"
     }
 
     @Test
@@ -298,9 +299,7 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
         logger.info("Checking salt ${Hex.encodeHexString(salt)}")
 
         // Assert
-        assertEquals(cipherProvider.getDefaultSaltLength(), salt.length)
-        byte [] notExpected = new byte [cipherProvider.defaultSaltLength]
-        Arrays.fill(notExpected, 0x00 as byte)
-        assertFalse(Arrays.equals(notExpected, salt))
+        assert salt.length == cipherProvider.getDefaultSaltLength()
+        assert salt != [(0x00 as byte) * cipherProvider.defaultSaltLength]
     }
 }

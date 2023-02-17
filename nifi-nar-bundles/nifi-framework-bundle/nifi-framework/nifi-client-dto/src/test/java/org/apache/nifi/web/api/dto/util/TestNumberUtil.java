@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import static org.apache.nifi.web.api.dto.util.NumberUtil.sumNullableIntegers;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
 
 public class TestNumberUtil {
 
@@ -32,7 +31,7 @@ public class TestNumberUtil {
 
         assertEquals(Integer.valueOf(0), sumNullableIntegers(-1, null, 1));
 
-        assertNull(sumNullableIntegers(null, null));
+        assertEquals(null, sumNullableIntegers(null, null));
     }
 
 }

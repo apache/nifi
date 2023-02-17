@@ -26,11 +26,9 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestExceptionHandler {
 
@@ -86,10 +84,13 @@ public class TestExceptionHandler {
         assertEquals(4, r.get().intValue());
 
         // If no exception mapping is specified, any Exception thrown is wrapped by ProcessException.
-        final Integer nullInput = null;
-        ProcessException pe = assertThrows(ProcessException.class, () -> handler.execute(context, nullInput, i -> r.set(p.divide(i, 2))),
-                "Exception should be thrown because input is null.");
-        assertTrue(pe.getCause() instanceof NullPointerException);
+        try {
+            final Integer nullInput = null;
+            handler.execute(context, nullInput, i -> r.set(p.divide(i, 2)));
+            fail("Exception should be thrown because input is null.");
+        } catch (ProcessException e) {
+            assertTrue(e.getCause() instanceof NullPointerException);
+        }
     }
 
     // Reusable Exception mapping function.
@@ -125,16 +126,18 @@ public class TestExceptionHandler {
 
         // Null pointer exception.
         final Integer input = null;
-        assertFalse(handler.execute(context, input, i -> {
+        handler.execute(context, input, i -> {
             p.divide(i, 2);
             fail("Shouldn't reach here.");
-        }));
+        });
 
         // Divide by zero.
-        assertFalse(handler.execute(context, 0, i -> {
+        handler.execute(context, 0, i -> {
             p.divide(2, i);
             fail("Shouldn't reach here.");
-        }));
+        });
+
+
     }
 
     static <C> ExceptionHandler.OnError<C, Integer> createInputErrorHandler() {
@@ -193,6 +196,7 @@ public class TestExceptionHandler {
             assertEquals(input[2], r.get());
         }
 
-        assertEquals(2, context.count, "Successful inputs");
+        assertEquals("Successful inputs", 2, context.count);
     }
+
 }

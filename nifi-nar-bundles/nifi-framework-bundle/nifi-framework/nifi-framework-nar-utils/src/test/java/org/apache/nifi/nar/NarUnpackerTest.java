@@ -17,8 +17,9 @@
 package org.apache.nifi.nar;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,13 +39,13 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class NarUnpackerTest {
 
-    @BeforeAll
+    @BeforeClass
     public static void copyResources() throws IOException {
 
         final Path sourcePath = Paths.get("./src/test/resources");
@@ -105,7 +106,7 @@ public class NarUnpackerTest {
         assertEquals(expectedNars.size(), extensionFiles.length);
 
         for (File extensionFile : extensionFiles) {
-            assertTrue(expectedNars.contains(extensionFile.getName()));
+            Assert.assertTrue(expectedNars.contains(extensionFile.getName()));
         }
     }
 

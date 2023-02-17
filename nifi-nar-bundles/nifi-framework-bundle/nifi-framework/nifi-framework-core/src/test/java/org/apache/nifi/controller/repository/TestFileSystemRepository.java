@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
@@ -26,12 +27,13 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,6 +51,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -56,15 +59,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestFileSystemRepository {
 
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
@@ -74,7 +75,12 @@ public class TestFileSystemRepository {
     private final File rootFile = new File("target/content_repository");
     private NiFiProperties nifiProperties;
 
-    @BeforeEach
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
+    @Before
     public void setup() throws IOException {
         nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
         if (rootFile.exists()) {
@@ -86,13 +92,13 @@ public class TestFileSystemRepository {
         repository.purge();
     }
 
-    @AfterEach
+    @After
     public void shutdown() throws IOException {
         repository.shutdown();
     }
 
     @Test
-    @Disabled("Intended for manual testing only, in order to judge changes to performance")
+    @Ignore("Intended for manual testing only, in order to judge changes to performance")
     public void testWritePerformance() throws IOException {
         final long bytesToWrite = 1_000_000_000L;
         final int contentSize = 100;
@@ -220,7 +226,12 @@ public class TestFileSystemRepository {
         final StandardContentClaim missingContentClaim = new StandardContentClaim(resourceClaim, 12);
         missingContentClaim.setLength(1);
 
-        assertThrows(ContentNotFoundException.class, () -> repository.read(missingContentClaim));
+        try {
+            repository.read(missingContentClaim);
+            Assert.fail("Did not throw ContentNotFoundException");
+        } catch (final ContentNotFoundException cnfe) {
+            // Expected
+        }
     }
 
     @Test
@@ -400,7 +411,7 @@ public class TestFileSystemRepository {
             m.setAccessible(true);
             return (Path) m.invoke(repository, claim);
         } catch (final Exception e) {
-            throw new RuntimeException("Could not invoke #getPath on FileSystemRepository due to " + e);
+            throw new RuntimeException("Could not invoke #getPath on FileSystemRepository due to " + e.toString());
         }
     }
 
@@ -424,14 +435,14 @@ public class TestFileSystemRepository {
         final Path path = getPath(claim);
         final byte[] data = Files.readAllBytes(path);
         final byte[] expected = Files.readAllBytes(testFile.toPath());
-        assertArrayEquals(expected, data);
+        assertTrue(Arrays.equals(expected, data));
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final InputStream in = repository.read(claim)) {
             StreamUtils.copy(in, baos);
         }
 
-        assertArrayEquals(expected, baos.toByteArray());
+        assertTrue(Arrays.equals(expected, baos.toByteArray()));
     }
 
     @Test
@@ -442,7 +453,7 @@ public class TestFileSystemRepository {
         repository.importFrom(bais, claim);
 
         final Path claimPath = getPath(claim);
-        assertArrayEquals(data, Files.readAllBytes(claimPath));
+        assertTrue(Arrays.equals(data, Files.readAllBytes(claimPath)));
     }
 
     @Test
@@ -456,7 +467,7 @@ public class TestFileSystemRepository {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         repository.exportTo(claim, baos);
         final byte[] data = baos.toByteArray();
-        assertArrayEquals(Files.readAllBytes(helloWorldFile.toPath()), data);
+        assertTrue(Arrays.equals(Files.readAllBytes(helloWorldFile.toPath()), data));
     }
 
     @Test
@@ -473,13 +484,13 @@ public class TestFileSystemRepository {
         final byte[] expected = Files.readAllBytes(helloWorldFile.toPath());
 
         repository.exportTo(claim, outPath, false);
-        assertArrayEquals(expected, Files.readAllBytes(outPath));
+        assertTrue(Arrays.equals(expected, Files.readAllBytes(outPath)));
 
         repository.exportTo(claim, outPath, true);
         final byte[] doubleExpected = new byte[expected.length * 2];
         System.arraycopy(expected, 0, doubleExpected, 0, expected.length);
         System.arraycopy(expected, 0, doubleExpected, expected.length, expected.length);
-        assertArrayEquals(doubleExpected, Files.readAllBytes(outPath));
+        assertTrue(Arrays.equals(doubleExpected, Files.readAllBytes(outPath)));
     }
 
     @Test
@@ -496,21 +507,17 @@ public class TestFileSystemRepository {
         assertEquals(data.length, repository.size(claim));
     }
 
-    @Test
+    @Test(expected = ContentNotFoundException.class)
     public void testSizeWithNoContent() throws IOException {
-        final ContentClaim claim =
-         new StandardContentClaim(new StandardResourceClaim(claimManager,
-                 "container1", "section 1", "1", false), 0L);
-
-        assertThrows(ContentNotFoundException.class, () -> repository.size(claim));
+        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
+        assertEquals(0L, repository.size(claim));
     }
 
-    @Test
+    @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContent() throws IOException {
         final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
-
-        assertThrows(ContentNotFoundException.class,
-                () -> repository.read(claim));
+        final InputStream in = repository.read(claim);
+        in.close();
     }
 
     @Test
@@ -527,7 +534,7 @@ public class TestFileSystemRepository {
         try (final InputStream inStream = repository.read(claim)) {
             assertNotNull(inStream);
             final byte[] dataRead = readFully(inStream, data.length);
-            assertArrayEquals(data, dataRead);
+            assertTrue(Arrays.equals(data, dataRead));
         }
     }
 
@@ -556,7 +563,7 @@ public class TestFileSystemRepository {
         return System.getProperty("os.name").toLowerCase().startsWith("windows");
     }
 
-    @Test
+    @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContentArchived() throws IOException {
         final ContentClaim claim = repository.create(true);
         final Path path = getPath(claim);
@@ -564,8 +571,7 @@ public class TestFileSystemRepository {
 
         Path archivePath = FileSystemRepository.getArchivePath(path);
         Files.deleteIfExists(archivePath);
-
-        assertThrows(ContentNotFoundException.class, () -> repository.read(claim).close());
+        repository.read(claim).close();
     }
 
     @Test
@@ -577,7 +583,7 @@ public class TestFileSystemRepository {
         }
 
         final Path path = getPath(claim);
-        assertArrayEquals(data, Files.readAllBytes(path));
+        assertTrue(Arrays.equals(data, Files.readAllBytes(path)));
     }
 
     @Test
@@ -738,7 +744,7 @@ public class TestFileSystemRepository {
     public void testMarkDestructableDoesNotArchiveIfStreamOpenAndNotWrittenTo() throws IOException, InterruptedException {
         FileSystemRepository repository = null;
         try {
-            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<>());
+            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<Path>());
 
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
@@ -869,7 +875,7 @@ public class TestFileSystemRepository {
             StreamUtils.copy(in, baos);
         }
         final byte[] actual = baos.toByteArray();
-        assertArrayEquals(expected, actual);
+        assertTrue(Arrays.equals(expected, actual));
     }
 
     private byte[] readFully(final InputStream inStream, final int size) throws IOException {

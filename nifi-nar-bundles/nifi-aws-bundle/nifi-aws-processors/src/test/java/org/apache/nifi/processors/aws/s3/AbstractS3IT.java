@@ -52,7 +52,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.fail;
 
 /**
  * Base class for S3 Integration Tests. Establishes a bucket and helper methods for creating test scenarios

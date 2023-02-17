@@ -74,9 +74,9 @@ import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.apache.nifi.registry.util.FileUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,12 +103,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test all basic functionality of JerseyNiFiRegistryClient.
@@ -121,7 +120,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
 
     private NiFiRegistryClient client;
 
-    @BeforeEach
+    @Before
     public void setup() {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
@@ -150,7 +149,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         }
     }
 
-    @AfterEach
+    @After
     public void teardown() {
         try {
             client.close();
@@ -184,7 +183,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         final int numBuckets = 10;
         final List<Bucket> createdBuckets = new ArrayList<>();
 
-        for (int i = 0; i < numBuckets; i++) {
+        for (int i=0; i < numBuckets; i++) {
             final Bucket createdBucket = createBucket(bucketClient, i);
             LOGGER.info("Created bucket # " + i + " with id " + createdBucket.getIdentifier());
             createdBuckets.add(createdBucket);
@@ -347,8 +346,13 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         assertEquals(2, latestMetadata.getVersion());
 
         // get latest metadata that doesn't exist
-        NiFiRegistryException nfe = assertThrows(NiFiRegistryException.class, () -> snapshotClient.getLatestMetadata(snapshotFlow.getBucketIdentifier(), "DOES-NOT-EXIST"));
-        assertEquals("Error retrieving latest snapshot metadata: The specified flow ID does not exist in this bucket.", nfe.getMessage());
+        try {
+            snapshotClient.getLatestMetadata(snapshotFlow.getBucketIdentifier(), "DOES-NOT-EXIST");
+            fail("Should have thrown exception");
+        } catch (NiFiRegistryException nfe) {
+            assertEquals("Error retrieving latest snapshot metadata: The specified flow ID does not exist in this bucket.", nfe.getMessage());
+        }
+
         // get latest metadata without bucket
         final VersionedFlowSnapshotMetadata latestMetadataWithoutBucket = snapshotClient.getLatestMetadata(snapshotFlow.getIdentifier());
         assertNotNull(latestMetadataWithoutBucket);
@@ -704,7 +708,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
             assertNotNull(tc.getTag());
         });
 
-        final ExtensionMetadataContainer allExtensions = extensionClient.findExtensions((ExtensionFilterParams) null);
+        final ExtensionMetadataContainer allExtensions = extensionClient.findExtensions((ExtensionFilterParams)null);
         assertNotNull(allExtensions);
         assertNotNull(allExtensions.getExtensions());
         assertEquals(4, allExtensions.getNumResults());
@@ -867,7 +871,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         context1.setName("Parameter Context 1");
         context1.setParameters(new HashSet<>(Arrays.asList(param1, param2)));
 
-        final Map<String, VersionedParameterContext> contexts = new HashMap<>();
+        final Map<String,VersionedParameterContext> contexts = new HashMap<>();
         contexts.put(context1.getName(), context1);
 
         // Create an external controller service reference
@@ -884,7 +888,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         final Map<String, ParameterProviderReference> parameterProviderReferences = new HashMap<>();
         parameterProviderReferences.put(parameterProviderReference.getIdentifier(), parameterProviderReference);
 
-        final Map<String, ExternalControllerServiceReference> serviceReferences = new HashMap<>();
+        final Map<String,ExternalControllerServiceReference> serviceReferences = new HashMap<>();
         serviceReferences.put(serviceReference.getIdentifier(), serviceReference);
 
         // Create the snapshot
@@ -1015,7 +1019,7 @@ public class UnsecuredNiFiRegistryClientIT extends UnsecuredITBase {
         subProcessGroup.setName("Sub Process Group");
         rootProcessGroup.getProcessGroups().add(subProcessGroup);
 
-        final Map<String, String> processorProperties = new HashMap<>();
+        final Map<String,String> processorProperties = new HashMap<>();
         processorProperties.put("Prop 1", "Val 1");
         processorProperties.put("Prop 2", "Val 2");
 

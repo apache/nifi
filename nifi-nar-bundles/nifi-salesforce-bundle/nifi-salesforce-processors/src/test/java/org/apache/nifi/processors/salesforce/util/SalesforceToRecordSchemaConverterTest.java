@@ -165,4 +165,5 @@ class SalesforceToRecordSchemaConverterTest {
     private InputStream readFile(final String path) throws IOException {
         return new FileInputStream(path);
     }
+
 }

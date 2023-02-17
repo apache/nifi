@@ -50,7 +50,6 @@ import java.util.Set;
 import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons dont work on windows
@@ -587,7 +586,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.setProperty(writer, "Pretty Print JSON", "true");
         runner.enableControllerService(writer);
         URL t = getClass().getResource("/TestJoltTransformRecord/TestCustomJoltTransform.jar");
-        assertNotNull(t);
+        assert t != null;
         final String customJarPath = t.getPath();
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/customChainrSpec.json")));
         final String customJoltTransform = "TestCustomJoltTransform";

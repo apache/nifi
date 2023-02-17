@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.prioritizer;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -25,27 +31,21 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PriorityAttributePrioritizerTest {
 
-    static Map<String, String> attrsPri1 = new HashMap<>();
-    static Map<String, String> attrsPri2 = new HashMap<>();
-    static Map<String, String> attrsPrin1 = new HashMap<>();
-    static Map<String, String> attrsPriA = new HashMap<>();
-    static Map<String, String> attrsPriB = new HashMap<>();
-    static Map<String, String> attrsPriLP = new HashMap<>();
-    static Map<String, String> attrsPriLN = new HashMap<>();
+    static Map<String, String> attrsPri1 = new HashMap<String, String>();
+    static Map<String, String> attrsPri2 = new HashMap<String, String>();
+    static Map<String, String> attrsPrin1 = new HashMap<String, String>();
+    static Map<String, String> attrsPriA = new HashMap<String, String>();
+    static Map<String, String> attrsPriB = new HashMap<String, String>();
+    static Map<String, String> attrsPriLP = new HashMap<String, String>();
+    static Map<String, String> attrsPriLN = new HashMap<String, String>();
 
-    @BeforeAll
+    @BeforeClass
     public static void init() {
         attrsPri1.put(CoreAttributes.PRIORITY.key(), "1");
         attrsPri2.put(CoreAttributes.PRIORITY.key(), "2");
@@ -57,7 +57,7 @@ public class PriorityAttributePrioritizerTest {
     }
 
     @Test
-    public void testPrioritizer() {
+    public void testPrioritizer() throws InstantiationException, IllegalAccessException {
         final Processor processor = new SimpleProcessor();
         final AtomicLong idGenerator = new AtomicLong(0L);
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));

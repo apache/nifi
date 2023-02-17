@@ -30,12 +30,12 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestEventFactory {
 
@@ -47,7 +47,7 @@ public class TestEventFactory {
     private User user;
     private UserGroup userGroup;
 
-    @BeforeEach
+    @Before
     public void setup() {
         bucket = new Bucket();
         bucket.setName("Bucket1");

@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.atlas.emulator;
 
+import org.junit.Assert;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.IntStream;
 
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class Lineage {
 
@@ -58,7 +59,7 @@ public class Lineage {
         final String qname = toFullQname(type, _qname);
         return nodes.stream().filter(n -> type.equals(n.getType()) && qname.equals(n.getQualifiedName()))
                 .findFirst().orElseGet(() -> {
-                    fail(String.format("Node was not found for %s::%s", type, qname));
+                    Assert.fail(String.format("Node was not found for %s::%s", type, qname));
                     return null;
                 });
     }
@@ -94,9 +95,9 @@ public class Lineage {
 
     public void assertLink(String sType, String sName, String sQname, String tType, String tName, String tQname) {
         int si = getNodeIndex(sType, sQname);
-        assertTrue(si > -1, String.format("Source node was not found for %s::%s", sType, sQname));
+        assertTrue(String.format("Source node was not found for %s::%s", sType, sQname), si > -1);
         int ti = getNodeIndex(tType, tQname);
-        assertTrue(ti > -1, String.format("Target node was not found for %s::%s", tType, tQname));
+        assertTrue(String.format("Target node was not found for %s::%s", tType, tQname), ti > -1);
 
         assertNotNull(findNode(sType, sName, sQname));
         assertNotNull(findNode(tType, tName, tQname));
@@ -111,7 +112,7 @@ public class Lineage {
         };
         final String msg = String.format("Link from %s::%s to %s::%s was not found", sType, sQname, tType, tQname);
         try {
-            assertTrue(exactMatch.call() || valiationMatch.call(), msg);
+            assertTrue(msg, exactMatch.call() || valiationMatch.call());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

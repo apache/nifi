@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.apache.nifi.headless.HeadlessNiFiServer;
 import org.apache.nifi.minifi.bootstrap.BootstrapListener;
+import org.apache.nifi.minifi.c2.C2NiFiProperties;
 import org.apache.nifi.minifi.c2.C2NifiClientService;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
@@ -54,8 +55,8 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
         initBootstrapListener();
         initC2();
+
         sendStartedStatus();
-        startHeartbeat();
     }
 
     @Override
@@ -78,18 +79,13 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
     }
 
     private void initC2() {
-        if (Boolean.parseBoolean(props.getProperty(MiNiFiProperties.C2_ENABLE.getKey(), MiNiFiProperties.C2_ENABLE.getDefaultValue()))) {
+        if (Boolean.parseBoolean(props.getProperty(C2NiFiProperties.C2_ENABLE_KEY, "false"))) {
             logger.info("C2 enabled, creating a C2 client instance");
-            c2NifiClientService = new C2NifiClientService(props, flowController, bootstrapListener);
-        } else {
-            logger.debug("C2 Property [{}] missing or disabled: C2 client not created", MiNiFiProperties.C2_ENABLE.getKey());
-            c2NifiClientService = null;
-        }
-    }
-
-    private void startHeartbeat() {
-        if (c2NifiClientService != null) {
+            c2NifiClientService = new C2NifiClientService(props, flowController);
             c2NifiClientService.start();
+        } else {
+            logger.debug("C2 Property [{}] missing or disabled: C2 client not created", C2NiFiProperties.C2_ENABLE_KEY);
+            c2NifiClientService = null;
         }
     }
 
@@ -105,9 +101,7 @@ public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiSe
 
                 bootstrapListener = new BootstrapListener(this, port);
                 bootstrapListener.start();
-            } catch(IOException e){
-                throw new UncheckedIOException("Failed to start MiNiFi because of Bootstrap listener initialization error", e);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException | IOException nfe) {
                 throw new RuntimeException("Failed to start MiNiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
         } else {

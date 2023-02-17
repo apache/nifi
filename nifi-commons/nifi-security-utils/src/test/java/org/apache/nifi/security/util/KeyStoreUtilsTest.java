@@ -38,10 +38,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class KeyStoreUtilsTest {
     private static final String SIGNING_ALGORITHM = "SHA256withRSA";
@@ -90,18 +89,18 @@ public class KeyStoreUtilsTest {
         );
         final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] { HOSTNAME });
         final File keystoreFile = new File(configuration.getKeystorePath());
-        assertTrue(keystoreFile.exists(), "Keystore File not found");
+        assertTrue("Keystore File not found", keystoreFile.exists());
         keystoreFile.deleteOnExit();
 
         final File truststoreFile = new File(configuration.getTruststorePath());
-        assertTrue(truststoreFile.exists(),"Truststore File not found");
+        assertTrue("Truststore File not found", truststoreFile.exists());
         truststoreFile.deleteOnExit();
 
-        assertEquals(KeystoreType.PKCS12, configuration.getKeystoreType(), "Keystore Type not matched");
-        assertEquals(KeystoreType.PKCS12, configuration.getTruststoreType(), "Truststore Type not matched");
+        assertEquals("Keystore Type not matched", KeystoreType.PKCS12, configuration.getKeystoreType());
+        assertEquals("Truststore Type not matched", KeystoreType.PKCS12, configuration.getTruststoreType());
 
-        assertTrue(KeyStoreUtils.isStoreValid(keystoreFile.toURI().toURL(), configuration.getKeystoreType(), configuration.getKeystorePassword().toCharArray()), "Keystore not valid");
-        assertTrue(KeyStoreUtils.isStoreValid(truststoreFile.toURI().toURL(), configuration.getTruststoreType(), configuration.getTruststorePassword().toCharArray()), "Truststore not valid");
+        assertTrue("Keystore not valid", KeyStoreUtils.isStoreValid(keystoreFile.toURI().toURL(), configuration.getKeystoreType(), configuration.getKeystorePassword().toCharArray()));
+        assertTrue("Truststore not valid", KeyStoreUtils.isStoreValid(truststoreFile.toURI().toURL(), configuration.getTruststoreType(), configuration.getTruststorePassword().toCharArray()));
     }
 
     @Test
@@ -142,7 +141,7 @@ public class KeyStoreUtilsTest {
         sourceKeyStore.setCertificateEntry(ALIAS, certificate);
 
         final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
-        assertEquals(certificate, copiedKeyStore.getCertificate(ALIAS), String.format("[%s] Certificate not matched", sourceKeyStore.getType()));
+        assertEquals(String.format("[%s] Certificate not matched", sourceKeyStore.getType()), certificate, copiedKeyStore.getCertificate(ALIAS));
     }
 
     private void assertKeyEntryStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
@@ -152,13 +151,13 @@ public class KeyStoreUtilsTest {
 
         final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
         final KeyStore.Entry entry = copiedKeyStore.getEntry(ALIAS, new KeyStore.PasswordProtection(KEY_PASSWORD));
-        assertInstanceOf(KeyStore.PrivateKeyEntry.class, entry, String.format("[%s] Private Key entry not found", sourceKeyStore.getType()));
+        assertTrue(String.format("[%s] Private Key entry not found", sourceKeyStore.getType()), entry instanceof KeyStore.PrivateKeyEntry);
         final KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) entry;
 
         final Certificate[] entryCertificateChain = privateKeyEntry.getCertificateChain();
-        assertArrayEquals(certificateChain, entryCertificateChain, String.format("[%s] Certificate Chain not matched", sourceKeyStore.getType()));
-        assertEquals(keyPair.getPrivate(), privateKeyEntry.getPrivateKey(), String.format("[%s] Private Key not matched", sourceKeyStore.getType()));
-        assertEquals(keyPair.getPublic(), entryCertificateChain[0].getPublicKey(), String.format("[%s] Public Key not matched", sourceKeyStore.getType()));
+        assertArrayEquals(String.format("[%s] Certificate Chain not matched", sourceKeyStore.getType()), certificateChain, entryCertificateChain);
+        assertEquals(String.format("[%s] Private Key not matched", sourceKeyStore.getType()), keyPair.getPrivate(), privateKeyEntry.getPrivateKey());
+        assertEquals(String.format("[%s] Public Key not matched", sourceKeyStore.getType()), keyPair.getPublic(), entryCertificateChain[0].getPublicKey());
     }
 
     private void assertSecretKeyStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
@@ -168,7 +167,7 @@ public class KeyStoreUtilsTest {
 
         final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
         final KeyStore.Entry entry = copiedKeyStore.getEntry(ALIAS, protection);
-        assertInstanceOf(KeyStore.SecretKeyEntry.class, entry, String.format("[%s] Secret Key entry not found", sourceKeyStore.getType()));
+        assertTrue(String.format("[%s] Secret Key entry not found", sourceKeyStore.getType()), entry instanceof KeyStore.SecretKeyEntry);
     }
 
     private KeyStore copyKeyStore(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {

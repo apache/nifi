@@ -19,7 +19,8 @@ package org.apache.nifi.web.security;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -27,7 +28,7 @@ import org.springframework.security.core.AuthenticationException;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -172,7 +173,12 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = mock(NiFiProperties.class);
         when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
-        when(nifiProperties.getProperty(anyString())).then((Answer<String>) invocationOnMock -> properties.getProperty((String)invocationOnMock.getArguments()[0]));
+        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return properties.getProperty((String)invocationOnMock.getArguments()[0]);
+            }
+        });
         return nifiProperties;
     }
 

@@ -18,7 +18,7 @@ package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.scheduling.ExecutionNode;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -46,6 +46,7 @@ public class ExecutionMatcherTest extends AbstractAttributeMatcherTest {
         // given
         final ExecutionMatcher testSubject = new ExecutionMatcher();
         givenExecutionModeIsNotPrimary();
+        givenSearchTerm("primary");
 
         // when
         testSubject.match(component, searchQuery, matches);

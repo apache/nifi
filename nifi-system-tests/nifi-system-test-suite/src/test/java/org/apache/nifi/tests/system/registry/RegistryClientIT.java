@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -68,8 +67,7 @@ public class RegistryClientIT extends NiFiSystemIT {
     }
 
     private FlowRegistryClientEntity registerClient() throws NiFiClientException, IOException {
-        final String clientName = String.format("FileRegistry-%s", UUID.randomUUID());
-        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient(clientName);
+        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient("FileRegistry");
         final File storageDir = new File("target/flowRegistryStorage/" + getTestName().replace("\\(.*?\\)", ""));
         Files.createDirectories(storageDir.toPath());
         getClientUtil().updateRegistryClientProperties(clientEntity, Collections.singletonMap("Directory", storageDir.getAbsolutePath()));

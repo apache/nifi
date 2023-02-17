@@ -38,14 +38,11 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.extension.manifest.AllowableValue;
-import org.apache.nifi.extension.manifest.Attribute;
 import org.apache.nifi.extension.manifest.DefaultSchedule;
 import org.apache.nifi.extension.manifest.DefaultSettings;
 import org.apache.nifi.extension.manifest.Dependency;
 import org.apache.nifi.extension.manifest.DependentValues;
 import org.apache.nifi.extension.manifest.DeprecationNotice;
-import org.apache.nifi.extension.manifest.DynamicProperty;
-import org.apache.nifi.extension.manifest.DynamicRelationship;
 import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.extension.manifest.Property;
@@ -53,10 +50,8 @@ import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.extension.manifest.Stateful;
-import org.apache.nifi.extension.manifest.SystemResourceConsideration;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
-import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -67,7 +62,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 /**
@@ -111,12 +105,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     @Override
-    public RuntimeManifestBuilder addBundle(final ExtensionManifestContainer extensionManifestContainer) {
-        if (extensionManifestContainer == null) {
-            throw new IllegalArgumentException("Extension manifest container is required");
-        }
-
-        final ExtensionManifest extensionManifest = extensionManifestContainer.getManifest();
+    public RuntimeManifestBuilder addBundle(final ExtensionManifest extensionManifest) {
         if (extensionManifest == null) {
             throw new IllegalArgumentException("Extension manifest is required");
         }
@@ -136,12 +125,8 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         bundle.setVersion(extensionManifest.getVersion());
 
         if (extensionManifest.getExtensions() != null) {
-            final Map<String, String> additionalDetailsMap = extensionManifestContainer.getAdditionalDetails();
             final ComponentManifestBuilder componentManifestBuilder = new StandardComponentManifestBuilder();
-            extensionManifest.getExtensions().forEach(extension -> {
-                final String additionalDetails = additionalDetailsMap.get(extension.getName());
-                addExtension(extensionManifest, extension, additionalDetails, componentManifestBuilder);
-            });
+            extensionManifest.getExtensions().forEach(extension -> addExtension(extensionManifest, extension, componentManifestBuilder));
             bundle.setComponentManifest(componentManifestBuilder.build());
         }
         bundles.add(bundle);
@@ -150,7 +135,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     }
 
     @Override
-    public RuntimeManifestBuilder addBundles(final Iterable<ExtensionManifestContainer> extensionManifests) {
+    public RuntimeManifestBuilder addBundles(final Iterable<ExtensionManifest> extensionManifests) {
         extensionManifests.forEach(em -> addBundle(em));
         return this;
     }
@@ -182,37 +167,36 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         return runtimeManifest;
     }
 
-    private void addExtension(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
-                              final ComponentManifestBuilder componentManifestBuilder) {
+    private void addExtension(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
         if (extension == null) {
             throw new IllegalArgumentException("Extension cannot be null");
         }
 
         switch(extension.getType()) {
             case PROCESSOR:
-                addProcessorDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                addProcessorDefinition(extensionManifest, extension, componentManifestBuilder);
                 break;
             case CONTROLLER_SERVICE:
-                addControllerServiceDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                addControllerServiceDefinition(extensionManifest, extension, componentManifestBuilder);
                 break;
             case REPORTING_TASK:
-                addReportingTaskDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                addReportingTaskDefinition(extensionManifest, extension, componentManifestBuilder);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown extension type: " + extension.getType());
         }
     }
 
-    private void addProcessorDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
-                                        final ComponentManifestBuilder componentManifestBuilder) {
+    private void addProcessorDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
         final ProcessorDefinition processorDefinition = new ProcessorDefinition();
         populateDefinedType(extensionManifest, extension, processorDefinition);
-        populateExtensionComponent(extensionManifest, extension, additionalDetails, processorDefinition);
+        populateExtensionComponent(extensionManifest, extension, processorDefinition);
         populateConfigurableComponent(extension, processorDefinition);
 
         // processor specific fields
         processorDefinition.setInputRequirement(getInputRequirement(extension.getInputRequirement()));
         processorDefinition.setSupportedRelationships(getSupportedRelationships(extension.getRelationships()));
+        processorDefinition.setSupportsDynamicRelationships(extension.getDynamicRelationship() != null);
         processorDefinition.setTriggerWhenEmpty(extension.getTriggerWhenEmpty());
         processorDefinition.setTriggerSerially(extension.getTriggerSerially());
         processorDefinition.setTriggerWhenAnyDestinationAvailable(extension.getTriggerWhenAnyDestinationAvailable());
@@ -220,12 +204,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         processorDefinition.setSupportsEventDriven(extension.getEventDriven());
         processorDefinition.setPrimaryNodeOnly(extension.getPrimaryNodeOnly());
         processorDefinition.setSideEffectFree(extension.getSideEffectFree());
-
-        final DynamicRelationship dynamicRelationship = extension.getDynamicRelationship();
-        if (dynamicRelationship != null) {
-            processorDefinition.setSupportsDynamicRelationships(true);
-            processorDefinition.setDynamicRelationship(getDynamicRelationship(dynamicRelationship));
-        }
 
         final DefaultSettings defaultSettings = extension.getDefaultSettings();
         processorDefinition.setDefaultPenaltyDuration(defaultSettings == null ? DEFAULT_PENALIZATION_PERIOD : defaultSettings.getPenaltyDuration());
@@ -266,39 +244,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         processorDefinition.setDefaultConcurrentTasksBySchedulingStrategy(defaultConcurrentTasks);
         processorDefinition.setDefaultSchedulingPeriodBySchedulingStrategy(defaultSchedulingPeriods);
 
-        final List<Attribute> readsAttributes = extension.getReadsAttributes();
-        if (isNotEmpty(readsAttributes)) {
-            processorDefinition.setReadsAttributes(
-                    readsAttributes.stream()
-                            .map(this::getAttribute)
-                            .collect(Collectors.toList())
-            );
-        }
-
-        final List<Attribute> writesAttributes = extension.getWritesAttributes();
-        if (isNotEmpty(writesAttributes)) {
-            processorDefinition.setWritesAttributes(
-                    writesAttributes.stream()
-                            .map(this::getAttribute)
-                            .collect(Collectors.toList())
-            );
-        }
-
         componentManifestBuilder.addProcessor(processorDefinition);
-    }
-
-    private org.apache.nifi.c2.protocol.component.api.Attribute getAttribute(final Attribute attribute) {
-        final org.apache.nifi.c2.protocol.component.api.Attribute c2Attribute = new org.apache.nifi.c2.protocol.component.api.Attribute();
-        c2Attribute.setName(attribute.getName());
-        c2Attribute.setDescription(attribute.getDescription());
-        return c2Attribute;
-    }
-
-    private org.apache.nifi.c2.protocol.component.api.DynamicRelationship getDynamicRelationship(final DynamicRelationship dynamicRelationship) {
-        final org.apache.nifi.c2.protocol.component.api.DynamicRelationship c2DynamicRelationship = new org.apache.nifi.c2.protocol.component.api.DynamicRelationship();
-        c2DynamicRelationship.setName(dynamicRelationship.getName());
-        c2DynamicRelationship.setDescription(dynamicRelationship.getDescription());
-        return c2DynamicRelationship;
     }
 
     private InputRequirement.Requirement getInputRequirement(final org.apache.nifi.extension.manifest.InputRequirement inputRequirement) {
@@ -333,20 +279,18 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         return componentRelationships;
     }
 
-    private void addControllerServiceDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
-                                                final ComponentManifestBuilder componentManifestBuilder) {
+    private void addControllerServiceDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
         final ControllerServiceDefinition controllerServiceDefinition = new ControllerServiceDefinition();
         populateDefinedType(extensionManifest, extension, controllerServiceDefinition);
-        populateExtensionComponent(extensionManifest, extension, additionalDetails, controllerServiceDefinition);
+        populateExtensionComponent(extensionManifest, extension, controllerServiceDefinition);
         populateConfigurableComponent(extension, controllerServiceDefinition);
         componentManifestBuilder.addControllerService(controllerServiceDefinition);
     }
 
-    private void addReportingTaskDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
-                                            final ComponentManifestBuilder componentManifestBuilder) {
+    private void addReportingTaskDefinition(final ExtensionManifest extensionManifest, final Extension extension, final ComponentManifestBuilder componentManifestBuilder) {
         final ReportingTaskDefinition reportingTaskDefinition = new ReportingTaskDefinition();
         populateDefinedType(extensionManifest, extension, reportingTaskDefinition);
-        populateExtensionComponent(extensionManifest, extension, additionalDetails, reportingTaskDefinition);
+        populateDefinedType(extensionManifest, extension, reportingTaskDefinition);
         populateConfigurableComponent(extension, reportingTaskDefinition);
 
         final List<String> schedulingStrategies = new ArrayList<>();
@@ -382,8 +326,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         definedType.setVersion(extensionManifest.getVersion());
     }
 
-    private void populateExtensionComponent(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
-                                            final ExtensionComponent extensionComponent) {
+    private void populateExtensionComponent(final ExtensionManifest extensionManifest, final Extension extension, final ExtensionComponent extensionComponent) {
         final org.apache.nifi.extension.manifest.BuildInfo buildInfo = extensionManifest.getBuildInfo();
         if (buildInfo != null) {
             final BuildInfo componentBuildInfo = new BuildInfo();
@@ -393,12 +336,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
 
         final List<String> tags = extension.getTags();
         if (isNotEmpty(tags)) {
-            extensionComponent.setTags(new TreeSet<>(tags));
-        }
-
-        final List<String> seeAlso = extension.getSeeAlso();
-        if (isNotEmpty(seeAlso)) {
-            extensionComponent.setSeeAlso(new TreeSet<>(seeAlso));
+            extensionComponent.setTags(new HashSet<>(tags));
         }
 
         // the extension-manifest.xml will have <deprecationNotice/> for non-deprecated components which unmarshalls into
@@ -407,10 +345,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         if (deprecationNotice != null && deprecationNotice.getReason() != null) {
             extensionComponent.setDeprecated(true);
             extensionComponent.setDeprecationReason(deprecationNotice.getReason());
-            final List<String> alternatives = deprecationNotice.getAlternatives();
-            if (isNotEmpty(alternatives)) {
-                extensionComponent.setDeprecationAlternatives(new TreeSet<>(alternatives));
-            }
         }
 
         final List<ProvidedServiceAPI> providedServiceApis = extension.getProvidedServiceAPIs();
@@ -443,27 +377,8 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 );
                 extensionComponent.setStateful(componentStateful);
             }
-        }
 
-        final List<SystemResourceConsideration> systemResourceConsiderations = extension.getSystemResourceConsiderations();
-        if (isNotEmpty(systemResourceConsiderations)) {
-            extensionComponent.setSystemResourceConsiderations(
-                    systemResourceConsiderations.stream()
-                            .map(this::getSystemResourceConsideration)
-                            .collect(Collectors.toList())
-            );
         }
-
-        if (additionalDetails != null) {
-            extensionComponent.setAdditionalDetails(true);
-        }
-    }
-
-    private org.apache.nifi.c2.protocol.component.api.SystemResourceConsideration getSystemResourceConsideration(final SystemResourceConsideration systemResourceConsideration) {
-        final org.apache.nifi.c2.protocol.component.api.SystemResourceConsideration c2consideration = new org.apache.nifi.c2.protocol.component.api.SystemResourceConsideration();
-        c2consideration.setResource(systemResourceConsideration.getResource());
-        c2consideration.setDescription(systemResourceConsideration.getDescription());
-        return c2consideration;
     }
 
     private Scope getScope(final org.apache.nifi.extension.manifest.Scope sourceScope) {
@@ -501,24 +416,9 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             configurableComponentDefinition.setPropertyDescriptors(propertyDescriptors);
         }
 
-        final List<DynamicProperty> dynamicProperties = extension.getDynamicProperties();
-        if (isNotEmpty(dynamicProperties)) {
+        if (isNotEmpty(extension.getDynamicProperties())) {
             configurableComponentDefinition.setSupportsDynamicProperties(true);
-            configurableComponentDefinition.setDynamicProperties(
-                    dynamicProperties.stream()
-                            .map(this::getDynamicProperty)
-                            .collect(Collectors.toList())
-            );
         }
-    }
-
-    private org.apache.nifi.c2.protocol.component.api.DynamicProperty getDynamicProperty(final DynamicProperty dynamicProperty) {
-        final org.apache.nifi.c2.protocol.component.api.DynamicProperty c2DynamicProperty = new org.apache.nifi.c2.protocol.component.api.DynamicProperty();
-        c2DynamicProperty.setName(dynamicProperty.getName());
-        c2DynamicProperty.setValue(dynamicProperty.getValue());
-        c2DynamicProperty.setDescription(dynamicProperty.getDescription());
-        c2DynamicProperty.setExpressionLanguageScope(getELScope(dynamicProperty.getExpressionLanguageScope()));
-        return c2DynamicProperty;
     }
 
     private void addPropertyDescriptor(final Map<String, PropertyDescriptor> propertyDescriptors, final Property property) {

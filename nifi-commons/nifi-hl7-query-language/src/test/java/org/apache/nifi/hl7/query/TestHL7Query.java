@@ -28,14 +28,15 @@ import org.apache.nifi.hl7.model.HL7Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("resource")
 public class TestHL7Query {
@@ -59,7 +60,7 @@ public class TestHL7Query {
     private HL7Message hypoglycemia;
 
     @BeforeEach
-    public void init() throws HL7Exception {
+    public void init() throws IOException, HL7Exception {
         this.hyperglycemia = createMessage(HYPERGLYCEMIA);
         this.hypoglycemia = createMessage(HYPOGLYCEMIA);
     }
@@ -115,7 +116,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testSelectMessage() {
+    public void testSelectMessage() throws HL7Exception, IOException {
         final HL7Query query = HL7Query.compile("SELECT MESSAGE");
         final HL7Message msg = hypoglycemia;
         final QueryResult result = query.evaluate(msg);
@@ -130,7 +131,7 @@ public class TestHL7Query {
 
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void testSelectField() {
+    public void testSelectField() throws HL7Exception, IOException {
         final HL7Query query = HL7Query.compile("SELECT PID.5");
         final HL7Message msg = hypoglycemia;
         final QueryResult result = query.evaluate(msg);
@@ -148,7 +149,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testSelectAbnormalTestResult() {
+    public void testSelectAbnormalTestResult() throws HL7Exception, IOException {
         final String query = "DECLARE result AS REQUIRED OBX SELECT result WHERE result.7 != 'N' AND result.1 = 1";
 
         final HL7Query hl7Query = HL7Query.compile(query);
@@ -157,7 +158,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testFieldEqualsString() {
+    public void testFieldEqualsString() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.7 = 'L'");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -168,7 +169,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testLessThan() {
+    public void testLessThan() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.4 < 600");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -179,7 +180,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testCompareTwoFields() {
+    public void testCompareTwoFields() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.4 < result.6.2");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -190,7 +191,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testLessThanOrEqual() {
+    public void testLessThanOrEqual() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.4 <= 59");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -205,7 +206,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testGreaterThanOrEqual() {
+    public void testGreaterThanOrEqual() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.4 >= 59");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -220,7 +221,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testGreaterThan() {
+    public void testGreaterThan() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.4 > 58");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -235,7 +236,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testDistinctValuesReturned() {
+    public void testDistinctValuesReturned() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result1 AS REQUIRED OBX, result2 AS REQUIRED OBX SELECT MESSAGE WHERE result1.7 = 'L' OR result2.7 != 'H'");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -243,7 +244,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testAndWithParents() {
+    public void testAndWithParents() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.7 = 'L' AND result.3.1 = 'GLU'");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -275,7 +276,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testIsNull() {
+    public void testIsNull() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.999 IS NULL");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertTrue(result.isMatch());
@@ -294,7 +295,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testNotNull() {
+    public void testNotNull() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.999 NOT NULL");
         QueryResult result = hl7Query.evaluate(hypoglycemia);
         assertFalse(result.isMatch());
@@ -312,7 +313,7 @@ public class TestHL7Query {
         assertTrue(result.isMatch());
     }
 
-    private HL7Message createMessage(final String msgText) throws HL7Exception {
+    private HL7Message createMessage(final String msgText) throws HL7Exception, IOException {
         final HapiContext hapiContext = new DefaultHapiContext();
         hapiContext.setValidationContext(ValidationContextFactory.noValidation());
 

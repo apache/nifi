@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
+import java.util.Map;
+
+import org.apache.nifi.components.PropertyDescriptor;
+
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import org.apache.nifi.components.PropertyDescriptor;
-import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-
-import java.util.Map;
 
 
 /**
@@ -37,12 +36,8 @@ public class ImplicitDefaultCredentialsStrategy extends AbstractCredentialsStrat
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
+    public AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties) {
       return new DefaultAWSCredentialsProviderChain();
     }
 
-    @Override
-    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
-        return DefaultCredentialsProvider.create();
-    }
 }

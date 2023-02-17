@@ -104,8 +104,11 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,11 +131,18 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class FrameworkIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(FrameworkIntegrationTest.class);
+
+    //@Rule
+    public Timeout globalTimeout = Timeout.seconds(20);
+
+    @Rule
+    public TestName name = new TestName();
+
 
     private ResourceClaimManager resourceClaimManager;
     private StandardProcessScheduler processScheduler;
@@ -152,10 +162,11 @@ public class FrameworkIntegrationTest {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
-    @BeforeEach
+    @Before
     public void setup() throws IOException {
         StandardStateManagerProvider.resetProvider();
 
+        cleanup();
         initialize();
 
         flowController.initializeFlow();
@@ -295,8 +306,8 @@ public class FrameworkIntegrationTest {
         return clusterCoordinator;
     }
 
-    @AfterEach
-    public final void shutdown() throws IOException {
+    @After
+    public final void shutdown() {
         logger.info("Shutting down...");
 
         if (flowController != null) {
@@ -310,8 +321,6 @@ public class FrameworkIntegrationTest {
         if (processScheduler != null) {
             processScheduler.shutdown();
         }
-
-        deleteDirectory(new File("target/int-tests"));
     }
 
     protected void restart() throws IOException, ExecutionException, InterruptedException {
@@ -359,6 +368,11 @@ public class FrameworkIntegrationTest {
         flowController.initializeFlow(queueProvider);
     }
 
+    @After
+    public final void cleanup() throws IOException {
+        deleteDirectory(new File("target/int-tests"));
+    }
+
     private void deleteDirectory(final File dir) throws IOException {
         if (!dir.exists()) {
             return;
@@ -387,7 +401,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ProcessorNode createProcessorNode(final String processorType, final ProcessGroup destination) {
-        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID();
+        final String uuid = getSimpleTypeName(processorType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ProcessorNode procNode = flowController.getFlowManager().createProcessor(processorType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         if (destination != null) {
@@ -402,7 +416,7 @@ public class FrameworkIntegrationTest {
     }
 
     protected final ControllerServiceNode createControllerServiceNode(final String controllerServiceType) {
-        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID();
+        final String uuid = getSimpleTypeName(controllerServiceType) + "-" + UUID.randomUUID().toString();
         final BundleCoordinate bundleCoordinate = SystemBundle.SYSTEM_BUNDLE_COORDINATE;
         final ControllerServiceNode serviceNode = flowController.getFlowManager().createControllerService(controllerServiceType, uuid, bundleCoordinate, Collections.emptySet(), true, true, null);
         rootProcessGroup.addControllerService(serviceNode);
@@ -557,7 +571,7 @@ public class FrameworkIntegrationTest {
             }
         }
 
-        assertEquals(count, encountered, "Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered);
+        assertEquals("Expected to encounter " + count + " Provenance Events of type " + eventType + " but encountered " + encountered, count, encountered);
     }
 
     protected void triggerOnce(final ProcessorNode processor) throws ExecutionException, InterruptedException {

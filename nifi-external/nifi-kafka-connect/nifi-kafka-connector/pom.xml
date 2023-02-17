@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-kafka-connect</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -33,22 +33,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-bootstrap</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
 
 
@@ -70,40 +70,58 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jetty-bundle</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stateless-nar</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <type>nar</type>
+        </dependency>
+
+        <!-- dependencies for jaxb/activation/annotation for running NiFi on Java 11 -->
+        <!-- TODO: remove these once minimum Java version is 11 -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+            <version>${jakarta.xml.bind-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <version>${jaxb.runtime.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
         </dependency>
     </dependencies>
 </project>

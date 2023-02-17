@@ -18,9 +18,8 @@ package org.apache.nifi.processor.util.list;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.TestWatcher;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
  * This class provides a way to dump list-able entities, processor state and transferred FlowFiles into 'success' relationship,
  * which is useful to debug test issues especially at automation test environment such as Travis that is difficult to debug.
  */
-public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback {
+public class ListProcessorTestWatcher extends TestWatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(ListProcessorTestWatcher.class);
     private static final Consumer<String> logStateDump = logger::info;
@@ -105,15 +104,25 @@ public class ListProcessorTestWatcher implements TestWatcher, BeforeEachCallback
     }
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) {
+    protected void starting(Description description) {
         startedAtMillis = System.currentTimeMillis();
     }
 
+    /**
+     * Throw additional AssertionError with stateDump as its message.
+     */
     @Override
-    public void testFailed(ExtensionContext context, Throwable cause) {
-        if (!(cause instanceof AssertionError)) {
+    protected void failed(Throwable e, Description description) {
+        if (!(e instanceof AssertionError)) {
             return;
         }
-        dumpState(startedAtMillis);
+
+        final StringBuilder msg = new StringBuilder("State dump:\n");
+        dumpState(s -> msg.append(s).append("\n"),
+                stateMapProvider.provide(),
+                entitiesProvider.provide(),
+                successFlowFilesProvider.provide(),
+                startedAtMillis);
+        throw new AssertionError(msg);
     }
 }

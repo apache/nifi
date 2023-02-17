@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository.crypto
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext
 import org.apache.nifi.controller.repository.claim.ContentClaim
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
@@ -25,12 +26,13 @@ import org.apache.nifi.security.kms.StaticKeyProvider
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Hex
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.condition.DisabledOnOs
-import org.junit.jupiter.api.condition.OS
+import org.junit.After
+import org.junit.Assume
+import org.junit.Before
+import org.junit.BeforeClass
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -38,10 +40,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertEquals
-
-@DisabledOnOs(OS.WINDOWS)
+@RunWith(JUnit4.class)
 class EncryptedFileSystemRepositoryTest {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepositoryTest.class)
 
@@ -65,8 +64,10 @@ class EncryptedFileSystemRepositoryTest {
             (NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION)            : ""
     ]
 
-    @BeforeAll
+    @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -74,7 +75,7 @@ class EncryptedFileSystemRepositoryTest {
         }
     }
 
-    @BeforeEach
+    @Before
     void setUp() throws Exception {
         // Use mock NiFiProperties w/ encrypted configs
         repository = initializeRepository()
@@ -102,7 +103,7 @@ class EncryptedFileSystemRepositoryTest {
         repository
     }
 
-    @AfterEach
+    @After
     void tearDown() throws Exception {
         repository.shutdown()
     }
@@ -111,7 +112,7 @@ class EncryptedFileSystemRepositoryTest {
     void testReadNullContentClaimShouldReturnEmptyInputStream() {
         final InputStream inputStream = repository.read((ContentClaim) null)
         final int read = inputStream.read()
-        assertEquals(-1, read)
+        assert read == -1
     }
 
     /**
@@ -132,8 +133,8 @@ class EncryptedFileSystemRepositoryTest {
         // Assert
 
         // Use the EFSR to decrypt the same content
-        byte [] retrievedBytes = verifyClaimDecryption(claim, plainBytes)
-        assertEquals(plainContent, new String(retrievedBytes, StandardCharsets.UTF_8))
+        def retrievedBytes = verifyClaimDecryption(claim, plainBytes)
+        assert new String(retrievedBytes, StandardCharsets.UTF_8) == plainContent
     }
 
     /**
@@ -178,8 +179,8 @@ class EncryptedFileSystemRepositoryTest {
             String pieceOfContent = content[i]
 
             // Use the EFSR to decrypt the same content
-            byte [] retrievedBytes = verifyClaimDecryption(claim, pieceOfContent.bytes)
-            assertEquals(pieceOfContent, new String(retrievedBytes, StandardCharsets.UTF_8))
+            def retrievedBytes = verifyClaimDecryption(claim, pieceOfContent.bytes)
+            assert new String(retrievedBytes, StandardCharsets.UTF_8) == pieceOfContent
         }
     }
 
@@ -203,7 +204,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes via repository (${retrievedContent.length}): ${pba(retrievedContent)}")
 
         // Assert
-        assertEquals(plainContent, new String(retrievedContent, StandardCharsets.UTF_8))
+        assert new String(retrievedContent, StandardCharsets.UTF_8) == plainContent
     }
 
     /**
@@ -300,7 +301,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes from output stream (${exportedBytes.length}): ${pba(exportedBytes)}")
 
         // Assert
-        assertArrayEquals(plainBytes, exportedBytes)
+        assert exportedBytes == plainBytes
     }
 
     /**
@@ -333,9 +334,9 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read bytes from output stream (${exportedBytes.length}): ${pba(exportedBytes)}")
 
         // Assert
-        assertArrayEquals(plainBytes[offset..<(offset + length)] as byte[], exportedBytes)
-        assertEquals(length, exportedBytes.length)
-        assertEquals(length, bytesWritten)
+        assert exportedBytes == plainBytes[offset..<(offset + length)] as byte[]
+        assert exportedBytes.length == length
+        assert bytesWritten == length
     }
 
     /**
@@ -365,7 +366,7 @@ class EncryptedFileSystemRepositoryTest {
 
         // Assert
         try {
-            assertArrayEquals(plainBytes, exportedBytes)
+            assert exportedBytes == plainBytes
         } finally {
             // Clean up
             tempOutputFile.delete()
@@ -404,9 +405,9 @@ class EncryptedFileSystemRepositoryTest {
 
         // Assert
         try {
-            assertArrayEquals(plainBytes[offset..<(offset + length)] as byte[], exportedBytes)
-            assertEquals(length, exportedBytes.length)
-            assertEquals(length, bytesWritten)
+            assert exportedBytes == plainBytes[offset..<(offset + length)] as byte[]
+            assert exportedBytes.length == length
+            assert bytesWritten == length
         } finally {
             // Clean up
             tempOutputFile.delete()
@@ -434,12 +435,12 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Cloned claim ${claim} to ${clonedClaim}")
 
         // Use the EFSR to decrypt the original claim content
-        byte [] retrievedOriginalBytes = verifyClaimDecryption(claim, plainBytes)
-        assertArrayEquals(plainBytes, retrievedOriginalBytes)
+        def retrievedOriginalBytes = verifyClaimDecryption(claim, plainBytes)
+        assert retrievedOriginalBytes == plainBytes
 
         // Use the EFSR to decrypt the cloned claim content
-        byte [] retrievedClonedBytes = verifyClaimDecryption(clonedClaim, plainBytes)
-        assertArrayEquals(plainBytes, retrievedClonedBytes)
+        def retrievedClonedBytes = verifyClaimDecryption(clonedClaim, plainBytes)
+        assert retrievedClonedBytes == plainBytes
     }
 
     /**
@@ -478,9 +479,7 @@ class EncryptedFileSystemRepositoryTest {
     }
 
     /**
-     * Simple test to merge encrypted content claims and ensure that the merged encryption
-     * metadata accurately reflects the new claim and allows for decryption,
-     * including the header, demarcator, and footer.
+     * Simple test to merge encrypted content claims and ensure that the merged encryption metadata accurately reflects the new claim and allows for decryption, including the header, demarcator, and footer.
      */
     @Test
     void testMergeWithMarkersShouldUpdateEncryptionMetadata() {
@@ -554,7 +553,7 @@ class EncryptedFileSystemRepositoryTest {
         logger.info("Read ${description} bytes via repository (${retrievedBytes.length}): ${pba(retrievedBytes)}")
 
         // Assert
-        assertArrayEquals(plainBytes, retrievedBytes)
+        assert retrievedBytes == plainBytes
         return retrievedBytes
     }
 

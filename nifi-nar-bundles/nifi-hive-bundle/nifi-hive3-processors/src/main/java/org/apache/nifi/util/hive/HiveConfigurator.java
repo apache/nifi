@@ -31,6 +31,7 @@ import org.apache.nifi.security.krb.KerberosUser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -41,12 +42,7 @@ public class HiveConfigurator {
     public Collection<ValidationResult> validate(String configFiles, String principal, String keyTab, String password,
                                                  AtomicReference<ValidationResources> validationResourceHolder, ComponentLog log) {
 
-        final Configuration hiveConfig = getConfigurationForValidation(validationResourceHolder, configFiles, log);
-
-        return new ArrayList<>(KerberosProperties.validatePrincipalWithKeytabOrPassword(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, password, log));
-    }
-
-    public Configuration getConfigurationForValidation(AtomicReference<ValidationResources> validationResourceHolder, String configFiles, ComponentLog log) {
+        final List<ValidationResult> problems = new ArrayList<>();
         ValidationResources resources = validationResourceHolder.get();
 
         // if no resources in the holder, or if the holder has different resources loaded,
@@ -57,7 +53,11 @@ public class HiveConfigurator {
             validationResourceHolder.set(resources);
         }
 
-        return resources.getConfiguration();
+        final Configuration hiveConfig = resources.getConfiguration();
+
+        problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(this.getClass().getSimpleName(), hiveConfig, principal, keyTab, password, log));
+
+        return problems;
     }
 
     public HiveConf getConfigurationFromFiles(final String configFiles) {

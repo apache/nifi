@@ -54,8 +54,6 @@ class TestRuntimeManifest {
 
     public static final String LIST_HDFS_DEFAULT_SCHEDULE_TIME = "1 min";
 
-    private static final String REPORTING_TASK_DEFAULT_SCHEDULE_TIME = "60 sec";
-
     @Test
     void testRuntimeManifest() throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
@@ -107,22 +105,8 @@ class TestRuntimeManifest {
         assertFalse(listHdfsDefinition.getSideEffectFree());
         assertFalse(listHdfsDefinition.getTriggerWhenAnyDestinationAvailable());
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
-        assertNull(listHdfsDefinition.getDynamicProperties());
         assertFalse(listHdfsDefinition.getSupportsDynamicRelationships());
-        assertNull(listHdfsDefinition.getDynamicRelationship());
         assertEquals(InputRequirement.Requirement.INPUT_FORBIDDEN, listHdfsDefinition.getInputRequirement());
-        assertTrue(listHdfsDefinition.isAdditionalDetails());
-        assertNull(listHdfsDefinition.getReadsAttributes());
-        assertNotNull(listHdfsDefinition.getWritesAttributes());
-        assertFalse(listHdfsDefinition.getWritesAttributes().isEmpty());
-        assertNotNull(listHdfsDefinition.getWritesAttributes().get(0).getName());
-        assertNotNull(listHdfsDefinition.getWritesAttributes().get(0).getDescription());
-        assertNotNull(listHdfsDefinition.getSeeAlso());
-        assertFalse(listHdfsDefinition.getSeeAlso().isEmpty());
-        assertNull(listHdfsDefinition.getSystemResourceConsiderations());
-        assertNull(listHdfsDefinition.getDeprecated());
-        assertNull(listHdfsDefinition.getDeprecationReason());
-        assertNull(listHdfsDefinition.getDeprecationAlternatives());
 
         assertEquals("30 sec", listHdfsDefinition.getDefaultPenaltyDuration());
         assertEquals("1 sec", listHdfsDefinition.getDefaultYieldDuration());
@@ -175,7 +159,6 @@ class TestRuntimeManifest {
                 "org.apache.nifi.processors.hadoop.FetchHDFS");
         assertNotNull(fetchHdfsDefinition.isRestricted());
         assertTrue(fetchHdfsDefinition.isRestricted());
-        assertFalse(fetchHdfsDefinition.isAdditionalDetails());
 
         final Set<Restriction> restrictions = fetchHdfsDefinition.getExplicitRestrictions();
         assertNotNull(restrictions);
@@ -188,7 +171,6 @@ class TestRuntimeManifest {
         // Verify ConsumeKafka_2_6 definition which has properties with dependencies
         final ProcessorDefinition consumeKafkaDefinition = getProcessorDefinition(bundles, "nifi-kafka-2-6-nar",
                 "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6");
-        assertTrue(consumeKafkaDefinition.isAdditionalDetails());
 
         final PropertyDescriptor maxUncommitProp = getPropertyDescriptor(consumeKafkaDefinition, "max-uncommit-offset-wait");
         final List<PropertyDependency> propertyDependencies = maxUncommitProp.getDependencies();
@@ -201,24 +183,24 @@ class TestRuntimeManifest {
         assertEquals(1, propertyMaxUncommitDependency.getDependentValues().size());
         assertEquals("true", propertyMaxUncommitDependency.getDependentValues().get(0));
 
-        // Verify PrometheusReportingTask definition which also has @DefaultSchedule
-        final ReportingTaskDefinition prometheusReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-prometheus-nar",
-                "org.apache.nifi.reporting.prometheus.PrometheusReportingTask");
+        // Verify AmbariReportingTask definition which also has @DefaultSchedule
+        final ReportingTaskDefinition ambariReportingTaskDef = getReportingTaskDefinition(bundles, "nifi-ambari-nar",
+                "org.apache.nifi.reporting.ambari.AmbariReportingTask");
 
-        assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), prometheusReportingTaskDef.getDefaultSchedulingStrategy());
+        assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), ambariReportingTaskDef.getDefaultSchedulingStrategy());
 
-        final List<String> prometheusSchedulingStrategies = prometheusReportingTaskDef.getSupportedSchedulingStrategies();
-        assertNotNull(prometheusSchedulingStrategies);
-        assertEquals(2, prometheusSchedulingStrategies.size());
-        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertTrue(prometheusSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
+        final List<String> ambariSchedulingStrategies = ambariReportingTaskDef.getSupportedSchedulingStrategies();
+        assertNotNull(ambariSchedulingStrategies);
+        assertEquals(2, ambariSchedulingStrategies.size());
+        assertTrue(ambariSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertTrue(ambariSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
 
-        final Map<String, String> prometheusDefaultSchedulingPeriods = prometheusReportingTaskDef.getDefaultSchedulingPeriodBySchedulingStrategy();
-        assertNotNull(prometheusDefaultSchedulingPeriods);
-        assertEquals(2, prometheusDefaultSchedulingPeriods.size());
+        final Map<String, String> ambariDefaultSchedulingPeriods = ambariReportingTaskDef.getDefaultSchedulingPeriodBySchedulingStrategy();
+        assertNotNull(ambariDefaultSchedulingPeriods);
+        assertEquals(2, ambariDefaultSchedulingPeriods.size());
         // TIMER_DRIVEN period should come from the @DefaultSchedule annotation that overrides the default value
-        assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
-        assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
+        assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, ambariDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
+        assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), ambariDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
         // Verify JoltTransformRecord which has @EventDriven
         final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-record-nar",
@@ -245,48 +227,6 @@ class TestRuntimeManifest {
         assertEquals(2, joltTransformDefaultSchedulingPeriods.size());
         assertEquals(LIST_HDFS_DEFAULT_SCHEDULE_TIME, joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), joltTransformDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
-
-        // Verify ExecuteSQL has readsAttributes
-        final ProcessorDefinition executeSqlDef = getProcessorDefinition(bundles, "nifi-standard-nar",
-                "org.apache.nifi.processors.standard.ExecuteSQL");
-        assertNotNull(executeSqlDef.getReadsAttributes());
-        assertFalse(executeSqlDef.getReadsAttributes().isEmpty());
-        assertNotNull(executeSqlDef.getReadsAttributes().get(0).getName());
-        assertNotNull(executeSqlDef.getReadsAttributes().get(0).getDescription());
-
-        // Verify RouteOnAttribute dynamic relationships and dynamic properties
-        final ProcessorDefinition routeOnAttributeDef = getProcessorDefinition(bundles, "nifi-standard-nar",
-                "org.apache.nifi.processors.standard.RouteOnAttribute");
-
-        assertTrue(routeOnAttributeDef.getSupportsDynamicRelationships());
-        assertNotNull(routeOnAttributeDef.getDynamicRelationship());
-        assertNotNull(routeOnAttributeDef.getDynamicRelationship().getName());
-        assertNotNull(routeOnAttributeDef.getDynamicRelationship().getDescription());
-
-        assertTrue(routeOnAttributeDef.getSupportsDynamicProperties());
-        assertNotNull(routeOnAttributeDef.getDynamicProperties());
-        assertFalse(routeOnAttributeDef.getDynamicProperties().isEmpty());
-        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getName());
-        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getDescription());
-        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getValue());
-        assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getExpressionLanguageScope());
-
-        // Verify DeleteAzureBlobStorage is deprecated
-        final ProcessorDefinition deleteAzureBlobDef = getProcessorDefinition(bundles, "nifi-azure-nar",
-                "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage");
-        assertNotNull(deleteAzureBlobDef.getDeprecated());
-        assertTrue(deleteAzureBlobDef.getDeprecated().booleanValue());
-        assertNotNull(deleteAzureBlobDef.getDeprecationReason());
-        assertNotNull(deleteAzureBlobDef.getDeprecationAlternatives());
-        assertFalse(deleteAzureBlobDef.getDeprecationAlternatives().isEmpty());
-
-        // Verify SplitJson has @SystemResourceConsiderations
-        final ProcessorDefinition splitJsonDef = getProcessorDefinition(bundles, "nifi-standard-nar",
-                "org.apache.nifi.processors.standard.SplitJson");
-        assertNotNull(splitJsonDef.getSystemResourceConsiderations());
-        assertFalse(splitJsonDef.getSystemResourceConsiderations().isEmpty());
-        assertNotNull(splitJsonDef.getSystemResourceConsiderations().get(0).getResource());
-        assertNotNull(splitJsonDef.getSystemResourceConsiderations().get(0).getDescription());
     }
 
     private PropertyDescriptor getPropertyDescriptor(final ProcessorDefinition processorDefinition, final String propName) {

@@ -17,12 +17,12 @@
 package org.apache.nifi.websocket;
 
 import org.apache.nifi.processor.Processor;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -42,8 +42,11 @@ public class TestWebSocketMessageRouter {
         when(processor1.getIdentifier()).thenReturn("processor-2");
 
         router.registerProcessor(processor1);
-        assertThrows(WebSocketConfigurationException.class, () -> router.registerProcessor(processor2),
-                "Should fail since a processor is already registered.");
+        try {
+            router.registerProcessor(processor2);
+            fail("Should fail since a processor is already registered.");
+        } catch (WebSocketConfigurationException e) {
+        }
 
         assertTrue(router.isProcessorRegistered(processor1));
         assertFalse(router.isProcessorRegistered(processor2));
@@ -74,8 +77,11 @@ public class TestWebSocketMessageRouter {
         router.captureSession(session);
 
         router.sendMessage("session-1", sender -> sender.sendString("message"));
-        assertThrows(IllegalStateException.class,
-                () -> router.sendMessage("session-2", sender -> sender.sendString("message")),
-                "Should fail because there's no session with id session-2.");
+        try {
+            router.sendMessage("session-2", sender -> sender.sendString("message"));
+            fail("Should fail because there's no session with id session-2.");
+        } catch (IllegalStateException e) {
+        }
     }
+
 }

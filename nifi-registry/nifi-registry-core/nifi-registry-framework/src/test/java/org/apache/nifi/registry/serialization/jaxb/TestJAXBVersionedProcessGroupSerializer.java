@@ -20,13 +20,12 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.serialization.SerializationException;
 import org.apache.nifi.registry.serialization.VersionedSerializer;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJAXBVersionedProcessGroupSerializer {
 
@@ -55,19 +54,19 @@ public class TestJAXBVersionedProcessGroupSerializer {
         in.mark(1024);
         final int version = serializer.readDataModelVersion(in);
 
-        assertEquals(1, version);
+        Assert.assertEquals(1, version);
 
         in.reset();
         final VersionedProcessGroup deserializedProcessGroup1 = serializer.deserialize(in);
 
-        assertEquals(processGroup1.getIdentifier(), deserializedProcessGroup1.getIdentifier());
-        assertEquals(processGroup1.getName(), deserializedProcessGroup1.getName());
+        Assert.assertEquals(processGroup1.getIdentifier(), deserializedProcessGroup1.getIdentifier());
+        Assert.assertEquals(processGroup1.getName(), deserializedProcessGroup1.getName());
 
-        assertEquals(1, deserializedProcessGroup1.getProcessors().size());
+        Assert.assertEquals(1, deserializedProcessGroup1.getProcessors().size());
 
         final VersionedProcessor deserializedProcessor1 = deserializedProcessGroup1.getProcessors().iterator().next();
-        assertEquals(processor1.getIdentifier(), deserializedProcessor1.getIdentifier());
-        assertEquals(processor1.getName(), deserializedProcessor1.getName());
+        Assert.assertEquals(processor1.getIdentifier(), deserializedProcessor1.getIdentifier());
+        Assert.assertEquals(processor1.getName(), deserializedProcessor1.getName());
     }
 
 }

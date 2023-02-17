@@ -49,7 +49,6 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -293,9 +292,10 @@ public class TlsToolkitStandalone {
             }
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
             X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(reorderedDn, keyPair.getPublic(), null, certificate, caKeyPair, signingAlgorithm, days);
-            final String keyStorePassword = clientPasswords.get(i);
-            final KeyStore keyStore = setClientKeyStore(keyStorePassword, keyPair.getPrivate(), clientCert, certificate);
-            String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, keyStorePassword, standaloneConfig.isClientPasswordsGenerated());
+            KeyStore keyStore = KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString());
+            keyStore.load(null, null);
+            keyStore.setKeyEntry(NIFI_KEY, keyPair.getPrivate(), null, new Certificate[]{clientCert, certificate});
+            String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, clientPasswords.get(i), standaloneConfig.isClientPasswordsGenerated());
 
             try (FileWriter fileWriter = new FileWriter(new File(baseDir, clientDnFile + ".password"))) {
                 fileWriter.write(password);
@@ -311,17 +311,4 @@ public class TlsToolkitStandalone {
         }
     }
 
-    protected KeyStore setClientKeyStore(
-            final String keyStorePassword,
-            final PrivateKey privateKey,
-            final X509Certificate clientCertificate,
-            final X509Certificate issuerCertificate
-    ) throws IOException, GeneralSecurityException {
-        final KeyStore keyStore = KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString());
-        keyStore.load(null, null);
-        final char[] keyPassword = keyStorePassword.toCharArray();
-        final X509Certificate[] certificates = {clientCertificate, issuerCertificate};
-        keyStore.setKeyEntry(NIFI_KEY, privateKey, keyPassword, certificates);
-        return keyStore;
-    }
 }

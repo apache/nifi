@@ -20,8 +20,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestTimedBuffer {
 
@@ -90,7 +90,7 @@ public class TestTimedBuffer {
                 return oldValue;
             }
 
-            return new TimestampedLong(oldValue.getValue() + toAdd.getValue());
+            return new TimestampedLong(oldValue.getValue().longValue() + toAdd.getValue().longValue());
         }
 
         @Override

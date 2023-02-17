@@ -47,7 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Stack;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -62,7 +61,7 @@ public class StandardParameterContext implements ParameterContext {
     private final Authorizable parentAuthorizable;
 
     private String name;
-    private AtomicLong version = new AtomicLong(0L);
+    private long version = 0L;
     private final Map<ParameterDescriptor, Parameter> parameters = new LinkedHashMap<>();
     private final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
     private ParameterProvider parameterProvider;
@@ -106,7 +105,7 @@ public class StandardParameterContext implements ParameterContext {
     public void setName(final String name) {
         writeLock.lock();
         try {
-            this.version.incrementAndGet();
+            this.version++;
             this.name = name;
         } finally {
             writeLock.unlock();
@@ -126,9 +125,8 @@ public class StandardParameterContext implements ParameterContext {
     @Override
     public void setParameters(final Map<String, Parameter> updatedParameters) {
         writeLock.lock();
-        final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>();
         try {
-            this.version.incrementAndGet();
+            this.version++;
 
             final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
             final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(getProposedParameters(updatedParameters));
@@ -141,11 +139,12 @@ public class StandardParameterContext implements ParameterContext {
             updateParameters(parameters, updatedParameters, true);
 
             // Get a list of all effective updates in order to alert referencing components
-            parameterUpdates.putAll(updateParameters(currentEffectiveParameters, effectiveParameterUpdates, false));
+            final Map<String, ParameterUpdate> parameterUpdates = new HashMap<>(updateParameters(currentEffectiveParameters, effectiveParameterUpdates, false));
+
+            alertReferencingComponents(parameterUpdates);
         } finally {
             writeLock.unlock();
         }
-        alertReferencingComponents(parameterUpdates);
     }
 
     private Map<ParameterDescriptor, Parameter> getProposedParameters(final Map<String, Parameter> proposedParameterUpdates) {
@@ -271,7 +270,12 @@ public class StandardParameterContext implements ParameterContext {
 
     @Override
     public long getVersion() {
-        return version.get();
+        readLock.lock();
+        try {
+            return version;
+        } finally {
+            readLock.unlock();
+        }
     }
 
     public Optional<Parameter> getParameter(final String parameterName) {
@@ -593,7 +597,7 @@ public class StandardParameterContext implements ParameterContext {
 
         writeLock.lock();
         try {
-            this.version.incrementAndGet();
+            this.version++;
 
             final Map<ParameterDescriptor, Parameter> currentEffectiveParameters = getEffectiveParameters();
             final Map<ParameterDescriptor, Parameter> effectiveProposedParameters = getEffectiveParameters(inheritedParameterContexts);
@@ -640,8 +644,7 @@ public class StandardParameterContext implements ParameterContext {
             // If a current parameter is not in the proposed parameters, it was effectively removed
             if (!effectiveProposedParameters.containsKey(currentParameterDescriptor)) {
                 final Parameter parameter = entry.getValue();
-                final boolean isParameterInherited = !parameter.getParameterContextId().equals(id);
-                if (!isParameterInherited && parameter.isProvided() && hasReferencingComponents(parameter)) {
+                if (parameter.isProvided() && hasReferencingComponents(parameter)) {
                     logger.info("Provided parameter [{}] was removed from the source, but it is referenced by a component, so the parameter will be preserved",
                             currentParameterDescriptor.getName());
                 } else {
@@ -652,8 +655,7 @@ public class StandardParameterContext implements ParameterContext {
         return effectiveParameterUpdates;
     }
 
-    @Override
-    public boolean hasReferencingComponents(final Parameter parameter) {
+    private boolean hasReferencingComponents(final Parameter parameter) {
         if (parameter == null) {
             return false;
         }

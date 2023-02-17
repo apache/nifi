@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
 
 public class TestProcessGroupDTO {
 
     @Test
     public void testGetInputPortCount() {
         final ProcessGroupDTO dto = new ProcessGroupDTO();
-        assertNull(dto.getInputPortCount());
+        assertEquals(null, dto.getInputPortCount());
 
         dto.setLocalInputPortCount(3);
         dto.setPublicInputPortCount(4);
@@ -39,7 +38,7 @@ public class TestProcessGroupDTO {
     @Test
     public void testGetOutputPortCount() {
         final ProcessGroupDTO dto = new ProcessGroupDTO();
-        assertNull(dto.getOutputPortCount());
+        assertEquals(null, dto.getOutputPortCount());
 
         dto.setLocalOutputPortCount(2);
         dto.setPublicOutputPortCount(3);

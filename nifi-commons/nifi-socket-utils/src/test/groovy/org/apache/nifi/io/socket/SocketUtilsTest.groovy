@@ -29,10 +29,7 @@ import org.slf4j.LoggerFactory
 import javax.net.ssl.SSLServerSocket
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-
-class SocketUtilsTest {
+class SocketUtilsTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(SocketUtilsTest.class)
 
     private static final String KEYSTORE_PATH = "src/test/resources/TlsConfigurationKeystore.jks"
@@ -59,9 +56,7 @@ class SocketUtilsTest {
     private NiFiProperties mockNiFiProperties = NiFiProperties.createBasicNiFiProperties(null, DEFAULT_PROPS)
 
     // A static TlsConfiguration referencing the test resource keystore and truststore
-//    private static final TlsConfiguration TLS_CONFIGURATION =
-//    new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH,
-//    TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, PROTOCOL)
+//    private static final TlsConfiguration TLS_CONFIGURATION = new StandardTlsConfiguration(KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, KEYSTORE_TYPE, TRUSTSTORE_PATH, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, PROTOCOL)
 //    private static final SSLContext sslContext = SslContextFactory.createSslContext(TLS_CONFIGURATION, ClientAuth.NONE)
 
     @BeforeAll
@@ -86,9 +81,9 @@ class SocketUtilsTest {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assertArrayEquals(TlsConfiguration.getCurrentSupportedTlsProtocolVersions(), enabledProtocols)
-        assertFalse(enabledProtocols.contains("TLSv1"))
-        assertFalse(enabledProtocols.contains("TLSv1.1"))
+        assert enabledProtocols == TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
+        assert !enabledProtocols.contains("TLSv1")
+        assert !enabledProtocols.contains("TLSv1.1")
     }
 
     @Test
@@ -104,8 +99,8 @@ class SocketUtilsTest {
         // Assert
         String[] enabledProtocols = sslServerSocket.getEnabledProtocols()
         logger.info("Enabled protocols: ${enabledProtocols}")
-        assertArrayEquals(TlsConfiguration.getCurrentSupportedTlsProtocolVersions(), enabledProtocols)
-        assertFalse(enabledProtocols.contains("TLSv1"))
-        assertFalse(enabledProtocols.contains("TLSv1.1"))
+        assert enabledProtocols == TlsConfiguration.getCurrentSupportedTlsProtocolVersions()
+        assert !enabledProtocols.contains("TLSv1")
+        assert !enabledProtocols.contains("TLSv1.1")
     }
 }

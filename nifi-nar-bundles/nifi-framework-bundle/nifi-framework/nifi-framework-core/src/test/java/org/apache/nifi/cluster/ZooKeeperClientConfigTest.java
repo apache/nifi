@@ -18,15 +18,14 @@ package org.apache.nifi.cluster;
 
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class ZooKeeperClientConfigTest {
 
@@ -52,10 +51,9 @@ public class ZooKeeperClientConfigTest {
         assertEquals(LOCAL_CONNECT_STRING, cleanedInput);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testInvalidSingleEntry(){
-        assertThrows(IllegalStateException.class,
-                () -> ZooKeeperClientConfig.cleanConnectString("local: 1a34  "));
+        ZooKeeperClientConfig.cleanConnectString("local: 1a34  ");
     }
 
     @Test
@@ -72,10 +70,9 @@ public class ZooKeeperClientConfigTest {
         assertEquals(input, cleanedInput);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testMultiValidEntrySkipOne(){
-        assertThrows(IllegalStateException.class, () ->
-            ZooKeeperClientConfig.cleanConnectString("local:1234,local:1235,local:12a5,local:14952"));
+        ZooKeeperClientConfig.cleanConnectString("local:1234,local:1235,local:12a5,local:14952");
     }
 
     @Test
@@ -85,10 +82,9 @@ public class ZooKeeperClientConfigTest {
         assertEquals("local:1234,local:1235,local:1295,local:14952", cleanedInput);
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testMultiValidOneNonsense(){
-        assertThrows(IllegalStateException.class, () ->
-            ZooKeeperClientConfig.cleanConnectString("   local   :   1234  , local:  1235:wack,local  :1295,local:14952   "));
+        ZooKeeperClientConfig.cleanConnectString("   local   :   1234  , local:  1235:wack,local  :1295,local:14952   ");
     }
 
     @Test
@@ -99,7 +95,7 @@ public class ZooKeeperClientConfigTest {
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
         assertTrue(zkClientConfig.isClientSecure());
-        assertEquals(ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET, zkClientConfig.getConnectionSocket());
+        assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
     @Test
@@ -110,7 +106,7 @@ public class ZooKeeperClientConfigTest {
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
         assertFalse(zkClientConfig.isClientSecure());
-        assertEquals(ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET, zkClientConfig.getConnectionSocket());
+        assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
     }
 
     @Test
@@ -121,7 +117,7 @@ public class ZooKeeperClientConfigTest {
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
         assertFalse(zkClientConfig.isClientSecure());
-        assertEquals(ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET, zkClientConfig.getConnectionSocket());
+        assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NIO_CLIENT_CNXN_SOCKET);
     }
 
     @Test
@@ -132,7 +128,7 @@ public class ZooKeeperClientConfigTest {
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
         assertTrue(zkClientConfig.isClientSecure());
-        assertEquals(ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET, zkClientConfig.getConnectionSocket());
+        assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
     @Test
@@ -144,17 +140,15 @@ public class ZooKeeperClientConfigTest {
 
         final ZooKeeperClientConfig zkClientConfig = ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
         assertTrue(zkClientConfig.isClientSecure());
-        assertEquals(ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET, zkClientConfig.getConnectionSocket());
+        assertEquals(zkClientConfig.getConnectionSocket(), ZooKeeperClientConfig.NETTY_CLIENT_CNXN_SOCKET);
     }
 
-    @Test
+    @Test(expected = RuntimeException.class)
     public void testInvalidClientSecure() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, LOCAL_CONNECT_STRING);
         properties.setProperty(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "meh");
-
-        assertThrows(RuntimeException.class, () ->
-            ZooKeeperClientConfig.createConfig(new NiFiProperties(properties)));
+        ZooKeeperClientConfig.createConfig(new NiFiProperties(properties));
     }
 
     @Test

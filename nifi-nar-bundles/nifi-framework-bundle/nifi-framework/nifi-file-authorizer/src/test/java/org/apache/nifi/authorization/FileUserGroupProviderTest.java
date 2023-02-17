@@ -22,9 +22,9 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -38,11 +38,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -97,7 +96,7 @@ public class FileUserGroupProviderTest {
 
     private AuthorizerConfigurationContext configurationContext;
 
-    @BeforeEach
+    @Before
     public void setup() throws IOException {
         // primary tenants
         primaryTenants = new File("target/authorizations/users.xml");
@@ -145,7 +144,7 @@ public class FileUserGroupProviderTest {
         userGroupProvider.initialize(null);
     }
 
-    @AfterEach
+    @After
     public void cleanup() throws Exception {
         deleteFile(primaryTenants);
         deleteFile(restoreTenants);
@@ -275,15 +274,13 @@ public class FileUserGroupProviderTest {
         assertEquals("GROUP1", group1.getName());
     }
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null, ParameterLookup.EMPTY));
 
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> userGroupProvider.onConfigured(configurationContext));
+        userGroupProvider.onConfigured(configurationContext);
     }
 
     @Test
@@ -359,30 +356,24 @@ public class FileUserGroupProviderTest {
         assertEquals(primaryTenants.length(), restoreTenants.length());
     }
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenPrimaryDoesNotExist() throws Exception {
         writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> userGroupProvider.onConfigured(configurationContext));
+        userGroupProvider.onConfigured(configurationContext);
     }
 
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenPrimaryTenantsDifferentThanRestore() throws Exception {
         writeFile(primaryTenants, EMPTY_TENANTS);
         writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> userGroupProvider.onConfigured(configurationContext));
+        userGroupProvider.onConfigured(configurationContext);
     }
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWithBadTenantsSchema() throws Exception {
         writeFile(primaryTenants, BAD_SCHEMA_TENANTS);
-
-        assertThrows(AuthorizerCreationException.class,
-                () -> userGroupProvider.onConfigured(configurationContext));
+        userGroupProvider.onConfigured(configurationContext);
     }
 
     @Test

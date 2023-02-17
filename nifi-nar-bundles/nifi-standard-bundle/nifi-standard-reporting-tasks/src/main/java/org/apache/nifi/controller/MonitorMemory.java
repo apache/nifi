@@ -143,7 +143,6 @@ public class MonitorMemory extends AbstractReportingTask {
 
     private volatile MemoryPoolMXBean monitoredBean;
     private volatile String threshold = "65%";
-    private volatile long calculatedThreshold;
     private volatile long lastReportTime;
     private volatile long reportingIntervalMillis;
     private volatile boolean lastValueWasExceeded;
@@ -183,6 +182,7 @@ public class MonitorMemory extends AbstractReportingTask {
             if (desiredMemoryPoolName.equals(memoryPoolName)) {
                 monitoredBean = memoryPoolBean;
                 if (memoryPoolBean.isCollectionUsageThresholdSupported()) {
+                    long calculatedThreshold;
                     if (DATA_SIZE_PATTERN.matcher(thresholdValue).matches()) {
                         calculatedThreshold = DataUnit.parseDataSize(thresholdValue, DataUnit.B).longValue();
                     } else {
@@ -218,9 +218,7 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        // In certain scenarios in the monitored memory bean the gcSensor can get stuck in 'on' state before the usage would reach the threshold
-        // and this will cause false exceeded state until the next garbage collection. To eliminate this we are adding a condition with the calculated usage threshold.
-        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded() && usage.getUsed() > calculatedThreshold) {
+        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }

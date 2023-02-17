@@ -17,13 +17,12 @@
 package org.apache.nifi.integration.accesscontrol.anonymous;
 
 import org.apache.nifi.integration.accesscontrol.AccessControlHelper;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import javax.ws.rs.core.Response;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Integration test for preventing proxied anonymous access.
@@ -32,7 +31,7 @@ public class ITPreventProxiedAnonymousAccess extends AbstractAnonymousUserTest {
 
     private static AccessControlHelper helper;
 
-    @BeforeAll
+    @BeforeClass
     public static void setup() throws Exception {
         System.out.println(ITPreventProxiedAnonymousAccess.class.getName() + " setup()");
         helper = new AccessControlHelper();
@@ -48,10 +47,10 @@ public class ITPreventProxiedAnonymousAccess extends AbstractAnonymousUserTest {
         final Response response = super.testCreateProcessor(helper.getBaseUrl(), helper.getAnonymousUser());
 
         // ensure the request is not successful
-        assertEquals(401, response.getStatus());
+        Assert.assertEquals(401, response.getStatus());
     }
 
-    @AfterAll
+    @AfterClass
     public static void cleanup() throws Exception {
         helper.cleanup();
     }

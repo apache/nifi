@@ -22,7 +22,6 @@ import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -41,8 +40,6 @@ public class ContentClaimInputStream extends InputStream {
     private long bytesConsumed;
     private long currentOffset; // offset into the Content Claim; will differ from bytesRead if reset() is called after reading at least one byte or if claimOffset > 0
     private long markOffset;
-    private InputStream bufferedIn;
-    private int markReadLimit;
 
     public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset, final PerformanceTracker performanceTracker) {
         this(contentRepository, contentClaim, claimOffset, null, performanceTracker);
@@ -57,13 +54,9 @@ public class ContentClaimInputStream extends InputStream {
 
         this.currentOffset = claimOffset;
         this.delegate = initialDelegate;
-        if (delegate != null) {
-            this.bufferedIn = new BufferedInputStream(delegate);
-        }
     }
 
     private InputStream getDelegate() throws IOException {
-        bufferedIn = null;
         if (delegate == null) {
             formDelegate();
         }
@@ -81,14 +74,7 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        int value = -1;
-        if (bufferedIn != null) {
-            value = bufferedIn.read();
-        }
-
-        if (value < 0) {
-            value = getDelegate().read();
-        }
+        final int value = getDelegate().read();
         if (value != -1) {
             bytesConsumed++;
             currentOffset++;
@@ -99,14 +85,7 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
-        int count = -1;
-        if (bufferedIn != null) {
-            count = bufferedIn.read(b);
-        }
-        if (count < 0) {
-            count = getDelegate().read(b);
-        }
-
+        final int count = getDelegate().read(b);
         if (count != -1) {
             bytesConsumed += count;
             currentOffset += count;
@@ -117,14 +96,7 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
-        int count = -1;
-        if (bufferedIn != null) {
-            count = bufferedIn.read(b, off, len);
-        }
-        if (count < 0) {
-            count = getDelegate().read(b, off, len);
-        }
-
+        final int count = getDelegate().read(b, off, len);
         if (count != -1) {
             bytesConsumed += count;
             currentOffset += count;
@@ -161,23 +133,12 @@ public class ContentClaimInputStream extends InputStream {
     @Override
     public void mark(final int readlimit) {
         markOffset = currentOffset;
-        markReadLimit = readlimit;
-        if (bufferedIn != null) {
-            bufferedIn.mark(readlimit);
-        }
     }
 
     @Override
     public void reset() throws IOException {
         if (markOffset < 0) {
             throw new IOException("Stream has not been marked");
-        }
-
-        if (bufferedIn != null && bytesConsumed <= markReadLimit) {
-            bufferedIn.reset();
-            currentOffset = markOffset;
-
-            return;
         }
 
         if (currentOffset != markOffset) {
@@ -215,17 +176,8 @@ public class ContentClaimInputStream extends InputStream {
             delegate = new PerformanceTrackingInputStream(contentRepository.read(contentClaim), performanceTracker);
             StreamUtils.skip(delegate, claimOffset);
             currentOffset = claimOffset;
-
-            if (markReadLimit > 0) {
-                final int limitLeft = (int) (markReadLimit - currentOffset);
-                if (limitLeft > 0) {
-                    final InputStream limitedIn = new LimitedInputStream(delegate, limitLeft);
-                    bufferedIn = new BufferedInputStream(limitedIn);
-                    bufferedIn.mark(limitLeft);
-                }
-            }
         } finally {
-            performanceTracker.endContentRead();
+            performanceTracker.endContentRead();;
         }
     }
 }

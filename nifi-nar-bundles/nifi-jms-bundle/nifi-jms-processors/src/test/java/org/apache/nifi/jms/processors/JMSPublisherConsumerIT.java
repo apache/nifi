@@ -58,7 +58,7 @@ import org.springframework.jms.support.JmsHeaders;
 public class JMSPublisherConsumerIT {
 
     @Test
-    public void testObjectMessage() {
+    public void testObjectMessage() throws Exception {
         final String destinationName = "testObjectMessage";
 
         MessageCreator messageCreator = session -> {
@@ -136,7 +136,7 @@ public class JMSPublisherConsumerIT {
     }
 
     @Test
-    public void testMapMessage() {
+    public void testMapMessage() throws Exception {
         final String destinationName = "testObjectMessage";
 
         MessageCreator messageCreator = session -> {
@@ -269,7 +269,7 @@ public class JMSPublisherConsumerIT {
      * at which point this test will no be longer required.
      */
     @Test
-    public void validateFailOnUnsupportedMessageType() {
+    public void validateFailOnUnsupportedMessageType() throws Exception {
         final String destinationName = "validateFailOnUnsupportedMessageType";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
@@ -332,17 +332,13 @@ public class JMSPublisherConsumerIT {
     @Test
     @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
     public void testMultipleThreads() throws Exception {
-        final int threadCount = 4;
-        final int totalMessageCount = 1000;
-        final int messagesPerThreadCount = totalMessageCount / threadCount;
-
         String destinationName = "testMultipleThreads";
         JmsTemplate publishTemplate = CommonTest.buildJmsTemplateForDestination(false);
-        final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(threadCount);
+        final CountDownLatch consumerTemplateCloseCount = new CountDownLatch(4);
 
         try {
             JMSPublisher publisher = new JMSPublisher((CachingConnectionFactory) publishTemplate.getConnectionFactory(), publishTemplate, mock(ComponentLog.class));
-            for (int i = 0; i < totalMessageCount; i++) {
+            for (int i = 0; i < 4000; i++) {
                 publisher.publish(destinationName, String.valueOf(i).getBytes(StandardCharsets.UTF_8));
             }
 
@@ -363,7 +359,7 @@ public class JMSPublisherConsumerIT {
                     try {
                         JMSConsumer consumer = new JMSConsumer((CachingConnectionFactory) consumeTemplate.getConnectionFactory(), consumeTemplate, mock(ComponentLog.class));
 
-                        for (int j = 0; j < messagesPerThreadCount && msgCount.get() < totalMessageCount; j++) {
+                        for (int j = 0; j < 1000 && msgCount.get() < 4000; j++) {
                             consumer.consume(destinationName, null, false, false, null, null, "UTF-8", callback);
                         }
                     } finally {
@@ -377,7 +373,7 @@ public class JMSPublisherConsumerIT {
             }
 
             int iterations = 0;
-            while (msgCount.get() < totalMessageCount) {
+            while (msgCount.get() < 4000) {
                 Thread.sleep(10L);
                 if (++iterations % 100 == 0) {
                     System.out.println(msgCount.get() + " messages received so far");
@@ -393,7 +389,7 @@ public class JMSPublisherConsumerIT {
 
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
-    public void validateMessageRedeliveryWhenNotAcked() {
+    public void validateMessageRedeliveryWhenNotAcked() throws Exception {
         String destinationName = "validateMessageRedeliveryWhenNotAcked";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
@@ -430,7 +426,6 @@ public class JMSPublisherConsumerIT {
 
                         callbackInvoked.set(true);
                         assertEquals("1", new String(response.getMessageBody()));
-                        acknowledge(response);
                     }
                 });
             }
@@ -472,7 +467,6 @@ public class JMSPublisherConsumerIT {
 
                             callbackInvoked.set(true);
                             assertEquals("2", new String(response.getMessageBody()));
-                            acknowledge(response);
                         }
                     });
                 }
@@ -481,14 +475,6 @@ public class JMSPublisherConsumerIT {
             }
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
-        }
-    }
-
-    private void acknowledge(JMSResponse response) {
-        try {
-            response.acknowledge();
-        } catch (JMSException e) {
-            throw new IllegalStateException("Unable to acknowledge JMS message");
         }
     }
 

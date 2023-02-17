@@ -17,14 +17,12 @@
 package org.apache.nifi.registry.service.alias;
 
 import org.apache.nifi.registry.url.aliaser.generated.Alias;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import static org.junit.Assert.assertEquals;
 
 public class RegistryUrlAliasServiceTest {
     private static Alias createAlias(String internal, String external) {
@@ -44,9 +42,9 @@ public class RegistryUrlAliasServiceTest {
         assertEquals(url, aliaser.getInternal(url));
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void testMalformedExternal() {
-        assertThrows(IllegalArgumentException.class, () -> new RegistryUrlAliasService(Collections.singletonList(createAlias("https://registry.com:18080", "registry.com:18080"))));
+        new RegistryUrlAliasService(Collections.singletonList(createAlias("https://registry.com:18080", "registry.com:18080")));
     }
 
     @Test
@@ -162,12 +160,12 @@ public class RegistryUrlAliasServiceTest {
         assertEquals(external, aliaser.getExternal(internal2));
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void testDuplicateInternalTokens() {
         String internal = "THIS_NIFI_REGISTRY";
         String external1 = "http://localhost:18080";
         String external2 = "http://localhost:18081";
 
-        assertThrows(IllegalArgumentException.class, () -> new RegistryUrlAliasService(Arrays.asList(createAlias(internal, external1), createAlias(internal, external2))));
+        new RegistryUrlAliasService(Arrays.asList(createAlias(internal, external1), createAlias(internal, external2)));
     }
 }

@@ -2989,8 +2989,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             ensureNotAppending(newClaim);
 
             final OutputStream rawStream = claimCache.write(newClaim);
-            final OutputStream nonFlushable = new NonFlushableOutputStream(rawStream);
-            final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable);
+            final OutputStream disableOnClose = new DisableOnCloseOutputStream(rawStream);
             final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnClose);
 
             final FlowFile sourceFlowFile = source;
@@ -3126,8 +3125,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             ensureNotAppending(newClaim);
             try (final OutputStream stream = claimCache.write(newClaim);
-                final NonFlushableOutputStream nonFlushableOutputStream = new NonFlushableOutputStream(stream);
-                final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushableOutputStream);
+                final OutputStream disableOnClose = new DisableOnCloseOutputStream(stream);
                 final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnClose)) {
                 try {
                     writeRecursionSet.add(source);
@@ -3419,8 +3417,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
                 final ByteCountingInputStream countingIn = new ByteCountingInputStream(disableOnCloseIn, bytesRead);
                 final OutputStream os = claimCache.write(newClaim);
-                final OutputStream nonFlushableOut = new NonFlushableOutputStream(os);
-                final OutputStream disableOnCloseOut = new DisableOnCloseOutputStream(nonFlushableOut);
+                final OutputStream disableOnCloseOut = new DisableOnCloseOutputStream(os);
                 final ByteCountingOutputStream countingOut = new ByteCountingOutputStream(disableOnCloseOut)) {
 
                 writeRecursionSet.add(source);

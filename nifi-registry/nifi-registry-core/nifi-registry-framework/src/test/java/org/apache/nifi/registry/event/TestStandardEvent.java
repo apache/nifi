@@ -20,20 +20,18 @@ import org.apache.nifi.registry.hook.Event;
 import org.apache.nifi.registry.hook.EventField;
 import org.apache.nifi.registry.hook.EventFieldName;
 import org.apache.nifi.registry.hook.EventType;
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TestStandardEvent {
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testInvalidEvent() {
         final Event event = new StandardEvent.Builder()
                 .eventType(EventType.CREATE_BUCKET)
                 .build();
 
-        assertThrows(IllegalStateException.class, () -> event.validate());
+        event.validate();
     }
 
     @Test
@@ -43,7 +41,7 @@ public class TestStandardEvent {
                 .build();
 
         final EventField field = event.getField(EventFieldName.BUCKET_ID);
-        assertNull(field);
+        Assert.assertNull(field);
     }
 
 }

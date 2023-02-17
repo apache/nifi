@@ -27,17 +27,16 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -90,7 +89,7 @@ public class TestContentRepositoryFlowFileAccess {
 
         try {
             flowAccess.read(flowFile);
-            fail("Expected ContentNotFoundException but it did not happen");
+            Assert.fail("Expected ContentNotFoundException but it did not happen");
         } catch (final ContentNotFoundException thrown) {
             // expected
             thrown.getFlowFile().orElseThrow(() -> new AssertionError("Expected FlowFile to be provided"));
@@ -120,7 +119,12 @@ public class TestContentRepositoryFlowFileAccess {
         final byte[] buffer = new byte[5];
         StreamUtils.fillBuffer(repoStream, buffer);
 
-        assertThrows(EOFException.class, repoStream::read,
-                "Expected EOFException because not enough bytes were in the InputStream for the FlowFile");
+        try {
+            repoStream.read();
+            Assert.fail("Expected EOFException because not enough bytes were in the InputStream for the FlowFile");
+        } catch (final EOFException eof) {
+            // expected
+        }
     }
+
 }

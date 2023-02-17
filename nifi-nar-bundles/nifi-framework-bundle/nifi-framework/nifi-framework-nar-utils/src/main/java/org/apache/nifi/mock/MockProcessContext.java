@@ -76,6 +76,16 @@ public class MockProcessContext implements ProcessContext {
     }
 
     @Override
+    public String encrypt(String unencrypted) {
+        return unencrypted;
+    }
+
+    @Override
+    public String decrypt(String encrypted) {
+        return encrypted;
+    }
+
+    @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return new MockControllerServiceLookup();
     }

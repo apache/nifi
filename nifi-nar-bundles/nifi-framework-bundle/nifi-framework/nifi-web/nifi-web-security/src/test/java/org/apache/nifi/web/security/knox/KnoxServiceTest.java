@@ -24,10 +24,12 @@ import com.nimbusds.oauth2.sdk.auth.PrivateKeyJWT;
 import com.nimbusds.oauth2.sdk.id.Audience;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.JWTID;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -39,38 +41,40 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@DisabledOnOs({OS.WINDOWS})
 public class KnoxServiceTest {
 
     private static final String AUDIENCE = "https://apache-knox/token";
     private static final String AUDIENCE_2 = "https://apache-knox-2/token";
 
-    @Test
-    public void testKnoxSsoNotEnabledGetKnoxUrl() {
-        final KnoxConfiguration configuration = mock(KnoxConfiguration.class);
-        when(configuration.isKnoxEnabled()).thenReturn(false);
-
-        final KnoxService service = new KnoxService(configuration);
-        assertFalse(service.isKnoxEnabled());
-
-        assertThrows(IllegalStateException.class, service::getKnoxUrl);
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
     }
 
-    @Test
-    public void testKnoxSsoNotEnabledGetAuthenticatedFromToken() {
+    @Test(expected = IllegalStateException.class)
+    public void testKnoxSsoNotEnabledGetKnoxUrl() throws Exception {
         final KnoxConfiguration configuration = mock(KnoxConfiguration.class);
         when(configuration.isKnoxEnabled()).thenReturn(false);
 
         final KnoxService service = new KnoxService(configuration);
         assertFalse(service.isKnoxEnabled());
 
-        assertThrows(IllegalStateException.class, () -> service.getAuthenticationFromToken("jwt-token-value"));
+        service.getKnoxUrl();
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testKnoxSsoNotEnabledGetAuthenticatedFromToken() throws Exception {
+        final KnoxConfiguration configuration = mock(KnoxConfiguration.class);
+        when(configuration.isKnoxEnabled()).thenReturn(false);
+
+        final KnoxService service = new KnoxService(configuration);
+        assertFalse(service.isKnoxEnabled());
+
+        service.getAuthenticationFromToken("jwt-token-value");
     }
 
     private JWTAuthenticationClaimsSet getAuthenticationClaimsSet(final String subject, final String audience, final Date expiration) {
@@ -99,10 +103,10 @@ public class KnoxServiceTest {
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
 
-        assertEquals(subject, service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
+        Assert.assertEquals(subject, service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
     }
 
-    @Test
+    @Test(expected = InvalidAuthenticationException.class)
     public void testBadSignedJwt() throws Exception {
         final String subject = "user-1";
         final Date expiration = new Date(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(5, TimeUnit.SECONDS));
@@ -123,10 +127,10 @@ public class KnoxServiceTest {
         final KnoxConfiguration configuration = getConfiguration(publicKey2);
         final KnoxService service = new KnoxService(configuration);
 
-        assertThrows(InvalidAuthenticationException.class, () -> service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
+        service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize());
     }
 
-    @Test
+    @Test(expected = ParseException.class)
     public void testPlainJwt() throws Exception {
         final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         final KeyPair pair = keyGen.generateKeyPair();
@@ -143,10 +147,10 @@ public class KnoxServiceTest {
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
 
-        assertThrows(ParseException.class, () -> service.getAuthenticationFromToken(plainJWT.serialize()));
+        service.getAuthenticationFromToken(plainJWT.serialize());
     }
 
-    @Test
+    @Test(expected = InvalidAuthenticationException.class)
     public void testExpiredJwt() throws Exception {
         final String subject = "user-1";
 
@@ -167,7 +171,7 @@ public class KnoxServiceTest {
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
 
-        assertThrows(InvalidAuthenticationException.class, () -> service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
+        service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize());
     }
 
     @Test
@@ -187,10 +191,10 @@ public class KnoxServiceTest {
         when(configuration.getAudiences()).thenReturn(null);
         final KnoxService service = new KnoxService(configuration);
 
-        assertEquals(subject, service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
+        Assert.assertEquals(subject, service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
     }
 
-    @Test
+    @Test(expected = InvalidAuthenticationException.class)
     public void testInvalidAudience() throws Exception {
         final String subject = "user-1";
         final Date expiration = new Date(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(5, TimeUnit.SECONDS));
@@ -205,10 +209,11 @@ public class KnoxServiceTest {
 
         final KnoxConfiguration configuration = getConfiguration(publicKey);
         final KnoxService service = new KnoxService(configuration);
-        assertThrows(InvalidAuthenticationException.class, () -> service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
+
+        Assert.assertEquals(subject, service.getAuthenticationFromToken(privateKeyJWT.getClientAssertion().serialize()));
     }
 
-    private KnoxConfiguration getConfiguration(final RSAPublicKey publicKey) {
+    private KnoxConfiguration getConfiguration(final RSAPublicKey publicKey) throws Exception {
         final KnoxConfiguration configuration = mock(KnoxConfiguration.class);
         when(configuration.isKnoxEnabled()).thenReturn(true);
         when(configuration.getKnoxUrl()).thenReturn("knox-sso-url");

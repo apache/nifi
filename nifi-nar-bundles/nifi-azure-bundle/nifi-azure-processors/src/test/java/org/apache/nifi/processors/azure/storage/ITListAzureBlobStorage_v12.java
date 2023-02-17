@@ -19,7 +19,6 @@ package org.apache.nifi.processors.azure.storage;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.processors.azure.storage.utils.BlobAttributes;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
@@ -199,7 +198,7 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         Set<String> expectedBlobNames = new HashSet<>(Arrays.asList(blobNames));
 
         for (MockFlowFile flowFile : flowFiles) {
-            String blobName = flowFile.getAttribute(BlobAttributes.ATTR_NAME_BLOBNAME);
+            String blobName = flowFile.getAttribute("azure.blobname");
             assertTrue(expectedBlobNames.remove(blobName), "Blob should not be listed: " + blobName);
 
             assertFlowFile(flowFile, blobName);

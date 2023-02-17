@@ -96,6 +96,24 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
     Map<PropertyDescriptor, String> getProperties();
 
     /**
+     * Encrypts the given value using the password provided in the NiFi
+     * Properties
+     *
+     * @param unencrypted plaintext value
+     * @return encrypted value
+     */
+    String encrypt(String unencrypted);
+
+    /**
+     * Decrypts the given value using the password provided in the NiFi
+     * Properties
+     *
+     * @param encrypted the encrypted value
+     * @return the plaintext value
+     */
+    String decrypt(String encrypted);
+
+    /**
      * @return a {@code ControllerServiceLookup} that can be used to obtain a
      * Controller Service
      */

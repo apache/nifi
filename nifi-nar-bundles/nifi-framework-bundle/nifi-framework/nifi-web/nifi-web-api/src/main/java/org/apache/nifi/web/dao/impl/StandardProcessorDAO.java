@@ -128,7 +128,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             configureProcessor(processor, processorDTO);
 
             // Notify the processor node that the configuration (properties, e.g.) has been restored
-            final StandardProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(),
+            final StandardProcessContext processContext = new StandardProcessContext(processor, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
                     flowController.getStateManagerProvider().getStateManager(processor.getProcessor().getIdentifier()), () -> false, flowController);
             processor.onConfigurationRestored(processContext);
 
@@ -481,7 +481,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final ProcessorNode processor = locateProcessor(processorId);
 
         final ProcessContext processContext = new StandardProcessContext(processor, properties, processor.getAnnotationData(),
-            processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),
+            processor.getProcessGroup().getParameterContext(), flowController.getControllerServiceProvider(),  flowController.getEncryptor(),
             new NopStateManager(), () -> false, flowController);
 
         final LogRepository logRepository = new NopLogRepository();

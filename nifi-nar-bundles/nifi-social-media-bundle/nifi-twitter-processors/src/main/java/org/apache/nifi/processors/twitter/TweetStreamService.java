@@ -44,8 +44,7 @@ public class TweetStreamService {
     private final BlockingQueue<String> queue;
     private final ComponentLog logger;
 
-    private ScheduledExecutorService executorService;
-    private final ThreadFactory threadFactory;
+    private final ScheduledExecutorService executorService;
 
     private final Set<String> tweetFields;
     private final Set<String> userFields;
@@ -98,17 +97,18 @@ public class TweetStreamService {
         ApiClient client = new ApiClient();
         final int connectTimeout = context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int readTimeout = context.getProperty(ConsumeTwitter.READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final TwitterCredentialsBearer bearer = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
-        client.setConnectTimeout(connectTimeout);
-        client.setReadTimeout(readTimeout);
-        client.setTwitterCredentials(bearer);
+        client = client.setConnectTimeout(connectTimeout);
+        client = client.setReadTimeout(readTimeout);
         api = new TwitterApi(client);
 
+        final TwitterCredentialsBearer bearer = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
+        api.setTwitterCredentials(bearer);
 
         final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
         api.getApiClient().setBasePath(basePath);
 
-        threadFactory = new BasicThreadFactory.Builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
+        final ThreadFactory threadFactory = new BasicThreadFactory.Builder().namingPattern(ConsumeTwitter.class.getSimpleName()).build();
+        this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
     }
 
     public String getTransitUri(final String endpoint) {
@@ -128,7 +128,6 @@ public class TweetStreamService {
      * to run until {@code stop} is called.
      */
     public void start() {
-        this.executorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
         executorService.execute(new TweetStreamStarter());
     }
 
@@ -146,7 +145,6 @@ public class TweetStreamService {
         }
 
         executorService.shutdownNow();
-        executorService = null;
     }
 
     private Long calculateBackoffDelay() {
@@ -176,25 +174,9 @@ public class TweetStreamService {
         public void run() {
             try {
                 if (endpoint.equals(StreamEndpoint.SAMPLE_ENDPOINT)) {
-                    stream = api.tweets().sampleStream()
-                            .expansions(expansions)
-                            .tweetFields(tweetFields)
-                            .userFields(userFields)
-                            .mediaFields(mediaFields)
-                            .placeFields(placeFields)
-                            .pollFields(pollFields)
-                            .backfillMinutes(backfillMinutes)
-                            .execute();
+                    stream = api.tweets().sampleStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
                 } else {
-                    stream = api.tweets().searchStream()
-                            .expansions(expansions)
-                            .tweetFields(tweetFields)
-                            .userFields(userFields)
-                            .mediaFields(mediaFields)
-                            .placeFields(placeFields)
-                            .pollFields(pollFields)
-                            .backfillMinutes(backfillMinutes)
-                            .execute();
+                    stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
                 }
                 executorService.execute(new TweetStreamHandler());
             } catch (final ApiException e) {

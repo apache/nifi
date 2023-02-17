@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
     <artifactId>nifi-registry-web-api</artifactId>
     <packaging>war</packaging>
@@ -53,7 +53,7 @@
             <plugin>
                 <groupId>com.github.kongchen</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.7</version>
+                <version>3.1.6</version>
                 <executions>
                     <execution>
                         <phase>compile</phase>
@@ -223,18 +223,67 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>no-swagger-ui</id>
+            <!-- Activate this profile with "-P no-swagger-ui" to disable the Swagger UI
+                 static assets from being downloaded and bundled with the web api WAR. -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>download-swagger-ui</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>bundle-swagger-ui</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- This profile provides configuration to allow NiFi Registry to be compiled on JDKs above 1.8. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <!-- These dependencies would normally be transitive deps of framework and data model, but we want to
+                redeclare them with provided scope so that they don't end up in WEB-INF/lib of the WAR, they will
+                be added to the lib/java11 directory and added to the classpath based on the JVM being used -->
+            <dependencies>
+                <dependency>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
             <version>${spring.boot.version}</version>
-            <exclusions>
-                <!-- Spring Boot Starter Logging 2 does not support Logback 1.3 -->
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -291,17 +340,17 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-framework</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-spring-jdbc</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-entity-service</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -311,25 +360,25 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>provided</scope> <!-- This will be in the lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-provider-api</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -339,14 +388,6 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>io.swagger</groupId>
@@ -365,13 +406,13 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-client</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -393,7 +434,7 @@
         <dependency>
             <groupId>com.unboundid</groupId>
             <artifactId>unboundid-ldapsdk</artifactId>
-            <version>6.0.7</version>
+            <version>3.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>

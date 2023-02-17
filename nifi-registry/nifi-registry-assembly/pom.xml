@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>1.19.1</version>
     </parent>
     <artifactId>nifi-registry-assembly</artifactId>
     <packaging>pom</packaging>
@@ -48,10 +48,7 @@
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
                             <tarLongFileMode>posix</tarLongFileMode>
-                            <formats>
-                                <format>dir</format>
-                                <format>zip</format>
-                            </formats>
+                            <formats>zip</formats>
                         </configuration>
                     </execution>
                 </executions>
@@ -62,11 +59,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -108,7 +100,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -132,7 +124,7 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-docs</artifactId>
             <type>war</type>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -144,10 +136,20 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-docs</artifactId>
-            <version>2.0.0-SNAPSHOT</version>
+            <version>1.19.1</version>
             <classifier>resources</classifier>
             <scope>runtime</scope>
             <type>zip</type>
+        </dependency>
+        <!-- Dependencies required for running on Java 11 that will be placed in the lib/java11 dir -->
+        <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
+        <dependency>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
         </dependency>
         <!-- Dependencies for sensitive properties providers that will be written out to lib/spp and excluded from lib -->
         <dependency>
@@ -163,7 +165,6 @@
         <nifi.registry.web.http.port>18080</nifi.registry.web.http.port>
         <nifi.registry.web.https.host />
         <nifi.registry.web.https.port />
-        <nifi.registry.web.https.network.interface.default />
         <nifi.registry.web.https.application.protocols>http/1.1</nifi.registry.web.https.application.protocols>
         <nifi.registry.jetty.work.dir>./work/jetty</nifi.registry.jetty.work.dir>
         <nifi.registry.web.jetty.threads>200</nifi.registry.web.jetty.threads>
@@ -393,7 +394,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-ranger-assembly</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>
@@ -436,7 +437,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-aws-assembly</artifactId>
-                    <version>2.0.0-SNAPSHOT</version>
+                    <version>1.19.1</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>
@@ -498,9 +499,7 @@
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
                                     <tarLongFileMode>posix</tarLongFileMode>
-                                    <formats>
-                                        <format>tar.gz</format>
-                                    </formats>
+                                    <formats>tar.gz</formats>
                                 </configuration>
                             </execution>
                         </executions>
@@ -537,9 +536,7 @@
                                     <descriptors>
                                         <descriptor>src/main/assembly/dependencies.xml</descriptor>
                                     </descriptors>
-                                    <formats>
-                                        <format>dir</format>
-                                    </formats>
+                                    <formats>dir</formats>
                                 </configuration>
                             </execution>
                         </executions>

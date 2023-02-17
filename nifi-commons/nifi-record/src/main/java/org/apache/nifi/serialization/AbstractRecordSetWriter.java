@@ -68,7 +68,7 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
         return recordCount;
     }
 
-    public final boolean isActiveRecordSet() {
+    protected final boolean isActiveRecordSet() {
         return activeRecordSet;
     }
 
@@ -88,7 +88,6 @@ public abstract class AbstractRecordSetWriter implements RecordSetWriter {
             throw new IllegalStateException("Cannot finish RecordSet because no RecordSet has begun");
         }
 
-        activeRecordSet = false;
         final Map<String, String> attributes = onFinishRecordSet();
         return WriteResult.of(recordCount, attributes == null ? Collections.emptyMap() : attributes);
     }

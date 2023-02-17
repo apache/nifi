@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -126,7 +125,7 @@ public class ITRedisDistributedMapCacheClientService {
         // create, configure, and enable the RedisDistributedMapCacheClient service
         redisMapCacheClientService = new RedisDistributedMapCacheClientService();
         testRunner.addControllerService("redis-map-cache-client", redisMapCacheClientService);
-        testRunner.setProperty(redisMapCacheClientService, REDIS_CONNECTION_POOL, "redis-connection-pool");
+        testRunner.setProperty(redisMapCacheClientService, RedisDistributedMapCacheClientService.REDIS_CONNECTION_POOL, "redis-connection-pool");
         testRunner.enableControllerService(redisMapCacheClientService);
         testRunner.setProperty(TestRedisProcessor.REDIS_MAP_CACHE, "redis-map-cache-client");
     }
@@ -183,7 +182,7 @@ public class ITRedisDistributedMapCacheClientService {
                 final String key = "test-redis-processor-" + timestamp;
                 final String value = "the time is " + timestamp;
 
-                // verify the key doesn't exist, put the key/value, then verify it exists
+                // verify the key doesn't exists, put the key/value, then verify it exists
                 assertFalse(cacheClient.containsKey(key, stringSerializer));
                 cacheClient.put(key, value, stringSerializer, stringSerializer);
                 assertTrue(cacheClient.containsKey(key, stringSerializer));

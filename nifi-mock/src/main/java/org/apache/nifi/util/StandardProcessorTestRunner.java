@@ -204,7 +204,8 @@ public class StandardProcessorTestRunner implements TestRunner {
                 try {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
                 } catch (final Exception e) {
-                    Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e, e);
+                    e.printStackTrace();
+                    Assertions.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e);
                 }
             }
 
@@ -720,10 +721,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            // Create a config context to pass into the controller service's OnDisabled method (it will be ignored if the controller service has no arguments)
-            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
-            configContext.setValidateExpressions(validateExpressionUsage);
-            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service, configContext);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service);
         } catch (final Exception e) {
             e.printStackTrace();
             Assertions.fail("Failed to disable Controller Service " + service + " due to " + e);

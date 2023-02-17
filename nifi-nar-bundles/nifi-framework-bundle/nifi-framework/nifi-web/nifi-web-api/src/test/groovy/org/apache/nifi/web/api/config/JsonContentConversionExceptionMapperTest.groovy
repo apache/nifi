@@ -21,24 +21,39 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.databind.exc.InvalidFormatException
 import org.apache.nifi.web.api.ProcessGroupResourceTest
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
+import org.junit.Rule
+import org.junit.rules.TestName
+import org.junit.BeforeClass
+import org.junit.Before
+import org.junit.After
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.ws.rs.core.Response
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertFalse
-
-class JsonContentConversionExceptionMapperTest {
+@RunWith(JUnit4.class)
+class JsonContentConversionExceptionMapperTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResourceTest.class)
 
-    @BeforeAll
+    @Rule
+    public TestName testName = new TestName()
+
+    @BeforeClass
     static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.debug("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+    }
+
+    @Before
+    void setUp() throws Exception {
+    }
+
+    @After
+    void tearDown() throws Exception {
     }
 
     @Test
@@ -60,10 +75,8 @@ class JsonContentConversionExceptionMapperTest {
         logger.info(response.toString())
 
         // Assert
-        assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
-        String expectedEntity = "The provided proxyPort value 'thisIsAnInvalidPort' is not" +
-                " of required type class java.lang.Integer"
-        assertEquals(expectedEntity, response.entity)
+        assert response.status == Response.Status.BAD_REQUEST.statusCode
+        assert response.entity == "The provided proxyPort value \'thisIsAnInvalidPort\' is not of required type class java.lang.Integer"
     }
 
     @Test
@@ -85,7 +98,7 @@ class JsonContentConversionExceptionMapperTest {
         logger.info(response.toString())
 
         // Assert
-        assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
-        assertFalse((response.entity =~ /<script.*>/).find())
+        assert response.status == Response.Status.BAD_REQUEST.statusCode
+        assert !(response.entity =~ /<script.*>/)
     }
 }

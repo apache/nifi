@@ -18,7 +18,7 @@ package org.apache.nifi.security.util.crypto;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 public class SecureHasherFactoryTest {
 

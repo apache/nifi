@@ -20,20 +20,30 @@ import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.util.WebUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockServletContext;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.web.csrf.CsrfToken;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class StandardCookieCsrfTokenRepositoryTest {
     private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
 
@@ -45,6 +55,8 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     private static final String CONTEXT_PATH = "/context-path";
 
+    private static final String COOKIE_CONTEXT_PATH = CONTEXT_PATH + ROOT_PATH;
+
     private static final String HTTPS = "https";
 
     private static final String HOST = "localhost";
@@ -53,21 +65,23 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     private static final String EMPTY = "";
 
-    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+    @Mock
+    private HttpServletRequest request;
 
-    private static final String SAME_SITE = "SameSite";
+    @Mock
+    private HttpServletResponse response;
 
-    private MockHttpServletRequest request;
+    @Mock
+    private ServletContext servletContext;
 
-    private MockHttpServletResponse response;
+    @Captor
+    private ArgumentCaptor<Cookie> cookieArgumentCaptor;
 
     private StandardCookieCsrfTokenRepository repository;
 
     @BeforeEach
     public void setRepository() {
         this.repository = new StandardCookieCsrfTokenRepository();
-        this.request = new MockHttpServletRequest();
-        this.response = new MockHttpServletResponse();
     }
 
     @Test
@@ -81,7 +95,7 @@ public class StandardCookieCsrfTokenRepositoryTest {
     public void testGenerateTokenCookieFound() {
         final String token = UUID.randomUUID().toString();
         final Cookie cookie = new Cookie(SecurityCookieName.REQUEST_TOKEN.getName(), token);
-        request.setCookies(cookie);
+        when(request.getCookies()).thenReturn(new Cookie[]{cookie});
 
         final CsrfToken csrfToken = repository.generateToken(request);
         assertNotNull(csrfToken);
@@ -92,7 +106,7 @@ public class StandardCookieCsrfTokenRepositoryTest {
     public void testLoadToken() {
         final String token = UUID.randomUUID().toString();
         final Cookie cookie = new Cookie(SecurityCookieName.REQUEST_TOKEN.getName(), token);
-        request.setCookies(cookie);
+        when(request.getCookies()).thenReturn(new Cookie[]{cookie});
 
         final CsrfToken csrfToken = repository.loadToken(request);
         assertNotNull(csrfToken);
@@ -101,22 +115,31 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     @Test
     public void testSaveToken() {
+        when(request.getServletContext()).thenReturn(servletContext);
+
         final CsrfToken csrfToken = repository.generateToken(request);
         repository.saveToken(csrfToken, request, response);
 
-        final Cookie cookie = assertCookieFound();
-        final String setCookieHeader = response.getHeader(SET_COOKIE_HEADER);
-        assertCookieEquals(csrfToken.getToken(), MAX_AGE_SESSION, cookie, setCookieHeader);
+        verify(response).addCookie(cookieArgumentCaptor.capture());
+        final Cookie cookie = cookieArgumentCaptor.getValue();
+        assertCookieEquals(csrfToken, cookie);
         assertEquals(ROOT_PATH, cookie.getPath());
     }
 
     @Test
     public void testSaveTokenNullCsrfToken() {
+        when(request.getServletContext()).thenReturn(servletContext);
+
         repository.saveToken(null, request, response);
 
-        final Cookie cookie = assertCookieFound();
-        final String setCookieHeader = response.getHeader(SET_COOKIE_HEADER);
-        assertCookieEquals(EMPTY, MAX_AGE_EXPIRED, cookie, setCookieHeader);
+        verify(response).addCookie(cookieArgumentCaptor.capture());
+        final Cookie cookie = cookieArgumentCaptor.getValue();
+        assertEquals(ROOT_PATH, cookie.getPath());
+        assertEquals(EMPTY, cookie.getValue());
+        assertEquals(MAX_AGE_EXPIRED, cookie.getMaxAge());
+        assertTrue(cookie.getSecure());
+        assertFalse(cookie.isHttpOnly());
+        assertNull(cookie.getDomain());
     }
 
     @Test
@@ -124,36 +147,27 @@ public class StandardCookieCsrfTokenRepositoryTest {
         this.repository = new StandardCookieCsrfTokenRepository();
 
         final CsrfToken csrfToken = repository.generateToken(request);
+        when(request.getHeader(eq(WebUtils.PROXY_SCHEME_HTTP_HEADER))).thenReturn(HTTPS);
+        when(request.getHeader(eq(WebUtils.PROXY_HOST_HTTP_HEADER))).thenReturn(HOST);
+        when(request.getHeader(eq(WebUtils.PROXY_PORT_HTTP_HEADER))).thenReturn(PORT);
+        when(request.getHeader(eq(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER))).thenReturn(CONTEXT_PATH);
 
-        request.addHeader(WebUtils.PROXY_SCHEME_HTTP_HEADER, HTTPS);
-        request.addHeader(WebUtils.PROXY_HOST_HTTP_HEADER, HOST);
-        request.addHeader(WebUtils.PROXY_PORT_HTTP_HEADER, PORT);
-        request.addHeader(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER, CONTEXT_PATH);
-
-        final MockServletContext servletContext = (MockServletContext) request.getServletContext();
-        servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, CONTEXT_PATH);
+        when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS_PARAMETER))).thenReturn(CONTEXT_PATH);
+        when(request.getServletContext()).thenReturn(servletContext);
 
         repository.saveToken(csrfToken, request, response);
 
-        final Cookie cookie = assertCookieFound();
-        final String setCookieHeader = response.getHeader(SET_COOKIE_HEADER);
-        assertCookieEquals(csrfToken.getToken(), MAX_AGE_SESSION, cookie, setCookieHeader);
-        assertEquals(CONTEXT_PATH, cookie.getPath());
+        verify(response).addCookie(cookieArgumentCaptor.capture());
+        final Cookie cookie = cookieArgumentCaptor.getValue();
+        assertCookieEquals(csrfToken, cookie);
+        assertEquals(COOKIE_CONTEXT_PATH, cookie.getPath());
     }
 
-    private Cookie assertCookieFound() {
-        final Cookie cookie = response.getCookie(SecurityCookieName.REQUEST_TOKEN.getName());
-        assertNotNull(cookie);
-        return cookie;
-    }
-
-    private void assertCookieEquals(final String token, final int maxAge, final Cookie cookie, final String setCookieHeader) {
-        assertNotNull(setCookieHeader);
-        assertEquals(token, cookie.getValue());
-        assertEquals(maxAge, cookie.getMaxAge());
+    private void assertCookieEquals(final CsrfToken csrfToken, final Cookie cookie) {
+        assertEquals(csrfToken.getToken(), cookie.getValue());
+        assertEquals(MAX_AGE_SESSION, cookie.getMaxAge());
         assertTrue(cookie.getSecure());
         assertFalse(cookie.isHttpOnly());
-        assertEquals(HOST, cookie.getDomain());
-        assertTrue(setCookieHeader.contains(SAME_SITE), "SameSite not found");
+        assertNull(cookie.getDomain());
     }
 }

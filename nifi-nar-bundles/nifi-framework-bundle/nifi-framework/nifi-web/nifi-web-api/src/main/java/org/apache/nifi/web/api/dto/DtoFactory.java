@@ -1071,7 +1071,6 @@ public final class DtoFactory {
         snapshot.setBytesSent(processGroupStatus.getBytesSent());
         snapshot.setFlowFilesReceived(processGroupStatus.getFlowFilesReceived());
         snapshot.setBytesReceived(processGroupStatus.getBytesReceived());
-        snapshot.setProcessingNanos(processGroupStatus.getProcessingNanos());
 
         snapshot.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
         snapshot.setTerminatedThreadCount(processGroupStatus.getTerminatedThreadCount());
@@ -4226,6 +4225,7 @@ public final class DtoFactory {
             } else {
                 final List<AllowableValueEntity> allowableValues = new ArrayList<>();
                 final List<String> controllerServiceIdentifiers = new ArrayList<>(controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId));
+                Collections.sort(controllerServiceIdentifiers, Collator.getInstance(Locale.US));
                 for (final String serviceIdentifier : controllerServiceIdentifiers) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
                     final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
@@ -4236,7 +4236,6 @@ public final class DtoFactory {
                     allowableValue.setValue(serviceIdentifier);
                     allowableValues.add(entityFactory.createAllowableValueEntity(allowableValue, isServiceAuthorized));
                 }
-                allowableValues.sort(Comparator.comparing(e -> e.getAllowableValue().getDisplayName()));
                 dto.setAllowableValues(allowableValues);
             }
         } else {
@@ -4248,6 +4247,7 @@ public final class DtoFactory {
                 allowableValueDto.setDescription(allowableValue.getDescription());
                 allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
+
             dto.setAllowableValues(allowableValues);
         }
 

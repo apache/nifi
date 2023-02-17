@@ -29,16 +29,19 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
@@ -48,22 +51,18 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.Vector;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 public class OcspCertificateValidatorTest {
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidatorTest.class);
 
     private static final int KEY_SIZE = 2048;
 
     private static final long YESTERDAY = System.currentTimeMillis() - 24 * 60 * 60 * 1000;
-    private static final long ONE_YEAR_FROM_NOW = System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000;
+    private static final long ONE_YEAR_FROM_NOW = System.currentTimeMillis() + 365 * 24 * 60 * 60 * 1000;
     private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
     private static final String PROVIDER = "BC";
 
-    @BeforeAll
-    public static void setUpOnce() {
+    @BeforeClass
+    public static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
     }
 
@@ -87,10 +86,13 @@ public class OcspCertificateValidatorTest {
      * @throws IOException               if an exception occurs
      * @throws NoSuchAlgorithmException  if an exception occurs
      * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
      * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException,
-            OperatorCreationException {
+    private static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException,
+            InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
         return generateCertificate(dn, keyPair);
     }
@@ -102,11 +104,15 @@ public class OcspCertificateValidatorTest {
      * @param keyPair the public key will be included in the certificate and the the private key is used to sign the certificate
      * @return the certificate
      * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
      * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
      * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateCertificate(String dn, KeyPair keyPair) throws IOException, CertificateException,
-            OperatorCreationException {
+    private static X509Certificate generateCertificate(String dn, KeyPair keyPair) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException,
+            InvalidKeyException, OperatorCreationException {
         PrivateKey privateKey = keyPair.getPrivate();
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(privateKey);
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
@@ -144,12 +150,16 @@ public class OcspCertificateValidatorTest {
      * @param issuerDn  the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
+     * @throws IOException               if an exception occurs
      * @throws NoSuchAlgorithmException  if an exception occurs
      * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
      * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateIssuedCertificate(String dn, String issuerDn, PrivateKey issuerKey) throws NoSuchAlgorithmException, CertificateException,
-            OperatorCreationException {
+    private static X509Certificate generateIssuedCertificate(String dn, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
         return generateIssuedCertificate(dn, keyPair.getPublic(), issuerDn, issuerKey);
     }
@@ -162,11 +172,16 @@ public class OcspCertificateValidatorTest {
      * @param issuerDn  the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
+     * @throws IOException               if an exception occurs
+     * @throws NoSuchAlgorithmException  if an exception occurs
      * @throws CertificateException      if an exception occurs
+     * @throws NoSuchProviderException   if an exception occurs
+     * @throws SignatureException        if an exception occurs
+     * @throws InvalidKeyException       if an exception occurs
      * @throws OperatorCreationException if an exception occurs
      */
-    private static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, String issuerDn, PrivateKey issuerKey) throws
-            CertificateException, OperatorCreationException {
+    private static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException,
+            CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(issuerKey);
         SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
         Date startDate = new Date(YESTERDAY);
@@ -194,8 +209,8 @@ public class OcspCertificateValidatorTest {
         logger.info("Generated certificate: \n{}", certificate);
 
         // Assert
-        assertEquals(testDn, certificate.getSubjectDN().getName());
-        assertEquals(testDn, certificate.getIssuerDN().getName());
+        assert certificate.getSubjectDN().getName().equals(testDn);
+        assert certificate.getIssuerDN().getName().equals(testDn);
         certificate.verify(certificate.getPublicKey());
     }
 
@@ -210,9 +225,9 @@ public class OcspCertificateValidatorTest {
         logger.info("Generated certificate: \n{}", certificate);
 
         // Assert
-        assertEquals(keyPair.getPublic(), certificate.getPublicKey());
-        assertEquals(testDn, certificate.getSubjectDN().getName());
-        assertEquals(testDn, certificate.getIssuerDN().getName());
+        assert certificate.getPublicKey().equals(keyPair.getPublic());
+        assert certificate.getSubjectDN().getName().equals(testDn);
+        assert certificate.getIssuerDN().getName().equals(testDn);
         certificate.verify(certificate.getPublicKey());
     }
 
@@ -232,12 +247,17 @@ public class OcspCertificateValidatorTest {
         logger.info("Generated signed certificate: \n{}", certificate);
 
         // Assert
-        assertEquals(issuerKeyPair.getPublic(), issuerCertificate.getPublicKey());
-        assertEquals(testDn,  certificate.getSubjectX500Principal().getName());
-        assertEquals(issuerDn, certificate.getIssuerX500Principal().getName());
+        assert issuerCertificate.getPublicKey().equals(issuerKeyPair.getPublic());
+        assert certificate.getSubjectX500Principal().getName().equals(testDn);
+        assert certificate.getIssuerX500Principal().getName().equals(issuerDn);
         certificate.verify(issuerCertificate.getPublicKey());
 
-        SignatureException se = assertThrows(SignatureException.class, () -> certificate.verify(certificate.getPublicKey()));
-        assertTrue(se.getMessage().contains("certificate does not verify with supplied key"));
+        try {
+            certificate.verify(certificate.getPublicKey());
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+            assert e instanceof SignatureException;
+            assert e.getMessage().contains("certificate does not verify with supplied key");
+        }
     }
 }

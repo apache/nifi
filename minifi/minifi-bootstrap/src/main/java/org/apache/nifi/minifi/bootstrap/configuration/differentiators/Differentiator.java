@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.bootstrap.configuration.differentiators;
 
 import java.io.IOException;
+import java.util.Properties;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 
 /**
@@ -30,9 +31,10 @@ public interface Differentiator <T> {
     /**
      * Initialise the differentiator with the initial configuration
      *
+     * @param properties the properties to be used
      * @param configurationFileHolder holder for the config file
      */
-    void initialize(ConfigurationFileHolder configurationFileHolder);
+    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
 
     /**
      * Determine whether the config file changed

@@ -21,16 +21,15 @@ import org.apache.nifi.registry.extension.ExtensionClassLoader;
 import org.apache.nifi.registry.extension.ExtensionManager;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import javax.sql.DataSource;
 import java.net.URL;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
@@ -68,7 +67,7 @@ public class TestStandardProviderFactory {
         assertEquals("extension bar", mockBundlePersistenceProvider.getProperties().get("Extension Property 2"));
     }
 
-    @Test
+    @Test(expected = ProviderFactoryException.class)
     public void testGetFlowProviderBeforeInitializingShouldThrowException() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/providers-good.xml");
@@ -81,10 +80,10 @@ public class TestStandardProviderFactory {
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
         final ProviderFactory providerFactory = new StandardProviderFactory(props, extensionManager, dataSource);
-        assertThrows(ProviderFactoryException.class, () -> providerFactory.getFlowPersistenceProvider());
+        providerFactory.getFlowPersistenceProvider();
     }
 
-    @Test
+    @Test(expected = ProviderFactoryException.class)
     public void testProvidersConfigDoesNotExist() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/providers-does-not-exist.xml");
@@ -97,10 +96,10 @@ public class TestStandardProviderFactory {
         final DataSource dataSource = Mockito.mock(DataSource.class);
 
         final ProviderFactory providerFactory = new StandardProviderFactory(props, extensionManager, dataSource);
-        assertThrows(ProviderFactoryException.class, () -> providerFactory.initialize());
+        providerFactory.initialize();
     }
 
-    @Test
+    @Test(expected = ProviderFactoryException.class)
     public void testFlowProviderClassNotFound() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/providers-class-not-found.xml");
@@ -115,7 +114,7 @@ public class TestStandardProviderFactory {
         final ProviderFactory providerFactory = new StandardProviderFactory(props, extensionManager, dataSource);
         providerFactory.initialize();
 
-        assertThrows(ProviderFactoryException.class, () -> providerFactory.getFlowPersistenceProvider());
+        providerFactory.getFlowPersistenceProvider();
     }
 
 }

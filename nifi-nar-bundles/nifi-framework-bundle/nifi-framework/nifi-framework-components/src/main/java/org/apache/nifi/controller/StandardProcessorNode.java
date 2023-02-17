@@ -105,7 +105,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1800,15 +1799,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             return null;
         };
 
-        final Future<?> taskFuture;
-        try {
-            // Trigger the task in a background thread.
-            taskFuture = schedulingAgentCallback.scheduleTask(startupTask);
-        } catch (RejectedExecutionException rejectedExecutionException) {
-            final ValidationState validationState = getValidationState();
-            LOG.error("Unable to start {}.  Last known validation state was {} : {}", this, validationState, validationState.getValidationErrors(), rejectedExecutionException);
-            return;
-        }
+        // Trigger the task in a background thread.
+        final Future<?> taskFuture = schedulingAgentCallback.scheduleTask(startupTask);
 
         // Trigger a task periodically to check if @OnScheduled task completed. Once it has,
         // this task will call SchedulingAgentCallback#onTaskComplete.

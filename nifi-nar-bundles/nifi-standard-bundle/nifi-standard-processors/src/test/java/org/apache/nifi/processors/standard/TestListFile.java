@@ -35,7 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -83,8 +83,7 @@ public class TestListFile {
     private Long age0millis, age1millis, age2millis, age3millis, age4millis, age5millis;
     private String age0, age1, age2, age3, age4, age5;
 
-    @RegisterExtension
-    private final ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(
+    public ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(
             () -> {
                 try {
                     return runner.getStateManager().getState(Scope.LOCAL).toMap();
@@ -95,7 +94,18 @@ public class TestListFile {
             () -> listFiles(testDir).stream()
                     .map(f -> new FileInfo.Builder().filename(f.getName()).lastModifiedTime(f.lastModified()).build()).collect(Collectors.toList()),
             () -> runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).stream().map(m -> (FlowFile) m).collect(Collectors.toList())
-    );
+    ) {
+        @Override
+        protected void finished(Description description) {
+            try {
+                // In order to refer files in testDir, we want to execute this rule before tearDown, because tearDown removes files.
+                // And @After is always executed before @Rule.
+                tearDown();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to tearDown.", e);
+            }
+        }
+    };
 
     @BeforeAll
     public static void setupClass() throws Exception {
@@ -161,6 +171,7 @@ public class TestListFile {
         runner.run();
         dumpState.dumpState(startedAtMillis);
     }
+
 
     @Test
     public void testGetPath() {

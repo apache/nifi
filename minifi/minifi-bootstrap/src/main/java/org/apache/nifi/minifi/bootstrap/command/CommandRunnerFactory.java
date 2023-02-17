@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.nifi.minifi.bootstrap.BootstrapCommand;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
@@ -48,13 +47,11 @@ public class CommandRunnerFactory {
     private final GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
     private final MiNiFiExecCommandProvider miNiFiExecCommandProvider;
     private final ProcessUtils processUtils;
-    private final ConfigurationChangeListener configurationChangeListener;
 
     public CommandRunnerFactory(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider, MiNiFiParameters miNiFiParameters,
         MiNiFiStatusProvider miNiFiStatusProvider, PeriodicStatusReporterManager periodicStatusReporterManager,
         BootstrapFileProvider bootstrapFileProvider, MiNiFiStdLogHandler miNiFiStdLogHandler, File bootstrapConfigFile, RunMiNiFi runMiNiFi,
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, MiNiFiExecCommandProvider miNiFiExecCommandProvider, ProcessUtils processUtils,
-        ConfigurationChangeListener configurationChangeListener) {
+        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, MiNiFiExecCommandProvider miNiFiExecCommandProvider, ProcessUtils processUtils) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
         this.miNiFiParameters = miNiFiParameters;
@@ -67,7 +64,6 @@ public class CommandRunnerFactory {
         this.gracefulShutdownParameterProvider = gracefulShutdownParameterProvider;
         this.miNiFiExecCommandProvider = miNiFiExecCommandProvider;
         this.processUtils = processUtils;
-        this.configurationChangeListener = configurationChangeListener;
     }
 
     /**
@@ -81,7 +77,7 @@ public class CommandRunnerFactory {
             case START:
             case RUN:
                 commandRunner = new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
-                    bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener);
+                    bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, processUtils);
                 break;
             case STOP:
                 commandRunner = new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, processUtils);
@@ -111,7 +107,7 @@ public class CommandRunnerFactory {
         List<CommandRunner> compositeList = new LinkedList<>();
         compositeList.add(new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, processUtils));
         compositeList.add(new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
-            bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener));
+            bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, processUtils));
         return compositeList;
     }
 }

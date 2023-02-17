@@ -16,22 +16,23 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.time.DateUtils;
@@ -41,17 +42,25 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
+import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
+import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.Tuple;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestConnectionStatusAnalytics {
+
+    private static final Set<MetricDescriptor<?>> CONNECTION_METRICS = Arrays.stream(ConnectionStatusDescriptor.values())
+            .map(ConnectionStatusDescriptor::getDescriptor)
+            .collect(Collectors.toSet());
 
     final Connection connection = Mockito.mock(Connection.class);
     final FlowFileEvent flowFileEvent = Mockito.mock(FlowFileEvent.class);
@@ -71,8 +80,10 @@ public class TestConnectionStatusAnalytics {
         StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
+        final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
         final StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
+
 
         final Set<Connection> connections = new HashSet<>();
         final String connectionIdentifier = "1";
@@ -97,7 +108,7 @@ public class TestConnectionStatusAnalytics {
     }
 
     public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getModelMap( String predictionType, Double score,
-                                                                                Double targetPrediction, Number variablePrediction){
+                                                                                Double targetPrediction, Double variablePrediction){
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
         StatusAnalyticsModel model = Mockito.mock(StatusAnalyticsModel.class);
         StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
@@ -109,35 +120,38 @@ public class TestConnectionStatusAnalytics {
         Double[][] features = new Double[1][1];
         Double[] target = new Double[1];
 
-        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then(
-                (Answer<Tuple<Stream<Double[]>, Stream<Double>>>) invocationOnMock -> new Tuple<>(Stream.of(features), Stream.of(target))
-        );
+        when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then(new Answer<Tuple<Stream<Double[]>,Stream<Double>>>() {
+            @Override
+            public Tuple<Stream<Double[]>, Stream<Double>> answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return new Tuple<>(Stream.of(features), Stream.of(target));
+            }
+        });
 
         when(model.getScores()).thenReturn(scores);
         when(model.predict(any(Double[].class))).thenReturn(targetPrediction);
-        when(model.predictVariable(anyInt(),any(),any())).thenReturn(variablePrediction.doubleValue());
+        when(model.predictVariable(anyInt(),any(),any())).thenReturn(variablePrediction);
         return modelMap;
 
     }
 
     @Test
     public void testInvalidModelLowScore() {
-        final Date now = new Date();
-        final long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.5,100.0, tomorrowMillis);
+        Date now = new Date();
+        Long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.5,100.0,tomorrowMillis.doubleValue());
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
-    @Test
+      @Test
     public void testInvalidModelNaNScore() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",Double.NaN,Double.NaN,Double.NaN);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -146,7 +160,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -155,18 +169,18 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long interval = connectionStatusAnalytics.getIntervalTimeMillis();
         assertNotNull(interval);
-        assertEquals(180000, interval);
+        assert (interval == 180000);
     }
 
     @Test
     public void testGetTimeToCountBackpressureMillis() {
-        final Date now = new Date();
-        final long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.9,100.0, tomorrowMillis);
+        Date now = new Date();
+        Long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedCount",.9,100.0,tomorrowMillis.doubleValue());
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertTrue(countTime > 0);
+        assert (countTime > 0);
     }
 
     @Test
@@ -175,7 +189,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -184,7 +198,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -193,25 +207,30 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
     public void testMissingModelGetTimeToCount() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("fakeModel",Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        assertThrows(IllegalArgumentException.class, () -> connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent));
+        try {
+            connectionStatusAnalytics.getTimeToCountBackpressureMillis(connection, flowFileEvent);
+            fail();
+        }catch(IllegalArgumentException iae){
+            assertTrue(true);
+        }
     }
 
     @Test
     public void testGetTimeToBytesBackpressureMillis() {
-        final Date now = new Date();
-        final long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedBytes",.9,100.0, tomorrowMillis);
+        Date now = new Date();
+        Long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("queuedBytes",.9,100.0,tomorrowMillis.doubleValue());
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertTrue(countTime > 0);
+        assert (countTime > 0);
     }
 
     @Test
@@ -220,7 +239,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -229,7 +248,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
@@ -238,14 +257,19 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long countTime = connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent);
         assertNotNull(countTime);
-        assertEquals(-1, countTime);
+        assert (countTime == -1);
     }
 
     @Test
     public void testMissingModelGetTimeToBytes() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("fakeModel",Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        assertThrows(IllegalArgumentException.class, () -> connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent));
+        try {
+            connectionStatusAnalytics.getTimeToBytesBackpressureMillis(connection, flowFileEvent);
+            fail();
+        }catch(IllegalArgumentException iae){
+            assertTrue(true);
+        }
     }
 
     @Test
@@ -254,7 +278,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent);
         assertNotNull(nextIntervalBytes);
-        assertTrue(nextIntervalBytes > 0);
+        assert (nextIntervalBytes > 0);
     }
 
     @Test
@@ -263,7 +287,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent);
         assertNotNull(nextIntervalBytes);
-        assertEquals(0, nextIntervalBytes);
+        assert (nextIntervalBytes == 0);
     }
 
     @Test
@@ -272,7 +296,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent);
         assertNotNull(nextIntervalBytes);
-        assertEquals(-1, nextIntervalBytes);
+        assert (nextIntervalBytes == -1);
     }
 
     @Test
@@ -281,14 +305,19 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent);
         assertNotNull(nextIntervalBytes);
-        assertEquals(-1, nextIntervalBytes);
+        assert (nextIntervalBytes == -1);
     }
 
     @Test
     public void testMissingModelNextIntervalBytes() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("fakeModel",Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        assertThrows(IllegalArgumentException.class, () -> connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent));
+        try {
+            connectionStatusAnalytics.getNextIntervalBytes(flowFileEvent);
+            fail();
+        }catch(IllegalArgumentException iae){
+            assertTrue(true);
+        }
     }
 
     @Test
@@ -297,7 +326,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalBytes = connectionStatusAnalytics.getNextIntervalCount(flowFileEvent);
         assertNotNull(nextIntervalBytes);
-        assertTrue(nextIntervalBytes > 0);
+        assert (nextIntervalBytes > 0);
     }
 
     @Test
@@ -306,7 +335,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount(flowFileEvent);
         assertNotNull(nextIntervalCount);
-        assertEquals(0, nextIntervalCount);
+        assert (nextIntervalCount == 0);
     }
 
     @Test
@@ -315,7 +344,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount(flowFileEvent);
         assertNotNull(nextIntervalCount);
-        assertEquals(-1, nextIntervalCount);
+        assert (nextIntervalCount == -1);
     }
 
     @Test
@@ -324,14 +353,19 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long nextIntervalCount = connectionStatusAnalytics.getNextIntervalCount(flowFileEvent);
         assertNotNull(nextIntervalCount);
-        assertEquals(-1, nextIntervalCount);
+        assert (nextIntervalCount == -1);
     }
 
     @Test
     public void testMissingModelGetNextIntervalCount() {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = getModelMap("fakeModel",Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
-        assertThrows(IllegalArgumentException.class, () -> connectionStatusAnalytics.getNextIntervalCount(flowFileEvent));
+        try {
+            connectionStatusAnalytics.getNextIntervalCount(flowFileEvent);
+            fail();
+        }catch(IllegalArgumentException iae){
+            assertTrue(true);
+        }
     }
 
     @Test
@@ -340,7 +374,7 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long percentage = connectionStatusAnalytics.getNextIntervalPercentageUseCount(connection, flowFileEvent);
         assertNotNull(percentage);
-        assertEquals(50, percentage);
+        assert (percentage == 50);
     }
 
     @Test
@@ -349,48 +383,48 @@ public class TestConnectionStatusAnalytics {
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(modelMap);
         Long percentage = connectionStatusAnalytics.getNextIntervalPercentageUseBytes(connection, flowFileEvent);
         assertNotNull(percentage);
-        assertEquals(10, percentage);
+        assert (percentage == 10);
     }
 
     @Test
     public void testGetScores() {
-        final Date now = new Date();
-        final long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> bytesModelMap = getModelMap("queuedBytes",.9,10000000.0, tomorrowMillis);
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> countModelMap = getModelMap("queuedCount",.9,50.0, tomorrowMillis);
+        Date now = new Date();
+        Long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> bytesModelMap = getModelMap("queuedBytes",.9,10000000.0,tomorrowMillis.doubleValue());
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> countModelMap = getModelMap("queuedCount",.9,50.0,tomorrowMillis.doubleValue());
         countModelMap.putAll(bytesModelMap);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(countModelMap);
         connectionStatusAnalytics.loadPredictions(repositoryStatusReport);
         Map<String,Long> scores = connectionStatusAnalytics.getPredictions();
         assertNotNull(scores);
         assertFalse(scores.isEmpty());
-        assertEquals(50L, scores.get("nextIntervalPercentageUseCount"));
-        assertEquals(10000000L, scores.get("nextIntervalBytes"));
+        assertTrue(scores.get("nextIntervalPercentageUseCount").equals(50L));
+        assertTrue(scores.get("nextIntervalBytes").equals(10000000L));
         assertTrue(scores.get("timeToBytesBackpressureMillis") > 0);
-        assertEquals(50L, scores.get("nextIntervalCount"));
-        assertEquals(10L, scores.get("nextIntervalPercentageUseBytes"));
-        assertEquals(180000L, scores.get("intervalTimeMillis"));
+        assertTrue(scores.get("nextIntervalCount").equals(50L));
+        assertTrue(scores.get("nextIntervalPercentageUseBytes").equals(10L));
+        assertTrue(scores.get("intervalTimeMillis").equals(180000L));
         assertTrue(scores.get("timeToCountBackpressureMillis") > 0);
     }
 
     @Test
     public void testGetScoresWithBadModel() {
-        final Date now = new Date();
-        final long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> bytesModelMap = getModelMap("queuedBytes",.9,10000000.0, tomorrowMillis);
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> countModelMap = getModelMap("queuedCount",.1,50.0, tomorrowMillis);
+        Date now = new Date();
+        Long tomorrowMillis = DateUtils.addDays(now,1).toInstant().toEpochMilli();
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> bytesModelMap = getModelMap("queuedBytes",.9,10000000.0,tomorrowMillis.doubleValue());
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> countModelMap = getModelMap("queuedCount",.1,50.0,tomorrowMillis.doubleValue());
         countModelMap.putAll(bytesModelMap);
         ConnectionStatusAnalytics connectionStatusAnalytics = getConnectionStatusAnalytics(countModelMap);
         connectionStatusAnalytics.loadPredictions(repositoryStatusReport);
         Map<String,Long> scores = connectionStatusAnalytics.getPredictions();
         assertNotNull(scores);
         assertFalse(scores.isEmpty());
-        assertEquals(-1L, scores.get("nextIntervalPercentageUseCount"));
-        assertEquals(10000000L, scores.get("nextIntervalBytes"));
+        assertTrue(scores.get("nextIntervalPercentageUseCount").equals(-1L));
+        assertTrue(scores.get("nextIntervalBytes").equals(10000000L));
         assertTrue(scores.get("timeToBytesBackpressureMillis") > 0);
-        assertEquals(-1L, scores.get("nextIntervalCount"));
-        assertEquals(10L, scores.get("nextIntervalPercentageUseBytes"));
-        assertEquals(180000L, scores.get("intervalTimeMillis"));
-        assertEquals(-1, scores.get("timeToCountBackpressureMillis"));
+        assertTrue(scores.get("nextIntervalCount").equals(-1L));
+        assertTrue(scores.get("nextIntervalPercentageUseBytes").equals(10L));
+        assertTrue(scores.get("intervalTimeMillis").equals(180000L));
+        assertTrue(scores.get("timeToCountBackpressureMillis") == -1);
     }
 }

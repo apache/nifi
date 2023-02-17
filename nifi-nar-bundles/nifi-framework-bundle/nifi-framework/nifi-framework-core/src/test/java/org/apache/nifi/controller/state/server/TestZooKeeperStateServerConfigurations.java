@@ -22,10 +22,11 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,11 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 // This class tests the behaviors involved with the ZooKeeperStateServer::create method.  The servers are not started,
 // and TLS connections are not used.
@@ -68,7 +64,7 @@ public class TestZooKeeperStateServerConfigurations {
 
     private static TlsConfiguration tlsConfiguration;
 
-    @BeforeAll
+    @BeforeClass
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
@@ -83,41 +79,41 @@ public class TestZooKeeperStateServerConfigurations {
         SECURE_NIFI_PROPS.put(NiFiProperties.ZOOKEEPER_CLIENT_SECURE, "true");
     }
 
-    @BeforeEach
+    @Before
     public void setupWithValidProperties() throws IOException, QuorumPeerConfig.ConfigException {
 
         // Secure properties setup
         secureNiFiProps = NiFiProperties.createBasicNiFiProperties(null, SECURE_NIFI_PROPS);
-        assertNotNull(secureNiFiProps);
+        Assert.assertNotNull(secureNiFiProps);
 
         // This shows that a ZooKeeper server is created from valid NiFi properties:
         final ZooKeeperStateServer secureZooKeeperStateServer = ZooKeeperStateServer.create(secureNiFiProps);
-        assertNotNull(secureZooKeeperStateServer);
+        Assert.assertNotNull(secureZooKeeperStateServer);
 
         secureQuorumPeerConfig = secureZooKeeperStateServer.getQuorumPeerConfig();
-        assertNotNull(secureQuorumPeerConfig);
+        Assert.assertNotNull(secureQuorumPeerConfig);
 
         secureZooKeeperProps = new Properties();
         secureZooKeeperProps.load( FileUtils.openInputStream(new File(SECURE_ZOOKEEPER_PROPS)));
-        assertNotNull(secureZooKeeperProps);
+        Assert.assertNotNull(secureZooKeeperProps);
 
         // Insecure  properties setup
         insecureNiFiProps = NiFiProperties.createBasicNiFiProperties(null, INSECURE_NIFI_PROPS);
-        assertNotNull(insecureNiFiProps);
+        Assert.assertNotNull(insecureNiFiProps);
 
         // This shows that a ZooKeeper server is created from valid NiFi properties:
         final ZooKeeperStateServer insecureZooKeeperStateServer = ZooKeeperStateServer.create(insecureNiFiProps);
-        assertNotNull(insecureZooKeeperStateServer);
+        Assert.assertNotNull(insecureZooKeeperStateServer);
 
         insecureQuorumPeerConfig = insecureZooKeeperStateServer.getQuorumPeerConfig();
-        assertNotNull(insecureQuorumPeerConfig);
+        Assert.assertNotNull(insecureQuorumPeerConfig);
 
         insecureZooKeeperProps = new Properties();
         insecureZooKeeperProps.load(FileUtils.openInputStream(new File(INSECURE_ZOOKEEPER_PROPS)));
-        assertNotNull(insecureZooKeeperProps);
+        Assert.assertNotNull(insecureZooKeeperProps);
     }
 
-    @AfterEach
+    @After
     public void clearConnectionProperties() {
         Collections.unmodifiableSet(System.getProperties().stringPropertyNames()).stream()
                 .filter(name -> name.startsWith("zookeeper."))
@@ -129,8 +125,8 @@ public class TestZooKeeperStateServerConfigurations {
     public void testCreateFromEmptyNiFiProperties() throws IOException, QuorumPeerConfig.ConfigException {
         final NiFiProperties emptyProps = NiFiProperties.createBasicNiFiProperties(null, new HashMap<>());
 
-        assertNotNull(emptyProps);
-        assertNull(ZooKeeperStateServer.create(emptyProps));
+        Assert.assertNotNull(emptyProps);
+        Assert.assertNull(ZooKeeperStateServer.create(emptyProps));
     }
 
     // This test shows that a ZooKeeperStateServer can be created from insecure NiFi properties.
@@ -139,8 +135,8 @@ public class TestZooKeeperStateServerConfigurations {
         final NiFiProperties insecureProps = NiFiProperties.createBasicNiFiProperties(null, INSECURE_PROPS);
         final ZooKeeperStateServer server = ZooKeeperStateServer.create(insecureProps);
 
-        assertNotNull(server);
-        assertNotNull(server.getQuorumPeerConfig().getClientPortAddress());
+        Assert.assertNotNull(server);
+        Assert.assertNotNull(server.getQuorumPeerConfig().getClientPortAddress());
     }
 
     // This test shows that the client can specify a secure port and that port is used:
@@ -152,24 +148,24 @@ public class TestZooKeeperStateServerConfigurations {
         }});
 
         final ZooKeeperStateServer server = ZooKeeperStateServer.create(secureProps);
-        assertNotNull(server);
+        Assert.assertNotNull(server);
 
         final QuorumPeerConfig config = server.getQuorumPeerConfig();
-        assertEquals(secureZooKeeperProps.getProperty("secureClientPort"), String.valueOf(config.getSecureClientPortAddress().getPort()));
+        Assert.assertEquals(secureZooKeeperProps.getProperty("secureClientPort"), String.valueOf(config.getSecureClientPortAddress().getPort()));
     }
 
     // This shows that a secure NiFi with an secure ZooKeeper will not have an insecure client address or port:
     @Test
     public void testCreateRemovesInsecureClientPort() {
-        assertNotNull(secureZooKeeperProps.getProperty("secureClientPort"));
-        assertNotEquals("", secureZooKeeperProps.getProperty("clientPort"));
-        assertNull(secureQuorumPeerConfig.getClientPortAddress());
+        Assert.assertNotNull(secureZooKeeperProps.getProperty("secureClientPort"));
+        Assert.assertNotEquals(secureZooKeeperProps.getProperty("clientPort"), "");
+        Assert.assertNull(secureQuorumPeerConfig.getClientPortAddress());
     }
 
     // This test shows that a connection class is set when none is specified (QuorumPeerConfig::parseProperties sets the System property):
     @Test
     public void testCreateWithUnspecifiedConnectionClass() {
-        assertEquals(org.apache.zookeeper.server.NettyServerCnxnFactory.class.getName(), System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
+        Assert.assertEquals(org.apache.zookeeper.server.NettyServerCnxnFactory.class.getName(), System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
 
     // This test shows that a specified connection class is honored (QuorumPeerConfig::parseProperties sets the System property):
@@ -180,8 +176,8 @@ public class TestZooKeeperStateServerConfigurations {
             put(ZOOKEEPER_PROPERTIES_FILE_KEY, SECURE_ZOOKEEPER_PROPS);
         }});
 
-        assertNotNull(ZooKeeperStateServer.create(secureProps));
-        assertEquals(ZOOKEEPER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
+        Assert.assertNotNull(ZooKeeperStateServer.create(secureProps));
+        Assert.assertEquals(ZOOKEEPER_CNXN_FACTORY, System.getProperty(ServerCnxnFactory.ZOOKEEPER_SERVER_CNXN_FACTORY));
     }
 
     private static String getPath(String path) {

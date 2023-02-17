@@ -19,16 +19,6 @@ package org.apache.nifi.box.controllerservices;
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxConfig;
 import com.box.sdk.BoxDeveloperEditionAPIConnection;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.net.Proxy;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -43,9 +33,16 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 @CapabilityDescription("Provides Box client objects through which Box API calls can be used.")
 @Tags({"box", "client", "provider"})
@@ -78,13 +75,10 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
-
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         ACCOUNT_ID,
         APP_CONFIG_FILE,
-        APP_CONFIG_JSON,
-        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
+        APP_CONFIG_JSON
     ));
 
     private volatile BoxAPIConnection boxAPIConnection;
@@ -134,16 +128,15 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
-        final BoxAPIConnection api;
+        BoxAPIConnection api;
 
-        final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
-        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
 
-        final BoxConfig boxConfig;
+        BoxConfig boxConfig;
         if (context.getProperty(APP_CONFIG_FILE).isSet()) {
             String appConfigFile = context.getProperty(APP_CONFIG_FILE).evaluateAttributeExpressions().getValue();
             try (
-                Reader reader = new FileReader(appConfigFile)
+                Reader reader = new FileReader(appConfigFile);
             ) {
                 boxConfig = BoxConfig.readFrom(reader);
             } catch (FileNotFoundException e) {
@@ -152,7 +145,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
                 throw new ProcessException("Couldn't read Box config file", e);
             }
         } else {
-            final String appConfig = context.getProperty(APP_CONFIG_JSON).evaluateAttributeExpressions().getValue();
+            String appConfig = context.getProperty(APP_CONFIG_JSON).evaluateAttributeExpressions().getValue();
             boxConfig = BoxConfig.readFrom(appConfig);
         }
 
@@ -160,13 +153,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
 
         api.asUser(accountId);
 
-        if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
-            api.setProxy(proxyConfiguration.createProxy());
-
-            if (proxyConfiguration.hasCredential()) {
-                api.setProxyBasicAuthentication(proxyConfiguration.getProxyUserName(), proxyConfiguration.getProxyUserPassword());
-            }
-        }
         return api;
     }
 }

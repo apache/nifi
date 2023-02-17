@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.nifi.util.MockFlowFile;
@@ -27,8 +27,6 @@ import org.junit.jupiter.api.Test;
 
 public class TestEncodeContent {
 
-    private static final Path FILE_PATH = Paths.get("src/test/resources/hello.txt");
-
     @Test
     public void testBase64RoundTrip() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncodeContent());
@@ -36,7 +34,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.ENCODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.BASE64_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
@@ -52,7 +50,7 @@ public class TestEncodeContent {
         testRunner.assertAllFlowFilesTransferred(EncodeContent.REL_SUCCESS, 1);
 
         flowFile = testRunner.getFlowFilesForRelationship(EncodeContent.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(FILE_PATH);
+        flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
     }
 
     @Test
@@ -62,7 +60,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.DECODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.BASE64_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
@@ -70,7 +68,7 @@ public class TestEncodeContent {
     }
 
     @Test
-    public void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() {
+    public void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncodeContent());
 
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.DECODE_MODE);
@@ -90,7 +88,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.ENCODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.BASE32_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
@@ -106,7 +104,7 @@ public class TestEncodeContent {
         testRunner.assertAllFlowFilesTransferred(EncodeContent.REL_SUCCESS, 1);
 
         flowFile = testRunner.getFlowFilesForRelationship(EncodeContent.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(FILE_PATH);
+        flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
     }
 
     @Test
@@ -116,7 +114,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.DECODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.BASE32_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
@@ -130,7 +128,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.ENCODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.HEX_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
@@ -146,7 +144,7 @@ public class TestEncodeContent {
         testRunner.assertAllFlowFilesTransferred(EncodeContent.REL_SUCCESS, 1);
 
         flowFile = testRunner.getFlowFilesForRelationship(EncodeContent.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(FILE_PATH);
+        flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
     }
 
     @Test
@@ -156,7 +154,7 @@ public class TestEncodeContent {
         testRunner.setProperty(EncodeContent.MODE, EncodeContent.DECODE_MODE);
         testRunner.setProperty(EncodeContent.ENCODING, EncodeContent.HEX_ENCODING);
 
-        testRunner.enqueue(FILE_PATH);
+        testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 

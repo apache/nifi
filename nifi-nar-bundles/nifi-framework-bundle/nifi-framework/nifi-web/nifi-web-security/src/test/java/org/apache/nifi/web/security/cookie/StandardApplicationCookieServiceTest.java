@@ -17,13 +17,13 @@
 package org.apache.nifi.web.security.cookie;
 
 import org.apache.nifi.util.StringUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.mock.web.MockCookie;
 
 import javax.servlet.http.Cookie;
@@ -34,14 +34,14 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class StandardApplicationCookieServiceTest {
     private static final String DOMAIN = "localhost.localdomain";
 
@@ -59,7 +59,7 @@ public class StandardApplicationCookieServiceTest {
 
     private static final int REMOVE_MAX_AGE = 0;
 
-    private static final String SAME_SITE = "SameSite";
+    private static final String SAME_SITE_STRICT = "SameSite=Strict";
 
     private static final String COOKIE_VALUE = UUID.randomUUID().toString();
 
@@ -80,7 +80,7 @@ public class StandardApplicationCookieServiceTest {
     @Captor
     private ArgumentCaptor<String> cookieArgumentCaptor;
 
-    @BeforeEach
+    @Before
     public void setService() {
         service = new StandardApplicationCookieService();
         resourceUri = URI.create(RESOURCE_URI);
@@ -113,6 +113,7 @@ public class StandardApplicationCookieServiceTest {
 
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, ROOT_PATH, SESSION_MAX_AGE);
+        assertTrue("SameSite not found", setCookieHeader.endsWith(SAME_SITE_STRICT));
     }
 
     @Test
@@ -123,6 +124,7 @@ public class StandardApplicationCookieServiceTest {
 
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, CONTEXT_PATH, SESSION_MAX_AGE);
+        assertTrue("SameSite not found", setCookieHeader.endsWith(SAME_SITE_STRICT));
     }
 
     @Test
@@ -173,11 +175,10 @@ public class StandardApplicationCookieServiceTest {
     }
 
     private void assertCookieMatches(final String setCookieHeader, final Cookie cookie, final String path) {
-        assertEquals(COOKIE_NAME.getCookieName(), cookie.getName(), "Cookie Name not matched");
-        assertEquals(path, cookie.getPath(), "Path not matched");
-        assertEquals(DOMAIN, cookie.getDomain(), "Domain not matched");
-        assertTrue(cookie.isHttpOnly(), "HTTP Only not matched");
-        assertTrue(cookie.getSecure(), "Secure not matched");
-        assertTrue(setCookieHeader.contains(SAME_SITE), "SameSite not found");
+        assertEquals("Cookie Name not matched", COOKIE_NAME.getCookieName(), cookie.getName());
+        assertEquals("Path not matched", path, cookie.getPath());
+        assertEquals("Domain not matched", DOMAIN, cookie.getDomain());
+        assertTrue("HTTP Only not matched", cookie.isHttpOnly());
+        assertTrue("Secure not matched", cookie.getSecure());
     }
 }

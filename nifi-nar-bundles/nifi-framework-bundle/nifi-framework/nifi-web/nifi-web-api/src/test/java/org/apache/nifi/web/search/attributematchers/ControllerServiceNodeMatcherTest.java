@@ -17,7 +17,8 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -28,15 +29,20 @@ public class ControllerServiceNodeMatcherTest extends AbstractAttributeMatcherTe
     @Mock
     private ControllerServiceNode component;
 
-    @Test
-    public void testMatching() {
-        // given
-        final ControllerServiceNodeMatcher testSubject = new ControllerServiceNodeMatcher();
-        givenDefaultSearchTerm();
+    @Before
+    public void setUp() {
+        super.setUp();
         Mockito.when(component.getIdentifier()).thenReturn("LoremId");
         Mockito.when(component.getVersionedComponentId()).thenReturn(Optional.of("LoremVersionId"));
         Mockito.when(component.getName()).thenReturn("LoremName");
         Mockito.when(component.getComments()).thenReturn("LoremComment");
+    }
+
+    @Test
+    public void testMatching() {
+        // given
+        final ControllerServiceNodeMatcher testSubject = new ControllerServiceNodeMatcher();
+
         // when
         testSubject.match(component, searchQuery, matches);
 

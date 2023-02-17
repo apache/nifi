@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.web.api;
 
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
 import org.apache.nifi.registry.authorization.CurrentUser;
 import org.apache.nifi.registry.authorization.Permissions;
@@ -37,17 +36,19 @@ import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.ws.rs.ForbiddenException;
 import java.io.IOException;
@@ -59,7 +60,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@ExtendWith(SpringExtension.class)
+@RunWith(SpringRunner.class)
 @SpringBootTest(
         classes = NiFiRegistryTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -75,22 +76,22 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
 
     private NiFiRegistryClient client;
 
-    @BeforeEach
+    @Before
     public void setup() {
         final String baseUrl = createBaseURL();
         LOGGER.info("Using base url = " + baseUrl);
 
         final NiFiRegistryClientConfig clientConfig = createClientConfig(baseUrl);
-        assertNotNull(clientConfig);
+        Assert.assertNotNull(clientConfig);
 
         final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder()
                 .config(clientConfig)
                 .build();
-        assertNotNull(client);
+        Assert.assertNotNull(client);
         this.client = client;
     }
 
-    @AfterEach
+    @After
     public void teardown() {
         try {
             client.close();
@@ -128,7 +129,7 @@ public class SecureNiFiRegistryClientIT extends IntegrationTestBase {
         assertNotNull(createdBucket.getRevision());
 
         final List<Bucket> buckets = bucketClient.getAll();
-        assertEquals(4, buckets.size());
+        Assert.assertEquals(4, buckets.size());
         buckets.forEach(b -> assertNotNull(b.getRevision()));
 
         final VersionedFlow flow = new VersionedFlow();

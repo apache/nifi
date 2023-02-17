@@ -17,19 +17,17 @@
 package org.apache.nifi.web.search.attributematchers;
 
 import org.apache.nifi.web.search.query.SearchQuery;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public abstract class AbstractAttributeMatcherTest {
     private static final String SEARCH_TERM = "lorem";
 
@@ -38,13 +36,12 @@ public abstract class AbstractAttributeMatcherTest {
     @Mock
     protected SearchQuery searchQuery;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         matches = new ArrayList<>();
+        Mockito.when(searchQuery.getTerm()).thenReturn(SEARCH_TERM);
     }
-    protected void givenDefaultSearchTerm() {
-        givenSearchTerm(SEARCH_TERM);
-    }
+
     protected void givenSearchTerm(final String term) {
         Mockito.when(searchQuery.getTerm()).thenReturn(term);
     }
@@ -55,14 +52,14 @@ public abstract class AbstractAttributeMatcherTest {
     }
 
     protected void thenNoMatches() {
-        assertTrue(matches.isEmpty());
+        Assert.assertTrue(matches.isEmpty());
     }
 
     protected void thenMatchConsistsOf(final String... expectedMatches) {
-        assertEquals(expectedMatches.length, matches.size());
+        Assert.assertEquals(expectedMatches.length, matches.size());
 
         for (final String expectedMatch : expectedMatches) {
-            assertTrue(matches.contains(expectedMatch), "Should contain: " + expectedMatch);
+            Assert.assertTrue("Should contain: " + expectedMatch, matches.contains(expectedMatch));
         }
     }
 }

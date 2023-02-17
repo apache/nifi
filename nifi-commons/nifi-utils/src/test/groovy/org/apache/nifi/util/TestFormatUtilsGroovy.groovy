@@ -22,13 +22,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.TimeUnit
-import java.util.stream.IntStream
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertThrows
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class TestFormatUtilsGroovy {
+class TestFormatUtilsGroovy extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(TestFormatUtilsGroovy.class)
 
     @BeforeAll
@@ -54,7 +49,7 @@ class TestFormatUtilsGroovy {
         logger.converted(days)
 
         // Assert
-        days.forEach(it -> assertEquals(EXPECTED_DAYS, it))
+        assert days.every { it == EXPECTED_DAYS }
     }
 
 
@@ -64,12 +59,14 @@ class TestFormatUtilsGroovy {
         final List WEEKS = ["-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week"]
 
         // Act
-        WEEKS.stream().forEach(week -> {
-            IllegalArgumentException iae =
-                    assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS))
-            // Assert
-            assertTrue(iae.message.contains("Value '" + week + "' is not a valid time duration"))
-        })
+        List msgs = WEEKS.collect { String week ->
+            shouldFail(IllegalArgumentException) {
+                FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
+            }
+        }
+
+        // Assert
+        assert msgs.every { it =~ /Value '.*' is not a valid time duration/ }
     }
 
     /**
@@ -81,12 +78,14 @@ class TestFormatUtilsGroovy {
         final List WEEKS = ["1 work", "1 wek", "1 k"]
 
         // Act
-        WEEKS.stream().forEach(week -> {
-            IllegalArgumentException iae =
-                    assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS))
-            // Assert
-            assertTrue(iae.message.contains("Value '" + week + "' is not a valid time duration"))
-        })
+        List msgs = WEEKS.collect { String week ->
+            shouldFail(IllegalArgumentException) {
+                FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
+            }
+        }
+
+        // Assert
+        assert msgs.every { it =~ /Value '.*' is not a valid time duration/ }
 
     }
 
@@ -106,7 +105,7 @@ class TestFormatUtilsGroovy {
         logger.converted(days)
 
         // Assert
-        days.forEach(it -> assertEquals(EXPECTED_DAYS, it))
+        assert days.every { it == EXPECTED_DAYS }
     }
 
     /**
@@ -131,8 +130,8 @@ class TestFormatUtilsGroovy {
         logger.converted(parsedDecimalMillis)
 
         // Assert
-        parsedWholeMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it))
-        parsedDecimalMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it))
+        assert parsedWholeMillis.every { it == EXPECTED_MILLIS }
+        assert parsedDecimalMillis.every { it == EXPECTED_MILLIS }
     }
 
     /**
@@ -159,8 +158,9 @@ class TestFormatUtilsGroovy {
         logger.converted(oneWeekInOtherUnits)
 
         // Assert
-        oneWeekInOtherUnits.entrySet().forEach(entry ->
-                        assertEquals(ONE_WEEK_IN_OTHER_UNITS.get(entry.getKey()), entry.getValue()))
+        oneWeekInOtherUnits.each { TimeUnit k, double value ->
+            assert value == ONE_WEEK_IN_OTHER_UNITS[k]
+        }
     }
 
     /**
@@ -187,8 +187,9 @@ class TestFormatUtilsGroovy {
         logger.converted(onePointFiveWeeksInOtherUnits)
 
         // Assert
-        onePointFiveWeeksInOtherUnits.entrySet().forEach(entry ->
-                assertEquals(ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS.get(entry.getKey()), entry.getValue()))
+        onePointFiveWeeksInOtherUnits.each { TimeUnit k, double value ->
+            assert value == ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS[k]
+        }
     }
 
     /**
@@ -213,8 +214,8 @@ class TestFormatUtilsGroovy {
         logger.converted(parsedDecimalMillis)
 
         // Assert
-        parsedWholeMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it))
-        parsedDecimalMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it))
+        assert parsedWholeMillis.every { it == EXPECTED_MILLIS }
+        assert parsedDecimalMillis.every { it == EXPECTED_MILLIS }
     }
 
     /**
@@ -239,8 +240,9 @@ class TestFormatUtilsGroovy {
         logger.info(results)
 
         // Assert
-        results.entrySet().forEach(entry ->
-                assertEquals(SCENARIOS.get(entry.getKey()).expectedValue, entry.getValue()))
+        results.every { String key, double value ->
+            assert value == SCENARIOS[key].expectedValue
+        }
     }
 
     /**
@@ -263,8 +265,7 @@ class TestFormatUtilsGroovy {
         logger.converted(parsedWholeNanos)
 
         // Assert
-        parsedWholeNanos.forEach(it ->
-                assertEquals(Arrays.asList(EXPECTED_NANOS, TimeUnit.NANOSECONDS), it))
+        assert parsedWholeNanos.every { it == [EXPECTED_NANOS, TimeUnit.NANOSECONDS] }
     }
 
     /**
@@ -290,8 +291,8 @@ class TestFormatUtilsGroovy {
 
         // Assert
         results.every { String key, List values ->
-            assertEquals(SCENARIOS[key].expectedValue, values.first())
-            assertEquals(SCENARIOS[key].expectedUnits, values.last())
+            assert values.first() == SCENARIOS[key].expectedValue
+            assert values.last() == SCENARIOS[key].expectedUnits
         }
     }
 
@@ -315,10 +316,10 @@ class TestFormatUtilsGroovy {
         logger.info(results)
 
         // Assert
-        results.entrySet().forEach(entry -> {
-            assertEquals(SCENARIOS.get(entry.getKey()).expectedValue, entry.getValue().get(0))
-            assertEquals(SCENARIOS.get(entry.getKey()).expectedUnits, entry.getValue().get(1))
-        })
+        results.every { String key, List values ->
+            assert values.first() == SCENARIOS[key].expectedValue
+            assert values.last() == SCENARIOS[key].expectedUnits
+        }
     }
 
     /**
@@ -338,18 +339,17 @@ class TestFormatUtilsGroovy {
         ]
 
         // Act
-        List<List<Object>> parsedWholeTimes = WHOLE_TIMES.collect { List it ->
+        List parsedWholeTimes = WHOLE_TIMES.collect { List it ->
             FormatUtils.makeWholeNumberTime(it[0] as float, it[1] as TimeUnit)
         }
         logger.converted(parsedWholeTimes)
 
         // Assert
-        IntStream.range(0, parsedWholeTimes.size())
-                .forEach(index -> {
-                    List<Object> elements = parsedWholeTimes.get(index)
-                    assertEquals(10L, elements.get(0))
-                    assertEquals(WHOLE_TIMES[index][1], elements.get(1))
-                 })
+        parsedWholeTimes.eachWithIndex { List elements, int i ->
+            assert elements[0] instanceof Long
+            assert elements[0] == 10L
+            assert elements[1] == WHOLE_TIMES[i][1]
+        }
     }
 
     /**
@@ -379,7 +379,7 @@ class TestFormatUtilsGroovy {
         logger.converted(parsedWholeTimes)
 
         // Assert
-        assertEquals(EXPECTED_TIMES, parsedWholeTimes)
+        assert parsedWholeTimes == EXPECTED_TIMES
     }
 
     /**
@@ -391,10 +391,15 @@ class TestFormatUtilsGroovy {
         final List UNITS = TimeUnit.values() as List
 
         // Act
-        IllegalArgumentException nullIae = assertThrows(IllegalArgumentException.class,
-                () -> FormatUtils.getSmallerTimeUnit(null))
-        IllegalArgumentException nanoIae = assertThrows(IllegalArgumentException.class,
-                () -> FormatUtils.getSmallerTimeUnit(TimeUnit.NANOSECONDS))
+        def nullMsg = shouldFail(IllegalArgumentException) {
+            FormatUtils.getSmallerTimeUnit(null)
+        }
+        logger.expected(nullMsg)
+
+        def nanosMsg = shouldFail(IllegalArgumentException) {
+            FormatUtils.getSmallerTimeUnit(TimeUnit.NANOSECONDS)
+        }
+        logger.expected(nanosMsg)
 
         List smallerTimeUnits = UNITS[1..-1].collect { TimeUnit unit ->
             FormatUtils.getSmallerTimeUnit(unit)
@@ -402,9 +407,9 @@ class TestFormatUtilsGroovy {
         logger.converted(smallerTimeUnits)
 
         // Assert
-        assertEquals("Cannot determine a smaller time unit than 'null'", nullIae.getMessage())
-        assertEquals("Cannot determine a smaller time unit than 'NANOSECONDS'", nanoIae.getMessage())
-        assertEquals(smallerTimeUnits, UNITS.subList(0, UNITS.size() - 1))
+        assert nullMsg == "Cannot determine a smaller time unit than 'null'"
+        assert nanosMsg == "Cannot determine a smaller time unit than 'NANOSECONDS'"
+        assert smallerTimeUnits == UNITS[0..<-1]
     }
 
     /**
@@ -430,8 +435,9 @@ class TestFormatUtilsGroovy {
         logger.converted(results)
 
         // Assert
-        results.entrySet().forEach(entry ->
-        assertEquals(SCENARIOS.get(entry.getKey()).expectedMultiplier, entry.getValue()))
+        results.every { String key, long value ->
+            assert value == SCENARIOS[key].expectedMultiplier
+        }
     }
 
     /**
@@ -440,21 +446,26 @@ class TestFormatUtilsGroovy {
     @Test
     void testCalculateMultiplierShouldHandleIncorrectUnits() {
         // Arrange
-        final Map<String, Map<String, TimeUnit>> SCENARIOS = [
+        final Map SCENARIOS = [
                 "allUnits"     : [original: TimeUnit.NANOSECONDS, destination: TimeUnit.DAYS],
                 "nanosToMicros": [original: TimeUnit.NANOSECONDS, destination: TimeUnit.MICROSECONDS],
                 "hoursToDays"  : [original: TimeUnit.HOURS, destination: TimeUnit.DAYS],
         ]
 
         // Act
-        SCENARIOS.entrySet().stream()
-        .forEach(entry -> {
-            // Assert
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> FormatUtils.calculateMultiplier(entry.getValue().get("original"),
-                            entry.getValue().get("destination")))
-            assertTrue((iae.getMessage() =~ "The original time unit '.*' must be larger than the new time unit '.*'").find())
-        })
+        Map results = SCENARIOS.collectEntries { String k, Map values ->
+            logger.debug("Evaluating ${k}: ${values}")
+            def msg = shouldFail(IllegalArgumentException) {
+                FormatUtils.calculateMultiplier(values.original, values.destination)
+            }
+            logger.expected(msg)
+            [k, msg]
+        }
+
+        // Assert
+        results.every { String key, String value ->
+            assert value =~ "The original time unit '.*' must be larger than the new time unit '.*'"
+        }
     }
 
     // TODO: Microsecond parsing

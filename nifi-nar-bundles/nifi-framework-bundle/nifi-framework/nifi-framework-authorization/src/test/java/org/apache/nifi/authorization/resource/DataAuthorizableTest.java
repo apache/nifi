@@ -24,11 +24,10 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -46,7 +45,7 @@ public class DataAuthorizableTest {
     private Authorizer testAuthorizer;
     private DataAuthorizable testDataAuthorizable;
 
-    @BeforeEach
+    @Before
     public void setup() {
         testProcessorAuthorizable = mock(Authorizable.class);
         when(testProcessorAuthorizable.getParentAuthorizable()).thenReturn(null);
@@ -70,11 +69,9 @@ public class DataAuthorizableTest {
         testDataAuthorizable = new DataAuthorizable(testProcessorAuthorizable);
     }
 
-    @Test
+    @Test(expected = AccessDeniedException.class)
     public void testAuthorizeNullUser() {
-        assertThrows(AccessDeniedException.class,() ->
-                testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ,
-                        null, null));
+        testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, null, null);
     }
 
     @Test
@@ -83,12 +80,10 @@ public class DataAuthorizableTest {
         assertEquals(Result.Denied, result.getResult());
     }
 
-    @Test
+    @Test(expected = AccessDeniedException.class)
     public void testAuthorizeUnauthorizedUser() {
         final NiFiUser user = new Builder().identity("unknown").build();
-
-        assertThrows(AccessDeniedException.class, () ->
-            testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null));
+        testDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
     }
 
     @Test

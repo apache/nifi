@@ -31,7 +31,6 @@ import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -56,7 +55,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestParquetRecordSetWriter {
 
@@ -75,17 +73,16 @@ public class TestParquetRecordSetWriter {
 
     @Test
     public void testWriteUsers() throws IOException, SchemaNotFoundException, InitializationException {
-        initRecordSetWriter(true);
+        initRecordSetWriter();
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
         final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
-        final WriteResult writeResult = writeUsers(writeSchema, parquetFile);
-        assertWriteAttributesFound(writeResult);
+        writeUsers(writeSchema, parquetFile);
         verifyParquetRecords(parquetFile);
     }
 
     @Test
     public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException, InitializationException {
-        initRecordSetWriter(false);
+        initRecordSetWriter();
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
         final RecordSchema writeSchemaWithOtherFormat = new SimpleRecordSchema(writeSchema.getFields(), null, "OTHER-FORMAT", SchemaIdentifier.EMPTY);
         final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
@@ -93,7 +90,7 @@ public class TestParquetRecordSetWriter {
         verifyParquetRecords(parquetFile);
     }
 
-    private void initRecordSetWriter(final boolean writeSchemaNameStrategy) throws IOException, InitializationException {
+    private void initRecordSetWriter() throws IOException, InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
             @Override
             public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -106,18 +103,12 @@ public class TestParquetRecordSetWriter {
         final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
         properties.forEach((k, v) -> runner.setProperty(recordSetWriterFactory, k, v));
 
-        if (writeSchemaNameStrategy) {
-            runner.setProperty(recordSetWriterFactory, "Schema Write Strategy", "schema-name");
-        }
-
         runner.enableControllerService(recordSetWriterFactory);
     }
 
-    private WriteResult writeUsers(final RecordSchema writeSchema, final File parquetFile) throws IOException {
-        final WriteResult writeResult;
+    private void writeUsers(final RecordSchema writeSchema, final File parquetFile) throws IOException {
         try(final OutputStream output = new FileOutputStream(parquetFile);
             final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(componentLog, writeSchema, output, Collections.emptyMap())) {
-            recordSetWriter.beginRecordSet();
             for (int i = 0; i < USERS; i++) {
                 final Map<String, Object> userFields = new HashMap<>();
                 userFields.put("name", "user" + i);
@@ -129,9 +120,7 @@ public class TestParquetRecordSetWriter {
             }
 
             recordSetWriter.flush();
-            writeResult = recordSetWriter.finishRecordSet();
         }
-        return writeResult;
     }
 
     private void verifyParquetRecords(final File parquetFile) throws IOException {
@@ -159,10 +148,5 @@ public class TestParquetRecordSetWriter {
         propertyValues.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
         propertyValues.put(SchemaAccessUtils.SCHEMA_TEXT, schemaText);
         return propertyValues;
-    }
-
-    private void assertWriteAttributesFound(final WriteResult writeResult) {
-        final Map<String, String> attributes = writeResult.getAttributes();
-        assertFalse(attributes.isEmpty(), "Write Attributes not found");
     }
 }

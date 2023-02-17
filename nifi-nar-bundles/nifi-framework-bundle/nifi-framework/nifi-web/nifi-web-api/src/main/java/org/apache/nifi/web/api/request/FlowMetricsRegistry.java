@@ -18,7 +18,6 @@ package org.apache.nifi.web.api.request;
 
 import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.BulletinMetricsRegistry;
-import org.apache.nifi.prometheus.util.ClusterMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
@@ -33,9 +32,7 @@ public enum FlowMetricsRegistry {
 
     BULLETIN("BULLETIN", BulletinMetricsRegistry.class),
 
-    CONNECTION("CONNECTION", ConnectionAnalyticsMetricsRegistry.class),
-
-    CLUSTER("CLUSTER", ClusterMetricsRegistry.class);
+    CONNECTION("CONNECTION", ConnectionAnalyticsMetricsRegistry.class);
 
     private final String registry;
 

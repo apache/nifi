@@ -37,9 +37,10 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -52,12 +53,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardFlowFileQueue {
     private MockSwapManager swapManager = null;
@@ -71,7 +71,12 @@ public class TestStandardFlowFileQueue {
 
     private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
 
-    @BeforeEach
+    @BeforeClass
+    public static void setupLogging() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
+    }
+
+    @Before
     @SuppressWarnings("unchecked")
     public void setup() {
         provRecords.clear();
@@ -197,8 +202,7 @@ public class TestStandardFlowFileQueue {
         assertTrue(queue.isActiveQueueEmpty());
     }
 
-    @Test
-    @Timeout(10)
+    @Test(timeout = 10000)
     public void testBackPressureAfterDrop() throws InterruptedException {
         queue.setBackPressureObjectThreshold(10);
         queue.setFlowFileExpiration("10 millis");
@@ -439,7 +443,7 @@ public class TestStandardFlowFileQueue {
 
         for (int i = 0; i < 9998; i++) {
             flowFile = queue.poll(expired);
-            assertNotNull(flowFile, "Null FlowFile when i = " + i);
+            assertNotNull("Null FlowFile when i = " + i, flowFile);
             queue.acknowledge(Collections.singleton(flowFile));
 
             final QueueSize queueSize = queue.size();
@@ -455,8 +459,7 @@ public class TestStandardFlowFileQueue {
         assertNull(flowFile);
     }
 
-    @Test
-    @Timeout(120)
+    @Test(timeout = 120000)
     public void testDropSwappedFlowFiles() {
         for (int i = 1; i <= 30000; i++) {
             queue.put(new MockFlowFileRecord());
@@ -478,8 +481,7 @@ public class TestStandardFlowFileQueue {
     }
 
 
-    @Test
-    @Timeout(5)
+    @Test(timeout = 5000)
     public void testListFlowFilesOnlyActiveQueue() throws InterruptedException {
         for (int i = 0; i < 9999; i++) {
             queue.put(new MockFlowFileRecord());
@@ -499,8 +501,7 @@ public class TestStandardFlowFileQueue {
     }
 
 
-    @Test
-    @Timeout(5)
+    @Test(timeout = 5000)
     public void testListFlowFilesResultsLimited() throws InterruptedException {
         for (int i = 0; i < 30050; i++) {
             queue.put(new MockFlowFileRecord());
@@ -519,8 +520,7 @@ public class TestStandardFlowFileQueue {
         assertNull(status.getFailureReason());
     }
 
-    @Test
-    @Timeout(5)
+    @Test(timeout = 5000)
     public void testListFlowFilesResultsLimitedCollection() throws InterruptedException {
         Collection<FlowFileRecord> tff = new ArrayList<>();
         //Swap Size is 10000 records, so 30000 is equal to 3 swap files.
@@ -564,14 +564,24 @@ public class TestStandardFlowFileQueue {
 
         // verify that unexpected ERROR's are handled in such a way that we keep retrying
         for (int i = 0; i < 3; i++) {
-            assertThrows(OutOfMemoryError.class, () -> queue.poll(expiredRecords));
+            try {
+                queue.poll(expiredRecords);
+                Assert.fail("Expected OOME to be thrown");
+            } catch (final OutOfMemoryError oome) {
+                // expected
+            }
         }
 
         // verify that unexpected Runtime Exceptions are handled in such a way that we keep retrying
         swapManager.setSwapInFailure(new NullPointerException("Intentional OOME for unit test"));
 
         for (int i = 0; i < 3; i++) {
-            assertThrows(NullPointerException.class, () -> queue.poll(expiredRecords));
+            try {
+                queue.poll(expiredRecords);
+                Assert.fail("Expected NPE to be thrown");
+            } catch (final NullPointerException npe) {
+                // expected
+            }
         }
 
         swapManager.failSwapInAfterN = -1;

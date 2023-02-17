@@ -17,11 +17,10 @@
 
 package org.apache.nifi.mongodb;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.MongoClient;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,24 +88,21 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         try {
-            final String uri = getURI(context);
-            final MongoClientSettings.Builder builder = getClientSettings(uri, sslContext);
-            final MongoClientSettings clientSettings = builder.build();
-            return MongoClients.create(clientSettings);
+            if(sslContext == null) {
+                return new MongoClient(new MongoClientURI(getURI(context)));
+            } else {
+                return new MongoClient(new MongoClientURI(getURI(context), getClientOptions(sslContext)));
+            }
         } catch (Exception e) {
             getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
             throw e;
         }
     }
 
-    protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
-        final MongoClientSettings.Builder builder = MongoClientSettings.builder();
-        builder.applyConnectionString(new ConnectionString(uri));
-        if (sslContext != null) {
-            builder.applyToSslSettings(sslBuilder ->
-                    sslBuilder.enabled(true).context(sslContext)
-            );
-        }
+    protected MongoClientOptions.Builder getClientOptions(final SSLContext sslContext) {
+        MongoClientOptions.Builder builder = MongoClientOptions.builder();
+        builder.sslEnabled(true);
+        builder.sslContext(sslContext);
         return builder;
     }
 

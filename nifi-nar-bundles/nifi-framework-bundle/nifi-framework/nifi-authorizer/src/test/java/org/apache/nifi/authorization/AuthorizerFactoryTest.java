@@ -18,20 +18,20 @@ package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AuthorizerFactoryTest {
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenPoliciesWithSameResourceAndAction() {
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
 
@@ -58,11 +58,10 @@ public class AuthorizerFactoryTest {
 
         AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
         Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(new MockPolicyBasedAuthorizer(new HashSet<>(), users, policies));
-
-        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(context));
+        authorizer.onConfigured(context);
     }
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenUsersWithSameIdentity() {
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-1").build();
@@ -73,11 +72,10 @@ public class AuthorizerFactoryTest {
 
         AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
         Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(new MockPolicyBasedAuthorizer(new HashSet<>(), users, new HashSet<>()));
-
-        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(context));
+        authorizer.onConfigured(context);
     }
 
-    @Test
+    @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenGroupsWithSameName() {
         Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
         Group group2 = new Group.Builder().identifier("group-id-2").name("group-1").build();
@@ -88,8 +86,7 @@ public class AuthorizerFactoryTest {
 
         AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
         Authorizer authorizer = AuthorizerFactory.installIntegrityChecks(new MockPolicyBasedAuthorizer(groups, new HashSet<>(), new HashSet<>()));
-
-        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(context));
+        authorizer.onConfigured(context);
     }
 
     @Test
@@ -120,8 +117,12 @@ public class AuthorizerFactoryTest {
                 .addUser(user1.getIdentifier())
                 .build();
 
-        assertThrows(IllegalStateException.class,
-                () -> accessPolicyProvider.addAccessPolicy(policy2));
+        try {
+            accessPolicyProvider.addAccessPolicy(policy2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
     }
 
     @Test
@@ -139,8 +140,12 @@ public class AuthorizerFactoryTest {
 
         User user2 = new User.Builder().identifier("user-id-2").identity("user-1").build();
 
-        assertThrows(IllegalStateException.class,
-                () -> userGroupProvider.addUser(user2));
+        try {
+            userGroupProvider.addUser(user2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
     }
 
     @Test
@@ -158,8 +163,12 @@ public class AuthorizerFactoryTest {
 
         Group group2 = new Group.Builder().identifier("group-id-2").name("group-1").build();
 
-        assertThrows(IllegalStateException.class,
-                () -> userGroupProvider.addGroup(group2));
+        try {
+            userGroupProvider.addGroup(group2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
     }
 
     @Test
@@ -212,10 +221,13 @@ public class AuthorizerFactoryTest {
         User user2 = new User.Builder().identifier("user-id-2").identity("xyz").build();
         userGroupProvider.addUser(user2);
 
-        User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
+        try {
+            User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
+            userGroupProvider.updateUser(user1Updated);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
 
-        assertThrows(IllegalStateException.class,
-                () -> userGroupProvider.updateUser(user1Updated));
+        }
     }
 
     @Test
@@ -234,10 +246,13 @@ public class AuthorizerFactoryTest {
         Group group2 = new Group.Builder().identifier("group-id-2").name("xyz").build();
         userGroupProvider.addGroup(group2);
 
-        Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
+        try {
+            Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
+            userGroupProvider.updateGroup(group1Updated);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
 
-        assertThrows(IllegalStateException.class,
-                () -> userGroupProvider.updateGroup(group1Updated));
+        }
     }
 
     @Test

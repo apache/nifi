@@ -16,22 +16,22 @@
  */
 package org.apache.nifi.web.security.jwt.jws;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class StandardJwsSignerProviderTest {
     private static final String KEY_IDENTIFIER = UUID.randomUUID().toString();
 
@@ -49,7 +49,7 @@ public class StandardJwsSignerProviderTest {
 
     private StandardJwsSignerProvider provider;
 
-    @BeforeEach
+    @Before
     public void setProvider() {
         provider = new StandardJwsSignerProvider(signingKeyListener);
         when(jwsSignerContainer.getKeyIdentifier()).thenReturn(KEY_IDENTIFIER);
@@ -61,7 +61,7 @@ public class StandardJwsSignerProviderTest {
         final Instant expiration = Instant.now();
         final JwsSignerContainer container = provider.getJwsSignerContainer(expiration);
 
-        assertEquals(jwsSignerContainer, container,"JWS Signer Container not matched");
+        assertEquals("JWS Signer Container not matched", jwsSignerContainer, container);
 
         verify(signingKeyListener).onSigningKeyUsed(keyIdentifierCaptor.capture(), expirationCaptor.capture());
         assertEquals(KEY_IDENTIFIER, keyIdentifierCaptor.getValue());

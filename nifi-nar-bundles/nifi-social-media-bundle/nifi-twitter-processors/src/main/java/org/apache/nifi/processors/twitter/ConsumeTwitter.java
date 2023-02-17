@@ -26,8 +26,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -51,7 +49,6 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @PrimaryNodeOnly
@@ -258,8 +255,6 @@ public class ConsumeTwitter extends AbstractProcessor {
 
     private volatile BlockingQueue<String> messageQueue;
 
-    private final AtomicBoolean streamStarted = new AtomicBoolean(false);
-
     @Override
     protected void init(ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -301,13 +296,13 @@ public class ConsumeTwitter extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         messageQueue = new LinkedBlockingQueue<>(context.getProperty(QUEUE_SIZE).asInteger());
-        streamStarted.set(false);
+
+        tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
+        tweetStreamService.start();
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        startTweetStreamService(context);
-
         final String firstTweet = messageQueue.poll();
         if (firstTweet == null) {
             context.yield();
@@ -343,40 +338,14 @@ public class ConsumeTwitter extends AbstractProcessor {
         session.getProvenanceReporter().receive(flowFile, transitUri);
     }
 
-    @OnPrimaryNodeStateChange
-    public void onPrimaryNodeStateChange(final PrimaryNodeState newState) {
-        if (newState == PrimaryNodeState.PRIMARY_NODE_REVOKED) {
-            stopTweetStreamService();
-        }
-    }
-
     @OnStopped
     public void onStopped() {
-        stopTweetStreamService();
+        if (tweetStreamService != null) {
+            tweetStreamService.stop();
+        }
+        tweetStreamService = null;
         emptyQueue();
     }
-
-    private void startTweetStreamService(final ProcessContext context) {
-        if (streamStarted.compareAndSet(false, true)) {
-            tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
-            tweetStreamService.start();
-        }
-
-    }
-
-    private void stopTweetStreamService() {
-        if (streamStarted.compareAndSet(true, false)) {
-            if (tweetStreamService != null) {
-                tweetStreamService.stop();
-            }
-            tweetStreamService = null;
-
-            if (!messageQueue.isEmpty()) {
-                getLogger().warn("Stopped consuming stream: unprocessed messages [{}]", messageQueue.size());
-            }
-        }
-    }
-
 
     private void emptyQueue() {
         while (!messageQueue.isEmpty()) {

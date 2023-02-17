@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static java.lang.String.valueOf;
-import static java.util.Collections.singletonList;
-
 import com.google.api.services.drive.model.File;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.Test;
 
 /**
  * See Javadoc {@link AbstractGoogleDriveIT} for instructions how to run this test.
@@ -42,20 +41,21 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
 
     @Test
     void testFetch() throws Exception {
+        // GIVEN
         File file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.SIZE, valueOf(DEFAULT_FILE_CONTENT.length()));
-        inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, "text/plain");
+        inputFlowFileAttributes.put("drive.id", file.getId());
+        inputFlowFileAttributes.put("filename", file.getName());
 
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
-        List<String> expectedContent = singletonList(DEFAULT_FILE_CONTENT);
+        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(Arrays.asList(inputFlowFileAttributes));
+        List<String> expectedContent = Arrays.asList(DEFAULT_FILE_CONTENT);
 
+        // WHEN
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
+        // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_FAILURE, 0);
 
         checkAttributes(FetchGoogleDrive.REL_SUCCESS, expectedAttributes);
@@ -63,35 +63,41 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
     }
 
     @Test
-    void testInputFlowFileReferencesMissingFile() {
+    void testInputFlowFileReferencesMissingFile() throws Exception {
+        // GIVEN
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, "missing");
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, "missing_filename");
+        inputFlowFileAttributes.put("drive.id", "missing");
+        inputFlowFileAttributes.put("filename", "missing_filename");
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
                 new HashMap<String, String>() {{
-                    put(GoogleDriveAttributes.ID, "missing");
-                    put(GoogleDriveAttributes.FILENAME, "missing_filename");
-                    put(GoogleDriveAttributes.ERROR_CODE, "404");
+                    put("drive.id", "missing");
+                    put("filename", "missing_filename");
+                    put("error.code", "404");
                 }}
         ));
 
+        // WHEN
         testRunner.enqueue("unimportant_data", inputFlowFileAttributes);
         testRunner.run();
 
+        // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
+
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
 
     @Test
     void testInputFlowFileThrowsExceptionBeforeFetching() throws Exception {
+        // GIVEN
         File file = createFileWithDefaultContent("test_file.txt", mainFolderId);
 
         Map<String, String> inputFlowFileAttributes = new HashMap<>();
-        inputFlowFileAttributes.put(GoogleDriveAttributes.ID, file.getId());
-        inputFlowFileAttributes.put(GoogleDriveAttributes.FILENAME, file.getName());
+        inputFlowFileAttributes.put("drive.id", file.getId());
+        inputFlowFileAttributes.put("filename", file.getName());
+
         MockFlowFile input = new MockFlowFile(1) {
-            final AtomicBoolean throwException = new AtomicBoolean(true);
+            AtomicBoolean throwException = new AtomicBoolean(true);
 
             @Override
             public boolean isPenalized() {
@@ -103,30 +109,31 @@ public class FetchGoogleDriveIT extends AbstractGoogleDriveIT<FetchGoogleDrive> 
                     return super.isPenalized();
                 }
             }
+
             @Override
             public Map<String, String> getAttributes() {
                 return inputFlowFileAttributes;
             }
         };
 
-        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(singletonList(
+        Set<Map<String, String>> expectedFailureAttributes = new HashSet<>(Arrays.asList(
                 inputFlowFileAttributes
         ));
 
+        // WHEN
         testRunner.enqueue(input);
         testRunner.run();
 
+        // THEN
         testRunner.assertTransferCount(FetchGoogleDrive.REL_SUCCESS, 0);
 
         checkAttributes(FetchGoogleDrive.REL_FAILURE, expectedFailureAttributes);
     }
 
-    @Override
     public Set<String> getCheckedAttributeNames() {
         Set<String> checkedAttributeNames = OutputChecker.super.getCheckedAttributeNames();
 
-        checkedAttributeNames.add(GoogleDriveAttributes.ERROR_CODE);
-        checkedAttributeNames.remove(GoogleDriveAttributes.TIMESTAMP);
+        checkedAttributeNames.add(FetchGoogleDrive.ERROR_CODE_ATTRIBUTE);
 
         return checkedAttributeNames;
     }

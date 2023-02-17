@@ -19,40 +19,35 @@ package org.apache.nifi.web.search.query;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.StringUtils;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+@RunWith(Parameterized.class)
 public class RegexSearchQueryParserTest {
 
     private final NiFiUser user = Mockito.mock(NiFiUser.class);
     private final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
 
-    @ParameterizedTest
-    @MethodSource("data")
-    public void testParsing(String input, String expectedTerm, String[] expectedFilterNames, String[] expectedFilterValues) {
-        // given
-        final RegexSearchQueryParser testSubject = new RegexSearchQueryParser();
+    @Parameterized.Parameter(0)
+    public String input;
 
-        // when
-        final SearchQuery result = testSubject.parse(input, user, processGroup, processGroup);
+    @Parameterized.Parameter(1)
+    public String expectedTerm;
 
-        // then
-        assertEquals(expectedTerm, result.getTerm());
+    @Parameterized.Parameter(2)
+    public String[] expectedFilterNames;
 
-        for (int i = 0; i < expectedFilterNames.length; i++) {
-            assertTrue(result.hasFilter(expectedFilterNames[i]));
-            assertEquals(expectedFilterValues[i], result.getFilter(expectedFilterNames[i]));
-        }
-    }
+    @Parameterized.Parameter(3)
+    public String[] expectedFilterValues;
 
-    private static Collection<Object[]> data() {
+    @Parameterized.Parameters(name = "{0}")
+    public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
                 {"", "", new String[]{}, new String[]{}},
                 {"lorem ipsum", "lorem ipsum", new String[]{}, new String[]{}},
@@ -76,6 +71,24 @@ public class RegexSearchQueryParserTest {
                 {"a:b-c", StringUtils.EMPTY, new String[]{"a"}, new String[]{"b-c"}},
                 {"a:b-c lorem ipsum", "lorem ipsum", new String[]{"a"}, new String[]{"b-c"}},
                 {"a:b-c d:e lorem ipsum", "lorem ipsum", new String[]{"a", "d"}, new String[]{"b-c", "e"}}
+
         });
+    }
+
+    @Test
+    public void testParsing() {
+        // given
+        final RegexSearchQueryParser testSubject = new RegexSearchQueryParser();
+
+        // when
+        final SearchQuery result = testSubject.parse(input, user, processGroup, processGroup);
+
+        // then
+        Assert.assertEquals(expectedTerm, result.getTerm());
+
+        for (int i = 0; i < expectedFilterNames.length; i++) {
+            Assert.assertTrue(result.hasFilter(expectedFilterNames[i]));
+            Assert.assertEquals(expectedFilterValues[i], result.getFilter(expectedFilterNames[i]));
+        }
     }
 }

@@ -73,6 +73,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
+import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnJre;
@@ -105,12 +106,12 @@ import java.util.function.BiFunction;
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.KERBEROS_CREDENTIALS_SERVICE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -396,7 +397,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue("I am not an Avro record".getBytes());
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
@@ -427,7 +428,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
@@ -495,7 +496,7 @@ public class TestPutHive3Streaming {
         processor.setGenerateWriteFailure(true);
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
@@ -543,7 +544,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
@@ -563,7 +564,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
@@ -612,7 +613,7 @@ public class TestPutHive3Streaming {
         };
         runner.enqueue(createAvroRecord(Arrays.asList(user1, user2)));
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
@@ -657,7 +658,7 @@ public class TestPutHive3Streaming {
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
@@ -692,7 +693,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);
@@ -731,7 +732,7 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue(new byte[0]);
 
-        AssertionError e = assertThrows(AssertionError.class, () -> runner.run());
+        AssertionError e = Assert.assertThrows(AssertionError.class, () -> runner.run());
         assertTrue(e.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 0);

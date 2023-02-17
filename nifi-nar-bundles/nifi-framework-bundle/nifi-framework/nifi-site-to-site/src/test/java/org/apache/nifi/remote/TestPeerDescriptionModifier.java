@@ -19,17 +19,17 @@ package org.apache.nifi.remote;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestPeerDescriptionModifier {
 
@@ -47,10 +47,12 @@ public class TestPeerDescriptionModifier {
         Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-host.when", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-
-        IllegalArgumentException illegalArgumentException =
-                assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
-        assertEquals("Found an invalid Site-to-Site route definition [no-host] 'hostname' is not specified.", illegalArgumentException.getMessage());
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition [no-host] 'hostname' is not specified.", e.getMessage());
+        }
     }
 
     @Test
@@ -59,10 +61,12 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.no-port.when", "true");
         props.put("nifi.remote.route.raw.no-port.hostname", "proxy.example.com");
         final NiFiProperties properties = new NiFiProperties(props);
-
-        IllegalArgumentException illegalArgumentException =
-                assertThrows(IllegalArgumentException.class, () ->  new PeerDescriptionModifier(properties));
-        assertEquals("Found an invalid Site-to-Site route definition [no-port] 'port' is not specified.", illegalArgumentException.getMessage());
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition [no-port] 'port' is not specified.", e.getMessage());
+        }
     }
 
     @Test
@@ -74,12 +78,14 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.invalid-name.secure", "true");
         props.put("nifi.remote.route.raw.invalid-name.unsupported", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-
-        IllegalArgumentException illegalArgumentException =
-                assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
-        assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.raw.invalid-name.unsupported'." +
-                " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
-                " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", illegalArgumentException.getMessage());
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.raw.invalid-name.unsupported'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+        }
     }
 
     @Test
@@ -87,11 +93,14 @@ public class TestPeerDescriptionModifier {
         Properties props = new Properties();
         props.put("nifi.remote.route.", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-        IllegalArgumentException illegalArgumentException =
-                assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
-        assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.'." +
-                " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
-                " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", illegalArgumentException.getMessage());
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+        }
     }
 
     @Test
@@ -99,11 +108,14 @@ public class TestPeerDescriptionModifier {
         Properties props = new Properties();
         props.put("nifi.remote.route.http.", "true");
         final NiFiProperties properties = new NiFiProperties(props);
-        IllegalArgumentException illegalArgumentException =
-                assertThrows(IllegalArgumentException.class, () -> new PeerDescriptionModifier(properties));
-        assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.http.'." +
-                " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
-                " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", illegalArgumentException.getMessage());
+        try {
+            new PeerDescriptionModifier(properties);
+            fail("Should throw an Exception");
+        } catch (IllegalArgumentException e) {
+            assertEquals("Found an invalid Site-to-Site route definition property 'nifi.remote.route.http.'." +
+                    " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                    " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.", e.getMessage());
+        }
     }
 
     @Test
@@ -118,11 +130,13 @@ public class TestPeerDescriptionModifier {
         final PeerDescription source = new PeerDescription("client", 12345, true);
         final PeerDescription target = new PeerDescription("nifi0", 8081, true);
 
-        AttributeExpressionLanguageException attributeExpressionLanguageException =
-                assertThrows(AttributeExpressionLanguageException.class,
-                        () -> modifier.modify(source, target,
-                                SiteToSiteTransportProtocol.RAW, PeerDescriptionModifier.RequestType.Peers, new HashMap<>()));
-        assertTrue(attributeExpressionLanguageException.getMessage().startsWith("Invalid Expression"));
+        try {
+            modifier.modify(source, target,
+                    SiteToSiteTransportProtocol.RAW, PeerDescriptionModifier.RequestType.Peers, new HashMap<>());
+            fail("Should throw an Exception");
+        } catch (AttributeExpressionLanguageException e) {
+            assertTrue(e.getMessage().startsWith("Invalid Expression"));
+        }
     }
 
     @Test
@@ -176,7 +190,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("proxy1.example.com", modifiedTarget.getHostname());
         assertEquals(17491, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // To nifi1.
         target = new PeerDescription("nifi1", 8081, true);
@@ -185,7 +199,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("proxy1.example.com", modifiedTarget.getHostname());
         assertEquals(17492, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // For requests coming directly, use the original target description.
         source = new PeerDescription("192.168.1.101", 23456, true);
@@ -228,7 +242,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("nifi0.example.com", modifiedTarget.getHostname());
         assertEquals(17491, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // To nifi1.
         target = new PeerDescription("nifi1", 8081, true);
@@ -237,7 +251,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("nifi1.example.com", modifiedTarget.getHostname());
         assertEquals(17491, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // For requests coming directly, use the original target description.
         source = new PeerDescription("192.168.1.101", 23456, true);
@@ -285,7 +299,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("nifi0.example.com", modifiedTarget.getHostname());
         assertEquals(443, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // To nifi1.
         proxyHeders.put("X-ProxyHost", "nifi1.example.com:443");
@@ -295,7 +309,7 @@ public class TestPeerDescriptionModifier {
         assertNotNull(modifiedTarget);
         assertEquals("nifi1.example.com", modifiedTarget.getHostname());
         assertEquals(443, modifiedTarget.getPort());
-        assertTrue(modifiedTarget.isSecure());
+        assertEquals(true, modifiedTarget.isSecure());
 
         // For requests coming directly, use the original target description.
         source = new PeerDescription("192.168.1.101", 23456, true);

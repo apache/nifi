@@ -143,8 +143,10 @@ public class SplitJson extends AbstractJsonPathProcessor {
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         if (descriptor.equals(ARRAY_JSON_PATH_EXPRESSION)) {
             if (!StringUtils.equals(oldValue, newValue)) {
-                // This value will be computed and set in customValidate()
-                JSON_PATH_REF.set(null);
+                if (oldValue != null) {
+                    // clear the cached item
+                    JSON_PATH_REF.set(null);
+                }
             }
         }
     }

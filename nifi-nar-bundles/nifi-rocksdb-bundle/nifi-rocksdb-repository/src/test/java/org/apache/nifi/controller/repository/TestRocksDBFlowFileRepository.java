@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -31,17 +32,19 @@ import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -60,18 +63,16 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestRocksDBFlowFileRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(TestRocksDBFlowFileRepository.class);
@@ -79,17 +80,27 @@ public class TestRocksDBFlowFileRepository {
     private final Map<String, String> additionalProperties = new HashMap<>();
     private String nifiPropertiesPath;
 
-    @TempDir
-    public Path temporaryFolder;
+    @Rule
+    public TestName testName = new TestName();
 
-    @BeforeEach
-    public void before(TestInfo testInfo) throws IOException {
-        additionalProperties.put(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, temporaryFolder.toString());
-        Path properties = Files.createFile(temporaryFolder.resolve(testInfo.getDisplayName() + ".properties"));
-        Files.copy(Paths.get("src/test/resources/conf/nifi.properties"), properties, StandardCopyOption.REPLACE_EXISTING);
-        nifiPropertiesPath = properties.toString();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-        logger.info("Running test: {}", testInfo.getDisplayName());
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
+    @Before
+    public void before() throws IOException {
+        File testRepoDir = temporaryFolder.newFolder(testName.getMethodName());
+        additionalProperties.put(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, testRepoDir.getAbsolutePath());
+
+        File properties = temporaryFolder.newFile();
+        Files.copy(Paths.get("src/test/resources/conf/nifi.properties"), properties.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        nifiPropertiesPath = properties.getAbsolutePath();
+
+        logger.info("Running test: {}", testName.getMethodName());
     }
 
     @Test
@@ -416,7 +427,7 @@ public class TestRocksDBFlowFileRepository {
         }
     }
 
-    @Test
+    @Test(expected = IllegalStateException.class)
     public void testUnknownVersion() throws Exception {
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties);
 
@@ -426,7 +437,7 @@ public class TestRocksDBFlowFileRepository {
             db.putConfiguration(RocksDBFlowFileRepository.REPOSITORY_VERSION_KEY, "UNKNOWN".getBytes(StandardCharsets.UTF_8));
         }
         try (final RocksDBFlowFileRepository repo = new RocksDBFlowFileRepository(NiFiProperties.createBasicNiFiProperties(nifiPropertiesPath, additionalProperties))) {
-            assertThrows(IllegalStateException.class, () -> repo.initialize(new StandardResourceClaimManager()));
+            repo.initialize(new StandardResourceClaimManager());
         }
     }
 

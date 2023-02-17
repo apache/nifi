@@ -18,21 +18,21 @@ package org.apache.nifi.web.security.jwt.resolver;
 
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.http.SecurityHeader;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class StandardBearerTokenResolverTest {
     private static final String BEARER_TOKEN = "TOKEN";
 
@@ -41,7 +41,7 @@ public class StandardBearerTokenResolverTest {
     @Mock
     private HttpServletRequest request;
 
-    @BeforeEach
+    @Before
     public void setResolver() {
         resolver = new StandardBearerTokenResolver();
     }

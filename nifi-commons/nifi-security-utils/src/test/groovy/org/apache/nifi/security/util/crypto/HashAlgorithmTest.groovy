@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory
 
 import java.security.Security
 
-import static org.junit.jupiter.api.Assertions.assertEquals
-import static org.junit.jupiter.api.Assertions.assertTrue
-
-class HashAlgorithmTest {
+class HashAlgorithmTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(HashAlgorithmTest.class)
 
 
@@ -51,7 +48,7 @@ class HashAlgorithmTest {
         logger.info("Broken algorithms: ${brokenAlgorithms}")
 
         // Assert
-        assertEquals([HashAlgorithm.MD2, HashAlgorithm.MD5, HashAlgorithm.SHA1], brokenAlgorithms)
+        assert brokenAlgorithms == [HashAlgorithm.MD2, HashAlgorithm.MD5, HashAlgorithm.SHA1]
     }
 
     @Test
@@ -65,11 +62,11 @@ class HashAlgorithmTest {
         }
 
         // Assert
-        descriptions.forEach(description -> assertTrue((description =~ /.* \(\d+ byte output\).*/).find()) )
+        assert descriptions.every {
+            it =~ /.* \(\d+ byte output\).*/
+        }
 
-        descriptions.stream()
-        .filter(description -> (description =~ "MD2|MD5|SHA-1").find() )
-        .forEach(description -> assertTrue(description.contains("WARNING")))
+        assert descriptions.findAll { it =~ "MD2|MD5|SHA-1" }.every { it =~ /\[WARNING/ }
     }
 
     @Test
@@ -81,7 +78,7 @@ class HashAlgorithmTest {
         logger.info("Blake2 algorithms: ${blake2Algorithms}")
 
         // Assert
-        assertEquals([HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512], blake2Algorithms)
+        assert blake2Algorithms == [HashAlgorithm.BLAKE2_160, HashAlgorithm.BLAKE2_256, HashAlgorithm.BLAKE2_384, HashAlgorithm.BLAKE2_512]
     }
 
     @Test
@@ -98,7 +95,8 @@ class HashAlgorithmTest {
                 HashAlgorithm found = HashAlgorithm.fromName(name)
 
                 // Assert
-                assertEquals(name.toUpperCase(), found.name)
+                assert found instanceof HashAlgorithm
+                assert found.name == name.toUpperCase()
             }
         }
     }

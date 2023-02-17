@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.Test;
 
 public class TestSimpleRegression {
 

@@ -76,7 +76,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -589,12 +588,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}: {}). Will try again in 1 second",
                             StandardControllerServiceNode.this, validationState, validationState.getValidationErrors());
 
-                        try {
-                            scheduler.schedule(this, 1, TimeUnit.SECONDS);
-                        } catch (RejectedExecutionException rejectedExecutionException) {
-                            LOG.error("Unable to enable {}.  Last known validation state was {} : {}", StandardControllerServiceNode.this, validationState, validationState.getValidationErrors(),
-                                    rejectedExecutionException);
-                        }
+                        scheduler.schedule(this, 1, TimeUnit.SECONDS);
                         future.complete(null);
                         return;
                     }

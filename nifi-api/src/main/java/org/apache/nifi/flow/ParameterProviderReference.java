@@ -18,6 +18,7 @@ package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.flow.Bundle;
 
 @ApiModel
 public class ParameterProviderReference {

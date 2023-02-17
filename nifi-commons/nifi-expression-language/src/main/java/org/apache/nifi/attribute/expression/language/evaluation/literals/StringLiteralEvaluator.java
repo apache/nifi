@@ -27,44 +27,40 @@ public class StringLiteralEvaluator extends StringEvaluator {
     private final String value;
 
     public StringLiteralEvaluator(final String value) {
-        if(value == null) {
-            this.value = null;
-        } else {
-            // need to escape characters after backslashes
-            final StringBuilder sb = new StringBuilder();
-            boolean lastCharIsBackslash = false;
-            for (int i = 0; i < value.length(); i++) {
-                final char c = value.charAt(i);
+        // need to escape characters after backslashes
+        final StringBuilder sb = new StringBuilder();
+        boolean lastCharIsBackslash = false;
+        for (int i = 0; i < value.length(); i++) {
+            final char c = value.charAt(i);
 
-                if (lastCharIsBackslash) {
-                    switch (c) {
-                        case 'n':
-                            sb.append("\n");
-                            break;
-                        case 'r':
-                            sb.append("\r");
-                            break;
-                        case '\\':
-                            sb.append("\\");
-                            break;
-                        case 't':
-                            sb.append("\\t");
-                            break;
-                        default:
-                            sb.append("\\").append(c);
-                            break;
-                    }
-
-                    lastCharIsBackslash = false;
-                } else if (c == '\\') {
-                    lastCharIsBackslash = true;
-                } else {
-                    sb.append(c);
+            if (lastCharIsBackslash) {
+                switch (c) {
+                    case 'n':
+                        sb.append("\n");
+                        break;
+                    case 'r':
+                        sb.append("\r");
+                        break;
+                    case '\\':
+                        sb.append("\\");
+                        break;
+                    case 't':
+                        sb.append("\\t");
+                        break;
+                    default:
+                        sb.append("\\").append(c);
+                        break;
                 }
-            }
 
-            this.value = sb.toString();
+                lastCharIsBackslash = false;
+            } else if (c == '\\') {
+                lastCharIsBackslash = true;
+            } else {
+                sb.append(c);
+            }
         }
+
+        this.value = sb.toString();
     }
 
     @Override

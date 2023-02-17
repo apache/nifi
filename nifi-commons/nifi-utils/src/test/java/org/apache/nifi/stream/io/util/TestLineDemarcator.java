@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertLinesMatch;
+import static org.junit.Assert.assertEquals;
 
 public class TestLineDemarcator {
 
@@ -41,14 +41,14 @@ public class TestLineDemarcator {
         final String input = "A\nB\nC\rD\r\nE\r\nF\r\rG";
 
         final List<String> lines = getLines(input);
-        assertLinesMatch(Arrays.asList("A\n", "B\n", "C\r", "D\r\n", "E\r\n", "F\r", "\r", "G"), lines);
+        assertEquals(Arrays.asList("A\n", "B\n", "C\r", "D\r\n", "E\r\n", "F\r", "\r", "G"), lines);
     }
 
 
     @Test
     public void testEmptyStream() throws IOException {
         final List<String> lines = getLines("");
-        assertLinesMatch(Collections.emptyList(), lines);
+        assertEquals(Collections.emptyList(), lines);
     }
 
     @Test
@@ -56,7 +56,7 @@ public class TestLineDemarcator {
         final String input = "\r\r\r\n\n\n\r\n";
 
         final List<String> lines = getLines(input);
-        assertLinesMatch(Arrays.asList("\r", "\r", "\r\n", "\n", "\n", "\r\n"), lines);
+        assertEquals(Arrays.asList("\r", "\r", "\r\n", "\n", "\n", "\r\n"), lines);
     }
 
     @Test
@@ -64,25 +64,25 @@ public class TestLineDemarcator {
         final String input = "ABC\r\nXYZ";
         final List<String> lines = getLines(input, 10, 4);
 
-        assertLinesMatch(Arrays.asList("ABC\r\n", "XYZ"), lines);
+        assertEquals(Arrays.asList("ABC\r\n", "XYZ"), lines);
     }
 
     @Test
     public void testEndsWithCarriageReturn() throws IOException {
         final List<String> lines = getLines("ABC\r");
-        assertLinesMatch(Arrays.asList("ABC\r"), lines);
+        assertEquals(Arrays.asList("ABC\r"), lines);
     }
 
     @Test
     public void testEndsWithNewLine() throws IOException {
         final List<String> lines = getLines("ABC\n");
-        assertLinesMatch(Arrays.asList("ABC\n"), lines);
+        assertEquals(Arrays.asList("ABC\n"), lines);
     }
 
     @Test
     public void testEndsWithCarriageReturnNewLine() throws IOException {
         final List<String> lines = getLines("ABC\r\n");
-        assertLinesMatch(Arrays.asList("ABC\r\n"), lines);
+        assertEquals(Arrays.asList("ABC\r\n"), lines);
     }
 
     @Test
@@ -90,13 +90,13 @@ public class TestLineDemarcator {
         final String input = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
         final List<String> lines = getLines(input, 10, 10);
 
-        assertLinesMatch(Arrays.asList("he\r", "a-to-a\r", "b-to-b\r", "c-to-c\r\n", "d-to-d"), lines);
+        assertEquals(Arrays.asList("he\r", "a-to-a\r", "b-to-b\r", "c-to-c\r\n", "d-to-d"), lines);
     }
 
     @Test
     public void testFirstCharMatchOnly() throws IOException {
         final List<String> lines = getLines("\nThe quick brown fox jumped over the lazy dog.");
-        assertLinesMatch(Arrays.asList("\n", "The quick brown fox jumped over the lazy dog."), lines);
+        assertEquals(Arrays.asList("\n", "The quick brown fox jumped over the lazy dog."), lines);
     }
 
     @Test

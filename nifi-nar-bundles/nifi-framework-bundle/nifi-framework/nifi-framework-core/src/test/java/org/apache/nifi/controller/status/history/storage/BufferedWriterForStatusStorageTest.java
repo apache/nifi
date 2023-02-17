@@ -18,19 +18,18 @@ package org.apache.nifi.controller.status.history.storage;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.nifi.controller.status.NodeStatus;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class BufferedWriterForStatusStorageTest {
     private static final int BUFFER_SIZE = 3;
 
@@ -57,6 +56,6 @@ public class BufferedWriterForStatusStorageTest {
 
         // then
         Mockito.verify(payload, Mockito.only()).store(Mockito.anyList());
-        assertEquals(BUFFER_SIZE, statusEntriesCaptor.getValue().size());
+        Assert.assertEquals(BUFFER_SIZE, statusEntriesCaptor.getValue().size());
     }
 }
