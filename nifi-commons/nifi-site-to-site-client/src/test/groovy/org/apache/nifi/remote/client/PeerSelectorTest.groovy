@@ -16,21 +16,16 @@
  */
 package org.apache.nifi.remote.client
 
-
 import org.apache.nifi.remote.PeerDescription
 import org.apache.nifi.remote.PeerStatus
 import org.apache.nifi.remote.TransferDirection
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol
 import org.apache.nifi.remote.util.PeerStatusCache
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import java.security.Security
 import java.util.concurrent.ArrayBlockingQueue
 
 import static org.junit.jupiter.api.Assertions.assertEquals
@@ -52,26 +47,11 @@ class PeerSelectorTest {
     private static mockPSP
     private static mockPP
 
-
-    @BeforeAll
-    static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
-
     @BeforeEach
     void setUp() {
         // Mock collaborators
         mockPSP = mockPeerStatusProvider()
         mockPP = mockPeerPersistence()
-    }
-
-    @AfterEach
-    void tearDown() {
-
     }
 
     private static String buildRemoteInstanceUris(List<String> nodes = DEFAULT_NODES) {
@@ -206,7 +186,6 @@ class PeerSelectorTest {
             new PeerStatusCache(peerStatuses, System.currentTimeMillis(), remoteInstanceUris, SiteToSiteTransportProtocol.HTTP)
         },
          save   : { PeerStatusCache psc ->
-             logger.mock("Persisting PeerStatusCache: ${psc}")
          }] as PeerPersistence
     }
 
@@ -985,8 +964,6 @@ class PeerSelectorTest {
                     bootstrapDescription
                 },
                 fetchRemotePeerStatuses    : { PeerDescription pd ->
-                    // Depending on the scenario, return given peer statuses
-                    logger.mock("Scenario ${currentAttempt} fetchRemotePeerStatus for ${pd}")
                     switch (currentAttempt) {
                         case 1:
                             return [bootstrapStatus, node2Status] as Set<PeerStatus>

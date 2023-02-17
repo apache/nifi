@@ -47,7 +47,6 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collection;
@@ -128,7 +127,6 @@ import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -319,9 +317,9 @@ public class SiteToSiteRestApiClient implements Closeable {
                 }
 
                 try {
-                    final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
+                    final X509Certificate cert = (X509Certificate) certChain[0];
                     trustedPeerDn = cert.getSubjectDN().getName().trim();
-                } catch (final CertificateException e) {
+                } catch (final RuntimeException e) {
                     final String msg = "Could not extract subject DN from SSL session peer certificate";
                     logger.warn(msg);
                     eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, msg);
