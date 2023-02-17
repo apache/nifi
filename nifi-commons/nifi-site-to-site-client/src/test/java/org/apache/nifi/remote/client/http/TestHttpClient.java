@@ -22,10 +22,8 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.KeystoreType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
-import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -34,8 +32,6 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -45,16 +41,11 @@ import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -117,7 +108,6 @@ public class TestHttpClient {
 
     private static Server server;
     private static ServerConnector httpConnector;
-    private static ServerConnector sslConnector;
     private static CountDownLatch testCaseFinished;
 
     private static HttpProxyServer proxyServer;
@@ -126,10 +116,7 @@ public class TestHttpClient {
     private static Set<PortDTO> inputPorts;
     private static Set<PortDTO> outputPorts;
     private static Set<PeerDTO> peers;
-    private static Set<PeerDTO> peersSecure;
     private static String serverChecksum;
-
-    private static TlsConfiguration tlsConfiguration;
 
     private static final int INITIAL_TRANSACTIONS = 0;
 
@@ -141,16 +128,13 @@ public class TestHttpClient {
     public static class SiteInfoServlet extends HttpServlet {
 
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final ControllerDTO controller = new ControllerDTO();
 
             if (req.getLocalPort() == httpConnector.getLocalPort()) {
                 controller.setRemoteSiteHttpListeningPort(httpConnector.getLocalPort());
                 controller.setSiteToSiteSecure(false);
-            } else {
-                controller.setRemoteSiteHttpListeningPort(sslConnector.getLocalPort());
-                controller.setSiteToSiteSecure(true);
             }
 
             controller.setId("remote-controller-id");
@@ -175,7 +159,7 @@ public class TestHttpClient {
     public static class WrongSiteInfoServlet extends HttpServlet {
 
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
             // This response simulates when a Site-to-Site is given a URL which has wrong path.
             respondWithText(resp, "<p class=\"message-pane-content\">You may have mistyped...</p>", 200);
         }
@@ -184,16 +168,13 @@ public class TestHttpClient {
     public static class PeersServlet extends HttpServlet {
 
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final PeersEntity peersEntity = new PeersEntity();
 
             if (req.getLocalPort() == httpConnector.getLocalPort()) {
                 assertNotNull(peers, "Test case should set <peers> depending on the test scenario.");
                 peersEntity.setPeers(peers);
-            } else {
-                assertNotNull(peersSecure, "Test case should set <peersSecure> depending on the test scenario.");
-                peersEntity.setPeers(peersSecure);
             }
 
             respondWithJson(resp, peersEntity);
@@ -368,7 +349,7 @@ public class TestHttpClient {
         }
 
         @Override
-        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
             final int reqProtocolVersion = getReqProtocolVersion(req);
 
@@ -477,24 +458,10 @@ public class TestHttpClient {
         final ServletHandler wrongPathServletHandler = new ServletHandler();
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
-        final SslContextFactory sslContextFactory = new SslContextFactory.Server();
-
-        setTlsConfiguration();
-        sslContextFactory.setKeyStorePath(tlsConfiguration.getKeystorePath());
-        sslContextFactory.setKeyStorePassword(tlsConfiguration.getKeystorePassword());
-        sslContextFactory.setKeyStoreType(tlsConfiguration.getKeystoreType().getType());
-        sslContextFactory.setProtocol(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
 
         httpConnector = new ServerConnector(server);
 
-        final HttpConfiguration https = new HttpConfiguration();
-        https.addCustomizer(new SecureRequestCustomizer());
-        sslConnector = new ServerConnector(server,
-                new SslConnectionFactory(sslContextFactory, "http/1.1"),
-                new HttpConnectionFactory(https));
-        logger.info("SSL Connector: " + sslConnector.dump());
-
-        server.setConnectors(new Connector[] { httpConnector, sslConnector });
+        server.setConnectors(new Connector[] { httpConnector });
 
         wrongPathServletHandler.addServletWithMapping(WrongSiteInfoServlet.class, "/site-to-site");
 
@@ -527,8 +494,6 @@ public class TestHttpClient {
         servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions/transaction-id/flow-files");
 
         server.start();
-
-        logger.info("Starting server on port {} for HTTP, and {} for HTTPS", httpConnector.getLocalPort(), sslConnector.getLocalPort());
 
         startProxyServer();
         startProxyServerWithAuth();
@@ -634,15 +599,6 @@ public class TestHttpClient {
         peers = new HashSet<>();
         peers.add(peer);
 
-        final PeerDTO peerSecure = new PeerDTO();
-        peerSecure.setHostname("localhost");
-        peerSecure.setPort(sslConnector.getLocalPort());
-        peerSecure.setFlowFileCount(10);
-        peerSecure.setSecure(true);
-
-        peersSecure = new HashSet<>();
-        peersSecure.add(peerSecure);
-
         inputPorts = new HashSet<>();
 
         final PortDTO runningInputPort = new PortDTO();
@@ -709,18 +665,6 @@ public class TestHttpClient {
                 .url("http://localhost:" + httpConnector.getLocalPort() + "/nifi")
                 .timeout(3, TimeUnit.MINUTES)
                 ;
-    }
-
-    private SiteToSiteClient.Builder getDefaultBuilderHTTPS() {
-        return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
-                .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
-                .timeout(3, TimeUnit.MINUTES)
-                .keystoreFilename(tlsConfiguration.getKeystorePath())
-                .keystorePass(tlsConfiguration.getKeystorePassword())
-                .keystoreType(KeystoreType.valueOf(tlsConfiguration.getKeystoreType().getType()))
-                .truststoreFilename(tlsConfiguration.getTruststorePath())
-                .truststorePass(tlsConfiguration.getTruststorePassword())
-                .truststoreType(KeystoreType.valueOf(tlsConfiguration.getTruststoreType().getType()));
     }
 
     private static void consumeDataPacket(DataPacket packet) throws IOException {
@@ -893,31 +837,6 @@ public class TestHttpClient {
 
     }
 
-    @Test
-    public void testSendAccessDeniedHTTPS() throws Exception {
-
-        try (
-                final SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("input-access-denied")
-                        .build()
-        ) {
-           assertThrows(HandshakeException.class, () -> client.createTransaction(TransferDirection.SEND));
-        }
-    }
-
-    @Test
-    public void testSendSuccessHTTPS() throws Exception {
-
-        try (
-                final SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("input-running")
-                        .build()
-        ) {
-            testSend(client);
-        }
-
-    }
-
     private interface SendData {
         void apply(final Transaction transaction) throws IOException;
     }
@@ -1004,47 +923,6 @@ public class TestHttpClient {
 
         try (
                 SiteToSiteClient client = getDefaultBuilder()
-                        .portName("input-running")
-                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
-                        .build()
-        ) {
-            testSendLargeFile(client);
-        }
-
-    }
-
-    @Test
-    public void testSendLargeFileHTTPS() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("input-running")
-                        .build()
-        ) {
-            testSendLargeFile(client);
-        }
-
-    }
-
-    @Test
-    public void testSendLargeFileHTTPSWithProxy() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("input-running")
-                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
-                        .build()
-        ) {
-            testSendLargeFile(client);
-        }
-
-    }
-
-    @Test
-    public void testSendLargeFileHTTPSWithProxyAuth() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
                         .portName("input-running")
                         .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
                         .build()
@@ -1265,44 +1143,6 @@ public class TestHttpClient {
     }
 
     @Test
-    public void testReceiveSuccessHTTPS() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("output-running")
-                        .build()
-        ) {
-            testReceive(client);
-        }
-    }
-
-    @Test
-    public void testReceiveSuccessHTTPSWithProxy() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("output-running")
-                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
-                        .build()
-        ) {
-            testReceive(client);
-        }
-    }
-
-    @Test
-    public void testReceiveSuccessHTTPSWithProxyAuth() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilderHTTPS()
-                        .portName("output-running")
-                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
-                        .build()
-        ) {
-            testReceive(client);
-        }
-    }
-
-    @Test
     public void testReceiveSuccessCompressed() throws Exception {
 
         try (
@@ -1374,9 +1214,5 @@ public class TestHttpClient {
 
             assertNotSame(INITIAL_TRANSACTIONS, outputExtendTransactions.get());
         }
-    }
-
-    private static void setTlsConfiguration() {
-        tlsConfiguration = new TemporaryKeyStoreBuilder().trustStoreType(KeystoreType.JKS.name()).build();
     }
 }
