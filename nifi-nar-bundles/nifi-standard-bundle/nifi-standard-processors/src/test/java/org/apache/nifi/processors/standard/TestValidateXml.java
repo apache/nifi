@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestValidateXml {
 
@@ -57,6 +58,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertErrorAttributeContainsStableErrorKeyword(runner);
 
         runner.clearTransferState();
         runner.enqueue(NONCOMPLIANT_XML);
@@ -65,6 +67,12 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertErrorAttributeContainsStableErrorKeyword(runner);
+    }
+
+    private void assertErrorAttributeContainsStableErrorKeyword(TestRunner runner) {
+        String errorAttribute = runner.getFlowFilesForRelationship(ValidateXml.REL_INVALID).get(0).getAttribute(ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertTrue(errorAttribute.contains("lineNumber"));
     }
 
     @Test
@@ -119,6 +127,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertErrorAttributeContainsStableErrorKeyword(runner);
 
         runner.clearTransferState();
         attributes.clear();
@@ -129,6 +138,7 @@ public class TestValidateXml {
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+        assertErrorAttributeContainsStableErrorKeyword(runner);
     }
 
     @Test
