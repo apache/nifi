@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -90,6 +91,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
 import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_INTEGER_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
 
+@PrimaryNodeOnly
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"file", "get", "list", "ingest", "source", "filesystem"})
