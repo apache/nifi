@@ -250,8 +250,8 @@
                 this.modal.update('setButtonModel', [{
                     buttonText: 'Add',
                     color: {
-                        base: '#728E9B',
-                        hover: '#004849',
+                        base: '#000080',
+                        hover: '#333399',
                         text: '#ffffff'
                     },
                     handler: {
@@ -261,9 +261,10 @@
                     {
                         buttonText: 'Cancel',
                         color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
+                            base: '#ffffff',
+                            border: "1px solid #000080",
+                            //hover: '#C7D2D7',
+                            text: '#000080'
                         },
                         handler: {
                             click: function () {

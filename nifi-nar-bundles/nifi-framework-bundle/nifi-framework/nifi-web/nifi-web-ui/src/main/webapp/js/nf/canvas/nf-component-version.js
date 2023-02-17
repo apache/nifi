@@ -262,9 +262,10 @@
                     {
                         buttonText: 'Cancel',
                         color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
+                            base: '#ffffff',
+                            //hover: '#C7D2D7',
+                            border: "1px solid #000080",
+                            text: '#000080'
                         },
                         handler: {
                             click: function () {

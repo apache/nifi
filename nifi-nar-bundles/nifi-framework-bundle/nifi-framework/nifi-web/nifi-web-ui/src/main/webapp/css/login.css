@@ -32,7 +32,7 @@
 
 #login-message-title {
     font-size: 18px;
-    color: #294c58;
+    color: #000080;
     margin-bottom: 16px;
 }
 
@@ -45,7 +45,7 @@
     font-weight: bold;
     font-family: Roboto Slab;
     margin-bottom: 10px;
-    color: #728e9b;
+    color: #000080;
 }
 
 #login-user-links-container {

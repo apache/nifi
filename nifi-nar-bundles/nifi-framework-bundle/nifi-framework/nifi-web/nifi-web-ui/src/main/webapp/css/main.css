@@ -300,7 +300,7 @@ span.details-title {
 #select-template-button {
     position: absolute;
     top: 0px;
-    left: 135px;
+    left: 110px;
     height: 28px;
 }
 
@@ -310,7 +310,7 @@ span.details-title {
     right: 4px;
     top: 22px;
     font-size: 18px;
-    color: #004849;
+    color: #000080;
     border: none;
     background-color: transparent;
 }
@@ -393,7 +393,7 @@ span#import-process-group-link.link {
     position: relative;
     top: 164px;
     left: 20px;
-    color: #004849; /*link-color*/
+    color: #000080; /*link-color*/
     font-weight: normal;
     display: inline-block;
     border-bottom: 1px solid #CCDADB;

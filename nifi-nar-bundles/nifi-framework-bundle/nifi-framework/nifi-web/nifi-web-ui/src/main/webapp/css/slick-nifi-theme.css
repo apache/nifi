@@ -18,30 +18,30 @@
 /* nifi specific slick grid theme based on the supplied slick-default-theme.css */
 
 .slick-header-columns {
-    color: #fff;
-    background-color: #728E9B;
+    color: #000080;
+    background-color: #D9E6F3;
 }
 
 .slick-header-column {
-    background: #728E9B;
-    color: #fff;
+    background: #D9E6F3;
+    color: #000080;
     font-weight: bold;
     cursor: pointer;
 }
 
 .slick-header-column:hover, .slick-header-column-active {
-    color: #fff;
+    color: #000080;
 }
 
 .slick-row {
     position: absolute;
-    background: white;
+    background: #FFFFFF;
     border: 0;
     line-height: 22px;
 }
 
 .slick-row:hover {
-    background-color: #dce3e6 !important;
+    background-color: #D9E6F5 !important;
 }
 
 .slick-cell {
@@ -50,14 +50,14 @@
 }
 
 .slick-cell.selected {
-    background-color: #ffef85;
-    border-top: 1px solid #000000;
-    border-bottom: 1px solid #000000;
+    background-color: #D9E6F5;
+    border-top: 1px solid #000080;
+    border-bottom: 1px solid #000080;
     padding-top: 0px;
 }
 
 .slick-row.odd {
-    background: #f4f6f7;
+    background: #EDF2F7;
 }
 
 .slick-cell.invalid {
@@ -73,7 +73,7 @@
 }
 
 .slick-viewport .fa {
-    color: #004849;
+    color: #000080;
     line-height: 22px;
     margin-top: 0;
     width: 12px;
@@ -84,7 +84,7 @@
 }
 
 .slick-viewport .icon {
-    color: #004849;
+    color: #000080;
     line-height: 24px;
     margin-top: 0;
     width: 12px;
@@ -109,7 +109,7 @@
 .slick-header-column.ui-state-default {
     height: 24px;
     line-height: 24px;
-    border-right: 1px solid #728E9B;
+    border-right: 1px solid #c7d2d7;
 }
 
 .slick-sortable-placeholder {
@@ -121,14 +121,14 @@
     font-size: 12px;
     font-style: normal;
     font-weight: normal;
-    color: #262626;
+    color: #000080;
 }
 
 .slick-cell, .slick-headerrow-column {
     border-right: 0;
     border-top: 0;
-    border-left: 1px solid #c7d2d7;
-    border-bottom: 1px solid #c7d2d7;
+    border-left: 1px solid #DEDCDA;
+    border-bottom: 1px solid #DEDCDA;
     padding: 1px 2px 5px 10px;
 }
 

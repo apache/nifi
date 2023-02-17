@@ -316,22 +316,22 @@
                     .appendTo(stringCheckPanel);
 
                 var ok = $('<div class="button">Ok</div>').css({
-                    'color': '#fff',
-                    'background': '#728E9B'
+                    'color': '#ffffff',
+                    'background': '#000080'
                 }).hover(
                     function () {
-                        $(this).css('background', '#004849');
+                        $(this).css('background', '#333399');
                     }, function () {
-                        $(this).css('background', '#728E9B');
+                        $(this).css('background', '#333399');
                     }).on('click', scope.save);
                 var cancel = $('<div class="secondary-button">Cancel</div>').css({
-                    'color': '#004849',
-                    'background': '#E3E8EB'
+                    'color': '#000080',
+                    'background': '#ffffff'
                 }).hover(
                     function () {
-                        $(this).css('background', '#C7D2D7');
+                        $(this).css('background', '#ffffff');
                     }, function () {
-                        $(this).css('background', '#E3E8EB');
+                        $(this).css('background', '#ffffff');
                     }).on('click', scope.cancel);
                 $('<div></div>').css({
                     'position': 'relative',
@@ -1161,9 +1161,10 @@
                         {
                             buttonText: 'Cancel',
                             color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
+                                base: '#ffffff',
+                                //hover: '#C7D2D7',
+                                border: "1px solid #000080",
+                                text: '#000080'
                             },
                             handler: {
                                 click: function () {
@@ -2080,8 +2081,8 @@
                             buttons: [{
                                 buttonText: 'Ok',
                                 color: {
-                                    base: '#728E9B',
-                                    hover: '#004849',
+                                    base: '#000080',
+                                    hover: '#333399',
                                     text: '#ffffff'
                                 },
                                 handler: {
@@ -2093,9 +2094,10 @@
                                 {
                                     buttonText: 'Cancel',
                                     color: {
-                                        base: '#E3E8EB',
-                                        hover: '#C7D2D7',
-                                        text: '#004849'
+                                        base: '#ffffff',
+                                        //hover: '#C7D2D7',
+                                        border: "1px solid #000080",
+                                        text: '#000080'
                                     },
                                     handler: {
                                         click: function () {

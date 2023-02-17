@@ -44,7 +44,7 @@
 }
 
 #processor-type-name {
-    color: #775351;
+    color: #000080;
     font-size: 16px;
     font-weight: 500;
     overflow: hidden;
@@ -59,7 +59,7 @@
     text-overflow: ellipsis;
     font-size: 13px;
     line-height: 16px;
-    color: #666;
+    color: #000080;
     letter-spacing: 0.25px;
 }
 
@@ -68,6 +68,7 @@
     font-size: 13px;
     line-height: 17px;
     padding-top: 10px;
+    color:#595757
 }
 
 #processor-types-table {

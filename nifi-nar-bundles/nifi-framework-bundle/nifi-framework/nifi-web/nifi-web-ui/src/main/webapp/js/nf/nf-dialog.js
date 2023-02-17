@@ -76,8 +76,8 @@
             $('#nf-ok-dialog').modal('setButtonModel', [{
                 buttonText: 'Ok',
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
+                    base: '#000080',
+                    hover: '#333399',
                     text: '#ffffff'
                 },
                 handler: {
@@ -117,8 +117,8 @@
             $('#nf-yes-no-dialog').modal('setButtonModel', [{
                 buttonText: options.yesText,
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
+                    base: '#000080',
+                    hover: '#333399',
                     text: '#ffffff'
                 },
                 handler: {

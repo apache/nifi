@@ -24,7 +24,7 @@
     left: 0px;
     bottom: 0px;
     right: 0px;
-    background-color: #f9fafb;
+    background-color: #FBFBFB;
     background-size: 14px 14px;
     background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px), linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
     z-index: 1;
@@ -63,11 +63,11 @@ g.component rect.body {
 }
 
 g.component rect.body.unauthorized {
-    fill: #f4f6f7;
+    fill: #D5D5D5;
 }
 
 g.component rect.border {
-    stroke: rgba(0,0,0,0.25);
+    stroke: #D5D5D5
     stroke-width: 1;
 }
 
@@ -88,18 +88,18 @@ g.component rect.processor-icon-container.unauthorized {
 }
 
 g.component.selected rect.border {
-    stroke: #004849 !important;
+    stroke: #DEDCDA !important;
     stroke-width: 3;
 }
 
 text.stats-label {
-    fill: #262626;
+    fill: #000080;
     font-size: 12px;
     font-family: Roboto Slab;
 }
 
 text.stats-value {
-    fill: #775351;
+    fill: #000080;
     font-size: 12px;
     font-weight: bold;
 }
@@ -109,7 +109,7 @@ text.stats-value tspan.size, text.stats-value tspan.size, text.stats-value tspan
 }
 
 text.stats-info {
-    fill: #728E9B;
+    fill: #595757;
     font-size: 12px;
 }
 
@@ -210,12 +210,12 @@ text.add-connect {
 */
 
 text.processor-name {
-    fill: #262626;
+    fill: #000080;
     font-size: 14px;
 }
 
 text.processor-type {
-    fill: #728e9b;
+    fill: #595757;
     font-size: 12px;
 }
 
@@ -231,6 +231,7 @@ rect.processor-icon-container {
 text.processor-icon {
     font-family: flowfont;
     font-size: 30px;
+    color: #000080;
 }
 
 circle.restricted-background, circle.is-primary-background {
@@ -501,7 +502,7 @@ text.active-thread-count {
 /* process groups */
 
 text.process-group-name {
-    fill: #262626;
+    fill: #000080;
     font-size: 14px;
 }
 
@@ -513,7 +514,7 @@ text.version-control {
 }
 
 text.process-group-contents-count {
-    fill: #775351;
+    fill: #000080;
     font-size: 15px;
     font-weight: 500;
     font-family: Roboto, sans-serif;

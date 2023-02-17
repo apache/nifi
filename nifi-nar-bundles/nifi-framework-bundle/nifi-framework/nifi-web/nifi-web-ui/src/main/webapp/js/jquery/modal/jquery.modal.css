@@ -65,14 +65,14 @@
     top: 0px;
     right: 0px;
     bottom: 0px;
-    opacity: 0.65;
+    opacity: 0.60;
 }
 
 .dialog-header {
     height: 56px;
-    background-color: #728E9B;
+    background-color: #D9E6F3;
     overflow: hidden;
-    color: #fff;
+    color: #000080;
     font-size: 18px;
     font-family: 'Roboto Slab';
     font-style: normal;

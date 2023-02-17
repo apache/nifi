@@ -106,7 +106,7 @@ body {
     display: block;
     font-family: Roboto, sans-serif;
     overflow: hidden;
-    color: #262626;
+    color: #000080;
 }
 
 body.md-default-theme, body, html.md-default-theme, html {
@@ -118,7 +118,7 @@ button {
 }
 
 .value-color {
-    color: #775351;
+    color: #595757;
 }
 
 ul.links li {
@@ -164,7 +164,7 @@ ul.links span.header-link-over {
 
 .blank, .unset, .sensitive {
     font-weight: normal !important;
-    color: #a8a8a8 !important;
+    color: #595757 !important;
 }
 
 .required {
@@ -201,24 +201,24 @@ label {
 /* placeholder styles */
 
 *::placeholder {
-    color: #728e9b;
+    color: #000080;
 }
 *::-webkit-input-placeholder {
-    color: #728e9b;
+    color: #000080;
 }
 *:-moz-placeholder {
-    color: #728e9b;
+    color: #000080;
 }
 *::-moz-placeholder {
-    color: #728e9b;
+    color: #000080;
 }
 *:-ms-input-placeholder {
-    color: #728e9b;
+    color: #000080;
 }
 
 input[type=text], input[type=password] {
-    background-color: #eaeef0;
-    border: 1px solid #eaeef0;
+    background-color: #FFFFFF;
+    border: 1px solid #000080;
     font-family: Roboto, sans-serif;
     font-size: 13px;
     padding: 0px 10px 0px 10px;
@@ -228,22 +228,22 @@ input[type=text], input[type=password] {
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box; /* Firefox, other Gecko */
     box-sizing: border-box;
-    color: #262626;
+    color: #000080;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 input:focus, textarea:focus {
-    background-color: #fff;
-    border: 1px solid #004849; /*link-color*/
+    background-color: #ffffff;
+    border: 1px solid #000080; /*link-color*/
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
     outline: none;
 }
 
 textarea {
-    background-color: #eaeef0;
-    border: 1px solid #eaeef0;
+    background-color: #ffffff;
+    border: 1px solid #000080;
     font-family: Roboto, sans-serif;
     font-size: 13px !important;
     padding: 10px 10px;
@@ -253,7 +253,7 @@ textarea {
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box; /* Firefox, other Gecko */
     box-sizing: border-box;
-    color: #262626;
+    color: #000080;
     white-space: pre-wrap;
     overflow-y: auto;
     overflow-x: hidden;
@@ -333,7 +333,7 @@ span.link:focus {
 
 span.link {
     cursor: pointer;
-    color: #004849; /*link-color*/
+    color: #000080; /*link-color*/
     font-weight: normal;
     display: inline-block;
     border-bottom: 1px solid #CCDADB;
@@ -353,9 +353,9 @@ span.link-bold {
 button {
     height: 28px;
     width: 28px;
-    border: 1px solid #CCDADB; /*tint link-color 80%*/
-    background-color: rgba(249, 250, 251, 0.97);
-    color: #004849;
+    border: 1px solid #000080; /*tint link-color 80%*/
+    background-color: #ffffff;
+    color: #000080;
 }
 
 button.refresh-button {
@@ -363,13 +363,14 @@ button.refresh-button {
 }
 
 button:hover {
-    border: 1px solid #004849; /*link-color*/
+    background-color: #ffffff;
+    color: #000080;/*link-color*/
 }
 
 button:disabled {
-    color: #CCDADB !important; /*tint link-color 80%*/
+    color: #D5D5D5 !important; /*tint link-color 80%*/
     cursor: not-allowed;
-    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    border: 1px solid #D5D5D5; /*tint link-color 80%*/
 }
 
 /* angular material override */
@@ -383,8 +384,8 @@ div:focus {
 }
 
 input:focus {
-    background-color: #fff;
-    border: 1px solid #004849; /*link-color*/
+    background-color: #ffffff;
+    border: 1px solid #000080; /*link-color*/
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
     outline: none;
 }
@@ -419,7 +420,7 @@ input.filter {
 
 .filter-status {
     margin-top: 10px;
-    color: #775351;
+    color: #000080;
     font-family: Roboto;
     font-size: 13px;
     font-weight: 500;
@@ -463,14 +464,14 @@ input.filter {
 /* buttons */
 
 button.fa {
-    color: #004849;
+    color: #000080;
     font-size: 16px;
     cursor: pointer;
     line-height: 25px;
 }
 
 button.icon {
-    color: #004849;
+    color: #000080;
     font-size: 16px;
 }
 
@@ -505,19 +506,21 @@ div.button {
     border: 0px;
     float: right;
     position: relative;
-    background: #728E9B;
-    color: #fff;
+    background: #000080;
+    color: #FFFFFF;
     cursor: pointer;
 }
 
 div.button.disabled-button {
-    color: #a8a8a8 !important;
+    color: #FFFFFF !important;
     cursor: not-allowed;
     opacity: 0.7;
+    background-color: #CCCFE5;
 }
 
 div.button:hover:not(.disabled-button) {
-    background-color: #004849;
+    background-color: #333399;
+    color: #FFFFFF;
 }
 
 div.secondary-button {
@@ -532,14 +535,14 @@ div.secondary-button {
     border: 0px;
     float: right;
     position: relative;
-    background: #E3E8EB;
-    color: #004849;
+    background: #FFFFFF;
+    color: #000080;
     cursor:pointer
 }
 
-div.secondary-button:hover {
+/*div.secondary-button:hover {
     background-color: #C7D2D7;
-}
+}*/
 
 /* tooltips */
 
@@ -580,11 +583,11 @@ div.nifi-tooltip {
     font-size: 13px;
     padding:3px 0;
     background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
-    border:1px solid #004849; /*link-color*/
+    border:1px solid #000080; /*link-color*/
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     width: 215px;
     max-height: inherit;
-    color:#004849
+    color:#000080
 }
 
 div.context-menu-item {
@@ -595,7 +598,7 @@ div.context-menu-item {
 }
 
 div.context-menu-item.hover {
-    background-color:#C7D2D7; /*tint base-color 60%*/
+    background-color:#d9e6f3; /*tint base-color 60%*/
     box-shadow:0 1px 1px rgba(0,0,0,0.15);
 }
 
@@ -622,7 +625,7 @@ div.context-menu-item-text {
     margin-left: 4px;
     line-height: 16px;
     float: left;
-    color: #262626;
+    color: #000080;
 }
 
 div.context-menu-group-item-img {
@@ -665,16 +668,16 @@ md-progress-linear > div {
     font-family: Roboto Slab;
     text-transform: capitalize;
     padding-bottom: 4px;
-    color: #262626;
+    color: #000080;
 }
 
 .setting-name .fa {
-    color: #004849;
+    color: #000080;
     margin-left: 5px;
 }
 
 .setting-field .fa {
-    color: #004849;
+    color: #000080;
     margin-left: 5px;
     line-height: 22px;
 }
@@ -682,7 +685,7 @@ md-progress-linear > div {
 .setting-field {
     line-height: normal;
     width: 100%;
-    color: #775351;
+    color: #595757;
     font-size: 13px;
     font-weight: 500;
 }
