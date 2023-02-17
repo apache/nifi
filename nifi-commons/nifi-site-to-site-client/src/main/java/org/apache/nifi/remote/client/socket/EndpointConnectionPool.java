@@ -26,12 +26,12 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -64,13 +64,14 @@ import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class EndpointConnectionPool implements PeerStatusProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
+
+    private static final SocketPeerIdentityProvider socketPeerIdentityProvider = new StandardSocketPeerIdentityProvider();
 
     private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
 
@@ -449,11 +450,12 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 socket.setSoTimeout(commsTimeout);
                 commsSession = new SocketCommunicationsSession(socket);
 
-                try {
-                    final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
-                    commsSession.setUserDn(dn);
-                } catch (final CertificateException ex) {
-                    throw new IOException(ex);
+                final Optional<String> peerIdentity = socketPeerIdentityProvider.getPeerIdentity(socket);
+                if (peerIdentity.isPresent()) {
+                    final String userDn = peerIdentity.get();
+                    commsSession.setUserDn(userDn);
+                } else {
+                    throw new IOException(String.format("Site-to-Site Peer [%s] Identity not found", socket.getRemoteSocketAddress()));
                 }
             } else {
 
