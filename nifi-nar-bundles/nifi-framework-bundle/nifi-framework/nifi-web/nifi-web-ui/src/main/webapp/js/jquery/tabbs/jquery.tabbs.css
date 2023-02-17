@@ -32,12 +32,12 @@ ul.tab-pane {
     height: 31px;
     min-width: 88px;
     text-transform: uppercase;
-    color: #004849;
+    color: #000080;
 }
 
 .tab {
     margin-right: 2px;
-    background-color: #eaeef0;
+    background-color: #d9e6f3;
     border: 1px solid #CCDADB;
     border-bottom: 0px;
 }
@@ -51,13 +51,13 @@ ul.tab-pane {
 
 .tab:not(.selected-tab) button:hover,
 .tab:not(.selected-tab) button:focus {
-    border: 1px solid #004849;
+    border: 1px solid #000080;
     border-bottom: 0;
 }
 
 .selected-tab {
     background-color: #fff;
-    border: 1px solid #004849;
+    border: 1px solid #000080;
     border-bottom-color: #fff;
     color: #262626;
     border-bottom: 1px solid #fff !important;
@@ -67,7 +67,7 @@ ul.tab-pane {
     background-color: transparent;
     height: 32px;
     margin-bottom: 20px;
-    border-bottom: 1px solid #004849;
+    border-bottom: 1px solid #000080;
     width: 100%;
 }
 

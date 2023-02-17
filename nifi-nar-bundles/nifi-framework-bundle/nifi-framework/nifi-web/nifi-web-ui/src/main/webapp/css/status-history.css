@@ -42,7 +42,7 @@
 }
 
 #status-history-last-refreshed {
-    color:#775351;
+    color:#595757;
     font-weight:500;
 }
 
@@ -99,7 +99,7 @@ div.status-history-detail {
 }
 
 div.detail-container-label {
-    color: #333;
+    color: #000080;
     font-size: 12px;
     font-weight: bold;
     margin-bottom: 8px;
@@ -143,7 +143,7 @@ div.legend-label {
 }
 
 #status-history-chart-container text, #status-history-chart-control-container text {
-    fill: #527991;
+    fill: #000;
     font-family: Arial, sans-serif;
     font-size: 10px;
 }

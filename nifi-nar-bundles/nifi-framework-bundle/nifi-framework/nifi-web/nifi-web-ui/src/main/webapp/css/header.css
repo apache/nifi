@@ -21,7 +21,7 @@
 
 md-toolbar.md-small {
     height: 56px;
-    background-color:#AABBC3; /*tint base-color 40%*/
+    background-color:#D9E6F3 !important; /*tint base-color 40%*/
     min-height: 56px;
     max-height: 56px;
     position: relative;
@@ -35,13 +35,13 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #header .icon {
     font-size:32px;
-    color: #004849;
+    color: #000080;
     padding-left:12px
 }
 
 #header .fa {
     font-size:32px;
-    color: #004849;
+    color: #000080;
 }
 
 #login-link-container > span.link {
@@ -66,9 +66,14 @@ md-toolbar.md-small .md-toolbar-tools {
     height: 37px;
     margin:0 20px 3px 15px;
 }
+ 
+#lamp {
+    height: 37px;
+    margin: 0 20px 3px 15px;
+}
 
 #global-menu-button {
-    background-color: #AABBC1; /*tint base-color 40%*/
+    background-color: #d9e6f3; /*tint base-color 40%*/
     border: 0;
     cursor: pointer;
     height: 56px;
@@ -76,7 +81,7 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #global-menu-button:hover {
-    background-color: #e3e8eb; /*tint base-color 60%*/
+    background-color: #EBF2FA; /*tint base-color 60%*/
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
@@ -84,7 +89,7 @@ md-toolbar.md-small .md-toolbar-tools {
     font-size: 13px;
     padding: 3px 0;
     background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
-    border: 1px solid #004849; /*link-color*/
+    border: 1px solid #000080; /*link-color*/
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
     width: 215px;
     max-height: inherit;
@@ -93,10 +98,11 @@ md-toolbar.md-small .md-toolbar-tools {
 #global-menu-content md-menu-item{
     min-height: 28px;
     height: 28px;
+    color: #000080;
 }
 
 #global-menu-content md-menu-divider{
-    background-color:#C7D2D7; /*tint base-color 60%*/
+    background-color:#DEDCDA; /*tint base-color 60%*/
     margin-top: 3px;
     margin-bottom: 3px;
 }
@@ -110,21 +116,21 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #global-menu-content a.disabled {
-    color: #a8a8a8 !important;
+    color: #D5D5D5 !important;
     cursor: not-allowed;
 }
 
 #global-menu-content a.disabled i {
-    color: #bebebe;
+    color: #D5D5D5;
 }
 
 #global-menu-content a:hover{
-    background-color:#C7D2D7;
+    background-color:#EBF2FA;
 }
 
 #global-menu-content .icon {
     font-size: 15px;
-    color: #728E9B;
+    color: #000080;
     margin-right: 10px;
     width: 15px;
     display: inline-block;
@@ -132,7 +138,7 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #global-menu-content .fa {
     font-size: 15px;
-    color: #728E9B;
+    color: #000080;
     margin-right: 10px;
     width: 15px;
 }
@@ -149,7 +155,7 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #header .component-button:hover {
-    background-color: #e3e8eb;
+    background-color: #EBF2FA;
     box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     cursor:grab;
     cursor:-moz-grab;
@@ -163,17 +169,17 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #header .component-button:disabled {
-    background-color:#AABBC3; /*tint base-color 40%*/
+    background-color:#D5D5D5; /*tint base-color 40%*/
     cursor:not-allowed;
     box-shadow:none;
 }
 
 #header .component-button:disabled .icon{
-    color:#669192;
+    color:#D5D5D5;
 }
 
 .component-button-grip {
-    background: repeating-linear-gradient(90deg,rgba(170,187,195,1),rgba(170,187,195,1) 4px,rgba(170,187,195,0) 4px,rgba(170,187,195,0) 6px);
+    background: repeating-linear-gradient(90deg,#000080,rgba(170,187,195,1) 4px,rgba(170,187,195,0) 4px,rgba(170,187,195,0) 6px);
     bottom: 2px;
     height: 4px;
     left: 2px;
@@ -198,11 +204,11 @@ md-toolbar.md-small .md-toolbar-tools {
     line-height: normal;
     overflow: hidden;
     white-space: nowrap;
-    color: #262626;
+    color: #000080;
 }
 
 #current-user-container .fa{
     font-size: 12px;
-    color: #262626;
+    color: #000080;
     padding-right: 5px;
 }
