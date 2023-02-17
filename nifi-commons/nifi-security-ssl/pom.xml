@@ -22,4 +22,3 @@
     <artifactId>nifi-security-ssl</artifactId>
     <description>Shared TLS security components without additional dependencies</description>
 </project>
-

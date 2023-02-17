@@ -28,4 +28,3 @@
         <module>nifi-kafka-connect</module>
     </modules>
 </project>
-
