@@ -20,6 +20,7 @@ import org.apache.iotdb.db.utils.EnvironmentUtils;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.TestRunner;
@@ -33,34 +34,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class QueryIoTDBIT {
-    private static TestRunner testRunner;
-    private static MockRecordWriter recordWriter;
-    private static Session session;
+    private static final String WRITER_SERVICE_ID = "writer";
+
+    private static final String DEVICE_ID = "root.sg7.d1";
+
+    private static final String FIRST_MEASUREMENT = "s0";
+
+    private static final String SECOND_MEASUREMENT = "s1";
+
+    private static final long TIMESTAMP = 1;
+
+    private TestRunner testRunner;
+    private MockRecordWriter recordWriter;
+    private Session session;
 
     @BeforeEach
-    public void init() throws IoTDBConnectionException, IoTDBConnectionException, StatementExecutionException {
+    public void setRunner() throws IoTDBConnectionException, StatementExecutionException {
         testRunner = TestRunners.newTestRunner(QueryIoTDBRecord.class);
         recordWriter = new MockRecordWriter("header", true);
-        testRunner.setProperty(QueryIoTDBRecord.RECORD_WRITER_FACTORY, "writer");
-        testRunner.setProperty("Host", "127.0.0.1");
-        testRunner.setProperty("Username", "root");
-        testRunner.setProperty("Password", "root");
+        testRunner.setProperty(QueryIoTDBRecord.RECORD_WRITER_FACTORY, WRITER_SERVICE_ID);
+        testRunner.setProperty(QueryIoTDBRecord.IOTDB_HOST, "127.0.0.1");
+        testRunner.setProperty(QueryIoTDBRecord.USERNAME, "root");
+        testRunner.setProperty(QueryIoTDBRecord.PASSWORD, "root");
         session = new Session.Builder().build();
         session.open();
 
-        String deviceId = "root.sg7.d1";
         List<String> measurements = new ArrayList<>(2);
-        measurements.add("s0");
-        measurements.add("s1");
+        measurements.add(FIRST_MEASUREMENT);
+        measurements.add(SECOND_MEASUREMENT);
 
         List<String> values = new ArrayList<>(2);
         values.add("5.0");
         values.add("6.0");
-        session.insertRecord(deviceId,1L,measurements,values);
+        session.insertRecord(DEVICE_ID, TIMESTAMP, measurements, values);
     }
 
     @AfterEach
-    public void release() throws Exception {
+    public void shutdown() throws Exception {
         testRunner.shutdown();
         recordWriter.disabled();
         session.close();
@@ -68,25 +78,24 @@ public class QueryIoTDBIT {
         EnvironmentUtils.shutdownDaemon();
     }
 
-    private void setUpStandardTestConfig() throws InitializationException {
-        testRunner.addControllerService("writer", recordWriter);
-        testRunner.enableControllerService(recordWriter);
-    }
-
     @Test
-    public void testQueryIoTDBbyProperty()
-            throws  InitializationException {
+    public void testQueryIoTDBbyProperty() throws InitializationException {
         setUpStandardTestConfig();
 
-        // call the QueryIoTDBProcessor
-        testRunner.setProperty("query", "select s0,s1 from root.sg7.d1");
-        testRunner.enqueue("");
+        final String query = String.format("SELECT %s, %s FROM %s", FIRST_MEASUREMENT, SECOND_MEASUREMENT, DEVICE_ID);
+        testRunner.setProperty(QueryIoTDBRecord.QUERY, query);
+        testRunner.enqueue(new byte[]{});
         testRunner.run();
 
-        // test whether transferred successfully?
         testRunner.assertAllFlowFilesTransferred(PutIoTDBRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(PutIoTDBRecord.REL_SUCCESS).get(0);
-        out.assertContentEquals("header\n\"1\",\"5.0\",\"6.0\"\n");
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutIoTDBRecord.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("header\n\"1\",\"5.0\",\"6.0\"\n");
+        flowFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
+    }
+
+    private void setUpStandardTestConfig() throws InitializationException {
+        testRunner.addControllerService(WRITER_SERVICE_ID, recordWriter);
+        testRunner.enableControllerService(recordWriter);
     }
 }

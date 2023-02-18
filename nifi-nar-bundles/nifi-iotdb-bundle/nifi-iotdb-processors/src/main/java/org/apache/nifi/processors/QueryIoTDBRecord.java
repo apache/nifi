@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.processors;
 
-import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -35,148 +35,140 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 
 import java.io.OutputStream;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
 
 @SupportsBatching
-@Tags({"iotdb", "insert", "tablet"})
-@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription(
-        "This is a processor that reads the sql query from the incoming FlowFile and using it to " +
-                "query the result from IoTDB using native interface." +
-                "Then it use the configured 'Record Writer' to generate the flowfile ")
+@Tags({"IoT", "Timeseries"})
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@CapabilityDescription("Query Apache IoTDB and write results as Records")
+@WritesAttributes({
+        @WritesAttribute(attribute = QueryIoTDBRecord.IOTDB_ERROR_MESSAGE, description = "Error message written on query failures"),
+        @WritesAttribute(attribute = QueryIoTDBRecord.MIME_TYPE, description = "Content Type based on configured Record Set Writer")
+})
 public class QueryIoTDBRecord extends AbstractIoTDB {
 
-    public static final String IOTDB_EXECUTED_QUERY = "iotdb.executed.query";
-
-    private static final int DEFAULT_IOTDB_FETCH_SIZE = 10000;
-
-    public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
-            .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer may use Inherit Schema to emulate the inferred schema behavior, i.e. "
-                    + "an explicit schema need not be defined in the writer, and will be supplied by the same logic used to infer the schema from the column types.")
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .required(true)
-            .build();
-
-    public static final PropertyDescriptor IOTDB_QUERY = new PropertyDescriptor.Builder()
-            .name("query")
+    public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
+            .name("Query")
             .displayName("Query")
-            .description("The IoTDB query to execute. "
-                    + "Note: If there are incoming connections, then the query is created from incoming FlowFile's content otherwise"
-                    + " it is created from this property.")
-            .required(false)
+            .description("IoTDB query to be executed")
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final Integer FETCH_SIZE = 100000;
-    public static final PropertyDescriptor IOTDB_QUERY_FETCH_SIZE = new PropertyDescriptor.Builder()
-            .name("iotdb-query-chunk-size")
+    public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Fetch Size")
             .displayName("Fetch Size")
-            .description("Chunking can be used to return results in a stream of smaller batches "
-                    + "(each has a partial results up to a chunk size) rather than as a single response. "
-                    + "Chunking queries can return an unlimited number of rows. Note: Chunking is enable when result chunk size is greater than 0")
-            .defaultValue(String.valueOf(DEFAULT_IOTDB_FETCH_SIZE))
+            .description("Maximum number of results to return in a single chunk. Configuring 1 or more enables result set chunking")
+            .defaultValue(String.valueOf(10_000))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.createLongValidator(0, FETCH_SIZE, true))
+            .addValidator(StandardValidators.createLongValidator(0, 100_000, true))
             .required(true)
             .build();
 
-    private static RecordSetWriterFactory recordSetWriterFactory;
+    public static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .displayName("Record Writer")
+            .description("Service for writing IoTDB query results as records")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .build();
+
+    public static final String IOTDB_ERROR_MESSAGE = "iotdb.error.message";
+
+    public static final String MIME_TYPE = "mime.type";
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        propertyDescriptors.add(IOTDB_QUERY);
-        propertyDescriptors.add(IOTDB_QUERY_FETCH_SIZE);
+        propertyDescriptors.add(QUERY);
+        propertyDescriptors.add(FETCH_SIZE);
         propertyDescriptors.add(RECORD_WRITER_FACTORY);
         return Collections.unmodifiableList(propertyDescriptors);
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IoTDBConnectionException {
-        super.onScheduled(context);
-        recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
-    }
-
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession processSession) throws ProcessException {
-        String query;
-        FlowFile outgoingFlowFile;
-        int fetchSize = DEFAULT_IOTDB_FETCH_SIZE;
-        // If there are incoming connections, prepare query params from flow file
-        outgoingFlowFile = processSession.create();
-        query = context.getProperty(IOTDB_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-        try (SessionDataSet dataSet = session.get().executeQueryStatement(query);
-             OutputStream outputStream = processSession.write(outgoingFlowFile)) {
-            //List<Map<String,Object>> result=new ArrayList<>();
-            dataSet.setFetchSize(fetchSize);
-            List<String> fieldType = dataSet.getColumnTypes();
-            List<String> fieldNames = dataSet.getColumnNames();
-            final RecordSchema schema = getRecordSchema(fieldType, fieldNames);
-            RecordSetWriter resultSetWriter =
-                    recordSetWriterFactory.createWriter(getLogger(),schema,outputStream,outgoingFlowFile);
-            List<Record> records = new ArrayList<>();
-            while (dataSet.hasNext()) {
-                Map<String,Object> map = new HashMap<String,Object>();
-                RowRecord rowRecord = dataSet.next();
-                Record record = convertRecordFromRowRecord(fieldNames, schema, map, rowRecord);
-                resultSetWriter.write(record);
-                records.add(record);
+        final String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
+        final int fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+        final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
+
+        try (
+                SessionDataSet sessionDataSet = this.session.get().executeQueryStatement(query);
+                OutputStream outputStream = session.write(flowFile)
+        ) {
+            sessionDataSet.setFetchSize(fetchSize);
+
+            final RecordSchema recordSchema = getRecordSchema(sessionDataSet);
+            final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(getLogger(), recordSchema, outputStream, flowFile);
+            while (sessionDataSet.hasNext()) {
+                final RowRecord rowRecord = sessionDataSet.next();
+                final Record record = getRecord(recordSchema, rowRecord);
+                recordSetWriter.write(record);
             }
 
-            if ( getLogger().isDebugEnabled() ) {
-                getLogger().debug("Query result {} ", records);
+            recordSetWriter.close();
+            flowFile = session.putAttribute(flowFile, MIME_TYPE, recordSetWriter.getMimeType());
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (final Exception e) {
+            flowFile = session.putAttribute(flowFile, IOTDB_ERROR_MESSAGE, e.getMessage());
+            getLogger().error("IoTDB query failed {}", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
+        }
+    }
+
+    private Record getRecord(final RecordSchema schema, final RowRecord rowRecord) {
+        final Map<String, Object> row = new LinkedHashMap<>();
+        final Iterator<String> recordFieldNames = schema.getFieldNames().iterator();
+
+        // Put Timestamp as first field
+        row.put(recordFieldNames.next(), rowRecord.getTimestamp());
+
+        final Iterator<Field> rowRecordFields = rowRecord.getFields().iterator();
+        while (recordFieldNames.hasNext()) {
+            final String recordFieldName = recordFieldNames.next();
+            if (rowRecordFields.hasNext()) {
+                final Field rowRecordField = rowRecordFields.next();
+                final TSDataType dataType = rowRecordField.getDataType();
+                final Object objectValue = rowRecordField.getObjectValue(dataType);
+                row.put(recordFieldName, objectValue);
             }
-            resultSetWriter.close();
-            outgoingFlowFile = processSession.putAttribute(outgoingFlowFile, IOTDB_EXECUTED_QUERY, String.valueOf(query));
-            processSession.transfer(outgoingFlowFile, REL_SUCCESS);
-        } catch (Exception exception) {
-            outgoingFlowFile = populateErrorAttributes(processSession, outgoingFlowFile, query, exception.getMessage());
-            getLogger().error("IoTDB query failed", exception);
-            processSession.transfer(outgoingFlowFile, REL_FAILURE);
         }
+        return new MapRecord(schema, row);
     }
 
-    private static Record convertRecordFromRowRecord(List<String> fieldNames, RecordSchema schema, Map<String, Object> map, RowRecord rowRecord) {
-        map.put(fieldNames.get(0), rowRecord.getTimestamp()); //Put the timestamp
-        List<Field> fields = rowRecord.getFields();
-        for(int i = 0; i< fieldNames.size() - 1; i++ ){ //Put the rest data
-            TSDataType dataType = fields.get(i).getDataType();
-            map.put(fieldNames.get(i+1), fields.get(i).getObjectValue(dataType));
-        }
-        Record record = new MapRecord(schema, map);
-        return record;
-    }
+    private RecordSchema getRecordSchema(final SessionDataSet sessionDataSet) {
+        final Iterator<String> columnTypes = sessionDataSet.getColumnTypes().iterator();
+        final Iterator<String> columnNames = sessionDataSet.getColumnNames().iterator();
 
-    private RecordSchema getRecordSchema(List<String> fieldType, List<String> fieldNames) {
-        List<RecordField> recordFields = new ArrayList<>();
-        for(int i = 0; i< fieldNames.size(); i++ ){
-            recordFields.add(new RecordField(fieldNames.get(i), getType(fieldType.get(i)).getDataType()));
+        final List<RecordField> recordFields = new ArrayList<>();
+        while (columnNames.hasNext()) {
+            final String recordFieldName = columnNames.next();
+            final String columnType = columnTypes.next();
+            final RecordFieldType recordFieldType = getType(columnType);
+            final DataType recordDataType = recordFieldType.getDataType();
+            final RecordField recordField = new RecordField(recordFieldName, recordDataType);
+            recordFields.add(recordField);
         }
-        final RecordSchema schema = new SimpleRecordSchema(recordFields);
-        return schema;
-    }
-
-    protected FlowFile populateErrorAttributes(final ProcessSession processSession, FlowFile flowFile, String query,
-                                               String message) {
-        Map<String,String> attributes = new HashMap<>();
-        attributes.put("iotdb.error.message", String.valueOf(message));
-        attributes.put(IOTDB_EXECUTED_QUERY, String.valueOf(query));
-        flowFile = processSession.putAllAttributes(flowFile, attributes);
-        return flowFile;
+        return new SimpleRecordSchema(recordFields);
     }
 }
