@@ -26,8 +26,8 @@ import static org.mockito.Mockito.when;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.DbxUserFilesRequests;
+import com.dropbox.core.v2.files.DbxUserListFolderBuilder;
 import com.dropbox.core.v2.files.FolderMetadata;
-import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.Metadata;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -69,7 +69,7 @@ public class ListDropboxTest extends AbstractDropboxTest {
     private ListFolderResult mockListFolderResult;
 
     @Mock
-    private ListFolderBuilder mockListFolderBuilder;
+    private DbxUserListFolderBuilder mockListFolderBuilder;
 
     @BeforeEach
     protected void setUp() throws Exception {
