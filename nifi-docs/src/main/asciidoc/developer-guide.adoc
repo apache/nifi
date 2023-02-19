@@ -2721,20 +2721,20 @@ deprecationLogger.warn(
 
 [options="header,footer"]
 |==================================================================================================================================================
-| Package                                         | Maven Profile       | Description
-| Apache Accumulo Bundle | include-accumulo   | Adds support for https://accumulo.apache.org[Apache Accumulo].
-| Apache Atlas Bundle | include-atlas | Adds support for the Apache Atlas data governance tool. The functionality from this bundle is based around reporting tasks that integrate with https://atlas.apache.org[Apache Atlas].
-| Apache Hive 1.1 Bundle | include-hive1_1 | Adds support for Apache Hive 1.1.X.
-| Apache Hive 3 Bundle | include-hive3 | Adds support for Apache Hive 3.X
-| Apache Ranger Bundle | include-ranger | Adds support for https://ranger.apache.org[Apache Ranger].
-| ASN1 Support | include-asn1 | Adds support for ASN1
-| Contribution Check | contrib-check | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.
-| Graph Database Bundle | include-graph     | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher[Cypher] and https://tinkerpop.apache.org/gremlin.html[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
-| GRPC Bundle | include-grpc | **This profile is active in official builds and should be active** Provides support for the GRPC protocol.
-| Media Bundle | include-media | The media bundle provides functionality based on https://tika.apache.org[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
-| Rules Engine Bundle | include-rules | Adds support for creating scripted rules engines that can be integrated into existing flows. These rules engines can provide flexibility to people who need more complex flow logic or are more comfortable with flow decision-making using custom code.
-| Snowflake Bundle | include-snowflake | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
-| SQL Reporting Bundle | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
+| Package                | Maven Profile         | Description
+| Apache Accumulo Bundle | include-accumulo      | Adds support for https://accumulo.apache.org[Apache Accumulo].
+| Apache Atlas Bundle    | include-atlas         | Adds support for the Apache Atlas data governance tool. The functionality from this bundle is based around reporting tasks that integrate with https://atlas.apache.org[Apache Atlas].
+| Apache Hive 3 Bundle   | include-hive3         | Adds support for Apache Hive 3.X
+| Apache IoTDB Bundle    | include-iotdb         | Adds support for Apache IoTDB
+| Apache Ranger Bundle   | include-ranger        | Adds support for https://ranger.apache.org[Apache Ranger].
+| ASN.1 Support          | include-asn1          | Adds support for ASN.1
+| Contribution Check     | contrib-check         | Runs various quality checks that are required to be accepted before a contribution can be accepted into the core NiFi code base.
+| Graph Database Bundle  | include-graph         | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher[Cypher] and https://tinkerpop.apache.org/gremlin.html[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
+| GRPC Bundle            | include-grpc          | **This profile is active in official builds and should be active** Provides support for the GRPC protocol.
+| Media Bundle           | include-media         | The media bundle provides functionality based on https://tika.apache.org[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
+| Rules Engine Bundle    | include-rules         | Adds support for creating scripted rules engines that can be integrated into existing flows. These rules engines can provide flexibility to people who need more complex flow logic or are more comfortable with flow decision-making using custom code.
+| Snowflake Bundle       | include-snowflake     | Adds support for integration with the https://www.snowflake.com[Snowflake platform].
+| SQL Reporting Bundle   | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
 |==================================================================================================================================================
 
 === Standard Build Instructions

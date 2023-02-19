@@ -1045,6 +1045,23 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>include-iotdb</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-iotdb-nar</artifactId>
+                    <version>2.0.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-media</id>
             <!-- This profile includes the NiFi Media Bundle which is a large package that exposes Apache Tika functionality
                 through multiple processors. It is not included with the convenience binary due to its size. -->
