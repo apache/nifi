@@ -170,7 +170,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         properties.add(DELIVERY_GUARANTEE);
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(SECURITY_PROTOCOL);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         properties.add(KERBEROS_SERVICE_NAME);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(MAX_REQUEST_SIZE);

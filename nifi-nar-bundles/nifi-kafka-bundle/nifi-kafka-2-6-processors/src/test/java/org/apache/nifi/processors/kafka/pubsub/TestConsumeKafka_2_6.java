@@ -20,7 +20,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.reporting.InitializationException;
@@ -100,36 +99,12 @@ public class TestConsumeKafka_2_6 {
         runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "kafka");
         runner.assertNotValid();
 
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL, "nifi@APACHE.COM");
-        runner.assertNotValid();
-
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "not.A.File");
-        runner.assertNotValid();
-
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "src/test/resources/server.properties");
-        runner.assertValid();
-
-        runner.setVariable("keytab", "src/test/resources/server.properties");
-        runner.setVariable("principal", "nifi@APACHE.COM");
-        runner.setVariable("service", "kafka");
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL, "${principal}");
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB, "${keytab}");
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "${service}");
-        runner.assertValid();
-
         final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
         runner.setProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
-        runner.assertNotValid();
-
-        runner.removeProperty(ConsumeKafka_2_6.KERBEROS_PRINCIPAL);
-        runner.removeProperty(ConsumeKafka_2_6.KERBEROS_KEYTAB);
         runner.assertValid();
 
-        final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
-        runner.setProperty(ConsumeKafka_2_6.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
-        runner.assertNotValid();
-
-        runner.removeProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        runner.setVariable("service", "kafka");
+        runner.setProperty(ConsumeKafka_2_6.KERBEROS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }
 
@@ -139,17 +114,6 @@ public class TestConsumeKafka_2_6 {
         runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
         runner.enableControllerService(kerberosUserService);
         return kerberosUserService;
-    }
-
-    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
-        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
-        when(credentialsService.getIdentifier()).thenReturn("credsService1");
-        when(credentialsService.getPrincipal()).thenReturn("principal1");
-        when(credentialsService.getKeytab()).thenReturn("keytab1");
-
-        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
-        runner.enableControllerService(credentialsService);
-        return credentialsService;
     }
 
 }
