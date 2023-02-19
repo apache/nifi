@@ -109,7 +109,7 @@ public class QueryIoTDBRecord extends AbstractIoTDB {
         }
 
         final String query = context.getProperty(QUERY).evaluateAttributeExpressions(flowFile).getValue();
-        final int fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+        final int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
         final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
 
         try (
