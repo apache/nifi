@@ -266,11 +266,8 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
         descriptors.add(SEPARATE_BY_KEY);
         descriptors.add(SECURITY_PROTOCOL);
         descriptors.add(SASL_MECHANISM);
-        descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
         descriptors.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         descriptors.add(KERBEROS_SERVICE_NAME);
-        descriptors.add(KERBEROS_PRINCIPAL);
-        descriptors.add(KERBEROS_KEYTAB);
         descriptors.add(SASL_USERNAME);
         descriptors.add(SASL_PASSWORD);
         descriptors.add(TOKEN_AUTHENTICATION);

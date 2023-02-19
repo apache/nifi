@@ -17,12 +17,9 @@
 package org.apache.nifi.kafka.shared.component;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.resource.ResourceCardinality;
-import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -135,32 +132,6 @@ public interface KafkaClientComponent {
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("sasl.kerberos.principal")
-            .displayName("Kerberos Principal")
-            .description("Principal used for authentication with Kerberos")
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    PropertyDescriptor KERBEROS_KEYTAB = new PropertyDescriptor.Builder()
-            .name("sasl.kerberos.keytab")
-            .displayName("Kerberos Keytab")
-            .description("Keytab credentials used for authentication with Kerberos")
-            .required(false)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Service supporting generalized credentials authentication with Kerberos")
-            .identifiesControllerService(KerberosCredentialsService.class)
-            .required(false)
             .build();
 
     PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()

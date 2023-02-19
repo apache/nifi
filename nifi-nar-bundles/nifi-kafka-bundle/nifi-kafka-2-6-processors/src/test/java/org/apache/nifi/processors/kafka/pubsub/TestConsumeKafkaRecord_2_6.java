@@ -20,6 +20,8 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
+import org.apache.nifi.kerberos.KerberosUserService;
+import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.kafka.pubsub.util.MockRecordParser;
@@ -159,7 +161,7 @@ public class TestConsumeKafkaRecord_2_6 {
     }
 
     @Test
-    public void validateGetErrorMessages() throws Exception {
+    public void validateGetErrorMessages() {
         String groupName = "validateGetErrorMessages";
 
         when(mockConsumerPool.obtainConsumer(any(), any())).thenReturn(mockLease);
@@ -181,7 +183,7 @@ public class TestConsumeKafkaRecord_2_6 {
     }
 
     @Test
-    public void testJaasConfigurationWithDefaultMechanism() {
+    public void testJaasConfigurationWithDefaultMechanism() throws InitializationException {
         runner.setProperty(ConsumeKafkaRecord_2_6.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_6.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_6.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_6.OFFSET_EARLIEST);
@@ -192,13 +194,8 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.KERBEROS_SERVICE_NAME, "kafka");
         runner.assertNotValid();
 
-        runner.setProperty(ConsumeKafkaRecord_2_6.KERBEROS_PRINCIPAL, "nifi@APACHE.COM");
-        runner.assertNotValid();
-
-        runner.setProperty(ConsumeKafkaRecord_2_6.KERBEROS_KEYTAB, "not.A.File");
-        runner.assertNotValid();
-
-        runner.setProperty(ConsumeKafkaRecord_2_6.KERBEROS_KEYTAB, "src/test/resources/server.properties");
+        final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
+        runner.setProperty(ConsumeKafka_2_6.SELF_CONTAINED_KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertValid();
     }
 
@@ -276,6 +273,14 @@ public class TestConsumeKafkaRecord_2_6 {
 
         runner.setProperty(ConsumeKafkaRecord_2_6.SECURITY_PROTOCOL, SecurityProtocol.PLAINTEXT.name());
         runner.assertValid();
+    }
+
+    private SelfContainedKerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final SelfContainedKerberosUserService kerberosUserService = mock(SelfContainedKerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
     }
 
 }
