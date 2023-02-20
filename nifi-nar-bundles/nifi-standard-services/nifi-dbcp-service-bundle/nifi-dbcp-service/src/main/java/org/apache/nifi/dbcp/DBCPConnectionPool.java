@@ -58,9 +58,6 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_PASSWORD;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE;
@@ -96,6 +93,33 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
     protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     private static final List<PropertyDescriptor> PROPERTIES;
+
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -184,7 +208,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
     }
 
     @Override
-    protected DataSourceConfiguration createDataSourceConfiguraton(ConfigurationContext context) {
+    protected DataSourceConfiguration getDataSourceConfigurationBuilder(ConfigurationContext context) {
         final String url = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();

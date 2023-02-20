@@ -18,57 +18,62 @@ package org.apache.nifi.dbcp.utils;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.nifi.util.FormatUtils;
+
+import java.util.concurrent.TimeUnit;
 
 public enum DefaultDataSourceValues {
 
-
-    MAX_WAIT_MILLIS("500", "500 millis"),
-
-    MAX_TOTAL_CONNECTIONS("8", "8"),
+    MAX_WAIT_TIME("500 millis") {
+        @Override
+        public Long getLongValue() {
+            return (long) FormatUtils.getPreciseTimeDuration(MAX_WAIT_TIME.value, TimeUnit.MILLISECONDS);
+        }
+    },
+    MAX_TOTAL_CONNECTIONS("8"),
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
      */
-    MIN_IDLE("0", "0"),
+    MIN_IDLE("0"),
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
-    MAX_IDLE("8", "8"),
+    MAX_IDLE("8"),
     /**
      * Copied from private variable {@link BasicDataSource#maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
-    MAX_CONN_LIFETIME("-1", "-1"),
+    MAX_CONN_LIFETIME("-1"),
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
      */
-    EVICTION_RUN_PERIOD("-1", "-1"),
+    EVICTION_RUN_PERIOD("-1"),
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
-    MIN_EVICTABLE_IDLE_TIME_MILLIS("1800000", "30 mins"),
+    MIN_EVICTABLE_IDLE_TIME("30 mins") {
+        @Override
+        public Long getLongValue() {
+            return (long) FormatUtils.getPreciseTimeDuration(MAX_WAIT_TIME.value, TimeUnit.MINUTES);
+        }
+    },
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
-    SOFT_MIN_EVICTABLE_IDLE_TIME("-1", "-1");
+    SOFT_MIN_EVICTABLE_IDLE_TIME("-1");
 
 
     private final String value;
-    private final String propertyValue;
 
-    DefaultDataSourceValues(String value, String propertyValue) {
+    DefaultDataSourceValues(String value) {
         this.value = value;
-        this.propertyValue = propertyValue;
     }
 
-    public int getIntValue() {
-        return Integer.parseInt(value);
+    public String getValue() {
+        return value;
     }
 
-    public long getLongValue() {
+    public Long getLongValue() {
         return Long.parseLong(value);
-    }
-
-    public String getPropertyValue() {
-        return propertyValue;
     }
 }

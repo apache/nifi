@@ -21,9 +21,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.dbcp.DBCPValidator;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -87,7 +85,7 @@ public final class DBCPProperties {
             .name("Max Wait Time")
             .description("The maximum amount of time that the pool will wait (when there are no available connections) "
                     + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
-            .defaultValue(DefaultDataSourceValues.MAX_WAIT_MILLIS.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MAX_WAIT_TIME.getValue())
             .required(true)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -98,7 +96,7 @@ public final class DBCPProperties {
             .name("Max Total Connections")
             .description("The maximum number of active connections that can be allocated from this pool at the same time, "
                     + " or negative for no limit.")
-            .defaultValue(DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getValue())
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -121,7 +119,7 @@ public final class DBCPProperties {
             .name("dbcp-min-idle-conns")
             .description("The minimum number of connections that can remain idle in the pool without extra ones being " +
                     "created. Set to or zero to allow no idle connections.")
-            .defaultValue(DefaultDataSourceValues.MIN_IDLE.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MIN_IDLE.getValue())
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -132,7 +130,7 @@ public final class DBCPProperties {
             .name("dbcp-max-idle-conns")
             .description("The maximum number of connections that can remain idle in the pool without extra ones being " +
                     "released. Set to any negative value to allow unlimited idle connections.")
-            .defaultValue(DefaultDataSourceValues.MAX_IDLE.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MAX_IDLE.getValue())
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -144,7 +142,7 @@ public final class DBCPProperties {
             .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")
-            .defaultValue(DefaultDataSourceValues.MAX_CONN_LIFETIME.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MAX_CONN_LIFETIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -155,7 +153,7 @@ public final class DBCPProperties {
             .name("dbcp-time-between-eviction-runs")
             .description("The number of milliseconds to sleep between runs of the idle connection evictor thread. When " +
                     "non-positive, no idle connection evictor thread will be run.")
-            .defaultValue(DefaultDataSourceValues.EVICTION_RUN_PERIOD.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.EVICTION_RUN_PERIOD.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -165,7 +163,7 @@ public final class DBCPProperties {
             .displayName("Minimum Evictable Idle Time")
             .name("dbcp-min-evictable-idle-time")
             .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
-            .defaultValue(DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME_MILLIS.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -181,18 +179,10 @@ public final class DBCPProperties {
                     "the evictor, idle time is first compared against it (without considering the number of idle " +
                     "connections in the pool) and then against this soft option, including the minimum idle connections " +
                     "constraint.")
-            .defaultValue(DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getPropertyValue())
+            .defaultValue(DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getValue())
             .required(false)
             .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-credentials-service")
-            .displayName("Kerberos Credentials Service")
-            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosCredentialsService.class)
-            .required(false)
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
@@ -201,25 +191,6 @@ public final class DBCPProperties {
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosUserService.class)
             .required(false)
-            .build();
-
-    public static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("kerberos-principal")
-            .displayName("Kerberos Principal")
-            .description("The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
-            .name("kerberos-password")
-            .displayName("Kerberos Password")
-            .description("The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
             .build();
 
     public static Long extractMillisWithInfinite(PropertyValue prop) {

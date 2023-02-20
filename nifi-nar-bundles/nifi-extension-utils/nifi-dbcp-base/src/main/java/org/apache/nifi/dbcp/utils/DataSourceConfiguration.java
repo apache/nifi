@@ -18,6 +18,10 @@ package org.apache.nifi.dbcp.utils;
 
 public class DataSourceConfiguration {
 
+    private final String url;
+    private final String driverName;
+    private final String userName;
+    private final String password;
     private final long maxWaitMillis;
     private final int maxTotal;
     private final int minIdle;
@@ -27,10 +31,22 @@ public class DataSourceConfiguration {
     private final long minEvictableIdleTimeMillis;
     private final long softMinEvictableIdleTimeMillis;
     private final String validationQuery;
-    private final String url;
-    private final String driverName;
-    private final String userName;
-    private final String password;
+
+    public String getUrl() {
+        return url;
+    }
+
+    public String getDriverName() {
+        return driverName;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
 
     public long getMaxWaitMillis() {
         return maxWaitMillis;
@@ -68,23 +84,11 @@ public class DataSourceConfiguration {
         return validationQuery;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public String getDriverName() {
-        return driverName;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
     public DataSourceConfiguration(final Builder builder) {
+        this.url = builder.url;
+        this.driverName = builder.driverName;
+        this.userName = builder.userName;
+        this.password = builder.password;
         this.maxWaitMillis = builder.maxWaitMillis;
         this.maxTotal = builder.maxTotal;
         this.minIdle = builder.minIdle;
@@ -94,26 +98,22 @@ public class DataSourceConfiguration {
         this.minEvictableIdleTimeMillis = builder.minEvictableIdleTimeMillis;
         this.softMinEvictableIdleTimeMillis = builder.softMinEvictableIdleTimeMillis;
         this.validationQuery = builder.validationQuery;
-        this.url = builder.url;
-        this.driverName = builder.driverName;
-        this.userName = builder.userName;
-        this.password = builder.password;
     }
 
     public static class Builder {
-        private long maxWaitMillis = DefaultDataSourceValues.MAX_WAIT_MILLIS.getLongValue();
-        private int maxTotal = DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getIntValue();
-        private int minIdle = DefaultDataSourceValues.MIN_IDLE.getIntValue();
-        private int maxIdle = DefaultDataSourceValues.MAX_IDLE.getIntValue();
-        private long maxConnLifetimeMillis = DefaultDataSourceValues.MAX_CONN_LIFETIME.getLongValue();
-        private long timeBetweenEvictionRunsMillis = DefaultDataSourceValues.EVICTION_RUN_PERIOD.getLongValue();
-        private long minEvictableIdleTimeMillis = DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME_MILLIS.getLongValue();
-        private long softMinEvictableIdleTimeMillis = DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getLongValue();
-        private String validationQuery;
         private final String url;
         private final String driverName;
         private final String userName;
         private final String password;
+        private long maxWaitMillis = DefaultDataSourceValues.MAX_WAIT_TIME.getLongValue();
+        private int maxTotal = DefaultDataSourceValues.MAX_TOTAL_CONNECTIONS.getLongValue().intValue();
+        private int minIdle = DefaultDataSourceValues.MIN_IDLE.getLongValue().intValue();
+        private int maxIdle = DefaultDataSourceValues.MAX_IDLE.getLongValue().intValue();
+        private long maxConnLifetimeMillis = DefaultDataSourceValues.MAX_CONN_LIFETIME.getLongValue();
+        private long timeBetweenEvictionRunsMillis = DefaultDataSourceValues.EVICTION_RUN_PERIOD.getLongValue();
+        private long minEvictableIdleTimeMillis = DefaultDataSourceValues.MIN_EVICTABLE_IDLE_TIME.getLongValue();
+        private long softMinEvictableIdleTimeMillis = DefaultDataSourceValues.SOFT_MIN_EVICTABLE_IDLE_TIME.getLongValue();
+        private String validationQuery;
 
         public Builder(final String url, final String driverName, final String userName, final String password) {
             this.url = url;

@@ -26,7 +26,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
-import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
@@ -46,7 +45,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
-import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
 
@@ -80,7 +78,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
         final BasicDataSource dataSource = new BasicDataSource();
         try {
-            final DataSourceConfiguration configuration = createDataSourceConfiguraton(context);
+            final DataSourceConfiguration configuration = getDataSourceConfigurationBuilder(context);
             configureDataSource(context, configuration);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
@@ -141,7 +139,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         dataSource = new BasicDataSource();
         kerberosUser = getKerberosUser(context);
         loginKerberos(kerberosUser);
-        final DataSourceConfiguration configuration = createDataSourceConfiguraton(context);
+        final DataSourceConfiguration configuration = getDataSourceConfigurationBuilder(context);
         configureDataSource(context, configuration);
     }
 
@@ -157,15 +155,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     protected abstract Driver getDriver(final String driverName, final String url);
 
-    protected DataSourceConfiguration createDataSourceConfiguraton(final ConfigurationContext context) {
-        final String url = context.getProperty(DBCPProperties.DATABASE_URL).getValue();
-        final String user = context.getProperty(DBCPProperties.DB_USER).getValue();
-        final String password = context.getProperty(DBCPProperties.DB_PASSWORD).getValue();
-        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
-
-        return new DataSourceConfiguration.Builder(url, driverName, user, password)
-                .build();
-    }
+    protected abstract DataSourceConfiguration getDataSourceConfigurationBuilder(final ConfigurationContext context);
 
     protected void configureDataSource(final ConfigurationContext context, final DataSourceConfiguration configuration) {
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
@@ -211,7 +201,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
     }
 
     protected KerberosUser getKerberosUser(final ConfigurationContext context) {
-        KerberosUser kerberosUser;
+        final KerberosUser kerberosUser;
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosUserService != null) {

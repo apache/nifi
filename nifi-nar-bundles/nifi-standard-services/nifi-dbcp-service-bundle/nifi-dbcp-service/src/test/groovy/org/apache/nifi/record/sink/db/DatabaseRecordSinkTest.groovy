@@ -57,9 +57,9 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_CREDENTIALS_SERVICE
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_PRINCIPAL
-import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_PASSWORD
+import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE
+import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PRINCIPAL
+import static org.apache.nifi.dbcp.DBCPConnectionPool.KERBEROS_PASSWORD
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE

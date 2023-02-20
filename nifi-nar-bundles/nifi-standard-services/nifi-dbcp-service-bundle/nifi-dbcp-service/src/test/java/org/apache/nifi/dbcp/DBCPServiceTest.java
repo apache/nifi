@@ -102,18 +102,18 @@ public class DBCPServiceTest {
     @Test
     public void testCustomValidateOfKerberosProperties() throws InitializationException {
         // direct principal + password and no kerberos services is valid
-        runner.setProperty(service, DBCPProperties.KERBEROS_PRINCIPAL, "foo@FOO.COM");
-        runner.setProperty(service, DBCPProperties.KERBEROS_PASSWORD, "fooPassword");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
         runner.assertValid(service);
 
         // direct principal + password with kerberos credential service is invalid
         final KerberosCredentialsService kerberosCredentialsService = enabledKerberosCredentialsService(runner);
-        runner.setProperty(service, DBCPProperties.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosCredentialsService.getIdentifier());
         runner.assertNotValid(service);
 
         // kerberos credential service by itself is valid
-        runner.removeProperty(service, DBCPProperties.KERBEROS_PRINCIPAL);
-        runner.removeProperty(service, DBCPProperties.KERBEROS_PASSWORD);
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL);
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD);
         runner.assertValid(service);
 
         // kerberos credential service with kerberos user service is invalid
@@ -122,12 +122,12 @@ public class DBCPServiceTest {
         runner.assertNotValid(service);
 
         // kerberos user service by itself is valid
-        runner.removeProperty(service, DBCPProperties.KERBEROS_CREDENTIALS_SERVICE);
+        runner.removeProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE);
         runner.assertValid(service);
 
         // kerberos user service with direct principal + password is invalid
-        runner.setProperty(service, DBCPProperties.KERBEROS_PRINCIPAL, "foo@FOO.COM");
-        runner.setProperty(service, DBCPProperties.KERBEROS_PASSWORD, "fooPassword");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PRINCIPAL, "foo@FOO.COM");
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_PASSWORD, "fooPassword");
         runner.assertNotValid(service);
     }
 
@@ -189,7 +189,7 @@ public class DBCPServiceTest {
         runner.setProperty(service, DBCPProperties.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
         // Use the client driver here rather than the embedded one, as it will generate a ConnectException for the test
         runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
-        runner.setProperty(service, DBCPProperties.KERBEROS_CREDENTIALS_SERVICE, kerberosServiceId);
+        runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosServiceId);
 
         try {
             runner.enableControllerService(service);
