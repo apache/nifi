@@ -40,7 +40,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-class GetShopifyIT {
+class GetShopifyTest {
 
     private static final String BASE_URL = "/test/shopify";
     private static MockWebServer server;
