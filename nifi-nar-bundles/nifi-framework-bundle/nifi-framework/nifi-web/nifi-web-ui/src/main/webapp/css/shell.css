@@ -47,13 +47,13 @@
     display: none;
     float: left;
     margin: 0px 5px 0px;
-    color: #004849;
+    color: #000080;
     font-size: 16px;
 }
 
 #shell-close-button {
     float: left;
-    color: #004849;
+    color: #000080;
     font-size: 16px;
 }
 

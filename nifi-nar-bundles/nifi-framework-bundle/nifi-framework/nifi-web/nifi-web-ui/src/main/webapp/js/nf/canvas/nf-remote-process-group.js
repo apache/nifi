@@ -153,7 +153,7 @@
                     return d.dimensions.width;
                 },
                 'height': 32,
-                'fill': '#b8c6cd'
+                'fill': '#D9E6F3'
             });
 
         // remote process group name

@@ -164,7 +164,7 @@
                     return d.dimensions.width;
                 },
                 'height': 32,
-                'fill': '#b8c6cd'
+                'fill': '#D9E6F3'
             });
 
         // process group name
@@ -283,7 +283,7 @@
                                 return processGroupData.dimensions.width
                             },
                             'height': 24,
-                            'fill': '#e3e8eb'
+                            'fill': '#EBF2FA'
                         });
 
                     details.append('rect')
@@ -296,7 +296,7 @@
                                 return processGroupData.dimensions.width;
                             },
                             'height': 24,
-                            'fill': '#e3e8eb'
+                            'fill': '#EBF2FA'
                         });
 
                     // --------
@@ -537,7 +537,7 @@
                             'height': 19,
                             'x': 0,
                             'y': 66,
-                            'fill': '#f4f6f7'
+                            'fill': '#ffffff'
                         });
 
                     // border
@@ -549,7 +549,7 @@
                             'height': 1,
                             'x': 0,
                             'y': 84,
-                            'fill': '#c7d2d7'
+                            'fill': '#DEDCDA'
                         });
 
                     // in
@@ -573,7 +573,7 @@
                             'height': 1,
                             'x': 0,
                             'y': 103,
-                            'fill': '#c7d2d7'
+                            'fill': '#DEDCDA'
                         });
 
                     // read/write
@@ -585,7 +585,7 @@
                             'height': 19,
                             'x': 0,
                             'y': 104,
-                            'fill': '#f4f6f7'
+                            'fill': '#FFFFFF'
                         });
 
                     // border
@@ -597,7 +597,7 @@
                             'height': 1,
                             'x': 0,
                             'y': 122,
-                            'fill': '#c7d2d7'
+                            'fill': '#DEDCDA'
                         });
 
                     // out

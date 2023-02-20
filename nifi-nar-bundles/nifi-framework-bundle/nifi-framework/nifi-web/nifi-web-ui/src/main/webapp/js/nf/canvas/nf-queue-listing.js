@@ -333,9 +333,9 @@
                 headerText: 'Queue Listing',
                 buttonText: 'Stop',
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
+                    base: '#ffffff',
+                    //hover: '#004849',
+                    text: '#000080'
                 },
                 handler: {
                     click: function () {
@@ -695,8 +695,8 @@
                 buttons: [{
                     buttonText: 'Ok',
                     color: {
-                        base: '#728E9B',
-                        hover: '#004849',
+                        base: '#000080',
+                        hover: '#333399',
                         text: '#ffffff'
                     },
                     handler: {

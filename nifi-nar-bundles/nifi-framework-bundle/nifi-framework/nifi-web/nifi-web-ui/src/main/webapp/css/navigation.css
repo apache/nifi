@@ -36,7 +36,7 @@
 }
 
 .graph-control-header-icon.fa {
-    color: #004849; /*link-color*/
+    color: #000080; /*link-color*/
     margin-left: 7px !important;
 }
 
@@ -65,7 +65,7 @@ div.graph-control-docked {
     width: 100%;
     text-align: center;
     line-height: 34px;
-    color: #004849;
+    color: #000080;
 }
 
 .docked:hover {
@@ -76,23 +76,23 @@ div.graph-control-docked {
 
 div.graph-control button {
     line-height: 30px;
-    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    border: 1px solid #000080; /*tint link-color 80%*/
     background-color: rgba(249,250,251,1);
-    color: #004849;
+    color: #000080;
 }
 
 div.graph-control button:hover {
-    border: 1px solid #004849; /*link-color*/
+    border: 1px solid #000080; /*link-color*/
 }
 
 div.graph-control button:disabled {
-    color: #CCDADB; /*tint link-color 80%*/
+    color: #D5D5D5; /*tint link-color 80%*/
     cursor: not-allowed;
-    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    border: 1px solid #EDEDED; /*tint link-color 80%*/
 }
 
 div.graph-control div.graph-control-expansion {
-    color: #728E9B;
+    color: #000080;
     line-height: 34px;
     margin-left: 9px !important;
 }
@@ -106,7 +106,7 @@ div.graph-control-header {
     float: left;
     font-size: 12px;
     font-family: 'Roboto Slab';
-    color: #262626;
+    color: #000080;
     letter-spacing: 0.05rem;
     margin: 10px 0px;
 }
@@ -118,7 +118,7 @@ div.graph-control-header-action {
 }
 
 .graph-control-header-container:hover {
-    background: linear-gradient(90deg, rgba(227,232,235,0) 254px, rgba(227,232,235,1) 32px);
+    background: #ffffff;
 }
 
 /* navigate buttons */
@@ -139,7 +139,7 @@ div.graph-control-header-action {
 #operation-context-logo i.icon {
     font-size: 32px;
     font-family: flowfont;
-    color: #ad9897;
+    color: #000080;
 }
 
 #operation-context-details-container {
@@ -151,7 +151,7 @@ div.graph-control-header-action {
     height: 15px;
     font-size: 15px;
     font-family: Roboto;
-    color: #262626;
+    color: #000080;
     width: 230px;
     text-overflow: ellipsis;
     overflow: hidden;
@@ -161,14 +161,14 @@ div.graph-control-header-action {
 #operation-context-type {
     font-size: 12px;
     font-family: Roboto;
-    color: #728e9b;
+    color: #595757;
     margin-top: 3px;
 }
 
 #operation-context-id {
     font-size: 12px;
     font-family: Roboto;
-    color: #775351;
+    color: #000080;
     margin-top: 10px;
 }
 
@@ -236,7 +236,7 @@ div.button-spacer-large {
 }
 
 rect.birdseye-brush {
-    stroke: #7098ad;
+    stroke: #000080;
     fill: transparent;
 }
 

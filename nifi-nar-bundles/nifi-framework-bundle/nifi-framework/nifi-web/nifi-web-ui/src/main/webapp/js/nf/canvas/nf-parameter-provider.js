@@ -414,9 +414,8 @@
                 fetchParametersDialog.modal('setButtonModel', [{
                     buttonText: 'Close',
                     color: {
-                        base: '#728E9B',
-                        hover: '#004849',
-                        text: '#ffffff'
+                        base: '#ffffff',
+                        text: '#000080'
                     },
                     handler: {
                         click: function () {
@@ -431,8 +430,8 @@
                 fetchParametersDialog.modal('setButtonModel', [{
                     buttonText: 'Apply',
                     color: {
-                        base: '#728E9B',
-                        hover: '#004849',
+                        base: '#000080',
+                        hover: '#333399',
                         text: '#ffffff'
                     },
                     handler: {
@@ -446,9 +445,10 @@
                 }, {
                     buttonText: 'Cancel',
                     color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
+                        base: '#ffffff',
+                        border: "1px solid #000080",
+                        //hover: '#C7D2D7',
+                        text: '#000080'
                     },
                     handler: {
                         click: function () {
@@ -465,9 +465,10 @@
             fetchParametersDialog.modal('setButtonModel', [{
                 buttonText: 'Cancel',
                 color: {
-                    base: '#E3E8EB',
-                    hover: '#C7D2D7',
-                    text: '#004849'
+                    base: '#ffffff',
+                    border: "1px solid #000080",
+                    //hover: '#C7D2D7',
+                    text: '#000080'
                 },
                 handler: {
                     click: function () {
@@ -688,9 +689,10 @@
             }, {
                 buttonText: 'Cancel',
                 color: {
-                    base: '#E3E8EB',
-                    hover: '#C7D2D7',
-                    text: '#004849'
+                    base: '#ffffff',
+                    border: "1px solid #000080",
+                    //hover: '#C7D2D7',
+                    text: '#000080'
                 },
                 handler: {
                     click: function () {
@@ -3103,9 +3105,10 @@
                     {
                         buttonText: 'Cancel',
                         color: {
-                            base: '#E3E8EB',
-                            hover: '#C7D2D7',
-                            text: '#004849'
+                            base: '#ffffff',
+                            border: "1px solid #000080",
+                            //hover: '#C7D2D7',
+                            text: '#000080'
                         },
                         handler: {
                             click: function () {
@@ -3249,8 +3252,8 @@
                 var buttons = [{
                     buttonText: 'Ok',
                     color: {
-                        base: '#728E9B',
-                        hover: '#004849',
+                        base: '#000080',
+                        hover: '#333399',
                         text: '#ffffff'
                     },
                     handler: {

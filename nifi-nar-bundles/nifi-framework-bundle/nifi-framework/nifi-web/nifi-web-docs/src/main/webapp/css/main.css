@@ -63,7 +63,7 @@ div.main-banner-footer {
 
 div.documentation-header {
     border-bottom: 1px solid #d1dee5;
-    color: #365c6a;
+    color: #000080;
     font-size: 13px;
     display: flex;
 }
@@ -140,7 +140,7 @@ div.component-listing div.section {
 
 div.component-listing div.header {
     font-weight: bold;
-    color: #264c58;
+    color: #000080;
 }
 
 div.component-links ul {
@@ -156,7 +156,7 @@ li.component-item {
 }
 
 li.component-item a {
-    color: #1e373f;
+    color: #000080;
 }
 
 li.component-item:hover {
@@ -164,11 +164,11 @@ li.component-item:hover {
 }
 
 li.component-item:hover a {
-    color: #264c58;
+    color: #000080;
 }
 
 li.component-item.selected {
-    border-left: 8px solid #7098ad;
+    border-left: 8px solid #000080;
 }
 
 div.component-links span.no-components {

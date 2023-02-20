@@ -19,8 +19,8 @@
 
 #flow-status {
     height: 33px;
-    background-color: #E3E8EB; /*tint base-color 60%*/
-    border-bottom: 1px solid #aabbc3;
+    background-color: #F1F1F1; /*tint base-color 60%*/
+    border-bottom: 1px solid #F1F1F1;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
     z-index: 3;
     position: relative;
@@ -35,20 +35,20 @@
 #flow-status .fa {
     font-size: 15px;
     font-style: normal;
-    color: #728E9B; /*base-color*/
+    color: #000080; /*base-color*/
 }
 
 #flow-status .icon span {
     font-size: 15px;
     font-weight: 500;
-    color: #775351; /*value-color*/
+    color: #000080; /*value-color*/
     text-shadow: none;
 }
 
 #flow-status .fa span {
     font-size: 15px;
     font-weight: 500;
-    color: #775351; /*value-color*/
+    color: #000080; /*value-color*/
     font-family: Roboto, sans-serif;
     text-shadow: none;
 }
@@ -56,10 +56,10 @@
 #flow-status button {
     height: 32px;
     width: 32px;
-    border-left: 1px solid #AABBC3; /*tint base-color 40%*/
-    border-right: none;
-    border-top: none;
-    border-bottom: none;
+    border-left: 1px solid #000080; /*tint base-color 40%*/
+    border-right: 1px solid #000080;
+    border-top: 1px solid #000080;
+    border-bottom: 1px solid #000080;
     position: relative;
 }
 
@@ -72,9 +72,9 @@
 }
 
 #search-container {
-    overflow: hidden;
+    /*overflow: hidden;*/
     height: 32px;
-    background: #FFFFFF;
+    background: #F1F1F1;
 }
 
 .search-container-opened {
@@ -87,25 +87,25 @@
 
 #search-button:hover {
     background-color: #FFFFFF !important; /* override any styles set by JS */
-    border-left: 1px solid #004849; /*link-color*/
+    border-left: 1px solid #000080; /*link-color*/
 }
 
 #search-button .fa {
-    color: #004849;
+    color: #000080;
     text-shadow: none;
 }
 
 #bulletin-button {
-    background-color: #728E9B; /*base-color*/
+    background-color: #000080; /*base-color*/
     cursor: default;
 }
 
 #bulletin-button.has-bulletins {
-    background-color: #ba554a; /*warm-color*/
+    background-color: #000080; /*warm-color*/
 }
 
 #bulletin-button i.fa {
-    color: #fff;
+    color: #FFFFFF;
     font-size: 15px;
     text-shadow: none;
 }
@@ -134,8 +134,8 @@ div.search-result-icon {
 #search-field {
     height: 33px;
     width: 200px;
-    background: #FFFFFF;
-    border: 0px;
+    background: rgb(255, 255, 255);
+    border: 1px solid #000080;
     padding: 0px;
     box-shadow: none;
 }

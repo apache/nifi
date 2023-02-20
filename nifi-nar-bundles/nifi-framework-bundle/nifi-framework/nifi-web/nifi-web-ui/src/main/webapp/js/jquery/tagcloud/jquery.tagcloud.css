@@ -37,10 +37,10 @@ ul.tag-cloud li {
 
 ul.tag-cloud span.link {
     cursor: pointer;
-    color: #004849;
+    color: #000080;
     font-weight: bold;
     display: inline-block;
-    background-color: #E3E8EB;
+    background-color: #D9E6F3;
     border-radius: 2px;
     padding: 1px 4px;
 }
