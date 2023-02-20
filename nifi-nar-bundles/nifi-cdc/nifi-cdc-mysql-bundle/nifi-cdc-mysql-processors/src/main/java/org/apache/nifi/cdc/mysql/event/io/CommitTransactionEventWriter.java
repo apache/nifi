@@ -18,7 +18,6 @@ package org.apache.nifi.cdc.mysql.event.io;
 
 
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -35,8 +34,8 @@ public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<Comm
                            Relationship relationship, EventWriterConfiguration eventWriterConfiguration) {
         long sequenceId = super.writeEvent(session, transitUri, eventInfo, currentSequenceId, relationship, eventWriterConfiguration);
         // If writing one transaction per flowfile, finish the flowfile here before committing the session
-        if (FlowFileEventWriteStrategy.ONE_TRANSACTION_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy())) {
-            super.finishAndTransferFlowFile(eventWriterConfiguration, transitUri, sequenceId, eventInfo, relationship);
+        if (oneTransactionPerFlowFile(eventWriterConfiguration)) {
+            super.finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, sequenceId, eventInfo, relationship);
         }
         return sequenceId;
     }

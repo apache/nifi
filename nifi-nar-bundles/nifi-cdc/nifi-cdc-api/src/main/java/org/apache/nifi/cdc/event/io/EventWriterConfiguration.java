@@ -18,85 +18,65 @@ package org.apache.nifi.cdc.event.io;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 
+import java.io.IOException;
 import java.io.OutputStream;
 
 public class EventWriterConfiguration {
 
-    private FlowFileEventWriteStrategy flowFileEventWriteStrategy;
-    private int numberOfEventsWritten = 0;
-    private int numberOfEventsPerFlowFile = 1000;
+    private final FlowFileEventWriteStrategy flowFileEventWriteStrategy;
+    private final int numberOfEventsPerFlowFile;
+
+    private int numberOfEventsWritten;
+
     private FlowFile currentFlowFile;
     private OutputStream flowFileOutputStream;
-    private ProcessSession workingSession;
     private JsonGenerator jsonGenerator;
 
-    public EventWriterConfiguration(FlowFileEventWriteStrategy flowFileEventWriteStrategy, int numberOfEventsWritten, int numberOfEventsPerFlowFile, FlowFile currentFlowFile) {
+    public EventWriterConfiguration(FlowFileEventWriteStrategy flowFileEventWriteStrategy, int numberOfEventsPerFlowFile) {
         this.flowFileEventWriteStrategy = flowFileEventWriteStrategy;
-        this.numberOfEventsWritten = numberOfEventsWritten;
         this.numberOfEventsPerFlowFile = numberOfEventsPerFlowFile;
-        this.currentFlowFile = currentFlowFile;
     }
 
     public FlowFileEventWriteStrategy getFlowFileEventWriteStrategy() {
         return flowFileEventWriteStrategy;
     }
 
-    public void setFlowFileEventWriteStrategy(FlowFileEventWriteStrategy flowFileEventWriteStrategy) {
-        this.flowFileEventWriteStrategy = flowFileEventWriteStrategy;
-    }
-
     public int getNumberOfEventsWritten() {
         return numberOfEventsWritten;
-    }
-
-    public void setNumberOfEventsWritten(int numberOfEventsWritten) {
-        this.numberOfEventsWritten = numberOfEventsWritten;
     }
 
     public void incrementNumberOfEventsWritten() {
         this.numberOfEventsWritten++;
     }
 
-    public int getNumberOfEventsPerFlowFile() {
-        return numberOfEventsPerFlowFile;
+    public void startNewFlowFile(FlowFile flowFile, OutputStream flowFileOutputStream, JsonGenerator jsonGenerator) {
+        this.currentFlowFile = flowFile;
+        this.flowFileOutputStream = flowFileOutputStream;
+        this.jsonGenerator = jsonGenerator;
     }
 
-    public void setNumberOfEventsPerFlowFile(int numberOfEventsPerFlowFile) {
-        this.numberOfEventsPerFlowFile = numberOfEventsPerFlowFile;
+    public void cleanUp() throws IOException {
+        this.currentFlowFile = null;
+        this.flowFileOutputStream.close();
+        this.flowFileOutputStream = null;
+        this.jsonGenerator = null;
+        this.numberOfEventsWritten = 0;
+    }
+
+    public int getNumberOfEventsPerFlowFile() {
+        return numberOfEventsPerFlowFile;
     }
 
     public FlowFile getCurrentFlowFile() {
         return currentFlowFile;
     }
 
-    public void setCurrentFlowFile(FlowFile currentFlowFile) {
-        this.currentFlowFile = currentFlowFile;
-    }
-
     public OutputStream getFlowFileOutputStream() {
         return flowFileOutputStream;
     }
 
-    public void setFlowFileOutputStream(OutputStream flowFileOutputStream) {
-        this.flowFileOutputStream = flowFileOutputStream;
-    }
-
-
-    public ProcessSession getWorkingSession() {
-        return workingSession;
-    }
-
-    public void setWorkingSession(ProcessSession workingSession) {
-        this.workingSession = workingSession;
-    }
-
     public JsonGenerator getJsonGenerator() {
         return jsonGenerator;
-    }
-
-    public void setJsonGenerator(JsonGenerator jsonGenerator) {
-        this.jsonGenerator = jsonGenerator;
     }
 }

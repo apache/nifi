@@ -17,18 +17,16 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.MySQLCDCUtils;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.BitSet;
 
 
@@ -49,7 +47,7 @@ public class InsertRowsWriter extends AbstractBinlogTableEventWriter<InsertRowsE
                            final EventWriterConfiguration eventWriterConfiguration) {
         long seqId = currentSequenceId;
         for (Serializable[] row : eventInfo.getRows()) {
-            FlowFile flowFile = configureEventWriter(eventWriterConfiguration, session, eventInfo);
+            configureEventWriter(eventWriterConfiguration, session, eventInfo);
             OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
             try {
 
@@ -61,17 +59,16 @@ public class InsertRowsWriter extends AbstractBinlogTableEventWriter<InsertRowsE
 
                 super.endJson();
             } catch (IOException ioe) {
-                throw new FlowFileAccessException("Couldn't write start of event array", ioe);
+                throw new UncheckedIOException("Write JSON start array failed", ioe);
             }
 
             eventWriterConfiguration.incrementNumberOfEventsWritten();
 
             // Check if it is time to finish the FlowFile
-            if (FlowFileEventWriteStrategy.N_EVENTS_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy())
+            if (nEventsPerFlowFile(eventWriterConfiguration)
                     && eventWriterConfiguration.getNumberOfEventsWritten() == eventWriterConfiguration.getNumberOfEventsPerFlowFile()) {
-                flowFile = finishAndTransferFlowFile(eventWriterConfiguration, transitUri, seqId, eventInfo, relationship);
+                finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, seqId, eventInfo, relationship);
             }
-            eventWriterConfiguration.setCurrentFlowFile(flowFile);
             seqId++;
         }
         return seqId;
