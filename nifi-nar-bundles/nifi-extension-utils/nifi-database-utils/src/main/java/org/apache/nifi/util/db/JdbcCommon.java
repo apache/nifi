@@ -687,11 +687,7 @@ public class JdbcCommon {
         final Map<String, SensitiveValueWrapper> sensitiveValueWrapperMap = attributes.entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> new SensitiveValueWrapper(e.getValue(), false)));
-        for (final Map.Entry<String, SensitiveValueWrapper> entry : sensitiveValueWrapperMap.entrySet()) {
-            final String flowFileAttributeKey = entry.getKey();
-            final String flowFileAttributeValue = entry.getValue().getValue();
-            setParameterAtIndex(stmt, sensitiveValueWrapperMap, flowFileAttributeKey, flowFileAttributeValue);
-        }
+        setSensitiveParameters(stmt, sensitiveValueWrapperMap);
     }
 
     /**
@@ -710,26 +706,29 @@ public class JdbcCommon {
         }
     }
 
-    private static void setParameterAtIndex(PreparedStatement stmt, Map<String, SensitiveValueWrapper> attributes, String flowFileAttributeKey, String flowFileAttributeValue) throws SQLException {
+    private static void setParameterAtIndex(final PreparedStatement stmt, final Map<String, SensitiveValueWrapper> attributes, final String flowFileAttributeKey,
+                                            final String flowFileAttributeValue) throws SQLException {
         final Matcher sqlArgumentTypeMatcher = SQL_TYPE_ATTRIBUTE_PATTERN.matcher(flowFileAttributeKey);
         if (sqlArgumentTypeMatcher.matches()) {
-            final int sqlArgumentTypeIndex = Integer.parseInt(sqlArgumentTypeMatcher.group(1));
+            final int sqlArgumentIndex = Integer.parseInt(sqlArgumentTypeMatcher.group(1));
 
-            final boolean isNumeric = NUMBER_PATTERN.matcher(flowFileAttributeValue).matches();
+            final String sqlArgumentTypeAttributeName = flowFileAttributeKey;
+            final String sqlArgumentType = attributes.get(sqlArgumentTypeAttributeName).getValue();
+            final boolean isNumeric = NUMBER_PATTERN.matcher(sqlArgumentType).matches();
             if (!isNumeric) {
-                throw new SQLDataException("Value of the " + flowFileAttributeKey + " attribute is '" + flowFileAttributeValue + "', which is not a valid numeral SQL data type");
+                throw new SQLDataException("Value of the " + sqlArgumentTypeAttributeName + " attribute is '" + sqlArgumentType + "', which is not a valid numeral SQL data type");
             }
 
             final int sqlType = Integer.parseInt(flowFileAttributeValue);
-            final String sqlArgumentValueAttributeName = "sql.args." + sqlArgumentTypeIndex + ".value";
+            final String sqlArgumentValueAttributeName = "sql.args." + sqlArgumentIndex + ".value";
             final Optional<SensitiveValueWrapper> sqlArgumentValueWrapper = Optional.ofNullable(attributes.get(sqlArgumentValueAttributeName));
             final String sqlArgumentValue = sqlArgumentValueWrapper.map(SensitiveValueWrapper::getValue).orElse(null);
             final String sqlArgumentLogValue = sqlArgumentValueWrapper.map(a -> a.isSensitive() ? MASKED_LOG_VALUE : a.getValue()).orElse(null);
-            final String sqlArgumentFormatAttributeName = "sql.args." + sqlArgumentTypeIndex + ".format";
+            final String sqlArgumentFormatAttributeName = "sql.args." + sqlArgumentIndex + ".format";
             final String sqlArgumentFormat = attributes.containsKey(sqlArgumentFormatAttributeName) ? attributes.get(sqlArgumentFormatAttributeName).getValue() : "";
 
             try {
-                JdbcCommon.setParameter(stmt, sqlArgumentTypeIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);
+                JdbcCommon.setParameter(stmt, sqlArgumentIndex, sqlArgumentValue, sqlType, sqlArgumentFormat);
             } catch (final NumberFormatException nfe) {
                 throw new SQLDataException("The value of the " + sqlArgumentValueAttributeName + " is '" + sqlArgumentLogValue + "', which cannot be converted into the necessary data type", nfe);
             } catch (ParseException pe) {
