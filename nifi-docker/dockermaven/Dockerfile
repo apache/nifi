@@ -22,6 +22,7 @@ FROM maven:eclipse-temurin as builder
 WORKDIR /home/nifi
 
 COPY . .
+RUN ls -la
 RUN mvn -T 2.0C install -DskipTests
 
 
