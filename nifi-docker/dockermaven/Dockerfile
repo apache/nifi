@@ -35,7 +35,7 @@ LABEL site="https://nifi.apache.org"
 ARG NIFI_VERSION=1.19.1
 ARG NIFI_BINARY=nifi-${NIFI_VERSION}-bin.zip
 ARG NIFI_TOOLKIT_BINARY=nifi-toolkit-${NIFI_VERSION}-bin.zip
-ARG NIFI_SCRIPTS
+ARG NIFI_SCRIPTS=sh/
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
@@ -43,7 +43,8 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
+# ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
+COPY --chown=nifi:nifi --from=builder /home/nifi/nifi-docker/dockerhub/sh/* ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
    && apt-get update \
    && apt-get install -y unzip
