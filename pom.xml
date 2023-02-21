@@ -36,9 +36,9 @@
         <module>nifi-external</module>
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
-        <module>minifi</module>
+        <!-- <module>minifi</module> -->
         <module>nifi-stateless</module>
-        <module>nifi-registry</module>
+        <!-- <module>nifi-registry</module> -->
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
         <module>c2</module>
