@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
+import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -75,6 +76,7 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
@@ -1650,6 +1652,74 @@ public class NiFiClientUtil {
         groupEntity.setRevision(createNewRevision());
 
         return nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, groupEntity);
+    }
+
+    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version) throws NiFiClientException, IOException, InterruptedException {
+        final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
+        final ProcessGroupDTO groupDto = groupEntity.getComponent();
+        final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
+        if (vciDto == null) {
+            throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+        }
+
+        vciDto.setVersion(version);
+
+        final VersionControlInformationEntity requestEntity = new VersionControlInformationEntity();
+        requestEntity.setProcessGroupRevision(groupEntity.getRevision());
+        requestEntity.setVersionControlInformation(vciDto);
+
+        final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
+        return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId());
+    }
+
+    public VersionedFlowUpdateRequestEntity waitForVersionFlowUpdateComplete(final String updateRequestId) throws NiFiClientException, IOException, InterruptedException {
+        while (true) {
+            final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().getUpdateRequest(updateRequestId);
+            final boolean complete = result.getRequest().isComplete();
+            if (complete) {
+                return nifiClient.getVersionsClient().deleteUpdateRequest(updateRequestId);
+            }
+
+            logger.debug("Waiting for Version Flow Update request to complete...");
+            Thread.sleep(100L);
+        }
+    }
+
+    public void assertFlowStaleAndUnmodified(final String processGroupId) throws NiFiClientException, IOException {
+        final String state = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId).getVersionedFlowState();
+        if ("STALE".equalsIgnoreCase(state)) {
+            return;
+        }
+
+        if ("LOCALLY_MODIFIED_AND_STALE".equalsIgnoreCase(state)) {
+            final FlowComparisonEntity flowComparisonEntity = nifiClient.getProcessGroupClient().getLocalModifications(processGroupId);
+            final String differences = flowComparisonEntity.getComponentDifferences().stream()
+                .flatMap(dto -> dto.getDifferences().stream())
+                .map(DifferenceDTO::getDifference)
+                .collect(Collectors.joining("\n"));
+            throw new AssertionError("Expected state to be STALE but was " + state + " with the following modifications:\n" + differences);
+        }
+
+        throw new AssertionError("Expected state to be STALE but was " + state);
+    }
+
+    public void assertFlowUpToDate(final String processGroupId) throws NiFiClientException, IOException {
+        final String state = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId).getVersionedFlowState();
+        if ("UP_TO_DATE".equalsIgnoreCase(state)) {
+            return;
+        }
+
+        if ("LOCALLY_MODIFIED".equalsIgnoreCase(state)) {
+            final FlowComparisonEntity flowComparisonEntity = nifiClient.getProcessGroupClient().getLocalModifications(processGroupId);
+            final String differences = flowComparisonEntity.getComponentDifferences().stream()
+                .flatMap(dto -> dto.getDifferences().stream())
+                .map(DifferenceDTO::getDifference)
+                .collect(Collectors.joining("\n"));
+            throw new AssertionError("Expected state to be UP_TO_DATE but was LOCALLY_MODIFIED with the following modifications:\n" + differences);
+        }
+
+        throw new AssertionError("Expected state to be UP_TO_DATE but was " + state);
+
     }
 
     public FlowEntity copyAndPaste(final ProcessGroupEntity pgEntity, final String destinationGroupId) throws NiFiClientException, IOException {

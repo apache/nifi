@@ -683,18 +683,17 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // If the Connection's destination didn't change, nothing to do
             final String destinationVersionId = connection.getDestination().getVersionedComponentId().orElse(null);
             final String proposedDestinationId = proposedConnection.getDestination().getId();
-            if (Objects.equals(destinationVersionId, proposedDestinationId)) {
+            final String destinationGroupVersionId = connection.getDestination().getProcessGroup().getVersionedComponentId().orElse(null);
+            final String proposedDestinationGroupId = proposedConnection.getDestination().getGroupId();
+            if (Objects.equals(destinationVersionId, proposedDestinationId) && Objects.equals(destinationGroupVersionId, proposedDestinationGroupId)) {
                 continue;
             }
 
             // Find the destination of the connection. If the destination doesn't yet exist (because it's part of the proposed Process Group but not yet added),
             // we will set the destination to a temporary destination. Then, after adding components, we will update the destinations again.
             Connectable newDestination = getConnectable(group, proposedConnection.getDestination());
-            if (
-                newDestination == null
-                ||
-                (newDestination.getConnectableType() == ConnectableType.OUTPUT_PORT && !newDestination.getProcessGroup().equals(connection.getProcessGroup()))
-            ) {
+            final boolean useTempDestination = isTempDestinationNecessary(connection, proposedConnection, newDestination);
+            if (useTempDestination) {
                 final Funnel temporaryDestination = getTemporaryFunnel(connection.getProcessGroup());
                 LOG.debug("Updated Connection {} to have a temporary destination of {}", connection, temporaryDestination);
                 newDestination = temporaryDestination;
@@ -705,6 +704,36 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         return connectionsWithTempDestination;
+    }
+
+    private boolean isTempDestinationNecessary(final Connection existingConnection, final VersionedConnection proposedConnection, final Connectable newDestination) {
+        if (newDestination == null) {
+            return true;
+        }
+
+        // If the destination is an Input Port or an Output Port and the group changed, use a temp destination
+        final ConnectableType connectableType = newDestination.getConnectableType();
+        final boolean port = connectableType == ConnectableType.OUTPUT_PORT || connectableType == ConnectableType.INPUT_PORT;
+        final boolean groupChanged = !newDestination.getProcessGroup().equals(existingConnection.getProcessGroup());
+        if (port && groupChanged) {
+            return true;
+        }
+
+        // If the proposed destination has a different group than the existing group, use a temp destination.
+        final String proposedDestinationGroupId = proposedConnection.getDestination().getGroupId();
+        final String destinationGroupVersionedComponentId = existingConnection.getDestination().getProcessGroup().getVersionedComponentId().orElse(null);
+        if (!Objects.equals(proposedDestinationGroupId, destinationGroupVersionedComponentId)) {
+            return true;
+        }
+
+        // If the proposed connection exists in a different group than the existing group, use a temp destination.
+        final String connectionGroupVersionedComponentId = existingConnection.getProcessGroup().getVersionedComponentId().orElse(null);
+        final String proposedGroupId = proposedConnection.getGroupIdentifier();
+        if (!Objects.equals(proposedGroupId, connectionGroupVersionedComponentId)) {
+            return true;
+        }
+
+        return false;
     }
 
     private Funnel getTemporaryFunnel(final ProcessGroup group) {

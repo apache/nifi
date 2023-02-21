@@ -4075,7 +4075,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             final VersionControlInformation versionControlInfo = getVersionControlInformation();
             if (versionControlInfo != null) {
                 if (!versionControlInfo.getFlowIdentifier().equals(updatedFlow.getMetadata().getFlowIdentifier())) {
-                    throw new IllegalStateException(this + " is under version control but the given flow does not match the flow that this Process Group is synchronized with");
+                    throw new IllegalStateException(this + " is under version control but the given flow does not match the flow that this Process Group is synchronized with. Currently synced to " +
+                        "flow with ID " + versionControlInfo.getFlowIdentifier() + " but proposed flow's metadata shows flow identifier as " + updatedFlow.getMetadata().getFlowIdentifier());
                 }
 
                 if (verifyNotDirty) {
