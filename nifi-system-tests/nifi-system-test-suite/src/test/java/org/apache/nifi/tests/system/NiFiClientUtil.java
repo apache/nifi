@@ -1697,7 +1697,7 @@ public class NiFiClientUtil {
                 .flatMap(dto -> dto.getDifferences().stream())
                 .map(DifferenceDTO::getDifference)
                 .collect(Collectors.joining("\n"));
-            throw new AssertionError("Expected state to be STALE but was STALE_AND_LOCALLY_MODIFIED with the following modifications:\n" + differences);
+            throw new AssertionError("Expected state to be STALE but was " + state + " with the following modifications:\n" + differences);
         }
 
         throw new AssertionError("Expected state to be STALE but was " + state);

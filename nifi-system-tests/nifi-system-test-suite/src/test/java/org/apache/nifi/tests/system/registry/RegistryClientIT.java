@@ -100,6 +100,27 @@ public class RegistryClientIT extends NiFiSystemIT {
 
 
     @Test
+    public void testRollbackOnFailure() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
+
+        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), "test-flows", "flow-with-invalid-connection", 1);
+        assertNotNull(imported);
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2);
+        final String failureReason = version2Result.getRequest().getFailureReason();
+        assertNotNull(failureReason);
+
+        // Ensure that we're still on v1 of the flow and there are no local modifications
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        // Ensure that the processors still exist
+        final FlowDTO contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
+        assertEquals(1, contents.getProcessors().size());
+    }
+
+
+    @Test
     public void testStartVersionControlThenImport() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final ProcessGroupEntity group = getClientUtil().createProcessGroup("Outer", "root");

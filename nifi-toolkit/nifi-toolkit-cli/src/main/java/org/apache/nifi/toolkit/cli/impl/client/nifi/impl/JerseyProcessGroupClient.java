@@ -342,7 +342,7 @@ public class JerseyProcessGroupClient extends AbstractJerseyClient implements Pr
 
         return executeAction("Error retrieving list of local flow modifications", () -> {
             final WebTarget target = processGroupsTarget
-                .path("{id}")
+                .path("{id}/local-modifications")
                 .resolveTemplate("id", processGroupId);
 
             return getRequestBuilder(target).get(FlowComparisonEntity.class);
