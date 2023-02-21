@@ -17,7 +17,7 @@
 #
 
 
-FROM maven:eclipse-temurin as builder
+FROM maven:eclipse-temurin AS builder
 
 WORKDIR /home/nifi
 COPY . .
