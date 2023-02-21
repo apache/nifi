@@ -719,7 +719,7 @@ public class JdbcCommon {
                 throw new SQLDataException("Value of the " + sqlArgumentTypeAttributeName + " attribute is '" + sqlArgumentType + "', which is not a valid numeral SQL data type");
             }
 
-            final int sqlType = Integer.parseInt(flowFileAttributeValue);
+            final int sqlType = Integer.parseInt(sqlArgumentType);
             final String sqlArgumentValueAttributeName = "sql.args." + sqlArgumentIndex + ".value";
             final Optional<SensitiveValueWrapper> sqlArgumentValueWrapper = Optional.ofNullable(attributes.get(sqlArgumentValueAttributeName));
             final String sqlArgumentValue = sqlArgumentValueWrapper.map(SensitiveValueWrapper::getValue).orElse(null);
