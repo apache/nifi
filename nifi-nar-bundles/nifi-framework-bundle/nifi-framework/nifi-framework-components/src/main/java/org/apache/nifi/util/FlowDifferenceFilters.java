@@ -58,6 +58,7 @@ public class FlowDifferenceFilters {
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
             || isVariableValueChange(difference)
+            || isSensitivePropertyDueToGhosting(difference, flowManager)
             || isAncestorVariableAdded(difference, flowManager)
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
@@ -73,6 +74,43 @@ public class FlowDifferenceFilters {
             || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
             || isRegistryUrlChange(difference)
             || isParameterContextChange(difference);
+    }
+
+    private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
+        if (difference.getDifferenceType() != DifferenceType.PROPERTY_SENSITIVITY_CHANGED) {
+            return false;
+        }
+
+        final String componentAId = difference.getComponentA().getInstanceIdentifier();
+        if (componentAId != null) {
+            final ComponentNode componentNode = getComponent(flowManager, difference.getComponentA().getComponentType(), componentAId);
+            if (componentNode != null && componentNode.isExtensionMissing()) {
+                return true;
+            }
+        }
+
+        final String componentBId = difference.getComponentB().getInstanceIdentifier();
+        if (componentBId != null) {
+            final ComponentNode componentNode = getComponent(flowManager, difference.getComponentA().getComponentType(), componentBId);
+            if (componentNode != null && componentNode.isExtensionMissing()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static ComponentNode getComponent(final FlowManager flowManager, final ComponentType componentType, final String componentId) {
+        switch (componentType) {
+            case CONTROLLER_SERVICE:
+                return flowManager.getControllerServiceNode(componentId);
+            case PROCESSOR:
+                return flowManager.getProcessorNode(componentId);
+            case REPORTING_TASK:
+                return flowManager.getReportingTaskNode(componentId);
+        }
+
+        return null;
     }
 
     // The Registry URL may change if, for instance, a registry is moved to a new host, or is made secure, the port changes, etc.
