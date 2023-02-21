@@ -22,6 +22,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -29,6 +31,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,6 +45,8 @@ import java.util.List;
 })
 public class KerberosKeytabUserService extends AbstractKerberosUserService implements SelfContainedKerberosUserService {
 
+    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
+
     static final PropertyDescriptor KEYTAB = new PropertyDescriptor.Builder()
             .name("Kerberos Keytab")
             .description("Kerberos keytab associated with the principal.")
@@ -51,6 +56,27 @@ public class KerberosKeytabUserService extends AbstractKerberosUserService imple
             .build();
 
     private volatile String keytab;
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Collection<ValidationResult> results = super.customValidate(validationContext);
+
+        final String allowExplicitKeytab = System.getenv(ALLOW_EXPLICIT_KEYTAB);
+        if (Boolean.FALSE.toString().equalsIgnoreCase(allowExplicitKeytab)) {
+            final String explanation = String.format("Environment Variable [%s] disables configuring the [%s] property",
+                    ALLOW_EXPLICIT_KEYTAB,
+                    KEYTAB
+            );
+
+            results.add(new ValidationResult.Builder()
+                    .subject(KEYTAB.getDisplayName())
+                    .valid(false)
+                    .explanation(explanation)
+                    .build());
+        }
+
+        return results;
+    }
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
