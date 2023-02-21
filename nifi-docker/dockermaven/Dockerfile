@@ -57,7 +57,7 @@ RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && ln -s ${NIFI_HOME} ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}
 
 # COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
-COPY --from=builder /home/nifi/nifi-toolkit-assembly/target/${NIFI_TOOLKIT_BINARY} $NIFI_BASE_DIR
+COPY --from=builder /home/nifi/nifi-toolkit/nifi-toolkit-assembly/target/${NIFI_TOOLKIT_BINARY} $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip \
     && mv ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION} ${NIFI_TOOLKIT_HOME} \
