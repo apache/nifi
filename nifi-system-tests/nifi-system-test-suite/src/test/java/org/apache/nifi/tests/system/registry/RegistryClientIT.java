@@ -20,6 +20,7 @@ package org.apache.nifi.tests.system.registry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -37,14 +39,87 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryClientIT extends NiFiSystemIT {
+
+    @Test
+    public void testChangeVersionWithPortMoveBetweenGroups() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
+
+        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), "test-flows", "port-moved-groups", 1);
+        assertNotNull(imported);
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        // Ensure that the import worked as expected
+        final FlowSnippetDTO groupContents = imported.getComponent().getContents();
+        final List<ProcessorDTO> replaceTextProcessors = groupContents.getProcessors().stream()
+            .filter(proc -> proc.getName().equals("ReplaceText"))
+            .collect(Collectors.toList());
+        assertEquals(1, replaceTextProcessors.size());
+
+        assertTrue(groupContents.getInputPorts().isEmpty());
+
+        // Change to version 2
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2);
+        assertNull(version2Result.getRequest().getFailureReason());
+
+        final FlowDTO v2Contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
+        getClientUtil().assertFlowUpToDate(imported.getId());
+
+        // Ensure that the ReplaceText processor still exists
+        final long replaceTextCount = v2Contents.getProcessors().stream()
+            .map(ProcessorEntity::getComponent)
+            .filter(proc -> proc.getName().equals("ReplaceText"))
+            .filter(proc -> proc.getId().equals(replaceTextProcessors.get(0).getId()))
+            .count();
+        assertEquals(1, replaceTextCount);
+
+        // Ensure that we now have a Port at the top level
+        assertEquals(1, v2Contents.getInputPorts().size());
+
+        // Change back to Version 1
+        final VersionedFlowUpdateRequestEntity changeBackToV1Result = getClientUtil().changeFlowVersion(imported.getId(), 1);
+        assertNull(changeBackToV1Result.getRequest().getFailureReason());
+
+        final FlowDTO v1Contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        // Ensure that we no longer have a Port at the top level
+        assertTrue(v1Contents.getInputPorts().isEmpty());
+    }
+
+
+    @Test
+    public void testRollbackOnFailure() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient(new File("src/test/resources/versioned-flows"));
+
+        final ProcessGroupEntity imported = getClientUtil().importFlowFromRegistry("root", clientEntity.getId(), "test-flows", "flow-with-invalid-connection", 1);
+        assertNotNull(imported);
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2);
+        final String failureReason = version2Result.getRequest().getFailureReason();
+        assertNotNull(failureReason);
+
+        // Ensure that we're still on v1 of the flow and there are no local modifications
+        getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
+
+        // Ensure that the processors still exist
+        final FlowDTO contents = getNifiClient().getFlowClient().getProcessGroup(imported.getId()).getProcessGroupFlow().getFlow();
+        assertEquals(1, contents.getProcessors().size());
+    }
+
+
     @Test
     public void testStartVersionControlThenImport() throws NiFiClientException, IOException {
         final FlowRegistryClientEntity clientEntity = registerClient();
@@ -68,10 +143,15 @@ public class RegistryClientIT extends NiFiSystemIT {
     }
 
     private FlowRegistryClientEntity registerClient() throws NiFiClientException, IOException {
-        final String clientName = String.format("FileRegistry-%s", UUID.randomUUID());
-        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient(clientName);
         final File storageDir = new File("target/flowRegistryStorage/" + getTestName().replace("\\(.*?\\)", ""));
         Files.createDirectories(storageDir.toPath());
+
+        return registerClient(storageDir);
+    }
+
+    private FlowRegistryClientEntity registerClient(final File storageDir) throws NiFiClientException, IOException {
+        final String clientName = String.format("FileRegistry-%s", UUID.randomUUID());
+        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient(clientName);
         getClientUtil().updateRegistryClientProperties(clientEntity, Collections.singletonMap("Directory", storageDir.getAbsolutePath()));
 
         return clientEntity;
