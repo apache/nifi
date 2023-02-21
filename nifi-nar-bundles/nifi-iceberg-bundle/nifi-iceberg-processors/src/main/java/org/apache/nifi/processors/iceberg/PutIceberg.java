@@ -19,10 +19,12 @@ package org.apache.nifi.processors.iceberg;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
+import org.apache.iceberg.PendingUpdate;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.util.Tasks;
@@ -54,6 +56,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
@@ -113,6 +116,42 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor NUMBER_OF_COMMIT_RETRIES = new PropertyDescriptor.Builder()
+            .name("number-of-commit-retries")
+            .displayName("Number Of Commit Retries")
+            .description("Number of times to retry a commit before failing.")
+            .required(true)
+            .defaultValue("3")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor MINIMUM_COMMIT_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("minimum-commit-wait-time")
+            .displayName("Minimum Commit Wait Time")
+            .description("Minimum time to wait before retrying a commit.")
+            .required(true)
+            .defaultValue("100 ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor MAXIMUM_COMMIT_WAIT_TIME = new PropertyDescriptor.Builder()
+            .name("maximum-commit-wait-time")
+            .displayName("Maximum Commit Wait Time")
+            .description("Maximum time to wait before retrying a commit.")
+            .required(true)
+            .defaultValue("1 min")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor MAXIMUM_COMMIT_DURATION = new PropertyDescriptor.Builder()
+            .name("maximum-commit-duration")
+            .displayName("Maximum Commit Duration")
+            .description("Total retry timeout period for a commit.")
+            .required(true)
+            .defaultValue("30 min")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after the data ingestion was successful.")
@@ -130,7 +169,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
             TABLE_NAME,
             FILE_FORMAT,
             MAXIMUM_FILE_SIZE,
-            KERBEROS_USER_SERVICE
+            KERBEROS_USER_SERVICE,
+            NUMBER_OF_COMMIT_RETRIES,
+            MINIMUM_COMMIT_WAIT_TIME,
+            MAXIMUM_COMMIT_WAIT_TIME,
+            MAXIMUM_COMMIT_DURATION
     ));
 
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -181,7 +224,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             }
 
             final WriteResult result = taskWriter.complete();
-            appendDataFiles(table, result);
+            appendDataFiles(context, table, result);
         } catch (Exception e) {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {
@@ -222,14 +265,24 @@ public class PutIceberg extends AbstractIcebergProcessor {
     /**
      * Appends the pending data files to the given {@link Table}.
      *
+     * @param context processor context
      * @param table  table to append
      * @param result datafiles created by the {@link TaskWriter}
      */
-    private void appendDataFiles(Table table, WriteResult result) {
+    void appendDataFiles(ProcessContext context, Table table, WriteResult result) {
+        final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions().asInteger();
+        final long minimumCommitWaitTime = context.getProperty(MINIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitWaitTime = context.getProperty(MAXIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitDuration = context.getProperty(MAXIMUM_COMMIT_DURATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+
         final AppendFiles appender = table.newAppend();
         Arrays.stream(result.dataFiles()).forEach(appender::appendFile);
 
-        appender.commit();
+        Tasks.foreach(appender)
+                .exponentialBackoff(minimumCommitWaitTime, maximumCommitWaitTime, maximumCommitDuration, 2.0)
+                .retry(numberOfCommitRetries)
+                .onlyRetryOn(CommitFailedException.class)
+                .run(PendingUpdate::commit);
     }
 
     /**
@@ -252,8 +305,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
      */
     void abort(DataFile[] dataFiles, Table table) {
         Tasks.foreach(dataFiles)
-                .throwFailureWhenFinished()
-                .noRetry()
+                .retry(3)
                 .run(file -> table.io().deleteFile(file.path().toString()));
     }
 
