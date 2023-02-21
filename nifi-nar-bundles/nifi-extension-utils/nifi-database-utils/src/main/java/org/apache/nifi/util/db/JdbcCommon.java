@@ -701,13 +701,11 @@ public class JdbcCommon {
     public static void setSensitiveParameters(final PreparedStatement stmt, final Map<String, SensitiveValueWrapper> attributes) throws SQLException {
         for (final Map.Entry<String, SensitiveValueWrapper> entry : attributes.entrySet()) {
             final String flowFileAttributeKey = entry.getKey();
-            final String flowFileAttributeValue = entry.getValue().getValue();
-            setParameterAtIndex(stmt, attributes, flowFileAttributeKey, flowFileAttributeValue);
+            setParameterAtIndex(stmt, attributes, flowFileAttributeKey);
         }
     }
 
-    private static void setParameterAtIndex(final PreparedStatement stmt, final Map<String, SensitiveValueWrapper> attributes, final String flowFileAttributeKey,
-                                            final String flowFileAttributeValue) throws SQLException {
+    private static void setParameterAtIndex(final PreparedStatement stmt, final Map<String, SensitiveValueWrapper> attributes, final String flowFileAttributeKey) throws SQLException {
         final Matcher sqlArgumentTypeMatcher = SQL_TYPE_ATTRIBUTE_PATTERN.matcher(flowFileAttributeKey);
         if (sqlArgumentTypeMatcher.matches()) {
             final int sqlArgumentIndex = Integer.parseInt(sqlArgumentTypeMatcher.group(1));
