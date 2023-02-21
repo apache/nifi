@@ -24,7 +24,7 @@ FROM maven:eclipse-temurin AS builder
 
 WORKDIR /home/nifi
 COPY . .
-RUN mvn -T 2.0C install -DskipTests
+RUN mvn -T 2.0C clean install -DskipTests
 
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
