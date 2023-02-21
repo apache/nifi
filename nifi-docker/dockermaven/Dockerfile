@@ -15,7 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+# FROM maven:eclipse-temurin AS builder
 
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
 
 FROM maven:eclipse-temurin AS builder
 
@@ -23,9 +26,6 @@ WORKDIR /home/nifi
 COPY . .
 RUN mvn -T 2.0C install -DskipTests
 
-
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
