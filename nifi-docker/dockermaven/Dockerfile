@@ -20,7 +20,6 @@
 FROM maven:eclipse-temurin as builder
 
 WORKDIR /home/nifi
-
 COPY . .
 RUN mvn -T 2.0C install -DskipTests
 
@@ -44,13 +43,13 @@ ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
 # ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
-COPY --chown=nifi:nifi --from=builder /home/nifi/nifi-docker/dockerhub/sh/* ${NIFI_BASE_DIR}/scripts/
+COPY --from=builder /home/nifi/nifi-docker/dockerhub/sh/* ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
    && apt-get update \
    && apt-get install -y unzip
 
 # COPY $NIFI_BINARY $NIFI_BASE_DIR
-COPY --chown=nifi:nifi --from=builder /home/nifi/nifi-assembly/target/${NIFI_BINARY} $NIFI_BASE_DIR
+COPY --from=builder /home/nifi/nifi-assembly/target/${NIFI_BINARY} $NIFI_BASE_DIR
 
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip \
@@ -58,7 +57,7 @@ RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && ln -s ${NIFI_HOME} ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}
 
 # COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
-COPY --chown=nifi:nifi --from=builder /home/nifi/nifi-toolkit-assembly/target/${NIFI_TOOLKIT_BINARY} $NIFI_BASE_DIR
+COPY --from=builder /home/nifi/nifi-toolkit-assembly/target/${NIFI_TOOLKIT_BINARY} $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip \
     && mv ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION} ${NIFI_TOOLKIT_HOME} \
