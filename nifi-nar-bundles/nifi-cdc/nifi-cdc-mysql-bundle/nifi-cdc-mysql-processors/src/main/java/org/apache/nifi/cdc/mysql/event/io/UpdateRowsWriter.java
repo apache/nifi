@@ -66,7 +66,7 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
             eventWriterConfiguration.incrementNumberOfEventsWritten();
 
             // Check if it is time to finish the FlowFile
-            if (nEventsPerFlowFile(eventWriterConfiguration)
+            if (maxEventsPerFlowFile(eventWriterConfiguration)
                     && eventWriterConfiguration.getNumberOfEventsWritten() == eventWriterConfiguration.getNumberOfEventsPerFlowFile()) {
                 finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, seqId, eventInfo, relationship);
             }

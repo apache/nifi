@@ -86,7 +86,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
         eventWriterConfiguration.incrementNumberOfEventsWritten();
 
         // Check if it is time to finish the FlowFile
-        if (nEventsPerFlowFile(eventWriterConfiguration)
+        if (maxEventsPerFlowFile(eventWriterConfiguration)
                 && eventWriterConfiguration.getNumberOfEventsWritten() == eventWriterConfiguration.getNumberOfEventsPerFlowFile()) {
             finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, currentSequenceId, eventInfo, relationship);
         }
@@ -144,7 +144,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
     }
 
     private boolean multipleEventsPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
-        return (nEventsPerFlowFile(eventWriterConfiguration)
+        return (maxEventsPerFlowFile(eventWriterConfiguration)
                 && eventWriterConfiguration.getNumberOfEventsPerFlowFile() > 1)
                 || oneTransactionPerFlowFile(eventWriterConfiguration);
     }
@@ -154,7 +154,7 @@ public abstract class AbstractBinlogEventWriter<T extends BinlogEventInfo> exten
                 || oneTransactionPerFlowFile(eventWriterConfiguration);
     }
 
-    protected boolean nEventsPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
+    protected boolean maxEventsPerFlowFile(EventWriterConfiguration eventWriterConfiguration) {
         return FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE.equals(eventWriterConfiguration.getFlowFileEventWriteStrategy());
     }
 
