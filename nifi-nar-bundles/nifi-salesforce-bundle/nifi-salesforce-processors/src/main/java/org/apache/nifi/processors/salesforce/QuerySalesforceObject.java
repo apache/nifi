@@ -477,6 +477,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         AtomicReference<String> totalSize = new AtomicReference<>();
         boolean isOriginalTransferred = false;
+        List<FlowFile> flowFiles = new ArrayList<>();
         do {
             FlowFile outgoingFlowFile;
             if (originalFlowFile != null) {
@@ -492,7 +493,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
                 session.adjustCounter("Salesforce records processed", recordCount, false);
                 session.putAllAttributes(outgoingFlowFile, attributes);
-                session.transfer(outgoingFlowFile, REL_SUCCESS);
+                flowFiles.add(outgoingFlowFile);
             } catch (IOException e) {
                 throw new ProcessException("Couldn't get Salesforce records", e);
             } catch (Exception e) {
@@ -500,10 +501,16 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     session.transfer(originalFlowFile, REL_FAILURE);
                     isOriginalTransferred = true;
                 }
-                session.remove(outgoingFlowFile);
                 getLogger().error("Couldn't get Salesforce records", e);
+                session.remove(flowFiles);
+                flowFiles.clear();
+                break;
             }
         } while (nextRecordsUrl.get() != null);
+
+        if (!flowFiles.isEmpty()) {
+            session.transfer(flowFiles, REL_SUCCESS);
+        }
         if (originalFlowFile != null && !isOriginalTransferred) {
             session.transfer(originalFlowFile, REL_ORIGINAL);
         }
