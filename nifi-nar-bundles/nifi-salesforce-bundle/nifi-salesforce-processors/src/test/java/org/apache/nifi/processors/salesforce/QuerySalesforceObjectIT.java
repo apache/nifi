@@ -85,8 +85,8 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
 
         runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.CUSTOM_QUERY);
         runner.setProperty(QuerySalesforceObject.CUSTOM_SOQL_QUERY, customQuery);
-        runner.setProperty(QuerySalesforceObject.API_VERSION, VERSION);
-        runner.setProperty(QuerySalesforceObject.API_URL, BASE_URL);
+        runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
+        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
 
         runner.run();
 

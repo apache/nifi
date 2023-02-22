@@ -91,6 +91,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_URL;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
 
@@ -101,9 +103,10 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
         + " The processor can also run a custom query, although record processing is not supported in that case."
         + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
         + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, filtering out all older records"
-        + " even for the first run. This processor is intended to be run on the Primary Node only."
+        + " even for the first run. In case of 'Property Based Query' this processor should run on the Primary Node only."
         + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output."
-        + " In case of 'Property Based Query' this processor should operate on the primary node.")
+        + " By using 'Custom Query', the processor can accept an optional input flowfile and reference the flowfile attributes in the query."
+        + " However, incremental loading and record-based processing are not supported in this scenario.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
         + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
@@ -117,25 +120,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     static final AllowableValue PROPERTY_BASED_QUERY = new AllowableValue("property-based-query", "Property Based Query", "Provide query by properties.");
     static final AllowableValue CUSTOM_QUERY = new AllowableValue("custom-query", "Custom Query", "Provide custom SOQL query.");
-
-    static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
-            .name("salesforce-url")
-            .displayName("URL")
-            .description("The URL for the Salesforce REST API including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
-            .required(true)
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
-            .name("salesforce-api-version")
-            .displayName("API Version")
-            .description("The version number of the Salesforce REST API appended to the URL after the services/data path. See Salesforce documentation for supported versions")
-            .required(true)
-            .addValidator(StandardValidators.NUMBER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("54.0")
-            .build();
 
     static final PropertyDescriptor QUERY_TYPE = new PropertyDescriptor.Builder()
             .name("query-type")
@@ -193,6 +177,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("false")
             .required(true)
+            .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
     static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
@@ -245,6 +230,17 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .description("For FlowFiles created as a result of a successful query.")
             .build();
 
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The input flowfile gets sent to this relationship when the query succeeds.")
+            .autoTerminateDefault(true)
+            .build();
+
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("The input flowfile gets sent to this relationship when the query fails.")
+            .build();
+
     private static final String LAST_AGE_FILTER = "last_age_filter";
     private static final String STARTING_FIELD_NAME = "records";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
@@ -262,7 +258,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private volatile SalesforceRestService salesforceRestService;
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) {
+    public void onScheduled(ProcessContext context) {
         salesForceToRecordSchemaConverter = new SalesforceToRecordSchemaConverter(
                 DATE_FORMAT,
                 DATE_TIME_FORMAT,
@@ -281,36 +277,40 @@ public class QuerySalesforceObject extends AbstractProcessor {
         );
     }
 
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            API_URL,
+            API_VERSION,
+            QUERY_TYPE,
+            CUSTOM_SOQL_QUERY,
+            SOBJECT_NAME,
+            FIELD_NAMES,
+            RECORD_WRITER,
+            AGE_FIELD,
+            INITIAL_AGE_FILTER,
+            AGE_DELAY,
+            CUSTOM_WHERE_CONDITION,
+            READ_TIMEOUT,
+            CREATE_ZERO_RECORD_FILES,
+            TOKEN_PROVIDER
+    ));
+
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS, REL_FAILURE, REL_ORIGINAL
+    )));
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(
-                API_URL,
-                API_VERSION,
-                QUERY_TYPE,
-                CUSTOM_SOQL_QUERY,
-                SOBJECT_NAME,
-                FIELD_NAMES,
-                READ_TIMEOUT,
-                TOKEN_PROVIDER,
-                RECORD_WRITER,
-                CREATE_ZERO_RECORD_FILES,
-                AGE_FIELD,
-                INITIAL_AGE_FILTER,
-                AGE_DELAY,
-                CUSTOM_WHERE_CONDITION
-        ));
+        return PROPERTIES;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         if (validationContext.getProperty(INITIAL_AGE_FILTER).isSet() && !validationContext.getProperty(AGE_FIELD).isSet()) {
             results.add(
                     new ValidationResult.Builder()
@@ -324,24 +324,24 @@ public class QuerySalesforceObject extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
-        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-        AtomicReference<String> totalSize = new AtomicReference<>();
+
 
         if (isCustomQuery) {
-            final FlowFile flowFile = session.get();
+            FlowFile flowFile = session.get();
             if (flowFile == null && context.hasIncomingConnection()) {
                 context.yield();
                 return;
             }
-            processCustomQuery(context, session, flowFile, nextRecordsUrl, totalSize);
+            processCustomQuery(context, session, flowFile);
             return;
         }
-        processQuery(context, session, nextRecordsUrl);
+        processQuery(context, session);
     }
 
-    private void processQuery(ProcessContext context, ProcessSession session, AtomicReference<String> nextRecordsUrl) {
+    private void processQuery(ProcessContext context, ProcessSession session) {
+        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
@@ -472,12 +472,15 @@ public class QuerySalesforceObject extends AbstractProcessor {
         } while (nextRecordsUrl.get() != null);
     }
 
-    private void processCustomQuery(ProcessContext context, ProcessSession session, FlowFile flowFile, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
-        String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(flowFile).getValue();
+    private void processCustomQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
+        String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(originalFlowFile).getValue();
+        AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
+        AtomicReference<String> totalSize = new AtomicReference<>();
+        boolean isOriginalTransferred = false;
         do {
             FlowFile outgoingFlowFile;
-            if (flowFile != null) {
-                outgoingFlowFile = session.create(flowFile);
+            if (originalFlowFile != null) {
+                outgoingFlowFile = session.create(originalFlowFile);
             } else {
                 outgoingFlowFile = session.create();
             }
@@ -491,37 +494,42 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 session.putAllAttributes(outgoingFlowFile, attributes);
                 session.transfer(outgoingFlowFile, REL_SUCCESS);
             } catch (IOException e) {
-                session.remove(outgoingFlowFile);
                 throw new ProcessException("Couldn't get Salesforce records", e);
+            } catch (Exception e) {
+                if (originalFlowFile != null) {
+                    session.transfer(originalFlowFile, REL_FAILURE);
+                    isOriginalTransferred = true;
+                }
+                session.remove(outgoingFlowFile);
+                getLogger().error("Couldn't get Salesforce records", e);
             }
         } while (nextRecordsUrl.get() != null);
-        if (flowFile != null) {
-            session.remove(flowFile);
+        if (originalFlowFile != null && !isOriginalTransferred) {
+            session.transfer(originalFlowFile, REL_ORIGINAL);
         }
     }
 
-    private OutputStreamCallback parseHttpResponse(final InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
+    private OutputStreamCallback parseHttpResponse(InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
         nextRecordsUrl.set(null);
         return out -> {
             try (JsonParser jsonParser = JSON_FACTORY.createParser(in);
                  JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8)) {
                 while (jsonParser.nextToken() != null) {
-                    if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
-                            .equals(TOTAL_SIZE)) {
-                        jsonParser.nextToken();
+                    if (nextTokenIs(jsonParser, TOTAL_SIZE)) {
                         totalSize.set(jsonParser.getValueAsString());
-                    } else if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
-                            .equals(NEXT_RECORDS_URL)) {
-                        jsonParser.nextToken();
+                    } else if (nextTokenIs(jsonParser, NEXT_RECORDS_URL)) {
                         nextRecordsUrl.set(jsonParser.getValueAsString());
-                    } else if (jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
-                            .equals(RECORDS)) {
-                        jsonParser.nextToken();
+                    } else if (nextTokenIs(jsonParser, RECORDS)) {
                         jsonGenerator.copyCurrentStructure(jsonParser);
                     }
                 }
             }
         };
+    }
+
+    private boolean nextTokenIs(JsonParser jsonParser, String value) throws IOException {
+        return jsonParser.getCurrentToken() == JsonToken.FIELD_NAME && jsonParser.getCurrentName()
+                .equals(value) && jsonParser.nextToken() != null;
     }
 
     private InputStream getResultInputStream(String nextRecordsUrl, String querySObject) {
