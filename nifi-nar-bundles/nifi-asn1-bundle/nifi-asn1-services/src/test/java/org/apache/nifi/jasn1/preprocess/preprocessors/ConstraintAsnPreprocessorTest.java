@@ -19,7 +19,7 @@ package org.apache.nifi.jasn1.preprocess.preprocessors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ConstraintAsnPreprocessorTest extends AbstractPreprocessorTest {
+public class ConstraintAsnPreprocessorTest extends AbstractAsnPreprocessorTest {
     @BeforeEach
     void setUp() {
         testSubject = new ConstraintAsnPreprocessor();

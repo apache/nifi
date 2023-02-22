@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiASNPreprocessor;
+import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-public class VersionBracketAsnPreprocessor implements NiFiASNPreprocessor {
+public class VersionBracketAsnPreprocessor implements NiFiAsnPreprocessor {
     public static final String OPEN_VERSION_BRACKET = "[[";
     public static final String CLOSE_VERSION_BRACKET = "]]";
 
@@ -36,18 +36,18 @@ public class VersionBracketAsnPreprocessor implements NiFiASNPreprocessor {
 
     @Override
     public List<String> preprocessAsn(List<String> lines) {
-        List<String> preprocessedLines = new ArrayList<>();
+        final List<String> preprocessedLines = new ArrayList<>();
 
-        AtomicBoolean inVersionBracket = new AtomicBoolean(false);
+        final AtomicBoolean inVersionBracket = new AtomicBoolean(false);
         lines.forEach(line -> {
-            StringBuilder preprocessedLine = new StringBuilder();
+            final StringBuilder preprocessedLine = new StringBuilder();
             String contentToProcess = line;
 
-            int versionBracketStart = contentToProcess.indexOf(OPEN_VERSION_BRACKET);
+            final int versionBracketStart = contentToProcess.indexOf(OPEN_VERSION_BRACKET);
             if (versionBracketStart > -1) {
                 inVersionBracket.set(true);
 
-                String contentBeforeVersionBracket = line.substring(0, versionBracketStart);
+                final String contentBeforeVersionBracket = line.substring(0, versionBracketStart);
                 if (!contentBeforeVersionBracket.isEmpty()) {
                     preprocessedLine.append(contentBeforeVersionBracket);
                 }
@@ -55,7 +55,7 @@ public class VersionBracketAsnPreprocessor implements NiFiASNPreprocessor {
                 contentToProcess = contentToProcess.substring(versionBracketStart + 2);
             }
 
-            int versionBracketEnd = contentToProcess.indexOf(CLOSE_VERSION_BRACKET);
+            final int versionBracketEnd = contentToProcess.indexOf(CLOSE_VERSION_BRACKET);
             String contentAfterVersionBracket = null;
             if (versionBracketEnd > -1) {
                 contentAfterVersionBracket = contentToProcess.substring(versionBracketEnd + 2);

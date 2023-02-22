@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-public class NiFiASNPreprocessorEngine {
+public class NiFiAsnPreprocessorEngine {
     public static final String COMMA = "\\s*,\\s*";
 
-    private static final List<NiFiASNPreprocessor> PREPROCESSORS = Arrays.asList(
+    private static final List<NiFiAsnPreprocessor> PREPROCESSORS = Arrays.asList(
             new HuggingCommentAsnPreprocessor(),
             new VersionBracketAsnPreprocessor(),
             new ConstraintAsnPreprocessor()
@@ -46,23 +46,23 @@ public class NiFiASNPreprocessorEngine {
             String asnFilesString,
             String outputDirectory
     ) {
-        String[] inputFiles = asnFilesString.split(COMMA);
+        final String[] inputFiles = asnFilesString.split(COMMA);
 
-        StringJoiner preprocessedInputFiles = new StringJoiner(",");
+        final StringJoiner preprocessedInputFiles = new StringJoiner(",");
 
         for (String inputFile : inputFiles) {
-            Path inputFilePath = Paths.get(inputFile);
-            Path fileName = inputFilePath.getFileName();
+            final Path inputFilePath = Paths.get(inputFile);
+            final Path fileName = inputFilePath.getFileName();
 
-            List<String> lines = readAsnLines(componentLog, inputFile, inputFilePath);
+            final List<String> lines = readAsnLines(componentLog, inputFile, inputFilePath);
 
-            List<String> preprocessedLines = preprocessAsn(lines);
+            final List<String> preprocessedLines = preprocessAsn(lines);
 
-            String preprocessedAsn = preprocessedLines
+            final String preprocessedAsn = preprocessedLines
                     .stream()
                     .collect(Collectors.joining(System.lineSeparator()));
 
-            Path preprocessedAsnPath = Paths.get(outputDirectory, fileName.toString());
+            final Path preprocessedAsnPath = Paths.get(outputDirectory, fileName.toString());
             preprocessedInputFiles.add(preprocessedAsnPath.toString());
 
             writePreprocessedAsn(componentLog, preprocessedAsn, preprocessedAsnPath);
@@ -74,7 +74,7 @@ public class NiFiASNPreprocessorEngine {
     List<String> preprocessAsn(List<String> lines) {
         List<String> preprocessedAsn = lines;
 
-        for (NiFiASNPreprocessor preprocessor : getPreprocessors()) {
+        for (NiFiAsnPreprocessor preprocessor : getPreprocessors()) {
             preprocessedAsn = preprocessor.preprocessAsn(preprocessedAsn);
         }
 
@@ -101,7 +101,7 @@ public class NiFiASNPreprocessorEngine {
         }
     }
 
-    List<NiFiASNPreprocessor> getPreprocessors() {
+    List<NiFiAsnPreprocessor> getPreprocessors() {
         return PREPROCESSORS;
     }
 }

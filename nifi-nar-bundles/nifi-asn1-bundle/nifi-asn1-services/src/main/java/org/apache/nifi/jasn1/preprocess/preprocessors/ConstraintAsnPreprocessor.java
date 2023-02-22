@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiASNPreprocessor;
+import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ConstraintAsnPreprocessor implements NiFiASNPreprocessor {
+public class ConstraintAsnPreprocessor implements NiFiAsnPreprocessor {
     public static final String OPEN_BRACKET = "(";
     public static final String CLOSE_BRACKET = ")";
 
@@ -32,11 +32,11 @@ public class ConstraintAsnPreprocessor implements NiFiASNPreprocessor {
 
     @Override
     public List<String> preprocessAsn(List<String> lines) {
-        List<String> preprocessedLines = new ArrayList<>();
+        final List<String> preprocessedLines = new ArrayList<>();
 
-        AtomicInteger unclosedCounter = new AtomicInteger(0);
+        final AtomicInteger unclosedCounter = new AtomicInteger(0);
         lines.forEach(line -> {
-            StringBuilder preprocessedLine = new StringBuilder();
+            final StringBuilder preprocessedLine = new StringBuilder();
 
             String contentToProcess = line;
 
@@ -45,12 +45,12 @@ public class ConstraintAsnPreprocessor implements NiFiASNPreprocessor {
                     break;
                 }
 
-                int openBracketIndex = contentToProcess.indexOf(OPEN_BRACKET);
-                int closeBracketIndex = contentToProcess.indexOf(CLOSE_BRACKET);
+                final int openBracketIndex = contentToProcess.indexOf(OPEN_BRACKET);
+                final int closeBracketIndex = contentToProcess.indexOf(CLOSE_BRACKET);
 
                 if (openBracketIndex != -1 && (openBracketIndex < closeBracketIndex) || closeBracketIndex == -1) {
-                    String contentBeforeOpenBracket = contentToProcess.substring(0, openBracketIndex);
-                    String contentAfterOpenBracket = contentToProcess.substring(openBracketIndex + 1);
+                    final String contentBeforeOpenBracket = contentToProcess.substring(0, openBracketIndex);
+                    final String contentAfterOpenBracket = contentToProcess.substring(openBracketIndex + 1);
 
                     if (unclosedCounter.get() < 1) {
                         if (!contentBeforeOpenBracket.isEmpty()) {
@@ -59,7 +59,7 @@ public class ConstraintAsnPreprocessor implements NiFiASNPreprocessor {
                             //  join together parts that should stay separated
                         }
 
-                        Matcher supportedMatcher = ALLOWED.matcher(contentAfterOpenBracket);
+                        final Matcher supportedMatcher = ALLOWED.matcher(contentAfterOpenBracket);
                         if (supportedMatcher.matches()) {
                             preprocessedLine.append("(" + supportedMatcher.group(1));
                             contentToProcess = supportedMatcher.group(2);

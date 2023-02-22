@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiASNPreprocessor;
+import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public abstract class AbstractPreprocessorTest {
-    protected NiFiASNPreprocessor testSubject;
+public abstract class AbstractAsnPreprocessorTest {
+    protected NiFiAsnPreprocessor testSubject;
 
     protected void testPreprocess(String input) throws IOException, URISyntaxException {
         // GIVEN

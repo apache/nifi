@@ -19,7 +19,7 @@ package org.apache.nifi.jasn1.preprocess.preprocessors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class VersionBracketAsnPreprocessorTest extends AbstractPreprocessorTest {
+public class VersionBracketAsnPreprocessorTest extends AbstractAsnPreprocessorTest {
     @BeforeEach
     void setUp() {
         testSubject = new VersionBracketAsnPreprocessor();

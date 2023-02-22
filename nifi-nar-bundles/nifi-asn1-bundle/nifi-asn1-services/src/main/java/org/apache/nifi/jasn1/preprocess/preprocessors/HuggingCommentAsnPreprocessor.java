@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiASNPreprocessor;
+import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class HuggingCommentAsnPreprocessor implements NiFiASNPreprocessor {
+public class HuggingCommentAsnPreprocessor implements NiFiAsnPreprocessor {
     public static final Pattern HUGGING_COMMENT_PATTERN = Pattern.compile("^(.*[^\\s])(--.*)$");
 
     @Override
     public List<String> preprocessAsn(List<String> lines) {
-        List<String> preprocessedLines = new ArrayList<>();
+        final List<String> preprocessedLines = new ArrayList<>();
 
         lines.forEach(line -> {
-            StringBuilder preprocessedLine = new StringBuilder();
+            final StringBuilder preprocessedLine = new StringBuilder();
 
-            Matcher huggingCommentMather = HUGGING_COMMENT_PATTERN.matcher(line);
+            final Matcher huggingCommentMather = HUGGING_COMMENT_PATTERN.matcher(line);
             if (huggingCommentMather.matches()) {
                 preprocessedLine.append(huggingCommentMather.group(1))
                         .append(" ")

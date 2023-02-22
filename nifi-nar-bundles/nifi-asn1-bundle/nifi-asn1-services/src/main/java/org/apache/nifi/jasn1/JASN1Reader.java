@@ -36,7 +36,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.jasn1.preprocess.NiFiASNPreprocessorEngine;
+import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessorEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -136,7 +136,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .build();
 
     private static final PropertyDescriptor PREPROCESS_OUTPUT_DIRECTORY = new PropertyDescriptor.Builder()
-        .name("additional-preprocesszing-output-directory")
+        .name("additional-preprocessing-output-directory")
         .displayName("Additional Preprocessing Output Directory")
         .description("When set, NiFi will do additional preprocessing steps that creates modified versions of the provided ASN files," +
                 " removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data." +
@@ -158,8 +158,6 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
     ComponentLog logger;
 
     private RecordSchemaProvider schemaProvider = new RecordSchemaProvider();
-
-    private NiFiASNPreprocessorEngine asnPreprocessorEngine = new NiFiASNPreprocessorEngine();
 
     volatile Path asnOutDir;
     private volatile PropertyValue rootModelNameProperty;
@@ -212,6 +210,8 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
             String asnFilesString = context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue();
 
             if (context.getProperty(PREPROCESS_OUTPUT_DIRECTORY) != null && context.getProperty(PREPROCESS_OUTPUT_DIRECTORY).isSet()) {
+                NiFiAsnPreprocessorEngine asnPreprocessorEngine = new NiFiAsnPreprocessorEngine();
+
                 String preprocessOutputDirectory = context.getProperty(PREPROCESS_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
 
                 asnFilesString = asnPreprocessorEngine.preprocess(

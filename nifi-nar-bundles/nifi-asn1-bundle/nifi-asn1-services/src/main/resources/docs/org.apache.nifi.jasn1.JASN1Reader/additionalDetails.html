@@ -136,13 +136,6 @@
             The following modification are applied:
             <ol>
                 <li>
-                    "Hugging" comments -  This is not really an ASN feature but a potential error. The double dash comment indicator "--" should be separated from ASN elements.
-                    <br />E.g.
-                    <pre>field   [0] INTEGER(1..8)--comment</pre>
-                    will be changed to
-                    <pre>field   [0] INTEGER(1..8) --comment</pre>
-                </li>
-                <li>
                     Constraints - Advanced constraints are not recognized as valid ASN elements by NiFi. This step will try to remove <i>all</i> types of constraints.
                     <br />E.g.
                     <pre>field   [3] INTEGER(SIZE(1..8,...,10|12|20)) OPTIONAL</pre>
@@ -175,6 +168,13 @@ MyType ::= SEQUENCE {
 	integerField5		INTEGER OPTIONAL
 }
                     </pre>
+                </li>
+                <li>
+                    "Hugging" comments -  This is not really an ASN feature but a potential error. The double dash comment indicator "--" should be separated from ASN elements.
+                    <br />E.g.
+                    <pre>field   [0] INTEGER(1..8)--comment</pre>
+                    will be changed to
+                    <pre>field   [0] INTEGER(1..8) --comment</pre>
                 </li>
             </ol>
         </p>

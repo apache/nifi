@@ -32,20 +32,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class NiFiASNPreprocessorEngineTest {
-    private NiFiASNPreprocessorEngine testSubject;
-    private NiFiASNPreprocessorEngine helper;
+public class NiFiAsnPreprocessorEngineTest {
+    private NiFiAsnPreprocessorEngine testSubject;
+    private NiFiAsnPreprocessorEngine helper;
 
-    private NiFiASNPreprocessor mockPreprocessor1;
-    private NiFiASNPreprocessor mockPreprocessor2;
-    private List<NiFiASNPreprocessor> preprocessors;
+    private NiFiAsnPreprocessor mockPreprocessor1;
+    private NiFiAsnPreprocessor mockPreprocessor2;
+    private List<NiFiAsnPreprocessor> preprocessors;
 
     private ComponentLog log;
 
     @BeforeEach
     void setUp() {
-        mockPreprocessor1 = mock(NiFiASNPreprocessor.class);
-        mockPreprocessor2 = mock(NiFiASNPreprocessor.class);
+        mockPreprocessor1 = mock(NiFiAsnPreprocessor.class);
+        mockPreprocessor2 = mock(NiFiAsnPreprocessor.class);
 
         preprocessors = Arrays.asList(
                 mockPreprocessor1,
@@ -54,8 +54,8 @@ public class NiFiASNPreprocessorEngineTest {
 
         log = mock(ComponentLog.class);
 
-        helper = mock(NiFiASNPreprocessorEngine.class);
-        testSubject = new NiFiASNPreprocessorEngine() {
+        helper = mock(NiFiAsnPreprocessorEngine.class);
+        testSubject = new NiFiAsnPreprocessorEngine() {
             @Override
             List<String> readAsnLines(ComponentLog componentLog, String inputFile, Path inputFilePath) {
                 return helper.readAsnLines(componentLog, inputFile, inputFilePath);
@@ -67,7 +67,7 @@ public class NiFiASNPreprocessorEngineTest {
             }
 
             @Override
-            List<NiFiASNPreprocessor> getPreprocessors() {
+            List<NiFiAsnPreprocessor> getPreprocessors() {
                 return preprocessors;
             }
         };
