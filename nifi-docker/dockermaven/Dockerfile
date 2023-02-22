@@ -20,7 +20,7 @@
 ARG IMAGE_NAME=eclipse-temurin
 ARG IMAGE_TAG=11-jre
 
-FROM maven:eclipse-temurin AS builder
+FROM maven:${IMAGE_NAME} AS builder
 
 WORKDIR /home/nifi
 COPY . .
