@@ -6,4 +6,4 @@ buildPipeline projectName: 'alp-nifi-base',
                 ["fileNameWithPath":"./nifi-docker/dockermaven/Dockerfile", "baseContextPath": ".", "imageName": "alp-nifi-base"],
               ],
               runAnchore: [defaultBranches: true, featureBranches: false],
-              mapForBranchBasedTag: ['main': 'main']
+              mapForBranchBasedTag: [:]
