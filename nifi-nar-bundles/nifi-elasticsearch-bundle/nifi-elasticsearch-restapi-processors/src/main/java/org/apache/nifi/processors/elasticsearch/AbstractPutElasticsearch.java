@@ -223,10 +223,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                     errorResponsesFF = session.create(parent);
                     try (final OutputStream errorsOutputStream = session.write(errorResponsesFF)) {
                         errorMapper.writeValue(errorsOutputStream, errorResponses);
-
-                        errorResponsesFF = session.putAttribute(errorResponsesFF, "elasticsearch.put.error.count", String.valueOf(errorResponses.size()));
-                        session.transfer(errorResponsesFF, REL_ERROR_RESPONSES);
                     }
+                    errorResponsesFF = session.putAttribute(errorResponsesFF, "elasticsearch.put.error.count", String.valueOf(errorResponses.size()));
+                    session.transfer(errorResponsesFF, REL_ERROR_RESPONSES);
                 } catch (final IOException ex) {
                     getLogger().error("Unable to write error responses", ex);
                     session.remove(errorResponsesFF);
