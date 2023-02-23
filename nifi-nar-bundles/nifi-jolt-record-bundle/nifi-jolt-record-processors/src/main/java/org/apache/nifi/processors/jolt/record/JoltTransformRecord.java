@@ -62,6 +62,7 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -157,7 +158,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .description("Path to location of a JOLT specification file. Only one of 'Jolt Specification' or 'Path To Jolt Specification' may be used. "
                     + "This value is ignored if the Jolt Sort Transformation is selected.")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -527,6 +528,10 @@ public class JoltTransformRecord extends AbstractProcessor {
     protected static Object transform(JoltTransform joltTransform, Object input) {
         return joltTransform instanceof ContextualTransform
                 ? ((ContextualTransform) joltTransform).transform(input, Collections.emptyMap()) : ((Transform) joltTransform).transform(input);
+    }
+
+    protected FilenameFilter getJarFilenameFilter(){
+        return (dir, name) -> (name != null && name.endsWith(".jar"));
     }
 
     /**

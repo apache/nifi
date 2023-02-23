@@ -304,7 +304,7 @@ public class TestJoltTransformRecord {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -326,7 +326,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -359,7 +359,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
             put("b", 2);
             put("c", 3);
         }});
-        final Object[] recordArray1 = new Object[] {record1, record2, record3};
+        final Object[] recordArray1 = new Object[]{record1, record2, record3};
         parser.addRecord((Object) recordArray1);
 
         final Record record4 = new MapRecord(xSchema, new HashMap<String, Object>() {{
@@ -372,7 +372,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
             put("b", 201);
             put("c", 301);
         }});
-        final Object[] recordArray2 = new Object[] {record4, record5};
+        final Object[] recordArray2 = new Object[]{record4, record5};
         parser.addRecord((Object) recordArray2);
 
         final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputSchemaMultipleOutputRecords.avsc")));
@@ -392,6 +392,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json"))),
                 new String(transformed.toByteArray()));
+    }
 
     @Test
     public void testTransformInputWithShiftrFromFile() throws IOException {
@@ -429,7 +430,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -449,7 +450,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/removrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -470,7 +471,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/cardrOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -489,7 +490,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -512,7 +513,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -553,7 +554,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -573,7 +574,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         assertEquals(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json"))),
                 new String(transformed.toByteArray()));
@@ -592,7 +593,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -617,7 +618,7 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0);
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
@@ -731,5 +732,4 @@ runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
             recordGenerator.apply(numRecords, parser);
         }
     }
-
 }

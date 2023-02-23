@@ -72,7 +72,7 @@ public class TestJoltTransformJSON {
     }
 
     @Test
-    public void testInvalidJOLTSpec() {
+    public void testInvalidJOLTSpec() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
         String spec = "[{}]";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);

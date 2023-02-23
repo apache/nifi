@@ -44,7 +44,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
@@ -55,7 +54,8 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,7 +113,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .description("Path to location of a JOLT specification file. Only one of 'Jolt Specification' or 'Path To Jolt Specification' may be used. "
                     + "This value is ignored if the Jolt Sort Transformation is selected.")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -305,7 +305,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         try (final InputStream in = session.read(original)) {
             inputJson = JsonUtils.jsonToObject(in);
         } catch (final Exception e) {
-            logger.error("Failed to transform {}; routing to failure", new Object[] {original, e});
+            logger.error("Failed to transform {}; routing to failure", original, e);
             session.transfer(original, REL_FAILURE);
             return;
         }
@@ -321,7 +321,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             final Object transformedJson = TransformUtils.transform(transform,inputJson);
             jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? JsonUtils.toPrettyJsonString(transformedJson) : JsonUtils.toJsonString(transformedJson);
         } catch (final Exception ex) {
-            logger.error("Unable to transform {} due to {}", new Object[] {original, ex.toString(), ex});
+            logger.error("Unable to transform {} due to {}", original, ex.toString(), ex);
             session.transfer(original, REL_FAILURE);
             return;
         } finally {
@@ -330,21 +330,16 @@ public class JoltTransformJSON extends AbstractProcessor {
             }
         }
 
-        FlowFile transformed = session.write(original, new OutputStreamCallback() {
-            @Override
-            public void process(OutputStream out) throws IOException {
-                out.write(jsonString.getBytes(DEFAULT_CHARSET));
-            }
-        });
+        FlowFile transformed = session.write(original, out -> out.write(jsonString.getBytes(DEFAULT_CHARSET)));
 
         final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
         transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(transformed, REL_SUCCESS);
         session.getProvenanceReporter().modifyContent(transformed,"Modified With " + transformType ,stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        logger.info("Transformed {}", new Object[]{original});
+        logger.info("Transformed {}", original);
     }
 
-    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
+    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws IOException {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
@@ -408,5 +403,4 @@ public class JoltTransformJSON extends AbstractProcessor {
     protected FilenameFilter getJarFilenameFilter(){
         return (dir, name) -> (name != null && name.endsWith(".jar"));
     }
-
 }
