@@ -477,23 +477,23 @@ public class QuerySalesforceObject extends AbstractProcessor {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         AtomicReference<String> totalSize = new AtomicReference<>();
         boolean isOriginalTransferred = false;
-        List<FlowFile> flowFiles = new ArrayList<>();
+        List<FlowFile> outgoingFlowFiles = new ArrayList<>();
         do {
             FlowFile outgoingFlowFile;
-            if (originalFlowFile != null) {
-                outgoingFlowFile = session.create(originalFlowFile);
-            } else {
-                outgoingFlowFile = session.create();
-            }
-            Map<String, String> attributes = new HashMap<>();
             try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery)) {
+                if (originalFlowFile != null) {
+                    outgoingFlowFile = session.create(originalFlowFile);
+                } else {
+                    outgoingFlowFile = session.create();
+                }
+                outgoingFlowFiles.add(outgoingFlowFile);
                 outgoingFlowFile = session.write(outgoingFlowFile, parseHttpResponse(response, nextRecordsUrl, totalSize));
                 int recordCount = nextRecordsUrl.get() != null ? 2000 : Integer.parseInt(totalSize.get()) % 2000;
+                Map<String, String> attributes = new HashMap<>();
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
                 session.adjustCounter("Salesforce records processed", recordCount, false);
                 session.putAllAttributes(outgoingFlowFile, attributes);
-                flowFiles.add(outgoingFlowFile);
             } catch (IOException e) {
                 throw new ProcessException("Couldn't get Salesforce records", e);
             } catch (Exception e) {
@@ -502,14 +502,14 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     isOriginalTransferred = true;
                 }
                 getLogger().error("Couldn't get Salesforce records", e);
-                session.remove(flowFiles);
-                flowFiles.clear();
+                session.remove(outgoingFlowFiles);
+                outgoingFlowFiles.clear();
                 break;
             }
         } while (nextRecordsUrl.get() != null);
 
-        if (!flowFiles.isEmpty()) {
-            session.transfer(flowFiles, REL_SUCCESS);
+        if (!outgoingFlowFiles.isEmpty()) {
+            session.transfer(outgoingFlowFiles, REL_SUCCESS);
         }
         if (originalFlowFile != null && !isOriginalTransferred) {
             session.transfer(originalFlowFile, REL_ORIGINAL);
