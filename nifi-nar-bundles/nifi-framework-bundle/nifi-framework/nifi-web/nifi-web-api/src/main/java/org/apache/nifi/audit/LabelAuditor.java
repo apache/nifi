@@ -40,24 +40,21 @@ import java.util.Objects;
 public class LabelAuditor extends NiFiAuditor {
     private static final Logger logger = LoggerFactory.getLogger(LabelAuditor.class);
 
-    private static final String LABEL_NAME = "N/A";
+    static final String SOURCE_NAME = "LABEL";
 
     /**
      * Audits the creation of a Label.
      *
-     * @return label
-     * @throws Throwable ex
+     * @param proceedingJoinPoint Join Point observed
+     * @return Label
+     * @throws Throwable Thrown on failure to proceed with target invocation
      */
     @Around("within(org.apache.nifi.web.dao.LabelDAO+) && "
             + "execution(org.apache.nifi.controller.label.Label createLabel(java.lang.String, org.apache.nifi.web.api.dto.LabelDTO))")
-    public Label createLabelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
-        // perform the underlying operation
-        Label label = (Label) proceedingJoinPoint.proceed();
-
-        // perform the audit
+    public Label createLabelAdvice(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        final Label label = (Label) proceedingJoinPoint.proceed();
         final Action action = generateAuditRecord(label, Operation.Add);
 
-        // save the actions
         if (action != null) {
             saveAction(action, logger);
         }
@@ -66,35 +63,29 @@ public class LabelAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits the configuration of a label.
+     * Audits the configuration of a Label.
      *
-     * @param proceedingJoinPoint join point
-     * @param labelDTO dto
-     * @param labelDAO dao
-     * @return node
-     * @throws Throwable ex
+     * @param proceedingJoinPoint Join Point observed
+     * @param labelDTO Data Transfer Object
+     * @param labelDAO Data Access Object
+     * @return Label
+     * @throws Throwable Thrown on failure to proceed with target invocation
      */
     @Around("within(org.apache.nifi.web.dao.LabelDAO+) && "
             + "execution(org.apache.nifi.controller.label.Label updateLabel(org.apache.nifi.web.api.dto.LabelDTO)) && "
             + "args(labelDTO) && "
             + "target(labelDAO)")
-    public Label updateLabelAdvice(ProceedingJoinPoint proceedingJoinPoint, LabelDTO labelDTO, LabelDAO labelDAO) throws Throwable {
+    public Label updateLabelAdvice(final ProceedingJoinPoint proceedingJoinPoint, final LabelDTO labelDTO, final LabelDAO labelDAO) throws Throwable {
         // determine the initial content of label
-        Label label = labelDAO.getLabel(labelDTO.getId());
-        String originalLabelValue = label.getValue();
+        final Label label = labelDAO.getLabel(labelDTO.getId());
+        final String originalLabelValue = label.getValue();
 
-        // update the processor state
         final Label updatedLabel = (Label) proceedingJoinPoint.proceed();
 
-        // if no exceptions were thrown, add the label action...
-        label = labelDAO.getLabel(updatedLabel.getIdentifier());
-
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
         // ensure the user was found
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
-            final String updatedLabelValue = label.getValue();
+            final String updatedLabelValue = updatedLabel.getValue();
             if ((originalLabelValue == null && updatedLabelValue != null)
                     || !Objects.equals(originalLabelValue, updatedLabelValue)) {
                 final FlowChangeAction labelAction = new FlowChangeAction();
@@ -103,37 +94,35 @@ public class LabelAuditor extends NiFiAuditor {
                 labelAction.setSourceId(label.getIdentifier());
                 labelAction.setSourceType(Component.Label);
                 labelAction.setOperation(Operation.Configure);
-                labelAction.setSourceName(LABEL_NAME); // Source Name is a required field for the database but not applicable for a label
+                labelAction.setSourceName(SOURCE_NAME); // Source Name is a required field for the database but not applicable for a label
 
                 final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
-                actionDetails.setName(LABEL_NAME);
+                actionDetails.setName(SOURCE_NAME);
                 actionDetails.setValue(updatedLabelValue);
                 actionDetails.setPreviousValue(originalLabelValue);
                 labelAction.setActionDetails(actionDetails);
 
-                // save the actions
                 saveAction(labelAction, logger);
             }
         }
         return updatedLabel;
     }
 
-
     /**
-     * Audits the removal of a label.
+     * Audits the removal of a Label.
      *
-     * @param proceedingJoinPoint join point
-     * @param labelId label id
-     * @param labelDAO label dao
-     * @throws Throwable ex
+     * @param proceedingJoinPoint Join Point observed
+     * @param labelId Label identifier
+     * @param labelDAO Label Data Access Object
+     * @throws Throwable Thrown on failure to proceed with target invocation
      */
     @Around("within(org.apache.nifi.web.dao.LabelDAO+) && "
             + "execution(void deleteLabel(java.lang.String)) && "
             + "args(labelId) && "
             + "target(labelDAO)")
-    public void removeLabelAdvice(ProceedingJoinPoint proceedingJoinPoint, String labelId, LabelDAO labelDAO) throws Throwable {
+    public void removeLabelAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String labelId, final LabelDAO labelDAO) throws Throwable {
         // get the label before removing it
-        Label label = labelDAO.getLabel(labelId);
+        final Label label = labelDAO.getLabel(labelId);
 
         // remove the label
         proceedingJoinPoint.proceed();
@@ -141,7 +130,6 @@ public class LabelAuditor extends NiFiAuditor {
         // if no exceptions were thrown, add removal actions...
         final Action action = generateAuditRecord(label, Operation.Remove);
 
-        // save the actions
         if (action != null) {
             saveAction(action, logger);
         }
@@ -150,37 +138,33 @@ public class LabelAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified label.
      *
-     * @param label label
-     * @param operation operation
-     * @return action
+     * @param label Label audited
+     * @param operation Operation audited
+     * @return Action description
      */
-    public Action generateAuditRecord(Label label, Operation operation) {
+    public Action generateAuditRecord(final Label label, final Operation operation) {
         return generateAuditRecord(label, operation, null);
     }
 
     /**
      * Generates an audit record for the creation of the specified label.
      *
-     * @param label label
-     * @param operation operation
-     * @param actionDetails details
-     * @return action
+     * @param label Label audited
+     * @param operation Operation audited
+     * @param actionDetails Action Details or null when not provided
+     * @return Action description
      */
-    public Action generateAuditRecord(Label label, Operation operation, ActionDetails actionDetails) {
+    public Action generateAuditRecord(final Label label, final Operation operation, final ActionDetails actionDetails) {
         FlowChangeAction action = null;
 
-        // get the current user
-        NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        // ensure the user was found
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null) {
-            // create the action for adding this label
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(label.getIdentifier());
-            action.setSourceName(LABEL_NAME);
+            action.setSourceName(SOURCE_NAME);
             action.setSourceType(Component.Label);
 
             if (actionDetails != null) {
