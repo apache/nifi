@@ -34,8 +34,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -49,7 +52,9 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -190,6 +195,36 @@ public class PutIceberg extends AbstractIcebergProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        final List<ValidationResult> problems = new ArrayList<>();
+        final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
+        boolean catalogServiceEnabled = context.getControllerServiceLookup().isControllerServiceEnabled(catalogService);
+
+        if (catalogServiceEnabled) {
+            final boolean kerberosUserServiceIsSet = context.getProperty(KERBEROS_USER_SERVICE).isSet();
+            final boolean securityEnabled = SecurityUtil.isSecurityEnabled(catalogService.getConfiguration());
+
+            if (securityEnabled && !kerberosUserServiceIsSet) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(KERBEROS_USER_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation("'hadoop.security.authentication' is set to 'kerberos' in the hadoop configuration files but no KerberosUserService is configured.")
+                        .build());
+            }
+
+            if (!securityEnabled && kerberosUserServiceIsSet) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(KERBEROS_USER_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation("KerberosUserService is configured but 'hadoop.security.authentication' is not set to 'kerberos' in the hadoop configuration files.")
+                        .build());
+            }
+        }
+
+        return problems;
     }
 
     @Override
