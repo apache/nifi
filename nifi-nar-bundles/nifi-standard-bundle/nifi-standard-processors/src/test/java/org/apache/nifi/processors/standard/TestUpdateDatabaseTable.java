@@ -21,6 +21,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
@@ -356,6 +357,54 @@ public class TestUpdateDatabaseTable {
                 // No more rows
                 assertFalse(rs.next());
             }
+        }
+    }
+
+    @Test
+    public void testAddColumnToExistingTableUpdateFieldNames() throws Exception {
+        runner = TestRunners.newTestRunner(processor);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersons);
+            }
+
+            MockRecordParser readerFactory = new MockRecordParser();
+
+            readerFactory.addSchemaField(new RecordField("id", RecordFieldType.INT.getDataType(), false));
+            readerFactory.addSchemaField(new RecordField("name", RecordFieldType.STRING.getDataType(), true));
+            readerFactory.addSchemaField(new RecordField("code", RecordFieldType.INT.getDataType(), 0, true));
+            readerFactory.addSchemaField(new RecordField("newField", RecordFieldType.STRING.getDataType(), 0, true));
+            readerFactory.addRecord(1, "name1", null, "test");
+
+            runner.addControllerService("mock-reader-factory", readerFactory);
+            runner.enableControllerService(readerFactory);
+
+            runner.setProperty(UpdateDatabaseTable.RECORD_READER, "mock-reader-factory");
+            runner.setProperty(UpdateDatabaseTable.TABLE_NAME, "${table.name}");
+            runner.setProperty(UpdateDatabaseTable.CREATE_TABLE, UpdateDatabaseTable.FAIL_IF_NOT_EXISTS);
+            runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
+            runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
+            runner.setProperty(UpdateDatabaseTable.UPDATE_FIELD_NAMES, "true");
+
+            MockRecordWriter writerFactory = new MockRecordWriter();
+            runner.addControllerService("mock-writer-factory", writerFactory);
+            runner.enableControllerService(writerFactory);
+            runner.setProperty(UpdateDatabaseTable.RECORD_WRITER_FACTORY, "mock-writer-factory");
+
+            runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
+            runner.addControllerService("dbcp", service);
+            runner.enableControllerService(service);
+            runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+            Map<String, String> attrs = new HashMap<>();
+            attrs.put("db.name", "default");
+            attrs.put("table.name", "persons");
+            runner.enqueue(new byte[0], attrs);
+            runner.run();
+
+            runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+            // Ensure the additional field is written out to the FlowFile
+            flowFile.assertContentEquals("\"1\",\"name1\",\"0\",\"test\"\n");
         }
     }
 

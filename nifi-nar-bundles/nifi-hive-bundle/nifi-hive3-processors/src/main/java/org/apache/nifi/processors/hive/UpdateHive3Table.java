@@ -646,6 +646,7 @@ public class UpdateHive3Table extends AbstractProcessor {
                     if (!hiveColumns.contains(recordFieldName) && !partitionColumns.contains(recordFieldName)) {
                         // The field does not exist in the table (and is not a partition column), add it
                         columnsToAdd.add("`" + recordFieldName + "` " + NiFiOrcUtils.getHiveTypeFromFieldType(recordField.getDataType(), true));
+                        hiveColumns.add(recordFieldName);
                         getLogger().info("Adding column " + recordFieldName + " to table " + tableName);
                     }
                 }
