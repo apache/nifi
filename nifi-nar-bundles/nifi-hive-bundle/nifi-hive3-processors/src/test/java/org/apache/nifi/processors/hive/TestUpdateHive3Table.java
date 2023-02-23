@@ -493,6 +493,46 @@ public class TestUpdateHive3Table {
         assertTrue(flowFile.getContent().startsWith("name,favorite_number,favorite_color,scale\n"));
     }
 
+    @Test
+    public void testAddColumnUpdateFields() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "messages");
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("test");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(UpdateHive3Table.PARTITION_CLAUSE, "continent, country");
+
+        RecordSetWriterFactory recordWriter = new CSVRecordSetWriter();
+        runner.addControllerService("writer", recordWriter);
+        runner.enableControllerService(recordWriter);
+        runner.setProperty(UpdateHive3Table.UPDATE_FIELD_NAMES, "true");
+        runner.setProperty(UpdateHive3Table.RECORD_WRITER_FACTORY, "writer");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        HashMap<String,String> attrs = new HashMap<>();
+        attrs.put("continent", "Asia");
+        attrs.put("country", "China");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "messages");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/messages/continent=Asia/country=China");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(2, statements.size());
+        // All columns from users table/data should be added to the table, and a new partition should be added
+        assertEquals("ALTER TABLE `messages` ADD COLUMNS (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE)",
+                statements.get(0));
+        assertEquals("ALTER TABLE `messages` ADD IF NOT EXISTS PARTITION (`continent`='Asia', `country`='China')",
+                statements.get(1));
+
+        // The input reader is for a different table, so none of the columns match. This results in an empty output FlowFile
+        flowFile.assertContentEquals("");
+    }
+
     private static final class MockUpdateHive3Table extends UpdateHive3Table {
     }
 
