@@ -78,16 +78,17 @@ public class HiveCatalogService extends AbstractCatalogService {
         String configMetastoreUri = null;
         String configWarehouseLocation = null;
 
-        if (validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
+        final String propertyMetastoreUri = validationContext.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
+        final String propertyWarehouseLocation = validationContext.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue();
+
+        // Load the configurations for validation only if any config resource is provided and if either the metastore URI or the warehouse location property is missing
+        if (validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet() && (propertyMetastoreUri == null || propertyWarehouseLocation == null)) {
             final String configFiles = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
 
             Configuration configuration = getConfigurationFromFiles(configFiles);
             configMetastoreUri = configuration.get("hive.metastore.uris");
             configWarehouseLocation = configuration.get("hive.metastore.warehouse.dir");
         }
-
-        final String propertyMetastoreUri = validationContext.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue();
-        final String propertyWarehouseLocation = validationContext.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue();
 
         if (configMetastoreUri == null && propertyMetastoreUri == null) {
             problems.add(new ValidationResult.Builder()

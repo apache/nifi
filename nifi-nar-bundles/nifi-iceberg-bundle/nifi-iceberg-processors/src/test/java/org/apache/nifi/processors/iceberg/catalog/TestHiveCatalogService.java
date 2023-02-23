@@ -52,7 +52,7 @@ public class TestHiveCatalogService extends AbstractControllerService implements
 
     @Override
     public Configuration getConfiguration() {
-        return null;
+        return new Configuration();
     }
 
 }
