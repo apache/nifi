@@ -297,7 +297,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             ageFilterUpper = ageFilterUpperTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
 
-        SalesForceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields);
+        SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields);
 
         if (StringUtils.isBlank(fields)) {
             fields = salesForceSchemaHolder.getSalesforceObject().getFields()
@@ -405,7 +405,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return salesforceRestService.getNextRecords(nextRecordsUrl.get());
     }
 
-    private SalesForceSchemaHolder getConvertedSalesforceSchema(String sObject, String fields) {
+    private SalesforceSchemaHolder getConvertedSalesforceSchema(String sObject, String fields) {
         try (InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject)) {
             return convertSchema(describeSObjectResult, fields);
         } catch (IOException e) {
@@ -421,7 +421,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    protected SalesForceSchemaHolder convertSchema(InputStream describeSObjectResult, String fieldsOfInterest) {
+    protected SalesforceSchemaHolder convertSchema(InputStream describeSObjectResult, String fieldsOfInterest) {
         try {
             SObjectDescription salesforceObject = salesForceToRecordSchemaConverter.getSalesforceObject(describeSObjectResult);
             RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(salesforceObject, fieldsOfInterest);
@@ -434,7 +434,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     ))
             ));
 
-            return new SalesForceSchemaHolder(querySObjectResultSchema, recordSchema, salesforceObject);
+            return new SalesforceSchemaHolder(querySObjectResultSchema, recordSchema, salesforceObject);
         } catch (IOException e) {
             throw new ProcessException("SObject to Record schema conversion failed", e);
         }
@@ -477,12 +477,12 @@ public class QuerySalesforceObject extends AbstractProcessor {
         return queryBuilder.toString();
     }
 
-    static class SalesForceSchemaHolder {
+    static class SalesforceSchemaHolder {
         RecordSchema querySObjectResultSchema;
         RecordSchema recordSchema;
         SObjectDescription salesforceObject;
 
-        public SalesForceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
+        public SalesforceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
             this.querySObjectResultSchema = querySObjectResultSchema;
             this.recordSchema = recordSchema;
             this.salesforceObject = salesforceObject;

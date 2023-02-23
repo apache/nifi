@@ -129,7 +129,7 @@ class SalesforceToRecordSchemaConverterTest {
     }
 
     @Test
-    void testSelectEmptyFields() throws IOException {
+    void testSelectAllFields() throws IOException {
         final String salesforceSchemaFileName = "simple_sf_schema.json";
         final String fieldNames = "";
 
