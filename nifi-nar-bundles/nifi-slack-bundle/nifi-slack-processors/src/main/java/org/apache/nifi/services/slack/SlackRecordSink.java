@@ -134,7 +134,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                 final String message = out.toString();
                 final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
                 service.sendMessageToChannel(message, channel);
-            } catch (final SlackRestService.SlackRestServiceException e) {
+            } catch (final SlackRestServiceException e) {
                 getLogger().error("Failed to send message to Slack.", e);
                 throw new ProcessException(e);
             }

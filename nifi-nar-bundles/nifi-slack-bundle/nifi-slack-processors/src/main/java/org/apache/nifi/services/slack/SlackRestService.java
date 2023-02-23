@@ -17,6 +17,7 @@
 package org.apache.nifi.services.slack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
@@ -51,6 +52,7 @@ public class SlackRestService {
         this.accessToken = accessToken;
         this.apiUrl = apiUrl;
         this.objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.logger = LoggerFactory.getLogger(SlackRestService.class);
     }
 
@@ -101,35 +103,16 @@ public class SlackRestService {
             }
 
             try {
-                final JsonNode responseJson = objectMapper.readTree(response.body());
+                final SlackPostMessageResponse slackResponse = objectMapper.readValue(response.body(), SlackPostMessageResponse.class);
+                logger.error(objectMapper.writeValueAsString(slackResponse));
 
-                if (!responseJson.has("ok") || responseJson.get("ok").getNodeType() != JsonNodeType.BOOLEAN) {
-                    throw new SlackRestServiceException("Slack response JSON does not contain 'ok' key or it has invalid value.");
-                }
-                if (!responseJson.get("ok").asBoolean()) {
-                    throw new SlackRestServiceException("Slack error response: " + responseJson.get("error").asText());
-                }
-
-                if (responseJson.has("warning")) {
-                    final String warning = responseJson.get("warning").toString();
-                    logger.warn("Slack warning message: " + warning);
-                }
+                slackResponse.checkResponse(logger);
             } catch (final IOException e) {
                 throw new SlackRestServiceException("Slack response JSON cannot be parsed.", e);
             }
 
         } catch (final IOException e) {
             throw new ProcessException("Slack HTTP request failed", e);
-        }
-    }
-
-    static class SlackRestServiceException extends Exception {
-        SlackRestServiceException(String message) {
-            super(message);
-        }
-
-        SlackRestServiceException(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }

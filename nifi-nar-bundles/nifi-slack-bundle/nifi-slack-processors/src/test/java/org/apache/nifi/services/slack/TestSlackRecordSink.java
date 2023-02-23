@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSlackRecordSink {
     private static final String RESPONSE_SUCCESS_TEXT_MSG = "{\"ok\": true}";
+    private static final String RESPONSE_SUCCESS_TEXT_MSG_WITH_TIMESTAMP = "{\"ok\": true, \"ts\": \"1503435956.000247\"}";
     private static final String RESPONSE_WARNING = "{\"ok\": true, \"warning\": \"slack-warning\"}";
     private static final String RESPONSE_ERROR = "{\"ok\": false, \"error\": \"slack-error\"}";
     private static final String RESPONSE_EMPTY_JSON = "{}";
@@ -129,7 +130,7 @@ public class TestSlackRecordSink {
         testRunner.assertValid(slackRecordSink);
         testRunner.enableControllerService(slackRecordSink);
 
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_SUCCESS_TEXT_MSG_WITH_TIMESTAMP));
 
         final WriteResult writeResult = slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
 
