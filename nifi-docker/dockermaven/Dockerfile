@@ -15,18 +15,26 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+# FROM maven:eclipse-temurin AS builder
 
 ARG IMAGE_NAME=eclipse-temurin
 ARG IMAGE_TAG=11-jre
+
+FROM maven:${IMAGE_NAME} AS builder
+
+WORKDIR /home/nifi
+COPY . .
+RUN mvn -T 2.0C clean install -DskipTests
+
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
 LABEL maintainer="${MAINTAINER}"
 LABEL site="https://nifi.apache.org"
 
-ARG NIFI_VERSION
-ARG NIFI_BINARY
-ARG NIFI_TOOLKIT_BINARY
-ARG NIFI_SCRIPTS
+ARG NIFI_VERSION=1.19.1
+ARG NIFI_BINARY=nifi-${NIFI_VERSION}-bin.zip
+ARG NIFI_TOOLKIT_BINARY=nifi-toolkit-${NIFI_VERSION}-bin.zip
+ARG NIFI_SCRIPTS=sh/
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME ${NIFI_BASE_DIR}/nifi-current
@@ -34,18 +42,22 @@ ENV NIFI_TOOLKIT_HOME ${NIFI_BASE_DIR}/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
-ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
+# ADD ${NIFI_SCRIPTS} ${NIFI_BASE_DIR}/scripts/
+COPY --from=builder /home/nifi/nifi-docker/dockerhub/sh/* ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh \
    && apt-get update \
    && apt-get install -y unzip
 
-COPY $NIFI_BINARY $NIFI_BASE_DIR
+# COPY $NIFI_BINARY $NIFI_BASE_DIR
+COPY --from=builder /home/nifi/nifi-assembly/target/${NIFI_BINARY} $NIFI_BASE_DIR
+
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip \
     && mv ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION} ${NIFI_HOME} \
     && ln -s ${NIFI_HOME} ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}
 
-COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
+# COPY $NIFI_TOOLKIT_BINARY $NIFI_BASE_DIR
+COPY --from=builder /home/nifi/nifi-toolkit/nifi-toolkit-assembly/target/${NIFI_TOOLKIT_BINARY} $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
     && rm ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION}-bin.zip \
     && mv ${NIFI_BASE_DIR}/nifi-toolkit-${NIFI_VERSION} ${NIFI_TOOLKIT_HOME} \
