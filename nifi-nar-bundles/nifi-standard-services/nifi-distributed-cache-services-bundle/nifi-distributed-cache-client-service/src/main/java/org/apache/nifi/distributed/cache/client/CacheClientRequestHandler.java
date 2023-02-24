@@ -27,6 +27,7 @@ import org.apache.nifi.distributed.cache.client.adapter.NullInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The {@link io.netty.channel.ChannelHandler} responsible for sending client requests and receiving server responses
@@ -43,6 +44,15 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
      * The synchronization construct used to signal the client application that the server response has been received.
      */
     private ChannelPromise channelPromise;
+
+    /**
+     * THe network timeout associated with the connection
+     */
+    private final long timeoutMillis;
+
+    public CacheClientRequestHandler(final long timeoutMillis) {
+        this.timeoutMillis = timeoutMillis;
+    }
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
@@ -97,7 +107,7 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
             this.inboundAdapter = inboundAdapter;
             channelPromise = channel.newPromise();
             channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
-            channelPromise.awaitUninterruptibly();
+            channelPromise.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
             this.inboundAdapter = new NullInboundAdapter();
             if (channelPromise.cause() != null) {
                 throw new IOException("Request invocation failed", channelPromise.cause());
