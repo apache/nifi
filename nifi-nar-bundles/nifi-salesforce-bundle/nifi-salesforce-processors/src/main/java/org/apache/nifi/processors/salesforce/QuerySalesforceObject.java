@@ -381,10 +381,11 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 session.remove(flowFile);
             } else {
                 flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(flowFile, REL_SUCCESS);
+
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().receive(flowFile, salesforceRestService.getVersionedBaseUrl() + "/composite/tree/" + sObject,
                         transferMillis);
-                session.transfer(flowFile, REL_SUCCESS);
 
                 session.adjustCounter("Records Processed", recordCount, false);
                 getLogger().info("Successfully written {} records for {}", recordCount, flowFile);

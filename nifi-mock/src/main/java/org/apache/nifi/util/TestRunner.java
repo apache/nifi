@@ -28,6 +28,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 
@@ -1061,5 +1062,7 @@ public interface TestRunner {
      * @param runSchedule Run schedule duration in milliseconds.
      */
      void setRunSchedule(long runSchedule);
+
+    void assertProvenanceEvent(ProvenanceEventType eventType);
 
 }
