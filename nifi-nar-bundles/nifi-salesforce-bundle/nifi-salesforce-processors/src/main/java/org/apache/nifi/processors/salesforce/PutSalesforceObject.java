@@ -181,9 +181,9 @@ public class PutSalesforceObject extends AbstractProcessor {
                 processRecords(objectType, out, writer, extender);
             }
           }
+          session.transfer(flowFile, REL_SUCCESS);
           final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
           session.getProvenanceReporter().send(flowFile, salesforceRestService.getVersionedBaseUrl()+ "/composite/tree/" + objectType, transferMillis);
-          session.transfer(flowFile, REL_SUCCESS);
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
             transferToFailure(session, flowFile, e);
