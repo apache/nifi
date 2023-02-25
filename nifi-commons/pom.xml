@@ -23,7 +23,6 @@
     <artifactId>nifi-commons</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>nifi-bootstrap-utils</module>
         <module>nifi-build</module>
         <module>nifi-data-provenance-utils</module>
         <module>nifi-deprecation-log</module>

@@ -33,7 +33,6 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>*:nifi-bootstrap-utils</exclude>
                 <exclude>*:minifi-bootstrap</exclude>
                 <exclude>*:minifi-resources</exclude>
                 <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
@@ -50,7 +49,6 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>*:nifi-bootstrap-utils</include>
                 <include>*:minifi-bootstrap</include>
                 <include>*:minifi-utils</include>
                 <include>*:nifi-utils</include>

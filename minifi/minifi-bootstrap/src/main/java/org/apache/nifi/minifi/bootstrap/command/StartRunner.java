@@ -46,10 +46,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.ShutdownHook;
@@ -65,8 +61,6 @@ import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 
 public class StartRunner implements CommandRunner {
     private static final int STARTUP_WAIT_SECONDS = 60;
-
-    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(StartRunner.class);
 
     private final CurrentPortProvider currentPortProvider;
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -118,11 +112,6 @@ public class StartRunner implements CommandRunner {
         if (port != null) {
             CMD_LOGGER.info("Apache MiNiFi is already running, listening to Bootstrap on port {}", port);
             return;
-        }
-
-        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
-        if (RuntimeVersionProvider.isMajorVersionDeprecated(javaMajorVersion)) {
-            deprecationLogger.warn("Support for Java {} is deprecated. Java {} is the minimum recommended version", javaMajorVersion, RuntimeVersionProvider.getMinimumMajorVersion());
         }
 
         File prevLockFile = bootstrapFileProvider.getLockFile();
@@ -203,12 +192,12 @@ public class StartRunner implements CommandRunner {
 
         boolean started = waitForStart();
 
+        final long pid = process.pid();
         if (started) {
             runMiNiFi.sendAcknowledgeToMiNiFi(configChangeSuccessful ? FULLY_APPLIED : NOT_APPLIED_WITH_RESTART);
-            Long pid = OSUtils.getProcessId(process, DEFAULT_LOGGER);
-            DEFAULT_LOGGER.info("Successfully spawned the thread to start Apache MiNiFi{}", (pid == null ? "" : " with PID " + pid));
+            DEFAULT_LOGGER.info("Application Process [{}] started", pid);
         } else {
-            DEFAULT_LOGGER.error("Apache MiNiFi does not appear to have started");
+            DEFAULT_LOGGER.info("Application Process [{}] not started", pid);
         }
         return process;
     }
@@ -333,18 +322,16 @@ public class StartRunner implements CommandRunner {
         return builder;
     }
 
-    private Process startMiNiFiProcess(ProcessBuilder builder) throws IOException {
-        Process process = builder.start();
+    private Process startMiNiFiProcess(final ProcessBuilder builder) throws IOException {
+        final Process process = builder.start();
         miNiFiStdLogHandler.initLogging(process);
         miNiFiParameters.setMiNiFiPort(UNINITIALIZED);
         miNiFiParameters.setMinifiPid(UNINITIALIZED);
-        Long pid = OSUtils.getProcessId(process, CMD_LOGGER);
-        if (pid != null) {
-            miNiFiParameters.setMinifiPid(pid);
-            Properties minifiProps = new Properties();
-            minifiProps.setProperty(STATUS_FILE_PID_KEY, String.valueOf(pid));
-            bootstrapFileProvider.saveStatusProperties(minifiProps);
-        }
+        final long pid = process.pid();
+        miNiFiParameters.setMinifiPid(pid);
+        final Properties minifiProps = new Properties();
+        minifiProps.setProperty(STATUS_FILE_PID_KEY, String.valueOf(pid));
+        bootstrapFileProvider.saveStatusProperties(minifiProps);
 
         shutdownHook = new ShutdownHook(runMiNiFi, miNiFiStdLogHandler);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
