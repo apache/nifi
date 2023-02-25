@@ -111,10 +111,6 @@ limitations under the License.
             <type>zip</type>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-bootstrap-utils</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-bootstrap</artifactId>
         </dependency>

@@ -29,7 +29,6 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>*:nifi-bootstrap-utils</include>
                 <include>*:nifi-bootstrap</include>
                 <include>*:bcprov-jdk15on</include>
                 <include>*:commons-lang3</include>
@@ -47,7 +46,6 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>*:nifi-bootstrap-utils</exclude>
                 <exclude>*:nifi-bootstrap</exclude>
                 <exclude>*:nifi-toolkit-cli</exclude>
                 <exclude>*:bcprov-jdk15on</exclude>
