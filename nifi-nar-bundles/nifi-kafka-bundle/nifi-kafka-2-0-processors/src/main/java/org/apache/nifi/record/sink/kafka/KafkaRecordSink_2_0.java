@@ -40,6 +40,7 @@ import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
+import org.apache.nifi.kafka.shared.validation.KafkaDeprecationValidator;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -199,6 +200,7 @@ public class KafkaRecordSink_2_0 extends AbstractControllerService implements Re
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
         return new KafkaClientCustomValidationFunction().apply(validationContext);
     }
 

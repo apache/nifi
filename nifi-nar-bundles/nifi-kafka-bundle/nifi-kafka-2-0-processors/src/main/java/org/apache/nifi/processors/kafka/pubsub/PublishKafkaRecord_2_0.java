@@ -43,6 +43,7 @@ import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvi
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
+import org.apache.nifi.kafka.shared.validation.KafkaDeprecationValidator;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -348,6 +349,8 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor implements KafkaPu
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+
         final List<ValidationResult> results = new ArrayList<>(new KafkaClientCustomValidationFunction().apply(validationContext));
 
         final boolean useTransactions = validationContext.getProperty(USE_TRANSACTIONS).asBoolean();

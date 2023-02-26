@@ -45,6 +45,7 @@ import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.component.KafkaPublishComponent;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaDeprecationValidator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -391,6 +392,8 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+
         final KafkaClientCustomValidationFunction validationFunction = new KafkaClientCustomValidationFunction();
         final Collection<ValidationResult> results = validationFunction.apply(validationContext);
 

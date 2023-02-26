@@ -41,6 +41,7 @@ import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.kafka.shared.validation.KafkaClientCustomValidationFunction;
+import org.apache.nifi.kafka.shared.validation.KafkaDeprecationValidator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -318,6 +319,8 @@ public class ConsumeKafkaRecord_2_0 extends AbstractProcessor implements KafkaCl
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+
         final Collection<ValidationResult> validationResults = new KafkaClientCustomValidationFunction().apply(validationContext);
 
         final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
