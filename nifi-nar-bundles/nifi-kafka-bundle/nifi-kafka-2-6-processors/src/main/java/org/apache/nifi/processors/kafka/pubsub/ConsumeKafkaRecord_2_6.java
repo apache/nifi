@@ -45,6 +45,7 @@ import org.apache.nifi.kafka.shared.property.KeyFormat;
 import org.apache.nifi.kafka.shared.property.provider.KafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
+import org.apache.nifi.kafka.shared.validation.KafkaDeprecationValidator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -314,6 +315,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
         descriptors.add(SECURITY_PROTOCOL);
         descriptors.add(SASL_MECHANISM);
         descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         descriptors.add(KERBEROS_SERVICE_NAME);
         descriptors.add(KERBEROS_PRINCIPAL);
         descriptors.add(KERBEROS_KEYTAB);
@@ -368,6 +370,8 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements KafkaCl
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        KafkaDeprecationValidator.validate(getClass(), getIdentifier(), validationContext);
+
         final KafkaClientCustomValidationFunction validationFunction = new KafkaClientCustomValidationFunction();
         final Collection<ValidationResult> validationResults = validationFunction.apply(validationContext);
 
