@@ -40,8 +40,6 @@ import java.util.Objects;
 public class LabelAuditor extends NiFiAuditor {
     private static final Logger logger = LoggerFactory.getLogger(LabelAuditor.class);
 
-    static final String SOURCE_NAME = "LABEL";
-
     /**
      * Audits the creation of a Label.
      *
@@ -94,10 +92,11 @@ public class LabelAuditor extends NiFiAuditor {
                 labelAction.setSourceId(label.getIdentifier());
                 labelAction.setSourceType(Component.Label);
                 labelAction.setOperation(Operation.Configure);
-                labelAction.setSourceName(SOURCE_NAME); // Source Name is a required field for the database but not applicable for a label
+                // Source Name is a required field for the database but not applicable for a label; use UUID to create a unique name
+                labelAction.setSourceName(label.getIdentifier());
 
                 final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
-                actionDetails.setName(SOURCE_NAME);
+                actionDetails.setName(label.getIdentifier());
                 actionDetails.setValue(updatedLabelValue);
                 actionDetails.setPreviousValue(originalLabelValue);
                 labelAction.setActionDetails(actionDetails);
@@ -164,7 +163,8 @@ public class LabelAuditor extends NiFiAuditor {
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(label.getIdentifier());
-            action.setSourceName(SOURCE_NAME);
+            // Labels do not have a Name; use UUID to provide a unique name
+            action.setSourceName(label.getIdentifier());
             action.setSourceType(Component.Label);
 
             if (actionDetails != null) {

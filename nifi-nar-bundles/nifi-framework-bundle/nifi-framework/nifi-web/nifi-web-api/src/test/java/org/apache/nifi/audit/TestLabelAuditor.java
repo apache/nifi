@@ -179,7 +179,7 @@ public class TestLabelAuditor {
         assertInstanceOf(FlowChangeConfigureDetails.class, actionDetails);
         final FlowChangeConfigureDetails flowChangeConfigureDetails = (FlowChangeConfigureDetails) actionDetails;
 
-        assertEquals(LabelAuditor.SOURCE_NAME, flowChangeConfigureDetails.getName());
+        assertEquals(LABEL_ID, flowChangeConfigureDetails.getName());
         assertEquals(LABEL, flowChangeConfigureDetails.getPreviousValue());
         assertEquals(UPDATED_LABEL, flowChangeConfigureDetails.getValue());
     }
@@ -194,7 +194,7 @@ public class TestLabelAuditor {
         assertEquals(USER_IDENTITY, action.getUserIdentity());
         assertEquals(operation, action.getOperation());
         assertEquals(LABEL_ID, action.getSourceId());
-        assertEquals(LabelAuditor.SOURCE_NAME, action.getSourceName());
+        assertEquals(LABEL_ID, action.getSourceName());
         assertEquals(Component.Label, action.getSourceType());
         assertNotNull(action.getTimestamp());
 
