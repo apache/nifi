@@ -18,6 +18,8 @@ package org.apache.nifi.processors.salesforce.util;
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.salesforce.schema.SalesforceToRecordSchemaConverter;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -174,9 +176,7 @@ class SalesforceToRecordSchemaConverterTest {
         try (final InputStream sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json")) {
             final String fieldNames = "FieldWithUnknownType";
             final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
-            final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(salesforceObject, fieldNames));
-            final String errorMessage = "Could not determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
-            assertEquals(errorMessage, exception.getMessage());
+            assertThrows(ProcessException.class, () -> converter.convertSchema(salesforceObject, fieldNames));
         }
     }
 
