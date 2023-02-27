@@ -791,7 +791,7 @@ The following record path expression change upper case letters to lower case:
 
 |==========================================================
 | RecordPath | Return value
-| `trim(/message)` | hello world
+| `toLowerCase(/message)` | hello world
 |==========================================================
 
 === base64Encode
