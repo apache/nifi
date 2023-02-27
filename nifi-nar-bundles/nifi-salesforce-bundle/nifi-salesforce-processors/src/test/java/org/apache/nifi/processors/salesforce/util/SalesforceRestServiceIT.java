@@ -21,6 +21,8 @@ import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.salesforce.rest.SalesforceConfiguration;
+import org.apache.nifi.processors.salesforce.rest.SalesforceRestClient;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 class SalesforceRestServiceIT implements SalesforceConfigAware {
     private TestRunner runner;
-    private SalesforceRestService testSubject;
+    private SalesforceRestClient testSubject;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -48,13 +50,9 @@ class SalesforceRestServiceIT implements SalesforceConfigAware {
         });
 
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = initOAuth2AccessTokenProvider(runner);
-
-        testSubject = new SalesforceRestService(
-                VERSION,
-                BASE_URL,
-                () -> oauth2AccessTokenProvider.getAccessDetails().getAccessToken(),
-                5_000
-        );
+        SalesforceConfiguration configuration = SalesforceConfiguration.create(INSTANCE_URL, VERSION,
+                () -> oauth2AccessTokenProvider.getAccessDetails().getAccessToken(), 5_000);
+        testSubject = new SalesforceRestClient(configuration);
     }
 
     @AfterEach
