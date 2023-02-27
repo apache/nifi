@@ -23,10 +23,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public final class CommonSalesforceProperties {
 
-    public static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SALESFORCE_INSTANCE_URL = new PropertyDescriptor.Builder()
             .name("salesforce-url")
-            .displayName("URL")
-            .description("The URL for the Salesforce REST API including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
+            .displayName("Salesforce Instance URL")
+            .description("The URL of the Salesforce instance including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)

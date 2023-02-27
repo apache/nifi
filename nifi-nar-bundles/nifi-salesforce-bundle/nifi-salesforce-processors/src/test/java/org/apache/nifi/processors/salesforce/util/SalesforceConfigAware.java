@@ -31,9 +31,9 @@ import org.apache.nifi.util.TestRunner;
  */
 public interface SalesforceConfigAware {
     String VERSION = "54.0";
-    String BASE_URL = "https://MyDomainName.my.salesforce.com";
+    String INSTANCE_URL = "https://MyDomainName.my.salesforce.com";
 
-    String AUTHORIZATION_SERVER_URL = BASE_URL + "/services/oauth2/token";
+    String AUTHORIZATION_SERVER_URL = INSTANCE_URL + "/services/oauth2/token";
     String USERNAME = "???";
     String PASSWORD = "???";
     String CLIENT_ID = "???";
