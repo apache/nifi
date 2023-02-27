@@ -326,9 +326,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
 
+        FlowFile flowFile = session.get();
 
         if (isCustomQuery) {
-            FlowFile flowFile = session.get();
             if (flowFile == null && context.hasIncomingConnection()) {
                 context.yield();
                 return;
@@ -336,14 +336,14 @@ public class QuerySalesforceObject extends AbstractProcessor {
             processCustomQuery(context, session, flowFile);
             return;
         }
-        processQuery(context, session);
+        processQuery(context, session, flowFile);
     }
 
-    private void processQuery(ProcessContext context, ProcessSession session) {
+    private void processQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
-        String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
+        String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
 
