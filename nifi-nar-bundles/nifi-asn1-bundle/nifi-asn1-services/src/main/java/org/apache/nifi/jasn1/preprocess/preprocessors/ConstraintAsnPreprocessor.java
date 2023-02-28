@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
+import org.apache.nifi.jasn1.preprocess.AsnPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ConstraintAsnPreprocessor implements NiFiAsnPreprocessor {
+public class ConstraintAsnPreprocessor implements AsnPreprocessor {
     public static final String OPEN_BRACKET = "(";
     public static final String CLOSE_BRACKET = ")";
 

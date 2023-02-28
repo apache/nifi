@@ -17,12 +17,17 @@
 package org.apache.nifi.jasn1.preprocess;
 
 import org.apache.nifi.logging.ComponentLog;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -32,20 +37,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class NiFiAsnPreprocessorEngineTest {
-    private NiFiAsnPreprocessorEngine testSubject;
-    private NiFiAsnPreprocessorEngine helper;
+public class AsnPreprocessorEngineTest {
+    private AsnPreprocessorEngine testSubject;
+    private AsnPreprocessorEngine helper;
 
-    private NiFiAsnPreprocessor mockPreprocessor1;
-    private NiFiAsnPreprocessor mockPreprocessor2;
-    private List<NiFiAsnPreprocessor> preprocessors;
+    private AsnPreprocessor mockPreprocessor1;
+    private AsnPreprocessor mockPreprocessor2;
+    private List<AsnPreprocessor> preprocessors;
 
     private ComponentLog log;
 
     @BeforeEach
-    void setUp() {
-        mockPreprocessor1 = mock(NiFiAsnPreprocessor.class);
-        mockPreprocessor2 = mock(NiFiAsnPreprocessor.class);
+    void setUp() throws Exception {
+        mockPreprocessor1 = mock(AsnPreprocessor.class);
+        mockPreprocessor2 = mock(AsnPreprocessor.class);
 
         preprocessors = Arrays.asList(
                 mockPreprocessor1,
@@ -54,8 +59,8 @@ public class NiFiAsnPreprocessorEngineTest {
 
         log = mock(ComponentLog.class);
 
-        helper = mock(NiFiAsnPreprocessorEngine.class);
-        testSubject = new NiFiAsnPreprocessorEngine() {
+        helper = mock(AsnPreprocessorEngine.class);
+        testSubject = new AsnPreprocessorEngine() {
             @Override
             List<String> readAsnLines(ComponentLog componentLog, String inputFile, Path inputFilePath) {
                 return helper.readAsnLines(componentLog, inputFile, inputFilePath);
@@ -67,10 +72,20 @@ public class NiFiAsnPreprocessorEngineTest {
             }
 
             @Override
-            List<NiFiAsnPreprocessor> getPreprocessors() {
+            List<AsnPreprocessor> getPreprocessors() {
                 return preprocessors;
             }
         };
+
+        Files.createDirectories(Path.of("target/" + this.getClass().getSimpleName()));
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        Files.walk(Path.of("target/" + this.getClass().getSimpleName()))
+                .sorted(Comparator.reverseOrder())
+                .map(Path::toFile)
+                .forEach(File::delete);
     }
 
     @Test
@@ -86,11 +101,11 @@ public class NiFiAsnPreprocessorEngineTest {
 
         String outputDirectory = Paths.get("path", "to", "directory_for_transformed_asn_files").toString();
 
-        List<String> originalLines1 = Arrays.asList("original_lines_1_1","original_lines_1_2");
-        List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1","preprocessed_lines_1_1_2");
+        List<String> originalLines1 = Arrays.asList("original_lines_1_1", "original_lines_1_2");
+        List<String> preprocessedLines1_1 = Arrays.asList("preprocessed_lines_1_1_1", "preprocessed_lines_1_1_2");
         List<String> preprocessedLines1_2 = Arrays.asList("final_lines_1_1", "final_lines_1_2");
 
-        List<String> originalLines2 = Arrays.asList("original_lines_2_1","original_lines_2_2");
+        List<String> originalLines2 = Arrays.asList("original_lines_2_1", "original_lines_2_2");
         List<String> preprocessedLines2_1 = Arrays.asList("preprocessed_lines_2_1_1", "preprocessed_lines_2_1_2");
         List<String> preprocessedLines2_2 = Arrays.asList("final_lines_2_1", "final_lines_2_2");
 
@@ -105,7 +120,7 @@ public class NiFiAsnPreprocessorEngineTest {
         when(mockPreprocessor2.preprocessAsn(preprocessedLines2_1)).thenReturn(preprocessedLines2_2);
 
         String expected = new StringJoiner(",")
-                .add(Paths.get("path" , "to", "directory_for_transformed_asn_files", "asn_file_1").toString())
+                .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_1").toString())
                 .add(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_2").toString())
                 .toString();
 
@@ -127,7 +142,7 @@ public class NiFiAsnPreprocessorEngineTest {
         verify(helper).writePreprocessedAsn(
                 eq(log),
                 eq("final_lines_1_1" + System.lineSeparator() + "final_lines_1_2"),
-                eq(Paths.get("path","to", "directory_for_transformed_asn_files", "asn_file_1"))
+                eq(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_1"))
         );
 
         verify(helper).writePreprocessedAsn(
@@ -135,5 +150,27 @@ public class NiFiAsnPreprocessorEngineTest {
                 eq("final_lines_2_1" + System.lineSeparator() + "final_lines_2_2"),
                 eq(Paths.get("path", "to", "directory_for_transformed_asn_files", "asn_file_2"))
         );
+    }
+
+    @Test
+    void testComplexPreprocessing() throws Exception {
+        testSubject = new AsnPreprocessorEngine();
+
+        String input = "test_complex_for_preprocessing.asn";
+
+
+        String preprocessedFile = testSubject.preprocess(
+                log,
+                new File(getClass().getClassLoader().getResource(input).toURI()).getAbsolutePath(),
+                "target/" + this.getClass().getSimpleName()
+        );
+
+        String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
+                .replace("\n", System.lineSeparator());
+
+        String actual = new String(Files.readAllBytes(Paths.get(preprocessedFile)), StandardCharsets.UTF_8)
+                .replace("\n", System.lineSeparator());
+
+        assertEquals(expected, actual);
     }
 }

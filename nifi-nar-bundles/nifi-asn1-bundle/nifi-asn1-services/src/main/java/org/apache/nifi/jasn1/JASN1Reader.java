@@ -36,7 +36,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessorEngine;
+import org.apache.nifi.jasn1.preprocess.AsnPreprocessorEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -135,23 +135,35 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .required(false)
         .build();
 
-    private static final PropertyDescriptor PREPROCESS_OUTPUT_DIRECTORY = new PropertyDescriptor.Builder()
-        .name("additional-preprocessing-output-directory")
-        .displayName("Additional Preprocessing Output Directory")
+    private static final PropertyDescriptor DO_ADDITIONAL_PREPROCESSING = new PropertyDescriptor.Builder()
+        .name("do-additional-preprocessing")
+        .displayName("Do Additional Preprocessing")
         .description("When set, NiFi will do additional preprocessing steps that creates modified versions of the provided ASN files," +
                 " removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data." +
-                " The original files will remain intact and new ones will be created with the same names in the provided directory." +
+                " The original files will remain intact and new ones will be created with the same names in the directory defined in the 'Additional Preprocessing Output Directory' property." +
                 " For more information about these additional preprocessing steps please see Additional Details - Additional Preprocessing.")
+        .allowableValues("true", "false")
+        .required(true)
+        .defaultValue("false")
+        .build();
+
+    private static final PropertyDescriptor ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY = new PropertyDescriptor.Builder()
+        .name("additional-preprocessing-output-directory")
+        .displayName("Additional Preprocessing Output Directory")
+        .description("When the processor is configured to do additional preprocessing, new modified schema files will be created in this directory." +
+                " For more information about additional preprocessing please see description of the 'Do Additional Preprocessing' property or Additional Details - Additional Preprocessing.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-        .required(false)
+        .dependsOn(DO_ADDITIONAL_PREPROCESSING, "true")
+        .required(true)
         .build();
 
     private final List<PropertyDescriptor> propertyDescriptors = Arrays.asList(
         ROOT_MODEL_NAME,
         ROOT_CLASS_NAME,
         ASN_FILES,
-        PREPROCESS_OUTPUT_DIRECTORY
+        DO_ADDITIONAL_PREPROCESSING,
+        ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY
     );
 
     private String identifier;
@@ -209,10 +221,10 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         if (context.getProperty(ASN_FILES) != null && context.getProperty(ASN_FILES).isSet()) {
             String asnFilesString = context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue();
 
-            if (context.getProperty(PREPROCESS_OUTPUT_DIRECTORY) != null && context.getProperty(PREPROCESS_OUTPUT_DIRECTORY).isSet()) {
-                NiFiAsnPreprocessorEngine asnPreprocessorEngine = new NiFiAsnPreprocessorEngine();
+            if (context.getProperty(DO_ADDITIONAL_PREPROCESSING).asBoolean()) {
+                AsnPreprocessorEngine asnPreprocessorEngine = new AsnPreprocessorEngine();
 
-                String preprocessOutputDirectory = context.getProperty(PREPROCESS_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
+                String preprocessOutputDirectory = context.getProperty(ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
 
                 asnFilesString = asnPreprocessorEngine.preprocess(
                         logger,

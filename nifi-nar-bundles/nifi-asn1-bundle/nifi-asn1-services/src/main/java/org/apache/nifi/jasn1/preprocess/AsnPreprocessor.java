@@ -18,6 +18,6 @@ package org.apache.nifi.jasn1.preprocess;
 
 import java.util.List;
 
-public interface NiFiAsnPreprocessor {
+public interface AsnPreprocessor {
     List<String> preprocessAsn(List<String> lines);
 }

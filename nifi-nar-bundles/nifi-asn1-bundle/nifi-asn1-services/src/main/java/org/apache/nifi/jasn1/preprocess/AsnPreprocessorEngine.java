@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-public class NiFiAsnPreprocessorEngine {
+public class AsnPreprocessorEngine {
     public static final String COMMA = "\\s*,\\s*";
 
-    private static final List<NiFiAsnPreprocessor> PREPROCESSORS = Arrays.asList(
+    private static final List<AsnPreprocessor> PREPROCESSORS = Arrays.asList(
             new HuggingCommentAsnPreprocessor(),
             new VersionBracketAsnPreprocessor(),
             new ConstraintAsnPreprocessor()
@@ -74,7 +74,7 @@ public class NiFiAsnPreprocessorEngine {
     List<String> preprocessAsn(List<String> lines) {
         List<String> preprocessedAsn = lines;
 
-        for (NiFiAsnPreprocessor preprocessor : getPreprocessors()) {
+        for (AsnPreprocessor preprocessor : getPreprocessors()) {
             preprocessedAsn = preprocessor.preprocessAsn(preprocessedAsn);
         }
 
@@ -101,7 +101,7 @@ public class NiFiAsnPreprocessorEngine {
         }
     }
 
-    List<NiFiAsnPreprocessor> getPreprocessors() {
+    List<AsnPreprocessor> getPreprocessors() {
         return PREPROCESSORS;
     }
 }

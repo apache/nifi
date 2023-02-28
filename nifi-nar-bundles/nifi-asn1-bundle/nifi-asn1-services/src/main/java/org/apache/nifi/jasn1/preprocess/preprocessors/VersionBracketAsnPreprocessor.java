@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.jasn1.preprocess.preprocessors;
 
-import org.apache.nifi.jasn1.preprocess.NiFiAsnPreprocessor;
+import org.apache.nifi.jasn1.preprocess.AsnPreprocessor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-public class VersionBracketAsnPreprocessor implements NiFiAsnPreprocessor {
+public class VersionBracketAsnPreprocessor implements AsnPreprocessor {
     public static final String OPEN_VERSION_BRACKET = "[[";
     public static final String CLOSE_VERSION_BRACKET = "]]";
 

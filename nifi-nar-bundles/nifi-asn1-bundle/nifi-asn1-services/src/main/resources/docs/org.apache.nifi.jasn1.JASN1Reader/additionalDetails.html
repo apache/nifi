@@ -129,6 +129,7 @@
             NiFi doesn't support every feature that the ASN standard allows. To alleviate problems when encountering ASN files with unsupported features,
             NiFi can do additional preprocessing steps that creates modified versions of the provided ASN files,
             removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data.
+            This feature can be switched on via the 'Do Additional Preprocessing' property.
             The original files will remain intact and new ones will be created with the same names in a directory set in the 'Additional Preprocessing Output Directory' property.
             Please note that this is a best-effort attempt. It is also strongly recommended to compare the resulting ASN files to the originals and make sure they are still appropriate.
             <br />
