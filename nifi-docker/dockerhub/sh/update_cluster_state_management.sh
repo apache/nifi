@@ -27,5 +27,5 @@ edit_property() {
   fi
 }
 
-edit_property 'Connect String'     "${NIFI_ZK_CONNECT_STRING}"
-edit_property "Root Node"                   "${NIFI_ZK_ROOT_NODE}"
+edit_property 'Connect String'     "${NIFI_ZOOKEEPER_CONNECT_STRING}"
+edit_property "Root Node"          "${NIFI_ZOOKEEPER_ROOT_NODE}"

@@ -23,6 +23,20 @@ prop_replace () {
   sed -i -e "s|^$1=.*$|$1=$2|"  "${target_file}"
 }
 
+# 1 - property key to add or replace
+# 2 - property value to use
+# 3 - file to perform replacement inline
+prop_add_or_replace () {
+  target_file="${3:-${nifi_registry_props_file}}"
+  property_found=$(awk -v property="${1}" 'index($0, property) == 1')
+  if [ -z "${property_found}" ]; then
+    echo "File [${target_file}] adding [${1}]"
+    echo "$1=$2" >> "${target_file}"
+  else
+    prop_replace "$1" "$2" "$3"
+  fi
+}
+
 # NIFI_REGISTRY_HOME is defined by an ENV command in the backing Dockerfile
 export nifi_registry_props_file="${NIFI_REGISTRY_HOME}/conf/nifi-registry.properties"
 hostname=$(hostname)

@@ -15,13 +15,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-prop_replace 'nifi.security.user.oidc.discovery.url'                    "${NIFI_SECURITY_USER_OIDC_DISCOVERY_URL}"
-prop_replace 'nifi.security.user.oidc.connect.timeout'                  "${NIFI_SECURITY_USER_OIDC_CONNECT_TIMEOUT}"
-prop_replace 'nifi.security.user.oidc.read.timeout'                     "${NIFI_SECURITY_USER_OIDC_READ_TIMEOUT}"
-prop_replace 'nifi.security.user.oidc.client.id'                        "${NIFI_SECURITY_USER_OIDC_CLIENT_ID}"
-prop_replace 'nifi.security.user.oidc.client.secret'                    "${NIFI_SECURITY_USER_OIDC_CLIENT_SECRET}"
-prop_replace 'nifi.security.user.oidc.preferred.jwsalgorithm'           "${NIFI_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM}"
-prop_replace 'nifi.security.user.oidc.additional.scopes'                "${NIFI_SECURITY_USER_OIDC_ADDITIONAL_SCOPES}"
-prop_replace 'nifi.security.user.oidc.claim.identifying.user'           "${NIFI_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER}"
-prop_replace 'nifi.security.user.oidc.fallback.claims.identifying.user' "${NIFI_SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER}"
-prop_replace 'nifi.security.user.oidc.truststore.strategy'              "${NIFI_SECURITY_USER_OIDC_TRUSTSTORE_STRATEGY}"
+: "${NIFI_REGISTRY_SECURITY_USER_OIDC_DISCOVERY_URL:?"Must specify the OIDC Discovery URL."}"
+export NIFI_REGISTRY_SECURITY_USER_OIDC_CONNECT_TIMEOUT="${NIFI_REGISTRY_SECURITY_USER_OIDC_CONNECT_TIMEOUT:?"Must specify the OIDC Connect Timeout."}"
+export NIFI_REGISTRY_SECURITY_USER_OIDC_READ_TIMEOUT="${NIFI_REGISTRY_SECURITY_USER_OIDC_READ_TIMEOUT:?"Must specify the OIDC Read Timeout."}"
+: "${NIFI_REGISTRY_SECURITY_USER_OIDC_CLIENT_ID:?"Must specify the OIDC Client ID."}"
+: "${NIFI_REGISTRY_SECURITY_USER_OIDC_CLIENT_SECRET:?"Must specify the OIDC Client Secret."}"
+: "${NIFI_REGISTRY_SECURITY_USER_OIDC_PREFERRED_JWSALGORITHM:?"Must specify the OIDC Preferred JWS Algorithm."}"
+export NIFI_REGISTRY_SECURITY_USER_OIDC_ADDITIONAL_SCOPES="${NIFI_REGISTRY_SECURITY_USER_OIDC_ADDITIONAL_SCOPES:-}"
+export NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER="${NIFI_REGISTRY_SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER:-}"

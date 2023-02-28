@@ -35,14 +35,17 @@ case "${NIFI_REGISTRY_FLOW_PROVIDER}" in
     file)
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.FileSystemFlowPersistenceProvider" "${providers_file}"
         ;;
+    database)
+        xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.DatabaseFlowPersistenceProvider" "${providers_file}"
+        ;;
     git)
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.git.GitFlowPersistenceProvider" "${providers_file}"
         add_property "Remote To Push"  "${NIFI_REGISTRY_GIT_REMOTE:-}"
         add_property "Remote Access User"  "${NIFI_REGISTRY_GIT_USER:-}"
         add_property "Remote Access Password"    "${NIFI_REGISTRY_GIT_PASSWORD:-}"
 
-	if [ -n "$NIFI_REGISTRY_GIT_REPO" ]; then
-		add_property "Remote Clone Repository" "${NIFI_REGISTRY_GIT_REPO:-}"
-	fi
+        if [ -n "$NIFI_REGISTRY_GIT_REPO" ]; then
+          add_property "Remote Clone Repository" "${NIFI_REGISTRY_GIT_REPO:-}"
+        fi
         ;;
 esac

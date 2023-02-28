@@ -20,140 +20,168 @@ scripts_dir='/opt/nifi/scripts'
 # shellcheck source=./common.sh
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
+# read sensitive vales from files (if present)
+. "${scripts_dir}/nifi_env_from_file.sh"
+
 # Override JVM memory settings
 if [ -n "${NIFI_JVM_HEAP_INIT}" ]; then
-    # shellcheck disable=SC2154
-    prop_replace 'java.arg.2'       "-Xms${NIFI_JVM_HEAP_INIT}" "${nifi_bootstrap_file}"
+  # shellcheck disable=SC2154
+  prop_replace 'java.arg.2' "-Xms${NIFI_JVM_HEAP_INIT}" "${nifi_bootstrap_file}"
 fi
 
 if [ -n "${NIFI_JVM_HEAP_MAX}" ]; then
-    prop_replace 'java.arg.3'       "-Xmx${NIFI_JVM_HEAP_MAX}" "${nifi_bootstrap_file}"
+  prop_replace 'java.arg.3' "-Xmx${NIFI_JVM_HEAP_MAX}" "${nifi_bootstrap_file}"
 fi
 
 if [ -n "${NIFI_JVM_DEBUGGER}" ]; then
-    uncomment "java.arg.debug" "${nifi_bootstrap_file}"
+  uncomment "java.arg.debug" "${nifi_bootstrap_file}"
 fi
 
-# Replace NiFi properties with environment variables
-NIFI_ENV_VARS=$(printenv | awk -F= '/^NIFI_/ {print $1}')
+# set default values for some properties if not otherwise specified
+export NIFI_REMOTE_INPUT_SOCKET_PORT="${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
+if [ -z "${NIFI_WEB_HTTP_PORT}" ]; then
+  export NIFI_WEB_HTTPS_PORT="${NIFI_WEB_HTTPS_PORT:-8443}"
+  export NIFI_WEB_HTTPS_HOST="${NIFI_WEB_HTTPS_HOST:-$hostname}"
+  export NIFI_WEB_HTTP_HOST=
+  export BASE_URL="https://${NIFI_WEB_HTTPS_HOST}:${NIFI_WEB_HTTPS_PORT}"
+  export NIFI_REMOTE_INPUT_HOST="${NIFI_REMOTE_INPUT_HOST:-$hostname}"
+  export NIFI_REMOTE_INPUT_SECURE=true
+  export NIFI_CLUSTER_PROTOCOL_IS_SECURE=true
+  export NIFI_SECURITY_KEYSTORE="${NIFI_SECURITY_KEYSTORE:-${KEYSTORE_PATH:-${NIFI_HOME}/conf/keystore.p12}}"
+  export NIFI_SECURITY_KEYSTORETYPE="${NIFI_SECURITY_KEYSTORETYPE:-${KEYSTORE_TYPE:-PKCS12}}"
+  export NIFI_SECURITY_KEYSTOREPASSWD="${NIFI_SECURITY_KEYSTOREPASSWD:-${KEYSTORE_PASSWORD:-}}"
+  export NIFI_SECURITY_KEYPASSWD="${NIFI_SECURITY_KEYPASSWD:-${KEY_PASSWORD:-${NIFI_SECURITY_KEYSTOREPASSWD:-}}}"
+  export NIFI_SECURITY_TRUSTSTORE="${NIFI_SECURITY_KEYSTORE:-${TRUSTSTORE_PATH:-${NIFI_HOME}/conf/truststore.p12}}"
+  export NIFI_SECURITY_TRUSTSTORETYPE=PKCS12
+  export NIFI_SECURITY_TRUSTSTOREPASSWD="${NIFI_SECURITY_TRUSTSTOREPASSWD:-${TRUSTSTORE_PASSWORD:-}}"
 
-for ENV_VAR in $NIFI_ENV_VARS; do
-    PROP_NAME=$(echo "$ENV_VAR" | tr _ . | tr '[:upper:]' '[:lower:]')
-    PROP_VALUE=$(printenv "$ENV_VAR")
-    prop_replace "$PROP_NAME" "$PROP_VALUE"
-done
-
-# Establish baseline properties
-prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
-prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$hostname}"
-prop_replace 'nifi.web.proxy.host'              "${NIFI_WEB_PROXY_HOST}"
-prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$hostname}"
-prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
-prop_replace 'nifi.remote.input.secure'         'true'
-prop_replace 'nifi.cluster.protocol.is.secure'  'true'
-
-# Set nifi-toolkit properties files and baseUrl
-"${scripts_dir}/toolkit.sh"
-# shellcheck disable=SC2154
-prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$hostname}:${NIFI_WEB_HTTPS_PORT:-8443}" "${nifi_toolkit_props_file}"
-
-prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      "${nifi_toolkit_props_file}"
-prop_replace 'keystoreType'       "PKCS12"                              "${nifi_toolkit_props_file}"
-prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    "${nifi_toolkit_props_file}"
-prop_replace 'truststoreType'     "PKCS12"                              "${nifi_toolkit_props_file}"
-
-if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
-    prop_replace 'nifi.web.https.port'                        ''
-    prop_replace 'nifi.web.https.host'                        ''
-    prop_replace 'nifi.web.http.port'                         "${NIFI_WEB_HTTP_PORT}"
-    prop_replace 'nifi.web.http.host'                         "${NIFI_WEB_HTTP_HOST:-$hostname}"
-    prop_replace 'nifi.remote.input.secure'                   'false'
-    prop_replace 'nifi.cluster.protocol.is.secure'            'false'
-    prop_replace 'nifi.security.keystore'                     ''
-    prop_replace 'nifi.security.keystoreType'                 ''
-    prop_replace 'nifi.security.truststore'                   ''
-    prop_replace 'nifi.security.truststoreType'               ''
-    prop_replace 'nifi.security.user.login.identity.provider' ''
-    prop_replace 'keystore'                                   '' "${nifi_toolkit_props_file}"
-    prop_replace 'keystoreType'                               '' "${nifi_toolkit_props_file}"
-    prop_replace 'truststore'                                 '' "${nifi_toolkit_props_file}"
-    prop_replace 'truststoreType'                             '' "${nifi_toolkit_props_file}"
-    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$hostname}:${NIFI_WEB_HTTP_PORT}" "${nifi_toolkit_props_file}"
-
-    if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
-        prop_replace 'nifi.web.proxy.host' ''
-    fi
+  if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
+  fi
 else
-    if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
-        echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
-    fi
+  export NIFI_WEB_HTTPS_PORT=
+  export NIFI_WEB_HTTPS_HOST=
+  export NIFI_WEB_HTTP_HOST="${NIFI_WEB_HTTP_HOST:-$hostname}"
+  export BASE_URL="http://${NIFI_WEB_HTTP_HOST}:${NIFI_WEB_HTTP_PORT}"
+  export NIFI_REMOTE_INPUT_HOST="${NIFI_REMOTE_INPUT_HOST:-$hostname}"
+  export NIFI_REMOTE_INPUT_SOCKET_PORT="${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
+  export NIFI_REMOTE_INPUT_SECURE=false
+  export NIFI_CLUSTER_PROTOCOL_IS_SECURE=false
+  export NIFI_SECURITY_KEYSTORE=
+  export NIFI_SECURITY_KEYSTORETYPE=
+  export NIFI_SECURITY_KEYSTOREPASSWD=
+  export NIFI_SECURITY_KEYPASSWD=
+  export NIFI_SECURITY_TRUSTSTORE=
+  export NIFI_SECURITY_TRUSTSTORETYPE=
+  export NIFI_SECURITY_TRUSTSTOREPASSWD=
+  export NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER=
+
+  if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
+    echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
+  fi
 fi
 
-prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
-prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
-prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$hostname}"
-prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
-prop_replace 'nifi.cluster.node.protocol.max.threads'       "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
-prop_replace 'nifi.zookeeper.connect.string'                "${NIFI_ZK_CONNECT_STRING:-}"
-prop_replace 'nifi.zookeeper.root.node'                     "${NIFI_ZK_ROOT_NODE:-/nifi}"
-prop_replace 'nifi.cluster.flow.election.max.wait.time'     "${NIFI_ELECTION_MAX_WAIT:-5 mins}"
-prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX_CANDIDATES:-}"
-prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
+export NIFI_VARIABLE_REGISTRY_PROPERTIES="${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
+
+# setup cluster properties
+export NIFI_CLUSTER_IS_NODE="${NIFI_CLUSTER_IS_NODE:-false}"
+export NIFI_CLUSTER_NODE_ADDRESS="${NIFI_CLUSTER_NODE_ADDRESS:-${NIFI_CLUSTER_ADDRESS:-$hostname}}"
+export NIFI_CLUSTER_NODE_PROTOCOL_PORT="${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
+export NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS="${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
+export NIFI_ZOOKEEPER_CONNECT_STRING="${NIFI_ZOOKEEPER_CONNECT_STRING:=${NIFI_ZK_CONNECT_STRING:-}}"
+export NIFI_ZOOKEEPER_ROOT_NODE="${NIFI_ZOOKEEPER_ROOT_NODE:-${NIFI_ZK_ROOT_NODE:-/nifi}}"
+export NIFI_CLUSTER_FLOW_ELECTION_MAX_WAIT_TIME="${NIFI_CLUSTER_FLOW_ELECTION_MAX_WAIT_TIME:-${NIFI_ELECTION_MAX_WAIT:-5 mins}}"
+export NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES="${NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES:-${NIFI_ELECTION_MAX_CANDIDATES:-}}"
+export NIFI_WEB_PROXY_CONTEXT_PATH="${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
 
 # Set analytics properties
-prop_replace 'nifi.analytics.predict.enabled'                   "${NIFI_ANALYTICS_PREDICT_ENABLED:-false}"
-prop_replace 'nifi.analytics.predict.interval'                  "${NIFI_ANALYTICS_PREDICT_INTERVAL:-3 mins}"
-prop_replace 'nifi.analytics.query.interval'                    "${NIFI_ANALYTICS_QUERY_INTERVAL:-5 mins}"
-prop_replace 'nifi.analytics.connection.model.implementation'   "${NIFI_ANALYTICS_MODEL_IMPLEMENTATION:-org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares}"
-prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}"
-prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
+export NIFI_ANALYTICS_PREDICT_ENABLED="${NIFI_ANALYTICS_PREDICT_ENABLED:-false}"
+export NIFI_ANALYTICS_PREDICT_INTERVAL="${NIFI_ANALYTICS_PREDICT_INTERVAL:-3 mins}"
+export NIFI_ANALYTICS_QUERY_INTERVAL="${NIFI_ANALYTICS_QUERY_INTERVAL:-5 mins}"
+export NIFI_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION="${NIFI_ANALYTICS_CONNECTION_MODEL_IMPLEMENTATION:-${NIFI_ANALYTICS_MODEL_IMPLEMENTATION:-org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares}}"
+export NIFI_ANALYTICS_CONNECTION_MODEL_SCORE_NAME="${NIFI_ANALYTICS_CONNECTION_MODEL_SCORE_NAME:-${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}}"
+export NIFI_ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD="${NIFI_ANALYTICS_CONNECTION_MODEL_SCORE_THRESHOLD:-${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}}"
 
 # Add NAR provider properties
-# nifi-registry NAR provider
-if [ -n "${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL}" ]; then
-    prop_add_or_replace 'nifi.nar.library.provider.nifi-registry.implementation' 'org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider'
-    prop_add_or_replace 'nifi.nar.library.provider.nifi-registry.url' "${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL}"
+export NIFI_NAR_LIBRARY_PROVIDER_NIFI__REGISTRY_URL="${NIFI_NAR_LIBRARY_PROVIDER_NIFI__REGISTRY_URL:-${NIFI_NAR_LIBRARY_PROVIDER_NIFI_REGISTRY_URL:-}}"
+if [ -n "${NIFI_NAR_LIBRARY_PROVIDER_NIFI__REGISTRY_URL}" ]; then
+  export NIFI_NAR_LIBRARY_PROVIDER_NIFI__REGISTRY_IMPLEMENTATION=org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider
+fi
+export NIFI_NAR_LIBRARY_PROVIDER_LOCAL__FILES_SOURCE_DIR="${NIFI_NAR_LIBRARY_PROVIDER_LOCAL__FILES_SOURCE_DIR:-}"
+if [ -n "${NIFI_NAR_LIBRARY_PROVIDER_LOCAL__FILES_SOURCE_DIR}" ]; then
+  export NIFI_NAR_LIBRARY_PROVIDER_LOCAL__FILES_IMPLEMENTATION=org.apache.nifi.nar.provider.LocalDirectoryNarProvider
 fi
 
-if [ -n "${NIFI_SENSITIVE_PROPS_KEY}" ]; then
-    prop_replace 'nifi.sensitive.props.key' "${NIFI_SENSITIVE_PROPS_KEY}"
-fi
-
+# setup single user credentials (if provided)
 if [ -n "${SINGLE_USER_CREDENTIALS_USERNAME}" ] && [ -n "${SINGLE_USER_CREDENTIALS_PASSWORD}" ]; then
-    "${NIFI_HOME}/bin/nifi.sh" set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
+  "${NIFI_HOME}/bin/nifi.sh" set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
 fi
 
+# Setup cluster state management
 . "${scripts_dir}/update_cluster_state_management.sh"
 
 # Check if we are secured or unsecured
 case ${AUTH} in
-    tls)
-        echo 'Enabling Two-Way SSL user authentication'
-        . "${scripts_dir}/secure.sh"
-        ;;
-    ldap)
-        echo 'Enabling LDAP user authentication'
-        # Reference ldap-provider in properties
-        export NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER="ldap-provider"
+tls)
+  echo 'Enabling Two-Way TLS user authentication'
+  # check TLS settings are set
+  . "${scripts_dir}/secure.sh"
+  ;;
+ldap)
+  echo 'Enabling LDAP user authentication'
+  # check TLS settings are set
+  . "${scripts_dir}/secure.sh"
+  # Reference ldap-provider in properties
+  export NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER="ldap-provider"
 
-        . "${scripts_dir}/secure.sh"
-        . "${scripts_dir}/update_login_providers.sh"
-        ;;
-    oidc)
-        echo 'Enabling OIDC user authentication'
-
-        . "${scripts_dir}/secure.sh"
-        . "${scripts_dir}/update_oidc_properties.sh"
-        ;;
+  . "${scripts_dir}/update_login_providers.sh"
+  ;;
+oidc)
+  echo 'Enabling OIDC user authentication'
+  # check TLS settings are set
+  . "${scripts_dir}/secure.sh"
+  # check OIDC properties are set
+  . "${scripts_dir}/update_oidc_properties.sh"
+  ;;
+*)
+  echo 'Assuming single-user authentication'
+  # don't set passwords for single-user auth
+  export NIFI_SECURITY_KEYSTOREPASSWD=
+  export NIFI_SECURITY_KEYPASSWD=
+  export NIFI_SECURITY_TRUSTSTOREPASSWD=
+  ;;
 esac
+
+
+# Set nifi-toolkit properties files and baseUrl
+"${scripts_dir}/toolkit.sh"
+# shellcheck disable=SC2154
+prop_replace 'baseUrl' "${BASE_URL}" "${nifi_toolkit_props_file}"
+prop_replace 'keystore' "${NIFI_SECURITY_KEYSTORE}" "${nifi_toolkit_props_file}"
+prop_replace 'keystoreType' "${NIFI_SECURITY_KEYSTORETYPE}" "${nifi_toolkit_props_file}"
+[ -n "${NIFI_SECURITY_KEYSTOREPASSWD}" ] && prop_replace 'keystorePasswd' "${NIFI_SECURITY_KEYSTOREPASSWD}" "${nifi_toolkit_props_file}"
+[ -n "${NIFI_SECURITY_KEYPASSWD}" ] && prop_replace 'keyPasswd' "${NIFI_SECURITY_KEYPASSWD}" "${nifi_toolkit_props_file}"
+prop_replace 'truststore' "${NIFI_SECURITY_TRUSTSTORE}" "${nifi_toolkit_props_file}"
+prop_replace 'truststoreType' "${NIFI_SECURITY_TRUSTSTORETYPE}" "${nifi_toolkit_props_file}"
+[ -n "${NIFI_SECURITY_TRUSTSTOREPASSWD}" ] && prop_replace 'truststorePasswd' "${NIFI_SECURITY_TRUSTSTOREPASSWD}" "${nifi_toolkit_props_file}"
+
+
+# Replace NiFi properties with environment variables
+nifi_env_vars=$(printenv | awk -F= '/^NIFI_/ {print $1}' | grep -vE '^NIFI_JVM_' | grep -vE '_(HOME|DIR)$')
+
+for nifi_env_var in ${nifi_env_vars}; do
+  # mixed-case properties will be matched case-insensitively within the prop_add_or_replace/prop_replace functions
+  prop_name=$(echo "${nifi_env_var}" | sed -e 's/__/-/' | tr _ . | tr '[:upper:]' '[:lower:]')
+  prop_value=$(printenv "${nifi_env_var}")
+  prop_add_or_replace "${prop_name}" "${prop_value}"
+done
 
 # Continuously provide logs so that 'docker logs' can produce them
 "${NIFI_HOME}/bin/nifi.sh" run &
 nifi_pid="$!"
 tail -F --pid=${nifi_pid} "${NIFI_HOME}/logs/nifi-app.log" &
 
-trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;exit 0;' TERM HUP INT;
+trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;exit 0;' TERM HUP INT
 trap ":" EXIT
 
 echo NiFi running with PID ${nifi_pid}.
