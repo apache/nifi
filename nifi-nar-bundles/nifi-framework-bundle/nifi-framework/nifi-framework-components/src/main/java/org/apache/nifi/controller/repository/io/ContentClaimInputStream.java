@@ -81,14 +81,13 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        int value = -1;
+        int value;
         if (bufferedIn != null) {
             value = bufferedIn.read();
-        }
-
-        if (value < 0) {
+        } else {
             value = getDelegate().read();
         }
+
         if (value != -1) {
             bytesConsumed++;
             currentOffset++;
@@ -99,11 +98,10 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
-        int count = -1;
+        int count;
         if (bufferedIn != null) {
             count = bufferedIn.read(b);
-        }
-        if (count < 0) {
+        } else {
             count = getDelegate().read(b);
         }
 
@@ -117,11 +115,10 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
-        int count = -1;
+        int count;
         if (bufferedIn != null) {
             count = bufferedIn.read(b, off, len);
-        }
-        if (count < 0) {
+        } else {
             count = getDelegate().read(b, off, len);
         }
 
@@ -158,26 +155,43 @@ public class ContentClaimInputStream extends InputStream {
         return true;
     }
 
+    /**
+     * Marks the current position. Can be returned to with {@code reset()}.
+     *
+     * @see ContentClaimInputStream#reset()
+     * @param readlimit   hint on how much data should be buffered.
+     */
     @Override
     public void mark(final int readlimit) {
         markOffset = currentOffset;
         markReadLimit = readlimit;
-        if (bufferedIn != null) {
-            bufferedIn.mark(readlimit);
+        if (bufferedIn == null) {
+            bufferedIn = new BufferedInputStream(delegate);
         }
+
+        bufferedIn.mark(readlimit);
     }
 
+    /**
+     * Resets to the last marked position.
+     *
+     * @see ContentClaimInputStream#mark(int)
+     * @throws IOException only if no mark point has been set.
+     */
     @Override
     public void reset() throws IOException {
         if (markOffset < 0) {
             throw new IOException("Stream has not been marked");
         }
 
-        if (bufferedIn != null && bytesConsumed <= markReadLimit) {
-            bufferedIn.reset();
-            currentOffset = markOffset;
-
-            return;
+        if (bufferedIn != null) {
+            if ((currentOffset - markOffset) <= markReadLimit) {
+                bufferedIn.reset();
+                currentOffset = markOffset;
+                return;
+            }
+            // we read over the limit and need to throw away the buffer
+            bufferedIn = null;
         }
 
         if (currentOffset != markOffset) {
@@ -200,6 +214,10 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public void close() throws IOException {
+        if  (bufferedIn != null) {
+            bufferedIn.close();
+        }
+
         if (delegate != null) {
             delegate.close();
         }
@@ -215,15 +233,6 @@ public class ContentClaimInputStream extends InputStream {
             delegate = new PerformanceTrackingInputStream(contentRepository.read(contentClaim), performanceTracker);
             StreamUtils.skip(delegate, claimOffset);
             currentOffset = claimOffset;
-
-            if (markReadLimit > 0) {
-                final int limitLeft = (int) (markReadLimit - currentOffset);
-                if (limitLeft > 0) {
-                    final InputStream limitedIn = new LimitedInputStream(delegate, limitLeft);
-                    bufferedIn = new BufferedInputStream(limitedIn);
-                    bufferedIn.mark(limitLeft);
-                }
-            }
         } finally {
             performanceTracker.endContentRead();
         }
