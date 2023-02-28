@@ -44,6 +44,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
+import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
@@ -63,6 +64,7 @@ import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
+import org.apache.nifi.logging.ParameterContextTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -102,7 +104,6 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                                 final StatelessEngine statelessEngine, final BooleanSupplier flowInitializedCheck,
                                 final SSLContext sslContext, final BulletinRepository bulletinRepository) {
         super(flowFileEventRepository, parameterContextManager, flowInitializedCheck);
-
         this.statelessEngine = statelessEngine;
         this.sslContext = sslContext;
         this.bulletinRepository = bulletinRepository;
@@ -270,10 +271,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                  final boolean register, final String classloaderIsolationKey) {
 
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
-                + ", bundle coordinate = " + bundleCoordinate);
-        }
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
 
@@ -320,9 +320,54 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                                         final boolean register) {
+                                                         final boolean registerLogObserver) {
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
 
-        throw new UnsupportedOperationException("Parameter Providers are not supported in Stateless NiFi");
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
+        final ParameterProviderNode taskNode;
+        try {
+            taskNode = new ComponentBuilder()
+                    .identifier(id)
+                    .type(type)
+                    .bundleCoordinate(bundleCoordinate)
+                    .statelessEngine(statelessEngine)
+                    .additionalClassPathUrls(additionalUrls)
+                    .flowManager(this)
+                    .buildParameterProvider();
+        } catch (ParameterProviderInstantiationException e) {
+            throw new RuntimeException("Could not create Parameter Context Task of type " + type + " with ID " + id, e);
+        }
+
+        LogRepositoryFactory.getRepository(taskNode.getIdentifier()).setLogger(taskNode.getLogger());
+
+        if (firstTimeAdded) {
+            final Class<?> taskClass = taskNode.getParameterProvider().getClass();
+            final String identifier = taskNode.getParameterProvider().getIdentifier();
+
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), taskClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getParameterProvider());
+
+                if (isFlowInitialized()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getParameterProvider(), taskNode.getConfigurationContext());
+                }
+            } catch (final Exception e) {
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getParameterProvider(), e);
+            }
+        }
+
+        if (registerLogObserver) {
+            onParameterProviderAdded(taskNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+                    new ParameterContextTaskLogObserver(bulletinRepository, taskNode));
+        }
+
+        return taskNode;
     }
 
     @Override
