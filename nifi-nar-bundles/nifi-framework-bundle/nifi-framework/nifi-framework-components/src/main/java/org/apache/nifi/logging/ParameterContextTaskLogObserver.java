@@ -17,7 +17,6 @@
 package org.apache.nifi.logging;
 
 import org.apache.nifi.controller.ParameterProviderNode;
-import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
