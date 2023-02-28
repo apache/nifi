@@ -223,7 +223,7 @@ public class ComponentBuilder {
         final ParameterProviderNode taskNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
                 validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
 
-        logger.info("Created Reporting Task of type {} with identifier {}", type, identifier);
+        logger.info("Created Parameter Provider Task of type {} with identifier {}", type, identifier);
         return taskNode;
     }
 
