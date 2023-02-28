@@ -85,6 +85,25 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
     }
 
     @Test
+    void testMissingObjectType() throws Exception {
+        MockRecordParser reader = new MockRecordParser();
+
+        runner.enqueue("");
+
+        configureProcessor(reader);
+
+        runner.run();
+
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        assertEquals(1, results.size());
+        assertTrue(runner.getProvenanceEvents().isEmpty());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
+        MockFlowFile ff0 = flowFiles.get(0);
+        ff0.assertAttributeExists("error.message");
+    }
+
+    @Test
     void testErrorForInvalidRecordField() throws Exception {
         MockRecordParser reader = new MockRecordParser();
         reader.addSchemaField("invalidField", RecordFieldType.STRING);

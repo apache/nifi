@@ -1058,6 +1058,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void setRunSchedule(long runSchedule) {
         this.runSchedule = runSchedule;
     }
+
     @Override
     public void assertProvenanceEvent(final ProvenanceEventType eventType) {
         Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(eventType);

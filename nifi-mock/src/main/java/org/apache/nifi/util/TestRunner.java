@@ -1063,6 +1063,10 @@ public interface TestRunner {
      */
      void setRunSchedule(long runSchedule);
 
-    void assertProvenanceEvent(ProvenanceEventType eventType);
-
+    /**
+     * Assert that provenance event was created with the specified event type.
+     *
+     * @param eventType Provenance event type
+     */
+     void assertProvenanceEvent(ProvenanceEventType eventType);
 }

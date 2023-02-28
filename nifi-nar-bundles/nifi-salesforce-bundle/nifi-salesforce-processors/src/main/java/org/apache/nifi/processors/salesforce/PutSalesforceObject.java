@@ -146,7 +146,10 @@ public class PutSalesforceObject extends AbstractProcessor {
 
         String objectType = flowFile.getAttribute(ATTR_OBJECT_TYPE);
         if (objectType == null) {
-            throw new ProcessException("Salesforce object type not found among the incoming FlowFile attributes");
+            getLogger().error("Salesforce object type not found among the incoming FlowFile attributes");
+            flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, "Salesforce object type not found among FlowFile attributes");
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
         }
 
         RecordReaderFactory readerFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
@@ -182,7 +185,7 @@ public class PutSalesforceObject extends AbstractProcessor {
             }
           }
           session.transfer(flowFile, REL_SUCCESS);
-          final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+          long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
           session.getProvenanceReporter().send(flowFile, salesforceRestService.getVersionedBaseUrl()+ "/composite/tree/" + objectType, transferMillis);
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);

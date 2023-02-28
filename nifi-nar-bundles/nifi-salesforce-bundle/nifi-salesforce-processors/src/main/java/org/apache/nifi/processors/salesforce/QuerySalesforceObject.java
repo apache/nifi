@@ -316,7 +316,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             Map<String, String> attributes = new HashMap<>();
 
             AtomicInteger recordCountHolder = new AtomicInteger();
-            final long startNanos = System.nanoTime();
+            long startNanos = System.nanoTime();
             flowFile = session.write(flowFile, out -> {
                 try (
                         InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl, querySObject);
@@ -383,7 +383,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(flowFile, REL_SUCCESS);
 
-                final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().receive(flowFile, salesforceRestService.getVersionedBaseUrl() + "/composite/tree/" + sObject,
                         transferMillis);
 
