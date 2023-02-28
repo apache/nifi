@@ -166,7 +166,11 @@ public class ContentClaimInputStream extends InputStream {
         markOffset = currentOffset;
         markReadLimit = readlimit;
         if (bufferedIn == null) {
-            bufferedIn = new BufferedInputStream(delegate);
+            try {
+                bufferedIn = new BufferedInputStream(getDelegate());
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to read content claim!", ex);
+            }
         }
 
         bufferedIn.mark(readlimit);

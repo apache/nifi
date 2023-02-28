@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -121,7 +122,7 @@ public class TestContentClaimInputStream {
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times(invocations + 1)).read(contentClaim); // Will call reset() 'invocations' times plus the initial read
+        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -152,7 +153,7 @@ public class TestContentClaimInputStream {
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times(invocations + 1)).read(contentClaim); // Will call reset() 'invocations' times plus the initial read
+        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -183,10 +184,87 @@ public class TestContentClaimInputStream {
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times(invocations + 1)).read(contentClaim); // Will call reset() 'invocations' times plus the initial read
+        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
+        in.close();
+        assertTrue(closed.get());
+    }
+
+
+    @Test
+    public void testRereadBiggerThanBuffer() throws IOException {
+        final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 0L, new NopPerformanceTracker());
+
+        final byte[] buff = new byte[5];
+
+        final int invocations = 10;
+        in.mark(2);
+
+        for (int i=0; i < invocations; i++) {
+            StreamUtils.fillBuffer(in, buff, true);
+
+            final String contentRead = new String(buff);
+            assertEquals("hello", contentRead);
+
+            assertEquals(5 * (i+1), in.getBytesConsumed());
+            assertEquals(5, in.getCurrentOffset());
+            assertEquals(-1, in.read());
+
+            in.reset();
+        }
+
+        Mockito.verify(repo, Mockito.times( invocations + 1)).read(contentClaim);
+        Mockito.verifyNoMoreInteractions(repo);
+
+        // Ensure that underlying stream is closed
+        in.close();
+        assertTrue(closed.get());
+    }
+
+
+    @Test
+    public void testBigReadAfterSmallRereads() throws IOException {
+        // this has to be bigger than the default buffer size of BufferedInputStream
+        final int bigReadSize = 65_000;
+
+        final byte[] source = new byte[bigReadSize];
+
+        Mockito.when(repo.read(contentClaim)).thenAnswer(invocation -> {
+            ByteArrayInputStream is = new ByteArrayInputStream(source) {
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                    closed.set(true);
+                }
+            };
+            // wrap it, because ByteArrayInputStream throws no exception when being read after a close
+            return new BufferedInputStream(is);
+        });
+
+        final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 100L, repo.read(contentClaim), new NopPerformanceTracker());
+
+        int invocations = 5;
+        for (int i=0; i < invocations; i++) {
+            in.mark(1);
+            in.read();
+
+            assertEquals(i+1, in.getBytesConsumed());
+            assertEquals(101, in.getCurrentOffset());
+
+            in.reset();
+        }
+
+        byte[] buff = new byte[bigReadSize];
+        // Force the buffer to read from the delegate stream by reading all the data and therefore
+        // going over the default buffer size.
+        in.read(buff);
+        in.reset();
+
+        Mockito.verify(repo, Mockito.times( 2)).read(contentClaim);
+        Mockito.verifyNoMoreInteractions(repo);
+
         in.close();
         assertTrue(closed.get());
     }
