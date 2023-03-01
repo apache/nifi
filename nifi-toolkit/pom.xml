@@ -33,6 +33,7 @@
         <module>nifi-toolkit-flowanalyzer</module>
         <module>nifi-toolkit-cli</module>
         <module>nifi-toolkit-api</module>
+        <module>nifi-toolkit-kafka-migrator</module>
     </modules>
     <properties>
         <toolkit.groovy.version>3.0.8</toolkit.groovy.version>
