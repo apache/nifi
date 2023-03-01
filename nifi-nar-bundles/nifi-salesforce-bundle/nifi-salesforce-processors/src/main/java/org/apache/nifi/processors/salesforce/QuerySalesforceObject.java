@@ -166,7 +166,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .displayName("Record Writer")
             .description("Service used for writing records returned from the Salesforce REST API")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .required(false)
+            .required(true)
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
@@ -240,6 +240,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("The input flowfile gets sent to this relationship when the query fails.")
+            .autoTerminateDefault(true)
             .build();
 
     private static final String LAST_AGE_FILTER = "last_age_filter";
