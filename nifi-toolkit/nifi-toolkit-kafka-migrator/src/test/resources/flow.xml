@@ -1,0 +1,136 @@
+<rootGroup>
+    <processGroup>
+        <processor>
+            <class>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-kafka-2-0-nar</artifact>
+                <version>1.13.2.2.1.2.0-283</version>
+            </bundle>
+            <property>
+                <name>bootstrap.servers</name>
+                <value>localhost:9092</value>
+            </property>
+        </processor>
+        <processor>
+            <class>org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-kafka-0-10-nar</artifact>
+                <version>1.13.2.2.1.2.0-283</version>
+            </bundle>
+            <property>
+                <name>bootstrap.servers</name>
+                <value>localhost:9092</value>
+            </property>
+        </processor>
+        <processor>
+            <class>org.apache.nifi.processors.kafka.PutKafka</class>
+            <bundle>
+                <group>org.apache.nifi</group>
+                <artifact>nifi-kafka-0-8-nar</artifact>
+                <version>1.13.2.2.1.2.0-283</version>
+            </bundle>
+            <property>
+                <name>Known Brokers</name>
+            </property>
+            <property>
+                <name>Topic Name</name>
+                <value>test-topic</value>
+            </property>
+            <property>
+                <name>Partition</name>
+                <value>test-partition</value>
+            </property>
+            <property>
+                <name>Kafka Key</name>
+                <value>kafka-key</value>
+            </property>
+            <property>
+                <name>Delivery Guarantee</name>
+                <value>1</value>
+            </property>
+            <property>
+                <name>Compression Codec</name>
+                <value>gzip</value>
+            </property>
+        </processor>
+    </processGroup>
+    <template encoding-version="1.3">
+        <snippet>
+            <processGroups>
+                <contents>
+                    <processors>
+                        <bundle>
+                            <artifact>nifi-kafka-2-0-nar</artifact>
+                            <group>org.apache.nifi</group>
+                            <version>1.13.2.2.1.2.0-283</version>
+                        </bundle>
+                        <config>
+                            <descriptors>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                    <value>
+                                        <name>Known Brokers</name>
+                                    </value>
+                                </entry>
+                            </descriptors>
+                            <properties>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                </entry>
+                            </properties>
+                        </config>
+                        <type>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0</type>
+                    </processors>
+                    <processors>
+                        <bundle>
+                            <artifact>nifi-kafka-0-10-nar</artifact>
+                            <group>org.apache.nifi</group>
+                            <version>1.13.2.2.1.2.0-283</version>
+                        </bundle>
+                        <config>
+                            <descriptors>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                    <value>
+                                        <name>Known Brokers</name>
+                                    </value>
+                                </entry>
+                            </descriptors>
+                            <properties>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                </entry>
+                            </properties>
+                        </config>
+                        <type>org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_0_10</type>
+                    </processors>
+                    <processors>
+                        <bundle>
+                            <artifact>nifi-kafka-0-8-nar</artifact>
+                            <group>org.apache.nifi</group>
+                            <version>1.13.2.2.1.2.0-283</version>
+                        </bundle>
+                        <config>
+                            <descriptors>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                    <value>
+                                        <name>Known Brokers</name>
+                                    </value>
+                                </entry>
+                            </descriptors>
+                            <properties>
+                                <entry>
+                                    <key>Known Brokers</key>
+                                </entry>
+                            </properties>
+                        </config>
+                        <type>org.apache.nifi.processors.kafka.PutKafka</type>
+                    </processors>
+                </contents>
+            </processGroups>
+        </snippet>
+    </template>
+</rootGroup>
