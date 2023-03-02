@@ -27,6 +27,7 @@ import org.apache.nifi.distributed.cache.client.adapter.NullInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.OutboundAdapter;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -107,7 +108,10 @@ public class CacheClientRequestHandler extends ChannelInboundHandlerAdapter {
             this.inboundAdapter = inboundAdapter;
             channelPromise = channel.newPromise();
             channel.writeAndFlush(Unpooled.wrappedBuffer(outboundAdapter.toBytes()));
-            channelPromise.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
+            final boolean completed = channelPromise.awaitUninterruptibly(timeoutMillis, TimeUnit.MILLISECONDS);
+            if (!completed) {
+                throw new SocketTimeoutException(String.format("Request invocation timeout [%d ms] to remote address [%s]", timeoutMillis, channel.remoteAddress()));
+            }
             this.inboundAdapter = new NullInboundAdapter();
             if (channelPromise.cause() != null) {
                 throw new IOException("Request invocation failed", channelPromise.cause());

@@ -53,6 +53,8 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -67,39 +69,21 @@ public class TestMapCacheClient {
     private final Serializer<String> stringSerializer = new StringSerializer();
 
     @BeforeEach
-    public void setRunner() {
+    public void setRunner() throws UnknownHostException {
         final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
         port = NetworkUtils.getAvailableTcpPort();
 
         final NettyEventServerFactory serverFactory = new NettyEventServerFactory(
-                InetAddress.getLoopbackAddress(), port, TransportProtocol.TCP);
+                InetAddress.getByName("127.0.0.1"), port, TransportProtocol.TCP);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownQuietPeriod.QUICK.getDuration());
         final ComponentLog log = runner.getLogger();
         final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(
                 ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
 
-        final MapCache mapCache = new SimpleMapCache("serviceIdentifier", 64, EvictionPolicy.FIFO) {
-            // override a service function that will cause client network timeout to fire
-            @Override
-            public MapPutResult put(ByteBuffer key, ByteBuffer value) throws IOException {
-                try {
-                    Thread.sleep(3000L);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                return super.put(key, value);
-            }
-        };
-
         serverFactory.setHandlerSupplier(() -> Arrays.asList(
                 new CacheVersionResponseEncoder(),
-                new CacheOperationResultEncoder(),
-                new MapRemoveResponseEncoder(),
-                new MapSizeResponseEncoder(),
-                new MapValueResponseEncoder(),
                 new MapCacheRequestDecoder(log, 64, MapOperation.values()),
-                new MapCacheRequestHandler(log, mapCache),
                 new CacheVersionRequestHandler(log, versionNegotiator)
         ));
         server = serverFactory.getEventServer();
@@ -121,9 +105,9 @@ public class TestMapCacheClient {
         client.initialize(clientInitContext1);
 
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
+        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "127.0.0.1");
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "1 secs");
+        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "500 ms");
 
         final MockConfigurationContext clientContext =
                 new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
@@ -131,7 +115,7 @@ public class TestMapCacheClient {
 
         try {
             final String key = "test-timeout";
-            assertThrows(Exception.class, () -> client.put(key, "value1", stringSerializer, stringSerializer));
+            assertThrows(SocketTimeoutException.class, () -> client.put(key, "value1", stringSerializer, stringSerializer));
         } finally {
             client.close();
         }

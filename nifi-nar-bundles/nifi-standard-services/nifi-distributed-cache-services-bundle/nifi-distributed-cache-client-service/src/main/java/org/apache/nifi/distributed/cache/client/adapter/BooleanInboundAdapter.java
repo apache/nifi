@@ -48,7 +48,7 @@ public class BooleanInboundAdapter implements InboundAdapter {
      * @return the service method response value
      */
     public boolean getResult() {
-        return result;
+        return (result != null) && result;
     }
 
     @Override
