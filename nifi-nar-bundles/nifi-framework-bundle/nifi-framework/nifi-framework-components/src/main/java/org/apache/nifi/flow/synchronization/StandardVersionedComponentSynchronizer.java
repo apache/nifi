@@ -1536,7 +1536,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // Make sure that we have a unique name and add the Parameter Context if none exists
             if (parameterContext == null) {
                 final String contextId = synchronizationOptions.getComponentIdGenerator().generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), "Controller");
-                final ParameterContext added = createParameterContext(proposed, contextId, Collections.emptyMap());
+                final ParameterContext added = createParameterContext(proposed, contextId, Collections.emptyMap(), Collections.emptyMap(), synchronizationOptions.getComponentIdGenerator());
                 LOG.info("Successfully synchronized {} by adding it to the flow", added);
                 return;
             }
@@ -1947,16 +1947,16 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 final ParameterContext selectedParameterContext;
                 if (contextByName == null) {
                     final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(), versionedParameterContext.getName(), versionedParameterContext.getName());
-                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts);
+                    selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                 } else {
                     selectedParameterContext = contextByName;
-                    addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts);
+                    addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                 }
 
                 group.setParameterContext(selectedParameterContext);
             } else {
                 // Update the current Parameter Context so that it has any Parameters included in the proposed context
-                addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts);
+                addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
             }
         }
     }
@@ -2081,14 +2081,15 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private ParameterContext createParameterContext(final VersionedParameterContext versionedParameterContext, final String parameterContextId,
-                                                    final Map<String, VersionedParameterContext> versionedParameterContexts) {
+                                                    final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                                    final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
 
         final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext.getParameters());
 
         final List<String> parameterContextRefs = new ArrayList<>();
         if (versionedParameterContext.getInheritedParameterContexts() != null) {
             versionedParameterContext.getInheritedParameterContexts().stream()
-                .map(name -> createParameterReferenceId(name, versionedParameterContexts))
+                .map(name -> createParameterReferenceId(name, versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
                 .forEach(parameterContextRefs::add);
         }
 
@@ -2118,29 +2119,35 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         return parameters;
     }
 
-    private String createParameterReferenceId(final String parameterContextName, final Map<String, VersionedParameterContext> versionedParameterContexts) {
+    private String createParameterReferenceId(final String parameterContextName, final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                              final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
         final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(parameterContextName);
-        final ParameterContext selectedParameterContext = selectParameterContext(versionedParameterContext, versionedParameterContexts);
+        final ParameterContext selectedParameterContext = selectParameterContext(versionedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
         return selectedParameterContext.getIdentifier();
     }
 
-    private ParameterContext selectParameterContext(final VersionedParameterContext versionedParameterContext, final Map<String, VersionedParameterContext> versionedParameterContexts) {
+    private ParameterContext selectParameterContext(final VersionedParameterContext versionedParameterContext,
+                                                    final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                                    final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                                    final ComponentIdGenerator componentIdGenerator) {
         final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
         final ParameterContext selectedParameterContext;
         if (contextByName == null) {
             final String parameterContextId = context.getFlowMappingOptions().getComponentIdLookup().getComponentId(Optional.ofNullable(versionedParameterContext.getIdentifier()),
                 versionedParameterContext.getInstanceIdentifier());
-            selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts);
+            selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
         } else {
             selectedParameterContext = contextByName;
-            addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts);
+            addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
         }
 
         return selectedParameterContext;
     }
 
     private void addMissingConfiguration(final VersionedParameterContext versionedParameterContext, final ParameterContext currentParameterContext,
-                                         final Map<String, VersionedParameterContext> versionedParameterContexts) {
+                                         final Map<String, VersionedParameterContext> versionedParameterContexts,
+                                         final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                         final ComponentIdGenerator componentIdGenerator) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versionedParameter : versionedParameterContext.getParameters()) {
             final Optional<Parameter> parameterOption = currentParameterContext.getParameter(versionedParameter.getName());
@@ -2166,10 +2173,11 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (versionedParameterContext.getInheritedParameterContexts() != null && !versionedParameterContext.getInheritedParameterContexts().isEmpty()
             && currentParameterContext.getInheritedParameterContexts().isEmpty()) {
             currentParameterContext.setInheritedParameterContexts(versionedParameterContext.getInheritedParameterContexts().stream()
-                .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts))
+                .map(name -> selectParameterContext(versionedParameterContexts.get(name), versionedParameterContexts, parameterProviderReferences, componentIdGenerator))
                 .collect(Collectors.toList()));
         }
         if (versionedParameterContext.getParameterProvider() != null && currentParameterContext.getParameterProvider() == null) {
+            createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
             currentParameterContext.configureParameterProvider(getParameterProviderConfiguration(versionedParameterContext));
         }
     }
