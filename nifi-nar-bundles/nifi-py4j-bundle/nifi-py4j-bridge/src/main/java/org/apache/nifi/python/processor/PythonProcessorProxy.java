@@ -25,7 +25,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.python.processor.PythonProcessorBridge;
 
 import java.util.Arrays;
 import java.util.Collection;

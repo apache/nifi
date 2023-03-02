@@ -258,7 +258,8 @@ public class RecordTransformProxy extends PythonProcessorProxy {
      * @throws IOException if unable to create a new RecordSetWriter
      */
     private void writeResult(final RecordTransformResult result, final Map<RecordGroupingKey, DestinationTuple> destinationTuples,
-                             final RecordSetWriterFactory writerFactory, final ProcessSession session, final FlowFile originalFlowFile) throws SchemaNotFoundException, IOException, MalformedRecordException {
+                             final RecordSetWriterFactory writerFactory, final ProcessSession session, final FlowFile originalFlowFile)
+        throws SchemaNotFoundException, IOException, MalformedRecordException {
 
         final Record transformed = createRecordFromJson(result);
         if (transformed == null) {
