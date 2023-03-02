@@ -91,7 +91,7 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>extract-py4j-framework</id>
+                        <id>extract-python-framework</id>
                         <goals>
                             <goal>unpack-dependencies</goal>
                         </goals>
