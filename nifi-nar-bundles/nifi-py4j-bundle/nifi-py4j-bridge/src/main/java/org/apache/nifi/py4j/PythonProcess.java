@@ -192,7 +192,6 @@ public class PythonProcess {
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);
         final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, controllerPyFile.getAbsolutePath());
-        processBuilder.directory(virtualEnvHome);
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("LOGS_DIR", pythonLogsDirectory.getAbsolutePath());
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());

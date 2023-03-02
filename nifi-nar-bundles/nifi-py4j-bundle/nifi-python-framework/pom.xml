@@ -40,9 +40,6 @@
                                 <include>**/</include>
                             </includes>
                         </resource>
-                        <resource>
-                            <directory>src/main/python/extensions</directory>
-                        </resource>
                     </resources>
                 </configuration>
             </plugin>
@@ -57,8 +54,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <dependencies>
-    </dependencies>
 
 </project>

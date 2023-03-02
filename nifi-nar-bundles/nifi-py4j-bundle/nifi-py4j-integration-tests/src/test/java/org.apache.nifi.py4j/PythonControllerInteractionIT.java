@@ -137,17 +137,6 @@ public class PythonControllerInteractionIT {
         controllerServiceMap.clear();
     }
 
-    private static void copyContentsRecursively(final File file, final File destinationDir) throws IOException {
-        final File[] children = file.listFiles();
-        if (children == null) {
-            return;
-        }
-
-        for (final File child : children) {
-            copyRecursively(child, destinationDir);
-        }
-    }
-
     private static void copyRecursively(final File file, final File destinationDir) throws IOException {
         if (file.isDirectory()) {
             final File targetDir = new File(destinationDir, file.getName());
