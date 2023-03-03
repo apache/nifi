@@ -27,12 +27,14 @@ import org.apache.nifi.distributed.cache.client.adapter.ValueInboundAdapter;
 import org.apache.nifi.distributed.cache.client.adapter.VoidInboundAdapter;
 import org.apache.nifi.distributed.cache.operations.MapOperation;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -40,6 +42,7 @@ import java.util.Set;
  * communication services.
  */
 public class NettyDistributedMapCacheClient extends DistributedCacheClient {
+    private final ComponentLog log;
 
     /**
      * Constructor.
@@ -50,14 +53,18 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
      *                          communications will not be encrypted
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
+     * @param log               Component Log from instantiating Services
      */
     public NettyDistributedMapCacheClient(
             final String hostname,
             final int port,
             final int timeoutMillis,
             final SSLContextService sslContextService,
-            final VersionNegotiatorFactory factory) {
+            final VersionNegotiatorFactory factory,
+            final ComponentLog log
+    ) {
         super(hostname, port, timeoutMillis, sslContextService, factory);
+        this.log = Objects.requireNonNull(log, "Component Log required");
     }
 
     /**
@@ -312,7 +319,11 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      * @throws IOException if unable to communicate with the remote instance
      */
     public void close() throws IOException {
-        invoke(new OutboundAdapter().write(MapOperation.CLOSE.value()), new VoidInboundAdapter());
+        try {
+            invoke(new OutboundAdapter().write(MapOperation.CLOSE.value()), new VoidInboundAdapter());
+        } catch (final Exception e) {
+            log.warn("Sending close command failed: closing channel", e);
+        }
         closeChannelPool();
     }
 }

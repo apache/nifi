@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
-import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
@@ -30,19 +29,16 @@ import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -51,32 +47,37 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestMapCacheClient {
+public class TestDistributedMapCacheClientService {
+    private static final String LOCALHOST = "127.0.0.1";
+
+    private static final int MAX_REQUEST_LENGTH = 64;
+
+    private final Serializer<String> serializer = new StringSerializer();
+
     private int port;
+
     private EventServer server;
-    private final Serializer<String> stringSerializer = new StringSerializer();
+
+    private TestRunner runner;
 
     @BeforeEach
     public void setRunner() throws UnknownHostException {
-        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         port = NetworkUtils.getAvailableTcpPort();
 
-        final NettyEventServerFactory serverFactory = new NettyEventServerFactory(
-                InetAddress.getByName("127.0.0.1"), port, TransportProtocol.TCP);
+        final InetAddress serverAddress = InetAddress.getByName(LOCALHOST);
+        final NettyEventServerFactory serverFactory = new NettyEventServerFactory(serverAddress, port, TransportProtocol.TCP);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownQuietPeriod.QUICK.getDuration());
         final ComponentLog log = runner.getLogger();
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(
-                ProtocolVersion.V3.value(), ProtocolVersion.V2.value(), ProtocolVersion.V1.value());
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(ProtocolVersion.V3.value());
 
         serverFactory.setHandlerSupplier(() -> Arrays.asList(
                 new CacheVersionResponseEncoder(),
-                new MapCacheRequestDecoder(log, 64, MapOperation.values()),
+                new MapCacheRequestDecoder(log, MAX_REQUEST_LENGTH, MapOperation.values()),
                 new CacheVersionRequestHandler(log, versionNegotiator)
         ));
         server = serverFactory.getEventServer();
@@ -91,32 +92,27 @@ public class TestMapCacheClient {
      * Service will hold request long enough for client timeout to be triggered, thus causing the request to fail.
      */
     @Test
-    public void testClientTimeoutOnServerNetworkFailure() throws InitializationException, IOException {
-        final DistributedMapCacheClientService client = new DistributedMapCacheClientService();
-        final MockControllerServiceInitializationContext clientInitContext1 =
-                new MockControllerServiceInitializationContext(client, "client");
-        client.initialize(clientInitContext1);
+    public void testClientTimeoutOnServerNetworkFailure() throws InitializationException {
+        final String clientId = DistributedMapCacheClientService.class.getSimpleName();
+        final DistributedMapCacheClientService clientService = new DistributedMapCacheClientService();
 
-        final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "127.0.0.1");
-        clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(port));
-        clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "500 ms");
-
-        final MockConfigurationContext clientContext =
-                new MockConfigurationContext(clientProperties, clientInitContext1.getControllerServiceLookup());
-        client.onEnabled(clientContext);
+        runner.addControllerService(clientId, clientService);
+        runner.setProperty(clientService, DistributedMapCacheClientService.HOSTNAME, LOCALHOST);
+        runner.setProperty(clientService, DistributedMapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(clientService, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "500 ms");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
 
         try {
-            final String key = "test-timeout";
-            assertThrows(SocketTimeoutException.class, () -> client.put(key, "value1", stringSerializer, stringSerializer));
+            assertThrows(SocketTimeoutException.class, () -> clientService.put("key", "value", serializer, serializer));
         } finally {
-            client.close();
+            runner.disableControllerService(clientService);
         }
     }
 
     private static class StringSerializer implements Serializer<String> {
         @Override
-        public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
+        public void serialize(final String value, final OutputStream output) throws IOException {
             output.write(value.getBytes(StandardCharsets.UTF_8));
         }
     }
