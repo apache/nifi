@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.operations.MapOperation;
