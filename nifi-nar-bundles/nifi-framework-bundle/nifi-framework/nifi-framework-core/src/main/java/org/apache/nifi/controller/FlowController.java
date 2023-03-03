@@ -1567,7 +1567,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     public void setMaxTimerDrivenThreadCount(final int maxThreadCount) {
         writeLock.lock();
         try {
-            setMaxThreadCount(maxThreadCount, this.timerDrivenEngineRef.get(), this.maxTimerDrivenThreads);
+            setMaxThreadCount(maxThreadCount, "Timer Driven", this.timerDrivenEngineRef.get(), this.maxTimerDrivenThreads);
         } finally {
             writeLock.unlock("setMaxTimerDrivenThreadCount");
         }
@@ -1576,7 +1576,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     public void setMaxEventDrivenThreadCount(final int maxThreadCount) {
         writeLock.lock();
         try {
-            setMaxThreadCount(maxThreadCount, this.eventDrivenEngineRef.get(), this.maxEventDrivenThreads);
+            setMaxThreadCount(maxThreadCount, "Event Driven", this.eventDrivenEngineRef.get(), this.maxEventDrivenThreads);
             processScheduler.setMaxThreadCount(SchedulingStrategy.EVENT_DRIVEN, maxThreadCount);
         } finally {
             writeLock.unlock("setMaxEventDrivenThreadCount");
@@ -1587,16 +1587,23 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      * Updates the number of threads that can be simultaneously used for executing processors.
      * This method must be called while holding the write lock!
      *
-     * @param maxThreadCount max number of threads
+     * @param maxThreadCount Requested new thread pool size
+     * @param poolName Thread Pool Name
+     * @param engine Flow Engine executor or null when terminated
+     * @param maxThreads Internal tracker for Maximum Threads
      */
-    private void setMaxThreadCount(final int maxThreadCount, final FlowEngine engine, final AtomicInteger maxThreads) {
+    private void setMaxThreadCount(final int maxThreadCount, final String poolName, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
             throw new IllegalArgumentException("Cannot set max number of threads to less than 1");
         }
 
         maxThreads.getAndSet(maxThreadCount);
-        if (null != engine && engine.getCorePoolSize() < maxThreadCount) {
-            engine.setCorePoolSize(maxThreads.intValue());
+        if (engine == null) {
+            LOG.debug("[{}] Engine not found: Maximum Thread Count not updated", poolName);
+        } else {
+            final int previousCorePoolSize = engine.getCorePoolSize();
+            engine.setCorePoolSize(maxThreadCount);
+            LOG.info("[{}] Maximum Thread Count updated [{}] previous [{}]", poolName, maxThreadCount, previousCorePoolSize);
         }
     }
 
