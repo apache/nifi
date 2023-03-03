@@ -57,6 +57,9 @@ env:
     verify
     -P integration-tests
   MAVEN_PROJECTS: >-
+    -pl :nifi-python-framework
+    -pl :nifi-python-extension-api
+    -pl :nifi-python-test-extensions
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
 
@@ -77,6 +80,10 @@ jobs:
           distribution: zulu
           java-version: 17
           cache: 'maven'
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-
@@ -117,6 +124,10 @@ jobs:
           distribution: zulu
           java-version: 11
           cache: 'maven'
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-
@@ -157,6 +168,10 @@ jobs:
           distribution: zulu
           java-version: 11
           cache: 'maven'
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-
