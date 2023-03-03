@@ -86,7 +86,10 @@ import java.util.regex.Pattern;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
-@CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
+@CapabilityDescription("Receives messages from Microsoft Azure Event Hubs, writing the contents of the message to the content of the FlowFile. "
+        + "This processor shares the same functionality as GetAzureEventHub but supports checkpoints via Azure Blob Storage. "
+        + "Using checkpoints eliminates the chance of consuming a message multiple times. "
+        + "Hence, this is the preferred way to consume Azure Event Hubs messages if Azure Blob Storage is available.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @WritesAttributes({
