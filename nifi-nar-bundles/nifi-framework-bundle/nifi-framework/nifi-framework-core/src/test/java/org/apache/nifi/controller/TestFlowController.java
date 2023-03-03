@@ -53,7 +53,6 @@ import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -129,6 +128,9 @@ import static org.mockito.Mockito.when;
 
 public class TestFlowController {
 
+    private static final int INITIAL_MAX_TIMER_DRIVEN_THREAD_COUNT = 10;
+    private static final int REQUESTED_MAX_TIMER_DRIVEN_THREAD_COUNT = 2;
+
     private FlowController controller;
     private AbstractPolicyBasedAuthorizer authorizer;
     private FlowFileEventRepository flowFileEventRepo;
@@ -160,7 +162,7 @@ public class TestFlowController {
         otherProps.put("nifi.remote.input.secure", "");
         final String propsFile = "src/test/resources/flowcontrollertest.nifi.properties";
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        encryptor = PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties);
+        encryptor = mock(PropertyEncryptor.class);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -1355,11 +1357,24 @@ public class TestFlowController {
         assertEquals(0, componentCounts.get("Public Output Ports").intValue());
     }
 
+    @Test
+    public void testMaxTimerDrivenThreadCount() {
+        final int startingCount = controller.getMaxTimerDrivenThreadCount();
+
+        assertEquals(INITIAL_MAX_TIMER_DRIVEN_THREAD_COUNT, startingCount);
+
+        controller.setMaxTimerDrivenThreadCount(REQUESTED_MAX_TIMER_DRIVEN_THREAD_COUNT);
+        assertEquals(REQUESTED_MAX_TIMER_DRIVEN_THREAD_COUNT, controller.getMaxTimerDrivenThreadCount());
+
+        controller.setMaxTimerDrivenThreadCount(INITIAL_MAX_TIMER_DRIVEN_THREAD_COUNT);
+        assertEquals(INITIAL_MAX_TIMER_DRIVEN_THREAD_COUNT, controller.getMaxTimerDrivenThreadCount());
+    }
+
     private String getNewJsonFlow() throws JsonProcessingException {
         final VersionedDataflow versionedDataflow = new VersionedDataflow();
 
         versionedDataflow.setEncodingVersion(new VersionedFlowEncodingVersion(2, 0));
-        versionedDataflow.setMaxTimerDrivenThreadCount(10);
+        versionedDataflow.setMaxTimerDrivenThreadCount(INITIAL_MAX_TIMER_DRIVEN_THREAD_COUNT);
         versionedDataflow.setRegistries(Collections.emptyList());
         versionedDataflow.setParameterContexts(Collections.emptyList());
         versionedDataflow.setControllerServices(Collections.emptyList());
