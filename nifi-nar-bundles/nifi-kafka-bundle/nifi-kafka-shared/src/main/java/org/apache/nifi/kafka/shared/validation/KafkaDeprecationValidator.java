@@ -28,16 +28,16 @@ import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SELF_C
 
 public class KafkaDeprecationValidator {
 
-    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(KafkaDeprecationValidator.class);
+    public static void validate(Class<?> componentClass, final String identifier, final ValidationContext validationContext) {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(componentClass);
 
-    public static void validate(String processorName, final String identifier, final ValidationContext validationContext) {
         final PropertyValue credentialsServiceProperty = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE);
         final PropertyValue principalProperty = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions();
         final PropertyValue keyTabProperty = validationContext.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions();
 
         if (credentialsServiceProperty.isSet()) {
             deprecationLogger.warn("{}[id={}] [{}] Property should be replaced with [{}] Property",
-                    processorName,
+                    componentClass.getSimpleName(),
                     identifier,
                     KERBEROS_CREDENTIALS_SERVICE.getDisplayName(),
                     SELF_CONTAINED_KERBEROS_USER_SERVICE.getDisplayName()
@@ -46,7 +46,7 @@ public class KafkaDeprecationValidator {
 
         if (principalProperty.isSet() || keyTabProperty.isSet()) {
             deprecationLogger.warn("{}[id={}] [{}] and [{}] Properties should be replaced with [{}] Property",
-                    processorName,
+                    componentClass.getSimpleName(),
                     identifier,
                     KERBEROS_PRINCIPAL.getDisplayName(),
                     KERBEROS_KEYTAB.getDisplayName(),

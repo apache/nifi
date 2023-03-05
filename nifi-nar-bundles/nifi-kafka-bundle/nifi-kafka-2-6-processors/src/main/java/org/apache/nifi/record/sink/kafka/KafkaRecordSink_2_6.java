@@ -172,6 +172,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(SECURITY_PROTOCOL);
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         properties.add(KERBEROS_SERVICE_NAME);
         properties.add(SSL_CONTEXT_SERVICE);
         properties.add(MAX_REQUEST_SIZE);
@@ -199,7 +200,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+        KafkaDeprecationValidator.validate(getClass(), getIdentifier(), validationContext);
         return new KafkaClientCustomValidationFunction().apply(validationContext);
     }
 

@@ -392,7 +392,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+        KafkaDeprecationValidator.validate(getClass(), getIdentifier(), validationContext);
 
         final KafkaClientCustomValidationFunction validationFunction = new KafkaClientCustomValidationFunction();
         final Collection<ValidationResult> results = validationFunction.apply(validationContext);

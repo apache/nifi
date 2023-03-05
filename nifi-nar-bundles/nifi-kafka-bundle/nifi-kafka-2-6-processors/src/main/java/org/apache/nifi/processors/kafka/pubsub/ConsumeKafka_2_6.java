@@ -320,7 +320,7 @@ public class ConsumeKafka_2_6 extends AbstractProcessor implements KafkaClientCo
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        KafkaDeprecationValidator.validate(getClass().getSimpleName(), getIdentifier(), validationContext);
+        KafkaDeprecationValidator.validate(getClass(), getIdentifier(), validationContext);
 
         final KafkaClientCustomValidationFunction validationFunction = new KafkaClientCustomValidationFunction();
         final Collection<ValidationResult> validationResults = validationFunction.apply(validationContext);
