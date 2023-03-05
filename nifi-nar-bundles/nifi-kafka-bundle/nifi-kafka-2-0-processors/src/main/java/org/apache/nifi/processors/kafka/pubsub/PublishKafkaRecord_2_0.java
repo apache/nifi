@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -88,6 +89,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.0 Producer API. "
     + "The contents of the FlowFile are expected to be record-oriented data that can be read by the configured Record Reader. "
     + "The complementary NiFi processor for fetching messages is ConsumeKafkaRecord_2_0.")
+@DeprecationNotice(classNames = "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."

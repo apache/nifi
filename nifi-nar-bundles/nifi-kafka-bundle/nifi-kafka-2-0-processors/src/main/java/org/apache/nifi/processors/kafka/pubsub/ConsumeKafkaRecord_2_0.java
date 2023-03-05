@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -73,6 +74,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
     + "'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. "
     + "A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they "
     + "have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property.")
+@DeprecationNotice(classNames = "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6")
 @Tags({"Kafka", "Get", "Record", "csv", "avro", "json", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "2.0"})
 @WritesAttributes({
     @WritesAttribute(attribute = "record.count", description = "The number of records received"),
