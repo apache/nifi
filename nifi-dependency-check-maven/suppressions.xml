@@ -25,11 +25,6 @@
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
-        <notes>H2 1.4.200 is shaded and repackaged without vulnerable components in nifi-h2-database for migration</notes>
-        <packageUrl>pkg:maven/com.h2database/h2@1.4.200</packageUrl>
-        <vulnerabilityName regex="true">^CVE.*$</vulnerabilityName>
-    </suppress>
-    <suppress>
         <notes>CVE-2022-45868 requires running H2 from a command not applicable to project references</notes>
         <packageUrl regex="true">^pkg:maven/com\.h2database/h2@2.*$</packageUrl>
         <vulnerabilityName>CVE-2022-45868</vulnerabilityName>
