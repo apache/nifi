@@ -45,6 +45,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -64,12 +65,9 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
-@CapabilityDescription("Receives messages from Microsoft Azure Event Hubs, writing the contents of the message to the content of the FlowFile. "
-        + "Note: Please be aware that this processor creates a thread pool for Event Hub Client. "
-        + "They will be extra threads other than the concurrent tasks scheduled for this processor. "
-        + "Please also be aware that this processor does not support checkpoints. "
-        + "Meaning there is no way to continue receiving messages from a certain offset after the processor has been stopped, "
-        + "which can lead to data duplication. It is recommended to use ConsumeAzureEventHub instead if possible.")
+@CapabilityDescription("Receives messages from Microsoft Azure Event Hubs without reliable checkpoint tracking. "
+        + "ConsumeAzureEventHub offers the recommended approach to receiving messages from Azure Event Hubs. "
+        + "This processor creates a thread pool for connections to Azure Event Hubs.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
         @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
@@ -79,6 +77,7 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the event hub partition from which the message was pulled"),
         @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
+@SeeAlso(ConsumeAzureEventHub.class)
 public class GetAzureEventHub extends AbstractProcessor {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s/%s/ConsumerGroups/%s/Partitions/%s";
     private static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
