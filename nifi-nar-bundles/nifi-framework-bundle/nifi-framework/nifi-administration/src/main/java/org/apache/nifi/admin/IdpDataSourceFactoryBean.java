@@ -17,7 +17,6 @@
 package org.apache.nifi.admin;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.h2.database.migration.H2DatabaseUpdater;
 import org.apache.nifi.util.NiFiProperties;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.slf4j.Logger;
@@ -77,10 +76,6 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
             File dbFileNoExtension = new File(repositoryDirectory, IDP_DATABASE_FILE_NAME);
             String databaseUrl = getDatabaseUrl(dbFileNoExtension);
 
-            // Migrate an existing database if required
-            final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFileNoExtension + ";LOCK_MODE=3";
-            H2DatabaseUpdater.checkAndPerformMigration(dbFileNoExtension.getAbsolutePath(), migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
-
             // create the pool
             connectionPool = JdbcConnectionPool.create(databaseUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
             connectionPool.setMaxConnections(MAX_CONNECTIONS);
@@ -118,7 +113,7 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
     }
 
     private String getDatabaseUrl(File databaseFile) {
-        String databaseUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
+        String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
         String databaseUrlAppend = properties.getProperty(NiFiProperties.H2_URL_APPEND);
         if (StringUtils.isNotBlank(databaseUrlAppend)) {
             databaseUrl += databaseUrlAppend;
