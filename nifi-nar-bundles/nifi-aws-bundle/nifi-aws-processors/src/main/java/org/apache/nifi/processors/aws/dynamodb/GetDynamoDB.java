@@ -199,7 +199,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final DynamoDB dynamoDB = getDynamoDB();
+        final DynamoDB dynamoDB = getDynamoDB(context);
 
         try {
             BatchGetItemOutcome result = dynamoDB.batchGetItem(tableKeysAndAttributes);

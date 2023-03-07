@@ -18,16 +18,16 @@
 package org.apache.nifi.processors.aws.ml.textract;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob.TEXTRACT_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.textract.AmazonTextractClient;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisRequest;
 import com.amazonaws.services.textract.model.GetDocumentAnalysisResult;
@@ -47,7 +47,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class GetAwsTranslateJobStatusTest {
+public class GetAwsTextractJobStatusTest {
     private static final String TEST_TASK_ID = "testTaskId";
     private TestRunner runner;
     @Mock
@@ -59,21 +59,17 @@ public class GetAwsTranslateJobStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredetialProvider");
+        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredentialProvider");
         final GetAwsTextractJobStatus awsTextractJobStatusGetter = new GetAwsTextractJobStatus() {
-            protected AmazonTextractClient getClient() {
-                return mockTextractClient;
-            }
-
             @Override
-            protected AmazonTextractClient createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+            protected AmazonTextractClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
                 return mockTextractClient;
             }
         };
         runner = TestRunners.newTestRunner(awsTextractJobStatusGetter);
-        runner.addControllerService("awsCredetialProvider", mockAwsCredentialsProvider);
+        runner.addControllerService("awsCredentialProvider", mockAwsCredentialsProvider);
         runner.enableControllerService(mockAwsCredentialsProvider);
-        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredetialProvider");
+        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialProvider");
     }
 
     @Test
@@ -99,7 +95,7 @@ public class GetAwsTranslateJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 
     @Test
@@ -112,6 +108,6 @@ public class GetAwsTranslateJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 }

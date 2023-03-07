@@ -24,6 +24,7 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -81,7 +82,7 @@ public class PutDynamoDBRecordTest {
 
         testSubject = new PutDynamoDBRecord() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };

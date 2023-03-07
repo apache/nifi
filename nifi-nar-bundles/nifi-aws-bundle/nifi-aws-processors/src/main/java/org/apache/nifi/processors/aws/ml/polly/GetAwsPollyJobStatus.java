@@ -110,6 +110,6 @@ public class GetAwsPollyJobStatus extends AwsMachineLearningJobStatusProcessor<A
     private GetSpeechSynthesisTaskResult getSynthesisTask(ProcessContext context, FlowFile flowFile) {
         String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         GetSpeechSynthesisTaskRequest request = new GetSpeechSynthesisTaskRequest().withTaskId(taskId);
-        return getClient().getSpeechSynthesisTask(request);
+        return getClient(context).getSpeechSynthesisTask(request);
     }
 }

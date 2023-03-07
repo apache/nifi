@@ -49,7 +49,7 @@ public class StartAwsTranscribeJob extends AwsMachineLearningJobStarter<AmazonTr
 
     @Override
     protected StartTranscriptionJobResult sendRequest(StartTranscriptionJobRequest request, ProcessContext context, FlowFile flowFile) {
-        return getClient().startTranscriptionJob(request);
+        return getClient(context).startTranscriptionJob(request);
     }
 
     @Override

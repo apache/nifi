@@ -117,7 +117,7 @@ public class TagS3Object extends AbstractS3Processor {
             SECRET_KEY,
             CREDENTIALS_FILE,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
-            REGION,
+            S3_REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
@@ -135,10 +135,21 @@ public class TagS3Object extends AbstractS3Processor {
         return properties;
     }
 
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
+            return;
+        }
+
+        final AmazonS3Client s3;
+        try {
+            s3 = getS3Client(context, flowFile.getAttributes());
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize S3 client", e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -171,7 +182,6 @@ public class TagS3Object extends AbstractS3Processor {
 
         final String version = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonS3Client s3 = getClient();
 
         SetObjectTaggingRequest r;
         List<Tag> tags = new ArrayList<>();

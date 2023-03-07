@@ -289,7 +289,7 @@ public class PutS3Object extends AbstractS3Processor {
             OBJECT_TAGS_PREFIX,
             REMOVE_TAG_PREFIX,
             STORAGE_CLASS,
-            REGION,
+            S3_REGION,
             TIMEOUT,
             EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST,
@@ -503,8 +503,20 @@ public class PutS3Object extends AbstractS3Processor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
+            return;
+        }
+
+        final AmazonS3Client s3;
+
+        try {
+           s3  = getS3Client(context, flowFile.getAttributes());
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize S3 client", e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -514,7 +526,6 @@ public class PutS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String cacheKey = getIdentifier() + "/" + bucket + "/" + key;
 
-        final AmazonS3Client s3 = getClient();
         final FlowFile ff = flowFile;
         final Map<String, String> attributes = new HashMap<>();
         final String ffFilename = ff.getAttributes().get(CoreAttributes.FILENAME.key());
@@ -969,7 +980,7 @@ public class PutS3Object extends AbstractS3Processor {
         final List<Tag> objectTags = new ArrayList<>();
         final Map<String, String> attributesMap = flowFile.getAttributes();
 
-        attributesMap.entrySet().stream().sequential()
+        attributesMap.entrySet().stream()
         .filter(attribute -> attribute.getKey().startsWith(prefix))
         .forEach(attribute -> {
             String tagKey = attribute.getKey();

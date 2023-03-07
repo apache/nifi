@@ -525,7 +525,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
     private GetDynamoDB mockDynamoDB(final DynamoDB mockDynamoDB) {
         return new GetDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
             @Override
@@ -536,7 +536,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
             @Override
             protected AbstractAWSProcessor<AmazonDynamoDBClient>.AWSConfiguration getConfiguration(final ProcessContext context) {
                 final AmazonDynamoDBClient client = Mockito.mock(AmazonDynamoDBClient.class);
-                return new AWSConfiguration(client, region);
+                return new AWSConfiguration(client, getRegion(context));
             }
         };
     }

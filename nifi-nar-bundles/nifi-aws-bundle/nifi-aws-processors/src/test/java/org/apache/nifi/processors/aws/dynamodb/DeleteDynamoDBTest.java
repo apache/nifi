@@ -26,6 +26,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.DeleteRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -63,7 +64,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -79,7 +80,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDb;
             }
         };
@@ -277,7 +278,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -316,7 +317,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -354,7 +355,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };

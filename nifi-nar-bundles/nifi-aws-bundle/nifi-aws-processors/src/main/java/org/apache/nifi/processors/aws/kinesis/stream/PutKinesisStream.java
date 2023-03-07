@@ -131,7 +131,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
         HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
         HashMap<String, List<PutRecordsRequestEntry>> recordHash = new HashMap<String, List<PutRecordsRequestEntry>>();
 
-        final AmazonKinesisClient client = getClient();
+        final AmazonKinesisClient client = getClient(context);
 
 
         try {

@@ -83,9 +83,9 @@ public class GetAwsTextractJobStatus extends AwsMachineLearningJobStatusProcesso
 
         String awsTaskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         try {
-            JobStatus jobStatus = getTaskStatus(TextractType.fromString(textractType), getClient(), awsTaskId);
+            JobStatus jobStatus = getTaskStatus(TextractType.fromString(textractType), getClient(context), awsTaskId);
             if (JobStatus.SUCCEEDED == jobStatus) {
-                Object task = getTask(TextractType.fromString(textractType), getClient(), awsTaskId);
+                Object task = getTask(TextractType.fromString(textractType), getClient(context), awsTaskId);
                 writeToFlowFile(session, flowFile, task);
                 session.transfer(flowFile, REL_SUCCESS);
             } else if (JobStatus.IN_PROGRESS == jobStatus) {

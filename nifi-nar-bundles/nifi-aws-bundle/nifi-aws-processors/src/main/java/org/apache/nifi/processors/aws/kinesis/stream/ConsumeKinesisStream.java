@@ -548,14 +548,14 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         return () -> {
             if (isRecordReaderSet && isRecordWriterSet) {
                 return new KinesisRecordProcessorRecord(
-                        sessionFactory, getLogger(), getStreamName(context), getClient().getEndpointPrefix(),
+                        sessionFactory, getLogger(), getStreamName(context), getClient(context).getEndpointPrefix(),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
                         getReaderFactory(context), getWriterFactory(context)
                 );
             } else {
                 return new KinesisRecordProcessorRaw(
-                        sessionFactory, getLogger(), getStreamName(context), getClient().getEndpointPrefix(),
+                        sessionFactory, getLogger(), getStreamName(context), getClient(context).getEndpointPrefix(),
                         getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
                         getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context)
                 );
@@ -575,8 +575,8 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 getCredentialsProvider(context),
                 workerId
         )
-                .withCommonClientConfig(getClient().getClientConfiguration())
-                .withRegionName(getRegion().getName())
+                .withCommonClientConfig(getClient(context).getClientConfiguration())
+                .withRegionName(getRegion(context).getName())
                 .withFailoverTimeMillis(getFailoverTimeMillis(context))
                 .withShutdownGraceMillis(getGracefulShutdownMillis(context));
 
@@ -613,7 +613,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                                         final IRecordProcessorFactory factory) {
         final Worker.Builder workerBuilder = new Worker.Builder()
                 .config(kinesisClientLibConfiguration)
-                .kinesisClient(getClient())
+                .kinesisClient(getClient(context))
                 .workerStateChangeListener(workerState::set)
                 .recordProcessorFactory(factory);
 

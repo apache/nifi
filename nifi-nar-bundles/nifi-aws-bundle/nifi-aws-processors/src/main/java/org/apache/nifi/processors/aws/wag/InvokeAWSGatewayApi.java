@@ -182,7 +182,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
 
             final String resourceName = context.getProperty(PROP_RESOURCE_NAME).getValue();
 
-            final GenericApiGatewayClient client = getClient();
+            final GenericApiGatewayClient client = getClient(context);
 
             final long startNanos = System.nanoTime();
             final Map<String, String> attributes = requestFlowFile == null ? Collections.emptyMap() : requestFlowFile.getAttributes();
