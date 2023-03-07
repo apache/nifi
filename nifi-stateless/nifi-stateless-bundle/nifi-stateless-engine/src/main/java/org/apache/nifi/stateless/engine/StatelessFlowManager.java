@@ -323,7 +323,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                          final boolean registerLogObserver) {
         if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
+            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Parameter Provider Task. Provided arguments were type=" + type + ", id=" + id
                 + ", bundle coordinate = " + bundleCoordinate);
         }
 
