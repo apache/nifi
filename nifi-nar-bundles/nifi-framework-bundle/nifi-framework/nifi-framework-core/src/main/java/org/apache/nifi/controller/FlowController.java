@@ -732,10 +732,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // flow that is different from the rest of the cluster (especially an empty flow) and then
             // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
             // the coordinator.
-            LOG.info("Checking if there is already a Cluster Coordinator Elected...");
-            final String clusterCoordinatorAddress = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
-            if (StringUtils.isEmpty(clusterCoordinatorAddress)) {
-                LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
+            LOG.info("Checking for elected Cluster Coordinator...");
+            final Optional<String> clusterCoordinatorLeader = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
+            if (!clusterCoordinatorLeader.isPresent()) {
+                LOG.info("No Cluster Coordinator elected: Registering for Cluster Coordinator election");
                 registerForClusterCoordinator(true);
             } else {
                 // At this point, we have determined that there is a Cluster Coordinator elected. It is important to note, though,
@@ -746,8 +746,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 // to that address has not started. ZooKeeper/Curator will recognize this after a while and delete the ZNode. As a result,
                 // we may later determine that there is in fact no Cluster Coordinator. If this happens, we will automatically register for
                 // Cluster Coordinator through the StandardFlowService.
-                LOG.info("The Election for Cluster Coordinator has already begun (Leader is {}). Will not register to be elected for this role until after connecting "
-                        + "to the cluster and inheriting the cluster's flow.", clusterCoordinatorAddress);
+                LOG.info("Cluster Coordinator [{}] elected: Not registering for election until after connecting "
+                        + "to the cluster and inheriting the flow", clusterCoordinatorLeader.get());
                 registerForClusterCoordinator(false);
             }
 
@@ -2377,9 +2377,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
-            public synchronized void onLeaderRelinquish() {
-                LOG.info("This node is no longer the elected Active Cluster Coordinator");
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " is no longer the Cluster Coordinator"));
+            public synchronized void onStopLeading() {
+                LOG.info("This node is no longer the elected Active {}", ClusterRoles.CLUSTER_COORDINATOR);
+                final String message = String.format("%s is no longer the elected Active %s", participantId, ClusterRoles.CLUSTER_COORDINATOR);
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(ClusterRoles.CLUSTER_COORDINATOR, Severity.INFO.name(), message));
 
                 // We do not want to stop the heartbeat monitor. This is because even though ZooKeeper offers guarantees
                 // that watchers will see changes on a ZNode in the order they happened, there does not seem to be any
@@ -2392,9 +2393,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             @Override
-            public synchronized void onLeaderElection() {
-                LOG.info("This node elected Active Cluster Coordinator");
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " has been elected the Cluster Coordinator"));
+            public synchronized void onStartLeading() {
+                LOG.info("This node has been elected Active {}", ClusterRoles.CLUSTER_COORDINATOR);
+                final String message = String.format("%s has been elected Active %s", participantId, ClusterRoles.CLUSTER_COORDINATOR);
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(ClusterRoles.CLUSTER_COORDINATOR, Severity.INFO.name(), message   ));
 
                 // Purge any heartbeats that we already have. If we don't do this, we can have a scenario where we receive heartbeats
                 // from a node, and then another node becomes Cluster Coordinator. As a result, we stop receiving heartbeats. Now that
@@ -2411,12 +2413,12 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
             @Override
-            public void onLeaderElection() {
+            public void onStartLeading() {
                 setPrimary(true);
             }
 
             @Override
-            public void onLeaderRelinquish() {
+            public void onStopLeading() {
                 setPrimary(false);
             }
         }, participantId);
@@ -2546,7 +2548,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         // Emit a bulletin detailing the fact that the primary node state has changed
         if (oldBean == null || oldBean.isPrimary() != primary) {
             final String message = primary ? "This node has been elected Primary Node" : "This node is no longer Primary Node";
-            final Bulletin bulletin = BulletinFactory.createBulletin("Primary Node", Severity.INFO.name(), message);
+            final Bulletin bulletin = BulletinFactory.createBulletin(ClusterRoles.PRIMARY_NODE, Severity.INFO.name(), message);
             bulletinRepository.addBulletin(bulletin);
             LOG.info(message);
         }

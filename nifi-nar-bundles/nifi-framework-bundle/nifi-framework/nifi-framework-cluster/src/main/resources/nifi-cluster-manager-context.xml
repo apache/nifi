@@ -37,8 +37,8 @@
 
     <!-- Leader Election Manager -->
     <bean id="leaderElectionManager" class="org.apache.nifi.spring.LeaderElectionManagerFactoryBean">
-        <property name="numThreads" value="4" />
         <property name="properties" ref="nifiProperties" />
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <bean id="flowElection" class="org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElectionFactoryBean">

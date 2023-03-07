@@ -93,6 +93,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,9 +117,11 @@ import java.util.stream.Collectors;
  * <p/>
  */
 public class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
+    private static final long VERSION_INCREMENT = 1;
+    private static final String INITIAL_VERSION = String.valueOf(VERSION_INCREMENT);
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
-    private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), -1L);
+    private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), Optional.empty());
 
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
@@ -685,7 +688,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             final StateManager stateManager = context.getStateManager();
             if (checkpoint.localState != null) {
                 final StateMap stateMap = stateManager.getState(Scope.LOCAL);
-                if (stateMap.getVersion() < checkpoint.localState.getVersion()) {
+                final Optional<String> stateVersion = stateMap.getStateVersion();
+                if (!stateVersion.equals(checkpoint.localState.getStateVersion())) {
                     LOG.debug("Updating State Manager's Local State");
 
                     try {
@@ -695,14 +699,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
                 } else {
                     LOG.debug("Will not update State Manager's Local State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                        stateMap.getVersion(), checkpoint.localState.getVersion());
+                            stateVersion, checkpoint.localState.getStateVersion());
                 }
             }
 
             // Update cluster state
             if (checkpoint.clusterState != null) {
                 final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
-                if (stateMap.getVersion() < checkpoint.clusterState.getVersion()) {
+                final Optional<String> stateVersion = stateMap.getStateVersion();
+                if (!stateVersion.equals(checkpoint.clusterState.getStateVersion())) {
                     LOG.debug("Updating State Manager's Cluster State");
 
                     try {
@@ -712,7 +717,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
                 } else {
                     LOG.debug("Will not update State Manager's Cluster State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                        stateMap.getVersion(), checkpoint.clusterState.getVersion());
+                            stateVersion, checkpoint.clusterState.getStateVersion());
                 }
             }
 
@@ -3816,8 +3821,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void setState(final Map<String, String> state, final Scope scope) throws IOException {
-        final long currentVersion = getState(scope).getVersion();
-        final StateMap stateMap = new StandardStateMap(state, currentVersion + 1);
+        final Optional<String> currentVersion = getState(scope).getStateVersion();
+        final String version = currentVersion.map(this::getIncrementedVersion).orElse(INITIAL_VERSION);
+        final StateMap stateMap = new StandardStateMap(state, Optional.of(version));
         setState(stateMap, scope);
     }
 
@@ -3858,8 +3864,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     @Override
     public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
         final StateMap current = getState(scope);
-        if (current.getVersion() == -1 && (oldValue == null || oldValue.getVersion() == -1)) {
-            final StateMap stateMap = new StandardStateMap(newValue, 1L);
+        if (!current.getStateVersion().isPresent() && (oldValue == null || !oldValue.getStateVersion().isPresent())) {
+            final StateMap stateMap = new StandardStateMap(newValue, Optional.of(INITIAL_VERSION));
             setState(stateMap, scope);
             return true;
         }
@@ -3868,8 +3874,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             return false;
         }
 
-        if (current.getVersion() == oldValue.getVersion() && current.toMap().equals(oldValue.toMap())) {
-            final StateMap stateMap = new StandardStateMap(newValue, current.getVersion() + 1);
+        if (current.getStateVersion().equals(oldValue.getStateVersion()) && current.toMap().equals(oldValue.toMap())) {
+            final String version = current.getStateVersion().map(this::getIncrementedVersion).orElse(INITIAL_VERSION);
+            final StateMap stateMap = new StandardStateMap(newValue, Optional.of(version));
             setState(stateMap, scope);
             return true;
         }
@@ -3885,6 +3892,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     @Override
     public String toString() {
         return "StandardProcessSession[id=" + sessionId + "]";
+    }
+
+    private String getIncrementedVersion(final String currentVersion) {
+        final long versionNumber = Long.parseLong(currentVersion);
+        final long version = versionNumber + VERSION_INCREMENT;
+        return String.valueOf(version);
     }
 
     /**

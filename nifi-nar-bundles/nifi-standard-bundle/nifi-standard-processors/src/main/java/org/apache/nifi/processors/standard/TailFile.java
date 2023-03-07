@@ -414,7 +414,7 @@ public class TailFile extends AbstractProcessor {
 
         final String startPosition = context.getProperty(START_POSITION).getValue();
 
-        if (stateMap.getVersion() == -1L || stateMap.toMap().isEmpty()) {
+        if (!stateMap.getStateVersion().isPresent() || stateMap.toMap().isEmpty()) {
             //state has been cleared or never stored so recover as 'empty state'
             initStates(filesToTail, Collections.emptyMap(), true, startPosition);
             recoverState(context, filesToTail, Collections.emptyMap());

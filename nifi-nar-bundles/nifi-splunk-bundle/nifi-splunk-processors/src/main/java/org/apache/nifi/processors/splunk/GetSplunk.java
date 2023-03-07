@@ -590,7 +590,7 @@ public class GetSplunk extends AbstractProcessor {
     private TimeRange loadState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
 
-        if (stateMap.getVersion() < 0) {
+        if (!stateMap.getStateVersion().isPresent()) {
             getLogger().debug("No previous state found");
             return null;
         }

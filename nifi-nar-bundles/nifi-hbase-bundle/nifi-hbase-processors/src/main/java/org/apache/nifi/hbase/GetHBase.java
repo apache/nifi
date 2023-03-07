@@ -207,7 +207,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
     @OnScheduled
     public void parseColumns(final ProcessContext context) throws IOException {
         final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
-        if (stateMap.getVersion() < 0) {
+        if (!stateMap.getStateVersion().isPresent()) {
             // no state has been stored in the State Manager - check if we have state stored in the
             // DistributedMapCacheClient service and migrate it if so
             final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
@@ -461,7 +461,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
 
     private ScanResult getState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
-        if (stateMap.getVersion() < 0) {
+        if (!stateMap.getStateVersion().isPresent()) {
             return null;
         }
 

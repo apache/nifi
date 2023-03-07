@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A RedisStateMapSerDe that uses JSON as the underlying representation.
@@ -34,6 +35,8 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
     public static final String FIELD_VERSION = "version";
     public static final String FIELD_ENCODING = "encodingVersion";
     public static final String FIELD_STATE_VALUES = "stateValues";
+
+    static final long EMPTY_VERSION = -1;
 
     private final JsonFactory jsonFactory = new JsonFactory(new ObjectMapper());
 
@@ -46,7 +49,10 @@ public class RedisStateMapJsonSerDe implements RedisStateMapSerDe {
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             final JsonGenerator jsonGenerator = jsonFactory.createGenerator(out);
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeNumberField(FIELD_VERSION, stateMap.getVersion());
+
+            final Optional<String> stateVersion = stateMap.getStateVersion();
+            final long version = stateVersion.map(Long::parseLong).orElse(EMPTY_VERSION);
+            jsonGenerator.writeNumberField(FIELD_VERSION, version);
             jsonGenerator.writeNumberField(FIELD_ENCODING, stateMap.getEncodingVersion());
 
             jsonGenerator.writeObjectFieldStart(FIELD_STATE_VALUES);

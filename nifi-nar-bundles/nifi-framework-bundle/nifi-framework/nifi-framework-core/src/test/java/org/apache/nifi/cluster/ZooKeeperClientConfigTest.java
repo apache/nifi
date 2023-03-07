@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.cluster;
 
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.Test;
 

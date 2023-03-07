@@ -4193,6 +4193,16 @@ Configure these properties for cluster nodes.
 |====
 |*Property*|*Description*
 |`nifi.cluster.is.node`|Set this to `true` if the instance is a node in a cluster. The default value is `false`.
+|`nifi.cluster.leader.election.implementation`|The Cluster Leader Election implementation class name or simple class
+name.
+
+The default value is `CuratorLeaderElectionManager` for ZooKeeper Leader Election using `nifi.zookeeper` settings.
+
+The implementation can be set to `KubernetesLeaderElectionManager` for Leader Election using
+link:https://kubernetes.io/docs/concepts/architecture/leases/[Kubernetes Leases]. The Kubernetes namespace for Leases
+will be read from the
+link:https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/[Service Account] namespace secret.
+The Kubernetes namespace will be set to `default` if the Service Account secret is not found.
 |`nifi.cluster.node.address`|The fully qualified address of the node. It is blank by default.
 |`nifi.cluster.node.protocol.port`|The node's protocol port. It is blank by default.
 |`nifi.cluster.node.protocol.max.threads`|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`. When a request is made to one node, it must be forwarded to the coordinator. The coordinator then replicates it to all nodes. There could be up to `n+2` threads for a given request, where `n` = number of nodes in your cluster. As an example, if 4 requests are made, a 5 node cluster will use `4 * 7 = 28` threads.

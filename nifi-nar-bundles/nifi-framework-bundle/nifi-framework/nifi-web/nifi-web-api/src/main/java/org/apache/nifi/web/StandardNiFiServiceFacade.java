@@ -6289,12 +6289,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String nodeAddress = nodeId.getSocketAddress() + ":" + nodeId.getSocketPort();
 
         for (final String roleName : ClusterRoles.getAllRoles()) {
-            final String leader = leaderElectionManager.getLeader(roleName);
-            if (leader == null) {
+            final Optional<String> leader = leaderElectionManager.getLeader(roleName);
+            if (!leader.isPresent()) {
                 continue;
             }
 
-            if (leader.equals(nodeAddress)) {
+            final String leaderAddress = leader.get();
+            if (leaderAddress.equals(nodeAddress)) {
                 roles.add(roleName);
             }
         }

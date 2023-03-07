@@ -28,6 +28,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
@@ -117,6 +118,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(NarProvider.class, new HashSet<>());
         definitionMap.put(ExternalResourceProvider.class, new HashSet<>());
         definitionMap.put(FlowRegistryClient.class, new HashSet<>());
+        definitionMap.put(LeaderElectionManager.class, new HashSet<>());
 
         additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }

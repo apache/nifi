@@ -283,7 +283,7 @@ public class StandardDataValve implements DataValve {
             return;
         }
 
-        if (stateMap.getVersion() < 0) {
+        if (!stateMap.getStateVersion().isPresent()) {
             logger.debug("No state to recover for {}", this);
             return;
         }
