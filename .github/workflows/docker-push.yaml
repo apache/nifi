@@ -40,4 +40,4 @@ jobs:
         context: .
         file:  ./nifi-docker/dockermaven/Dockerfile
         push: true
-        tags: alpcr.azurecr.io/alp-nifi-base:develop
+        tags: alpcr.azurecr.io/alp-nifi-base:main
