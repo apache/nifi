@@ -94,7 +94,7 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
         HashMap<String, List<FlowFile>> hashFlowFiles = new HashMap<>();
         HashMap<String, List<Record>> recordHash = new HashMap<String, List<Record>>();
 
-        final AmazonKinesisFirehoseClient client = getClient();
+        final AmazonKinesisFirehoseClient client = getClient(context);
 
         try {
             List<FlowFile> failedFlowFiles = new ArrayList<>();

@@ -265,7 +265,6 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     /**
      * Create client using aws credentials provider. This is the preferred way for creating clients
      */
-
     @Override
     protected AmazonCloudWatchClient createClient(ProcessContext processContext, AWSCredentialsProvider awsCredentialsProvider, ClientConfiguration clientConfiguration) {
         getLogger().info("Creating client using aws credentials provider");
@@ -278,6 +277,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
     @Override
+    @Deprecated
     protected AmazonCloudWatchClient createClient(ProcessContext processContext, AWSCredentials awsCredentials, ClientConfiguration clientConfiguration) {
         getLogger().debug("Creating client with aws credentials");
         return new AmazonCloudWatchClient(awsCredentials, clientConfiguration);
@@ -332,7 +332,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
                     .withNamespace(context.getProperty(NAMESPACE).evaluateAttributeExpressions(flowFile).getValue())
                     .withMetricData(datum);
 
-            putMetricData(metricDataRequest);
+            putMetricData(context, metricDataRequest);
             session.transfer(flowFile, REL_SUCCESS);
             getLogger().info("Successfully published cloudwatch metric for {}", new Object[]{flowFile});
         } catch (final Exception e) {
@@ -343,8 +343,8 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
 
     }
 
-    protected PutMetricDataResult putMetricData(PutMetricDataRequest metricDataRequest) throws AmazonClientException {
-        final AmazonCloudWatchClient client = getClient();
+    protected PutMetricDataResult putMetricData(ProcessContext context, PutMetricDataRequest metricDataRequest) throws AmazonClientException {
+        final AmazonCloudWatchClient client = getClient(context);
         final PutMetricDataResult result = client.putMetricData(metricDataRequest);
         return result;
     }

@@ -26,6 +26,7 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.PutRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -63,7 +64,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -79,7 +80,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDb;
             }
         };
@@ -333,7 +334,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -373,7 +374,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };
@@ -412,7 +413,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
         putDynamoDB = new PutDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
         };

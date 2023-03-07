@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
@@ -121,7 +120,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         for (int i = 0; i < 3; i++) {
             final Map<String, String> attrs = new HashMap<>();
-            attrs.put("filename", String.valueOf(i) + ".txt");
+            attrs.put("filename", i + ".txt");
             runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         }
         runner.run(3);
@@ -139,7 +138,7 @@ public class ITPutS3Object extends AbstractS3IT {
 
         for (int i = 0; i < 3; i++) {
             final Map<String, String> attrs = new HashMap<>();
-            attrs.put("filename", String.valueOf(i) + ".txt");
+            attrs.put("filename", i + ".txt");
             runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         }
         runner.run(3);
@@ -190,7 +189,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         runner.enqueue(new byte[0], attrs);
@@ -235,14 +234,14 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.assertValid(serviceImpl);
 
         runner.setProperty(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
         assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
 
         for (int i = 0; i < 3; i++) {
             final Map<String, String> attrs = new HashMap<>();
-            attrs.put("filename", String.valueOf(i) + ".txt");
+            attrs.put("filename", i + ".txt");
             runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         }
         runner.run(3);
@@ -257,7 +256,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         PropertyDescriptor prop1 = processor.getSupportedDynamicPropertyDescriptor("TEST-PROP-1");
         runner.setProperty(prop1, "TESTING-1-2-3");
@@ -272,10 +271,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        MockFlowFile ff1 = flowFiles.get(0);
-        for (Map.Entry attrib : ff1.getAttributes().entrySet()) {
-            System.out.println(attrib.getKey() + " = " + attrib.getValue());
-        }
+        MockFlowFile ff = flowFiles.get(0);
+        ff.assertAttributeExists("s3.usermetadata");
     }
 
     @Test
@@ -321,13 +318,12 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
-        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
 
         // Fetch
         runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         runner.enqueue(new byte[0], attrs);
@@ -335,7 +331,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(FetchS3Object.REL_SUCCESS, 1);
-        ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
+        List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchS3Object.REL_SUCCESS);
         MockFlowFile ff = ffs.get(0);
         ff.assertContentEquals(getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
         ff.assertAttributeNotExists(PutS3Object.S3_CONTENT_DISPOSITION);
@@ -417,7 +413,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testStorageClassesMultipart() throws IOException {
+    public void testStorageClassesMultipart() {
         TestRunner runner = initTestRunner();
 
         runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, "50 MB");
@@ -463,7 +459,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testDynamicProperty() throws IOException {
+    public void testDynamicProperty() {
         final String DYNAMIC_ATTRIB_KEY = "fs.runTimestamp";
         final String DYNAMIC_ATTRIB_VALUE = "${now():toNumber()}";
 
@@ -471,7 +467,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
         PropertyDescriptor testAttrib = processor.getSupportedDynamicPropertyDescriptor(DYNAMIC_ATTRIB_KEY);
@@ -490,7 +486,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, successFiles.size());
         MockFlowFile ff1 = successFiles.get(0);
 
-        Long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
         String millisNow = Long.toString(now);
         String millisOneSecAgo = Long.toString(now - 1000L);
         String usermeta = ff1.getAttribute(PutS3Object.S3_USERMETA_ATTR_KEY);
@@ -502,14 +498,14 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testProvenance() throws InitializationException {
+    public void testProvenance() {
         final String PROV1_FILE = "provfile1";
 
         final PutS3Object processor = new PutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, "${filename}");
 
@@ -538,23 +534,23 @@ public class ITPutS3Object extends AbstractS3IT {
     @Test
     public void testStateDefaults() {
         PutS3Object.MultipartState state1 = new PutS3Object.MultipartState();
-        assertEquals(state1.getUploadId(), "");
-        assertEquals(state1.getFilePosition(), (Long) 0L);
-        assertEquals(state1.getPartETags().size(), 0L);
-        assertEquals(state1.getPartSize(), (Long) 0L);
-        assertEquals(state1.getStorageClass().toString(), StorageClass.Standard.toString());
-        assertEquals(state1.getContentLength(), (Long) 0L);
+        assertEquals("", state1.getUploadId());
+        assertEquals((Long) 0L, state1.getFilePosition());
+        assertEquals(0L, state1.getPartETags().size());
+        assertEquals((Long) 0L, state1.getPartSize());
+        assertEquals(StorageClass.Standard.toString(), state1.getStorageClass().toString());
+        assertEquals((Long) 0L, state1.getContentLength());
     }
 
     @Test
-    public void testStateToString() throws IOException, InitializationException {
+    public void testStateToString() {
         final String target = "UID-test1234567890#10001#1/PartETag-1,2/PartETag-2,3/PartETag-3,4/PartETag-4#20002#REDUCED_REDUNDANCY#30003#8675309";
         PutS3Object.MultipartState state2 = new PutS3Object.MultipartState();
         state2.setUploadId("UID-test1234567890");
         state2.setFilePosition(10001L);
         state2.setTimestamp(8675309L);
-        for (Integer partNum = 1; partNum < 5; partNum++) {
-            state2.addPartETag(new PartETag(partNum, "PartETag-" + partNum.toString()));
+        for (int partNum = 1; partNum < 5; partNum++) {
+            state2.addPartETag(new PartETag(partNum, "PartETag-" + partNum));
         }
         state2.setPartSize(20002L);
         state2.setStorageClass(StorageClass.ReducedRedundancy);
@@ -581,19 +577,19 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(TESTKEY, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).toString());
         assertEquals(TEST_ENDPOINT, context.getProperty(PutS3Object.ENDPOINT_OVERRIDE).toString());
 
-        String s3url = ((TestablePutS3Object)processor).testable_getClient().getResourceUrl(BUCKET_NAME, TESTKEY);
+        String s3url = ((TestablePutS3Object)processor).testable_getClient(context).getResourceUrl(BUCKET_NAME, TESTKEY);
         assertEquals(TEST_ENDPOINT + "/" + BUCKET_NAME + "/" + TESTKEY, s3url);
     }
 
     @Test
-    public void testMultipartProperties() throws IOException {
+    public void testMultipartProperties() {
         final PutS3Object processor = new PutS3Object();
         final TestRunner runner = TestRunners.newTestRunner(processor);
         final ProcessContext context = runner.getProcessContext();
 
         runner.setProperty(PutS3Object.FULL_CONTROL_USER_LIST,
                 "28545acd76c35c7e91f8409b95fd1aa0c0914bfa1ac60975d9f48bc3c5e090b5");
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.KEY, AbstractS3IT.SAMPLE_FILE_RESOURCE_NAME);
@@ -812,7 +808,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
 
@@ -844,7 +840,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final Path tempFile = Files.createTempFile("s3mulitpart", "tmp");
         final FileOutputStream tempOut = new FileOutputStream(tempFile.toFile());
         long tempByteCount = 0;
-        for ( ; tempByteCount < TEST_PARTSIZE_LONG + 1; ) {
+        while (tempByteCount < TEST_PARTSIZE_LONG + 1) {
             tempOut.write(megabyte);
             tempByteCount += megabyte.length;
         }
@@ -857,7 +853,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_THRESHOLD, TEST_PARTSIZE_STRING);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
@@ -887,7 +883,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final String FILE1_NAME = "file1";
 
         final byte[] megabyte = new byte[1024 * 1024];
-        final Path tempFile = Files.createTempFile("s3mulitpart", "tmp");
+        final Path tempFile = Files.createTempFile("s3multipart", "tmp");
         final FileOutputStream tempOut = new FileOutputStream(tempFile.toFile());
         for (int i = 0; i < (S3_MAXIMUM_OBJECT_SIZE / 1024 / 1024 + 1); i++) {
             tempOut.write(megabyte);
@@ -898,7 +894,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(PutS3Object.MULTIPART_PART_SIZE, TEST_PARTSIZE_STRING);
 
@@ -928,7 +924,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final ProcessContext context = runner.getProcessContext();
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
         // set check interval and age off to minimum values
@@ -936,7 +932,7 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.MULTIPART_S3_MAX_AGE, "1 milli");
 
         // create some dummy uploads
-        for (Integer i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             final InitiateMultipartUploadRequest initiateRequest = new InitiateMultipartUploadRequest(
                     BUCKET_NAME, "file" + i + ".txt");
             assertDoesNotThrow(() -> client.initiateMultipartUpload(initiateRequest));
@@ -950,7 +946,7 @@ public class ITPutS3Object extends AbstractS3IT {
         // call to circumvent what appears to be caching in the AWS library.
         // The increments are 1000 millis because AWS returns upload
         // initiation times in whole seconds.
-        Long now = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
 
         MultipartUploadListing uploadList = processor.getS3AgeoffListAndAgeoffLocalState(context, client, now, BUCKET_NAME);
         assertEquals(3, uploadList.getMultipartUploads().size());
@@ -971,7 +967,7 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testObjectTags() throws IOException, InterruptedException {
+    public void testObjectTags() throws IOException {
         TestRunner runner = initTestRunner();
 
         runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
@@ -992,7 +988,7 @@ public class ITPutS3Object extends AbstractS3IT {
             System.out.println("Tag Key : " + tag.getKey() + ", Tag Value : " + tag.getValue());
         }
 
-        assertTrue(objectTags.size() == 1);
+        assertEquals(1, objectTags.size());
         assertEquals("PII", objectTags.get(0).getKey());
         assertEquals("true", objectTags.get(0).getValue());
     }
@@ -1023,7 +1019,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, flowFiles.size());
         assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3);
+        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
 
         MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3, null);
         flowFile.assertContentEquals(data);
@@ -1057,7 +1053,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, flowFiles.size());
         assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
 
         MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS, kmsKeyId);
         flowFile.assertContentEquals(data);
@@ -1091,7 +1087,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, flowFiles.size());
         assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), AmazonS3EncryptionService.STRATEGY_NAME_SSE_C);
+        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_SSE_C, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
 
         MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_SSE_C, randomKeyMaterial);
         flowFile.assertContentEquals(data);
@@ -1127,7 +1123,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, flowFiles.size());
         assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS);
+        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
 
         MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_CSE_KMS, kmsKeyId);
         flowFile.assertContentEquals(data);
@@ -1161,7 +1157,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(1, flowFiles.size());
         assertEquals(0, runner.getFlowFilesForRelationship(PutS3Object.REL_FAILURE).size());
         MockFlowFile putSuccess = flowFiles.get(0);
-        assertEquals(putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY), AmazonS3EncryptionService.STRATEGY_NAME_CSE_C);
+        assertEquals(AmazonS3EncryptionService.STRATEGY_NAME_CSE_C, putSuccess.getAttribute(PutS3Object.S3_ENCRYPTION_STRATEGY));
 
         MockFlowFile flowFile = fetchEncryptedFlowFile(attrs, AmazonS3EncryptionService.STRATEGY_NAME_CSE_C, randomKeyMaterial);
         flowFile.assertAttributeEquals(PutS3Object.S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_CSE_C);
@@ -1205,7 +1201,7 @@ public class ITPutS3Object extends AbstractS3IT {
         final ConfigurationContext context = mock(ConfigurationContext.class);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
         if (strategyName != null) {
@@ -1236,14 +1232,14 @@ public class ITPutS3Object extends AbstractS3IT {
 
         @Override
         public MultipartUploadListing listMultipartUploads(ListMultipartUploadsRequest listMultipartUploadsRequest)
-                throws AmazonClientException, AmazonServiceException {
+                throws AmazonClientException {
             return listing;
         }
     }
 
     public class TestablePutS3Object extends PutS3Object {
-        public AmazonS3Client testable_getClient() {
-            return this.getClient();
+        public AmazonS3Client testable_getClient(ProcessContext context) {
+            return this.getClient(context);
         }
     }
 
@@ -1269,7 +1265,7 @@ public class ITPutS3Object extends AbstractS3IT {
         TestRunner runner = TestRunners.newTestRunner(PutS3Object.class);
 
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.S3_REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
 
         return runner;

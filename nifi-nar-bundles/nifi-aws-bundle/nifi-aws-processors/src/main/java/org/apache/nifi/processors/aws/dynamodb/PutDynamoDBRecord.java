@@ -200,7 +200,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
         final int alreadyProcessedChunks = flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.parseInt(flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(), context, flowFile.getAttributes(), getLogger());
+        final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(context), context, flowFile.getAttributes(), getLogger());
         final SplitRecordSetHandler.RecordHandlerResult result;
 
         try (

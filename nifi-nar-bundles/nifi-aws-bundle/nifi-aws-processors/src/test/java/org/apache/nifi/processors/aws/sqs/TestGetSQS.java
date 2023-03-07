@@ -22,6 +22,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -45,7 +46,8 @@ public class TestGetSQS {
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         mockGetSQS = new GetSQS() {
-            protected AmazonSQSClient getClient() {
+            @Override
+            protected AmazonSQSClient getClient(ProcessContext context) {
                 return mockSQSClient;
             }
         };

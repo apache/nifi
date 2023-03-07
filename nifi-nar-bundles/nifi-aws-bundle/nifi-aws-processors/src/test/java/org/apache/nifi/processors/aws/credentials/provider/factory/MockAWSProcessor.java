@@ -95,8 +95,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client with credentials provider");
-        final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
-        return s3;
+        return new AmazonS3Client(credentialsProvider, config);
     }
 
     /**
@@ -107,10 +106,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client with awd credentials");
-
-        final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
-
-        return s3;
+        return new AmazonS3Client(credentials, config);
     }
 
 }

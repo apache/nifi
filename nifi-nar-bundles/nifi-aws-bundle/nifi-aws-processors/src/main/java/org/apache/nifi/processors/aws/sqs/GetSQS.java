@@ -136,7 +136,7 @@ public class GetSQS extends AbstractSQSProcessor {
         final String queueUrl = context.getProperty(DYNAMIC_QUEUE_URL).evaluateAttributeExpressions()
                 .getValue();
 
-        final AmazonSQSClient client = getClient();
+        final AmazonSQSClient client = getClient(context);
 
         final ReceiveMessageRequest request = new ReceiveMessageRequest();
         request.setAttributeNames(Collections.singleton("All"));

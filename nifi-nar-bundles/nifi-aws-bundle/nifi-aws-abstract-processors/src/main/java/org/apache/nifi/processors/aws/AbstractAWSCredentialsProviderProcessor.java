@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws;
 import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -34,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Base class for aws processors that uses AWSCredentialsProvider interface for creating aws clients.
+ * Base class for AWS processors that uses AWSCredentialsProvider interface for creating AWS clients.
  *
  * @param <ClientType> client type
  *
@@ -51,7 +50,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("AWS Credentials Provider service")
             .displayName("AWS Credentials Provider Service")
-            .description("The Controller Service that is used to obtain aws credentials provider")
+            .description("The Controller Service that is used to obtain AWS credentials provider")
             .required(false)
             .identifiesControllerService(AWSCredentialsProviderService.class)
             .build();
@@ -61,30 +60,29 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      * @param context The process context
      * @return The created client
      */
-    protected ClientType createClient(final ProcessContext context) {
+    @Override
+    public ClientType createClient(final ProcessContext context, AwsClientDetails awsClientDetails) {
         final ControllerService service = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService();
         if (service != null) {
-            getLogger().debug("Using aws credentials provider service for creating client");
-            return createClient(context, getCredentialsProvider(context), createConfiguration(context));
+            getLogger().debug("Using AWS credentials provider service for creating client");
+            final AWSCredentialsProvider credentialsProvider = getCredentialsProvider(context);
+            final ClientConfiguration configuration = createConfiguration(context);
+            final ClientType createdClient = createClient(context, credentialsProvider, configuration);
+            setRegionAndInitializeEndpoint(awsClientDetails.getRegion(), context, createdClient);
+            return createdClient;
         } else {
-            getLogger().debug("Using aws credentials for creating client");
-            return super.createClient(context);
+            getLogger().debug("Using AWS credentials for creating client");
+            return super.createClient(context, awsClientDetails);
         }
     }
 
-    @OnShutdown
-    public void onShutDown() {
-        if ( this.client != null ) {
-           this.client.shutdown();
-        }
-    }
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            getConfiguration(context);
+            createClient(context);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client and Configure Region")
@@ -114,15 +112,14 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
               context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
 
         return awsCredentialsProviderService.getCredentialsProvider();
-
     }
 
     /**
-     * Abstract method to create aws client using credentials provider.  This is the preferred method
-     * for creating aws clients
+     * Abstract method to create AWS client using credentials provider. This is the preferred method
+     * for creating AWS clients
      * @param context process context
-     * @param credentialsProvider aws credentials provider
-     * @param config aws client configuration
+     * @param credentialsProvider AWS credentials provider
+     * @param config AWS client configuration
      * @return ClientType the client
      */
     protected abstract ClientType createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config);

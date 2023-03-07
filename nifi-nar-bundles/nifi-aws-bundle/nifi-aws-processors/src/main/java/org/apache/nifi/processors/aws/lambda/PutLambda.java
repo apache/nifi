@@ -155,7 +155,7 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
             return;
         }
 
-        final AWSLambdaClient client = getClient();
+        final AWSLambdaClient client = getClient(context);
 
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();

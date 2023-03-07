@@ -120,3 +120,8 @@ The following binary components are provided under the Apache Software License v
     nifi-nar-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/../wag/
       RequestMatcher.java
       GetAWSGatewayApiTest.java
+
+    (ASLv2) Caffeine (com.github.ben-manes.caffeine:caffeine:jar:2.9.2 - https://github.com/ben-manes/caffeine)
+        The following NOTICE information applies:
+          Caffeine (caching library)
+          Copyright Ben Manes

@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.polly.AmazonPollyClient;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskRequest;
 import com.amazonaws.services.polly.model.GetSpeechSynthesisTaskResult;
@@ -62,21 +62,18 @@ public class GetAwsPollyStatusTest {
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredetialProvider");
-        final GetAwsPollyJobStatus mockGetAwsPollyStatus = new GetAwsPollyJobStatus() {
-            protected AmazonPollyClient getClient() {
-                return mockPollyClient;
-            }
+        when(mockAwsCredentialsProvider.getIdentifier()).thenReturn("awsCredentialProvider");
 
+        final GetAwsPollyJobStatus mockGetAwsPollyStatus = new GetAwsPollyJobStatus() {
             @Override
-            protected AmazonPollyClient createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+            protected AmazonPollyClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
                 return mockPollyClient;
             }
         };
         runner = TestRunners.newTestRunner(mockGetAwsPollyStatus);
-        runner.addControllerService("awsCredetialProvider", mockAwsCredentialsProvider);
+        runner.addControllerService("awsCredentialProvider", mockAwsCredentialsProvider);
         runner.enableControllerService(mockAwsCredentialsProvider);
-        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredetialProvider");
+        runner.setProperty(AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialProvider");
     }
 
     @Test
@@ -90,7 +87,7 @@ public class GetAwsPollyStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(requestCaptor.getValue().getTaskId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTaskId());
     }
 
     @Test
@@ -107,7 +104,7 @@ public class GetAwsPollyStatusTest {
         runner.assertTransferCount(REL_SUCCESS, 1);
         runner.assertTransferCount(REL_ORIGINAL, 1);
         runner.assertAllFlowFilesContainAttribute(REL_SUCCESS, AWS_TASK_OUTPUT_LOCATION);
-        assertEquals(requestCaptor.getValue().getTaskId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTaskId());
     }
 
 
@@ -123,6 +120,6 @@ public class GetAwsPollyStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertEquals(requestCaptor.getValue().getTaskId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTaskId());
     }
 }

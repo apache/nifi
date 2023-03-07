@@ -100,13 +100,13 @@ public class StartAwsTextractJob extends AwsMachineLearningJobStarter<AmazonText
         AmazonWebServiceResult result;
         switch (textractType) {
             case DOCUMENT_ANALYSIS :
-                result = getClient().startDocumentAnalysis((StartDocumentAnalysisRequest) request);
+                result = getClient(context).startDocumentAnalysis((StartDocumentAnalysisRequest) request);
                 break;
             case DOCUMENT_TEXT_DETECTION:
-                result = getClient().startDocumentTextDetection((StartDocumentTextDetectionRequest) request);
+                result = getClient(context).startDocumentTextDetection((StartDocumentTextDetectionRequest) request);
                 break;
             case EXPENSE_ANALYSIS:
-                result = getClient().startExpenseAnalysis((StartExpenseAnalysisRequest) request);
+                result = getClient(context).startExpenseAnalysis((StartExpenseAnalysisRequest) request);
                 break;
             default: throw new UnsupportedOperationException("Unsupported textract type: " + textractType);
         }
