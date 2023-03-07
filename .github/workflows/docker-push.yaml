@@ -1,0 +1,43 @@
+name: Push alp-nifi-base docker image to alpCR
+
+on: 
+  push:
+    branches:
+      - "sggreen-539_add-nifi-to-alpcr"
+
+  workflow_dispatch:
+
+
+# Run only one job per branch
+concurrency: 
+  group: ${{ github.ref }}-docker-build # Run the latest push 
+  cancel-in-progress: true # Cancel in progress jobs of the workflow of the branch
+
+
+jobs:
+  nifi-base-docker-push:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - 
+      uses: actions/checkout@v3
+
+    - 
+      uses: azure/docker-login@v1
+      with:
+        login-server: alpcr.azurecr.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+
+    - uses: docker/setup-buildx-action@v2
+      id: builder
+
+    - name: Build and push
+      uses: docker/build-push-action@v4
+      with:
+        builder: ${{ steps.builder.outputs.name }}
+        context: .
+        file:  ./nifi-docker/dockermaven/Dockerfile
+        push: true
+        tags: alpcr.azurecr.io/alp-nifi-base:develop
