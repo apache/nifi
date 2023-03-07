@@ -20,7 +20,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.io.IOUtils;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
@@ -29,6 +29,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -36,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.OptionalLong;
 
 public class SlackRestService {
+    private static final String POST_MESSAGE_PATH = "chat.postMessage";
     private final WebClientServiceProvider webClientServiceProvider;
     private final String accessToken;
     private final String apiUrl;
@@ -50,6 +52,7 @@ public class SlackRestService {
         this.accessToken = accessToken;
         this.apiUrl = apiUrl;
         this.objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         this.logger = LoggerFactory.getLogger(SlackRestService.class);
     }
@@ -60,29 +63,18 @@ public class SlackRestService {
                 .scheme(apiUri.getScheme())
                 .host(apiUri.getHost())
                 .encodedPath(apiUri.getPath())
-                .addPathSegment("chat.postMessage");
+                .addPathSegment(POST_MESSAGE_PATH);
         if (apiUri.getPort() != -1) {
             uriBuilder.port(apiUri.getPort());
         }
         final URI uri = uriBuilder.build();
 
-        final ObjectNode requestBodyJson = objectMapper.createObjectNode();
-        if (StringUtils.isEmpty(channel)) {
-            throw new SlackRestServiceException("The channel must be specified.");
-        }
-        requestBodyJson.put("channel", channel);
-
-        if (StringUtils.isEmpty(message)) {
-            throw new SlackRestServiceException("No message to be sent with this record.");
-        }
-        requestBodyJson.put("text", message);
-
+        final ObjectNode requestBodyJson = createRequestBody(channel, message);
 
         final InputStream requestBodyInputStream;
         try {
-            requestBodyInputStream = IOUtils.toInputStream(
-                    objectMapper.writeValueAsString(requestBodyJson),
-                    StandardCharsets.UTF_8
+            requestBodyInputStream = new ByteArrayInputStream(
+                    objectMapper.writeValueAsString(requestBodyJson).getBytes(StandardCharsets.UTF_8)
             );
         } catch (final JsonProcessingException e) {
             throw new SlackRestServiceException("JSON processing exception occurred", e);
@@ -102,15 +94,40 @@ public class SlackRestService {
 
             try {
                 final SlackPostMessageResponse slackResponse = objectMapper.readValue(response.body(), SlackPostMessageResponse.class);
-                logger.error(objectMapper.writeValueAsString(slackResponse));
-
-                slackResponse.checkResponse(logger);
+                checkResponse(slackResponse);
             } catch (final IOException e) {
-                throw new SlackRestServiceException("Slack response JSON cannot be parsed.", e);
+                throw new SlackRestServiceException("JSON response parsing failed", e);
             }
 
         } catch (final IOException e) {
             throw new ProcessException("Slack HTTP request failed", e);
+        }
+    }
+
+    private ObjectNode createRequestBody(final String channel, final String message) throws SlackRestServiceException {
+        final ObjectNode requestBodyJson = objectMapper.createObjectNode();
+        if (StringUtils.isEmpty(channel)) {
+            throw new SlackRestServiceException("The channel must be specified.");
+        }
+        requestBodyJson.put("channel", channel);
+
+        if (StringUtils.isEmpty(message)) {
+            throw new SlackRestServiceException("No message to be sent with this record.");
+        }
+        requestBodyJson.put("text", message);
+        return requestBodyJson;
+    }
+
+    private void checkResponse(final SlackPostMessageResponse response) throws SlackRestServiceException {
+        if (response.isOk() == null) {
+            throw new SlackRestServiceException("Slack response JSON does not contain 'ok' key or it has invalid value.");
+        }
+        if (!response.isOk()) {
+            throw new SlackRestServiceException("Slack error response: " + response.getError());
+        }
+
+        if (response.getWarning() != null) {
+            logger.warn("Slack warning message: " + response.getWarning());
         }
     }
 }

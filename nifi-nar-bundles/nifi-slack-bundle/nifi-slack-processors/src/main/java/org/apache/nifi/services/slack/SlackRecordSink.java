@@ -64,7 +64,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
             .name("access-token")
             .displayName("Access Token")
-            .description("Bot OAuth Token used for authenticating/authorizing the Slack request sent by NiFi.")
+            .description("Bot OAuth Token used for authenticating and authorizing the Slack request sent by NiFi.")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -135,8 +135,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                 final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
                 service.sendMessageToChannel(message, channel);
             } catch (final SlackRestServiceException e) {
-                getLogger().error("Failed to send message to Slack.", e);
-                throw new ProcessException(e);
+                throw new IOException("Failed to send messages to Slack", e);
             }
         }
         return writeResult;

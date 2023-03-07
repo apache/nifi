@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.services.slack;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import org.slf4j.Logger;
-
-import java.util.Date;
+import java.time.Instant;
 
 public class SlackPostMessageResponse {
     private Boolean ok;
     private String channel;
-    @JsonDeserialize(using = TimestampDeserializer.class)
-    private Date ts;
+    private Instant ts;
     private Message message;
     private String error;
     private String warning;
@@ -46,11 +42,11 @@ public class SlackPostMessageResponse {
         this.channel = channel;
     }
 
-    public Date getTs() {
+    public Instant getTs() {
         return ts;
     }
 
-    public void setTs(Date ts) {
+    public void setTs(Instant ts) {
         this.ts = ts;
     }
 
@@ -76,18 +72,5 @@ public class SlackPostMessageResponse {
 
     public void setWarning(String warning) {
         this.warning = warning;
-    }
-
-    public void checkResponse(final Logger logger) throws SlackRestServiceException {
-        if (isOk() == null) {
-            throw new SlackRestServiceException("Slack response JSON does not contain 'ok' key or it has invalid value.");
-        }
-        if (!isOk()) {
-            throw new SlackRestServiceException("Slack error response: " + getError());
-        }
-
-        if (getWarning() != null) {
-            logger.warn("Slack warning message: " + getWarning());
-        }
     }
 }

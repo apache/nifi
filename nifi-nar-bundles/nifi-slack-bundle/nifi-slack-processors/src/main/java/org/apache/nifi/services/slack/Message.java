@@ -16,22 +16,16 @@
  */
 package org.apache.nifi.services.slack;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-
-import java.util.Date;
+import java.time.Instant;
 
 public class Message {
     private String text;
     private String username;
-    @JsonProperty("first_name")
     private String botId;
-    @JsonProperty("attachments")
-    private Attachment[] attachment;
+    private Attachment[] attachments;
     private String type;
     private String subtype;
-    @JsonDeserialize(using = TimestampDeserializer.class)
-    private Date ts;
+    private Instant ts;
 
     public String getText() {
         return text;
@@ -57,12 +51,12 @@ public class Message {
         this.botId = botId;
     }
 
-    public Attachment[] getAttachment() {
-        return attachment;
+    public Attachment[] getAttachments() {
+        return attachments;
     }
 
-    public void setAttachment(Attachment[] attachment) {
-        this.attachment = attachment;
+    public void setAttachments(Attachment[] attachments) {
+        this.attachments = attachments;
     }
 
     public String getType() {
@@ -81,11 +75,11 @@ public class Message {
         this.subtype = subtype;
     }
 
-    public Date getTs() {
+    public Instant getTs() {
         return ts;
     }
 
-    public void setTs(Date ts) {
+    public void setTs(Instant ts) {
         this.ts = ts;
     }
 }

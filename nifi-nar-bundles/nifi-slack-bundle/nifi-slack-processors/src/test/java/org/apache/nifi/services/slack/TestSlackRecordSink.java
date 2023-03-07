@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -54,7 +53,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSlackRecordSink {
-    private static final String RESPONSE_SUCCESS_TEXT_MSG = "{\"ok\": true}";
     private static final String RESPONSE_SUCCESS_TEXT_MSG_WITH_TIMESTAMP = "{\"ok\": true, \"ts\": \"1503435956.000247\"}";
     private static final String RESPONSE_WARNING = "{\"ok\": true, \"warning\": \"slack-warning\"}";
     private static final String RESPONSE_ERROR = "{\"ok\": false, \"error\": \"slack-error\"}";
@@ -166,7 +164,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(500));
 
-        final ProcessException e = assertThrows(ProcessException.class, () -> {
+        final IOException e = assertThrows(IOException.class, () -> {
             slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
         });
         assertEquals("HTTP error code: 500", e.getCause().getMessage());
@@ -180,7 +178,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_ERROR));
 
-        final ProcessException e = assertThrows(ProcessException.class, () -> {
+        final IOException e = assertThrows(IOException.class, () -> {
             slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
         });
         assertEquals("Slack error response: slack-error", e.getCause().getMessage());
@@ -207,7 +205,7 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_EMPTY_JSON));
 
-        final ProcessException e = assertThrows(ProcessException.class, () -> {
+        final IOException e = assertThrows(IOException.class, () -> {
             slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
         });
         assertEquals("Slack response JSON does not contain 'ok' key or it has invalid value.", e.getCause().getMessage());
@@ -221,10 +219,10 @@ public class TestSlackRecordSink {
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).setBody(RESPONSE_INVALID_JSON));
 
-        final ProcessException e = assertThrows(ProcessException.class, () -> {
+        final IOException e = assertThrows(IOException.class, () -> {
             slackRecordSink.sendData(recordSet, Collections.emptyMap(), false);
         });
-        assertEquals("Slack response JSON cannot be parsed.", e.getCause().getMessage());
+        assertEquals("JSON response parsing failed", e.getCause().getMessage());
     }
 
 
