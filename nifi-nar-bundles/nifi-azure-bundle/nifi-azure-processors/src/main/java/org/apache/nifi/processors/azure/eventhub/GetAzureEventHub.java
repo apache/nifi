@@ -66,6 +66,8 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Microsoft Azure Event Hubs without reliable checkpoint tracking. "
+        + "In clustered environment, GetAzureEventHub processor instances work independently and all cluster nodes process all messages "
+        + "(unless running the processor in Primary Only mode). "
         + "ConsumeAzureEventHub offers the recommended approach to receiving messages from Azure Event Hubs. "
         + "This processor creates a thread pool for connections to Azure Event Hubs.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -161,9 +163,9 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     static {
         propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
+                NAMESPACE,
                 EVENT_HUB_NAME,
                 SERVICE_BUS_ENDPOINT,
-                NAMESPACE,
                 ACCESS_POLICY,
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
