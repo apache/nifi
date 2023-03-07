@@ -271,9 +271,10 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                  final boolean register, final String classloaderIsolationKey) {
 
-        requireNonNull(type);
-        requireNonNull(id);
-        requireNonNull(bundleCoordinate);
+        if (type == null || id == null || bundleCoordinate == null) {
+            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
+                + ", bundle coordinate = " + bundleCoordinate);
+        }
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
 
@@ -321,9 +322,10 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     @Override
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                          final boolean registerLogObserver) {
-        requireNonNull(type);
-        requireNonNull(id);
-        requireNonNull(bundleCoordinate);
+        if (type == null || id == null || bundleCoordinate == null) {
+            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
+                + ", bundle coordinate = " + bundleCoordinate);
+        }
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
