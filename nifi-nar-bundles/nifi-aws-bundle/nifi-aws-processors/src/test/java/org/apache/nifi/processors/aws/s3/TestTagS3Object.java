@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -30,8 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,16 +48,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestTagS3Object {
 
     private TestRunner runner = null;
-    private TagS3Object mockTagS3Object = null;
-    private AmazonS3Client actualS3Client = null;
     private AmazonS3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
-        mockTagS3Object = new TagS3Object() {
-            protected AmazonS3Client getClient() {
-                actualS3Client = client;
+        TagS3Object mockTagS3Object = new TagS3Object() {
+            @Override
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
                 return mockS3Client;
             }
         };
@@ -64,14 +63,15 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testTagObjectSimple() throws IOException {
+    public void testTagObjectSimple() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
+
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "object-key");
         runner.enqueue(new byte[0], attrs);
@@ -93,10 +93,28 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testTagObjectVersion() throws IOException {
+    public void testTagObjectSimpleRegionFromFlowFileAttribute() {
+        runner.setProperty(TagS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(TagS3Object.BUCKET, "test-bucket");
+        runner.setProperty(TagS3Object.TAG_KEY, "k");
+        runner.setProperty(TagS3Object.TAG_VALUE, "v");
+        runner.setProperty(TagS3Object.APPEND_TAG, "false");
+        runner.assertValid();
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "object-key");
+        attrs.put("s3.region", "us-east-1");
+        runner.enqueue(new byte[0], attrs);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS);
+    }
+
+    @Test
+    public void testTagObjectVersion() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.VERSION_ID, "test-version");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
@@ -119,14 +137,14 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testTagObjectAppendToExistingTags() throws IOException {
+    public void testTagObjectAppendToExistingTags() {
         //set up existing tags on S3 object
         Tag currentTag = new Tag("ck", "cv");
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -153,7 +171,7 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testTagObjectAppendUpdatesExistingTagValue() throws IOException {
+    public void testTagObjectAppendUpdatesExistingTagValue() {
         //set up existing tags on S3 object
         Tag currentTag1 = new Tag("ck", "cv");
         Tag currentTag2 = new Tag("nk", "ov");
@@ -161,7 +179,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -183,14 +201,14 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testTagObjectReplacesExistingTags() throws IOException {
+    public void testTagObjectReplacesExistingTags() {
         //set up existing tags on S3 object
         Tag currentTag = new Tag("ck", "cv");
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -225,7 +243,7 @@ public class TestTagS3Object {
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -241,7 +259,7 @@ public class TestTagS3Object {
     }
 
     @Test
-    public void testGetPropertyDescriptors() throws Exception {
+    public void testGetPropertyDescriptors() {
         TagS3Object processor = new TagS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
         assertEquals(22, pd.size(), "size should be eq");
@@ -251,7 +269,7 @@ public class TestTagS3Object {
         assertTrue(pd.contains(TagS3Object.CREDENTIALS_FILE));
         assertTrue(pd.contains(TagS3Object.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(TagS3Object.KEY));
-        assertTrue(pd.contains(TagS3Object.REGION));
+        assertTrue(pd.contains(TagS3Object.S3_REGION));
         assertTrue(pd.contains(TagS3Object.SECRET_KEY));
         assertTrue(pd.contains(TagS3Object.SIGNER_OVERRIDE));
         assertTrue(pd.contains(TagS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));
@@ -271,7 +289,7 @@ public class TestTagS3Object {
 
     @Test
     public void testBucketEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_KEY, "key");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -286,7 +304,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagKeyEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -301,7 +319,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagValEvaluatedAsBlank() {
-        runner.setProperty(TagS3Object.REGION, "us-west-2");
+        runner.setProperty(TagS3Object.S3_REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "tagKey");
         runner.setProperty(TagS3Object.TAG_VALUE, "${not.existant.attribute}");
@@ -318,4 +336,5 @@ public class TestTagS3Object {
         List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
         Mockito.when(mockS3Client.getObjectTagging(Mockito.any())).thenReturn(new GetObjectTaggingResult(currentTags));
     }
+
 }

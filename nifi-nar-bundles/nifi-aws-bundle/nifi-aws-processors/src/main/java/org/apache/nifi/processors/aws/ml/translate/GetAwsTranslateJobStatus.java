@@ -58,7 +58,7 @@ public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcess
         }
         String awsTaskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         try {
-            DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(awsTaskId);
+            DescribeTextTranslationJobResult describeTextTranslationJobResult = getStatusString(context, awsTaskId);
             JobStatus status = JobStatus.fromValue(describeTextTranslationJobResult.getTextTranslationJobProperties().getJobStatus());
 
             if (status == JobStatus.IN_PROGRESS || status == JobStatus.SUBMITTED) {
@@ -84,9 +84,9 @@ public class GetAwsTranslateJobStatus extends AwsMachineLearningJobStatusProcess
         }
     }
 
-    private DescribeTextTranslationJobResult getStatusString(String awsTaskId) {
+    private DescribeTextTranslationJobResult getStatusString(ProcessContext context, String awsTaskId) {
         DescribeTextTranslationJobRequest request = new DescribeTextTranslationJobRequest().withJobId(awsTaskId);
-        DescribeTextTranslationJobResult translationJobsResult = getClient().describeTextTranslationJob(request);
+        DescribeTextTranslationJobResult translationJobsResult = getClient(context).describeTextTranslationJob(request);
         return translationJobsResult;
     }
 }

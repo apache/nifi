@@ -75,7 +75,7 @@ public class DeleteSQS extends AbstractSQSProcessor {
 
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonSQSClient client = getClient();
+        final AmazonSQSClient client = getClient(context);
         final DeleteMessageBatchRequest request = new DeleteMessageBatchRequest();
         request.setQueueUrl(queueUrl);
 

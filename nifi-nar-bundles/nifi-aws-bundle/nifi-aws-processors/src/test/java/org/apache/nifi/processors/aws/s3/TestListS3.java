@@ -69,10 +69,6 @@ public class TestListS3 {
     public void setUp() {
         mockS3Client = Mockito.mock(AmazonS3Client.class);
         final ListS3 mockListS3 = new ListS3() {
-            protected AmazonS3Client getClient() {
-                return mockS3Client;
-            }
-
             @Override
             protected AmazonS3Client createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
                 return mockS3Client;

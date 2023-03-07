@@ -86,6 +86,6 @@ public class GetAwsTranscribeJobStatus extends AwsMachineLearningJobStatusProces
     private GetTranscriptionJobResult getJob(ProcessContext context, FlowFile flowFile) {
         String taskId = context.getProperty(TASK_ID).evaluateAttributeExpressions(flowFile).getValue();
         GetTranscriptionJobRequest request = new GetTranscriptionJobRequest().withTranscriptionJobName(taskId);
-        return getClient().getTranscriptionJob(request);
+        return getClient(context).getTranscriptionJob(request);
     }
 }

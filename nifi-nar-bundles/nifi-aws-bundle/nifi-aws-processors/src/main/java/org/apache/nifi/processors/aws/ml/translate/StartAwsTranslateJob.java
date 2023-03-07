@@ -43,7 +43,7 @@ public class StartAwsTranslateJob extends AwsMachineLearningJobStarter<AmazonTra
 
     @Override
     protected StartTextTranslationJobResult sendRequest(StartTextTranslationJobRequest request, ProcessContext context, FlowFile flowFile) {
-        return getClient().startTextTranslationJob(request);
+        return getClient(context).startTextTranslationJob(request);
     }
 
     @Override

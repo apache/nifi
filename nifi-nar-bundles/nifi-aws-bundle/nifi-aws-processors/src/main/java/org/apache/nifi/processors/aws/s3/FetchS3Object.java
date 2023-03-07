@@ -130,7 +130,7 @@ public class FetchS3Object extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
             BUCKET,
             KEY,
-            REGION,
+            S3_REGION,
             ACCESS_KEY,
             SECRET_KEY,
             CREDENTIALS_FILE,
@@ -185,7 +185,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
-        final AmazonS3Client client = getConfiguration(context).getClient();
+        final AmazonS3Client client = createClient(context, attributes);
         final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
 
         try {
@@ -215,6 +215,16 @@ public class FetchS3Object extends AbstractS3Processor {
             return;
         }
 
+        final AmazonS3Client client;
+        try {
+            client = getS3Client(context, flowFile.getAttributes());
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize S3 client", e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
         final long startNanos = System.nanoTime();
 
         final Map<String, String> attributes = new HashMap<>();
@@ -226,7 +236,6 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonS3Client client = getClient();
         final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
 
         try (final S3Object s3Object = client.getObject(request)) {

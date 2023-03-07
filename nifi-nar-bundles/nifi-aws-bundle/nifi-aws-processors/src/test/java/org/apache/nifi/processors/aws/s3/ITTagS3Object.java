@@ -50,7 +50,7 @@ public class ITTagS3Object extends AbstractS3IT {
         // Set up processor
         final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
         runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.REGION, REGION);
+        runner.setProperty(TagS3Object.S3_REGION, REGION);
         runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagValue);
@@ -84,7 +84,7 @@ public class ITTagS3Object extends AbstractS3IT {
         // Set up processor
         final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
         runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.REGION, REGION);
+        runner.setProperty(TagS3Object.S3_REGION, REGION);
         runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagValue);
@@ -119,7 +119,7 @@ public class ITTagS3Object extends AbstractS3IT {
         // Set up processor
         final TestRunner runner = TestRunners.newTestRunner(new TagS3Object());
         runner.setProperty(TagS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(TagS3Object.REGION, REGION);
+        runner.setProperty(TagS3Object.S3_REGION, REGION);
         runner.setProperty(TagS3Object.BUCKET, BUCKET_NAME);
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagValue);

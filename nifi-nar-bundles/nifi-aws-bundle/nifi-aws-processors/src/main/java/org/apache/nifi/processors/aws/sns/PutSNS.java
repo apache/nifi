@@ -137,7 +137,7 @@ public class PutSNS extends AbstractSNSProcessor {
         session.exportTo(flowFile, baos);
         final String message = new String(baos.toByteArray(), charset);
 
-        final AmazonSNSClient client = getClient();
+        final AmazonSNSClient client = getClient(context);
         final PublishRequest request = new PublishRequest();
         request.setMessage(message);
 

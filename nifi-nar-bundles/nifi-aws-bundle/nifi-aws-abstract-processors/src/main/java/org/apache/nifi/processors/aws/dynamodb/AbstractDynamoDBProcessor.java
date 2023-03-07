@@ -179,10 +179,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
     @Override
     protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().debug("Creating client with credentials provider");
-
-        final AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentialsProvider, config);
-
-        return client;
+        return new AmazonDynamoDBClient(credentialsProvider, config);
     }
 
     /**
@@ -190,13 +187,11 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
      *
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
+    @Deprecated
     @Override
     protected AmazonDynamoDBClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().debug("Creating client with aws credentials");
-
-        final AmazonDynamoDBClient client = new AmazonDynamoDBClient(credentials, config);
-
-        return client;
+        return new AmazonDynamoDBClient(credentials, config);
     }
 
     protected Object getValue(final ProcessContext context, final PropertyDescriptor type, final PropertyDescriptor value, final Map<String, String> attributes) {
@@ -221,9 +216,9 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
         return new DynamoDB(client);
     }
 
-    protected synchronized DynamoDB getDynamoDB() {
+    protected synchronized DynamoDB getDynamoDB(ProcessContext context) {
         if (dynamoDB == null) {
-            dynamoDB = getDynamoDB(client);
+            dynamoDB = getDynamoDB(getClient(context));
         }
         return dynamoDB;
     }
@@ -275,8 +270,6 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
             attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
             attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.getRequestId() );
             attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.getStatusCode()) );
-            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.isRetryable()));
             flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }

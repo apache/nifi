@@ -137,7 +137,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
                     .build());
         } else {
             try {
-                final DynamoDB dynamoDB = getDynamoDB(getConfiguration(context).getClient());
+                final DynamoDB dynamoDB = getDynamoDB(getClient(context));
                 int totalCount = 0;
                 int jsonDocumentCount = 0;
 
@@ -199,7 +199,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final DynamoDB dynamoDB = getDynamoDB();
+        final DynamoDB dynamoDB = getDynamoDB(context);
 
         try {
             BatchGetItemOutcome result = dynamoDB.batchGetItem(tableKeysAndAttributes);

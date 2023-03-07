@@ -73,7 +73,7 @@ public class TestPutS3Object {
         mockS3Client = mock(AmazonS3Client.class);
         putS3Object = new PutS3Object() {
             @Override
-            protected AmazonS3Client getClient() {
+            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
                 return mockS3Client;
             }
         };
@@ -187,12 +187,23 @@ public class TestPutS3Object {
         assertEquals(URLEncoder.encode("Iñtërnâtiônàližætiøn.txt", "UTF-8"), objectMetadata.getContentDisposition());
     }
 
+    @Test
+    public void testRegionFromFlowFileAttribute() {
+        runner.setProperty(PutS3Object.OBJECT_TAGS_PREFIX, "tagS3");
+        runner.setProperty(PutS3Object.REMOVE_TAG_PREFIX, "false");
+        prepareTestWithRegionInAttributes("testfile.txt", "us-east-1");
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+    }
+
     private void prepareTest() {
         prepareTest("testfile.txt");
     }
 
     private void prepareTest(String filename) {
-        runner.setProperty(PutS3Object.REGION, "ap-northeast-1");
+        runner.setProperty(PutS3Object.S3_REGION, "ap-northeast-1");
         runner.setProperty(PutS3Object.BUCKET, "test-bucket");
         runner.assertValid();
 
@@ -201,6 +212,24 @@ public class TestPutS3Object {
         ffAttributes.put("tagS3PII", "true");
         runner.enqueue("Test Content", ffAttributes);
 
+        initMocks();
+    }
+
+    private void prepareTestWithRegionInAttributes(String filename, String region) {
+        runner.setProperty(PutS3Object.S3_REGION, "attribute-defined-region");
+        runner.setProperty(PutS3Object.BUCKET, "test-bucket");
+        runner.assertValid();
+
+        Map<String, String> ffAttributes = new HashMap<>();
+        ffAttributes.put("s3.region", region);
+        ffAttributes.put("filename", filename);
+        ffAttributes.put("tagS3PII", "true");
+        runner.enqueue("Test Content", ffAttributes);
+
+        initMocks();
+    }
+
+    private void initMocks() {
         PutObjectResult putObjectResult = new PutObjectResult();
         putObjectResult.setExpirationTime(new Date());
         putObjectResult.setMetadata(new ObjectMetadata());
@@ -261,7 +290,7 @@ public class TestPutS3Object {
         assertTrue(pd.contains(PutS3Object.OWNER));
         assertTrue(pd.contains(PutS3Object.READ_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
-        assertTrue(pd.contains(PutS3Object.REGION));
+        assertTrue(pd.contains(PutS3Object.S3_REGION));
         assertTrue(pd.contains(PutS3Object.SECRET_KEY));
         assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
         assertTrue(pd.contains(PutS3Object.S3_CUSTOM_SIGNER_CLASS_NAME));

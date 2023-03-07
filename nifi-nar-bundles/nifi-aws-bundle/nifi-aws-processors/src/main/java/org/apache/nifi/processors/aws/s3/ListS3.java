@@ -472,7 +472,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return;
         }
 
-        final AmazonS3 client = getClient();
+        final AmazonS3 client = getClient(context);
 
         S3BucketLister bucketLister = getS3BucketLister(context, client);
 
@@ -583,7 +583,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     private void listByTrackingEntities(ProcessContext context, ProcessSession session) {
         listedEntityTracker.trackEntities(context, session, justElectedPrimaryNode, Scope.CLUSTER, minTimestampToList -> {
-            S3BucketLister bucketLister = getS3BucketLister(context, getClient());
+            S3BucketLister bucketLister = getS3BucketLister(context, getClient(context));
 
             List<ListableEntityWrapper<S3VersionSummary>> listedEntities = bucketLister.listVersions().getVersionSummaries()
                 .stream()
@@ -644,8 +644,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 for (ListableEntityWrapper<S3VersionSummary> updatedEntity : updatedEntities) {
                     S3VersionSummary s3VersionSummary = updatedEntity.getRawEntity();
 
-                    GetObjectTaggingResult taggingResult = getTaggingResult(context, getClient(), s3VersionSummary);
-                    ObjectMetadata objectMetadata = getObjectMetadata(context, getClient(), s3VersionSummary);
+                    AmazonS3Client s3Client = getClient(context);
+                    GetObjectTaggingResult taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
+                    ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
 
                     writer.addToListing(s3VersionSummary, taggingResult, objectMetadata);
 
@@ -1129,7 +1130,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
-        final AmazonS3Client client = getConfiguration(context).getClient();
+        final AmazonS3Client client = createClient(context);
 
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();

@@ -23,6 +23,7 @@ import com.amazonaws.services.lambda.model.InvokeRequest;
 import com.amazonaws.services.lambda.model.InvokeResult;
 import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.util.Base64;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -42,15 +43,15 @@ public class TestPutLambda {
 
     private TestRunner runner = null;
     private PutLambda mockPutLambda = null;
-    private AWSLambdaClient actualLambdaClient = null;
+
     private AWSLambdaClient mockLambdaClient = null;
 
     @BeforeEach
     public void setUp() {
         mockLambdaClient = Mockito.mock(AWSLambdaClient.class);
         mockPutLambda = new PutLambda() {
-            protected AWSLambdaClient getClient() {
-                actualLambdaClient = client;
+            @Override
+            protected AWSLambdaClient getClient(ProcessContext context) {
                 return mockLambdaClient;
             }
         };
@@ -58,7 +59,7 @@ public class TestPutLambda {
     }
 
     @Test
-    public void testSizeGreaterThan6MB() throws Exception {
+    public void testSizeGreaterThan6MB() {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
         runner.assertValid();

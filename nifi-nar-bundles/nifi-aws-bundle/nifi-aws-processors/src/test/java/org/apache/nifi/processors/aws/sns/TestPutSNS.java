@@ -21,6 +21,7 @@ import com.amazonaws.services.sns.model.AmazonSNSException;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -48,7 +49,7 @@ public class TestPutSNS {
         mockSNSClient = Mockito.mock(AmazonSNSClient.class);
         mockPutSNS = new PutSNS() {
             @Override
-            protected AmazonSNSClient getClient() {
+            protected AmazonSNSClient getClient(ProcessContext context) {
                 return mockSNSClient;
             }
         };
