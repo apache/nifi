@@ -208,7 +208,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
     }
 
     @Override
-    protected DataSourceConfiguration getDataSourceConfigurationBuilder(ConfigurationContext context) {
+    protected DataSourceConfiguration getDataSourceConfiguration(ConfigurationContext context) {
         final String url = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();

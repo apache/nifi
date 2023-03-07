@@ -78,7 +78,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
         final BasicDataSource dataSource = new BasicDataSource();
         try {
-            final DataSourceConfiguration configuration = getDataSourceConfigurationBuilder(context);
+            final DataSourceConfiguration configuration = getDataSourceConfiguration(context);
             configureDataSource(context, configuration);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
@@ -139,7 +139,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         dataSource = new BasicDataSource();
         kerberosUser = getKerberosUser(context);
         loginKerberos(kerberosUser);
-        final DataSourceConfiguration configuration = getDataSourceConfigurationBuilder(context);
+        final DataSourceConfiguration configuration = getDataSourceConfiguration(context);
         configureDataSource(context, configuration);
     }
 
@@ -155,7 +155,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     protected abstract Driver getDriver(final String driverName, final String url);
 
-    protected abstract DataSourceConfiguration getDataSourceConfigurationBuilder(final ConfigurationContext context);
+    protected abstract DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context);
 
     protected void configureDataSource(final ConfigurationContext context, final DataSourceConfiguration configuration) {
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
@@ -273,6 +273,4 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
             }
         }
     }
-
-
 }
