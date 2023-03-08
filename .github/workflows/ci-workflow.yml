@@ -25,12 +25,14 @@ env:
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
     -Dmaven.wagon.http.retryHandler.class=standard
     -Dmaven.wagon.http.retryHandler.count=5
+    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true
     -Dmaven.wagon.httpconnectionManager.maxPerRoute=5
     -Dmaven.wagon.httpconnectionManager.ttlSeconds=30
   COMPILE_MAVEN_OPTS: >-
     -Xmx3g
     -Dmaven.wagon.http.retryHandler.class=standard
     -Dmaven.wagon.http.retryHandler.count=5
+    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true
     -Dmaven.wagon.httpconnectionManager.maxPerRoute=5
     -Dmaven.wagon.httpconnectionManager.ttlSeconds=30
   MAVEN_COMPILE_COMMAND: >-
