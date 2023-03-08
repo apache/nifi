@@ -3,7 +3,7 @@ name: Push alp-nifi-base docker image to alpCR
 on: 
   push:
     branches:
-      - "sggreen-539_add-nifi-to-alpcr"
+      - "main"
 
   workflow_dispatch:
 
