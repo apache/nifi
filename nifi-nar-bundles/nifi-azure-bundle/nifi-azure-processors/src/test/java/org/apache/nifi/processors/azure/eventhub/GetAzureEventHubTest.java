@@ -20,6 +20,9 @@ import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -33,8 +36,11 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
 public class GetAzureEventHubTest {
-    private static final String DOMAIN_NAME = "servicebus";
+    private static final String DOMAIN_NAME = "DOMAIN";
     private static final String EVENT_HUB_NAMESPACE = "NAMESPACE";
     private static final String EVENT_HUB_NAME = "NAME";
     private static final String POLICY_NAME = "POLICY";
@@ -109,6 +115,47 @@ public class GetAzureEventHubTest {
         flowFile.assertAttributeEquals("eventhub.offset", Long.toString(OFFSET));
         flowFile.assertAttributeEquals("eventhub.sequence", Long.toString(SEQUENCE_NUMBER));
         flowFile.assertAttributeEquals("eventhub.name", EVENT_HUB_NAME);
+    }
+
+    @Test
+    public void testPrimaryNodeRevoked() {
+        setProperties();
+
+        final ProcessContext processContext = spy(testRunner.getProcessContext());
+        when(processContext.getExecutionNode()).thenReturn(ExecutionNode.PRIMARY);
+
+        testRunner.setIsConfiguredForClustering(true);
+        testRunner.setPrimaryNode(true);
+        final GetAzureEventHub processor = (GetAzureEventHub) testRunner.getProcessor();
+        processor.onScheduled(processContext);
+        processor.onPrimaryNodeStateChange(PrimaryNodeState.PRIMARY_NODE_REVOKED);
+
+        final PartitionEvent partitionEvent = createPartitionEvent();
+        partitionEvents.add(partitionEvent);
+
+        testRunner.run(1, true, false);
+        testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testPrimaryNodeRevokedThenElected() {
+        setProperties();
+
+        final ProcessContext processContext = spy(testRunner.getProcessContext());
+        when(processContext.getExecutionNode()).thenReturn(ExecutionNode.PRIMARY);
+
+        testRunner.setIsConfiguredForClustering(true);
+        testRunner.setPrimaryNode(true);
+        final GetAzureEventHub processor = (GetAzureEventHub) testRunner.getProcessor();
+        processor.onScheduled(processContext);
+        processor.onPrimaryNodeStateChange(PrimaryNodeState.PRIMARY_NODE_REVOKED);
+        processor.onPrimaryNodeStateChange(PrimaryNodeState.ELECTED_PRIMARY_NODE);
+
+        final PartitionEvent partitionEvent = createPartitionEvent();
+        partitionEvents.add(partitionEvent);
+
+        testRunner.run(1, true, false);
+        testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 1);
     }
 
     private class MockGetAzureEventHub extends GetAzureEventHub {

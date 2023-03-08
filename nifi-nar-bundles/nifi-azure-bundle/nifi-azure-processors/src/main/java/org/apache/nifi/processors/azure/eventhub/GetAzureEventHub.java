@@ -23,13 +23,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import com.azure.core.amqp.AmqpClientOptions;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -49,10 +52,13 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -61,6 +67,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
@@ -84,6 +91,8 @@ public class GetAzureEventHub extends AbstractProcessor {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s/%s/ConsumerGroups/%s/Partitions/%s";
     private static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
     private static final int DEFAULT_FETCH_SIZE = 100;
+
+    private static final String NODE_CLIENT_IDENTIFIER_FORMAT = "%s-%s";
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
@@ -180,9 +189,15 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     private final Map<String, EventPosition> partitionEventPositions = new ConcurrentHashMap<>();
 
-    private volatile BlockingQueue<String> partitionIds = new LinkedBlockingQueue<>();
+    private final BlockingQueue<String> partitionIds = new LinkedBlockingQueue<>();
+
+    private final AtomicReference<ExecutionNode> configuredExecutionNode = new AtomicReference<>(ExecutionNode.ALL);
+
     private volatile int receiverFetchSize;
+
     private volatile Duration receiverFetchTimeout;
+
+    private EventHubClientBuilder configuredClientBuilder;
 
     private EventHubConsumerClient eventHubConsumerClient;
 
@@ -201,20 +216,40 @@ public class GetAzureEventHub extends AbstractProcessor {
         return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
     }
 
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeStateChange(final PrimaryNodeState primaryNodeState) {
+        final ExecutionNode executionNode = configuredExecutionNode.get();
+        if (executionNode == ExecutionNode.PRIMARY) {
+            if (PrimaryNodeState.PRIMARY_NODE_REVOKED == primaryNodeState) {
+                closeClient();
+                getLogger().info("Consumer Client closed based on Execution Node [{}] and Primary Node State [{}]", executionNode, primaryNodeState);
+            } else {
+                createClient();
+                getLogger().info("Consumer Client created based on Execution Node [{}] and Primary Node State [{}]", executionNode, primaryNodeState);
+            }
+        } else {
+            getLogger().debug("Consumer Client not changed based on Execution Node [{}]", executionNode);
+        }
+    }
+
     @OnStopped
     public void closeClient() {
+        partitionIds.clear();
         partitionEventPositions.clear();
 
         if (eventHubConsumerClient == null) {
-            getLogger().info("Azure Event Hub Consumer Client not configured");
+            getLogger().debug("Consumer Client not configured");
         } else {
             eventHubConsumerClient.close();
+            getLogger().info("Consumer Client for Event Hub [{}] closed", eventHubConsumerClient.getEventHubName());
         }
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        eventHubConsumerClient = createEventHubConsumerClient(context);
+        configuredExecutionNode.set(context.getExecutionNode());
+        configuredClientBuilder = createEventHubClientBuilder(context);
+        createClient();
 
         if (context.getProperty(RECEIVER_FETCH_SIZE).isSet()) {
             receiverFetchSize = context.getProperty(RECEIVER_FETCH_SIZE).asInteger();
@@ -226,8 +261,6 @@ public class GetAzureEventHub extends AbstractProcessor {
         } else {
             receiverFetchTimeout = DEFAULT_FETCH_TIMEOUT;
         }
-
-        this.partitionIds = getPartitionIds();
 
         final PropertyValue enqueuedTimeProperty = context.getProperty(ENQUEUE_TIME);
         final Instant initialEnqueuedTime;
@@ -310,7 +343,30 @@ public class GetAzureEventHub extends AbstractProcessor {
         return eventHubConsumerClient.receiveFromPartition(partitionId, receiverFetchSize, eventPosition, receiverFetchTimeout);
     }
 
-    private EventHubConsumerClient createEventHubConsumerClient(final ProcessContext context) {
+    private void createClient() {
+        if (isCreateClientEnabled()) {
+            closeClient();
+            eventHubConsumerClient = configuredClientBuilder.buildConsumerClient();
+            partitionIds.addAll(getPartitionIds());
+            getLogger().info("Consumer Client created for Event Hub [{}] Partitions {}", eventHubConsumerClient.getEventHubName(), partitionIds);
+        }
+    }
+
+    private boolean isCreateClientEnabled() {
+        final boolean enabled;
+
+        final ExecutionNode executionNode = configuredExecutionNode.get();
+        if (ExecutionNode.PRIMARY == executionNode) {
+            final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
+            enabled = nodeTypeProvider.isPrimary();
+        } else {
+            enabled = true;
+        }
+
+        return enabled;
+    }
+
+    private EventHubClientBuilder createEventHubClientBuilder(final ProcessContext context) {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
@@ -332,7 +388,14 @@ public class GetAzureEventHub extends AbstractProcessor {
             final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
             eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
         }
-        return eventHubClientBuilder.buildConsumerClient();
+
+        // Set Azure Event Hub Client Identifier using Processor Identifier instead of default random UUID
+        final AmqpClientOptions clientOptions = new AmqpClientOptions();
+        final String clientIdentifier = getClientIdentifier();
+        clientOptions.setIdentifier(clientIdentifier);
+        eventHubClientBuilder.clientOptions(clientOptions);
+
+        return eventHubClientBuilder;
     }
 
     private String getTransitUri(final String partitionId) {
@@ -342,6 +405,27 @@ public class GetAzureEventHub extends AbstractProcessor {
                 eventHubConsumerClient.getConsumerGroup(),
                 partitionId
         );
+    }
+
+    private String getClientIdentifier() {
+        final String clientIdentifier;
+
+        final String componentIdentifier = getIdentifier();
+
+        final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
+        if (nodeTypeProvider.isClustered()) {
+            final Optional<String> currentNode = nodeTypeProvider.getCurrentNode();
+            if (currentNode.isPresent()) {
+                final String currentNodeId = currentNode.get();
+                clientIdentifier = String.format(NODE_CLIENT_IDENTIFIER_FORMAT, currentNodeId, componentIdentifier);
+            } else {
+                clientIdentifier = componentIdentifier;
+            }
+        } else {
+            clientIdentifier = componentIdentifier;
+        }
+
+        return clientIdentifier;
     }
 
     private Map<String, String> getAttributes(final PartitionEvent partitionEvent) {
