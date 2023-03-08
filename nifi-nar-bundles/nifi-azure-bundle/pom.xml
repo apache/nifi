@@ -29,7 +29,7 @@
         <azure.sdk.bom.version>1.2.9</azure.sdk.bom.version>
         <microsoft.azure-storage.version>8.6.6</microsoft.azure-storage.version>
         <msal4j.version>1.13.3</msal4j.version>
-        <qpid.proton.version>0.34.0</qpid.proton.version>
+        <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
 
     <modules>
