@@ -31,6 +31,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.ByteArrayOutputStream;
@@ -132,7 +133,13 @@ public class SlackRecordSink extends AbstractControllerService implements Record
 
             try {
                 final String message = out.toString();
+                if (StringUtils.isEmpty(message)) {
+                    throw new SlackRestServiceException("No message to be sent with this record.");
+                }
                 final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
+                if (StringUtils.isEmpty(channel)) {
+                    throw new SlackRestServiceException("The channel must be specified.");
+                }
                 service.sendMessageToChannel(message, channel);
             } catch (final SlackRestServiceException e) {
                 throw new IOException("Failed to send messages to Slack", e);

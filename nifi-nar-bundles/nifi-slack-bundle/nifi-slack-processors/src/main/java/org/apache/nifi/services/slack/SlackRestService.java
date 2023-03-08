@@ -104,16 +104,9 @@ public class SlackRestService {
         }
     }
 
-    private ObjectNode createRequestBody(final String channel, final String message) throws SlackRestServiceException {
+    private ObjectNode createRequestBody(final String channel, final String message) {
         final ObjectNode requestBodyJson = objectMapper.createObjectNode();
-        if (StringUtils.isEmpty(channel)) {
-            throw new SlackRestServiceException("The channel must be specified.");
-        }
         requestBodyJson.put("channel", channel);
-
-        if (StringUtils.isEmpty(message)) {
-            throw new SlackRestServiceException("No message to be sent with this record.");
-        }
         requestBodyJson.put("text", message);
         return requestBodyJson;
     }
