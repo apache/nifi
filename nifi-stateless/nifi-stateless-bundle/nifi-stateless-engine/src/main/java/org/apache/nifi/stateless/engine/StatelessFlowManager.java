@@ -62,9 +62,9 @@ import org.apache.nifi.logging.FlowRegistryClientLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.logging.ParameterProviderLogObserver;
 import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.logging.ReportingTaskLogObserver;
-import org.apache.nifi.logging.ParameterContextTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -271,10 +271,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                  final boolean register, final String classloaderIsolationKey) {
 
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
-                + ", bundle coordinate = " + bundleCoordinate);
-        }
+        requireNonNull(type, "Provider Type required in order to create Reporting Task");
+        requireNonNull(id, "Provider ID required in order to create Reporting Task");
+        requireNonNull(bundleCoordinate, "Provider Bundle Coordinate required in order to create Reporting Task");
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
 
@@ -322,17 +321,16 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     @Override
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
                                                          final boolean registerLogObserver) {
-        if (type == null || id == null || bundleCoordinate == null) {
-            throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Parameter Provider Task. Provided arguments were type=" + type + ", id=" + id
-                + ", bundle coordinate = " + bundleCoordinate);
-        }
+        requireNonNull(type, "Provider Type required in order to create Parameter Provider");
+        requireNonNull(id, "Provider ID required in order to create Parameter Provider");
+        requireNonNull(bundleCoordinate, "Provider Bundle Coordinate required in order to create Parameter Provider");
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
 
-        final ParameterProviderNode taskNode;
+        final ParameterProviderNode providerNode;
         try {
-            taskNode = new ComponentBuilder()
+            providerNode = new ComponentBuilder()
                     .identifier(id)
                     .type(type)
                     .bundleCoordinate(bundleCoordinate)
@@ -341,35 +339,34 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                     .flowManager(this)
                     .buildParameterProvider();
         } catch (ParameterProviderInstantiationException e) {
-            throw new RuntimeException("Could not create Parameter Context Task of type " + type + " with ID " + id, e);
+            throw new IllegalStateException("Could not create Parameter Provider of type " + type + " with ID " + id, e);
         }
 
-        LogRepositoryFactory.getRepository(taskNode.getIdentifier()).setLogger(taskNode.getLogger());
+        LogRepositoryFactory.getRepository(providerNode.getIdentifier()).setLogger(providerNode.getLogger());
 
         if (firstTimeAdded) {
-            final Class<?> taskClass = taskNode.getParameterProvider().getClass();
-            final String identifier = taskNode.getParameterProvider().getIdentifier();
+            final Class<?> providerClass = providerNode.getParameterProvider().getClass();
+            final String identifier = providerNode.getParameterProvider().getIdentifier();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), taskClass, identifier)) {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getParameterProvider());
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(statelessEngine.getExtensionManager(), providerClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, providerNode.getParameterProvider());
 
                 if (isFlowInitialized()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getParameterProvider(), taskNode.getConfigurationContext());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, providerNode.getParameterProvider(), providerNode.getConfigurationContext());
                 }
             } catch (final Exception e) {
-                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getParameterProvider(), e);
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + providerNode.getParameterProvider(), e);
             }
         }
 
         if (registerLogObserver) {
-            onParameterProviderAdded(taskNode);
+            onParameterProviderAdded(providerNode);
 
-            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
             logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                    new ParameterContextTaskLogObserver(bulletinRepository, taskNode));
+                    new ParameterProviderLogObserver(bulletinRepository, providerNode));
         }
 
-        return taskNode;
+        return providerNode;
     }
 
     @Override
