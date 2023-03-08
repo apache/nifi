@@ -220,11 +220,11 @@ public class ComponentBuilder {
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, componentVariableRegistry);
 
-        final ParameterProviderNode taskNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
+        final ParameterProviderNode providerNode = new StandardParameterProviderNode(parameterProviderComponent, identifier, null, null,
                 validationContextFactory, componentVariableRegistry, reloadComponent, extensionManager, validationTrigger);
 
-        logger.info("Created Parameter Provider Task of type {} with identifier {}", type, identifier);
-        return taskNode;
+        logger.info("Created Parameter Provider of type {} with identifier {}", type, identifier);
+        return providerNode;
     }
 
     private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
