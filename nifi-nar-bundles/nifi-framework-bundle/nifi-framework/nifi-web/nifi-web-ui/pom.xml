@@ -885,7 +885,7 @@
                         </executions>
                     </plugin>
                     <!--
-                        Configuration to ensure that we only bundle the gzip compressed
+                        Configuration to ensure that we only bundle the aggregated
                         version of static content.
                     -->
                     <plugin>
