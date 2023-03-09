@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -90,6 +91,8 @@ public class GetAzureEventHub extends AbstractProcessor {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s/%s/ConsumerGroups/%s/Partitions/%s";
     private static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
     private static final int DEFAULT_FETCH_SIZE = 100;
+
+    private static final String NODE_CLIENT_IDENTIFIER_FORMAT = "%s-%s";
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
@@ -388,7 +391,8 @@ public class GetAzureEventHub extends AbstractProcessor {
 
         // Set Azure Event Hub Client Identifier using Processor Identifier instead of default random UUID
         final AmqpClientOptions clientOptions = new AmqpClientOptions();
-        clientOptions.setIdentifier(getIdentifier());
+        final String clientIdentifier = getClientIdentifier();
+        clientOptions.setIdentifier(clientIdentifier);
         eventHubClientBuilder.clientOptions(clientOptions);
 
         return eventHubClientBuilder;
@@ -401,6 +405,27 @@ public class GetAzureEventHub extends AbstractProcessor {
                 eventHubConsumerClient.getConsumerGroup(),
                 partitionId
         );
+    }
+
+    private String getClientIdentifier() {
+        final String clientIdentifier;
+
+        final String componentIdentifier = getIdentifier();
+
+        final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
+        if (nodeTypeProvider.isClustered()) {
+            final Optional<String> currentNode = nodeTypeProvider.getCurrentNode();
+            if (currentNode.isPresent()) {
+                final String currentNodeId = currentNode.get();
+                clientIdentifier = String.format(NODE_CLIENT_IDENTIFIER_FORMAT, currentNodeId, componentIdentifier);
+            } else {
+                clientIdentifier = componentIdentifier;
+            }
+        } else {
+            clientIdentifier = componentIdentifier;
+        }
+
+        return clientIdentifier;
     }
 
     private Map<String, String> getAttributes(final PartitionEvent partitionEvent) {
