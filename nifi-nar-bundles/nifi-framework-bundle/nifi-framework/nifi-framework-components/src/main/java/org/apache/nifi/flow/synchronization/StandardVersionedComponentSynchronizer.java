@@ -51,6 +51,7 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -184,7 +185,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
 
         final PropertyDecryptor decryptor = options.getPropertyDecryptor();
-        final FlowComparator flowComparator = new StandardFlowComparator(proposedFlow, localFlow, group.getAncestorServiceIds(),
+        final FlowComparator flowComparator = new StandardFlowComparator(localFlow, proposedFlow, group.getAncestorServiceIds(),
             new StaticDifferenceDescriptor(), decryptor::decrypt, options.getComponentComparisonIdLookup(), FlowComparatorVersionedStrategy.DEEP);
         final FlowComparison flowComparison = flowComparator.compare();
 
@@ -319,6 +320,22 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         if (group.getLogFileSuffix() == null || group.getLogFileSuffix().isEmpty()) {
             group.setLogFileSuffix(proposed.getLogFileSuffix());
+        }
+
+        final ExecutionEngine proposedExecutionEngine = proposed.getExecutionEngine();
+        if (proposedExecutionEngine != null) {
+            group.setExecutionEngine(proposedExecutionEngine);
+        }
+        final Integer maxConcurrentTasks = proposed.getMaxConcurrentTasks();
+        if (maxConcurrentTasks != null) {
+            group.setMaxConcurrentTasks(maxConcurrentTasks);
+        }
+        final String statelessTimeout = proposed.getStatelessFlowTimeout();
+        if (statelessTimeout != null) {
+            group.setStatelessFlowTimeout(statelessTimeout);
+        }
+        if (proposed.getScheduledState() != null && ScheduledState.RUNNING.name().equals(proposed.getScheduledState().name()) ) {
+            context.getComponentScheduler().startStatelessGroup(group);
         }
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
@@ -2412,6 +2429,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         port.setName(name);
         port.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
         port.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
+        if (proposed.getPortFunction() != null) {
+            port.setPortFunction(proposed.getPortFunction());
+        }
 
         context.getComponentScheduler().transitionComponentState(port, proposed.getScheduledState());
         notifyScheduledStateChange(port, syncOptions, proposed.getScheduledState());
@@ -2430,6 +2450,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         port.setVersionedComponentId(proposed.getIdentifier());
+        if (proposed.getPortFunction() != null) {
+            port.setPortFunction(proposed.getPortFunction());
+        }
+
         destination.addInputPort(port);
         updatePort(port, proposed, temporaryName);
         connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);
@@ -2449,6 +2473,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         port.setVersionedComponentId(proposed.getIdentifier());
+        if (proposed.getPortFunction() != null) {
+            port.setPortFunction(proposed.getPortFunction());
+        }
         destination.addOutputPort(port);
         updatePort(port, proposed, temporaryName);
         connectableAdditionTracker.addComponent(destination.getIdentifier(), proposed.getIdentifier(), port);

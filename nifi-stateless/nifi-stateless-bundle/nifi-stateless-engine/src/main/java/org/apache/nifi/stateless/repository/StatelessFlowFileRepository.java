@@ -27,6 +27,7 @@ import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -58,7 +59,7 @@ public class StatelessFlowFileRepository implements FlowFileRepository {
     }
 
     @Override
-    public void updateRepository(final Collection<RepositoryRecord> records) {
+    public void updateRepository(final Collection<RepositoryRecord> records) throws IOException {
         records.forEach(this::updateClaimCounts);
     }
 

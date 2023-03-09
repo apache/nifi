@@ -24,6 +24,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -64,6 +65,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     private Set<StorageUsageDTO> contentRepositoryStorageUsage;
     private Set<StorageUsageDTO> provenanceRepositoryStorageUsage;
     private Set<GarbageCollectionDTO> garbageCollection;
+    private List<ResourceClaimDetailsDTO> resourceClaimDetails;
 
     private Date statsLastRefreshed;
 
@@ -232,6 +234,14 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.garbageCollection = garbageCollection;
     }
 
+    public List<ResourceClaimDetailsDTO> getResourceClaimDetails() {
+        return resourceClaimDetails;
+    }
+
+    public void setResourceClaimDetails(final List<ResourceClaimDetailsDTO> resourceClaimDetails) {
+        this.resourceClaimDetails = resourceClaimDetails;
+    }
+
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
             value = "When the diagnostics were generated.",
@@ -362,6 +372,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         other.setUsedHeapBytes(getUsedHeapBytes());
         other.setUsedNonHeap(getUsedNonHeap());
         other.setUsedNonHeapBytes(getUsedNonHeapBytes());
+        other.setResourceClaimDetails(getResourceClaimDetails());
 
         other.setFlowFileRepositoryStorageUsage(getFlowFileRepositoryStorageUsage().clone());
 
@@ -534,6 +545,93 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             other.setTotalSpaceBytes(getTotalSpaceBytes());
             other.setUsedSpaceBytes(getUsedSpaceBytes());
             other.setUtilization(getUtilization());
+            return other;
+        }
+    }
+
+    @XmlType(name = "resourceClaimDetails")
+    public static class ResourceClaimDetailsDTO implements Cloneable {
+        private String container;
+        private String section;
+        private String identifier;
+        private Boolean inUse;
+        private Boolean awaitingDestruction;
+        private Boolean writable;
+        private Integer claimantCount;
+
+
+        @ApiModelProperty("The container of the Content Repository in which the Resource Claim exists")
+        public String getContainer() {
+            return container;
+        }
+
+        public void setContainer(final String container) {
+            this.container = container;
+        }
+
+        @ApiModelProperty("The section of the Content Repository in which the Resource Claim exists")
+        public String getSection() {
+            return section;
+        }
+
+        public void setSection(final String section) {
+            this.section = section;
+        }
+
+        @ApiModelProperty("The identifier of the Resource Claim")
+        public String getIdentifier() {
+            return identifier;
+        }
+
+        public void setIdentifier(final String identifier) {
+            this.identifier = identifier;
+        }
+
+        @ApiModelProperty("Whether or not the Resource Claim is in use")
+        public Boolean getInUse() {
+            return inUse;
+        }
+
+        public void setInUse(final Boolean inUse) {
+            this.inUse = inUse;
+        }
+
+        @ApiModelProperty("Whether or not the Resource Claim is awaiting destruction")
+        public Boolean getAwaitingDestruction() {
+            return awaitingDestruction;
+        }
+
+        public void setAwaitingDestruction(final Boolean awaitingDestruction) {
+            this.awaitingDestruction = awaitingDestruction;
+        }
+
+        @ApiModelProperty("The number of FlowFiles that have a claim to the Resource")
+        public Integer getClaimantCount() {
+            return claimantCount;
+        }
+
+        public void setClaimantCount(final Integer claimantCount) {
+            this.claimantCount = claimantCount;
+        }
+
+        @ApiModelProperty("Whether or not the Resource Claim can still have more data written to it")
+        public Boolean getWritable() {
+            return writable;
+        }
+
+        public void setWritable(final Boolean writable) {
+            this.writable = writable;
+        }
+
+        public ResourceClaimDetailsDTO clone() {
+            final ResourceClaimDetailsDTO other = new ResourceClaimDetailsDTO();
+            other.setContainer(getContainer());
+            other.setSection(getSection());
+            other.setIdentifier(getIdentifier());
+            other.setInUse(getInUse());
+            other.setAwaitingDestruction(getAwaitingDestruction());
+            other.setClaimantCount(getClaimantCount());
+            other.setWritable(getWritable());
             return other;
         }
     }

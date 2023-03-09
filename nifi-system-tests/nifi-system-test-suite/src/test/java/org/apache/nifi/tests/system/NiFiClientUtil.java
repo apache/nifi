@@ -113,6 +113,7 @@ import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -630,6 +631,30 @@ public class NiFiClientUtil {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setAutoTerminatedRelationships(autoTerminatedRelationships);
         return updateProcessorConfig(currentEntity, config);
+    }
+
+    public void waitForOutputPortValid(final String portId) throws NiFiClientException, IOException, InterruptedException {
+        waitForOutputPortValidationStatus(portId, true);
+    }
+
+    public void waitForOutputPortInvalid(final String portId) throws NiFiClientException, IOException, InterruptedException {
+        waitForOutputPortValidationStatus(portId, false);
+    }
+
+    public void waitForOutputPortValidationStatus(final String portId, final boolean expectValid) throws InterruptedException, NiFiClientException, IOException {
+        while (true) {
+            final PortEntity entity = nifiClient.getOutputPortClient().getOutputPort(portId);
+            final Collection<String> validationErrors = entity.getComponent().getValidationErrors();
+            if (expectValid == (validationErrors == null || validationErrors.isEmpty())) {
+                return;
+            }
+
+            if (expectValid) {
+                logger.info("Output Port with ID {} is currently invalid due to: {}", portId, entity.getComponent().getValidationErrors());
+            }
+
+            Thread.sleep(100L);
+        }
     }
 
     public void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
@@ -1153,12 +1178,20 @@ public class NiFiClientUtil {
         return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
     }
 
+    public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination, final String groupId) throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()), groupId);
+    }
+
     public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final String relationship) throws NiFiClientException, IOException {
         return createConnection(source, destination, Collections.singleton(relationship));
     }
 
     public ConnectionEntity createConnection(final ProcessorEntity source, final ProcessorEntity destination, final String relationship) throws NiFiClientException, IOException {
         return createConnection(source, destination, Collections.singleton(relationship));
+    }
+
+    public ConnectionEntity createConnection(final ProcessorEntity source, final ProcessorEntity destination, final String relationship, final String groupId) throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), Collections.singleton(relationship), groupId);
     }
 
     public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final String relationship) throws NiFiClientException, IOException {
@@ -1171,6 +1204,16 @@ public class NiFiClientUtil {
 
     public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
         return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
+    }
+
+    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final String relationship, final String groupId)
+        throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), Collections.singleton(relationship), groupId);
+    }
+
+    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final Set<String> relationships, final String groupId)
+                throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships, groupId);
     }
 
     public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
@@ -1270,20 +1313,30 @@ public class NiFiClientUtil {
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
         final ConnectionClient connectionClient = getConnectionClient();
 
-        DropRequestEntity requestEntity = connectionClient.emptyQueue(connectionId);
-        try {
-            while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
-                try {
-                    Thread.sleep(10L);
-                } catch (final InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
+        DropRequestEntity requestEntity;
+        while (true) {
+            requestEntity = connectionClient.emptyQueue(connectionId);
+            try {
+                while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
+                    try {
+                        Thread.sleep(10L);
+                    } catch (final InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
 
-                requestEntity = connectionClient.getDropRequest(connectionId, requestEntity.getDropRequest().getId());
+                    requestEntity = connectionClient.getDropRequest(connectionId, requestEntity.getDropRequest().getId());
+                }
+            } finally {
+                requestEntity = connectionClient.deleteDropRequest(connectionId, requestEntity.getDropRequest().getId());
             }
-        } finally {
-            requestEntity = connectionClient.deleteDropRequest(connectionId, requestEntity.getDropRequest().getId());
+
+            final Integer count = requestEntity.getDropRequest().getCurrentCount();
+            if (count == null || count == 0) {
+                break;
+            }
+
+            logger.info("Request to Empty FlowFile Queue {} completed but queue still has {} FlowFiles. Will issue another request.", connectionId, count);
         }
 
         return requestEntity;
@@ -1764,21 +1817,28 @@ public class NiFiClientUtil {
     public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version, final boolean throwOnFailure)
                 throws NiFiClientException, IOException, InterruptedException {
 
-        final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
-        final ProcessGroupDTO groupDto = groupEntity.getComponent();
-        final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
-        if (vciDto == null) {
-            throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+        logger.info("Submitting Change Flow Version request to change Group with ID {} to Version {}", processGroupId, version);
+
+        try {
+            final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
+            final ProcessGroupDTO groupDto = groupEntity.getComponent();
+            final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
+            if (vciDto == null) {
+                throw new IllegalArgumentException("Process Group with ID " + processGroupId + " is not under Version Control");
+            }
+
+            vciDto.setVersion(version);
+
+            final VersionControlInformationEntity requestEntity = new VersionControlInformationEntity();
+            requestEntity.setProcessGroupRevision(groupEntity.getRevision());
+            requestEntity.setVersionControlInformation(vciDto);
+
+            final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
+            return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId(), throwOnFailure);
+        } catch (final Exception e) {
+            logger.error("Failed to change flow version for Process Group {} to version {}", processGroupId, version);
+            throw e;
         }
-
-        vciDto.setVersion(version);
-
-        final VersionControlInformationEntity requestEntity = new VersionControlInformationEntity();
-        requestEntity.setProcessGroupRevision(groupEntity.getRevision());
-        requestEntity.setVersionControlInformation(vciDto);
-
-        final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
-        return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId(), throwOnFailure);
     }
 
     public VersionedFlowUpdateRequestEntity waitForVersionFlowUpdateComplete(final String updateRequestId, final boolean throwOnFailure) throws NiFiClientException, IOException, InterruptedException {
@@ -1797,6 +1857,17 @@ public class NiFiClientUtil {
             Thread.sleep(100L);
         }
     }
+
+    public String getVersionControlState(final String groupId) {
+        try {
+            final VersionControlInformationDTO vci = nifiClient.getProcessGroupClient().getProcessGroup(groupId).getComponent().getVersionControlInformation();
+            return vci.getState();
+        } catch (final Exception e) {
+            Assertions.fail("Could not obtain Version Control Information for Group with ID " + groupId, e);
+            return null;
+        }
+    }
+
 
     public void assertFlowStaleAndUnmodified(final String processGroupId) throws NiFiClientException, IOException {
         final String state = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId).getVersionedFlowState();
@@ -1832,7 +1903,17 @@ public class NiFiClientUtil {
         }
 
         throw new AssertionError("Expected state to be UP_TO_DATE but was " + state);
+    }
 
+    public String getVersionedFlowState(final String groupId, final String parentGroupId) throws NiFiClientException, IOException {
+        final ProcessGroupFlowDTO parentGroup = nifiClient.getFlowClient().getProcessGroup(parentGroupId).getProcessGroupFlow();
+        final Set<ProcessGroupEntity> childGroups = parentGroup.getFlow().getProcessGroups();
+
+        return childGroups.stream()
+            .filter(childGroup -> groupId.equals(childGroup.getId()))
+            .map(ProcessGroupEntity::getVersionedFlowState)
+            .findAny()
+            .orElse(null);
     }
 
     public FlowEntity copyAndPaste(final ProcessGroupEntity pgEntity, final String destinationGroupId) throws NiFiClientException, IOException {
@@ -1857,5 +1938,12 @@ public class NiFiClientUtil {
         final ConnectionDTO connectionDto = connectionEntity.getComponent();
         connectionDto.setPrioritizers(Collections.singletonList("org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"));
         return nifiClient.getConnectionClient().updateConnection(connectionEntity);
+    }
+
+    public ProcessGroupEntity markStateless(final ProcessGroupEntity group, final String timeout) throws NiFiClientException, IOException {
+        group.getComponent().setStatelessFlowTimeout(timeout);
+        group.getComponent().setExecutionEngine("STATELESS");
+
+        return nifiClient.getProcessGroupClient().updateProcessGroup(group);
     }
 }

@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
@@ -28,6 +29,8 @@ public interface RepositoryContextFactory {
     RepositoryContext createRepositoryContext(Connectable connectable);
 
     ContentRepository getContentRepository();
+
+    FlowFileRepository getFlowFileRepository();
 
     FlowFileEventRepository getFlowFileEventRepository();
 

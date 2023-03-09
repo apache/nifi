@@ -115,6 +115,9 @@
                 'parameterContext': {
                     'id': $('#process-group-parameter-context-combo').combo('getSelectedOption').value
                 },
+                'executionEngine': $('#process-group-execution-engine-combo').combo('getSelectedOption').value,
+                'maxConcurrentTasks': $('#process-group-max-concurrent-tasks').val(),
+                'statelessFlowTimeout': $('#process-group-stateless-flow-timeout').val(),
                 'flowfileConcurrency': $('#process-group-flowfile-concurrency-combo').combo('getSelectedOption').value,
                 'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value,
                 'defaultFlowFileExpiration': $('#process-group-default-flowfile-expiration').val(),
@@ -183,6 +186,9 @@
         var setUnauthorizedText = function () {
             $('#read-only-process-group-name').text('Unauthorized');
             $('#read-only-process-group-comments').text('Unauthorized');
+            $('#read-only-process-group-execution-engine').text('Unauthorized');
+            $('#read-only-process-group-max-concurrent-tasks').text('Unauthorized');
+            $('#read-only-process-group-stateless-flow-timeout').text('Unauthorized');
             $('#read-only-process-group-default-flowfile-expiration').text('Unauthorized');
             $('#read-only-process-group-default-back-pressure-object-threshold').text('Unauthorized');
             $('#read-only-process-group-default-back-pressure-data-size-threshold').text('Unauthorized');
@@ -236,6 +242,35 @@
                     // populate the process group settings
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
                     $('#process-group-comments').removeClass('unset').val(processGroup.comments);
+
+                    $('#process-group-execution-engine-combo').removeClass('unset').combo({
+                        options: [{
+                            text: 'Inherited',
+                            value: 'INHERITED',
+                            description: 'Use whichever Execution Engine the parent Process Group is configured to use.'
+                        }, {
+                            text: 'Standard',
+                            value: 'STANDARD',
+                            description: 'Use the Standard NiFi Execution Engine. See the User Guide for additional details.'
+                        }, {
+                            text: 'Stateless',
+                            value: 'STATELESS',
+                            description: 'Run the dataflow using the Stateless Execution Engine. See the User Guide for additional detials.'
+                        }],
+                        selectedOption: {
+                            value: processGroup.executionEngine
+                        },
+                        select: function (selectedOption) {
+                            if (selectedOption.value === 'STATELESS') {
+                                $('#stateless-group-options').show();
+                            } else {
+                                $('#stateless-group-options').hide();
+                            }
+                        }
+                    });
+                    $('#process-group-max-concurrent-tasks').removeClass('unset').val(processGroup.maxConcurrentTasks);
+                    $('#process-group-stateless-flow-timeout').removeClass('unset').val(processGroup.statelessFlowTimeout);
+
                     $('#process-group-flowfile-concurrency-combo').removeClass('unset').combo({
                         options: [{
                                 text: 'Single FlowFile Per Node',
@@ -296,6 +331,20 @@
                         // populate the process group settings
                         $('#read-only-process-group-name').text(processGroup.name);
                         $('#read-only-process-group-comments').text(processGroup.comments);
+
+                        // Determine the user-friendly name for the selected Execution Engine
+                        var executionEngineName;
+                        if (processGroup.executionEngine == "INHERITED") {
+                            executionEngineName = "Inherited";
+                        } else if (processGroup.executionEngine == "STANDARD") {
+                            executionEngineName = "Standard";
+                        } else if (processGroup.executionEngine == "STATELESS") {
+                            executionEngineName = "Stateless";
+                        }
+                        $('#read-only-process-group-execution-engine').text(executionEngineName);
+
+                        $('#read-only-process-group-max-concurrent-tasks').text(processGroup.maxConcurrentTasks);
+                        $('#read-only-process-group-stateless-flow-timeout').text(processGroup.maxConcurrentTasks);
 
                         // Determine the user-friendly name for the selected FlowFile Concurrency
                         var concurrencyName;
@@ -531,6 +580,9 @@
         $('#process-group-id').text('');
         $('#process-group-name').val('');
         $('#process-group-comments').val('');
+        $('#process-group-execution-engine').val('INHERITED');
+        $('#process-group-max-concurrent-tasks').val('1');
+        $('#process-group-stateless-flow-timeout').val('1 min');
         $('#process-group-default-flowfile-expiration').val('');
         $('#process-group-default-back-pressure-object-threshold').val('');
         $('#process-group-default-back-pressure-data-size-threshold').val('');

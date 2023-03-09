@@ -141,6 +141,9 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
 
     @Override
     public boolean equals(final Object other) {
+        if (other == null) {
+            return false;
+        }
         if (this == other) {
             return true;
         }

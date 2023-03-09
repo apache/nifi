@@ -442,11 +442,11 @@ public class CompressContent extends AbstractProcessor {
             }
 
             logger.info("Successfully {}ed {} using {} compression format; size changed from {} to {} bytes",
-                new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression});
+                compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression);
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
-            logger.error("Unable to {} {} using {} compression format due to {}; routing to failure", new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, e});
+            logger.error("Unable to {} {} using {} compression format due to {}; routing to failure", compressionMode.toLowerCase(), flowFile, compressionFormat, e, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

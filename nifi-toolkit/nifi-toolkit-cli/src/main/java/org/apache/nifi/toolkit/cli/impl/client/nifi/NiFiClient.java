@@ -141,6 +141,12 @@ public interface NiFiClient extends Closeable {
 
     SnippetClient getSnippetClient(RequestConfig requestConfig);
 
+    // ----- SnippetClient -----
+
+    SystemDiagnosticsClient getSystemsDiagnosticsClient();
+
+    SystemDiagnosticsClient getSystemsDiagnosticsClient(RequestConfig requestConfig);
+
     /**
      * The builder interface that implementations should provide for obtaining the client.
      */

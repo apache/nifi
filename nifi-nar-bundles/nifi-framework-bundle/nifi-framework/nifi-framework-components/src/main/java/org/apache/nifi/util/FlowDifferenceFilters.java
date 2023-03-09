@@ -79,7 +79,8 @@ public class FlowDifferenceFilters {
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
-        if (difference.getDifferenceType() != DifferenceType.PROPERTY_SENSITIVITY_CHANGED) {
+        final DifferenceType differenceType = difference.getDifferenceType();
+        if (differenceType != DifferenceType.PROPERTY_SENSITIVITY_CHANGED && differenceType != DifferenceType.PROPERTY_ADDED) {
             return false;
         }
 

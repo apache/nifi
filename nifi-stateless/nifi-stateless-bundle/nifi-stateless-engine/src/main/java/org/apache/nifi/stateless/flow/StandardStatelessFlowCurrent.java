@@ -20,10 +20,17 @@ package org.apache.nifi.stateless.flow;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.ConnectionUtils;
+import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
+import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.scheduling.LifecycleState;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
@@ -33,7 +40,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
@@ -43,18 +52,23 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     private final AsynchronousCommitTracker tracker;
     private final ExecutionProgress executionProgress;
     private final Set<Connectable> rootConnectables;
+    private final FlowFileSupplier flowFileSupplier;
+    private final Collection<Port> inputPorts;
     private final RepositoryContextFactory repositoryContextFactory;
     private final ProcessContextFactory processContextFactory;
+    private final LifecycleStateManager lifecycleStateManager;
 
-    private Connectable currentComponent = null;
 
     private StandardStatelessFlowCurrent(final Builder builder) {
         this.transactionThresholdMeter = builder.transactionThresholdMeter;
         this.tracker = builder.tracker;
         this.executionProgress = builder.executionProgress;
         this.rootConnectables = builder.rootConnectables;
+        this.flowFileSupplier = builder.flowFileSupplier;
+        this.inputPorts = builder.inputPorts;
         this.repositoryContextFactory = builder.repositoryContextFactory;
         this.processContextFactory = builder.processContextFactory;
+        this.lifecycleStateManager = builder.lifecycleStateManager;
     }
 
     @Override
@@ -91,12 +105,6 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                 completionReached = !tracker.isAnyReady() && isFlowQueueEmpty();
             }
         } catch (final Throwable t) {
-            if (t instanceof TerminatedTaskException) {
-                logger.debug("Encountered TerminatedTaskException when triggering {}", currentComponent, t);
-            } else {
-                logger.error("Failed to trigger {}", currentComponent, t);
-            }
-
             executionProgress.notifyExecutionFailed(t);
             tracker.triggerFailureCallbacks(t);
             throw t;
@@ -127,74 +135,139 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
     }
 
     private void triggerRootConnectables() {
-        for (final Connectable connectable : rootConnectables) {
-            currentComponent = connectable;
-
-            // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
-            // during this invocation of its onTrigger method.
-            tracker.resetProgress();
-            trigger(connectable, executionProgress, tracker);
-
-            // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
-            transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
-            transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
+        final boolean transactionThresholdsMet = transactionThresholdMeter.isThresholdMet();
+        final boolean flowFileSupplied;
+        if (transactionThresholdsMet) {
+            flowFileSupplied = false;
+        } else {
+            flowFileSupplied = triggerFlowFileSupplier();
         }
+
+        // If we weren't able to pull in any FlowFiles from outside the Stateless Flow, go ahead and trigger the root connectables.
+        if (!flowFileSupplied) {
+            for (final Connectable connectable : rootConnectables) {
+                if (!transactionThresholdsMet || connectable.hasIncomingConnection()) {
+                    triggerRootConnectable(connectable);
+                }
+            }
+        }
+    }
+
+    private boolean triggerFlowFileSupplier() {
+        if (flowFileSupplier == null) {
+            return false;
+        }
+
+        boolean flowFileSupplied = false;
+        for (final Port inputPort : inputPorts) {
+            final Set<Connection> outputConnections = inputPort.getConnections();
+            if (outputConnections.isEmpty()) {
+                continue;
+            }
+
+            final Optional<FlowFile> flowFileOptional = flowFileSupplier.getFlowFile(inputPort.getName());
+            if (!flowFileOptional.isPresent()) {
+                continue;
+            }
+
+            flowFileSupplied = true;
+
+            final FlowFileRecord flowFile = (FlowFileRecord) flowFileOptional.get();
+            final FlowFileCloneResult cloneResult = ConnectionUtils.clone(flowFile, outputConnections,
+                repositoryContextFactory.getFlowFileRepository(), repositoryContextFactory.getContentRepository());
+
+            cloneResult.distributeFlowFiles();
+
+            for (final Connection connection : outputConnections) {
+                tracker.addConnectable(connection.getDestination());
+            }
+        }
+
+        return flowFileSupplied;
+    }
+
+    private void triggerRootConnectable(final Connectable connectable) {
+        final LifecycleState lifecycleState = lifecycleStateManager.getOrRegisterLifecycleState(connectable.getIdentifier(), true, false);
+
+        // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
+        // during this invocation of its onTrigger method.
+        tracker.resetProgress();
+
+        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
+            executionProgress, false, tracker);
+
+        lifecycleState.incrementActiveThreadCount(null);
+        try {
+            trigger(connectable, statelessSessionFactory);
+        } finally {
+            lifecycleState.decrementActiveThreadCount();
+        }
+
+        // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
+        transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
+        transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
     }
 
     private NextConnectable triggerWhileReady(final Connectable connectable) {
-        while (tracker.isReady(connectable)) {
-            if (executionProgress.isCanceled()) {
-                logger.info("Dataflow was canceled so will not trigger any more components");
-                return NextConnectable.NONE;
-            }
+        final LifecycleState lifecycleState = lifecycleStateManager.getOrRegisterLifecycleState(connectable.getIdentifier(), true, false);
 
-            currentComponent = connectable;
+        final StatelessProcessSessionFactory statelessSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
+            executionProgress, false, tracker);
 
-            // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
-            // during this invocation of its onTrigger method.
-            tracker.resetProgress();
-            trigger(connectable, executionProgress, tracker);
+        lifecycleState.incrementActiveThreadCount(null);
+        try {
+            while (tracker.isReady(connectable)) {
+                if (executionProgress.isCanceled()) {
+                    logger.info("Dataflow was canceled so will not trigger any more components");
+                    return NextConnectable.NONE;
+                }
 
-            // Check if the component made any progress or not. If so, continue on. If not, we need to check if providing the component with
-            // additional input would help the component to progress or not.
-            final boolean progressed = tracker.isProgress();
-            if (progressed) {
-                logger.debug("{} was triggered and made progress", connectable);
-                continue;
-            }
+                // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
+                // during this invocation of its onTrigger method.
+                tracker.resetProgress();
+                trigger(connectable, statelessSessionFactory);
 
-            // If we've made no progress, check the condition of this being an Output Port with Batch Output. In such a case, we will make no progress
-            // until data has been processed elsewhere in the flow, so return NEXT_READY.
-            if (connectable.getConnectableType() == ConnectableType.OUTPUT_PORT && connectable.getProcessGroup().getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT
+                // Check if the component made any progress or not. If so, continue on. If not, we need to check if providing the component with
+                // additional input would help the component to progress or not.
+                final boolean progressed = tracker.isProgress();
+                if (progressed) {
+                    logger.debug("{} was triggered and made progress", connectable);
+                    continue;
+                }
+
+                // If we've made no progress, check the condition of this being an Output Port with Batch Output. In such a case, we will make no progress
+                // until data has been processed elsewhere in the flow, so return NEXT_READY.
+                if (connectable.getConnectableType() == ConnectableType.OUTPUT_PORT && connectable.getProcessGroup().getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT
                     && connectable.getProcessGroup().isDataQueuedForProcessing()) {
 
-                logger.debug("{} was triggered but unable to make process. Data is still available for processing, so continue triggering components within the Process Group", connectable);
-                return NextConnectable.NEXT_READY;
+                    logger.debug("{} was triggered but unable to make process. Data is still available for processing, so continue triggering components within the Process Group", connectable);
+                    return NextConnectable.NEXT_READY;
+                }
+
+                // Check if we've reached out threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
+                // triggering source components
+                final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
+                if (thresholdMet) {
+                    logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
+                        "trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
+                    continue;
+                }
+
+                logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) " +
+                    "so will trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
+
+                return NextConnectable.SOURCE_CONNECTABLE;
             }
 
-            // Check if we've reached out threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
-            // triggering source components
-            final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
-            if (thresholdMet) {
-                logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
-                    "trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
-                continue;
-            }
-
-            logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) " +
-                "so will trigger source components to run.", connectable, transactionThresholdMeter.getThresholds(), transactionThresholdMeter);
-
-            return NextConnectable.SOURCE_CONNECTABLE;
+            return NextConnectable.NEXT_READY;
+        } finally {
+            lifecycleState.decrementActiveThreadCount();
         }
-
-        return NextConnectable.NEXT_READY;
     }
 
-    private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
-        final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
 
-        final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
-            executionProgress, false, tracker);
+    private void trigger(final Connectable connectable, final ProcessSessionFactory sessionFactory) {
+        final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
 
         final long start = System.nanoTime();
 
@@ -213,7 +286,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             procEvent.setInvocations(invocations);
             repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
         } catch (final IOException e) {
-            logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString(), e);
+            logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e, e);
         }
     }
 
@@ -230,8 +303,11 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         private AsynchronousCommitTracker tracker;
         private ExecutionProgress executionProgress;
         private Set<Connectable> rootConnectables;
+        private Collection<Port> inputPorts;
+        private FlowFileSupplier flowFileSupplier = null;
         private RepositoryContextFactory repositoryContextFactory;
         private ProcessContextFactory processContextFactory;
+        private LifecycleStateManager lifecycleStateManager;
 
         public StandardStatelessFlowCurrent build() {
             Objects.requireNonNull(transactionThresholdMeter, "Transaction Threshold Meter must be set");
@@ -249,6 +325,11 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             return this;
         }
 
+        public Builder lifecycleStateManager(final LifecycleStateManager lifecycleStateManager) {
+            this.lifecycleStateManager = lifecycleStateManager;
+            return this;
+        }
+
         public Builder commitTracker(final AsynchronousCommitTracker commitTracker) {
             this.tracker = commitTracker;
             return this;
@@ -261,6 +342,16 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         public Builder rootConnectables(final Set<Connectable> rootConnectables) {
             this.rootConnectables = rootConnectables;
+            return this;
+        }
+
+        public Builder flowFileSupplier(final FlowFileSupplier flowFileSupplier) {
+            this.flowFileSupplier = flowFileSupplier;
+            return this;
+        }
+
+        public Builder inputPorts(final Collection<Port> inputPorts) {
+            this.inputPorts = inputPorts;
             return this;
         }
 

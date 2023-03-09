@@ -23,7 +23,9 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,6 +88,15 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
         defaultedModifyClasspathProcessor = getClientUtil().createProcessor("DefaultedDynamicallyModifyClasspath");
         ProcessorEntity terminateSuccess = getClientUtil().createProcessor("TerminateFlowFile");
         ProcessorEntity terminateFailure = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Find the commons-lang3 jar that is in the bootstrap directory and set the processor to use it.
+        final File lib = new File(getNiFiInstance().getInstanceDirectory(), "lib");
+        final File bootstrapLib = new File(lib, "bootstrap");
+        final File[] listing = bootstrapLib.listFiles(file -> file.getName().endsWith(".jar") && file.getName().startsWith("commons-lang3"));
+        if (listing != null && listing.length >= 1) {
+            final File lang3Jar = listing[0];
+            defaultedModifyClasspathProcessor = getClientUtil().updateProcessorProperties(defaultedModifyClasspathProcessor, Collections.singletonMap("URLs to Load", lang3Jar.getAbsolutePath()));
+        }
 
         defaultedModifyClasspathInputConnection = getClientUtil().createConnection(generateFlowFileProcessor, defaultedModifyClasspathProcessor, "success");
         successConnection = getClientUtil().createConnection(defaultedModifyClasspathProcessor, terminateSuccess, "success");

@@ -3405,6 +3405,7 @@ The contents of the _nifi.properties_ file are relatively stable but can change 
 Consider configuring items below marked with an asterisk (`*`) in such a way that upgrading will be easier. For example, change the default directory configurations to locations outside the main root installation. In this way, these items can remain in their configured location through an upgrade, allowing NiFi to find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. See <<upgrading_nifi>> for more details.
 
 
+[[core_properties]]
 === Core Properties +
 
 The first section of the _nifi.properties_ file is for the Core Properties. These properties apply to the core framework as a whole.

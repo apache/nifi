@@ -109,7 +109,7 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param serviceNodes the nodes the disable
      * @return a Future that can be used to cancel the task or wait until it is completed
      */
-    Future<Void> disableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
+    CompletableFuture<Void> disableControllerServicesAsync(Collection<ControllerServiceNode> serviceNodes);
 
     /**
      * @return a Set of all Controller Services that exist for this service provider

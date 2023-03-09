@@ -128,17 +128,28 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     /**
      * Indicates that the given component is now referencing this Controller Service
-     * @param referringComponent the component referencing this service
+     * @param referencingComponent the component referencing this service
      * @param propertyDescriptor the property for which the component is referencing this controller service
      */
-    void addReference(ComponentNode referringComponent, PropertyDescriptor propertyDescriptor);
+    void addReference(ComponentNode referencingComponent, PropertyDescriptor propertyDescriptor);
+
+    /**
+     * Updates the component reference for the given component in order to provide the new property descriptor. This may be necessary if
+     * a property descriptor's definition has changed to reference a new type of service, stop referencing services, or start referencing services.
+     * This is not typical but may happen for more dynamic components such as those that are defined by a script. If there is currently no reference
+     * to this service for the given component and property descriptor, a new one will be added.
+     *
+     * @param referencingComponent the component referencing this Controller Service
+     * @param propertyDescriptor the updated property descriptor
+     */
+    void updateReference(ComponentNode referencingComponent, PropertyDescriptor propertyDescriptor);
 
     /**
      * Indicates that the given component is no longer referencing this Controller Service
-     * @param referringComponent the component that is no longer referencing this service
+     * @param referencingComponent the component that is no longer referencing this service
      * @param propertyDescriptor the property for which the component is referencing this controller service
      */
-    void removeReference(ComponentNode referringComponent, PropertyDescriptor propertyDescriptor);
+    void removeReference(ComponentNode referencingComponent, PropertyDescriptor propertyDescriptor);
 
     void setComments(String comment);
 

@@ -104,6 +104,15 @@ public class ParameterUpdateManager {
             if (requireWrite) {
                 service.authorize(authorizer, RequestAction.WRITE, user);
             }
+        } else if (AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(dto.getReferenceType())) {
+            final Authorizable group = lookup.getProcessGroup(dto.getId()).getAuthorizable();
+
+            if (requireRead) {
+                group.authorize(authorizer, RequestAction.READ, user);
+            }
+            if (requireWrite) {
+                group.authorize(authorizer, RequestAction.WRITE, user);
+            }
         }
     }
 
@@ -111,6 +120,12 @@ public class ParameterUpdateManager {
                                                                 final ComponentLifecycle componentLifecycle, final URI uri, final Set<AffectedComponentEntity> affectedComponents,
                                                                 final boolean replicateRequest, final Revision revision, final List<ParameterContextEntity> updatedContextEntities)
             throws LifecycleManagementException, ResumeFlowException {
+
+        final Set<AffectedComponentEntity> runningStatelessGroups = affectedComponents.stream()
+                .filter(entity -> entity.getComponent() != null)
+                .filter(entity -> AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(entity.getComponent().getReferenceType()))
+                .filter(component -> "Running".equalsIgnoreCase(component.getComponent().getState()))
+                .collect(Collectors.toSet());
 
         final Set<AffectedComponentEntity> runningProcessors = affectedComponents.stream()
                 .filter(entity -> entity.getComponent() != null)
@@ -127,7 +142,9 @@ public class ParameterUpdateManager {
                 })
                 .collect(Collectors.toSet());
 
-        stopProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
+        stopComponents(runningStatelessGroups, "stateless process group", asyncRequest, componentLifecycle, uri);
+        stopComponents(runningProcessors, "processor", asyncRequest, componentLifecycle, uri);
+
         if (asyncRequest.isCancelled()) {
             return null;
         }
@@ -163,7 +180,10 @@ public class ParameterUpdateManager {
             }
 
             if (!asyncRequest.isCancelled()) {
-                restartProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
+                restartComponents(runningProcessors, "processor", asyncRequest, componentLifecycle, uri);
+                restartComponents(runningStatelessGroups, "stateless process group", asyncRequest, componentLifecycle, uri);
+
+                asyncRequest.markStepComplete();
             }
         }
 
@@ -229,33 +249,34 @@ public class ParameterUpdateManager {
         return entity;
     }
 
-    private void stopProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
+    private void stopComponents(final Set<AffectedComponentEntity> components, final String componentType, final AsynchronousWebRequest<?, ?> asyncRequest,
+                                final ComponentLifecycle componentLifecycle, final URI uri)
             throws LifecycleManagementException {
 
-        logger.info("Stopping {} Processors in order to update Parameter Context", processors.size());
+        logger.info("Stopping {} {}s in order to update Parameter Context", components.size(), componentType);
         final CancellableTimedPause stopComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(stopComponentsPause::cancel);
-        componentLifecycle.scheduleComponents(uri, "root", processors, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
+        componentLifecycle.scheduleComponents(uri, "root", components, ScheduledState.STOPPED, stopComponentsPause, InvalidComponentAction.SKIP);
     }
 
-    private void restartProcessors(final Set<AffectedComponentEntity> processors, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri)
+    private void restartComponents(final Set<AffectedComponentEntity> components, final String componentType, final AsynchronousWebRequest<?, ?> asyncRequest,
+                                   final ComponentLifecycle componentLifecycle, final URI uri)
             throws ResumeFlowException, LifecycleManagementException {
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Restarting {} Processors after having updated Parameter Context: {}", processors.size(), processors);
+            logger.debug("Restarting {} {}s after having updated Parameter Context: {}", components.size(), componentType, components);
         } else {
-            logger.info("Restarting {} Processors after having updated Parameter Context", processors.size());
+            logger.info("Restarting {} {}s after having updated Parameter Context", components.size(), componentType);
         }
 
         // Step 14. Restart all components
-        final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(processors);
+        final Set<AffectedComponentEntity> componentsToStart = getUpdatedEntities(components);
 
         final CancellableTimedPause startComponentsPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(startComponentsPause::cancel);
 
         try {
             componentLifecycle.scheduleComponents(uri, "root", componentsToStart, ScheduledState.RUNNING, startComponentsPause, InvalidComponentAction.SKIP);
-            asyncRequest.markStepComplete();
         } catch (final IllegalStateException ise) {
             // Component Lifecycle will restart the Processors only if they are valid. If IllegalStateException gets thrown, we need to provide
             // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.

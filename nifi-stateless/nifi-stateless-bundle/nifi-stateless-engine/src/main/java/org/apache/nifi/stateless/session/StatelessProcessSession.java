@@ -89,7 +89,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         // dataflow in order to ensure that we don't destroy data in a way that it can't be replayed if the downstream processors fail.
         if (!requireSynchronousCommits) {
             super.commitAsync();
-            tracker.addCallback(connectable, onSuccess, onFailure);
+            tracker.addCallback(connectable, onSuccess, onFailure, this);
             return;
         }
 
@@ -160,6 +160,10 @@ public class StatelessProcessSession extends StandardProcessSession {
     }
 
     private void triggerFollowOnComponents() {
+        if (executionProgress.isTerminalPort(connectable)) {
+            return;
+        }
+
         for (final Connection connection : connectable.getConnections()) {
             // This component may have produced multiple output FlowFiles. We want to trigger the follow-on components
             // until they have consumed all created FlowFiles.
@@ -183,6 +187,10 @@ public class StatelessProcessSession extends StandardProcessSession {
     }
 
     private void queueFollowOnComponents() {
+        if (executionProgress.isTerminalPort(connectable)) {
+            return;
+        }
+
         for (final Connection connection : connectable.getConnections()) {
             // This component may have produced multiple output FlowFiles. We want to trigger the follow-on components
             // until they have consumed all created FlowFiles.
@@ -238,7 +246,7 @@ public class StatelessProcessSession extends StandardProcessSession {
 
         final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
         final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
-            processContextFactory, executionProgress, requireSynchronousCommits, new AsynchronousCommitTracker());
+            processContextFactory, executionProgress, requireSynchronousCommits, new AsynchronousCommitTracker(tracker.getRootGroup()));
 
         logger.debug("Triggering {}", connectable);
         final long start = System.nanoTime();

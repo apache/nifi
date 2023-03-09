@@ -46,6 +46,10 @@ public class VersionedProcessGroup extends VersionedComponent {
     private String defaultFlowFileExpiration;
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
+    private ScheduledState scheduledState;
+    private ExecutionEngine executionEngine;
+    private Integer maxConcurrentTasks;
+    private String statelessFlowTimeout;
 
     private String logFileSuffix;
 
@@ -215,5 +219,41 @@ public class VersionedProcessGroup extends VersionedComponent {
 
     public void setLogFileSuffix(final String logFileSuffix) {
         this.logFileSuffix = logFileSuffix;
+    }
+
+    @ApiModelProperty("The Scheduled State of the Process Group, if the group is configured to use the Stateless Execution Engine. Otherwise, this value has no relevance.")
+    public ScheduledState getScheduledState() {
+        return scheduledState;
+    }
+
+    public void setScheduledState(final ScheduledState scheduledState) {
+        this.scheduledState = scheduledState;
+    }
+
+    @ApiModelProperty("The Execution Engine that should be used to run the components within the group.")
+    public ExecutionEngine getExecutionEngine() {
+        return executionEngine;
+    }
+
+    public void setExecutionEngine(final ExecutionEngine executionEngine) {
+        this.executionEngine = executionEngine;
+    }
+
+    @ApiModelProperty("The maximum number of concurrent tasks that should be scheduled for this Process Group when using the Stateless Engine")
+    public Integer getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
+    public void setMaxConcurrentTasks(final Integer maxConcurrentTasks) {
+        this.maxConcurrentTasks = maxConcurrentTasks;
+    }
+
+    @ApiModelProperty("The maximum amount of time that the flow is allows to run using the Stateless engine before it times out and is considered a failure")
+    public String getStatelessFlowTimeout() {
+        return statelessFlowTimeout;
+    }
+
+    public void setStatelessFlowTimeout(final String timeout) {
+        this.statelessFlowTimeout = timeout;
     }
 }

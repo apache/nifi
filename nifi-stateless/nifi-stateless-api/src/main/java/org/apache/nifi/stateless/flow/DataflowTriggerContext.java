@@ -24,6 +24,10 @@ public interface DataflowTriggerContext {
      */
     boolean isAbort();
 
+    default FlowFileSupplier getFlowFileSupplier() {
+        return null;
+    }
+
     /**
      * The implicit context that will be used if no other context is provided when triggering a dataflow
      */

@@ -47,6 +47,7 @@ import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.analytics.ConnectionStatusPredictions;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
@@ -475,7 +476,16 @@ public abstract class AbstractEventAccess implements EventAccess {
             activeGroupThreads += processScheduler.getActiveThreadCount(funnel);
         }
 
+        final int statelessActiveThreadCount;
+        if (group.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            statelessActiveThreadCount = processScheduler.getActiveThreadCount(group);
+            activeGroupThreads = statelessActiveThreadCount;
+        } else {
+            statelessActiveThreadCount = 0;
+        }
+
         status.setActiveThreadCount(activeGroupThreads);
+        status.setStatelessActiveThreadCount(statelessActiveThreadCount);
         status.setTerminatedThreadCount(terminatedGroupThreads);
         status.setBytesRead(bytesRead);
         status.setBytesWritten(bytesWritten);

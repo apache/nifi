@@ -35,10 +35,12 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -82,6 +84,7 @@ public class AffectedComponentSet {
     private final Set<ReportingTaskNode> reportingTasks = new HashSet<>();
     private final Set<ParameterProviderNode> parameterProviders = new HashSet<>();
     private final Set<FlowRegistryClientNode> flowRegistryClients = new HashSet<>();
+    private final Set<ProcessGroup> statelessProcessGroups = new HashSet<>();
 
     public AffectedComponentSet(final FlowController flowController) {
         this.flowController = flowController;
@@ -93,7 +96,12 @@ public class AffectedComponentSet {
             return;
         }
 
-        inputPorts.add(port);
+        final ProcessGroup statelessGroup = getStatelessGroup(port.getProcessGroup());
+        if (statelessGroup == null) {
+            inputPorts.add(port);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
     }
 
     public void addOutputPort(final Port port) {
@@ -101,7 +109,12 @@ public class AffectedComponentSet {
             return;
         }
 
-        outputPorts.add(port);
+        final ProcessGroup statelessGroup = getStatelessGroup(port.getProcessGroup());
+        if (statelessGroup == null) {
+            outputPorts.add(port);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
     }
 
     public void addRemoteInputPort(final RemoteGroupPort port) {
@@ -109,7 +122,12 @@ public class AffectedComponentSet {
             return;
         }
 
-        remoteInputPorts.add(port);
+        final ProcessGroup statelessGroup = getStatelessGroup(port.getProcessGroup());
+        if (statelessGroup == null) {
+            remoteInputPorts.add(port);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
     }
 
     public void addRemoteOutputPort(final RemoteGroupPort port) {
@@ -117,7 +135,12 @@ public class AffectedComponentSet {
             return;
         }
 
-        remoteOutputPorts.add(port);
+        final ProcessGroup statelessGroup = getStatelessGroup(port.getProcessGroup());
+        if (statelessGroup == null) {
+            remoteOutputPorts.add(port);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
     }
 
     public void addRemoteProcessGroup(final RemoteProcessGroup remoteProcessGroup) {
@@ -125,8 +148,13 @@ public class AffectedComponentSet {
             return;
         }
 
-        remoteProcessGroup.getInputPorts().forEach(this::addRemoteInputPort);
-        remoteProcessGroup.getOutputPorts().forEach(this::addRemoteOutputPort);
+        final ProcessGroup statelessGroup = getStatelessGroup(remoteProcessGroup.getProcessGroup());
+        if (statelessGroup == null) {
+            remoteProcessGroup.getInputPorts().forEach(this::addRemoteInputPort);
+            remoteProcessGroup.getOutputPorts().forEach(this::addRemoteOutputPort);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
     }
 
     public void addProcessor(final ProcessorNode processor) {
@@ -134,11 +162,35 @@ public class AffectedComponentSet {
             return;
         }
 
-        processors.add(processor);
+        final ProcessGroup statelessGroup = getStatelessGroup(processor.getProcessGroup());
+        if (statelessGroup == null) {
+            processors.add(processor);
+        } else {
+            statelessProcessGroups.add(statelessGroup);
+        }
+    }
+
+    public void addStatelessGroup(final ProcessGroup group) {
+        if (group == null) {
+            return;
+        }
+
+        final ProcessGroup statelessGroup = getStatelessGroup(group);
+        if (statelessGroup == null) {
+            return;
+        }
+
+        statelessProcessGroups.add(statelessGroup);
     }
 
     public void addControllerService(final ControllerServiceNode controllerService) {
         if (controllerService == null) {
+            return;
+        }
+
+        final ProcessGroup statelessGroup = getStatelessGroup(controllerService.getProcessGroup());
+        if (statelessGroup != null) {
+            statelessProcessGroups.add(statelessGroup);
             return;
         }
 
@@ -359,6 +411,12 @@ public class AffectedComponentSet {
 
         final Set<ProcessGroup> boundGroups = context.getParameterReferenceManager().getProcessGroupsBound(context);
         for (final ProcessGroup group : boundGroups) {
+            final ProcessGroup statelessGroup = getStatelessGroup(group);
+            if (statelessGroup != null) {
+                statelessProcessGroups.add(statelessGroup);
+                continue;
+            }
+
             group.getProcessors().stream()
                 .filter(AbstractComponentNode::isReferencingParameter)
                 .forEach(this::addProcessor);
@@ -377,6 +435,12 @@ public class AffectedComponentSet {
             return;
         }
 
+        final ProcessGroup statelessGroup = getStatelessGroup(group);
+        if (statelessGroup != null) {
+            statelessProcessGroups.add(statelessGroup);
+            return;
+        }
+
         group.getProcessors().stream()
             .filter(AbstractComponentNode::isReferencingParameter)
             .forEach(this::addProcessor);
@@ -384,6 +448,23 @@ public class AffectedComponentSet {
         group.getControllerServices(false).stream()
             .filter(ComponentNode::isReferencingParameter)
             .forEach(this::addControllerService);
+    }
+
+    private ProcessGroup getStatelessGroup(final ProcessGroup start) {
+        if (start == null) {
+            return null;
+        }
+
+        final ExecutionEngine executionEngine = start.getExecutionEngine();
+        switch (executionEngine) {
+            case STATELESS:
+                return start;
+            case INHERITED:
+                return getStatelessGroup(start.getParent());
+            case STANDARD:
+            default:
+                return null;
+        }
     }
 
     private void addComponentsForParameterUpdate(final FlowDifference difference) {
@@ -458,6 +539,9 @@ public class AffectedComponentSet {
                 addOutputPort(flowManager.getOutputPort(componentId));
                 break;
             case PROCESS_GROUP:
+                final ProcessGroup group = flowManager.getGroup(componentId);
+                final ProcessGroup statelessGroup = getStatelessGroup(group);
+                addStatelessGroup(statelessGroup);
                 break;
             case PROCESSOR:
                 addProcessor(flowManager.getProcessorNode(componentId));
@@ -506,8 +590,11 @@ public class AffectedComponentSet {
         controllerServices.stream().filter(service -> ACTIVE_CONTROLLER_SERVICE_STATES.contains(service.getState()))
             .forEach(active::addControllerServiceWithoutReferences);
 
+        statelessProcessGroups.stream().filter(group -> group.getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING).forEach(active::addStatelessGroup);
+
         return active;
     }
+
 
     private boolean isActive(final ProcessorNode processor) {
         // We consider component active if it's starting, running, or has active threads. The call to ProcessorNode.isRunning() will only return true if it has active threads or a scheduled
@@ -533,6 +620,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.forEach(port -> port.getRemoteProcessGroup().startTransmitting(port));
         processors.forEach(processor -> processor.getProcessGroup().startProcessor(processor, false));
         reportingTasks.forEach(flowController::startReportingTask);
+        statelessProcessGroups.forEach(group -> group.startProcessing());
     }
 
     public void removeComponents(final ComponentSetFilter filter) {
@@ -544,6 +632,7 @@ public class AffectedComponentSet {
         controllerServices.removeIf(filter::testControllerService);
         reportingTasks.removeIf(filter::testReportingTask);
         flowRegistryClients.removeIf(filter::testFlowRegistryClient);
+        statelessProcessGroups.removeIf(filter::testStatelessGroup);
     }
 
     /**
@@ -565,6 +654,7 @@ public class AffectedComponentSet {
         reportingTasks.stream().filter(task -> flowController.getReportingTaskNode(task.getIdentifier()) != null).forEach(existing::addReportingTask);
         controllerServices.stream().filter(service -> serviceProvider.getControllerServiceNode(service.getIdentifier()) != null).forEach(existing::addControllerServiceWithoutReferences);
         flowRegistryClients.stream().filter(client -> flowManager.getFlowRegistryClient(client.getIdentifier()) != null).forEach(existing::addFlowRegistryClient);
+        statelessProcessGroups.stream().filter(group -> flowManager.getGroup(group.getIdentifier()) != null).forEach(existing::addStatelessGroup);
 
         return existing;
     }
@@ -586,6 +676,7 @@ public class AffectedComponentSet {
         processors.stream().filter(this::isStartable).forEach(startable::addProcessor);
         reportingTasks.stream().filter(this::isStartable).forEach(startable::addReportingTask);
         controllerServices.stream().filter(this::isStartable).forEach(startable::addControllerServiceWithoutReferences);
+        statelessProcessGroups.stream().filter(this::isStartable).forEach(startable::addStatelessGroup);
 
         return startable;
     }
@@ -600,6 +691,21 @@ public class AffectedComponentSet {
         }
         if (componentNode instanceof ReportingTaskNode) {
             return ((ReportingTaskNode) componentNode).getScheduledState() != ScheduledState.DISABLED;
+        }
+
+        return true;
+    }
+
+    private boolean isStartable(final ProcessGroup group) {
+        if (group == null) {
+            return false;
+        }
+
+        if (group.getExecutionEngine() != ExecutionEngine.STATELESS) {
+            return false;
+        }
+        if (group.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED) {
+            return false;
         }
 
         return true;
@@ -623,6 +729,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.forEach(port -> port.getRemoteProcessGroup().stopTransmitting(port));
         processors.forEach(processor -> processor.getProcessGroup().stopProcessor(processor));
         reportingTasks.forEach(flowController::stopReportingTask);
+        statelessProcessGroups.forEach(group -> group.stopProcessing());
 
         waitForConnectablesStopped();
 
@@ -662,7 +769,7 @@ public class AffectedComponentSet {
                 if (count++ % 1000 == 0) {
                     // The 0th time and every 1000th time (10 seconds), log an update
                     logger.info("Waiting for all required Processors and Reporting Tasks to stop...");
-                    if (reportingTasks.isEmpty() && processors.isEmpty()) {
+                    if (reportingTasks.isEmpty() && processors.isEmpty() && statelessProcessGroups.isEmpty()) {
                         return;
                     }
 
@@ -674,6 +781,11 @@ public class AffectedComponentSet {
                             .filter(processor -> !isStopped(processor))
                             .collect(Collectors.toSet());
                         logger.debug("There are currently {} active Processors: {}", activeProcessors.size(), activeProcessors);
+
+                        final Set<ProcessGroup> activeStatelessGroups = statelessProcessGroups.stream()
+                            .filter(ProcessGroup::isStatelessActive)
+                            .collect(Collectors.toSet());
+                        logger.debug("There are currently {} active Stateless Groups: {}", activeStatelessGroups.size(), activeStatelessGroups);
                     }
                 }
 
@@ -689,6 +801,9 @@ public class AffectedComponentSet {
             return false;
         }
         if (reportingTasks.stream().anyMatch(ReportingTaskNode::isRunning)) {
+            return false;
+        }
+        if (statelessProcessGroups.stream().anyMatch(ProcessGroup::isStatelessActive)) {
             return false;
         }
 
@@ -707,6 +822,7 @@ public class AffectedComponentSet {
             ", flowRegistryCliens=" + flowRegistryClients +
             ", controllerServices=" + controllerServices +
             ", reportingTasks=" + reportingTasks +
+            ", statelessProcessGroups=" + statelessProcessGroups +
             "]";
     }
 }

@@ -20,13 +20,14 @@ package org.apache.nifi.groups;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,18 +37,18 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     private static final Logger logger = LoggerFactory.getLogger(RetainExistingStateComponentScheduler.class);
 
     private final ComponentScheduler delegate;
-    private final Map<String, ScheduledState> connectableStates;
+    private final Map<String, ScheduledState> componentStates;
     private final Map<String, ControllerServiceState> controllerServiceStates;
 
     public RetainExistingStateComponentScheduler(final ProcessGroup processGroup, final ComponentScheduler delegate) {
         this.delegate = delegate;
-        this.connectableStates = mapConnectableStates(processGroup);
+        this.componentStates = mapComponentStates(processGroup);
         this.controllerServiceStates = mapControllerServiceStates(processGroup);
     }
 
     @Override
     public void startComponent(final Connectable component) {
-        final ScheduledState existingState = connectableStates.get(component.getIdentifier());
+        final ScheduledState existingState = componentStates.get(component.getIdentifier());
         if (existingState == null) {
             logger.debug("Will not start {} because it was not previously known in this Process Group", component);
             return;
@@ -60,6 +61,28 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
 
         logger.debug("Starting {}", component);
         delegate.startComponent(component);
+    }
+
+    @Override
+    public void startStatelessGroup(final ProcessGroup group) {
+        final ScheduledState existingState = componentStates.get(group.getIdentifier());
+        if (existingState == null) {
+            logger.debug("Will not start {} because it was not previously known in this Process Group", group);
+            return;
+        }
+
+        if (existingState != ScheduledState.RUNNING && existingState != ScheduledState.STARTING) {
+            logger.debug("Will not start {} because its previous state was {}", group, existingState);
+            return;
+        }
+
+        logger.debug("Starting {}", group);
+        delegate.startStatelessGroup(group);
+    }
+
+    @Override
+    public void stopStatelessGroup(final ProcessGroup group) {
+        delegate.stopStatelessGroup(group);
     }
 
     @Override
@@ -124,14 +147,24 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
         return serviceStates;
     }
 
-    private Map<String, ScheduledState> mapConnectableStates(final ProcessGroup group) {
+    private Map<String, ScheduledState> mapComponentStates(final ProcessGroup group) {
         final Set<Connectable> connectables = new HashSet<>();
         findAllConnectables(group, connectables);
 
-        final Map<String, ScheduledState> connectableStates = connectables.stream()
-            .collect(Collectors.toMap(Connectable::getIdentifier, Triggerable::getScheduledState));
+        final Map<String, ScheduledState> componentStates = new HashMap<>();
+        for (final Connectable connectable : connectables) {
+            componentStates.put(connectable.getIdentifier(), connectable.getScheduledState());
+        }
 
-        return connectableStates;
+        final Set<ProcessGroup> statelessGroups = new HashSet<>();
+        findAllStatelessGroups(group, statelessGroups);
+        for (final ProcessGroup statelessGroup : statelessGroups) {
+            final StatelessGroupScheduledState state = statelessGroup.getStatelessScheduledState();
+            final ScheduledState scheduledState = state == StatelessGroupScheduledState.RUNNING ? ScheduledState.RUNNING : ScheduledState.STOPPED;
+            componentStates.put(statelessGroup.getIdentifier(), scheduledState);
+        }
+
+        return componentStates;
     }
 
     private void findAllConnectables(final ProcessGroup group, final Set<Connectable> connectables) {
@@ -146,6 +179,17 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             findAllConnectables(childGroup, connectables);
+        }
+    }
+
+    private void findAllStatelessGroups(final ProcessGroup start, final Set<ProcessGroup> statelessGroups) {
+        if (start.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            statelessGroups.add(start);
+            return; // No need to go further, as the top-level stateless group is all we need.
+        }
+
+        for (final ProcessGroup childGroup : start.getProcessGroups()) {
+            findAllStatelessGroups(childGroup, statelessGroups);
         }
     }
 }

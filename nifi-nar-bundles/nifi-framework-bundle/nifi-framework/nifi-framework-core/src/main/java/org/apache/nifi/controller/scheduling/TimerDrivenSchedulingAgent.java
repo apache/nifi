@@ -162,8 +162,8 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     }
 
     @Override
-    public void doUnschedule(final Connectable connectable, final LifecycleState scheduleState) {
-        for (final ScheduledFuture<?> future : scheduleState.getFutures()) {
+    public void doUnschedule(final Connectable connectable, final LifecycleState lifecycleState) {
+        for (final ScheduledFuture<?> future : lifecycleState.getFutures()) {
             // stop scheduling to run but do not interrupt currently running tasks.
             future.cancel(false);
         }
@@ -172,8 +172,8 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
     }
 
     @Override
-    public void doUnschedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
-        for (final ScheduledFuture<?> future : scheduleState.getFutures()) {
+    public void doUnschedule(final ReportingTaskNode taskNode, final LifecycleState lifecycleState) {
+        for (final ScheduledFuture<?> future : lifecycleState.getFutures()) {
             // stop scheduling to run but do not interrupt currently running tasks.
             future.cancel(false);
         }

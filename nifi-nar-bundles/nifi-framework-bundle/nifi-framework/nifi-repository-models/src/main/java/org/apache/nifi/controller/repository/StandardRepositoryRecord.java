@@ -21,6 +21,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.processor.Relationship;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +70,15 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         setType(RepositoryRecordType.SWAP_OUT);
         this.swapLocation = swapLocation;
         this.originalAttributes = originalFlowFileRecord == null ? Collections.emptyMap() : originalFlowFileRecord.getAttributes();
+    }
+
+    public StandardRepositoryRecord(final Collection<ContentClaim> transientClaims) {
+        this.originalQueue = null;
+        this.originalFlowFileRecord = null;
+        this.originalAttributes = Collections.emptyMap();
+
+        setType(RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS);
+        transientClaims.forEach(this::addTransientClaim);
     }
 
     @Override

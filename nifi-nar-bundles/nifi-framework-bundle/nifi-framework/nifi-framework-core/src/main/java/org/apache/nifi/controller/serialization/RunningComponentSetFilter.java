@@ -22,6 +22,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedPort;
@@ -30,6 +31,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 
@@ -43,6 +45,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     private final Map<String, VersionedPort> outputPorts = new HashMap<>();
     private final Map<String, VersionedRemoteGroupPort> remoteInputPorts = new HashMap<>();
     private final Map<String, VersionedRemoteGroupPort> remoteOutputPorts = new HashMap<>();
+    private final Map<String, VersionedProcessGroup> statelessGroups = new HashMap<>();
 
     public RunningComponentSetFilter(final VersionedDataflow dataflow) {
         dataflow.getControllerServices().forEach(service -> controllerServices.put(service.getInstanceIdentifier(), service));
@@ -55,6 +58,9 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
         group.getOutputPorts().forEach(port -> outputPorts.put(port.getInstanceIdentifier(), port));
         group.getControllerServices().forEach(service -> controllerServices.put(service.getInstanceIdentifier(), service));
         group.getProcessors().forEach(processor -> processors.put(processor.getInstanceIdentifier(), processor));
+        if (group.getExecutionEngine() == ExecutionEngine.STATELESS) {
+            statelessGroups.put(group.getIdentifier(), group);
+        }
 
         for (final VersionedRemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
             rpg.getInputPorts().forEach(port -> {
@@ -118,5 +124,11 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
     @Override
     public boolean testFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
        return false;
+    }
+
+    @Override
+    public boolean testStatelessGroup(final ProcessGroup group) {
+        final VersionedProcessGroup versionedGroup = statelessGroups.get(group.getIdentifier());
+        return versionedGroup != null && versionedGroup.getScheduledState() == ScheduledState.RUNNING;
     }
 }

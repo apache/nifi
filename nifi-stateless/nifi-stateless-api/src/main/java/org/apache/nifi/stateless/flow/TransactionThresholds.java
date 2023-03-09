@@ -80,4 +80,21 @@ public interface TransactionThresholds {
             return "TransactionThresholds[maxFlowFiles=1, maxContentSize=unlimited, maxElapsedTime=unlimited]";
         }
     };
+
+    TransactionThresholds UNLIMITED = new TransactionThresholds() {
+        @Override
+        public OptionalLong getMaxFlowFiles() {
+            return OptionalLong.empty();
+        }
+
+        @Override
+        public OptionalLong getMaxContentSize(final DataUnit dataUnit) {
+            return OptionalLong.empty();
+        }
+
+        @Override
+        public OptionalLong getMaxTime(final TimeUnit timeUnit) {
+            return OptionalLong.empty();
+        }
+    };
 }

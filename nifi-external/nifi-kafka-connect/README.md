@@ -36,7 +36,7 @@ The NiFi Kafka Connector allows users to do just that!
 When a dataflow is to be run within Kafka Connect, it is run using the Stateless NiFi dataflow engine. For more information, see the README of the
 Stateless NiFi module.
 
-Stateless NiFi differs from the traditional NiFi engine in a few ways. For one, Stateless NiFi is an engine that is designed to be embedded. This makes it
+Stateless NiFi differs from the standard NiFi engine in a few ways. For one, Stateless NiFi is an engine that is designed to be embedded. This makes it
 very convenient to run within the Kafka Connect framework.
 
 Stateless NiFi does not provide a user interface (UI) or a REST API and does not support modifying the dataflow while it is running.
@@ -47,7 +47,7 @@ data is expected to be routed to exactly one of them, such as a 'Failure' destin
 
 Stateless NiFi does not currently provide access to data lineage/provenance.
 
-Stateless NiFi does not support cyclic graphs. While it is common and desirable in traditional NiFi to have a 'failure' relationship from a Processor
+Stateless NiFi does not support cyclic graphs. While it is common and desirable in standard NiFi deployments to have a 'failure' relationship from a Processor
 route back to the same processor, this can result in a StackOverflowException in Stateless NiFi. The preferred approach in Stateless NiFi is to create
 an Output Port for failures and route the data to that Output Port. 
 
@@ -56,7 +56,7 @@ an Output Port for failures and route the data to that Output Port.
 NiFi supports two different Kafka Connectors: a source connector and a sink connector. Each of these have much of the same configuration
 elements but do have some differences. The configuration for each of these connectors is described below.
 
-In order to build a flow that will be run in Kafka Connect, the dataflow must first be built. This is accomplished using a traditional deployment
+In order to build a flow that will be run in Kafka Connect, the dataflow must first be built. This is accomplished using a standard deployment
 of NiFi. So, while NiFi does not have to be deployed in a production environment in order to use the Kafka Connector, it is necessary in a development
 environment for building the actual dataflow that is to be deployed.
 
@@ -137,8 +137,8 @@ will be used as the Kafka message key.
 recommended to use the `value.converter` of `org.apache.kafka.connect.converters.ByteArrayConverter` as NiFi already has the data serialized as a byte array
 and is very adept at formatting the data as it needs to be.
 
-`(4) tasks.max`: The maximum number of tasks/threads to use to run the dataflow. Unlike traditional NiFi, with Stateless NiFi, the entire dataflow is run from start
-to finish with a single thread. However, multiple threads can be used to run multiple copies of the dataflow.
+`(4) tasks.max`: The maximum number of tasks/threads to use to run the dataflow. Unlike the standard NiFi engine, with Stateless NiFi, the entire dataflow is run from start
+to finish with a single thread. However, multiple threads can be used to run multiple copies of the dataflow, each with their own data.
 
 `(5) name`: The name of the connect instance. This should match the first `name` field.
 
@@ -199,9 +199,9 @@ connector lives in. Because this directory may not be writable, and to aid in up
 
 ### Transactional sources
 
-Unlike with traditional NiFi, Stateless NiFi keeps the contents of FlowFiles in memory. It is important to understand that as long as the source of the data is
+Unlike with standard NiFi deployments, Stateless NiFi keeps the contents of FlowFiles in memory. It is important to understand that as long as the source of the data is
 replayable and transactional, there is no concern over data loss. This is handled by treating the entire dataflow as a single transaction. Once data is obtained
-from some source component, the data is transferred to the next processor in the flow. At that point, in traditional NiFi, the processor would acknowledge the data
+from some source component, the data is transferred to the next processor in the flow. At that point, in a standard NiFi deployment, the processor would acknowledge the data
 and NiFi would take ownership of that data, having persisted it to disk.
 
 With Stateless NiFi, however, the data will not yet be acknowledged. Instead, the data will be transferred to the next processor in the flow, and it will perform
@@ -277,7 +277,7 @@ will be used as the Kafka message key.
 recommended to use the `value.converter` of `org.apache.kafka.connect.converters.ByteArrayConverter` as NiFi already has the data serialized as a byte array
 and is very adept at formatting the data as it needs to be.
 
-`(4) tasks.max`: The maximum number of tasks/threads to use to run the dataflow. Unlike traditional NiFi, with Stateless NiFi, the entire dataflow is run from start
+`(4) tasks.max`: The maximum number of tasks/threads to use to run the dataflow. Unlike standard NiFi deployments, with Stateless NiFi, the entire dataflow is run from start
 to finish with a single thread. However, multiple threads can be used to run multiple copies of the dataflow.
 
 `(5) name`: The name of the connect instance. This should match the first `name` field.
@@ -342,7 +342,7 @@ can often be delivered directly to a sink. For example, a PublishJMS processor i
 sent to S3 or to HDFS, those services will perform much better if the data is first batched, or merged, together. The MergeContent and MergeRecord
 processors are extremely popular in NiFi for this reason. They allow many small FlowFiles to be merged together into one larger FlowFile.
 
-With traditional NiFi, we can simply set a minimum and maximum size for the merged data along with a timeout. However, with Stateless NiFi and Kafka Connect,
+With the standard NiFi engine, we can simply set a minimum and maximum size for the merged data along with a timeout. However, with Stateless NiFi and Kafka Connect,
 this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. We can still use these Processor in
 order to merge the data together, but with a bit of a limitation.
 

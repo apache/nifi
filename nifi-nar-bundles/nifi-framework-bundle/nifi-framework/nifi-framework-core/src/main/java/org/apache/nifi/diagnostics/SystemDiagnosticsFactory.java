@@ -18,6 +18,8 @@ package org.apache.nifi.diagnostics;
 
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,8 @@ import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Method;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +49,8 @@ public class SystemDiagnosticsFactory {
 
     private final Logger logger = LoggerFactory.getLogger(SystemDiagnosticsFactory.class);
 
-    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo, ProvenanceRepository provenanceRepository) {
+    public SystemDiagnostics create(final FlowFileRepository flowFileRepo, final ContentRepository contentRepo, final ProvenanceRepository provenanceRepository,
+                                    final ResourceClaimManager resourceClaimManager) {
         final SystemDiagnostics systemDiagnostics = new SystemDiagnostics();
 
         final MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
@@ -184,6 +189,27 @@ public class SystemDiagnosticsFactory {
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
         }
+
+        final Map<ResourceClaim, Integer> claimantCounts = new HashMap<>();
+        final Set<ResourceClaim> destructableClaims = new HashSet<>();
+        for (final String containerName : contentRepo.getContainerNames()) {
+            try {
+                final Set<ResourceClaim> resourceClaims = contentRepo.getActiveResourceClaims(containerName);
+                for (final ResourceClaim resourceClaim : resourceClaims) {
+                    final int claimantCount = resourceClaimManager.getClaimantCount(resourceClaim);
+                    claimantCounts.put(resourceClaim, claimantCount);
+
+                    if (resourceClaimManager.isDestructable(resourceClaim)) {
+                        destructableClaims.add(resourceClaim);
+                    }
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to determine Resource Claim usage for Content Repository Container {}", containerName, e);
+            }
+        }
+
+        systemDiagnostics.setClaimantCounts(claimantCounts);
+        systemDiagnostics.setDestructableClaims(destructableClaims);
 
         // set the creation timestamp
         systemDiagnostics.setCreationTimestamp(new Date().getTime());

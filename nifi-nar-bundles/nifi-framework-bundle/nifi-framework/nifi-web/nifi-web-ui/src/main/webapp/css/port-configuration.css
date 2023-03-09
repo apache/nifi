@@ -54,3 +54,7 @@ div.port-enabled-container {
     margin-top: 5px;
     margin-left: 10px;
 }
+
+div.failure-port {
+    margin-top: 5px;
+}

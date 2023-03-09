@@ -41,6 +41,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.SnippetClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.SystemDiagnosticsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
@@ -391,6 +392,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public SnippetClient getSnippetClient(final RequestConfig requestConfig) {
             return wrappedClient.getSnippetClient(requestConfig);
+        }
+
+        @Override
+        public SystemDiagnosticsClient getSystemsDiagnosticsClient() {
+            return wrappedClient.getSystemsDiagnosticsClient();
+        }
+
+        @Override
+        public SystemDiagnosticsClient getSystemsDiagnosticsClient(final RequestConfig requestConfig) {
+            return wrappedClient.getSystemsDiagnosticsClient(requestConfig);
         }
 
         @Override

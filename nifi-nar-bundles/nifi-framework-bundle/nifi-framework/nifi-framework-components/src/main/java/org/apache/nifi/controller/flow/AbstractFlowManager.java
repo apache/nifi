@@ -116,11 +116,9 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     public void onProcessorRemoved(final ProcessorNode procNode) {
-        String identifier = procNode.getIdentifier();
+        final String identifier = procNode.getIdentifier();
         flowFileEventRepository.purgeTransferEvents(identifier);
         allProcessors.remove(identifier);
-
-        final String version = procNode.getBundleCoordinate().getVersion();
         pythonBridge.onProcessorRemoved(identifier, procNode.getComponentType(), procNode.getBundleCoordinate().getVersion());
     }
 
@@ -149,6 +147,11 @@ public abstract class AbstractFlowManager implements FlowManager {
         final Funnel funnel = getFunnel(id);
         if (funnel != null) {
             return funnel;
+        }
+
+        final ProcessGroup group = getGroup(id);
+        if (group != null) {
+            return group.getStatelessGroupNode().orElse(null);
         }
 
         final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(id);

@@ -117,23 +117,19 @@ public final class BulletinFactory {
     }
 
     private static ComponentType getComponentType(final Connectable connectable) {
-        final ComponentType type;
         switch (connectable.getConnectableType()) {
             case REMOTE_INPUT_PORT:
             case REMOTE_OUTPUT_PORT:
-                type = ComponentType.REMOTE_PROCESS_GROUP;
-                break;
+                return ComponentType.REMOTE_PROCESS_GROUP;
             case INPUT_PORT:
-                type = ComponentType.INPUT_PORT;
-                break;
+                return ComponentType.INPUT_PORT;
             case OUTPUT_PORT:
-                type = ComponentType.OUTPUT_PORT;
-                break;
+                return ComponentType.OUTPUT_PORT;
+            case STATELESS_GROUP:
+                return ComponentType.PROCESS_GROUP;
             case PROCESSOR:
             default:
-                type = ComponentType.PROCESSOR;
-                break;
+                return ComponentType.PROCESSOR;
         }
-        return type;
     }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.connectable;
 
+import org.apache.nifi.components.PortFunction;
+
 public interface Port extends Connectable {
 
     void shutdown();
@@ -30,4 +32,8 @@ public interface Port extends Connectable {
     void onSchedulingStart();
 
     void disable();
+
+    void setPortFunction(PortFunction portFunction);
+
+    PortFunction getPortFunction();
 }

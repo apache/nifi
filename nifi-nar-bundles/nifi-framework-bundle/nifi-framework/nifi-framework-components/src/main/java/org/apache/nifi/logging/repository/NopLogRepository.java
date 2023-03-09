@@ -23,11 +23,7 @@ import org.apache.nifi.logging.LogMessage;
 import org.apache.nifi.logging.LogObserver;
 import org.apache.nifi.logging.LogRepository;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 public class NopLogRepository implements LogRepository {
-    private final ConcurrentMap<String, LogLevel> observationLevels = new ConcurrentHashMap<>();
     private volatile ComponentLog logger;
 
     @Override
@@ -43,28 +39,16 @@ public class NopLogRepository implements LogRepository {
     }
 
     @Override
-    public void addObserver(final String observerIdentifier, final LogLevel level, final LogObserver observer) {
+    public void addObserver(final LogLevel level, final LogObserver observer) {
     }
 
     @Override
-    public void setObservationLevel(final String observerIdentifier, final LogLevel level) {
-        observationLevels.put(observerIdentifier, level);
+    public void setObservationLevel(final LogLevel level) {
     }
 
-    @Override
-    public LogLevel getObservationLevel(final String observerIdentifier) {
-        return observationLevels.get(observerIdentifier);
-    }
-
-    @Override
-    public LogObserver removeObserver(final String observerIdentifier) {
-        observationLevels.remove(observerIdentifier);
-        return null;
-    }
 
     @Override
     public void removeAllObservers() {
-        observationLevels.clear();
     }
 
     @Override

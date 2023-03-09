@@ -18,6 +18,8 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
+
 
 == Introduction
 Apache NiFi is a dataflow system based on the concepts of flow-based programming. It supports
@@ -127,7 +129,7 @@ UI may become unavailable.
 	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace _flow.xml.gz_ with a desired backup copy, then restart NiFi.
 	In a clustered environment, stop the entire NiFi cluster, replace the _flow.xml.gz_ of one of nodes, and restart the node. Remove _flow.xml.gz_ from other nodes.
 	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
-	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[System Administrator’s Guide] for further details.
+	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the link:administration-guide.html#core_properties[System Administrator’s Guide] for further details.
 
 
 
@@ -350,7 +352,10 @@ link:administration-guide.html[System Administrator’s Guide].
 [[process_group]]
 image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
-and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. The Process Group will
+and maintain. Additionally, Process Groups are used as a mechanism for grouping together components in such a way that they operate together
+as a more cohesive unit. For example, by configuring the Execution Engine or the FlowFile Outbound Policy.
+
+When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. The Process Group will
 then be nested within that parent group.
 
 Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from the
@@ -716,7 +721,18 @@ image::relationships-tab.png["Relationships Tab"]
 In order for a Processor to be considered valid and able to run, each Relationship defined by the Processor must be either connected to a downstream component or auto-terminated. If a Relationship is auto-terminated, any FlowFile that is routed to that Relationship will be removed from the flow and its processing considered complete. Any Relationship that is already connected to a downstream component cannot be auto-terminated. The Relationship must first be removed from any Connection that uses it. Additionally, for any Relationship that is selected to be auto-terminated, the auto-termination status will be cleared (turned off) if the Relationship is added to a Connection.
 
 ===== Automatically Retry
-Users can also configure whether or not FlowFiles routed to a given Relationship should be retried.
+Users can also configure whether or not FlowFiles routed to a given Relationship should be retried. If a FlowFile is routed to any Relationship that is configured to be retried,
+the FlowFile will be re-queued and the Processor will attempt to process it again. If the Processor routes the FlowFile to a retriable Relationship again (either the same Relationship
+or another that is configured to be retried), it will be re-queued again, up to the number of
+times specified by the user. If the Processor routes the FlowFile to a retriable Relationship after the specified number of retries, the FlowFile will be transferred to
+the Connection(s) that include that Relationship - or auto-terminated, as configured.
+If the Processor routes the FlowFile to any Relationship that is not configured to be retried, it will be routed to that Relationship immediately.
+
+For example, consider a Processor with two relationships: `success` and `failure`.
+A user configures the `failure` Relationship to retry 10 times and also be configured to auto-terminate. In this
+case, if an incoming FlowFile is routed to the `failure` Relationship,
+it will be retried up to 10 times. After 10 attempts, if it is routed to `failure` again, it will be auto-terminated. However, if at any point it is
+routed to `success`, it will immediatley be transferred to the Connection(s) that include the `success` Relationship and not retried any further.
 
 ====== Number of Retry Attempts
 For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere.
@@ -724,8 +740,11 @@ For relationships set to retry, this number indicates how many times a FlowFile 
 ====== Retry Back Off Policy
 When a FlowFile is to be retried, the user can configure the backoff policy with two options:
 
-* Penalize - Retry attempts will occur in time, but the processor will continue to process other FlowFiles.
-* Yield - No other FlowFile processing will occur until all retry attempts have been made.
+* Penalize - Retry attempts will occur in time, but the processor will continue to process other FlowFiles in the meantime. The Processor will continue to run,
+	processing the FlowFiles are available to it.
+* Yield - The Processor will not be scheduled to run again for some amount of time (determined by the "Yield Duration" configured in the Settings tab). This should be used when
+	either it is desirable to maintain the order of data in the queue and not process subsequent FlowFiles until the first has been processed, or when routing data to the configured
+	Relationship indicates that further processing of other data will not be successful.
 
 ====== Retry Maximum Back Off Period
 Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs.
@@ -758,7 +777,10 @@ This tab contains several different configuration items. First is the Process Gr
 
 The next configuration element is the Process Group Parameter Context, which is used to provide parameters to components of the flow. From this drop-down, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally create a new one to bind to the Process Group. For more information refer to <<Parameters>> and <<parameter-contexts,Parameter Contexts>>.
 
-The third element in the configuration dialog is the Process Group Comments. This provides a mechanism to add any useful information about the Process Group.
+The next section provides configuration elements for determining how the Process Group should be scheduled to run. NiFi
+supports two different Execution Engines: The Traditional Execution Engine, and the Stateless Execution Engine.
+Additionally, the Execution Engine can be inherited from the parent Process Group, which is the default behavior.
+See <<Execution_Engines, Execution Engines>> for more information.
 
 The next two elements, Process Group FlowFile Concurrency and Process Group Outbound Policy, are covered in the following sections.
 
@@ -861,6 +883,9 @@ configured Process Group will inherit the default settings. Again, existing Proc
 root Process Group obtains its default back pressure settings from `nifi.properties`, and has a default FlowFile expiration of "0 sec" (i.e., do not expire).
 
 NOTE: Setting the Default FlowFile Expiration to a non-zero value may lead to data loss due to a FlowFile expiring as its time limit is reached.
+
+The last element in the configuration dialog is the Process Group Comments. This provides a mechanism to add any useful information about the Process Group.
+
 
 ==== Controller Services
 The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
@@ -1257,6 +1282,7 @@ NOTE: NiFi must be restarted for these updates to be picked up.
 
 For more information, see the <<administration-guide.adoc#custom_properties,Custom Properties>> section in the System Administrator's Guide.
 
+
 [[Controller_Services]]
 === Controller Services
 
@@ -1581,7 +1607,7 @@ Using Site-to-Site provides the following benefits:
 ** Site-to-Site optionally makes use of Certificates in order to encrypt data and provide authentication and authorization. Each port can be configured
    to allow only specific users, and only those users will be able to see that the port even exists. For information on configuring the Certificates,
    see the
-link:administration-guide.html#security-configuration[Security Configuration] section of the
+link:administration-guide.html#security_configuration[Security Configuration] section of the
 link:administration-guide.html[System Administrator’s Guide].
 
 * Scalable
@@ -1637,7 +1663,7 @@ link:administration-guide.html[System Administrator’s Guide].
 [[Site-to-Site_Transport_Protocol]]
 *Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
 
-image:configure-remote-process-group.png["Configure Remote Process Group"]
+image::configure-remote-process-group.png["Configure Remote Process Group"]
 
 By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote
 NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server.
@@ -1699,6 +1725,269 @@ image::simple-flow.png["Simple Flow"]
 
 
 Now see the following section on how to start and stop the dataflow. When the dataflow is running, be sure to note the statistical information that is displayed on the face of each processor (see <<processor_anatomy>>).
+
+
+[[Execution_Engines]]
+== Execution Engines
+
+NiFi supports two different Execution Engines: Traditional and Stateless.
+
+The Execution Engine dictates how the components within a given Process Group are executed. The two Execution Engines differ in many ways.
+Each has its own pros and cons, and as such NiFi allows the flow developer to configure which Execution Engine to use for individual Process Groups.
+This section will highlight the differences between the two models.
+
+
+=== Traditional Execution Engine
+
+The Traditional Execution Engine is the default.
+With the Traditional Engine, each component within the Process Group is scheduled independently. Queues are used to buffer data between Processors, and each Processor
+operates on the data within its queue independently of other Processors.
+The data that resides within a given queue is persisted to NiFi's repositories such that if NiFi is restarted, data will be restored to the
+queue in which it resided before the restart.
+
+=== Stateless Execution Engine
+
+When a Process Group is configured to use the Stateless Execution Engine, the entire Process Group functions much more similarly to a Processor.
+The Process Group is given a specified number of Concurrent Tasks. Each Concurrent Task is responsible for executing the entirety of the flow.
+The source Processors (i.e., the Processors within the Process Group that have no incoming Connections) will be triggered to run once. If there are any Input
+Ports for the Process Group, they will also have the opportunity to run and bring in a single FlowFile. At that point, the flow will run all the way to its
+completion, if possible*, before any additional data is brought into the flow.
+
+_*_ In some scenarios, the dataflow cannot complete without bringing in additional data. For example, a MergeContent Processor may require additional input
+before it is able to proceed. In this case, the source components will be allowed to trigger again, until the component is capable of proceeding.
+
+Data that resides in a queue within a Stateless group is not persisted. As a result, if NiFi is restarted, data will not be restored to the queue that it resided
+in before the restart. Instead, the data that is being processed by the Stateless group is lost. This provides some interesting opportunities, which will be discussed below, in the
+<<when_to_use_stateless_standard, When to Use Stateless vs Standard Execution Engine>>.
+
+=== Comparing and Contrasting
+
+Now that we have an overall understanding of the roles of the different Execution Engines, we will compare and contrast how each of the Execution Engines differ
+in each of several important capabilities.
+
+==== Scheduling
+
+The Traditional Engine schedules each Processor individually. One Processor may be configured to run once every five minutes, while another Processor is scheduled to run
+as fast as possible, using eight concurrent tasks. The primary job of the queue between Processors is to allow for the Processors to operate at different rates. If the source
+runs faster than the destination, it will queue up data until the configured backpressure threshold is reached. Then, the source will stop producing data so that the destination
+has the opportunity to catch up. If too many FlowFiles are queued up, the FlowFiles (i.e., the attributes, etc.) are swapped to disk in order to avoid exhausting the Java heap.
+This approach gives the flow developer very fine grained control over how many resources to dedicate to each step of the processing throughout the pipeline.
+
+In contrast, the Stateless Engine uses a single thread to run the entire flow from start to finish. The source components are triggered first in order to bring data into the flow.
+If a FlowFile is brought into the flow, the destination of the queue where the data landed is triggered until it has worked off all of its data. Most of the time, this is a single
+invocation of the Processor. The next Processor in the flow is then triggered to run, and so forth. Any backpressure that is configured for the queues is ignored. FlowFiles are never
+swapped to disk. However, this is typically not a concern, as only a single FlowFile at a time is typically dealt with in a flow.
+
+When configuring the Execution Engine to use for a Process Group, though, the flow developer is able to specify the Max number of Concurrent Tasks to use for the Stateless Engine.
+If the value is set to N, greater than 1, there will be N copies of the Stateless flow run concurrently. For each copy of the flow, the source components will be triggered, and then
+the next Processor in line, and so forth. It is important to note that if N is greater than 1, there will then be N copies of each Processor in the flow used to process data. Therefore,
+if the Processor needs to store objects internally, such as MergeContent, each copy of the flow has a separate copy of that internal state. As a result, if MergeContent is configured to
+require a minimum of 1,000 FlowFiles in order to merge and the flow is run with 8 Concurrent Tasks, each of the 8 flows may have up to 999 FlowFiles for a total of 7,992 FlowFiles without
+merging any data. Therefore, flow designers should be cautious when using the Stateless Engine in conjunction with Processors that must wait on some condition before proceeding.
+
+Stateless Flows may also contain source Processors that are not to be run continually. For example, a GetFile Processor may be the first Processor in a flow. The desire may be to run the Processor
+only once every 5 minutes. This may complicate things, since Processors are not individually scheduled. To that end, all source Processors are checked in order to determine how often they should
+be scheduled. Whichever component has the smallest Run Schedule (i.e., is scheduled the fastest) will determine how frequently the Stateless flow should be scheduled. For example, if there is a
+ListFile Processor configured to run once every hour and a ListS3 Processor configured to run once every minute, both source Processors will be triggered to run once every minute.
+
+When using the Stateless Engine, the Timer-Driven Scheduler is always used. CRON scheduling is not supported for Stateless flows at this time. If CRON scheduling is desired, it is often sufficient
+to use the Traditional Engine for the CRON driven Processor and then connect it to a Stateless Process Group.
+
+The Traditional Engine allows configuring a Run Duration for each individual Processor. This often greatly improves performance. This is not available when using a Stateless flow. With a Stateless
+flow, this is instead managed for you automatically, depending on the Processors used in the flow. If any Processor in the flow requires being triggered serially, the Stateless Flow will not use
+a Run Duration greater than a single invocation. Otherwise, it will run for up to 100 milliseconds. If any invocation produces a failure, the Run Duration is cut short.
+
+
+==== Transactionality
+
+Transactionality is perhaps the most stark difference between the Traditional Engine and the Stateless Engine. With the Traditional Engine, the Processor is the transaction boundary.
+That is, a Processor performs some action on a FlowFile, and then the transaction is completed. The FlowFile is transferred to the next Processor in the flow, as the first Processor
+performs any sort of cleanup.
+
+For example, consider a processor consuming from a JMS Queue. With the Traditional Engine, the Processor would consume the message from JMS. Then, it would create a FlowFile based on the
+JMS message, and transfer the FlowFile to the `success` Relationship and commit the session. At this point, the framework would ensure that the data has been persisted to the underlying
+repositories and add the FlowFile to the outbound queue. Finally, the JMS consumer would be given the opportunity to acknowledge receipt of the message.
+
+At this point, any number of things may happen to the FlowFile. It may be dropped. It may be transformed. It may be pushed to two different destinations. Or it may stay in the flow because some
+downstream system, such as a database, is down. Regardless, though, the message has already been acknowledged and it will not be redelivered. Because of this, it is important that NiFi persist
+that data so that upon restart it can finish processing the data.
+
+One powerful advantage of this paradigm is that the source need not be persistent or transactional. For example, a client could make an HTTP POST request to NiFi to provide data. As long as
+NiFi responds with a "200 OK" or a "201 Created" or similar message, it is okay to assume that the message will be processed according to the flow.
+
+On the other hand, if the source of the data is, in fact, transactional, such as a JMS queue, this may be less desirable. If NiFi were to be shutdown, perhaps due to a hardware failure,
+that data that was already acknowledged will not be redelivered. The NiFi instance owns the data and must be brought back up in order to finish processing the data.
+
+However, the semantics change when the Stateless Engine is used instead. The transaction boundary is no longer the Processor but instead becomes the entire Process Group.
+When the same flow is run using the Stateless Engine, the JMS consumer still receives a JMS message and creates a FlowFile from it. It still transfers the FlowFile to the `success`
+Relationship and commits the session. With the Stateless Engine, though, instead of persisting data to the underlying repository and giving the JMS consumer the opportunity to acknowledge
+receipt of the message, it instead just passes the FlowFile along to the next Processor. That Processor then handles the FlowFile and passes it on. The JMS consumer is not given the
+opportunity to acknowledge the message until the FlowFile has run through the entire flow successfully.
+
+Now, this provides a very different way of thinking of thinking about how to build the flow. It also offers some important new capabilities. For example, we how have the ability to have
+a follow-on Processor indicate that there was a failure processing the data. In order to do this, an Output Port can be configured as a "Failure Port."
+
+image::failure-port-config.png["Failure Port"]
+
+Now, if any FlowFile is routed to this Port, the entire transaction is rolled back. Any FlowFiles in the flow will be dropped. The JMS consumer will not acknowledge the message but instead
+will send back a "negative acknowledgment," or NAK. As a result, the JMS Broker will redeliver the message later. The main benefit to this approach is that if the NiFi instance were shutdown
+(for example, due to a hardware failure or rescheduling the NiFi instance to run elsewhere in a cloud environment),
+another NiFi instance (or some other software entirely) could consume the JMS message and handle it. There is no need to ensure that the NiFi instance
+is able to restart.
+
+Additionally, and related to the notion of failures, is the notion of timeouts when using the Stateless Engine. One of the configuration options for a Process Group is the "Stateless Flow Timeout."
+This allows us to ensure that the data is processed within some expected amount of time and if not rollback the entire transaction. By default, the timeout is set to 1 minute. Any data that is
+brought into the Stateless flow must finish processing within 1 minute, or a timeout will occur, and the entire transaction will be rolled back. The Traditional Engine has no notion of timeouts
+for a dataflow.
+
+We must also consider the transactionality that is used whenever a Stateless flow starts with an Input Port. We might, for example, consume data from any number of sources with a Process Group
+that uses the Traditional Engine. Then, we might process the data using a Stateless flow. In this case, if any data is routed to a Failure Port, the entire transaction is rolled back, and the
+original input FlowFile is instead transferred to the Failure Port - NOT the FlowFile that triggered the failure. If a timeout occurs, the original FlowFile is penalized and transferred back
+to its original queue so that it can be processed again.
+
+
+==== Data Durability
+
+A key benefit of NiFi is its data durability. While many ETL products and data movement offerings provide in-memory processing, NiFi instead provides data durability. All data is persisted
+to its underlying repositories. Upon restart, NiFi continues processing data where it left off. This means that it is capable of handling virtually any protocol reliably, even protocols
+where the receiver does not send back application-level acknowledgments, such as direct TCP connections.
+
+However, while this is true of the Traditional Engine, it is not true of the Stateless Engine. In contrast, the Stateless Engine, by design, drops data upon restart. This means that the
+Stateless Engine is not a safe choice if data must be persisted by NiFi. However, for protocols that provide application-level acknowledgments such as JMS, Apache Kafka, Amazon Kinesis, etc.
+it can be a great choice. Additionally, for protocols such as HTTP, NiFi offers processors that are capable of receiving data, performing some processing, and then sending an acknowledgment.
+As such, it is safe even when NiFi is responsible for accepting incoming connections. The key here is the application-level acknowledgment message that is sent from NiFi.
+
+
+==== Data Ordering
+
+NiFi offers the ability to order data in each queue by use of FlowFile Prioritizers. This allows the dataflow developer to determine that specific data is the most important
+and ensure that it is processed and/or sent to its destination first. This has proven to be particularly powerful at locations that have less reliable communication mediums,
+in which communications channels may be down intermittently and when up need to be taken advantage of to send the most important data first.
+
+The Stateless Engine, however, is designed to process data with a higher degree of transactionality and does not generally buffer large amounts of data while the destination
+is unreachable. As such, it ignores the configured Prioritizers and always processes data using a First In First Out (FIFO) queue.
+
+
+==== Data Provenance
+
+Under normal circumstances, the Data Provenance that is produced by flows using the Stateless Engine are persisted to the same underlying Provenance Repository as the
+Traditional Engine and as such the Provenance data appears in the same way. However, because the Stateless Engine may roll back transactions on failure, we do to consider
+how this plays into the role of Data Provenance. Otherwise, we might show that the content was modified, then the attribute modified, and the data cloned - but upon restart
+the data is would still be queued up outside of the Stateless Engine, and this would lead us to believe that the FlowFile's content were different than they truly are.
+
+As such, the Provenance Events are not stored into the Provenance Repository until the transaction completes for a Stateless flow. If a FlowFile is routed to a Failure Port,
+or if the invocation times out, the Provenance Events are discard. There are, however, two exceptions to this rule: `SEND` and `REMOTE_INVOCATION` events. Even if the transaction is
+rolled back, the fact that data was sent, or that some remote invocation occurred cannot be rolled back. Therefore, the Provenance Repository is still updated to note the fact that
+these events occurred.
+
+
+==== Site-to-Site
+
+NiFi's site-to-site mechanism provides a way to send FlowFiles, including their attributes from one NiFi instance to another in an efficient, reliable, and secure manner.
+This requires that one NiFi instance use a Remote Process Group, which acts as a client and establishes the socket connection to the other NiFi instance. When using the
+Traditional Engine, either NiFi instance can act as the client or the server. That is, it can make use of both the Remote Process Group, as well as Input Ports that allow for
+remote connections. When using the Stateless Engine, the NiFi instance may make use of the Remote Process Group and act as a client to either push or pull data. However, it cannot
+make use of Input Ports that allow remote connections and therefore cannot act as the server.
+
+
+==== Processor Internal State
+
+When the Stateless Engine is used and the number of Concurrent Tasks is set to a value greater than one, each Concurrent Task is run with a different copy of each Processor.
+Because of this, Processors that require keeping internal state will not share that state between copies of the flow. For example, if a flow has a MergeContent processor
+that must accumulate 1,000 FlowFiles before merging the data, and the number of Concurrent Tasks is set to 3, each concurrent task may have up to 999 FlowFiles, for a total
+of 2,997 FlowFiles without the data being merged. This is important to keep in mind if designing flows where the Processor requires internal state.
+
+Additionally, because of this, any flow that consists of a Processor scheduled to run on the Primary Node Only is limited to use a single Concurrent Task. Setting the value
+higher than one will result in a warning being logged when started and a value of one will be used, regardless of the configured value.
+
+
+=== Stateless Flow Failure Handling
+
+Handling failures with the Traditional Engine is straight forward. Data is routed to a `failure` relationship, for example, and is dealt with accordingly.
+While this is straight forward, it is not always the desired outcome, however.
+The Stateless Engine approaches failure handling very differently.
+
+==== Failure Ports
+
+The Stateless Engine allows configuring an Output Port as a "Failure Port" meaning that if any FlowFile reaches the Output Port, the entire transaction is
+failed. This Output Port can live at any level within the Process Group hierarchy.
+If this occurs, the entire transaction is rolled back. That is, any FlowFiles that are currently processing within that transaction will be discarded.
+If the source of the transaction is an Input Port, the FlowFile that was brought in via that Input Port will be transferred to the given Failure Output Port.
+If the source of the transaction was a Processor, that Processor will be given the opportunity to send a negative acknowledgment ("NAK") or cleanup any resources,
+as necessary.
+
+
+==== Timeouts
+
+If a Stateless flow does not complete within the configured timeout period, the transaction is also rolled back, in much the same way as when a FlowFile is routed
+to a Failure Port. However, there is one very notable difference. Whereas a Failure Port indicates where to route the incoming FlowFile, a timeout has no such
+output denoted. Instead, the input FlowFile, if one exists, is penalized and added back to its input queue so that it can be tried again after some delay.
+
+
+=== Stateless Flow Design Considerations
+
+[[single_source_single_destination]]
+==== Single Source, Single Destination
+
+Because a Stateless transaction may be rolled back, it is generally a best practice to have a flow consist of a single source and a single destination.
+Consider the case when a FlowFile is received from a single source. It is then to be sent to three different destinations. After being successfully sent to two
+of the three destinations, it fails to be sent to third destination because the destination is down for periodic maintenance. As a result, the transaction is rolled back.
+The data is then pulled a second time. It is again sent to first two destinations successfully and again fails to be pushed to the third destination. It is again rolled back.
+This may happen many times, and each time the data is sent to the first two destinations. Or perhaps sometimes it is sent only to the first destination and the second fails.
+
+In such a situation, the flow is very inefficient at best, when the first two destinations are idempotent. At worst, the first and second destinations are not idempotent, and
+there is a very significant, uncontrolled amount of data duplication.
+
+This problem is further compounded if the flow is made up of multiple destinations. Consider a flow, for instance, that has two Processors, each responsible for consuming data from
+a different source. That data is then merged together into a single FlowFile, which is then pushed to the three destinations. Now, if data is rolled back the source Processors may pull
+different data from each of the sources. As a result, the data published cannot be idempotent, as it is made up of different data each time, and the pairing of data from each of those sources
+is different each time.
+
+As a result, it is recommended to keep Stateless flows to a single source and a single destination. At a minimum, the destinations other than the last should be idempotent.
+
+
+==== Use Caution When Merging
+
+Because each concurrent task runs a separate copy of the Stateless flow, it is important to keep in mind that the minimum number of incoming FlowFiles needed for a merge (via MergeContent
+or MergeRecord, for example) may increase by a multiple of the number of concurrent tasks. As such, it may take a significant amount of time for that that much data to queue up.
+Additionally, the Stateless flow has a timeout to limit how long it can run. Because of this, it is important to use caution when configuring limits for these types of Processors.
+
+It is always advisable to set a Max Bin Age less than the timeout of the Stateless flow in order to ensure that the dataflow doesn't continually timeout. While it is true that continually
+causing a timeout that rolls back the transaction should not prevent proper data delivery, it can cause unnecessary latency and use significant amounts of computing resources if transactions
+are continually rolled back.
+
+As a result, it is recommended that if using Processors that merge together multiple FlowFiles that the minimum limits are kept small enough that transactions will not continually timeout,
+or that a Max Bin Age, or something equivalent, is configured for such Processors so that they may successfully continue even when large amounts of data are not available. It is also worth
+noting that if larger output FlowFiles are desirable, using a lower number of Concurrent Tasks is more likely to produce the larger outputs, since the incoming data will be split across
+fewer copies of the flow.
+
+
+[[when_to_use_stateless_standard]]
+=== When to Use Stateless vs Standard Execution Engine
+
+We have, thus far, discussed the difference between the two Execution Engines. It is important to round out the conversation by highlighting when it will make sense to use one
+Execution Engine or the other.
+
+Typically, the Stateless Engine may be preferred when three conditions are met: the source is transactional, there is one destination, and
+there is a desire to treat the processing of a given FlowFile across multiple Processors as a single transaction.
+
+Firstly, the source should be transactional. This means that NiFi must have some mechanism for indicating that it has received the data, and the source of the data must have
+a mechanism for re-sending the data if it doesn't receive that acknowledgment. This is the case for most queuing protocols, such as JMS, Kafka, Amazon SQS, and Kinesis. It is also
+the case for HTTP requests or RPC types of requests. However, it is not the case for lower-level protocols such as direct TCP connections that have no higher-level protocol on top.
+
+Secondly, the should be one destination. As discussed in the <<single_source_single_destination>> section above, a Stateless Flow should generally have a single source and a single destination.
+
+And thirdly it should be desirable to treat the entire flow as a single transaction. If any part of an incoming FlowFile fails processing, the entire transaction fails. If this is not
+the desired behavior, the Traditional Engine should instead be used.
+
+Generally speaking, the Traditional Engine will provide somewhat better performance, simply because it allows for queuing larger numbers of FlowFiles between Processors and allocating more resources
+to individual Processors. Additionally, if a destination is down, the Traditional Engine allows the data to be queued up and periodically retried until the destination becomes available
+again. All of the transformation and processing needed to get the data into the state where it can be sent does not need to be performed more than once, because NiFi queues the data and restores
+it at the appropriate step in the flow. Additionally, if a single FlowFile must be delivered to multiple destinations, the Traditional Engine makes this trivial while the Stateless Engine
+complicates matters.
+
+While other considerations will likely need to be taken into account for each situation, these are often the most important concepts to consider.
+
 
 
 

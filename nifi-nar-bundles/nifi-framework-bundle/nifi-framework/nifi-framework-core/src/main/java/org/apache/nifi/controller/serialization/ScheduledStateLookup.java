@@ -20,12 +20,16 @@ package org.apache.nifi.controller.serialization;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 
 public interface ScheduledStateLookup {
 
     ScheduledState getScheduledState(ProcessorNode procNode);
 
     ScheduledState getScheduledState(Port port);
+
+    ScheduledState getScheduledState(ProcessGroup processGroup);
 
 
     ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
@@ -37,6 +41,11 @@ public interface ScheduledStateLookup {
         @Override
         public ScheduledState getScheduledState(final Port port) {
             return port.getScheduledState();
+        }
+
+        @Override
+        public ScheduledState getScheduledState(final ProcessGroup processGroup) {
+            return processGroup.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING ? ScheduledState.RUNNING : ScheduledState.STOPPED;
         }
     };
 }
