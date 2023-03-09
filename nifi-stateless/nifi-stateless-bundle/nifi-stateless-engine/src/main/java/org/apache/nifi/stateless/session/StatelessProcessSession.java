@@ -131,6 +131,8 @@ public class StatelessProcessSession extends StandardProcessSession {
 
         // Commit the session
         super.commit(checkpoint, asynchronous);
+        
+        getRepositoryContext().adjustCounter("Records Processed", 1);
 
         if (!requireSynchronousCommits) {
             queueFollowOnComponents();
