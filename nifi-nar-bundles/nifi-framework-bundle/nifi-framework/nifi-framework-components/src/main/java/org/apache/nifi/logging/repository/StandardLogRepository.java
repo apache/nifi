@@ -29,21 +29,20 @@ import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumMap;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class StandardLogRepository implements LogRepository {
 
-    private final Map<LogLevel, Collection<LogObserver>> observers = new EnumMap<>(LogLevel.class);
-    private final Map<String, LogObserver> observerLookup = new HashMap<>();
+    private final Map<LogLevel, Collection<LogObserver>> observersPerLogLevel = new ConcurrentHashMap<>();
+    private final Set<LogObserver> observers = new HashSet<>();
 
-    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-    private final Lock readLock = rwLock.readLock();
-    private final Lock writeLock = rwLock.writeLock();
+    private final Lock lock = new ReentrantLock();
 
     private final Logger logger = LoggerFactory.getLogger(StandardLogRepository.class);
 
@@ -53,7 +52,7 @@ public class StandardLogRepository implements LogRepository {
     public void addLogMessage(LogMessage logMessage) {
         LogLevel logLevel = logMessage.getLogLevel();
 
-        final Collection<LogObserver> logObservers = observers.get(logLevel);
+        final Collection<LogObserver> logObservers = observersPerLogLevel.get(logLevel);
         if (logObservers != null) {
             for (LogObserver observer : logObservers) {
                 try {
@@ -123,89 +122,48 @@ public class StandardLogRepository implements LogRepository {
     }
 
     @Override
-    public void setObservationLevel(String observerIdentifier, LogLevel level) {
-        writeLock.lock();
+    public void setObservationLevel(LogLevel level) {
+        lock.lock();
         try {
-            final LogObserver observer = removeObserver(observerIdentifier);
+            final Set<LogObserver> observersCopy = new HashSet<>(observers);
+            observers.clear();
 
-            if (observer != null) {
-                addObserver(observerIdentifier, level, observer);
+            for (final LogObserver observer : observersCopy) {
+                addObserver(level, observer);
             }
         } finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
-    @Override
-    public LogLevel getObservationLevel(String observerIdentifier) {
-        readLock.lock();
-        try {
-            // ensure observer exists
-            if (!observerLookup.containsKey(observerIdentifier)) {
-                throw new IllegalStateException("The specified observer identifier does not exist.");
-            }
-
-            final LogObserver observer = observerLookup.get(observerIdentifier);
-            for (final LogLevel logLevel : LogLevel.values()) {
-                final Collection<LogObserver> levelObservers = observers.get(logLevel);
-                if (levelObservers != null && levelObservers.contains(observer)) {
-                    return logLevel;
-                }
-            }
-
-            // at this point, the LogLevel must be NONE since we don't register observers for NONE
-            return LogLevel.NONE;
-        } finally {
-            readLock.unlock();
-        }
-    }
 
     @Override
-    public void addObserver(final String observerIdentifier, final LogLevel minimumLevel, final LogObserver observer) {
-        writeLock.lock();
+    public void addObserver(final LogLevel minimumLevel, final LogObserver observer) {
+        lock.lock();
         try {
-            // ensure observer does not exists
-            if (observerLookup.containsKey(observerIdentifier)) {
-                throw new IllegalStateException("Cannot add Log Observer for " + observer.getComponentDescription() +
-                    " because the specified observer identifier (" + observerIdentifier + ") already exists.");
-            }
-
             final LogLevel[] allLevels = LogLevel.values();
             for (int i = minimumLevel.ordinal(); i < allLevels.length; i++) {
                 // no need to register an observer for NONE since that level will never be logged to by a component
                 if (i != LogLevel.NONE.ordinal()) {
-                    Collection<LogObserver> collection = observers.computeIfAbsent(allLevels[i], k -> new ArrayList<>());
+                    Collection<LogObserver> collection = observersPerLogLevel.computeIfAbsent(allLevels[i], k -> new ArrayList<>());
                     collection.add(observer);
                 }
             }
-            observerLookup.put(observerIdentifier, observer);
+            observers.add(observer);
         } finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
-    @Override
-    public LogObserver removeObserver(final String observerIdentifier) {
-        writeLock.lock();
-        try {
-            final LogObserver observer = observerLookup.get(observerIdentifier);
-            for (final Collection<LogObserver> collection : observers.values()) {
-                collection.remove(observer);
-            }
-            return observerLookup.remove(observerIdentifier);
-        } finally {
-            writeLock.unlock();
-        }
-    }
 
     @Override
     public void removeAllObservers() {
-        writeLock.lock();
+        lock.lock();
         try {
+            observersPerLogLevel.clear();
             observers.clear();
-            observerLookup.clear();
         } finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -220,7 +178,7 @@ public class StandardLogRepository implements LogRepository {
     }
 
     private boolean hasObserver(final LogLevel logLevel) {
-        final Collection<LogObserver> logLevelObservers = observers.get(logLevel);
+        final Collection<LogObserver> logLevelObservers = observersPerLogLevel.get(logLevel);
         return (logLevelObservers != null && !logLevelObservers.isEmpty());
     }
 

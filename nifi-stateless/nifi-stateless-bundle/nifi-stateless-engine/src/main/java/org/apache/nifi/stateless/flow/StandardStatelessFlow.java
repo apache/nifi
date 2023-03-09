@@ -41,8 +41,11 @@ import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
+import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
+import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -56,11 +59,11 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
-import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
@@ -86,6 +89,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -93,7 +97,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class StandardStatelessFlow implements StatelessDataflow {
@@ -105,6 +108,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final List<Connection> allConnections;
     private final List<ReportingTaskNode> reportingTasks;
     private final Set<Connectable> rootConnectables;
+    private final Map<String, Port> inputPortsByName;
     private final ControllerServiceProvider controllerServiceProvider;
     private final ProcessContextFactory processContextFactory;
     private final RepositoryContextFactory repositoryContextFactory;
@@ -113,26 +117,29 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessScheduler processScheduler;
-    private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+    private final AsynchronousCommitTracker tracker;
     private final TransactionThresholdMeter transactionThresholdMeter;
     private final List<BackgroundTask> backgroundTasks = new ArrayList<>();
     private final BulletinRepository bulletinRepository;
+    private final LifecycleStateManager lifecycleStateManager;
     private final long componentEnableTimeoutMillis;
+    private final List<Port> inputPorts;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
     private volatile boolean initialized = false;
     private volatile Boolean stateful = null;
+    private volatile boolean shutdown = false;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
                                  final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository,
-                                 final Duration componentEnableTimeout) {
+                                 final LifecycleStateManager lifecycleStateManager, final Duration componentEnableTimeout) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
         this.controllerServiceProvider = controllerServiceProvider;
-        this.processContextFactory = processContextFactory;
+        this.processContextFactory = new CachingProcessContextFactory(processContextFactory);
         this.repositoryContextFactory = repositoryContextFactory;
         this.dataflowDefinition = dataflowDefinition;
         this.stateManagerProvider = stateManagerProvider;
@@ -140,8 +147,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
         this.bulletinRepository = bulletinRepository;
         this.componentEnableTimeoutMillis = componentEnableTimeout.toMillis();
+        this.tracker = new AsynchronousCommitTracker(rootGroup);
+        this.lifecycleStateManager = lifecycleStateManager;
+        this.inputPorts = new ArrayList<>(rootGroup.getInputPorts());
 
         rootConnectables = new HashSet<>();
+        inputPortsByName = mapInputPortsToName(rootGroup);
 
         discoverRootProcessors(rootGroup, rootConnectables);
         discoverRootRemoteGroupPorts(rootGroup, rootConnectables);
@@ -161,6 +172,15 @@ public class StandardStatelessFlow implements StatelessDataflow {
             .map(Connection::getFlowFileQueue)
             .distinct()
             .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private Map<String, Port> mapInputPortsToName(final ProcessGroup group) {
+        final Map<String, Port> inputPortsByName = new HashMap<>();
+        for (final Port port : group.getInputPorts()) {
+            inputPortsByName.put(port.getName(), port);
+        }
+
+        return inputPortsByName;
     }
 
     private void discoverRootInputPorts(final ProcessGroup processGroup, final Set<Connectable> rootComponents) {
@@ -264,6 +284,15 @@ public class StandardStatelessFlow implements StatelessDataflow {
             backgroundTasks.forEach(task -> backgroundTaskExecutor.scheduleWithFixedDelay(task.getTask(), task.getSchedulingPeriod(), task.getSchedulingPeriod(), task.getSchedulingUnit()));
         } catch (final Throwable t) {
             processScheduler.shutdown();
+
+            if (runDataflowExecutor != null) {
+                runDataflowExecutor.shutdownNow();
+            }
+
+            if (backgroundTaskExecutor != null) {
+                backgroundTaskExecutor.shutdownNow();
+            }
+
             throw t;
         }
     }
@@ -322,32 +351,65 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     @Override
-    public void shutdown() {
+    public void shutdown(final boolean triggerComponentShutdown, final boolean interruptProcessors) {
+        if (shutdown) {
+            return;
+        }
+
+        shutdown = true;
+        logger.info("Shutting down dataflow {}", rootGroup.getName());
+
         if (runDataflowExecutor != null) {
-            runDataflowExecutor.shutdown();
+            if (interruptProcessors) {
+                runDataflowExecutor.shutdownNow();
+            } else {
+                runDataflowExecutor.shutdown();
+            }
         }
         if (backgroundTaskExecutor != null) {
             backgroundTaskExecutor.shutdown();
         }
 
-        rootGroup.stopProcessing();
+        logger.info("Stopping all components");
+        rootGroup.stopComponents().join();
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
-        rootGroup.shutdown();
 
-        final Set<ControllerServiceNode> allControllerServices = rootGroup.findAllControllerServices();
-        controllerServiceProvider.disableControllerServicesAsync(allControllerServices);
+        if (triggerComponentShutdown) {
+            rootGroup.shutdown();
+        }
+
         reportingTasks.forEach(processScheduler::unschedule);
 
+        final Set<ControllerServiceNode> allControllerServices = rootGroup.findAllControllerServices();
+        logger.info("Disabling {} Controller Services", allControllerServices.size());
+
+        try {
+            controllerServiceProvider.disableControllerServicesAsync(allControllerServices).get();
+        } catch (final InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(ie);
+        } catch (final ExecutionException ee) {
+            if (ee.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) ee.getCause();
+            }
+            throw new RuntimeException(ee.getCause());
+        }
+
+        logger.info("Finished disabling all Controller Services");
         stateManagerProvider.shutdown();
 
         // invoke any methods annotated with @OnShutdown on Controller Services
-        allControllerServices.forEach(cs -> processScheduler.shutdownControllerService(cs, controllerServiceProvider));
+        if (triggerComponentShutdown) {
+            allControllerServices.forEach(cs -> processScheduler.shutdownControllerService(cs, controllerServiceProvider));
 
-        // invoke any methods annotated with @OnShutdown on Reporting Tasks
-        reportingTasks.forEach(processScheduler::shutdownReportingTask);
+            // invoke any methods annotated with @OnShutdown on Reporting Tasks
+            reportingTasks.forEach(processScheduler::shutdownReportingTask);
+        }
 
         processScheduler.shutdown();
         repositoryContextFactory.shutdown();
+
+        logger.info("Finished shutting down dataflow");
     }
 
     @Override
@@ -445,16 +507,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
             repositoryContextFactory, dataflowDefinition.getFailurePortNames(), tracker, stateManagerProvider, triggerContext, this::purge);
 
-        final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
+        final Future<?> future = runDataflowExecutor.submit(
+            () -> executeDataflow(resultQueue, executionProgress, tracker, triggerContext.getFlowFileSupplier()));
+
         final DataflowTrigger trigger = new DataflowTrigger() {
             @Override
             public void cancel() {
                 executionProgress.notifyExecutionCanceled();
-
-                final Future<?> future = processFuture.get();
-                if (future != null) {
-                    future.cancel(true);
-                }
+                future.cancel(true);
             }
 
             @Override
@@ -476,14 +536,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
         };
 
-        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress, tracker));
-        processFuture.set(future);
-
         return trigger;
     }
 
 
-    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
+    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker,
+                                 final FlowFileSupplier flowFileSupplier) {
         final long startNanos = System.nanoTime();
         transactionThresholdMeter.reset();
 
@@ -493,41 +551,36 @@ public class StandardStatelessFlow implements StatelessDataflow {
             .processContextFactory(processContextFactory)
             .repositoryContextFactory(repositoryContextFactory)
             .rootConnectables(rootConnectables)
+            .flowFileSupplier(flowFileSupplier)
+            .inputPorts(inputPorts)
             .transactionThresholdMeter(transactionThresholdMeter)
+            .lifecycleStateManager(lifecycleStateManager)
             .build();
+
+        final Runnable logCompletion = () -> {
+            if (logger.isDebugEnabled()) {
+                final long nanos = System.nanoTime() - startNanos;
+                final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
+                logger.debug("Ran dataflow in {}", prettyPrinted);
+            }
+        };
 
         try {
             current.triggerFlow();
 
-            logger.debug("Completed triggering of components in dataflow. Will now wait for acknowledgment");
-            final CompletionAction completionAction = executionProgress.awaitCompletionAction();
+            executionProgress.enqueueTriggerResult(logCompletion, cause -> {
+                logger.error("Failed to execute dataflow", cause);
+            });
 
-            switch (completionAction) {
-                case CANCEL:
-                    logger.debug("Dataflow was canceled");
-                    purge();
-                    break;
-                case COMPLETE:
-                default:
-                    if (logger.isDebugEnabled()) {
-                        final long nanos = System.nanoTime() - startNanos;
-                        final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
-                        logger.debug("Ran dataflow in {}", prettyPrinted);
-                    }
-                    break;
-            }
+            logger.debug("Completed triggering of components in dataflow. Will not wait for acknowledgment as the invocation is asynchronous.");
         } catch (final TerminatedTaskException tte) {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
             logger.debug("Caught a TerminatedTaskException", tte);
-            purge();
-            tracker.triggerFailureCallbacks(tte);
-            stateManagerProvider.rollbackUpdates();
+            executionProgress.notifyExecutionFailed(tte);
             resultQueue.offer(new CanceledTriggerResult());
         } catch (final Throwable t) {
             logger.error("Failed to execute dataflow", t);
-            purge();
-            tracker.triggerFailureCallbacks(t);
-            stateManagerProvider.rollbackUpdates();
+            executionProgress.notifyExecutionFailed(t);
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
@@ -577,9 +630,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     @Override
     public Set<String> getInputPortNames() {
-        return rootGroup.getInputPorts().stream()
-            .map(Port::getName)
-            .collect(Collectors.toSet());
+        return inputPortsByName.keySet();
     }
 
     @Override
@@ -632,6 +683,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
+
     @Override
     public boolean isFlowFileQueued() {
         for (final Connection connection : allConnections) {
@@ -647,7 +699,22 @@ public class StandardStatelessFlow implements StatelessDataflow {
     public void purge() {
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (final Connection connection : allConnections) {
-            ((DrainableFlowFileQueue) connection.getFlowFileQueue()).drainTo(flowFiles);
+            try {
+                final FlowFileQueue queue = connection.getFlowFileQueue();
+                ((DrainableFlowFileQueue) queue).drainTo(flowFiles);
+
+                final List<RepositoryRecord> repositoryRecords = new ArrayList<>();
+                for (final FlowFileRecord flowFile : flowFiles) {
+                    final StandardRepositoryRecord record = new StandardRepositoryRecord(queue, flowFile);
+                    record.markForDelete();
+                    repositoryRecords.add(record);
+                }
+
+                repositoryContextFactory.getFlowFileRepository().updateRepository(repositoryRecords);
+            } catch (final Exception e) {
+                logger.warn("Failed to update FlowFile Repository in order to notify it of transient claims. Some content in the Content Repository may not be cleaned up until restart", e);
+            }
+
             flowFiles.clear();
         }
 
@@ -766,6 +833,11 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
 
         return counters;
+    }
+
+    @Override
+    public ProvenanceEventRepository getProvenanceRepository() {
+        return repositoryContextFactory.getProvenanceRepository();
     }
 
     @Override

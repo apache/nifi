@@ -26,6 +26,7 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
@@ -34,14 +35,17 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
-import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,12 +54,14 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -134,10 +140,18 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 throw new LifecycleManagementException("Failed to transition components to a state of " + desiredState + " due to " + explanation);
             }
 
-            final boolean processorsTransitioned = waitForProcessorStatus(user, exampleUri, groupId, componentMap, desiredState, pause, invalidComponentAction);
+            // If stopping, wait for the components to complete. If starting, there is no need to wait for them to complete. Some components may fail to start, but waiting will not help.
+            if (desiredState == ScheduledState.STOPPED) {
+                final boolean processorsTransitioned = waitForProcessorStatus(user, exampleUri, componentMap, desiredState, pause, invalidComponentAction);
 
-            if (!processorsTransitioned) {
-                throw new LifecycleManagementException("Failed while waiting for components to transition to state of " + desiredState);
+                if (!processorsTransitioned) {
+                    throw new LifecycleManagementException("Failed while waiting for components to transition to state of " + desiredState);
+                }
+
+                final boolean statelessGroupsTransitioned = waitForStatelessGroupStatus(user, exampleUri, componentMap, desiredState, pause);
+                if (!statelessGroupsTransitioned) {
+                    throw new LifecycleManagementException("Failed while waiting for Stateless Process Groups to transition to state of " + desiredState);
+                }
             }
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -244,19 +258,134 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return true;
     }
 
+    private boolean waitForStatelessGroupStatus(final NiFiUser user, final URI originalUri, final Map<String, AffectedComponentEntity> affectedComponents,
+                                                final ScheduledState desiredState, final Pause pause) throws InterruptedException {
+
+        final List<AffectedComponentEntity> affectedStatelessGroups = affectedComponents.values().stream()
+            .filter(component -> AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP.equals(component.getReferenceType()))
+            .collect(Collectors.toList());
+
+        if (affectedStatelessGroups.isEmpty()) {
+            logger.debug("There are no Stateless Group in the set of affected components so considering all groups to have reached state of {}", desiredState);
+            return true;
+        }
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+            boolean statesReached = true;
+            for (final AffectedComponentEntity affectedComponent : affectedStatelessGroups) {
+                final boolean stateReached = isStatelessGroupStateReached(originalUri, affectedComponent.getId(), user, desiredState);
+                if (stateReached) {
+                    logger.debug("Stateless Group with ID {} has reached desired state of {}", affectedComponent.getId(), desiredState);
+                } else {
+                    statesReached = false;
+                    break;
+                }
+            }
+
+            if (statesReached) {
+                logger.info("All {} Stateless Groups have reached the desired state of {}", affectedStatelessGroups.size(), desiredState);
+                return true;
+            }
+
+            logger.debug("Not all Stateless Groups have reached the desired state of {}", desiredState);
+            continuePolling = pause.pause();
+        }
+
+        logger.info("After waiting the maximum amount of time, not all Stateless Groups have reached the desired state of {}", desiredState);
+        return false;
+    }
+
+    private boolean isStatelessGroupStateReached(final URI originalUri, final String groupId, final NiFiUser user, final ScheduledState desiredState) throws InterruptedException {
+        final URI groupUri;
+        try {
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/process-groups/" + groupId, null, originalUri.getFragment());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        final Map<String, String> headers = new HashMap<>();
+        final NodeResponse clusterResponse;
+        if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+            clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, Collections.emptyMap(), headers).awaitMergedResponse();
+        } else {
+            clusterResponse = getRequestReplicator().forwardToCoordinator(
+                getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, Collections.emptyMap(), headers).awaitMergedResponse();
+        }
+
+        if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+            logger.warn("While waiting for Stateless Groups to transition to a state of {}, received unexpected HTTP status code {}", desiredState, clusterResponse.getStatus());
+            return false;
+        }
+
+        final ProcessGroupEntity groupEntity = getResponseEntity(clusterResponse, ProcessGroupEntity.class);
+
+        if (desiredState == ScheduledState.RUNNING) {
+            final Integer stoppedCount = groupEntity.getStoppedCount();
+            if (stoppedCount != null && stoppedCount > 0) {
+                return false;
+            }
+
+            return true;
+        } else {
+            // We want to be stopped so wait until we have no components running, a scheduled state of STOPPED, and no active threads.
+            final Integer runningCount = groupEntity.getRunningCount();
+            if (runningCount != null && runningCount > 0) {
+                return false;
+            }
+
+            final String statelessState = groupEntity.getComponent().getStatelessGroupScheduledState();
+            if (!StatelessGroupScheduledState.STOPPED.name().equals(statelessState)) {
+                return false;
+            }
+
+            final int activeThreadCount = getStatelessGroupActiveThreadCount(originalUri, groupId, user);
+            logger.debug("Stateless Group with ID {} currently has an active thread count of {}", groupId, activeThreadCount);
+            return activeThreadCount == 0;
+        }
+    }
+
+    private int getStatelessGroupActiveThreadCount(final URI originalUri, final String groupId, final NiFiUser user) throws InterruptedException {
+        final URI groupUri;
+        try {
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/flow/process-groups/" + groupId + "/status", null, originalUri.getFragment());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        final NodeResponse clusterResponse;
+        if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+            clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, Collections.emptyMap(), Collections.emptyMap()).awaitMergedResponse();
+        } else {
+            clusterResponse = getRequestReplicator().forwardToCoordinator(
+                getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, Collections.emptyMap(), Collections.emptyMap()).awaitMergedResponse();
+        }
+
+        if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+            logger.warn("While waiting for Stateless Groups to transition to a state of STOPPED, received unexpected HTTP status code {} when checking active thread count",
+                clusterResponse.getStatus());
+            return 1; // Return 1 to indicate that the group is still active
+        }
+
+        final ProcessGroupStatusEntity groupStatus = getResponseEntity(clusterResponse, ProcessGroupStatusEntity.class);
+        final ProcessGroupStatusSnapshotDTO statusSnapshot = groupStatus.getProcessGroupStatus().getAggregateSnapshot();
+        return statusSnapshot.getActiveThreadCount();
+    }
+
     /**
      * Periodically polls the process group with the given ID, waiting for all processors whose ID's are given to have the given Scheduled State.
      *
      * @param user the user making the request
      * @param originalUri the original uri
-     * @param groupId the ID of the Process Group to poll
      * @param processors the Processors whose state should be equal to the given desired state
      * @param desiredState the desired state for all processors with the ID's given
      * @param pause the Pause that can be used to wait between polling
      * @param invalidComponentAction indicates how to handle the condition of a Processor being invalid
      * @return <code>true</code> if successful, <code>false</code> if unable to wait for processors to reach the desired state
      */
-    private boolean waitForProcessorStatus(final NiFiUser user, final URI originalUri, final String groupId, final Map<String, AffectedComponentEntity> processors,
+    private boolean waitForProcessorStatus(final NiFiUser user, final URI originalUri, final Map<String, AffectedComponentEntity> processors,
                 final ScheduledState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws InterruptedException, LifecycleManagementException {
 
         if (processors.isEmpty()) {
@@ -264,7 +393,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             return true;
         }
 
-        URI groupUri;
+        final URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
                 "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
@@ -275,6 +404,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         final Map<String, String> headers = new HashMap<>();
 
         final Set<String> processorIds = processors.values().stream()
+            .filter(component -> AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR.equals(component.getReferenceType()))
             .map(AffectedComponentEntity::getId)
             .collect(Collectors.toSet());
 
@@ -294,6 +424,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             }
 
             if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+                logger.warn("While waiting for Processors to transition to a state of {}, received unexpected HTTP status code {}", desiredState, clusterResponse.getStatus());
                 return false;
             }
 
@@ -321,10 +452,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     @SuppressWarnings("unchecked")
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
-        if (entity == null) {
-            entity = nodeResponse.getClientResponse().readEntity(clazz);
+        if (entity != null) {
+            return entity;
         }
-        return entity;
+
+        final Response clientResponse = nodeResponse.getClientResponse();
+        if (clientResponse == null) {
+            return null;
+        }
+
+        return clientResponse.readEntity(clazz);
     }
 
 

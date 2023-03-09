@@ -57,8 +57,9 @@ Many of the concepts in Stateless NiFi differ from those in the typical Apache N
 
 Stateless provides a dataflow engine with a smaller footprint. It does not include a user interface for
 authoring or monitoring dataflows but instead runs dataflows that were authored using the NiFi application.
-While NiFi performs best when it has access to fast storage such as SSD and NVMe drives, Stateless stores
-all data in memory.
+While NiFi performs best when it has access to fast storage such as SSD and NVMe drives, Stateless has the ability to store
+all data in memory. Alternatively, it may use a disk-based repository for FlowFile content in order to avoid requiring very
+large Java heaps. However, data will not be recovered across restarts.
 
 This means that if Stateless NiFi is stopped, it will no longer have direct access to the data that was in-flight.
 As a result, Stateless should only be used for dataflows where the data source is both reliable and replayable, or
@@ -123,7 +124,7 @@ and MergeRecord.
 
 #### Failure Handling
 
-In traditional NiFi, it is common to loop a 'failure' connection from a given Processor back to the same Processor.
+In a standard NiFi deployment, it is common to loop a 'failure' connection from a given Processor back to the same Processor.
 This results in the Processor continually trying to process the FlowFile until it is successful. This can be extremely important,
 because typically one NiFi receives the data, it is responsible for taking ownership of that data and must be able to hold the data
 until the downstream services is able to receive it and then delivery that data.
@@ -136,9 +137,10 @@ mark that Output Port as a failure port (see [Failure Ports](#failure-ports) bel
 
 #### Flows Should Not Load Massive Files
 
-In traditional NiFi, FlowFile content is stored on disk, not in memmory. As a result, it is capable of handling any size
-data as long as it fits on the disk. However, in Stateless, FlowFile contents are stored in memory, in the JVM heap. As
-a result, it is generally not advisable to attempt to load massive files, such as a 100 GB dataset, into Stateless NiFi.
+In a standard NiFi deployment, FlowFile content is stored on disk, not in memory. As a result, it is capable of handling any size
+data as long as it fits on the disk. However, in Stateless, FlowFile contents may be stored in memory, in the JVM heap. As
+a result, it is generally not advisable to attempt to load massive files, such as a 100 GB dataset, into Stateless NiFi, unless
+Stateless is configured to use a disk-backed Content Repository.
 Doing so will often result in an OutOfMemoryError, or at a minimum cause significant garbage collection, which can degrade
 performance.
 
@@ -146,19 +148,19 @@ performance.
 
 ## Feature Comparisons
 
-As mentioned above, Stateless NiFi offers a different set of features and tradeoffs from traditional NiFi.
+As mentioned above, Stateless NiFi offers a different set of features and tradeoffs than the standard NiFi engine.
 Here, we summarize the key differences. This comparison is not exhaustive but provides a quick look at how
 the two runtimes operate.
 
-| Feature | Traditional NiFi | Stateless NiFi |
-|---------|------------------|----------------|
-| Data Durability | Data is reliably stored on disk in the FlowFile and Content Repositories | Data is stored in-memory and must be consumed from the source again upon restart |
-| Data Ordering | Data is ordered independently in each Connection based on the selected Prioritizers | Data flows through the system in the order it was received (First-In, First-Out / FIFO) |
-| Site-to-Site | Supports full Site-to-Site capabilities, including Server and Client roles | Can push to, or pull from, a NiFi instance but cannot receive incoming Site-to-Site connections. I.e., works as a client but not a server. |
-| Form Factor | Large form factor. Designed to take advantage of many cores and disks. | Light-weight form factor. Easily embedded into another application. Single-threaded processing. |
-| Heap Considerations | Typically, many processors in use by many users. FlowFile content should not be loaded into heap because it can easily cause heap exhaustion. | Smaller dataflows use less heap. Flow operates on only one or a few FlowFiles at a time and holds FlowFile contents in memory in the Java heap. |
-| Data Provenance | Fully stored, indexed data provenance that can be browsed through the UI and exported via Reporting Tasks | Limited Data Provenance capabilities, events being stored in memory. No ability to view but can be exported using Reporting Tasks. However, since they are in-memory, they will be lost upon restart and may roll off before they can be exported. |
-| Embeddability | While technically possible to embed traditional NiFi, it is not recommended, as it launches a heavy-weight User Interface, deals with complex authentication and authorization, and several file-based external dependencies, which can be difficult to manage. | Has minimal external dependencies (directory containing extensions and a working directory to use for temporary storage) and is much simpler to manage. Embeddability is an important feature of Stateless NiFi. |
+| Feature | Traditional NiFi                                                                                                                                                                                                                                                                  | Stateless NiFi |
+|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| Data Durability | Data is reliably stored on disk in the FlowFile and Content Repositories                                                                                                                                                                                                          | Data is stored in-memory and must be consumed from the source again upon restart |
+| Data Ordering | Data is ordered independently in each Connection based on the selected Prioritizers                                                                                                                                                                                               | Data flows through the system in the order it was received (First-In, First-Out / FIFO) |
+| Site-to-Site | Supports full Site-to-Site capabilities, including Server and Client roles                                                                                                                                                                                                        | Can push to, or pull from, a NiFi instance but cannot receive incoming Site-to-Site connections. I.e., works as a client but not a server. |
+| Form Factor | Large form factor. Designed to take advantage of many cores and disks.                                                                                                                                                                                                            | Light-weight form factor. Easily embedded into another application. Single-threaded processing. |
+| Heap Considerations | Typically, many processors in use by many users. FlowFile content should not be loaded into heap because it can easily cause heap exhaustion.                                                                                                                                     | Smaller dataflows use less heap. Flow operates on only one or a few FlowFiles at a time and holds FlowFile contents in memory in the Java heap. |
+| Data Provenance | Fully stored, indexed data provenance that can be browsed through the UI and exported via Reporting Tasks                                                                                                                                                                         | Limited Data Provenance capabilities, events being stored in memory. No ability to view but can be exported using Reporting Tasks. However, since they are in-memory, they will be lost upon restart and may roll off before they can be exported. |
+| Embeddability | While technically possible to embed the standard NiFi engine, it is not recommended, as it launches a heavy-weight User Interface, deals with complex authentication and <br/>authorization, <br/>and several file-based external dependencies, which can be difficult to manage. | Has minimal external dependencies (directory containing extensions and a working directory to use for temporary storage) and is much simpler to manage. Embeddability is an important feature of Stateless NiFi. |
  
 ## Running Stateless NiFi
 

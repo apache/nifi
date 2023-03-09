@@ -35,6 +35,7 @@ import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -216,6 +217,11 @@ public class VersionedDataflowMapper {
                     default:
                         return ScheduledState.DISABLED;
                 }
+            }
+
+            @Override
+            public ScheduledState getState(final ProcessGroup group) {
+                return group.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING ? ScheduledState.RUNNING : ScheduledState.ENABLED;
             }
         };
     }

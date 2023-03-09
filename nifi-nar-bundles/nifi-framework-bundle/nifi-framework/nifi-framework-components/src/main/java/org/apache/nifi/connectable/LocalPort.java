@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.connectable;
 
+import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.DataValve;
 import org.apache.nifi.groups.FlowFileConcurrency;
@@ -50,14 +52,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class LocalPort extends AbstractPort {
     private static final Logger logger = LoggerFactory.getLogger(LocalPort.class);
 
-    // "_nifi.funnel.max.concurrent.tasks" is an experimental NiFi property allowing users to configure
-    // the number of concurrent tasks to schedule for local ports and funnels.
-    static final String MAX_CONCURRENT_TASKS_PROP_NAME = "_nifi.funnel.max.concurrent.tasks";
-
-    // "_nifi.funnel.max.transferred.flowfiles" is an experimental NiFi property allowing users to configure
-    // the maximum number of FlowFiles transferred each time a funnel or local port runs (rounded up to the nearest 1000).
-    static final String MAX_TRANSFERRED_FLOWFILES_PROP_NAME = "_nifi.funnel.max.transferred.flowfiles";
-
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -73,17 +67,50 @@ public class LocalPort extends AbstractPort {
         setYieldPeriod(boredYieldDuration);
     }
 
-    protected int getMaxIterations() {
-        return maxIterations;
-    }
-
     @Override
     public boolean isValid() {
-        return hasIncomingConnection() && hasOutboundConnection();
+        return hasIncomingConnection() && (!isOutboundConnectionRequired() || hasOutboundConnection());
     }
 
     private boolean hasOutboundConnection() {
         return !getConnections(Relationship.ANONYMOUS).isEmpty();
+    }
+
+    /**
+     * <p>
+     * An Outbound Connection is required for a Local Port unless all of the following conditions are met:
+     * </p>
+     *
+     * <ul>
+     *    <li>Group is using the Stateless Execution Engine</li>
+     *    <li>There is no Input Port to the Group</li>
+     *    <li>The Port is a failure port</li>
+     * </ul>
+     *
+     * <p>
+     *     Under these conditions, it is not necessary to have an outbound connection because anything that gets routed to the
+     *     Port will end up being rolled back anyway, and since there is no Input Port, there is no input FlowFile to route to failure.
+     * </p>
+     *
+     * @return true if an Outbound Connection is required in order for the Port to be valid, <code>false</code> otherwise
+     */
+    private boolean isOutboundConnectionRequired() {
+        final ExecutionEngine engine = getProcessGroup().resolveExecutionEngine();
+        if (engine == ExecutionEngine.STANDARD) {
+            return true;
+        }
+
+        final PortFunction portFunction = getPortFunction();
+        if (portFunction != PortFunction.FAILURE) {
+            return true;
+        }
+
+        final boolean groupHasInputPort = !getProcessGroup().getInputPorts().isEmpty();
+        if (groupHasInputPort) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
@@ -99,7 +126,7 @@ public class LocalPort extends AbstractPort {
         }
 
         // Outgoing connections are required but not set
-        if (!hasOutboundConnection()) {
+        if (!hasOutboundConnection() && isOutboundConnectionRequired()) {
             validationErrors.add(new ValidationResult.Builder()
                 .explanation("Port has no outgoing connections")
                 .subject(String.format("Port '%s'", getName()))

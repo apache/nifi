@@ -596,6 +596,7 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
         processGroupStatus.setId(groupId);
         processGroupStatus.setName(GROUP_NAME_1);
+        processGroupStatus.setStatelessActiveThreadCount(1);
 
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         when(controllerFacade.getProcessGroupStatus(any())).thenReturn(processGroupStatus);
@@ -648,6 +649,7 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
         processGroupStatus.setId(groupId);
         processGroupStatus.setName(GROUP_NAME_1);
+        processGroupStatus.setStatelessActiveThreadCount(1);
 
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         when(controllerFacade.getProcessGroupStatus(any())).thenReturn(processGroupStatus);
@@ -695,6 +697,7 @@ public class StandardNiFiServiceFacadeTest {
         ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
         processGroupStatus.setId(groupId);
         processGroupStatus.setName(GROUP_NAME_1);
+        processGroupStatus.setStatelessActiveThreadCount(0);
 
         final ControllerFacade controllerFacade = mock(ControllerFacade.class);
         when(controllerFacade.getProcessGroupStatus(any())).thenReturn(processGroupStatus);

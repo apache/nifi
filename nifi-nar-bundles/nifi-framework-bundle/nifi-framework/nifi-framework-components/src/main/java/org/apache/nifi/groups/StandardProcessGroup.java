@@ -64,6 +64,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -197,6 +198,10 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
     private final NodeTypeProvider nodeTypeProvider;
+    private final StatelessGroupNode statelessGroupNode;
+    private volatile ExecutionEngine executionEngine = ExecutionEngine.INHERITED;
+    private volatile int maxConcurrentTasks = 1;
+    private volatile String statelessFlowTimeout = "1 min";
 
     private FlowFileConcurrency flowFileConcurrency = FlowFileConcurrency.UNBOUNDED;
     private volatile FlowFileGate flowFileGate = new UnboundedFlowFileGate();
@@ -222,7 +227,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider,
-                                final NiFiProperties nifiProperties) {
+                                final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory) {
 
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
@@ -274,8 +279,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
             nifiPropertiesBackpressureSize = size;
         }
-    }
 
+        statelessGroupNode = statelessGroupNodeFactory.createStatelessGroupNode(this);
+    }
 
     @Override
     public ProcessGroup getParent() {
@@ -510,12 +516,47 @@ public final class StandardProcessGroup implements ProcessGroup {
         return parent.get() == null;
     }
 
+
     @Override
     public void startProcessing() {
+        final ExecutionEngine resolvedExecutionEngine = resolveExecutionEngine();
+        if (resolvedExecutionEngine == ExecutionEngine.STATELESS) {
+            writeLock.lock();
+            try {
+                final ProcessGroup parent = getParent();
+                if (parent != null) {
+                    final ExecutionEngine parentExecutionEngine = parent.resolveExecutionEngine();
+                    if (parentExecutionEngine == ExecutionEngine.STATELESS) {
+                        LOG.warn("Cannot start Process Group {} because its parent is configured to run using the Stateless Engine. Only the top-most Process Group that is " +
+                            "configured to use the Stateless Engine may be directly started", this);
+                        return;
+                    }
+                }
+
+                if (getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
+                    LOG.info("Triggered to start {} but it is already running", this);
+                    return;
+                }
+
+                scheduler.startStatelessGroup(statelessGroupNode);
+                LOG.info("Started {} to run as a Stateless Process Group", this);
+
+                return;
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
+        startComponents();
+        onComponentModified();
+    }
+
+    @Override
+    public void startComponents() {
         readLock.lock();
         try {
-            enableAllControllerServices();
-            findAllProcessors().stream().filter(START_PROCESSORS_FILTER).forEach(node -> {
+            controllerServiceProvider.enableControllerServices(controllerServices.values());
+            getProcessors().stream().filter(START_PROCESSORS_FILTER).forEach(node -> {
                 try {
                     node.getProcessGroup().startProcessor(node, true);
                 } catch (final Throwable t) {
@@ -523,35 +564,114 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             });
 
-            findAllInputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> port.getProcessGroup().startInputPort(port));
+            getInputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> port.getProcessGroup().startInputPort(port));
+            getOutputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> port.getProcessGroup().startOutputPort(port));
 
-            findAllOutputPorts().stream().filter(START_PORTS_FILTER).forEach(port -> port.getProcessGroup().startOutputPort(port));
+            getProcessGroups().forEach(ProcessGroup::startProcessing);
         } finally {
             readLock.unlock();
         }
-
-        onComponentModified();
     }
 
     @Override
-    public void stopProcessing() {
+    public CompletableFuture<Void> stopProcessing() {
+        if (resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            writeLock.lock();
+            try {
+                final ProcessGroup parentStatelessGroup = getStatelessGroup(getParent());
+                if (parentStatelessGroup != null) {
+                    // This is not the top-level stateless group. Nothing to do.
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                LOG.info("Stopping {} from running", this);
+
+                final CompletableFuture<Void> future = scheduler.stopStatelessGroup(statelessGroupNode);
+                return future;
+            } finally {
+                writeLock.unlock();
+            }
+        }
+
+        final CompletableFuture<Void> stopComponentsFuture = stopComponents();
+        onComponentModified();
+
+        return stopComponentsFuture;
+    }
+
+    @Override
+    public CompletableFuture<Void> stopComponents() {
         readLock.lock();
         try {
-            findAllProcessors().stream().filter(STOP_PROCESSORS_FILTER).forEach(node -> {
+            final List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+            getProcessors().stream().filter(STOP_PROCESSORS_FILTER).forEach(node -> {
                 try {
-                    node.getProcessGroup().stopProcessor(node);
+                    futures.add(node.getProcessGroup().stopProcessor(node));
                 } catch (final Throwable t) {
                     LOG.error("Unable to stop processor {}", node.getIdentifier(), t);
                 }
             });
 
-            findAllInputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopInputPort(port));
-            findAllOutputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopOutputPort(port));
+            getInputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopInputPort(port));
+            getOutputPorts().stream().filter(STOP_PORTS_FILTER).forEach(port -> port.getProcessGroup().stopOutputPort(port));
+
+            for (final ProcessGroup childGroup : getProcessGroups()) {
+                final CompletableFuture<Void> future = childGroup.stopProcessing();
+                futures.add(future);
+            }
+
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         } finally {
             readLock.unlock();
         }
+    }
 
-        onComponentModified();
+    @Override
+    public StatelessGroupScheduledState getStatelessScheduledState() {
+        if (statelessGroupNode == null) {
+            return StatelessGroupScheduledState.STOPPED;
+        }
+
+        final ScheduledState currentState = statelessGroupNode.getCurrentState();
+        switch (currentState) {
+            case RUNNING:
+            case RUN_ONCE:
+            case STARTING:
+            case STOPPING:
+                return StatelessGroupScheduledState.RUNNING;
+            default:
+                return StatelessGroupScheduledState.STOPPED;
+        }
+    }
+
+    @Override
+    public StatelessGroupScheduledState getDesiredStatelessScheduledState() {
+        if (statelessGroupNode == null) {
+            return StatelessGroupScheduledState.STOPPED;
+        }
+
+        final ScheduledState currentState = statelessGroupNode.getDesiredState();
+        switch (currentState) {
+            case RUNNING:
+            case STARTING:
+                return StatelessGroupScheduledState.RUNNING;
+            default:
+                return StatelessGroupScheduledState.STOPPED;
+        }
+    }
+
+    @Override
+    public boolean isStatelessActive() {
+        if (statelessGroupNode == null) {
+            return false;
+        }
+
+        if (getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
+            return true;
+        }
+
+        return this.scheduler.getActiveThreadCount(statelessGroupNode) > 0;
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -832,6 +952,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             onComponentModified();
 
             flowManager.onProcessGroupRemoved(group);
+            LogRepositoryFactory.removeRepository(group.getIdentifier());
             LOG.info("{} removed from flow", group);
         } finally {
             writeLock.unlock();
@@ -1614,6 +1735,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("Processor is not a member of this Process Group");
             }
 
+            verifyCanStart(processor);
+
             final ScheduledState state = processor.getScheduledState();
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("Processor is disabled");
@@ -1662,6 +1785,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("Port " + port.getIdentifier() + " is not a member of this Process Group");
             }
 
+            verifyCanStart(port);
+
             final ScheduledState state = port.getScheduledState();
             if (state == ScheduledState.DISABLED) {
                 throw new IllegalStateException("InputPort " + port.getIdentifier() + " is disabled");
@@ -1682,6 +1807,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (getOutputPort(port.getIdentifier()) == null) {
                 throw new IllegalStateException("Port is not a member of this Process Group");
             }
+
+            verifyCanStart(port);
 
             final ScheduledState state = port.getScheduledState();
             if (state == ScheduledState.DISABLED) {
@@ -1715,7 +1842,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Future<Void> stopProcessor(final ProcessorNode processor) {
+    public CompletableFuture<Void> stopProcessor(final ProcessorNode processor) {
         readLock.lock();
         try {
             if (!processors.containsKey(processor.getIdentifier())) {
@@ -1875,17 +2002,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             scheduler.enableProcessor(processor);
         } finally {
             readLock.unlock();
-        }
-    }
-
-    @Override
-    public void enableAllControllerServices() {
-        // Enable all valid controller services in this process group
-        controllerServiceProvider.enableControllerServices(controllerServices.values());
-
-        // Enable all controller services for child process groups
-        for (ProcessGroup pg : processGroups.values()) {
-            pg.enableAllControllerServices();
         }
     }
 
@@ -3027,18 +3143,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanStart(Connectable connectable) {
-        readLock.lock();
-        try {
-            if (connectable.getScheduledState() == ScheduledState.STOPPED) {
-                if (scheduler.getActiveThreadCount(connectable) > 0) {
-                    throw new IllegalStateException("Cannot start component with id" + connectable.getIdentifier() + " because it is currently stopping");
-                }
-
-                connectable.verifyCanStart();
-            }
-        } finally {
-            readLock.unlock();
+    public void verifyCanStart(final Connectable connectable) {
+        if (connectable.getScheduledState() == ScheduledState.STOPPED) {
+            connectable.verifyCanStart();
         }
     }
 
@@ -3049,8 +3156,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final Connectable connectable : findAllConnectables(this, false)) {
                 verifyCanStart(connectable);
             }
+
+            final Set<ControllerServiceNode> services = findAllControllerServices();
+            for (final ControllerServiceNode serviceNode : services) {
+                serviceNode.verifyCanEnable(services);
+            }
         } finally {
             readLock.unlock();
+        }
+    }
+
+
+    @Override
+    public void verifyCanScheduleComponentsIndividually() {
+        if (resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+            throw new IllegalStateException("Cannot schedule components individually because the Process Group is configured to run in Stateless mode.");
         }
     }
 
@@ -3151,12 +3271,20 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
             }
 
+            final ExecutionEngine newGroupExecutionEngine = newProcessGroup.resolveExecutionEngine();
+            final ExecutionEngine executionEngine = resolveExecutionEngine();
+
             for (final String id : snippet.getInputPorts().keySet()) {
                 final Port port = getInputPort(id);
                 final String portName = port.getName();
 
                 if (newProcessGroup.getInputPortByName(portName) != null) {
                     throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
+                }
+
+                if (newGroupExecutionEngine != executionEngine && port.isRunning()) {
+                    throw new IllegalStateException("Cannot perform Move Operation because Input Port with ID " + port.getIdentifier() + " is running, and the destination Process Group has a " +
+                        "different Execution Engine than the current Process Group. The Port must be stopped before it can be moved to a Process Group with a different Execution Engine.");
                 }
             }
 
@@ -3166,6 +3294,49 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 if (newProcessGroup.getOutputPortByName(portName) != null) {
                     throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
+                }
+
+                if (newGroupExecutionEngine != executionEngine && port.isRunning()) {
+                    throw new IllegalStateException("Cannot perform Move Operation because Output Port with ID " + port.getIdentifier() + " is running, and the destination Process Group has a " +
+                        "different Execution Engine than the current Process Group. The Port must be stopped before it can be moved to a Process Group with a different Execution Engine.");
+                }
+            }
+
+            // Check Execution Engine compatibility
+            for (final String id : snippet.getProcessGroups().keySet()) {
+                final ProcessGroup childGroup = getProcessGroup(id);
+                final ExecutionEngine childEngine = childGroup.resolveExecutionEngine();
+                if (childEngine == ExecutionEngine.STANDARD && newGroupExecutionEngine != ExecutionEngine.STANDARD) {
+                    throw new IllegalStateException("Cannot move a Process Group that is configured to run with the Traditional Execution Engine " +
+                        " to a Process Group that is configured to run with the Stateless Execution Engine.");
+                }
+
+                if (childEngine == ExecutionEngine.STATELESS && newGroupExecutionEngine == ExecutionEngine.STANDARD
+                            && childGroup.getStatelessScheduledState() != StatelessGroupScheduledState.STOPPED) {
+
+                    throw new IllegalStateException("Cannot move a Process Group that is configured to run with the " + childEngine +
+                        " Execution Engine to a Process Group that is configured to run with the " + newGroupExecutionEngine +
+                        " unless all components are stopped");
+                }
+            }
+
+            if (newGroupExecutionEngine != executionEngine) {
+                for (final String id : snippet.getProcessors().keySet()) {
+                    final ProcessorNode procNode = getProcessor(id);
+                    if (procNode.isRunning()) {
+                        throw new IllegalStateException("Cannot perform Move Operation because Processor with ID " + procNode.getIdentifier() +
+                            " is running, and the destination Process Group has a different Execution Engine than the current Process Group." +
+                            " The Processor must be stopped before it can be moved to a Process Group with a different Execution Engine.");
+                    }
+                }
+
+                for (final String id : snippet.getRemoteProcessGroups().keySet()) {
+                    final RemoteProcessGroup rpg = getRemoteProcessGroup(id);
+                    if (rpg.isTransmitting()) {
+                        throw new IllegalStateException("Cannot perform Move Operation because Remote Process Group with ID " + rpg.getIdentifier() +
+                            " is running, and the destination Process Group has a different Execution Engine than the current Process Group." +
+                            " The Remote Process Group must be stopped before it can be moved to a Process Group with a different Execution Engine.");
+                    }
                 }
             }
 
@@ -3738,6 +3909,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         copy.setVariables(processGroup.getVariables());
         copy.setLabels(processGroup.getLabels());
         copy.setParameterContextName(processGroup.getParameterContextName());
+        copy.setExecutionEngine(processGroup.getExecutionEngine());
+        copy.setMaxConcurrentTasks(processGroup.getMaxConcurrentTasks());
+        copy.setStatelessFlowTimeout(processGroup.getStatelessFlowTimeout());
 
         final Set<VersionedProcessGroup> copyChildren = new HashSet<>();
 
@@ -3759,6 +3933,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setDefaultBackPressureObjectThreshold(childGroup.getDefaultBackPressureObjectThreshold());
                 childCopy.setDefaultBackPressureDataSizeThreshold(childGroup.getDefaultBackPressureDataSizeThreshold());
                 childCopy.setParameterContextName(childGroup.getParameterContextName());
+                childCopy.setExecutionEngine(childGroup.getExecutionEngine());
+                childCopy.setMaxConcurrentTasks(childGroup.getMaxConcurrentTasks());
+                childCopy.setStatelessFlowTimeout(childGroup.getStatelessFlowTimeout());
 
                 copyChildren.add(childCopy);
             }
@@ -4439,6 +4616,128 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+    public ExecutionEngine getExecutionEngine() {
+        return executionEngine;
+    }
+
+    @Override
+    public void setExecutionEngine(final ExecutionEngine executionEngine) {
+        writeLock.lock();
+        try {
+            verifyCanSetExecutionEngine(executionEngine);
+            this.executionEngine = executionEngine;
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Optional<StatelessGroupNode> getStatelessGroupNode() {
+        return Optional.ofNullable(statelessGroupNode);
+    }
+
+    @Override
+    public ExecutionEngine resolveExecutionEngine() {
+        final ExecutionEngine engine = getExecutionEngine();
+        if (engine == ExecutionEngine.INHERITED) {
+            final ProcessGroup parent = getParent();
+            return parent == null ? ExecutionEngine.STANDARD : parent.resolveExecutionEngine();
+        }
+
+        return engine;
+    }
+
+    private ProcessGroup getStatelessGroup(final ProcessGroup start) {
+        if (start == null) {
+            return null;
+        }
+
+        final ExecutionEngine engine = start.getExecutionEngine();
+        if (engine == ExecutionEngine.STATELESS) {
+            return start;
+        }
+
+        return getStatelessGroup(start.getParent());
+    }
+
+    @Override
+    public void verifyCanSetExecutionEngine(final ExecutionEngine executionEngine) {
+        final ExecutionEngine resolvedProposedEngine;
+        if (Objects.requireNonNull(executionEngine) == ExecutionEngine.INHERITED) {
+            final ProcessGroup parent = getParent();
+            resolvedProposedEngine = (parent == null) ? ExecutionEngine.STANDARD : parent.resolveExecutionEngine();
+        } else {
+            resolvedProposedEngine = executionEngine;
+        }
+
+        // If unchanged, nothing more to check
+        if (resolvedProposedEngine == resolveExecutionEngine()) {
+            LOG.debug("Allowing the setting of Execution Engine to {} because it resolves to the same engine that is currently selected for {}", executionEngine, this);
+            return;
+        }
+
+        if (executionEngine == ExecutionEngine.STANDARD) {
+            final ProcessGroup statelessGroup = getStatelessGroup(getParent());
+            if (statelessGroup != null) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " to " + executionEngine + " because parent group " + statelessGroup + " is configured to use " +
+                    "the Stateless Engine. A Process Group using the Stateless Engine may be embedded within a Process Group using the Traditional Engine, but the reverse is not allowed.");
+            }
+        }
+
+        for (final ProcessorNode processor : getProcessors()) {
+            if (processor.isRunning()) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while components are running. " + processor + " is currently running.");
+            }
+        }
+        for (final Port port : getInputPorts()) {
+            if (port.isRunning()) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while components are running. Input Port " + port + " is currently running.");
+            }
+        }
+        for (final Port port : getOutputPorts()) {
+            if (port.isRunning()) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while components are running. Output Port " + port + " is currently running.");
+            }
+        }
+        for (final RemoteProcessGroup rpg : getRemoteProcessGroups()) {
+            if (rpg.isTransmitting()) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while components are running. " + rpg + " is currently running.");
+            }
+        }
+        for (final ControllerServiceNode service : getControllerServices(false)) {
+            if (service.isActive()) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while Controller Services are active. " + service + " is currently active.");
+            }
+        }
+
+        for (final Connection connection : getConnections()) {
+            final boolean queueEmpty = connection.getFlowFileQueue().isEmpty();
+            if (!queueEmpty) {
+                throw new IllegalStateException("Cannot change Execution Engine for " + this + " while data is queued. " + connection + " has data queued.");
+            }
+        }
+
+        for (final ProcessGroup child : getProcessGroups()) {
+            if (child.getExecutionEngine() == ExecutionEngine.INHERITED) {
+                child.verifyCanSetExecutionEngine(executionEngine);
+            }
+        }
+    }
+
+    @Override
+    public void setMaxConcurrentTasks(final int maxConcurrentTasks) {
+        this.maxConcurrentTasks = maxConcurrentTasks;
+
+        if (statelessGroupNode != null) {
+            statelessGroupNode.setMaxConcurrentTasks(maxConcurrentTasks);
+        }
+    }
+
+    @Override
+    public int getMaxConcurrentTasks() {
+        return maxConcurrentTasks;
+    }
+
     @Override
     public String getDefaultBackPressureDataSizeThreshold() {
         // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, obtain from nifi properties.
@@ -4451,5 +4750,24 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return defaultBackPressureDataSizeThreshold.get();
+    }
+
+    @Override
+    public String getStatelessFlowTimeout() {
+        return statelessFlowTimeout;
+    }
+
+    @Override
+    public void setStatelessFlowTimeout(final String statelessFlowTimeout) {
+        if (statelessFlowTimeout == null) {
+            return;
+        }
+
+        try {
+            FormatUtils.getPreciseTimeDuration(Objects.requireNonNull(statelessFlowTimeout), TimeUnit.MILLISECONDS);    // Verify that the value is valid
+            this.statelessFlowTimeout = statelessFlowTimeout;
+        } catch (final Exception e) {
+            LOG.warn("Attempted to set Stateless Flow Timeout for {} to invalid value: {}; ignoring this value", this, statelessFlowTimeout);
+        }
     }
 }

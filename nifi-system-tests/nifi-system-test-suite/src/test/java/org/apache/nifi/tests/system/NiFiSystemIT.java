@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.tests.system;
 
+import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -26,8 +28,11 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.junit.jupiter.api.AfterAll;
@@ -41,11 +46,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +64,12 @@ import java.util.regex.Pattern;
 @ExtendWith(TroubleshootingTestWatcher.class)
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
 public abstract class NiFiSystemIT implements NiFiInstanceProvider {
+    // Frequently used Processor class names / constants for convenience
+    public static final String GENERATE_FLOWFILE = "GenerateFlowFile";
+    public static final String TERMINATE_FLOWFILE = "TerminateFlowFile";
+    public static final String REVERSE_CONTENTS = "ReverseContents";
+    public static final String SUCCESS = "success";
+
     private static final Logger logger = LoggerFactory.getLogger(NiFiSystemIT.class);
     private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
 
@@ -395,6 +408,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
     }
 
+    protected void waitForQueueCount(final ConnectionEntity entity, final int queueSize) throws InterruptedException {
+        waitForQueueCount(entity.getId(), queueSize);
+    }
+
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
         logger.info("Waiting for Queue Count of {} on Connection {}", queueSize, connectionId);
 
@@ -531,4 +548,87 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     protected boolean isUnpackPythonExtensions() {
         return false;
     }
+
+    /**
+     * Disconnects a node from the cluster
+     * @param nodeIndex the 1-based index of the node
+     */
+    protected void disconnectNode(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {
+        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
+        nodeEntity.getNode().setStatus(NodeConnectionState.DISCONNECTING.name());
+        getNifiClient().getControllerClient().disconnectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
+
+        waitForNodeState(nodeIndex, NodeConnectionState.DISCONNECTED);
+        waitForCoordinatorElected();
+    }
+
+    protected void waitForCoordinatorElected() throws InterruptedException {
+        waitFor(() -> isCoordinatorElected());
+    }
+
+    protected boolean isCoordinatorElected() throws NiFiClientException, IOException {
+        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
+        for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
+            if (nodeDto.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR) && nodeDto.getStatus().equals("CONNECTED")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected void reconnectNode(final int nodeIndex) throws NiFiClientException, IOException {
+        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
+        nodeEntity.getNode().setStatus(NodeConnectionState.CONNECTING.name());
+        getNifiClient().getControllerClient().connectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
+    }
+
+    protected NodeEntity getNodeEntity(final int nodeIndex) throws NiFiClientException, IOException {
+        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
+        final int expectedPort = getClientApiPort() + nodeIndex - 1;
+
+        for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
+            if (nodeDto.getApiPort() == expectedPort) {
+                final NodeEntity nodeEntity = new NodeEntity();
+                nodeEntity.setNode(nodeDto);
+                return nodeEntity;
+            }
+        }
+
+        throw new IllegalStateException("Could not find node with API Port of " + expectedPort);
+    }
+
+    protected void waitForNodeState(final int nodeIndex, final NodeConnectionState... nodeStates) throws InterruptedException {
+        waitFor(() -> {
+            try {
+                final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
+                final String status = nodeEntity.getNode().getStatus();
+                for (final NodeConnectionState state : nodeStates) {
+                    if (state.name().equals(status)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            } catch (final Exception e) {
+                return false;
+            }
+        });
+    }
+
+    protected FlowRegistryClientEntity registerClient() throws NiFiClientException, IOException {
+        final File storageDir = new File("target/flowRegistryStorage/" + getTestName().replace("\\(.*?\\)", ""));
+        Files.createDirectories(storageDir.toPath());
+
+        return registerClient(storageDir);
+    }
+
+    protected FlowRegistryClientEntity registerClient(final File storageDir) throws NiFiClientException, IOException {
+        final String clientName = String.format("FileRegistry-%s", UUID.randomUUID());
+        final FlowRegistryClientEntity clientEntity = getClientUtil().createFlowRegistryClient(clientName);
+        getClientUtil().updateRegistryClientProperties(clientEntity, Collections.singletonMap("Directory", storageDir.getAbsolutePath()));
+
+        return clientEntity;
+    }
+
 }

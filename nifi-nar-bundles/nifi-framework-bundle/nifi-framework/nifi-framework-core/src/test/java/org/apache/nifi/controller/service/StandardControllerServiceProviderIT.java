@@ -17,15 +17,6 @@
 
 package org.apache.nifi.controller.service;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.beans.PropertyDescriptor;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
@@ -37,6 +28,7 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.controller.service.mock.ServiceA;
@@ -52,6 +44,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
+
+import java.beans.PropertyDescriptor;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardControllerServiceProviderIT {
     private static Bundle systemBundle;
@@ -103,7 +105,7 @@ public class StandardControllerServiceProviderIT {
     @Timeout(120)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException, ExecutionException {
         final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
-                stateManagerProvider, niFiProperties);
+                stateManagerProvider, niFiProperties, new StandardLifecycleStateManager());
 
         for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);

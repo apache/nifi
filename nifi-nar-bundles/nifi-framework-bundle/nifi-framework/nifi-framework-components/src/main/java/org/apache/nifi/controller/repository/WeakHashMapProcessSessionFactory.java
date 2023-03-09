@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.util.Map;
-import java.util.WeakHashMap;
-
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class WeakHashMapProcessSessionFactory implements ActiveProcessSessionFactory {
     private final ProcessSessionFactory delegate;

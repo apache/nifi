@@ -132,7 +132,7 @@ import static org.apache.nifi.processor.util.StandardValidators.createDirectoryE
     " be the name of the Parameter, and the value of the property will be the value of the Parameter. Because Parameter values may or may not be sensitive, all dynamic properties will be considered" +
     " sensitive in order to protect their integrity.")
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Runs the configured dataflow using the Stateless NiFi engine. Please see documentation in order to understand the differences between the traditional NiFi runtime engine and" +
+@CapabilityDescription("Runs the configured dataflow using the Stateless NiFi engine. Please see documentation in order to understand the differences between the standard NiFi runtime engine and" +
     " the Stateless NiFi engine. If the Processor is configured with an incoming connection, the incoming FlowFiles will be queued up into the specified Input Port in the dataflow. Data that is" +
     " transferred out of the flow via an Output Port will be sent to the 'output' relationship, and an attribute will be added to indicate which Port that FlowFile was transferred to. See" +
     " Additional Details for more information.")

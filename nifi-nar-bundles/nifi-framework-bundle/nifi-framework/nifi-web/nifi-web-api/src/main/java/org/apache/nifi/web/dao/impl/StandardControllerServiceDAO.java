@@ -284,6 +284,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     public void verifyUpdateReferencingComponents(final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
 
+        controllerService.getProcessGroup().verifyCanScheduleComponentsIndividually();
+
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
                 serviceProvider.verifyCanEnableReferencingServices(controllerService);
@@ -313,6 +315,11 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
                 // only attempt an action if it is changing
                 if (!purposedControllerServiceState.equals(controllerService.getState())) {
+                    final ProcessGroup serviceGroup = controllerService.getProcessGroup();
+                    if (serviceGroup != null) {
+                        serviceGroup.verifyCanScheduleComponentsIndividually();
+                    }
+
                     if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
                         controllerService.verifyCanEnable();
                     } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {

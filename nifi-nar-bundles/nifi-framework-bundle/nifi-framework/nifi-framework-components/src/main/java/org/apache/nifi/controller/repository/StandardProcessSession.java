@@ -514,11 +514,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         try {
             commit(true);
         } catch (final Throwable t) {
-            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
-
             try {
                 rollback();
             } catch (final Throwable t2) {
+                t.addSuppressed(t2);
                 LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
             }
 
@@ -1445,6 +1444,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
+
     @Override
     public void migrate(final ProcessSession newOwner) {
         final List<FlowFile> allFlowFiles = new ArrayList<>();
@@ -2021,7 +2021,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
             .addAttributes(attrs)
             .build();
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(fFile, attrs, false);
         records.put(fFile.getId(), record);
 
@@ -2063,7 +2063,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         fFileBuilder.addAttributes(newAttributes);
 
         final FlowFileRecord fFile = fFileBuilder.build();
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(fFile, newAttributes, false);
         records.put(fFile.getId(), record);
         createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
@@ -2113,7 +2113,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             .lineageStart(lineageStartDate, lineageStartIndex)
             .build();
 
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(fFile, newAttributes, false);
         records.put(fFile.getId(), record);
         createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
@@ -2145,7 +2145,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final FlowFileRecord currRec = exampleRepoRecord.getCurrent();
         final ContentClaim claim = exampleRepoRecord.getCurrentClaim();
         if (offset + size > example.getSize()) {
-            throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + example.toString());
+            throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + example);
         }
 
         final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
@@ -2160,7 +2160,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (claim != null) {
             context.getContentRepository().incrementClaimaintCount(claim);
         }
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
         record.setWorking(clone, clone.getAttributes(), false);
         records.put(clone.getId(), record);
 

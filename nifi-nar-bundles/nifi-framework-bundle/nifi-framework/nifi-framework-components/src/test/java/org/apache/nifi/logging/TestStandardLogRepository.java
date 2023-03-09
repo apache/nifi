@@ -35,7 +35,7 @@ public class TestStandardLogRepository {
     public void testLogRepository() {
         StandardLogRepository repo = new StandardLogRepository();
         MockLogObserver observer = new MockLogObserver();
-        repo.addObserver("mock", LogLevel.DEBUG, observer);
+        repo.addObserver(LogLevel.DEBUG, observer);
 
         IOException exception = new IOException("exception");
 
@@ -50,7 +50,7 @@ public class TestStandardLogRepository {
     public void testLogRepositoryLogsFirstFlowFileUuid() {
         StandardLogRepository repo = new StandardLogRepository();
         MockLogObserver observer = new MockLogObserver();
-        repo.addObserver("mock", LogLevel.DEBUG, observer);
+        repo.addObserver(LogLevel.DEBUG, observer);
         MockFlowFile mockFlowFile = new MockFlowFile(1L);
 
         repo.addLogMessage(LogLevel.INFO, "Testing {} being shown in exception message", new Object[]{mockFlowFile});
@@ -62,7 +62,7 @@ public class TestStandardLogRepository {
     public void testLogRepositoryDoesntLogMultipleFlowFileUuids() {
         StandardLogRepository repo = new StandardLogRepository();
         MockLogObserver observer = new MockLogObserver();
-        repo.addObserver("mock", LogLevel.DEBUG, observer);
+        repo.addObserver(LogLevel.DEBUG, observer);
         MockFlowFile mockFlowFile1 = new MockFlowFile(1L);
         MockFlowFile mockFlowFile2 = new MockFlowFile(2L);
 

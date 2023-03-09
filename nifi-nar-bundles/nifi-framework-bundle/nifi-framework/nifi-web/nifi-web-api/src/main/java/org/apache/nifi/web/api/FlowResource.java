@@ -42,6 +42,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -782,24 +783,39 @@ public class FlowResource extends ApplicationResource {
             // get the current revisions for the components being updated
             final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
                 final Set<String> componentIds = new HashSet<>();
+                final Set<String> statelessGroupIdsToSchedule = new HashSet<>();
+
+                // Any group that is configured to run as stateless whose parent is not stateless we will attempt to schedule
+                group.findAllProcessGroups().stream()
+                    .filter(child -> child.getExecutionEngine() == ExecutionEngine.STATELESS)
+                    .filter(child -> child.getParent() == null || child.getParent().resolveExecutionEngine() == ExecutionEngine.STANDARD)
+                    .filter(child -> OperationAuthorizable.isOperationAuthorized(child, authorizer, NiFiUserUtils.getNiFiUser()))
+                    .forEach(child -> {
+                        componentIds.add(child.getIdentifier());
+                        statelessGroupIdsToSchedule.add(child.getIdentifier());
+                        child.findAllProcessGroups().forEach(descendent -> statelessGroupIdsToSchedule.add(descendent.getIdentifier()));
+                    });
 
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
-                        .filter(getProcessorFilter.get())
-                        .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
-                        .forEach(processor -> componentIds.add(processor.getIdentifier()));
+                    .filter(getProcessorFilter.get())
+                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                    .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
+                    .forEach(processor -> componentIds.add(processor.getIdentifier()));
 
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
                     .filter(getPortFilter.get())
-                        .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
-                        .forEach(inputPort -> componentIds.add(inputPort.getIdentifier()));
+                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                    .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                    .forEach(inputPort -> componentIds.add(inputPort.getIdentifier()));
 
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
-                        .filter(getPortFilter.get())
-                        .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
-                        .forEach(outputPort -> componentIds.add(outputPort.getIdentifier()));
+                    .filter(getPortFilter.get())
+                    .filter(processor -> !statelessGroupIdsToSchedule.contains(processor.getProcessGroupIdentifier()))
+                    .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
+                    .forEach(outputPort -> componentIds.add(outputPort.getIdentifier()));
 
                 return componentIds;
             });
@@ -945,6 +961,7 @@ public class FlowResource extends ApplicationResource {
 
                 group.findAllControllerServices().stream()
                     .filter(filter)
+                    .filter(service -> service.getProcessGroup().resolveExecutionEngine() == ExecutionEngine.STANDARD)
                     .filter(service -> OperationAuthorizable.isOperationAuthorized(service, authorizer, NiFiUserUtils.getNiFiUser()))
                     .forEach(service -> componentIds.add(service.getIdentifier()));
                 return componentIds;

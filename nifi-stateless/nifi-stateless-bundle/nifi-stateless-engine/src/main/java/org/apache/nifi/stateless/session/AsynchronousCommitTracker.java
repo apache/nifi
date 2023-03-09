@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.processor.ProcessSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -38,11 +40,16 @@ import java.util.function.Consumer;
 public class AsynchronousCommitTracker {
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCommitTracker.class);
 
+    private final ProcessGroup rootGroup;
     private final Set<Connectable> ready = new LinkedHashSet<>();
     private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
     private int flowFilesProduced = 0;
     private long bytesProduced = 0L;
     private boolean progressMade = false;
+
+    public AsynchronousCommitTracker(final ProcessGroup rootGroup) {
+        this.rootGroup = rootGroup;
+    }
 
     public void addConnectable(final Connectable connectable) {
         // this.ready is a LinkedHashSet that is responsible for ensuring that when a Connectable is added,
@@ -129,11 +136,15 @@ public class AsynchronousCommitTracker {
         return false;
     }
 
+    ProcessGroup getRootGroup() {
+        return rootGroup;
+    }
+
     private boolean isRootGroupOutputPort(final Connectable connectable) {
         final ConnectableType connectableType = connectable.getConnectableType();
         if (connectableType == ConnectableType.OUTPUT_PORT) {
             final ProcessGroup outputPortGroup = connectable.getProcessGroup();
-            return outputPortGroup.getParent() == null;
+            return outputPortGroup.getParent() == null || Objects.equals(outputPortGroup, rootGroup);
         }
 
         return false;
@@ -164,12 +175,12 @@ public class AsynchronousCommitTracker {
         return false;
     }
 
-    public void addCallback(final Connectable connectable, final Runnable successCallback, final Consumer<Throwable> failureCallback) {
+    public void addCallback(final Connectable connectable, final Runnable successCallback, final Consumer<Throwable> failureCallback, final ProcessSession session) {
         if (successCallback == null && failureCallback == null) {
             return;
         }
 
-        commitCallbacks.add(new CommitCallbacks(connectable, successCallback, failureCallback));
+        commitCallbacks.add(new CommitCallbacks(connectable, successCallback, failureCallback, session));
     }
 
     public void triggerCallbacks() {
@@ -250,11 +261,13 @@ public class AsynchronousCommitTracker {
         private final Connectable connectable;
         private final Runnable successCallback;
         private final Consumer<Throwable> failureCallback;
+        private final ProcessSession session;
 
-        public CommitCallbacks(final Connectable connectable, final Runnable successCallback, final Consumer<Throwable> failureCallback) {
+        public CommitCallbacks(final Connectable connectable, final Runnable successCallback, final Consumer<Throwable> failureCallback, final ProcessSession session) {
             this.connectable = connectable;
             this.successCallback = successCallback;
             this.failureCallback = failureCallback;
+            this.session = session;
         }
 
         public Connectable getConnectable() {
@@ -267,6 +280,10 @@ public class AsynchronousCommitTracker {
 
         public Consumer<Throwable> getFailureCallback() {
             return failureCallback;
+        }
+
+        public ProcessSession getSession() {
+            return session;
         }
     }
 }

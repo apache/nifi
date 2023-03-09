@@ -195,7 +195,7 @@ public class StatelessNiFiSourceTaskIT {
         assertEquals(1, sourceOffset.size());
         final String generateProcessorId = sourceOffset.keySet().iterator().next();
 
-        final String serializedStateMap = "{\"version\":0,\"stateValues\":{\"count\":\"1\"}}";
+        final String serializedStateMap = "{\"version\":\"1\",\"stateValues\":{\"count\":\"1\"}}";
         final Map<String, ?> expectedSourceOffset = Collections.singletonMap(generateProcessorId, serializedStateMap);
         assertEquals(expectedSourceOffset, sourceOffset);
 

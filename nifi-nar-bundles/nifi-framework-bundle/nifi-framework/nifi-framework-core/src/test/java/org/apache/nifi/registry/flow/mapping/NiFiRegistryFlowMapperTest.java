@@ -44,6 +44,7 @@ import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
@@ -407,6 +408,7 @@ public class NiFiRegistryFlowMapperTest {
         when(parameterContext.getName()).thenReturn("context"+(counter++));
         when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
+        when(processGroup.getExecutionEngine()).thenReturn(ExecutionEngine.INHERITED);
 
         // prep funnels
         final Set<Funnel> funnels = new LinkedHashSet<>();

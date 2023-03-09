@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.components.PortFunction;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
@@ -26,12 +27,15 @@ import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractPortDAO.class);
 
     protected FlowController flowController;
 
@@ -53,11 +57,13 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
                 // perform the appropriate action
                 switch (purposedScheduledState) {
                     case RUNNING:
+                        port.getProcessGroup().verifyCanScheduleComponentsIndividually();
                         port.verifyCanStart();
                         break;
                     case STOPPED:
                         switch (port.getScheduledState()) {
                             case RUNNING:
+                                port.getProcessGroup().verifyCanScheduleComponentsIndividually();
                                 port.verifyCanStop();
                                 break;
                             case DISABLED:
@@ -169,6 +175,7 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         final String name = portDTO.getName();
         final String comments = portDTO.getComments();
         final Integer concurrentTasks = portDTO.getConcurrentlySchedulableTaskCount();
+        final String portFunction = portDTO.getPortFunction();
         if (isNotNull(portDTO.getPosition())) {
             port.setPosition(new Position(portDTO.getPosition().getX(), portDTO.getPosition().getY()));
         }
@@ -180,6 +187,14 @@ public abstract class AbstractPortDAO extends ComponentDAO implements PortDAO {
         }
         if (isNotNull(concurrentTasks)) {
             port.setMaxConcurrentTasks(concurrentTasks);
+        }
+        if (isNotNull(portFunction)) {
+            try {
+                final PortFunction function = PortFunction.valueOf(portFunction);
+                port.setPortFunction(function);
+            } catch (final IllegalArgumentException e) {
+                logger.warn("Cannot update Port Function for {} because provided value is invalid: {}", port, portFunction);
+            }
         }
 
         processGroup.onComponentModified();

@@ -36,6 +36,7 @@ public class ProcessGroupStatus implements Cloneable {
     private Integer outputCount;
     private Long outputContentSize;
     private Integer activeThreadCount;
+    private Integer statelessActiveThreadCount;
     private Integer terminatedThreadCount;
     private Integer queuedCount;
     private Long queuedContentSize;
@@ -150,6 +151,14 @@ public class ProcessGroupStatus implements Cloneable {
 
     public void setActiveThreadCount(final Integer activeThreadCount) {
         this.activeThreadCount = activeThreadCount;
+    }
+
+    public Integer getStatelessActiveThreadCount() {
+        return statelessActiveThreadCount;
+    }
+
+    public void setStatelessActiveThreadCount(final Integer statelessActiveThreadCount) {
+        this.statelessActiveThreadCount = statelessActiveThreadCount;
     }
 
     public Integer getTerminatedThreadCount() {
@@ -427,6 +436,7 @@ public class ProcessGroupStatus implements Cloneable {
         target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
         target.setBytesWritten(target.getBytesWritten() + toMerge.getBytesWritten());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setStatelessActiveThreadCount(target.getStatelessActiveThreadCount() + toMerge.getStatelessActiveThreadCount());
         target.setTerminatedThreadCount(target.getTerminatedThreadCount() + toMerge.getTerminatedThreadCount());
         target.setFlowFilesTransferred(target.getFlowFilesTransferred() + toMerge.getFlowFilesTransferred());
         target.setBytesTransferred(target.getBytesTransferred() + toMerge.getBytesTransferred());

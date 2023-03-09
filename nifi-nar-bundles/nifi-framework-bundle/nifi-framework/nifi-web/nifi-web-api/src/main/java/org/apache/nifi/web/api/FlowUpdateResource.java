@@ -335,6 +335,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_REMOTE_OUTPUT_PORT);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_INPUT_PORT);
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
+        stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
 
         final Set<AffectedComponentEntity> runningComponents = affectedComponents.stream()
                 .filter(entity -> stoppableReferenceTypes.contains(entity.getComponent().getReferenceType()))
@@ -419,10 +420,15 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 // Ensure that no Output Port was removed, unless it currently has no outgoing connections.
                 serviceFacade.verifyCanUpdate(groupId, flowSnapshot, true, !allowDirtyFlowUpdate);
 
+                // Get an updated Revision for the Process Group. If the group is stateless and was stopped for the update, its Revision may have changed.
+                // As a result, we need to ensure that we have the most up-to-date revision for the group.
+                final RevisionDTO currentGroupRevisionDto = serviceFacade.getProcessGroup(groupId).getRevision();
+                final Revision currentGroupRevision = new Revision(currentGroupRevisionDto.getVersion(), currentGroupRevisionDto.getClientId(), groupId);
+
                 // Step 10-11. Update Process Group to the new flow and update variable registry with any Variables that were added or removed.
                 // Each concrete class defines its own update flow functionality
                 try {
-                    performUpdateFlow(groupId, revision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);
+                    performUpdateFlow(groupId, currentGroupRevision, requestEntity, flowSnapshot, idGenerationSeed, !allowDirtyFlowUpdate, true);
                 } catch (final Exception e) {
                     // If clustered, just throw the original Exception.
                     // Otherwise, rollback the flow update. We do not perform the rollback if clustered because
@@ -434,8 +440,9 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
                     // Rollback the update to the original flow snapshot. If there's any Exception, add it as a Suppressed Exception to the original so
                     // that it can be logged but not overtake the original Exception as the cause.
+                    logger.error("Failed to update Process Group {}; will attempt to rollback any changes", groupId, e);
                     try {
-                        performUpdateFlow(groupId, revision, requestEntity, originalFlowSnapshot, idGenerationSeed, false, true);
+                        performUpdateFlow(groupId, currentGroupRevision, requestEntity, originalFlowSnapshot, idGenerationSeed, false, true);
                     } catch (final Exception inner) {
                         e.addSuppressed(inner);
                     }
@@ -469,7 +476,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
 
             if (!asyncRequest.isCancelled()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Restart {} Processors: {}", runningComponents.size(), runningComponents);
+                    logger.debug("Restarting {} Processors: {}", runningComponents.size(), runningComponents);
                 }
 
                 asyncRequest.markStepComplete();

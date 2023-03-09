@@ -40,5 +40,8 @@ public enum ConnectableType {
      * Root Group Output Ports and Local Output Ports
      */
     OUTPUT_PORT,
-    FUNNEL
+
+    FUNNEL,
+
+    STATELESS_GROUP;
 }

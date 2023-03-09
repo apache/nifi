@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class LifecycleState {
 
+    private final Object componentId;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
     private final Set<ScheduledFuture<?>> futures = new HashSet<>();
@@ -39,6 +40,10 @@ public class LifecycleState {
     private volatile long lastStopTime = -1;
     private volatile boolean terminated = false;
     private final Map<ActiveProcessSessionFactory, Object> activeProcessSessionFactories = new WeakHashMap<>();
+
+    public LifecycleState(final String componentId) {
+        this.componentId = componentId;
+    }
 
     public synchronized boolean tryIncrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
         if ((terminated) || (!scheduled.get())) {
@@ -103,7 +108,7 @@ public class LifecycleState {
 
     @Override
     public String toString() {
-        return "LifecycleState[activeThreads= " + activeThreadCount.get() + ", scheduled=" + scheduled.get() + "]";
+        return "LifecycleState[componentId=" + componentId + ", activeThreads= " + activeThreadCount.get() + ", scheduled=" + scheduled.get() + "]";
     }
 
     /**
@@ -153,4 +158,5 @@ public class LifecycleState {
     public boolean isTerminated() {
         return this.terminated;
     }
+
 }

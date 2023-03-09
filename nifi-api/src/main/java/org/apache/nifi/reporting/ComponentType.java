@@ -47,6 +47,11 @@ public enum ComponentType {
     REPORTING_TASK,
 
     /**
+     * Bulletin is associated with a Process Group
+     */
+    PROCESS_GROUP,
+
+    /**
      * Bulletin is associated with a Parameter Provider
      */
     PARAMETER_PROVIDER,

@@ -55,21 +55,21 @@ abstract class AbstractSchedulingAgent implements SchedulingAgent {
     }
 
     @Override
-    public void unschedule(Connectable connectable, LifecycleState scheduleState) {
-        scheduleState.setScheduled(false);
-        this.doUnschedule(connectable, scheduleState);
+    public void unschedule(Connectable connectable, LifecycleState lifeycleState) {
+        lifeycleState.setScheduled(false);
+        this.doUnschedule(connectable, lifeycleState);
     }
 
     @Override
-    public void schedule(ReportingTaskNode taskNode, LifecycleState scheduleState) {
-        scheduleState.setScheduled(true);
-        this.doSchedule(taskNode, scheduleState);
+    public void schedule(ReportingTaskNode taskNode, LifecycleState lifecycleState) {
+        lifecycleState.setScheduled(true);
+        this.doSchedule(taskNode, lifecycleState);
     }
 
     @Override
-    public void unschedule(ReportingTaskNode taskNode, LifecycleState scheduleState) {
-        scheduleState.setScheduled(false);
-        this.doUnschedule(taskNode, scheduleState);
+    public void unschedule(ReportingTaskNode taskNode, LifecycleState lifecycleState) {
+        lifecycleState.setScheduled(false);
+        this.doUnschedule(taskNode, lifecycleState);
     }
 
     /**

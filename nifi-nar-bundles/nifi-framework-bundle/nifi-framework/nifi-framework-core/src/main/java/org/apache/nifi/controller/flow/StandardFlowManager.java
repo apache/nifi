@@ -44,7 +44,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardFlowSnippet;
 import org.apache.nifi.controller.StandardFunnel;
-import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
@@ -60,6 +59,7 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
+import org.apache.nifi.groups.StatelessGroupNodeFactory;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
 import org.apache.nifi.logging.FlowRegistryClientLogObserver;
 import org.apache.nifi.logging.LogLevel;
@@ -96,6 +96,7 @@ import javax.net.ssl.SSLContext;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +125,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
 
     private final boolean isSiteToSiteSecure;
+
 
     public StandardFlowManager(final NiFiProperties nifiProperties, final SSLContext sslContext, final FlowController flowController,
                                final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager) {
@@ -271,14 +273,16 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     public ProcessGroup createProcessGroup(final String id) {
         final MutableVariableRegistry mutableVariableRegistry = new MutableVariableRegistry(flowController.getVariableRegistry());
+        final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
-                flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties);
+            flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties, statelessGroupNodeFactory);
         onProcessGroupAdded(group);
 
         return group;
     }
+
 
     public void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto) throws ProcessorInstantiationException {
         requireNonNull(group);
@@ -348,7 +352,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
         if (registerLogObserver) {
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
+            logRepository.addObserver(procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
         }
 
         if (firstTimeAdded) {
@@ -358,7 +362,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 logDeprecationNotice(processor);
             } catch (final Exception e) {
                 if (registerLogObserver) {
-                    logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                    logRepository.removeAllObservers();
                 }
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
@@ -433,8 +437,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             onFlowRegistryClientAdded(clientNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                    new FlowRegistryClientLogObserver(bulletinRepository, clientNode));
+            logRepository.addObserver(LogLevel.WARN, new FlowRegistryClientLogObserver(bulletinRepository, clientNode));
         }
 
         return clientNode;
@@ -512,8 +515,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             onReportingTaskAdded(taskNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                new ReportingTaskLogObserver(bulletinRepository, taskNode));
+            logRepository.addObserver(LogLevel.WARN, new ReportingTaskLogObserver(bulletinRepository, taskNode));
         }
 
         return taskNode;
@@ -569,8 +571,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             onParameterProviderAdded(parameterProviderNode);
 
             // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                    new ParameterProviderLogObserver(bulletinRepository, parameterProviderNode));
+            logRepository.addObserver(LogLevel.WARN, new ParameterProviderLogObserver(bulletinRepository, parameterProviderNode));
         }
 
         return parameterProviderNode;
@@ -655,7 +656,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
         if (registerLogObserver) {
-            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, serviceNode.getBulletinLevel(), new ControllerServiceLogObserver(bulletinRepository, serviceNode));
+            logRepository.addObserver(serviceNode.getBulletinLevel(), new ControllerServiceLogObserver(bulletinRepository, serviceNode));
         }
 
         if (firstTimeAdded) {
@@ -709,9 +710,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             for (final Class<? extends ConfigurableComponent> alternativeClass : deprecationNotice.alternatives()) {
                 alternatives.add(alternativeClass.getSimpleName());
             }
-            for (final String className : deprecationNotice.classNames()) {
-                alternatives.add(className);
-            }
+            Collections.addAll(alternatives, deprecationNotice.classNames());
 
             deprecationLogger.warn("Added Deprecated Component {}[id={}] See alternatives {}",
                     componentClass.getSimpleName(),

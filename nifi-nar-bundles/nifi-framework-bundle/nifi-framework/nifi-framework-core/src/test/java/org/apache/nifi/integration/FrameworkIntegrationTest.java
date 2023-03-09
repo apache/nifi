@@ -40,6 +40,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.XmlFlowSynchronizer;
 import org.apache.nifi.controller.flow.StandardFlowManager;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.framework.cluster.leader.zookeeper.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -266,7 +267,7 @@ public class FrameworkIntegrationTest {
                 VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, extensionManager, statusHistoryRepository);
         }
 
-        processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties);
+        processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties, new StandardLifecycleStateManager());
 
         final RepositoryContextFactory repositoryContextFactory = flowController.getRepositoryContextFactory();
         final SchedulingAgent timerDrivenSchedulingAgent = new TimerDrivenSchedulingAgent(flowController, flowEngine, repositoryContextFactory, nifiProperties);

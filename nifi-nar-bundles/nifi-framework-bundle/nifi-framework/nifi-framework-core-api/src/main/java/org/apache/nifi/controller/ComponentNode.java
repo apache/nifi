@@ -35,6 +35,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
@@ -45,6 +46,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -277,6 +279,12 @@ public interface ComponentNode extends ComponentAuthorizable {
      * @return Sensitive Dynamic Property status
      */
     boolean isSensitiveDynamicProperty(String name);
+
+    /**
+     * @return the Process Group that this component belongs to, or an empty Optional if this component does not belong to a Process Group.
+     * Note that some components, such as Reporting Tasks, will never belong to a Process Group.
+     */
+    Optional<ProcessGroup> getParentProcessGroup();
 
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {

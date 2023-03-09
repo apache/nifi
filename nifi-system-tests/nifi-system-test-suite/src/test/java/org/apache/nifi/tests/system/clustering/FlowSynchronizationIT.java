@@ -18,7 +18,6 @@
 package org.apache.nifi.tests.system.clustering;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -36,11 +35,9 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
@@ -931,70 +928,4 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         }
     }
 
-    /**
-     * Disconnects a node from the cluster
-     * @param nodeIndex the 1-based index of the node
-     */
-    private void disconnectNode(final int nodeIndex) throws NiFiClientException, IOException, InterruptedException {
-        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
-        nodeEntity.getNode().setStatus(NodeConnectionState.DISCONNECTING.name());
-        getNifiClient().getControllerClient().disconnectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
-
-        waitForNodeState(nodeIndex, NodeConnectionState.DISCONNECTED);
-        waitForCoordinatorElected();
-    }
-
-    private void waitForCoordinatorElected() throws InterruptedException {
-        waitFor(() -> isCoordinatorElected());
-    }
-
-    private boolean isCoordinatorElected() throws NiFiClientException, IOException {
-        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
-            if (nodeDto.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR) && nodeDto.getStatus().equals("CONNECTED")) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private void reconnectNode(final int nodeIndex) throws NiFiClientException, IOException {
-        final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
-        nodeEntity.getNode().setStatus(NodeConnectionState.CONNECTING.name());
-        getNifiClient().getControllerClient().connectNode(nodeEntity.getNode().getNodeId(), nodeEntity);
-    }
-
-    private NodeEntity getNodeEntity(final int nodeIndex) throws NiFiClientException, IOException {
-        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        final int expectedPort = CLUSTERED_CLIENT_API_BASE_PORT + nodeIndex - 1;
-
-        for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
-            if (nodeDto.getApiPort() == expectedPort) {
-                final NodeEntity nodeEntity = new NodeEntity();
-                nodeEntity.setNode(nodeDto);
-                return nodeEntity;
-            }
-        }
-
-        throw new IllegalStateException("Could not find node with API Port of " + expectedPort);
-    }
-
-    private void waitForNodeState(final int nodeIndex, final NodeConnectionState... nodeStates) throws InterruptedException {
-        waitFor(() -> {
-            try {
-                final NodeEntity nodeEntity = getNodeEntity(nodeIndex);
-                final String status = nodeEntity.getNode().getStatus();
-                for (final NodeConnectionState state : nodeStates) {
-                    if (state.name().equals(status)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            } catch (final Exception e) {
-                return false;
-            }
-        });
-    }
 }

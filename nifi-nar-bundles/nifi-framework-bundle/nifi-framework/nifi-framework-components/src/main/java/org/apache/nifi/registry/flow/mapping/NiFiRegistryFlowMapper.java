@@ -17,7 +17,6 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -46,6 +45,7 @@ import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ControllerServiceAPI;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
@@ -259,6 +259,11 @@ public class NiFiRegistryFlowMapper {
         versionedGroup.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
         versionedGroup.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
         versionedGroup.setLogFileSuffix(group.getLogFileSuffix());
+
+        versionedGroup.setExecutionEngine(ExecutionEngine.valueOf(group.getExecutionEngine().name()));
+        versionedGroup.setScheduledState(flowMappingOptions.getStateLookup().getState(group));
+        versionedGroup.setMaxConcurrentTasks(group.getMaxConcurrentTasks());
+        versionedGroup.setStatelessFlowTimeout(group.getStatelessFlowTimeout());
 
         final ParameterContext parameterContext = group.getParameterContext();
         versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
@@ -743,6 +748,7 @@ public class NiFiRegistryFlowMapper {
         versionedPort.setScheduledState(mapScheduledState(port.getScheduledState()));
         versionedPort.setAllowRemoteAccess(port instanceof PublicPort);
         versionedPort.setScheduledState(flowMappingOptions.getStateLookup().getState(port));
+        versionedPort.setPortFunction(port.getPortFunction());
 
         return versionedPort;
     }

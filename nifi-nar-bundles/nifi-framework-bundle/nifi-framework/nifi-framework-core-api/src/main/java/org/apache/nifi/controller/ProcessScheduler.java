@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -81,7 +82,7 @@ public interface ProcessScheduler {
      *
      * @param procNode to stop
      */
-    Future<Void> stopProcessor(ProcessorNode procNode);
+    CompletableFuture<Void> stopProcessor(ProcessorNode procNode);
 
     /**
      * Interrupts all threads that are currently active in the Processor in an attempt to
@@ -108,6 +109,20 @@ public interface ProcessScheduler {
      * @param procNode the processor being removed
      */
     void onProcessorRemoved(ProcessorNode procNode);
+
+    /**
+     * Starts scheduling the given Stateless Group to run, after initializing all components.
+     * @param groupNode the group to start
+     * @return a Future that will be completed whenever the group has started
+     */
+    Future<Void> startStatelessGroup(StatelessGroupNode groupNode);
+
+    /**
+     * Stops scheduling the given Stateless Group to run. Returns a Future that will be completed whenever all components within the group have been stopped
+     * @param groupNode the group to stop
+     * @return a Future that will be completed whenever all components within the group have been stopped
+     */
+    CompletableFuture<Void> stopStatelessGroup(StatelessGroupNode groupNode);
 
     /**
      * Notifies the scheduler that the given port has been removed from the flow

@@ -27,6 +27,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -93,6 +94,11 @@ public class SystemDiagnosticsResource extends ApplicationResource {
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
             @ApiParam(
+                value = "Whether or not to include verbose details. Optional, defaults to false",
+                required = false
+            )
+            @QueryParam("diagnosticLevel") @DefaultValue("BASIC") final DiagnosticLevel diagnosticLevel,
+            @ApiParam(
                     value = "The id of the node where to get the status.",
                     required = false
             )
@@ -132,7 +138,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
             }
         }
 
-        final SystemDiagnosticsDTO systemDiagnosticsDto = serviceFacade.getSystemDiagnostics();
+        final SystemDiagnosticsDTO systemDiagnosticsDto = serviceFacade.getSystemDiagnostics(diagnosticLevel);
 
         // create the response
         final SystemDiagnosticsEntity entity = new SystemDiagnosticsEntity();

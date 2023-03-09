@@ -747,6 +747,7 @@ public class FileSystemRepository implements ContentRepository {
 
         // Ensure that we have no writable claim streams for this resource claim
         final ByteCountingOutputStream bcos = writableClaimStreams.remove(claim);
+        LOG.debug("Removed Stream {} for {} from writableClaimStreams because Resource Claim was removed", bcos, claim);
 
         if (bcos != null) {
             try {
@@ -1171,6 +1172,7 @@ public class FileSystemRepository implements ContentRepository {
         // claimant count is removed without writing to the claim (or more specifically, without closing the
         // OutputStream that is returned when calling write() ).
         final OutputStream out = writableClaimStreams.remove(claim);
+        LOG.debug("Removed {} for {} from writableClaimStreams because Resource Claim was archived", out, claim);
 
         if (out != null) {
             try {
@@ -1908,6 +1910,10 @@ public class FileSystemRepository implements ContentRepository {
 
         @Override
         public synchronized void close() throws IOException {
+            if (closed) {
+                return;
+            }
+
             closed = true;
 
             if (alwaysSync) {
@@ -1939,8 +1945,9 @@ public class FileSystemRepository implements ContentRepository {
                 if (enqueued) {
                     LOG.debug("Claim length less than max; Adding {} back to Writable Claim Queue", this);
                 } else {
-                    writableClaimStreams.remove(scc.getResourceClaim());
+                    final OutputStream out = writableClaimStreams.remove(scc.getResourceClaim());
                     resourceClaimManager.freeze(scc.getResourceClaim());
+                    LOG.debug("Removed {} for {} from writableClaimStreams because ContentRepositoryOutputStream was closed and could not enqueue.", out, scc.getResourceClaim());
 
                     bcos.close();
 

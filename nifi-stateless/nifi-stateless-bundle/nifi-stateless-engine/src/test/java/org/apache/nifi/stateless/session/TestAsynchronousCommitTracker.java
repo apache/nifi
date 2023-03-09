@@ -36,7 +36,7 @@ public class TestAsynchronousCommitTracker {
 
     @Test
     public void testAddAndGetProvidesCorrectOrder() {
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker(null);
 
         final Connectable connectable1 = Mockito.mock(Connectable.class);
         final Connectable connectable2 = Mockito.mock(Connectable.class);
@@ -67,7 +67,7 @@ public class TestAsynchronousCommitTracker {
 
     @Test
     public void testIsReadyRemovesConnectablesWithNoData() {
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker(null);
 
         final Connectable connectable1 = Mockito.mock(Connectable.class);
         final Connectable connectable2 = Mockito.mock(Connectable.class);
@@ -108,7 +108,7 @@ public class TestAsynchronousCommitTracker {
 
     @Test
     public void testRootGroupOutputPortNotReady() {
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker(null);
 
         final Connectable outputPort = Mockito.mock(Connectable.class);
 

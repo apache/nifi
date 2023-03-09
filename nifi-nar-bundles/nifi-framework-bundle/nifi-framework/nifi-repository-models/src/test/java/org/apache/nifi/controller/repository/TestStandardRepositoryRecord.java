@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -30,7 +31,7 @@ public class TestStandardRepositoryRecord {
 
     @Test
     public void testUpdatedAttributesMaintainedWhenFlowFileRemoved() {
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord((FlowFileQueue) null);
 
         final Map<String, String> updatedAttributes = new HashMap<>();
         updatedAttributes.put("abc", "xyz");

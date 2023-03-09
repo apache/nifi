@@ -37,6 +37,7 @@ public class PortDTO extends ComponentDTO {
     private Set<String> userAccessControl;
     private Set<String> groupAccessControl;
     private Boolean allowRemoteAccess;
+    private String portFunction;
 
     private Collection<String> validationErrors;
 
@@ -185,5 +186,16 @@ public class PortDTO extends ComponentDTO {
 
     public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
+    }
+
+    @ApiModelProperty(value = "Specifies how the Port functions",
+        allowableValues = "STANDARD, FAILURE"
+    )
+    public String getPortFunction() {
+        return portFunction;
+    }
+
+    public void setPortFunction(final String portFunction) {
+        this.portFunction = portFunction;
     }
 }

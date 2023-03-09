@@ -305,11 +305,6 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         final Map<String, Parameter> parameters = parameterContextDto.getParameters() == null ? Collections.emptyMap() : getParameters(parameterContextDto, currentContext);
 
         currentContext.verifyCanUpdateParameterContext(parameters, inheritedParameterContexts);
-
-        final Map<String, Parameter> proposedParameters = new HashMap<>();
-        if (parameterContextDto.getParameters() != null) {
-            proposedParameters.putAll(getParameters(parameterContextDto, currentContext));
-        }
     }
 
     @Override

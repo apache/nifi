@@ -100,8 +100,10 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
+import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.scheduling.TimerDrivenSchedulingAgent;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
@@ -147,7 +149,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -177,7 +178,6 @@ import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
-import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
@@ -274,6 +274,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final FlowFileEventRepository flowFileEventRepository;
     private final ProvenanceRepository provenanceRepository;
     private final BulletinRepository bulletinRepository;
+    private final LifecycleStateManager lifecycleStateManager;
     private final StandardProcessScheduler processScheduler;
     private final SnippetManager snippetManager;
     private final long gracefulShutdownSeconds;
@@ -314,6 +315,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final Boolean isSiteToSiteSecure;
 
     private final Set<Connectable> startConnectablesAfterInitialization;
+    private final Set<ProcessGroup> startGroupsAfterInitialization;
     private final Set<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
     private final ClusterCoordinator clusterCoordinator;
@@ -543,7 +545,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new RuntimeException(e);
         }
 
-        processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties);
+        lifecycleStateManager = new StandardLifecycleStateManager();
+        processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties, lifecycleStateManager);
 
         parameterContextManager = new StandardParameterContextManager();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
@@ -576,6 +579,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         startConnectablesAfterInitialization = new HashSet<>();
         startRemoteGroupPortsAfterInitialization = new HashSet<>();
+        startGroupsAfterInitialization = new HashSet<>();
 
         final String gracefulShutdownSecondsVal = nifiProperties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
         long shutdownSecs;
@@ -593,18 +597,12 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         remoteInputHttpPort = nifiProperties.getRemoteInputHttpPort();
         isSiteToSiteSecure = nifiProperties.isSiteToSiteSecure();
 
-        if (isSiteToSiteSecure && sslContext == null && remoteInputSocketPort != null) {
-            throw new IllegalStateException("NiFi Configured to allow Secure Site-to-Site communications but the Keystore/Truststore properties are not configured");
-        }
-
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
         this.reloadComponent = new StandardReloadComponent(this);
 
-        final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), controllerServiceProvider, processScheduler,
-                encryptor, extensionManager, stateManagerProvider, flowManager, reloadComponent, new MutableVariableRegistry(this.variableRegistry), this,
-                nifiProperties);
+        final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
         setRootGroup(rootGroup);
         instanceId = ComponentIdGenerator.generateId().toString();
@@ -979,6 +977,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         try {
             startConnectablesAfterInitialization.clear();
             startRemoteGroupPortsAfterInitialization.clear();
+            startGroupsAfterInitialization.clear();
         } finally {
             writeLock.unlock("purge");
         }
@@ -1163,6 +1162,12 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             validationThreadPool.scheduleWithFixedDelay(new TriggerValidationTask(flowManager, validationTrigger), 5, 5, TimeUnit.SECONDS);
 
             if (startDelayedComponents) {
+                LOG.info("Starting {} Stateless Process Groups", startGroupsAfterInitialization.size());
+                for (final ProcessGroup group : startGroupsAfterInitialization) {
+                    group.startProcessing();
+                }
+                startGroupsAfterInitialization.clear();
+
                 LOG.info("Starting {} processors/ports/funnels", startConnectablesAfterInitialization.size() + startRemoteGroupPortsAfterInitialization.size());
                 for (final Connectable connectable : startConnectablesAfterInitialization) {
                     if (connectable.getScheduledState() == ScheduledState.DISABLED) {
@@ -1262,6 +1267,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return startConnectablesAfterInitialization.contains(component) || startRemoteGroupPortsAfterInitialization.contains(component);
     }
 
+    public boolean isStartAfterInitialization(final ProcessGroup group) {
+        return startGroupsAfterInitialization.contains(group);
+    }
+
     private ContentRepository createContentRepository(final NiFiProperties properties) {
         final String implementationClassName = isEncryptionProtocolVersionConfigured(properties)
                 ? ENCRYPTED_CONTENT_REPO_IMPLEMENTATION
@@ -1353,6 +1362,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return bulletinRepository;
     }
 
+    public LifecycleStateManager getLifecycleStateManager() {
+        return lifecycleStateManager;
+    }
     public SnippetManager getSnippetManager() {
         return snippetManager;
     }
@@ -1596,6 +1608,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             public org.apache.nifi.flow.ScheduledState getState(final ControllerServiceNode serviceNode) {
                 return delegate.getState(serviceNode);
             }
+
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final ProcessGroup group) {
+                if (isStartAfterInitialization(group)) {
+                    return org.apache.nifi.flow.ScheduledState.RUNNING;
+                }
+
+                return delegate.getState(group);
+            }
         };
     }
 
@@ -1734,7 +1755,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public SystemDiagnostics getSystemDiagnostics() {
         final SystemDiagnosticsFactory factory = new SystemDiagnosticsFactory();
-        return factory.create(flowFileRepository, contentRepository, provenanceRepository);
+        return factory.create(flowFileRepository, contentRepository, provenanceRepository, resourceClaimManager);
     }
 
     public String getContentRepoFileStoreName(final String containerName) {
@@ -1924,6 +1945,19 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
     }
 
+    public void startProcessGroup(final ProcessGroup processGroup) {
+        writeLock.lock();
+        try {
+            if (initialized.get()) {
+                processGroup.startProcessing();
+            } else {
+                startGroupsAfterInitialization.add(processGroup);
+            }
+        } finally {
+            writeLock.unlock("startProcessGroup");
+        }
+    }
+
     public boolean isInitialized() {
         return initialized.get();
     }
@@ -2030,6 +2064,18 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         group.stopProcessor(node);
         // If we are ready to start the processor upon initialization of the controller, don't.
         startConnectablesAfterInitialization.remove(node);
+    }
+
+    public void stopGroup(final String parentGroupId, final String groupId) {
+        final ProcessGroup parent = lookupGroup(parentGroupId);
+        final ProcessGroup group = parent.getProcessGroup(groupId);
+        if (group == null) {
+            throw new IllegalStateException("Cannot find ProcessGroup with ID " + groupId + " within ProcessGroup with ID " + parentGroupId);
+        }
+
+        group.stopProcessing();
+        // If we are ready to start the group upon initialization of the controller, don't.
+        startGroupsAfterInitialization.remove(group);
     }
 
 
@@ -2212,11 +2258,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final List<Counter> counters = new ArrayList<>();
 
         final CounterRepository counterRepo = counterRepositoryRef.get();
-        for (final Counter counter : counterRepo.getCounters()) {
-            counters.add(counter);
-        }
+        counters.addAll(counterRepo.getCounters());
 
         return counters;
+    }
+
+    public CounterRepository getCounterRepository() {
+        return counterRepositoryRef.get();
     }
 
     public Counter resetCounter(final String identifier) {
@@ -3164,6 +3212,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public StandardProcessScheduler getProcessScheduler() {
         return processScheduler;
+    }
+
+    public long getBoredYieldDuration(final TimeUnit timeUnit) {
+        return (long) FormatUtils.getPreciseTimeDuration(nifiProperties.getBoredYieldDuration(), timeUnit);
     }
 
     public AuditService getAuditService() {

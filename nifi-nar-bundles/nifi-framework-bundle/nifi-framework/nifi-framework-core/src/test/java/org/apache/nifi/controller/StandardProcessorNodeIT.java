@@ -34,6 +34,7 @@ import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
+import org.apache.nifi.controller.scheduling.StandardLifecycleStateManager;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
@@ -156,7 +157,7 @@ public class StandardProcessorNodeIT {
         final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
 
         procNode.performValidation();
-        procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true);
+        procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true, true);
 
         Thread.sleep(1000L);
         assertEquals(1, processor.onScheduledCount);
@@ -283,7 +284,7 @@ public class StandardProcessorNodeIT {
         final StateManagerProvider stateManagerProvider = mock(StateManagerProvider.class);
 
         final ProcessScheduler processScheduler = new StandardProcessScheduler(null, flowController,
-                stateManagerProvider, nifiProperties);
+                stateManagerProvider, nifiProperties, new StandardLifecycleStateManager());
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, narBundle.getBundleDetails().getCoordinate(), componentLog);
         final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler,
@@ -538,14 +539,14 @@ public class StandardProcessorNodeIT {
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, () -> false, null);
         final SchedulingAgentCallback schedulingAgentCallback = new FailIfTriggeredSchedulingAgentCallback(taskScheduler);
 
-        procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true);
+        procNode.start(taskScheduler, 20000L, 10000L, () -> processContext, schedulingAgentCallback, true, true);
         assertEquals(ScheduledState.STARTING, procNode.getPhysicalScheduledState());
 
         final ProcessScheduler processScheduler = mock(ProcessScheduler.class);
         final SchedulingAgent schedulingAgent = mock(SchedulingAgent.class);
-        final LifecycleState lifecycleState = new LifecycleState();
+        final LifecycleState lifecycleState = new LifecycleState(procNode.getIdentifier());
 
-        final Future<Void> future = procNode.stop(processScheduler, taskScheduler, processContext, schedulingAgent, lifecycleState);
+        final Future<Void> future = procNode.stop(processScheduler, taskScheduler, processContext, schedulingAgent, lifecycleState, true);
         final ScheduledState currentState = procNode.getPhysicalScheduledState();
         assertTrue(currentState == ScheduledState.STOPPED || currentState == ScheduledState.STOPPING);
 

@@ -42,7 +42,7 @@
 
 <p>
     All of these design decisions have served NiFi well, making it a leading platform for data integration. However, there are some use cases
-    which lend themselves better to a slightly different architecture than what is provided by traditional NiFi.
+    which lend themselves better to a slightly different architecture than what is provided by the standard NiFi engine.
 </p>
 
 <p>
@@ -54,16 +54,16 @@
 </p>
 
 <p>
-    Stateless NiFi provides a different Runtime Engine than traditional NiFi. It is a single-threaded runtime engine, in which data is not persisted across
+    Stateless NiFi provides a different Runtime Engine than standard NiFi deployments. It is a single-threaded runtime engine, in which data is not persisted across
     restarts. Additionally, the data that is sourced can be processed through the entire chain of processors in the dataflow before it is ever even
-    acknowledged from the source. The README document for NiFi Stateless provides far more context as to the differences between traditional NiFi
+    acknowledged from the source. The README document for NiFi Stateless provides far more context as to the differences between the Standard NiFi engine
     and Stateless NiFi, and you are encouraged to read through it in order to gain a better understanding of the different tradeoffs that were made for the
     Stateless architecture.
 </p>
 
 <p>
-    Both the traditional NiFi Runtime Engine and the Stateless NiFi Runtime Engine have their strengths and weaknesses. The ideal situation would be one
-    in which users had the ability to easily choose which parts of their dataflow run Stateless and which parts run in the traditional NiFi Runtime Engine.
+    Both the standard NiFi Runtime Engine and the Stateless NiFi Runtime Engine have their strengths and weaknesses. The ideal situation would be one
+    in which users had the ability to easily choose which parts of their dataflow run Stateless and which parts run in the standard NiFi Runtime Engine.
 </p>
 
 <p>
@@ -256,7 +256,7 @@
 <h2>Data Provenance</h2>
 <p>
     Throughout the course of a dataflow, many different intermediate FlowFiles may be created, destroyed, transformed, delivered, and fetched.
-    While traditional NiFi will emit Provenance events for each of these, it is not currently possible with the ExecuteStateless Processor.
+    While the standard NiFi engine will emit Provenance events for each of these, it is not currently possible with the ExecuteStateless Processor.
     Because those intermediate FlowFiles are not available, we cannot surface Provenance Events that are emitted by the dataflow, such as SEND
     and RECEIVE events, because the FlowFiles that were sent and received are not available.
 </p>

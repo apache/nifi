@@ -100,6 +100,10 @@
     margin-top: 8px;
 }
 
+#process-group-execution-engine-combo {
+    width: 328px;
+}
+
 #process-group-flowfile-concurrency-combo {
     width: 328px;
 }

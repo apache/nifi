@@ -51,6 +51,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -65,6 +66,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateRequest;
 import org.apache.nifi.registry.variable.VariableRegistryUpdateStep;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -546,6 +548,23 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             updateStrategy = ProcessGroupUpdateStrategy.valueOf(processGroupUpdateStrategy);
         }
 
+        final String executionEngine = requestProcessGroupDTO.getExecutionEngine();
+        if (executionEngine != null) {
+            try {
+                ExecutionEngine.valueOf(executionEngine);
+            } catch (final IllegalArgumentException iae) {
+                throw new IllegalArgumentException("Illegal value proposed for Execution Engine: " + executionEngine);
+            }
+        }
+
+        final String statelessTimeout = requestProcessGroupDTO.getStatelessFlowTimeout();
+        if (statelessTimeout != null) {
+            try {
+                FormatUtils.getPreciseTimeDuration(statelessTimeout, TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                throw new IllegalArgumentException("Illegal value proposed for Stateless Flow Timeout: " + statelessTimeout);
+            }
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
@@ -908,6 +927,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         final List<AffectedComponentDTO> activeAffectedProcessors = activeAffectedComponentsByType.get(AffectedComponentDTO.COMPONENT_TYPE_PROCESSOR);
         final List<AffectedComponentDTO> activeAffectedServices = activeAffectedComponentsByType.get(AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE);
+        final List<AffectedComponentDTO> activeStatelessGroups = activeAffectedComponentsByType.get(AffectedComponentDTO.COMPONENT_TYPE_STATELESS_GROUP);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -929,6 +949,14 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             if (activeAffectedServices != null) {
                 for (final AffectedComponentDTO activeAffectedComponent : activeAffectedServices) {
                     final Authorizable authorizable = lookup.getControllerService(activeAffectedComponent.getId()).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.READ, user);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, user);
+                }
+            }
+
+            if (activeStatelessGroups != null) {
+                for (final AffectedComponentDTO activeAffectedComponent : activeStatelessGroups) {
+                    final Authorizable authorizable = lookup.getProcessGroup(activeAffectedComponent.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.READ, user);
                     authorizable.authorize(authorizer, RequestAction.WRITE, user);
                 }

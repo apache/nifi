@@ -542,7 +542,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
         if (!claimsToAdd.isEmpty()) {
-            // Get / Register a Set<ContentClaim> for the given Partiton Index
+            // Get / Register a Set<ContentClaim> for the given Partition Index
             final Integer partitionKey = Integer.valueOf(partitionIndex);
             BlockingQueue<ResourceClaim> claimQueue = claimsAwaitingDestruction.get(partitionKey);
             if (claimQueue == null) {

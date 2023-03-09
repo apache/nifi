@@ -17,6 +17,8 @@
 
 package org.apache.nifi.registry.flow.diff;
 
+import org.apache.nifi.components.PortFunction;
+import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
@@ -24,9 +26,9 @@ import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
-import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -457,6 +459,7 @@ public class StandardFlowComparator implements FlowComparator {
         }
 
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, portA, portB, VersionedPort::getScheduledState);
+        addIfDifferent(differences, DifferenceType.PORT_FUNCTION_CHANGED, portA, portB, VersionedPort::getPortFunction, true, PortFunction.STANDARD);
     }
 
     private void compare(final VersionedRemoteProcessGroup rpgA, final VersionedRemoteProcessGroup rpgB, final Set<FlowDifference> differences) {
@@ -523,6 +526,10 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.DEFAULT_FLOWFILE_EXPIRATION_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultFlowFileExpiration, true, "0 sec");
         addIfDifferent(differences, DifferenceType.PARAMETER_CONTEXT_CHANGED, groupA, groupB, VersionedProcessGroup::getParameterContextName, true, null);
         addIfDifferent(differences, DifferenceType.LOG_FILE_SUFFIX_CHANGED, groupA, groupB, VersionedProcessGroup::getLogFileSuffix, true, null);
+        addIfDifferent(differences, DifferenceType.EXECUTION_ENGINE_CHANGED, groupA, groupB, VersionedProcessGroup::getExecutionEngine, true, ExecutionEngine.INHERITED);
+        addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, groupA, groupB, VersionedProcessGroup::getScheduledState, true, org.apache.nifi.flow.ScheduledState.ENABLED);
+        addIfDifferent(differences, DifferenceType.CONCURRENT_TASKS_CHANGED, groupA, groupB, VersionedProcessGroup::getMaxConcurrentTasks, true, 1);
+        addIfDifferent(differences, DifferenceType.TIMEOUT_CHANGED, groupA, groupB, VersionedProcessGroup::getStatelessFlowTimeout, false, "1 min");
 
         final VersionedFlowCoordinates groupACoordinates = groupA.getVersionedFlowCoordinates();
         final VersionedFlowCoordinates groupBCoordinates = groupB.getVersionedFlowCoordinates();

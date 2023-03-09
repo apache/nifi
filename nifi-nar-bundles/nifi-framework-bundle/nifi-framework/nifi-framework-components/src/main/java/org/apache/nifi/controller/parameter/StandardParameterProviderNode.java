@@ -43,6 +43,7 @@ import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -71,6 +72,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -185,6 +187,11 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     @Override
     public boolean isValidationNecessary() {
         return true;
+    }
+
+    @Override
+    public Optional<ProcessGroup> getParentProcessGroup() {
+        return Optional.empty();
     }
 
     @Override

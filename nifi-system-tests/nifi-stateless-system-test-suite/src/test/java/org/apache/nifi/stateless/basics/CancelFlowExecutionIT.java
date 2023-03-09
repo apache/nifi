@@ -51,6 +51,7 @@ public class CancelFlowExecutionIT extends StatelessSystemIT {
         flowBuilder.createConnection(sleep, outPort, "success");
 
         final StatelessDataflow dataflow = loadDataflow(flowBuilder.getFlowSnapshot());
+        dataflow.enqueue("Hello World".getBytes(), Collections.emptyMap(), "In");
         final DataflowTrigger trigger = dataflow.trigger();
 
         // Wait up to 250 milliseconds. At that point, the result should not be available.

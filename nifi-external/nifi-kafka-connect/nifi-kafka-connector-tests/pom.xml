@@ -35,7 +35,11 @@
             <version>2.6.3</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Dependencies for integration tests. These must be excluded from the main assembly -->
         <!-- TODO: Probably should separate this into separate integration test module -->

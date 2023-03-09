@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.reporting.BulletinRepository;
 
 import java.io.InputStream;
@@ -46,6 +47,8 @@ public interface StatelessDataflow {
      */
     DataflowTrigger trigger(DataflowTriggerContext triggerContext);
 
+
+
     /**
      * <p>
      * Performs initialization necessary for triggering dataflows. These activities include, but are not limited to:
@@ -65,7 +68,11 @@ public interface StatelessDataflow {
      */
     void initialize();
 
-    void shutdown();
+    default void shutdown() {
+        shutdown(true, false);
+    }
+
+    void shutdown(boolean triggerComponentShutdown, boolean interruptProcessors);
 
     StatelessDataflowValidation performValidation();
 
@@ -100,4 +107,6 @@ public interface StatelessDataflow {
     Map<String, Long> getCounters(boolean includeGlobalContext);
 
     BulletinRepository getBulletinRepository();
+
+    ProvenanceEventRepository getProvenanceRepository();
 }

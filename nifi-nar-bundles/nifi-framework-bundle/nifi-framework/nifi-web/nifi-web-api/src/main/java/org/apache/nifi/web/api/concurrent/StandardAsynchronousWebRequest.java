@@ -18,6 +18,8 @@
 package org.apache.nifi.web.api.concurrent;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Date;
@@ -25,6 +27,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequest<R, T> {
+    private static final Logger logger = LoggerFactory.getLogger(StandardAsynchronousWebRequest.class);
+
     private final String id;
     private final String componentId;
     private final NiFiUser user;
@@ -88,7 +92,10 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         }
 
         final UpdateStep currentStep = getCurrentStep();
-        if (currentStep != null) {
+        if (currentStep == null) {
+            logger.debug("Current step marked complete for {} with results {} but there is no active step", id, results);
+        } else {
+            logger.debug("Marking active step '{}' with ID {} complete with result {}", currentStep.getDescription(), id, results);
             currentStep.markCompleted();
         }
 
@@ -110,7 +117,8 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
             return "Failed: " + failureReason;
         }
 
-        return getCurrentStep().getDescription();
+        final UpdateStep currentStep = getCurrentStep();
+        return currentStep == null ? "In Progress" : currentStep.getDescription();
     }
 
     @Override
@@ -140,7 +148,10 @@ public class StandardAsynchronousWebRequest<R, T> implements AsynchronousWebRequ
         this.results = null;
         this.lastUpdated = new Date();
 
-        getCurrentStep().fail(explanation);
+        final UpdateStep currentStep = getCurrentStep();
+        if (currentStep != null) {
+            currentStep.fail(explanation);
+        }
     }
 
     @Override

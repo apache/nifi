@@ -41,6 +41,10 @@ public interface ComponentScheduler {
 
     void resume();
 
+    void startStatelessGroup(ProcessGroup group);
+
+    void stopStatelessGroup(ProcessGroup group);
+
 
     ComponentScheduler NOP_SCHEDULER = new ComponentScheduler() {
         @Override
@@ -72,6 +76,14 @@ public interface ComponentScheduler {
 
         @Override
         public void resume() {
+        }
+
+        @Override
+        public void startStatelessGroup(final ProcessGroup group) {
+        }
+
+        @Override
+        public void stopStatelessGroup(final ProcessGroup group) {
         }
     };
 }
