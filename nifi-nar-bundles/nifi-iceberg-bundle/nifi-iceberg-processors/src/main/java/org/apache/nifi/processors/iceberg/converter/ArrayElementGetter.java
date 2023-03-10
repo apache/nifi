@@ -41,82 +41,82 @@ public class ArrayElementGetter {
         ElementGetter elementGetter;
         switch (dataType.getFieldType()) {
             case STRING:
-                elementGetter = (array, pos) -> DataTypeUtils.toString(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toString(element, ARRAY_FIELD_NAME);
                 break;
             case CHAR:
-                elementGetter = (array, pos) -> DataTypeUtils.toCharacter(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toCharacter(element, ARRAY_FIELD_NAME);
                 break;
             case BOOLEAN:
-                elementGetter = (array, pos) -> DataTypeUtils.toBoolean(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toBoolean(element, ARRAY_FIELD_NAME);
                 break;
             case DECIMAL:
-                elementGetter = (array, pos) -> DataTypeUtils.toBigDecimal(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toBigDecimal(element, ARRAY_FIELD_NAME);
                 break;
             case BYTE:
-                elementGetter = (array, pos) -> DataTypeUtils.toByte(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toByte(element, ARRAY_FIELD_NAME);
                 break;
             case SHORT:
-                elementGetter = (array, pos) -> DataTypeUtils.toShort(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toShort(element, ARRAY_FIELD_NAME);
                 break;
             case INT:
-                elementGetter = (array, pos) -> DataTypeUtils.toInteger(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toInteger(element, ARRAY_FIELD_NAME);
                 break;
             case DATE:
-                elementGetter = (array, pos) -> DataTypeUtils.toLocalDate(array[pos], () -> DataTypeUtils.getDateTimeFormatter(dataType.getFormat(), ZoneId.systemDefault()), ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toLocalDate(element, () -> DataTypeUtils.getDateTimeFormatter(dataType.getFormat(), ZoneId.systemDefault()), ARRAY_FIELD_NAME);
                 break;
             case TIME:
-                elementGetter = (array, pos) -> DataTypeUtils.toTime(array[pos], () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toTime(element, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
                 break;
             case LONG:
-                elementGetter = (array, pos) -> DataTypeUtils.toLong(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toLong(element, ARRAY_FIELD_NAME);
                 break;
             case BIGINT:
-                elementGetter = (array, pos) -> DataTypeUtils.toBigInt(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toBigInt(element, ARRAY_FIELD_NAME);
                 break;
             case FLOAT:
-                elementGetter = (array, pos) -> DataTypeUtils.toFloat(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toFloat(element, ARRAY_FIELD_NAME);
                 break;
             case DOUBLE:
-                elementGetter = (array, pos) -> DataTypeUtils.toDouble(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toDouble(element, ARRAY_FIELD_NAME);
                 break;
             case TIMESTAMP:
-                elementGetter = (array, pos) -> DataTypeUtils.toTimestamp(array[pos], () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toTimestamp(element, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), ARRAY_FIELD_NAME);
                 break;
             case UUID:
-                elementGetter = (array, pos) -> DataTypeUtils.toUUID(array[pos]);
+                elementGetter = DataTypeUtils::toUUID;
                 break;
             case ARRAY:
-                elementGetter = (array, pos) -> DataTypeUtils.toArray(array[pos], ARRAY_FIELD_NAME, ((ArrayDataType) dataType).getElementType());
+                elementGetter = element -> DataTypeUtils.toArray(element, ARRAY_FIELD_NAME, ((ArrayDataType) dataType).getElementType());
                 break;
             case MAP:
-                elementGetter = (array, pos) -> DataTypeUtils.toMap(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toMap(element, ARRAY_FIELD_NAME);
                 break;
             case RECORD:
-                elementGetter = (array, pos) -> DataTypeUtils.toRecord(array[pos], ARRAY_FIELD_NAME);
+                elementGetter = element -> DataTypeUtils.toRecord(element, ARRAY_FIELD_NAME);
                 break;
             case CHOICE:
-                elementGetter = (array, pos) -> {
+                elementGetter = element -> {
                     final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
-                    final DataType chosenDataType = DataTypeUtils.chooseDataType(array[pos], choiceDataType);
+                    final DataType chosenDataType = DataTypeUtils.chooseDataType(element, choiceDataType);
                     if (chosenDataType == null) {
                         throw new IllegalTypeConversionException(String.format(
                                 "Cannot convert value [%s] of type %s for array element to any of the following available Sub-Types for a Choice: %s",
-                                array[pos], array[pos].getClass(), choiceDataType.getPossibleSubTypes()));
+                                element, element.getClass(), choiceDataType.getPossibleSubTypes()));
                     }
 
-                    return DataTypeUtils.convertType(array[pos], chosenDataType, ARRAY_FIELD_NAME);
+                    return DataTypeUtils.convertType(element, chosenDataType, ARRAY_FIELD_NAME);
                 };
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported field type: " + dataType.getFieldType());
         }
 
-        return (array, pos) -> {
-            if (array[pos] == null) {
+        return element -> {
+            if (element == null) {
                 return null;
             }
 
-            return elementGetter.getElementOrNull(array, pos);
+            return elementGetter.getElementOrNull(element);
         };
     }
 
@@ -125,6 +125,6 @@ public class ArrayElementGetter {
      */
     public interface ElementGetter extends Serializable {
         @Nullable
-        Object getElementOrNull(Object[] array, int pos);
+        Object getElementOrNull(Object element);
     }
 }

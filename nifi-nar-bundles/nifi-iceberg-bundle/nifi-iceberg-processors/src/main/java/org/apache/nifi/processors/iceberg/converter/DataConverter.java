@@ -19,6 +19,26 @@ package org.apache.nifi.processors.iceberg.converter;
 /**
  * Interface for data conversion between NiFi Record and Iceberg Record.
  */
-public interface DataConverter<D, T> {
-    T convert(D data);
+public abstract class DataConverter<S, T> {
+
+    private String sourceFieldName;
+    private String targetFieldName;
+
+    public String getSourceFieldName() {
+        return sourceFieldName;
+    }
+
+    public String getTargetFieldName() {
+        return targetFieldName;
+    }
+
+    public void setSourceFieldName(String sourceFieldName) {
+        this.sourceFieldName = sourceFieldName;
+    }
+
+    public void setTargetFieldName(String targetFieldName) {
+        this.targetFieldName = targetFieldName;
+    }
+
+    abstract T convert(S data);
 }
