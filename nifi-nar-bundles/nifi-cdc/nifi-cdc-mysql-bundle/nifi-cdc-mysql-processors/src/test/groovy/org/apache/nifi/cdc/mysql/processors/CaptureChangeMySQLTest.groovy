@@ -31,6 +31,7 @@ import com.github.shyiko.mysql.binlog.event.WriteRowsEventData
 import com.github.shyiko.mysql.binlog.network.SSLMode
 import groovy.json.JsonSlurper
 import org.apache.commons.io.output.WriterOutputStream
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading
 import org.apache.nifi.cdc.event.ColumnDefinition
 import org.apache.nifi.cdc.event.TableInfo
 import org.apache.nifi.cdc.event.TableInfoCacheKey
@@ -1459,7 +1460,7 @@ class CaptureChangeMySQLTest {
     /********************************
      * Mock and helper classes below
      ********************************/
-
+    @RequiresInstanceClassLoading
     class MockCaptureChangeMySQL extends CaptureChangeMySQL {
 
         Map<TableInfoCacheKey, TableInfo> cache = new HashMap<>()
