@@ -61,7 +61,8 @@ import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
 @Tags({"iceberg", "put", "table", "store", "record", "parse", "orc", "parquet", "avro"})
 @CapabilityDescription("This processor uses Iceberg API to parse and load records into Iceberg tables. " +
         "The incoming data sets are parsed with Record Reader Controller Service and ingested into an Iceberg table using the configured catalog service and provided table information. " +
-        "It is important that the incoming records and the Iceberg table must have matching schemas and the target Iceberg table should already exist. " +
+        "The target Iceberg table should already exist and it must have matching schemas with the incoming records, " +
+        "which means the Record Reader schema must contain all the Iceberg schema fields, every additional field which is not present in the Iceberg schema will be ignored. " +
         "To avoid 'small file problem' it is recommended pre-appending a MergeRecord processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "iceberg.record.count", description = "The number of records in the FlowFile.")
