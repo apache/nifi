@@ -571,6 +571,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
+            getLogger().debug("There is no data to list. Yielding.");
             context.yield();
             return;
         }
@@ -738,6 +739,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
                 justElectedPrimaryNode = false;
                 if (noUpdateRequired) {
+                    getLogger().debug("Updating the timestamp of the last listed entry is not required. Yielding.");
                     context.yield();
                     return;
                 }
@@ -761,6 +763,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
+            getLogger().debug(String.format("There is no data to list with the criteria minTimestampToListMillis=%d. Yielding.", minTimestampToListMillis));
             context.yield();
             return;
         }
@@ -817,11 +820,20 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                  *   - If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
                  *   - The latest listed entity timestamp is equal to the last processed time, meaning we handled those items originally passed over. No need to process it again.
                  */
-                final long  listingLagNanos = TimeUnit.MILLISECONDS.toNanos(listingLagMillis);
-                if (currentRunTimeNanos - lastRunTimeNanos < listingLagNanos
-                        || (latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)
-                        && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream()
-                                .allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier())))) {
+                final long listingLagNanos = TimeUnit.MILLISECONDS.toNanos(listingLagMillis);
+                final boolean minimalListingLagNotPassed = currentRunTimeNanos - lastRunTimeNanos < listingLagNanos;
+
+                if (minimalListingLagNotPassed) {
+                    getLogger().debug("Minimal listing lag has not passed. Yielding.");
+                    context.yield();
+                    return;
+                }
+
+                final boolean latestListedEntryIsUpToDate = latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)
+                        && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream().allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier()));
+
+                if (latestListedEntryIsUpToDate) {
+                    getLogger().debug("Already listed the latest entry. Yielding.");
                     context.yield();
                     return;
                 }

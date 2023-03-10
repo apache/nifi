@@ -93,15 +93,16 @@ import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALI
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"file", "get", "list", "ingest", "source", "filesystem"})
-@CapabilityDescription("Retrieves a listing of files from the local filesystem. For each file that is listed, " +
-        "creates a FlowFile that represents the file so that it can be fetched in conjunction with FetchFile. This " +
-        "Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new " +
-        "Primary Node will pick up where the previous node left off without duplicating all of the data. Unlike " +
-        "GetFile, this Processor does not delete any data from the local filesystem.")
+@CapabilityDescription("Retrieves a listing of files from the input directory. For each file listed, creates a FlowFile " +
+        "that represents the file so that it can be fetched in conjunction with FetchFile. This Processor is designed " +
+        "to run on Primary Node only in a cluster when 'Input Directory Location' is set to 'Remote'. If the primary node " +
+        "changes, the new Primary Node will pick up where the previous node left off without duplicating all the data. " +
+        "When 'Input Directory Location' is 'Local', the 'Execution' mode can be anything, and synchronization won't happen. " +
+        "Unlike GetFile, this Processor does not delete any data from the local filesystem.")
 @WritesAttributes({
         @WritesAttribute(attribute="filename", description="The name of the file that was read from filesystem."),
         @WritesAttribute(attribute="path", description="The path is set to the relative path of the file's directory " +
-                "on filesystem compared to the Input Directory property.  For example, if Input Directory is set to " +
+                "on filesystem compared to the Input Directory property. For example, if Input Directory is set to " +
                 "/tmp, then files picked up from /tmp will have the path attribute set to \"/\". If the Recurse " +
                 "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
                 "attribute will be set to \"abc/1/2/3/\"."),
