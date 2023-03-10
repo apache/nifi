@@ -329,14 +329,6 @@ public class TestPutSQL {
         assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
 
-    private void testFailInMiddleWithBadStatement(final TestRunner runner) {
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
-        runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
-    }
-
     @Test
     public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
@@ -423,6 +415,7 @@ public class TestPutSQL {
         }
 
         assertErrorAttributesInTransaction(runner, PutSQL.REL_RETRY);
+        assertOriginalAttributesAreKept(runner);
     }
 
     @Test
@@ -437,6 +430,7 @@ public class TestPutSQL {
         runner.assertTransferCount(PutSQL.REL_RETRY, 2);
 
         assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
+        assertOriginalAttributesAreKept(runner);
         assertErrorAttributesNotSet(runner, PutSQL.REL_SUCCESS);
         assertErrorAttributesNotSet(runner, PutSQL.REL_RETRY);
 
@@ -1524,7 +1518,6 @@ public class TestPutSQL {
         }
     }
 
-
     @Test
     public void testTransactionalFlowFileFilter() {
         final MockFlowFile ff0 = new MockFlowFile(0);
@@ -1601,7 +1594,6 @@ public class TestPutSQL {
         runner.enqueue(data, goodAttributes);
     }
 
-
     private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws ProcessException, SQLException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         recreateTable("PERSONS_AI",createPersonsAutoId);
@@ -1618,6 +1610,14 @@ public class TestPutSQL {
         runner.enqueue(data, badAttributes);
         runner.enqueue(data, goodAttributes);
         runner.enqueue(data, goodAttributes);
+    }
+
+    private void testFailInMiddleWithBadStatement(final TestRunner runner) {
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
     }
 
     private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
@@ -1750,6 +1750,12 @@ public class TestPutSQL {
             ff.assertAttributeExists("error.message");
         });
     }
+
+    private static void assertOriginalAttributesAreKept(final TestRunner runner) {
+        runner.assertAllFlowFilesContainAttribute("sql.args.1.type");
+        runner.assertAllFlowFilesContainAttribute("sql.args.1.value");
+    }
+
 
     private static void assertErrorAttributesInTransaction(final TestRunner runner, Relationship relationship) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);

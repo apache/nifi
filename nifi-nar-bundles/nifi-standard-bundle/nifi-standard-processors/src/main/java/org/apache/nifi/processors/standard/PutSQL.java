@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.util.Optional;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -78,6 +77,7 @@ import static java.lang.String.format;
 import static java.lang.String.valueOf;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.processor.util.pattern.ErrorTypes.Destination.Failure;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
 
 @SupportsBatching
@@ -466,14 +466,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
             switch (errorTypesResult.destination()) {
                 case Failure:
-                    getLogger().error("Failed to update database for {} due to {}; routing to failure", new Object[] {flowFile, exception}, exception);
+                    getLogger().error("Failed to update database for {} due to {}; routing to failure", flowFile, exception, exception);
                     break;
                 case Retry:
                     getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                            new Object[] {flowFile, exception}, exception);
+                           flowFile, exception, exception);
                     break;
                 case Self:
-                    getLogger().error("Failed to update database for {} due to {};",  new Object[] {flowFile, exception}, exception);
+                    getLogger().error("Failed to update database for {} due to {};",  flowFile, exception, exception);
                     break;
             }
         });
@@ -481,23 +481,15 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     }
 
     private ExceptionHandler.OnError<RollbackOnFailure, FlowFileGroup> onGroupError(final ProcessContext context, final ProcessSession session, final RoutingResult result) {
-        ExceptionHandler.OnError<RollbackOnFailure, FlowFileGroup> onGroupError
-                = ExceptionHandler.createOnGroupError(context, session, result, REL_FAILURE, REL_RETRY);
-        onGroupError = onGroupError.andThen((ctx, flowFileGroup, errorTypesResult, exception) -> {
+        ExceptionHandler.OnError<RollbackOnFailure, FlowFileGroup> onGroupError =
+                ExceptionHandler.createOnGroupError(context, session, result, REL_FAILURE, REL_RETRY);
 
-            switch (errorTypesResult.destination()) {
-                case Failure:
-                    List<FlowFile> flowFilesToFailure = getFlowFilesOnRelationShip(result, REL_FAILURE);
-                    Optional.ofNullable(flowFilesToFailure).map(flowFiles ->
-                        result.getRoutedFlowFiles().put(REL_FAILURE, addErrorAttributesToFlowFilesInGroup(session, flowFiles, flowFileGroup.getFlowFiles(), exception)));
-                   break;
-                case Retry:
-                    List<FlowFile> flowFilesToRetry = getFlowFilesOnRelationShip(result, REL_RETRY);
-                    Optional.ofNullable(flowFilesToRetry).map(flowFiles ->
-                            result.getRoutedFlowFiles().put(REL_RETRY, addErrorAttributesToFlowFilesInGroup(session, flowFiles, flowFileGroup.getFlowFiles(), exception)));
-                    break;
-            }
+        onGroupError = onGroupError.andThen((ctx, flowFileGroup, errorTypesResult, exception) -> {
+            Relationship relationship = errorTypesResult.destination() == Failure ? REL_FAILURE : REL_RETRY;
+            List<FlowFile> flowFilesToRelationship = result.getRoutedFlowFiles().get(relationship);
+            result.getRoutedFlowFiles().put(relationship, addErrorAttributesToFlowFilesInGroup(session, flowFilesToRelationship, flowFileGroup.getFlowFiles(), exception));
         });
+
         return onGroupError;
     }
 
@@ -505,12 +497,6 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return flowFilesOnRelationship.stream()
                     .map(ff ->  flowFilesInGroup.contains(ff) ? addErrorAttributesToFlowFile(session, ff, exception) : ff)
                     .collect(toList());
-    }
-
-    private List<FlowFile> getFlowFilesOnRelationShip(RoutingResult result, final Relationship relationship) {
-        return Optional.of(result.getRoutedFlowFiles())
-                .orElse(emptyMap())
-                .get(relationship);
     }
 
     private ExceptionHandler.OnError<FunctionContext, StatementFlowFileEnclosure> onBatchUpdateError(
@@ -565,7 +551,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 }
 
                 getLogger().error("Failed to update database due to a failed batch update, {}. There were a total of {} FlowFiles that failed, {} that succeeded, "
-                        + "and {} that were not execute and will be routed to retry; ", new Object[]{e, failureCount, successCount, retryCount}, e);
+                        + "and {} that were not execute and will be routed to retry; ", e, failureCount, successCount, retryCount, e);
 
                 return;
 
@@ -576,11 +562,11 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             onGroupError = onGroupError.andThen((cl, il, rl, el) -> {
                 switch (r.destination()) {
                     case Failure:
-                        getLogger().error("Failed to update database for {} due to {}; routing to failure", new Object[] {il.getFlowFiles(), e}, e);
+                        getLogger().error("Failed to update database for {} due to {}; routing to failure", il.getFlowFiles(), e, e);
                         break;
                     case Retry:
                         getLogger().error("Failed to update database for {} due to {}; it is possible that retrying the operation will succeed, so routing to retry",
-                                new Object[] {il.getFlowFiles(), e}, e);
+                                il.getFlowFiles(), e, e);
                         break;
                 }
             });
@@ -620,7 +606,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
-                getLogger().warn("Failed to rollback database connection due to %s", new Object[]{re}, re);
+                getLogger().warn("Failed to rollback database connection due to {}",re, re);
             }
         });
 
@@ -631,7 +617,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 try {
                     conn.setAutoCommit(fc.originalAutoCommit);
                 } catch (final SQLException se) {
-                    getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
+                    getLogger().warn("Failed to reset autocommit due to {}", se);
                 }
             }
         });
@@ -684,7 +670,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      * transaction will be sorted in the order that they should be evaluated.
      *
      * @param context the process context for determining properties
-     * @param session the process session for pulling flowfiles
+     * @param session the process session for pulling FlowFiles
      * @return a FlowFilePoll containing a List of FlowFiles to process, or <code>null</code> if there are no FlowFiles to process
      */
     private FlowFilePoll pollFlowFiles(final ProcessContext context, final ProcessSession session,
