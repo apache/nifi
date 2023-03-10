@@ -21,18 +21,16 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.OptionalLong;
 
 public class SlackRestService {
@@ -41,19 +39,23 @@ public class SlackRestService {
     private final String accessToken;
     private final String apiUrl;
     private final ObjectMapper objectMapper;
-    private final Logger logger;
+    private final ComponentLog logger;
+    private final String charset;
 
 
     public SlackRestService(final WebClientServiceProvider webClientServiceProvider,
                             final String accessToken,
-                            final String apiUrl) {
+                            final String apiUrl,
+                            final String charset,
+                            final ComponentLog logger) {
         this.webClientServiceProvider = webClientServiceProvider;
         this.accessToken = accessToken;
         this.apiUrl = apiUrl;
         this.objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        this.logger = LoggerFactory.getLogger(SlackRestService.class);
+        this.charset = charset;
+        this.logger = logger;
     }
 
     public void sendMessageToChannel(final String message, final String channel) throws SlackRestServiceException {
@@ -72,9 +74,7 @@ public class SlackRestService {
 
         final InputStream requestBodyInputStream;
         try {
-            requestBodyInputStream = new ByteArrayInputStream(
-                    objectMapper.writeValueAsString(requestBodyJson).getBytes(StandardCharsets.UTF_8)
-            );
+            requestBodyInputStream = new ByteArrayInputStream(objectMapper.writeValueAsBytes(requestBodyJson));
         } catch (final JsonProcessingException e) {
             throw new SlackRestServiceException("JSON processing exception occurred", e);
         }
@@ -83,7 +83,7 @@ public class SlackRestService {
                 .post()
                 .uri(uri)
                 .header("Authorization", String.format("Bearer %s", accessToken))
-                .header("Content-Type", "application/json")
+                .header("Content-Type", "application/json" + String.format("; charset=\"%s\"", charset))
                 .body(requestBodyInputStream, OptionalLong.of(requestBodyInputStream.available()))
                 .retrieve()) {
             final int statusCode = response.statusCode();
@@ -93,7 +93,7 @@ public class SlackRestService {
 
             try {
                 final SlackPostMessageResponse slackResponse = objectMapper.readValue(response.body(), SlackPostMessageResponse.class);
-                checkResponse(slackResponse);
+                checkResponse(slackResponse, channel);
             } catch (final IOException e) {
                 throw new SlackRestServiceException("JSON response parsing failed", e);
             }
@@ -110,16 +110,13 @@ public class SlackRestService {
         return requestBodyJson;
     }
 
-    private void checkResponse(final SlackPostMessageResponse response) throws SlackRestServiceException {
-        if (response.isOk() == null) {
-            throw new SlackRestServiceException("Slack response JSON does not contain 'ok' key or it has invalid value.");
-        }
+    private void checkResponse(final SlackPostMessageResponse response, final String channel) throws SlackRestServiceException {
         if (!response.isOk()) {
             throw new SlackRestServiceException("Slack error response: " + response.getError());
         }
 
         if (response.getWarning() != null) {
-            logger.warn("Slack warning message: " + response.getWarning());
+            logger.warn("Post message to channel [{}] warning: {}", channel, response.getWarning());
         }
     }
 }

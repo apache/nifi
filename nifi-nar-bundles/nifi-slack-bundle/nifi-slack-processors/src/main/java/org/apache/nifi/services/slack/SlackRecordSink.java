@@ -31,11 +31,11 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +86,17 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)
             .build();
+
+    public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("input-character-set")
+            .displayName("Input Character Set")
+            .description("Specifies the character set of the records used to generate the Slack message."
+                    + " If not set, UTF-8 will be the default value.")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue(StandardCharsets.UTF_8.name())
+            .build();
+
     private volatile RecordSetWriterFactory writerFactory;
     private SlackRestService service;
 
@@ -96,7 +107,8 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                 ACCESS_TOKEN,
                 CHANNEL_ID,
                 RECORD_WRITER_FACTORY,
-                WEB_SERVICE_CLIENT_PROVIDER
+                WEB_SERVICE_CLIENT_PROVIDER,
+                INPUT_CHARACTER_SET
         ));
     }
 
@@ -108,12 +120,15 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                 .asControllerService(WebClientServiceProvider.class);
         final String accessToken = context.getProperty(ACCESS_TOKEN).getValue();
         final String apiUrl = context.getProperty(API_URL).getValue();
-        service = new SlackRestService(webClientServiceProvider, accessToken, apiUrl);
+        final String charset = context.getProperty(INPUT_CHARACTER_SET).getValue();
+        service = new SlackRestService(webClientServiceProvider, accessToken, apiUrl, charset, getLogger());
     }
 
     @Override
     public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
         WriteResult writeResult;
+        final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
+        int recordCount = 0;
         try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), out, attributes)) {
                 writer.beginRecordSet();
@@ -122,6 +137,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                     writer.write(record);
                     writer.flush();
                     record = recordSet.next();
+                    recordCount++;
                 }
                 writeResult = writer.finishRecordSet();
                 writer.flush();
@@ -130,19 +146,13 @@ public class SlackRecordSink extends AbstractControllerService implements Record
                         recordSet.getSchema().getSchemaName());
                 throw new ProcessException(errorMessage, e);
             }
-
-            try {
-                final String message = out.toString();
-                if (StringUtils.isEmpty(message)) {
-                    throw new SlackRestServiceException("No message to be sent with this record.");
+            if (recordCount > 0 || sendZeroResults) {
+                try {
+                    final String message = out.toString();
+                    service.sendMessageToChannel(message, channel);
+                } catch (final SlackRestServiceException e) {
+                    throw new IOException("Failed to send messages to Slack", e);
                 }
-                final String channel = getConfigurationContext().getProperty(CHANNEL_ID).getValue();
-                if (StringUtils.isEmpty(channel)) {
-                    throw new SlackRestServiceException("The channel must be specified.");
-                }
-                service.sendMessageToChannel(message, channel);
-            } catch (final SlackRestServiceException e) {
-                throw new IOException("Failed to send messages to Slack", e);
             }
         }
         return writeResult;

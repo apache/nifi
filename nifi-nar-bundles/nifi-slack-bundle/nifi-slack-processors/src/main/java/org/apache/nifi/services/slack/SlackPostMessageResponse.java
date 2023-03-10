@@ -19,18 +19,18 @@ package org.apache.nifi.services.slack;
 import java.time.Instant;
 
 public class SlackPostMessageResponse {
-    private Boolean ok;
+    private boolean ok;
     private String channel;
     private Instant ts;
     private Message message;
     private String error;
     private String warning;
 
-    public Boolean isOk() {
+    public boolean isOk() {
         return ok;
     }
 
-    public void setOk(Boolean ok) {
+    public void setOk(boolean ok) {
         this.ok = ok;
     }
 
