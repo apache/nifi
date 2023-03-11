@@ -19,9 +19,8 @@ package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -156,9 +155,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
         if (sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
-            // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
-            final SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
-            config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
+            config.getApacheHttpClientConfig().setSslSocketFactory(new SSLConnectionSocketFactory(sslContext));
         }
 
         // If proxy variables are set, then create Client Configuration with those values
@@ -215,11 +212,17 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final String assumeRoleExternalId = propertyContext.getProperty(ASSUME_ROLE_EXTERNAL_ID).getValue();
         final String assumeRoleSTSEndpoint = propertyContext.getProperty(ASSUME_ROLE_STS_ENDPOINT).getValue();
         final String stsRegion = propertyContext.getProperty(ASSUME_ROLE_STS_REGION).getValue();
+        final SSLContextService sslContextService = propertyContext.getProperty(ASSUME_ROLE_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
         final StsAssumeRoleCredentialsProvider.Builder builder = StsAssumeRoleCredentialsProvider.builder();
 
-        // If proxy variables are set, then create Client Configuration with those values
         final ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder();
+
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createContext();
+            httpClientBuilder.socketFactory(new SSLConnectionSocketFactory(sslContext));
+        }
+
         if (proxyVariablesValidForAssumeRole(propertyContext)) {
             final String assumeRoleProxyHost = propertyContext.getProperty(ASSUME_ROLE_PROXY_HOST).getValue();
             final int assumeRoleProxyPort = propertyContext.getProperty(ASSUME_ROLE_PROXY_PORT).asInteger();
