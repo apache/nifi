@@ -43,7 +43,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
-import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -104,7 +103,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
             "on the topic.")})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
-public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
+public class ConsumeMQTT extends AbstractMQTTProcessor {
 
     public final static String RECORD_COUNT_KEY = "record.count";
     public final static String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
@@ -383,9 +382,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             mqttClient = createMqttClient();
-            mqttClient.setCallback(this);
             mqttClient.connect();
-            mqttClient.subscribe(topicPrefix + topicFilter, qos);
+            mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             mqttClient = null; // prevent stucked processor when subscribe fails
@@ -614,13 +612,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         return stringBuilder.toString();
     }
 
-    @Override
-    public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost", clientProperties.getRawBrokerUris(), cause);
-    }
-
-    @Override
-    public void messageArrived(ReceivedMqttMessage message) {
+    private void handleReceivedMessage(ReceivedMqttMessage message) {
         if (logger.isDebugEnabled()) {
             byte[] payload = message.getPayload();
             final String text = new String(payload, StandardCharsets.UTF_8);
@@ -638,12 +630,5 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements MqttCallback {
         } catch (InterruptedException e) {
             throw new MqttException("Failed to process message arrived from topic " + message.getTopic());
         }
-    }
-
-    @Override
-    public void deliveryComplete(String token) {
-        // Unlikely situation. Api uses the same callback for publisher and consumer as well.
-        // That's why we have this log message here to indicate something really messy thing happened.
-        logger.error("Received MQTT 'delivery complete' message to subscriber. Token: [{}]", token);
     }
 }

@@ -29,14 +29,13 @@ public class MqttTestClient implements MqttClient {
 
     public AtomicBoolean connected = new AtomicBoolean(false);
 
-    public MqttCallback mqttCallback;
     public ConnectType type;
 
     public enum ConnectType {Publisher, Subscriber}
 
     public String subscribedTopic;
     public int subscribedQos;
-
+    public ReceivedMqttMessageHandler receivedMqttMessageHandler;
     public MqttTestClient(ConnectType type) {
         this.type = type;
     }
@@ -68,20 +67,16 @@ public class MqttTestClient implements MqttClient {
                 publishedMessages.add(Pair.of(topic, message));
                 break;
             case Subscriber:
-                mqttCallback.messageArrived(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
+                receivedMqttMessageHandler.handleReceivedMessage(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
                 break;
         }
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos) {
+    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
         subscribedTopic = topicFilter;
         subscribedQos = qos;
-    }
-
-    @Override
-    public void setCallback(MqttCallback callback) {
-        this.mqttCallback = callback;
+        receivedMqttMessageHandler = handler;
     }
 
     public Pair<String, StandardMqttMessage> getLastPublished() {
