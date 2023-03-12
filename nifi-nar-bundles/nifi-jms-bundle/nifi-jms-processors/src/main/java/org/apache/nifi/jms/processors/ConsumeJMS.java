@@ -32,13 +32,18 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
-import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
+import org.apache.nifi.jms.processors.ioconcept.writer.FlowFileWriter;
+import org.apache.nifi.jms.processors.ioconcept.writer.FlowFileWriterCallback;
+import org.apache.nifi.jms.processors.ioconcept.writer.record.OutputStrategy;
+import org.apache.nifi.jms.processors.ioconcept.writer.record.RecordWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -48,6 +53,7 @@ import javax.jms.Session;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -55,6 +61,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  * Consuming JMS processor which upon each invocation of
@@ -88,19 +95,24 @@ import java.util.concurrent.TimeUnit;
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
+
     public static final String JMS_MESSAGETYPE = "jms.messagetype";
 
+    private final static String COUNTER_PARSE_FAILURES = "Parse Failures";
+    private final static String COUNTER_RECORDS_RECEIVED = "Records Received";
+    private final static String COUNTER_RECORDS_PROCESSED = "Records Processed";
+
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
-            "AUTO_ACKNOWLEDGE (" + String.valueOf(Session.AUTO_ACKNOWLEDGE) + ")",
+            "AUTO_ACKNOWLEDGE (" + Session.AUTO_ACKNOWLEDGE + ")",
             "Automatically acknowledges a client's receipt of a message, regardless if NiFi session has been commited. "
                     + "Can result in data loss in the event where NiFi abruptly stopped before session was commited.");
 
     static final AllowableValue CLIENT_ACK = new AllowableValue(String.valueOf(Session.CLIENT_ACKNOWLEDGE),
-            "CLIENT_ACKNOWLEDGE (" + String.valueOf(Session.CLIENT_ACKNOWLEDGE) + ")",
+            "CLIENT_ACKNOWLEDGE (" + Session.CLIENT_ACKNOWLEDGE + ")",
             "(DEFAULT) Manually acknowledges a client's receipt of a message after NiFi Session was commited, thus ensuring no data loss");
 
     static final AllowableValue DUPS_OK = new AllowableValue(String.valueOf(Session.DUPS_OK_ACKNOWLEDGE),
-            "DUPS_OK_ACKNOWLEDGE (" + String.valueOf(Session.DUPS_OK_ACKNOWLEDGE) + ")",
+            "DUPS_OK_ACKNOWLEDGE (" + Session.DUPS_OK_ACKNOWLEDGE + ")",
             "This acknowledgment mode instructs the session to lazily acknowledge the delivery of messages. May result in both data "
                     + "duplication and data loss while achieving the best throughput.");
 
@@ -170,9 +182,36 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing received JMS Messages into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before writing them to a FlowFile.")
+            .build();
+
+    static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("output-strategy")
+            .displayName("Output Strategy")
+            .description("The format used to output the JMS message into a FlowFile record.")
+            .dependsOn(RECORD_READER)
+            .required(true)
+            .defaultValue(OutputStrategy.USE_VALUE.getValue())
+            .allowableValues(OutputStrategy.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are received from the JMS Destination are routed to this relationship")
+            .build();
+
+    public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
+            .name("parse.failure")
+            .description("If a message cannot be parsed using the configured Record Reader, the contents of the "
+                    + "message will be routed to this Relationship as its own individual FlowFile.")
+            .autoTerminateDefault(true) // to make sure flow are still valid after upgrades
             .build();
 
     private final static Set<Relationship> relationships;
@@ -205,6 +244,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(TIMEOUT);
         _propertyDescriptors.add(ERROR_QUEUE);
 
+        _propertyDescriptors.add(RECORD_READER);
+        _propertyDescriptors.add(RECORD_WRITER);
+        _propertyDescriptors.add(OUTPUT_STRATEGY);
+
         _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
         _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
 
@@ -212,6 +255,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_PARSE_FAILURE);
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
@@ -268,41 +312,103 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
         try {
-            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, new ConsumerCallback() {
-                @Override
-                public void accept(final JMSResponse response) {
-                    if (response == null) {
-                        return;
-                    }
-
-                    try {
-                        FlowFile flowFile = processSession.create();
-                        flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
-
-                        final Map<String, String> jmsHeaders = response.getMessageHeaders();
-                        final Map<String, String> jmsProperties = response.getMessageProperties();
-
-                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                        flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-
-                        processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                        processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
-                        processSession.transfer(flowFile, REL_SUCCESS);
-
-                        processSession.commitAsync(() -> acknowledge(response), throwable -> response.reject());
-                    } catch (final Throwable t) {
-                        response.reject();
-                        throw t;
-                    }
-                }
-            });
+            if (context.getProperty(RECORD_READER).isSet()) {
+                processMessageSet(context, processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
+            } else {
+                processSingleMessage(processSession, consumer, destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset);
+            }
         } catch(Exception e) {
             getLogger().error("Error while trying to process JMS message", e);
             consumer.setValid(false);
             context.yield();
             throw e;
         }
+    }
+
+    private void processSingleMessage(ProcessSession processSession, JMSConsumer consumer, String destinationName, String errorQueueName,
+                                      boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+
+        consumer.consumeSingleMessage(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, response -> {
+            if (response == null) {
+                return;
+            }
+
+            try {
+                final FlowFile flowFile = createFlowFileFromMessage(processSession, destinationName, response);
+
+                processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                processSession.transfer(flowFile, REL_SUCCESS);
+                processSession.commitAsync(
+                        () -> withLog(() -> acknowledge(response)),
+                        __ -> withLog(() -> response.reject()));
+            } catch (final Throwable t) {
+                response.reject();
+                throw t;
+            }
+        });
+    }
+
+    private FlowFile createFlowFileFromMessage(ProcessSession processSession, String destinationName, JMSResponse response) {
+        FlowFile flowFile = processSession.create();
+        flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+
+        final Map<String, String> jmsHeaders = response.getMessageHeaders();
+        final Map<String, String> jmsProperties = response.getMessageProperties();
+
+        flowFile = updateFlowFileAttributesWithJMSAttributes(mergeJmsAttributes(jmsHeaders, jmsProperties), flowFile, processSession);
+        flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+        flowFile = processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
+
+        return flowFile;
+    }
+
+    private void processMessageSet(ProcessContext context, ProcessSession session, JMSConsumer consumer, String destinationName,String errorQueueName,
+                                   boolean durable, boolean shared, String subscriptionName, String messageSelector, String charset) {
+
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
+
+        final FlowFileWriter<JMSResponse> flowFileWriter = new RecordWriter<>(
+                readerFactory,
+                writerFactory,
+                message -> message.getMessageBody() == null ? new byte[0] : message.getMessageBody(),
+                message -> mergeJmsAttributes(message.getMessageHeaders(), message.getMessageProperties()),
+                outputStrategy,
+                getLogger()
+        );
+
+        consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, jmsResponses -> {
+            flowFileWriter.write(session, jmsResponses, new FlowFileWriterCallback<JMSResponse>() {
+                @Override
+                public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
+                    session.getProvenanceReporter().receive(flowFile, destinationName);
+                    session.adjustCounter(COUNTER_RECORDS_RECEIVED, processedMessages.size() + failedMessages.size(), false);
+                    session.adjustCounter(COUNTER_RECORDS_PROCESSED, processedMessages.size(), false);
+
+                    session.transfer(flowFile, REL_SUCCESS);
+                    session.commitAsync(
+                            () -> withLog(() -> acknowledge(processedMessages, failedMessages)),
+                            __ -> withLog(() -> reject(processedMessages, failedMessages))
+                    );
+                }
+
+                @Override
+                public void onParseFailure(FlowFile flowFile, JMSResponse message, Exception e) {
+                    session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
+
+                    final FlowFile failedMessage = createFlowFileFromMessage(session, destinationName, message);
+                    session.transfer(failedMessage, REL_PARSE_FAILURE);
+                }
+
+                @Override
+                public void onFailure(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages, Exception e) {
+                    reject(processedMessages, failedMessages);
+                    // It would be nicer to call rollback and yield here, but we are rethrowing the exception to have the same error handling with processSingleMessage.
+                    throw new ProcessException(e);
+                }
+            });
+        });
     }
 
     private void acknowledge(final JMSResponse response) {
@@ -314,6 +420,26 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         }
     }
 
+    private void acknowledge(final List<JMSResponse> processedMessages, final List<JMSResponse> failedMessages) {
+        acknowledge(findLastBatchedJmsResponse(processedMessages, failedMessages));
+    }
+
+    private void reject(final List<JMSResponse> processedMessages, final List<JMSResponse> failedMessages) {
+        findLastBatchedJmsResponse(processedMessages, failedMessages).reject();
+    }
+
+    private void withLog(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (Exception e) {
+            getLogger().error("An error happened during commitAsync callback", e);
+            throw e;
+        }
+    }
+
+    private JMSResponse findLastBatchedJmsResponse(List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
+        return Stream.of(processedMessages, failedMessages).flatMap(Collection::stream).max(Comparator.comparing(JMSResponse::getBatchOrder)).get();
+    }
 
     /**
      * Will create an instance of {@link JMSConsumer}
@@ -374,5 +500,17 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
         flowFile = processSession.putAllAttributes(flowFile, attributes);
         return flowFile;
+    }
+
+    private Map<String, String> mergeJmsAttributes(Map<String, String> headers, Map<String, String> properties) {
+        final Map<String, String> jmsAttributes = new HashMap<>(headers);
+        properties.forEach((key, value) -> {
+            if (jmsAttributes.containsKey(key)) {
+                getLogger().warn("JMS Header and Property name collides as an attribute. JMS Property will override the JMS Header attribute. attributeName=[{}]", key);
+            }
+            jmsAttributes.put(key, value);
+        });
+
+        return jmsAttributes;
     }
 }

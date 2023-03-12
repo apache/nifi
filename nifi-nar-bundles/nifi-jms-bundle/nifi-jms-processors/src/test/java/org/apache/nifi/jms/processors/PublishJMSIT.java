@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.TransportConnector;
@@ -28,12 +30,17 @@ import org.apache.nifi.jms.processors.helpers.ConnectionFactoryInvocationHandler
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.mockito.Mockito;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
@@ -48,20 +55,41 @@ import java.lang.reflect.Proxy;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Arrays.asList;
+import static org.apache.nifi.jms.processors.PublishJMS.REL_FAILURE;
+import static org.apache.nifi.jms.processors.PublishJMS.REL_SUCCESS;
 import static org.apache.nifi.jms.processors.helpers.AssertionUtils.assertCausedBy;
+import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetReaderService;
+import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetWriterService;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+import static org.apache.nifi.jms.processors.ioconcept.reader.StateTrackingFlowFileReader.ATTR_READ_FAILED_INDEX_SUFFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PublishJMSIT {
+
+    TestRunner testRunner;
+
+    @AfterEach
+    public void cleanup() {
+        if (testRunner != null) {
+            testRunner.run(1, true, false); // Run once just so that we can trigger the shutdown of the Connection Factory
+            testRunner = null;
+        }
+    }
 
     @Test
     @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
@@ -91,7 +119,7 @@ public class PublishJMSIT {
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
@@ -134,7 +162,7 @@ public class PublishJMSIT {
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left in tact so that we can use it.
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
@@ -169,8 +197,8 @@ public class PublishJMSIT {
         runner.run();
         Thread.sleep(200);
 
-        assertTrue(runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).isEmpty());
-        assertNotNull(runner.getFlowFilesForRelationship(PublishJMS.REL_FAILURE).get(0));
+        assertTrue(runner.getFlowFilesForRelationship(REL_SUCCESS).isEmpty());
+        assertNotNull(runner.getFlowFilesForRelationship(REL_FAILURE).get(0));
     }
 
     @Test
@@ -198,7 +226,7 @@ public class PublishJMSIT {
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false);
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
@@ -256,7 +284,7 @@ public class PublishJMSIT {
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false); // Run once but don't shut down because we want the Connection Factory left intact so that we can use it.
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
@@ -316,7 +344,7 @@ public class PublishJMSIT {
         runner.enqueue("Hey dude!".getBytes(), attributes);
         runner.run(1, false);
 
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
@@ -541,5 +569,211 @@ public class PublishJMSIT {
         assertCausedBy(ClassNotFoundException.class, nonExistentClassName, runner::run);
 
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
+    }
+
+    @Test
+    public void testPublishRecords() throws InitializationException {
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        String destination = "testPublishRecords";
+        testRunner = initializeTestRunner(cf, destination);
+        testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.assertValid();
+
+        final ArrayNode testInput = createTestJsonInput();
+
+        testRunner.enqueue(testInput.toString().getBytes());
+
+        testRunner.run(1, false); // Run once but don't shut down because we want the Connection Factory left intact so that we can use it.
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, 3));
+
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        verifyPublishedMessage(cf, destination, testInput.get(0).toString());
+        verifyPublishedMessage(cf, destination, testInput.get(1).toString());
+        verifyPublishedMessage(cf, destination, testInput.get(2).toString());
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
+        assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
+    }
+
+    @Test
+    public void testPublishRecordsFailed() throws InitializationException {
+        PublishJMS processor = new PublishJMS() {
+            @Override
+            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
+                JMSPublisher spiedPublisher = Mockito.spy(publisher);
+                Mockito.doCallRealMethod()
+                        .doThrow(new RuntimeException("Second publish failed."))
+                        .when(spiedPublisher).publish(any(), any(byte[].class), any());
+                super.rendezvousWithJms(context, processSession, spiedPublisher);
+            }
+        };
+
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        String destination = "testPublishRecords";
+        testRunner = initializeTestRunner(processor, cf, destination);
+        testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.assertValid();
+
+        final ArrayNode testInput = createTestJsonInput();
+
+        testRunner.enqueue(testInput.toString().getBytes());
+
+        testRunner.run(1, false); // Run once but don't shut down because we want the Connection Factory left intact so that we can use it.
+
+        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, 1));
+
+        verifyPublishedMessage(cf, destination, testInput.get(0).toString());
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
+        assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
+    }
+
+    @Test
+    public void testContinuePublishRecordsAndFailAgainWhenPreviousPublishFailed() throws InitializationException {
+        PublishJMS processor = new PublishJMS() {
+            @Override
+            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSPublisher publisher) throws ProcessException {
+                JMSPublisher spiedPublisher = Mockito.spy(publisher);
+                Mockito.doCallRealMethod()
+                        .doThrow(new RuntimeException("Second publish failed."))
+                        .when(spiedPublisher).publish(any(), any(byte[].class), any());
+                super.rendezvousWithJms(context, processSession, spiedPublisher);
+            }
+        };
+
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        String destination = "testPublishRecords";
+        testRunner = initializeTestRunner(processor, cf, destination);
+        testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.assertValid();
+
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
+        final ArrayNode testInput = createTestJsonInput();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(publishFailedIndexAttributeName, "1");
+        testRunner.enqueue(testInput.toString().getBytes(), attributes);
+
+        testRunner.run(1, false); // Run once but don't shut down because we want the Connection Factory left intact so that we can use it.
+
+        testRunner.assertAllFlowFilesTransferred(REL_FAILURE);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, 2));
+
+        verifyPublishedMessage(cf, destination, testInput.get(1).toString());
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile failedFlowFile = flowFiles.get(0);
+        assertEquals("2", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
+    }
+
+    @Test
+    public void testContinuePublishRecordsSuccessfullyWhenPreviousPublishFailed() throws InitializationException {
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+        String destination = "testPublishRecords";
+        testRunner = initializeTestRunner(cf, destination);
+        testRunner.setProperty(PublishJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.assertValid();
+
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
+        final ArrayNode testInput = createTestJsonInput();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(publishFailedIndexAttributeName, "1");
+        testRunner.enqueue(testInput.toString().getBytes(), attributes);
+
+        testRunner.run(1, false); // Run once but don't shut down because we want the Connection Factory left intact so that we can use it.
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER, 3));
+
+        verifyPublishedMessage(cf, destination, testInput.get(1).toString());
+        verifyPublishedMessage(cf, destination, testInput.get(2).toString());
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
+                publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
+    }
+
+    private TestRunner initializeTestRunner(ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
+        PublishJMS processor = new PublishJMS();
+        return initializeTestRunner(processor, connectionFactory, destinationName);
+    }
+
+    private TestRunner initializeTestRunner(PublishJMS processor, ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        when(cs.getIdentifier()).thenReturn("cfProvider");
+        when(cs.getConnectionFactory()).thenReturn(connectionFactory);
+
+        runner.addControllerService("cfProvider", cs);
+        runner.enableControllerService(cs);
+
+        runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(PublishJMS.DESTINATION, destinationName);
+
+        return runner;
+    }
+
+    private void verifyPublishedMessage(ConnectionFactory connectionFactory, String destinationName, String content) {
+        JmsTemplate jmst = new JmsTemplate(connectionFactory);
+        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+
+        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        assertEquals(content, new String(messageBytes));
+    }
+
+    private ProvenanceEventRecord assertProvenanceEvent() {
+        final List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertNotNull(provenanceEvents);
+        assertEquals(1, provenanceEvents.size());
+
+        final ProvenanceEventRecord event = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, event.getEventType());
+
+        return event;
+    }
+
+    private void assertProvenanceEvent(String expectedDetails) {
+        final ProvenanceEventRecord event = assertProvenanceEvent();
+        assertEquals(expectedDetails, event.getDetails());
+    }
+
+    private static ArrayNode createTestJsonInput() {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        return mapper.createArrayNode().addAll(asList(
+                mapper.createObjectNode()
+                        .put("recordId", 1)
+                        .put("firstAttribute", "foo")
+                        .put("secondAttribute", false),
+                mapper.createObjectNode()
+                        .put("recordId", 2)
+                        .put("firstAttribute", "bar")
+                        .put("secondAttribute", true),
+                mapper.createObjectNode()
+                        .put("recordId", 3)
+                        .put("firstAttribute", "foobar")
+                        .put("secondAttribute", false)
+        ));
     }
 }
