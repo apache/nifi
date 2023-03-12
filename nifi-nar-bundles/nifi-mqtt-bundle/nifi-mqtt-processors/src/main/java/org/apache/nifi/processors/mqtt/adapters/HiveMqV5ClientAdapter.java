@@ -24,12 +24,12 @@ import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.mqtt.common.MqttCallback;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.MqttProtocolScheme;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
+import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsException;
@@ -49,8 +49,6 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     private final Mqtt5BlockingClient mqtt5BlockingClient;
     private final MqttClientProperties clientProperties;
     private final ComponentLog logger;
-
-    private MqttCallback callback;
 
     public HiveMqV5ClientAdapter(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {
         this.mqtt5BlockingClient = createClient(brokerUri, clientProperties, logger);
@@ -124,9 +122,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     }
 
     @Override
-    public void subscribe(String topicFilter, int qos) {
-        Objects.requireNonNull(callback, "callback should be set");
-
+    public void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler) {
         logger.debug("Subscribing to {} with QoS: {}", topicFilter, qos);
 
         CompletableFuture<Mqtt5SubAck> futureAck = mqtt5BlockingClient.toAsync().subscribeWith()
@@ -138,7 +134,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
                             mqtt5Publish.getQos().getCode(),
                             mqtt5Publish.isRetain(),
                             mqtt5Publish.getTopic().toString());
-                    callback.messageArrived(receivedMessage);
+                    handler.handleReceivedMessage(receivedMessage);
                 })
                 .send();
 
@@ -150,11 +146,6 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         } catch (Exception e) {
             throw new MqttException("An error has occurred during sending subscribe message to broker", e);
         }
-    }
-
-    @Override
-    public void setCallback(MqttCallback callback) {
-        this.callback = callback;
     }
 
     private static Mqtt5BlockingClient createClient(URI brokerUri, MqttClientProperties clientProperties, ComponentLog logger) throws TlsException {

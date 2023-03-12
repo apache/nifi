@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
-public interface MqttCallback {
-    void connectionLost(Throwable cause);
-    void messageArrived(ReceivedMqttMessage message);
-    void deliveryComplete(String token);
+public interface ReceivedMqttMessageHandler {
+
+    /**
+     * Handler to process received MQTT message
+     *
+     * @param message to process
+     */
+    void handleReceivedMessage(ReceivedMqttMessage message);
 }

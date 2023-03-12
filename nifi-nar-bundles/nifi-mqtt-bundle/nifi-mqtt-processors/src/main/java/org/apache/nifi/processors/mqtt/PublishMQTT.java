@@ -38,8 +38,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
-import org.apache.nifi.processors.mqtt.common.MqttCallback;
-import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -74,7 +72,7 @@ import static java.util.Optional.ofNullable;
 @CapabilityDescription("Publishes a message to an MQTT topic")
 @SeeAlso({ConsumeMQTT.class})
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
-public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
+public class PublishMQTT extends AbstractMQTTProcessor {
 
     public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()
             .name("Topic")
@@ -289,30 +287,11 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         // non-null but not connected, so we need to handle each case and only create a new client when it is null
         try {
             mqttClient = createMqttClient();
-            mqttClient.setCallback(this);
             mqttClient.connect();
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             context.yield();
         }
-    }
-
-    @Override
-    public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost", clientProperties.getRawBrokerUris(), cause);
-    }
-
-    @Override
-    public void messageArrived(ReceivedMqttMessage message) {
-        // Unlikely situation. Api uses the same callback for publisher and consumer as well.
-        // That's why we have this log message here to indicate something really messy thing happened.
-        logger.error("Message arrived to a PublishMQTT processor { topic:'" + message.getTopic() + "; payload:" + Arrays.toString(message.getPayload()) + "}");
-    }
-
-    @Override
-    public void deliveryComplete(String token) {
-        // Client.publish waits for message to be delivered so this token will always have a null message and is useless in this application.
-        logger.trace("Received 'delivery complete' message from broker. Token: [{}]", token);
     }
 
     interface ProcessStrategy {
