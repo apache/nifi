@@ -115,7 +115,7 @@
         "typescript": "4.5.5",
         "url-loader": "1.1.2",
         "webpack": "4.46.0",
-        "webpack-cli": "4.9.1",
+        "webpack-cli": "4.10.0",
         "webpack-dev-server": "4.7.3",
         "webpack-fix-style-only-entries": "0.6.1",
         "webpack-merge": "4.2.2"
@@ -129,7 +129,6 @@
     "resolutions": {
         "glob-parent": "6.0.2",
         "trim-newlines": "3.0.1",
-        "node-fetch": "3.2.10",
         "ua-parser-js": "0.7.33",
         "json5": "2.2.3",
         "loader-utils": "2.0.4"
