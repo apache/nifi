@@ -116,12 +116,12 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #global-menu-content a.disabled {
-    color: #D5D5D5 !important;
+    color: #ACABA8 !important;
     cursor: not-allowed;
 }
 
 #global-menu-content a.disabled i {
-    color: #D5D5D5;
+    color: #ACABA8;
 }
 
 #global-menu-content a:hover{

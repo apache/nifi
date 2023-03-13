@@ -23,8 +23,8 @@
 
 #nf-about-pic {
     height: 60%;
-    background: url(../images/nifi-logo-about.svg) #000000 no-repeat center center;
-    top: 20%;
+    /*background: url(../images/nifi-logo-about.svg) #000000 no-repeat center center;
+    top: 20%;*/
     position: relative;
 }
 

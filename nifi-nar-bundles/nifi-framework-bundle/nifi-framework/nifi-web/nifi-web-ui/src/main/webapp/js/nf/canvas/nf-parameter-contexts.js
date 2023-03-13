@@ -3031,8 +3031,8 @@
                     var editModeButtonModel = [{
                         buttonText: 'Apply',
                         color: {
-                            base: '#728E9B',
-                            hover: '#004849',
+                            base: '#000080',
+                            hover: '#333399',
                             text: '#ffffff'
                         },
                         disabled: function () {
