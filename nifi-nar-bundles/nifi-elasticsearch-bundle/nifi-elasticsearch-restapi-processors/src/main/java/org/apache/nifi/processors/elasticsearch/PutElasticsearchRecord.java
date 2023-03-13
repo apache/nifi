@@ -373,7 +373,9 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 final Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils
                         .convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
                 formatDateTimeFields(contentMap, record);
-                contentMap.putIfAbsent("@timestamp", timestamp);
+                if (timestamp != null) {
+                    contentMap.putIfAbsent("@timestamp", timestamp);
+                }
 
                 operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
                 originals.add(record);
