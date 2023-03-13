@@ -17,6 +17,8 @@
 package org.apache.nifi.encrypt;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
 import org.apache.nifi.security.util.crypto.KeyDerivationBcryptSecureHasher;
@@ -64,6 +66,7 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
         final KeyDerivationFunction keyDerivationFunction = propertyEncryptionMethod.getKeyDerivationFunction();
         final int keyLength = propertyEncryptionMethod.getKeyLength();
         LOGGER.debug("Generating [{}-{}] Secret Key using [{}]", SECRET_KEY_ALGORITHM, keyLength, keyDerivationFunction.getKdfName());
+        logDeprecated(propertyEncryptionMethod);
 
         final SecureHasher secureHasher = getSecureHasher(propertyEncryptionMethod);
         final byte[] passwordBinary = password.getBytes(PASSWORD_CHARSET);
@@ -86,6 +89,19 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
         } else {
             final String message = String.format("Key Derivation Function [%s] not supported", keyDerivationFunction.getKdfName());
             throw new EncryptionException(message);
+        }
+    }
+
+    private static void logDeprecated(final PropertyEncryptionMethod method) {
+        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(StandardPropertySecretKeyProvider.class);
+        final PropertyEncryptionMethod recommendedMethod = PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256;
+        final KeyDerivationFunction keyDerivationFunction = method.getKeyDerivationFunction();
+        final int keyLength = method.getKeyLength();
+
+        if (KeyDerivationFunction.BCRYPT == keyDerivationFunction || KeyDerivationFunction.SCRYPT == keyDerivationFunction) {
+            deprecationLogger.warn("Sensitive Properties Algorithm [{}] is deprecated in favor of [{}]", method, recommendedMethod);
+        } else if (keyLength == 128) {
+            deprecationLogger.warn("Sensitive Properties Algorithm [{}] Key Length [{}] should be upgraded to Key Length [{}]", method, keyLength, recommendedMethod.getKeyLength());
         }
     }
 }

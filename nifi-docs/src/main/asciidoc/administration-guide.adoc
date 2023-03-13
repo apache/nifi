@@ -2020,12 +2020,15 @@ Each Key Derivation Function also uses default iteration and cost parameters as 
 === Property Encryption Algorithms
 The following strong encryption methods can be configured in the `nifi.sensitive.props.algorithm` property:
 
-* `NIFI_ARGON2_AES_GCM_128`
 * `NIFI_ARGON2_AES_GCM_256`
+* `NIFI_PBKDF2_AES_GCM_256`
+
+The following sensitive properties algorithms are deprecated and will be removed in subsequent major releases:
+
+* `NIFI_ARGON2_AES_GCM_128`
 * `NIFI_BCRYPT_AES_GCM_128`
 * `NIFI_BCRYPT_AES_GCM_256`
 * `NIFI_PBKDF2_AES_GCM_128`
-* `NIFI_PBKDF2_AES_GCM_256`
 * `NIFI_SCRYPT_AES_GCM_128`
 * `NIFI_SCRYPT_AES_GCM_256`
 
