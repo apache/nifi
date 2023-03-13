@@ -67,7 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
         "evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being " +
         "evaluated by this processor and the hardware supporting it especially when working against large files.")
 
-@SeeAlso(classNames = {"org.apache.nifi.processors.standard.HashContent"}, value = {CompareFuzzyHash.class})
+@SeeAlso(value = {CompareFuzzyHash.class})
 @WritesAttributes({@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
         + "existing FlowFile content. The name of this attribute is specified by the <Hash Attribute Name> property")})
 
