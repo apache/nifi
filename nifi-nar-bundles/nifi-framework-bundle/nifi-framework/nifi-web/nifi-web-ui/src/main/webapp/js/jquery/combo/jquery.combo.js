@@ -206,7 +206,7 @@
                                     // click the glass pane which will hide the options
                                     $('.combo-glass-pane').click();
                                 }).hover(function () {
-                                    $(this).addClass('pointer').css('background', '#eaeef0');
+                                    $(this).addClass('pointer').css('background', '#ebf2fa');
                                 }, function () {
                                     $(this).removeClass('pointer').css('background', '#ffffff');
                                 });
