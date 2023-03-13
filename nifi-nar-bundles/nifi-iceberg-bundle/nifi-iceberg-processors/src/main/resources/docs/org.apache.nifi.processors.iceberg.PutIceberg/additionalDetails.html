@@ -28,7 +28,7 @@
         <h3>Description</h3>
         <p>
             Iceberg is a high-performance format for huge analytic tables.
-            The PutIceberg processor is capable to push data into iceberg tables using different type of Iceberg catalog implementations.
+            The PutIceberg processor is capable of pushing data into Iceberg tables using different types of Iceberg catalog implementations.
         </p>
 
         <h3>Commit retry properties</h3>
@@ -40,10 +40,10 @@
                 Number Of Commit Retries (default: 3) - Number of retries that the processor is going to try to commit the new data files.
             </li>
             <li>
-                Minimum Commit Wait Time (default: 100 ms) - Minimum time that the processor is going to wait before each commit attempts.
+                Minimum Commit Wait Time (default: 100 ms) - Minimum time that the processor is going to wait before each commit attempt.
             </li>
             <li>
-                Maximum Commit Wait Time (default: 100 ms) - Maximum time that the processor is going to wait before each commit attempts.
+                Maximum Commit Wait Time (default: 1 min) - Maximum time that the processor is going to wait before each commit attempt.
             </li>
             <li>
                 Maximum Commit Duration (default: 30 min) - Maximum duration that the processor is going to wait before failing the current processor event's commit.

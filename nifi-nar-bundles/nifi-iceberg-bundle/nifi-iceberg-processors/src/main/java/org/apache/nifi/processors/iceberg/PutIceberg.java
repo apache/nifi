@@ -118,7 +118,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
     static final PropertyDescriptor NUMBER_OF_COMMIT_RETRIES = new PropertyDescriptor.Builder()
             .name("number-of-commit-retries")
-            .displayName("Number Of Commit Retries")
+            .displayName("Number of Commit Retries")
             .description("Number of times to retry a commit before failing.")
             .required(true)
             .defaultValue("3")
@@ -203,7 +203,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             table = loadTable(context);
         } catch (Exception e) {
             getLogger().error("Failed to load table from catalog", e);
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
 
@@ -235,7 +235,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 getLogger().error("Failed to abort uncommitted data files", ex);
             }
 
-            session.transfer(flowFile, REL_FAILURE);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         }
 
