@@ -33,7 +33,7 @@ public class PropertyEncryptorFactoryTest {
     @Test
     public void testGetPropertyEncryptorUnsupportedEncryptionMethod() {
         final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, EncryptionMethod.PGP.getAlgorithm());
+        properties.setProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, EncryptionMethod.AES_CBC_NO_PADDING.getAlgorithm());
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, String.class.getName());
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 

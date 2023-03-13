@@ -47,8 +47,6 @@ public enum EncryptionMethod {
     SHA_2KEYTRIPLEDES("PBEWITHSHAAND2-KEYTRIPLEDES-CBC", "BC", false, false),
     SHA_3KEYTRIPLEDES("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", "BC", false, false),
     SHA_TWOFISH("PBEWITHSHAANDTWOFISH-CBC", "BC", false, false),
-    PGP("PGP", "BC", false, false),
-    PGP_ASCII_ARMOR("PGP-ASCII-ARMOR", "BC", false, false),
     // AES/CBC/NoPadding supported for decryption
     AES_CBC_NO_PADDING("AES/CBC/NoPadding", "BC", false, true),
     AES_CBC("AES/CBC/PKCS7Padding", "BC", false, true),

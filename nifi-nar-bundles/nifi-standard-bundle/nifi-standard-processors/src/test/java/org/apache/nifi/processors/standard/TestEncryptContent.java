@@ -20,7 +20,6 @@ import groovy.time.TimeCategory;
 import groovy.time.TimeDuration;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
@@ -35,8 +34,6 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bouncycastle.bcpg.BCPGInputStream;
-import org.bouncycastle.bcpg.SymmetricKeyEncSessionPacket;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,41 +43,24 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.security.Security;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestEncryptContent {
-
-    private static AllowableValue[] getPGPCipherList() {
-        try{
-            Method method = EncryptContent.class.getDeclaredMethod("buildPGPSymmetricCipherAllowableValues");
-            method.setAccessible(true);
-            return ((AllowableValue[]) method.invoke(null));
-        } catch (Exception e){
-            fail("Cannot access buildPGPSymmetricCipherAllowableValues");
-        }
-        return null;
-    }
 
     private static final List<EncryptionMethod> SUPPORTED_KEYED_ENCRYPTION_METHODS = Arrays
             .stream(EncryptionMethod.values())
@@ -164,85 +144,6 @@ public class TestEncryptContent {
         }
     }
 
-
-    @Test
-    public void testPGPCiphersRoundTrip() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
-        testRunner.setProperty(EncryptContent.PASSWORD, "passwordpassword"); // a >=16 characters password
-        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
-
-        List<String> pgpAlgorithms = new ArrayList<>();
-        pgpAlgorithms.add("PGP");
-        pgpAlgorithms.add("PGP_ASCII_ARMOR");
-
-        for (String algorithm : pgpAlgorithms) {
-            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
-            for (AllowableValue cipher : Objects.requireNonNull(getPGPCipherList())) {
-                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, cipher.getValue());
-                testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-
-                testRunner.enqueue("A cool plaintext!");
-                testRunner.clearTransferState();
-                testRunner.run();
-
-                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
-
-                MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
-                testRunner.assertQueueEmpty();
-
-                testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-                // Encryption cipher is inferred from ciphertext, this property deliberately set a fixed cipher to prove
-                // the output will still be correct
-                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "1");
-
-                testRunner.enqueue(flowFile);
-                testRunner.clearTransferState();
-                testRunner.run();
-                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
-
-                flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
-                flowFile.assertContentEquals("A cool plaintext!");
-            }
-        }
-    }
-
-    @Test
-    public void testPGPCiphers() throws Exception {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
-        testRunner.setProperty(EncryptContent.PASSWORD, "passwordpassword"); // a >= 16 characters password
-        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
-
-        List<String> pgpAlgorithms = new ArrayList<>();
-        pgpAlgorithms.add("PGP");
-        pgpAlgorithms.add("PGP_ASCII_ARMOR");
-
-        for (String algorithm : pgpAlgorithms) {
-
-            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, algorithm);
-            for (AllowableValue cipher : Objects.requireNonNull(getPGPCipherList())) {
-                testRunner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, cipher.getValue());
-                testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-
-                testRunner.enqueue("A cool plaintext!");
-                testRunner.clearTransferState();
-                testRunner.run();
-
-                testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
-
-                MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
-                testRunner.assertQueueEmpty();
-
-                // Other than the round trip, checks that the provided cipher is actually used, inferring it from the ciphertext
-                InputStream ciphertext = new ByteArrayInputStream(flowFile.toByteArray());
-                BCPGInputStream pgpin = new BCPGInputStream(getDecoderStream(ciphertext));
-                assertEquals(3, pgpin.nextPacketTag());
-                assertEquals(Integer.parseInt(cipher.getValue()),
-                        ((SymmetricKeyEncSessionPacket) pgpin.readPacket()).getEncAlgorithm());
-                pgpin.close();
-            }
-        }
-    }
-
     @Test
     public void testShouldDetermineMaxKeySizeForAlgorithms() {
         final String AES_ALGORITHM = EncryptionMethod.MD5_256AES.getAlgorithm();
@@ -321,143 +222,6 @@ public class TestEncryptContent {
     }
 
     @Test
-    public void testPGPDecrypt() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP_ASCII_ARMOR.name());
-        runner.setProperty(EncryptContent.PASSWORD, "Hello, World!");
-
-        runner.enqueue(Paths.get("src/test/resources/TestEncryptContent/text.txt.asc"));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(Paths.get("src/test/resources/TestEncryptContent/text.txt"));
-    }
-
-    @Test
-    public void testShouldValidatePGPPublicKeyringRequiresUserId() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        // Act
-        results = pc.validate();
-
-        // Assert
-        assertEquals(1, results.size());
-        ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
-                + EncryptContent.PUBLIC_KEY_USERID.getDisplayName();
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        assertTrue(vr.toString().contains(expectedResult), message);
-    }
-
-    @Test
-    public void testShouldValidatePGPPublicKeyringExists() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg.missing");
-        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        // Act
-        results = pc.validate();
-
-        // Assert
-        assertEquals(1, results.size());
-        ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = "java.io.FileNotFoundException";
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        assertTrue(vr.toString().contains(expectedResult), message);
-    }
-
-    @Test
-    public void testShouldValidatePGPPublicKeyringIsProperFormat() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/text.txt");
-        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        // Act
-        results = pc.validate();
-
-        // Assert
-        assertEquals(1, results.size());
-        ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = " java.io.IOException: invalid header encountered";
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        assertTrue(vr.toString().contains(expectedResult), message);
-    }
-
-    @Test
-    public void testShouldValidatePGPPublicKeyringContainsUserId() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
-        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "USERID");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        // Act
-        results = pc.validate();
-
-        // Assert
-        assertEquals(1, results.size());
-        ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = "PGPException: Could not find a public key with the given userId";
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        assertTrue(vr.toString().contains(expectedResult), message);
-    }
-
-    @Test
-    public void testShouldExtractPGPPublicKeyFromKeyring() {
-        // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/pubring.gpg");
-        runner.setProperty(EncryptContent.PUBLIC_KEY_USERID, "NiFi PGP Test Key (Short test key for NiFi PGP unit tests) <alopresto.apache+test@gmail.com>");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        // Act
-        results = pc.validate();
-
-        // Assert
-        assertEquals(0, results.size());
-    }
-
-    @Test
     public void testValidation() {
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
         Collection<ValidationResult> results;
@@ -491,112 +255,6 @@ public class TestEncryptContent {
         results = pc.validate();
 
         assertEquals(0, results.size(), results.toString());
-
-        runner.removeProperty(EncryptContent.PASSWORD);
-
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        runner.setProperty(EncryptContent.PUBLIC_KEYRING, "src/test/resources/TestEncryptContent/text.txt");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-        results = pc.validate();
-        assertEquals(1, results.size());
-        for (final ValidationResult vr : results) {
-            assertTrue(vr.toString().contains(
-                    " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                            + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
-                            + EncryptContent.PUBLIC_KEY_USERID.getDisplayName()));
-        }
-
-        // Legacy tests moved to individual tests to comply with new library
-
-        // TODO: Move secring tests out to individual as well
-
-        runner.removeProperty(EncryptContent.PUBLIC_KEYRING);
-        runner.removeProperty(EncryptContent.PUBLIC_KEY_USERID);
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-        runner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/secring.gpg");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-        results = pc.validate();
-        assertEquals(1, results.size());
-        for (final ValidationResult vr : results) {
-            assertTrue(vr.toString().contains(
-                    " decryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                            + EncryptContent.PRIVATE_KEYRING.getDisplayName() + " and "
-                            + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
-
-        }
-
-        runner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, "PASSWORD");
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-        results = pc.validate();
-        assertEquals(1, results.size());
-        for (final ValidationResult vr : results) {
-            assertTrue(vr.toString().contains(
-                    " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
-
-        }
-        runner.removeProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE);
-
-        // This configuration is invalid because PGP_SYMMETRIC_ENCRYPTION_CIPHER is outside the allowed [1-13] interval
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
-        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
-        runner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "256");
-        runner.assertNotValid();
-
-        // This configuration is invalid because PGP_SYMMETRIC_ENCRYPTION_CIPHER points to SAFER cipher which is unsupported
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
-        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
-        runner.setProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER, "5");
-        runner.assertNotValid();
-
-        // This configuration is valid
-        runner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
-        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
-        runner.removeProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER);
-        runner.assertValid();
-
-        // This configuration is valid because the default value will be used for PGP_SYMMETRIC_ENCRYPTION_CIPHER
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, "PGP");
-        runner.setProperty(EncryptContent.PASSWORD, "PASSWORD");
-        runner.removeProperty(EncryptContent.PGP_SYMMETRIC_ENCRYPTION_CIPHER);
-        runner.assertValid();
-    }
-
-    @Test
-    void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() {
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class);
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC;
-
-        // Integer.MAX_VALUE or 128, so use 256 or 128
-        final int MAX_KEY_LENGTH = Math.min(PasswordBasedEncryptor.getMaxAllowedKeyLength(encryptionMethod.getAlgorithm()), 256);
-        final String TOO_LONG_KEY_HEX = StringUtils.repeat("ab", (MAX_KEY_LENGTH / 8 + 1));
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE);
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name());
-        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
-        runner.setProperty(EncryptContent.RAW_KEY_HEX, TOO_LONG_KEY_HEX);
-
-        runner.enqueue(new byte[0]);
-        pc = (MockProcessContext) runner.getProcessContext();
-
-        results = pc.validate();
-
-        assertEquals(1, results.size());
-        ValidationResult vr = results.iterator().next();
-
-        String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]";
-        String message = "'" + vr.toString() + "' contains '" + expectedResult + "'";
-        assertTrue(vr.toString().contains(expectedResult), message);
     }
 
     @Test
@@ -728,7 +386,7 @@ public class TestEncryptContent {
             // Scenario 2 - PW w/ KDF in [BCRYPT, SCRYPT, PBKDF2, ARGON2] & em in [CBC, CTR, GCM] (no RKH)
             final List<KeyDerivationFunction> validKDFs = Arrays
                     .stream(KeyDerivationFunction.values())
-                    .filter(it -> it.isStrongKDF())
+                    .filter(KeyDerivationFunction::isStrongKDF)
                     .collect(Collectors.toList());
             for (final KeyDerivationFunction kdf : validKDFs) {
                 runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, kem.name());
@@ -872,7 +530,7 @@ public class TestEncryptContent {
         assertEquals(EXPECTED_SALT_HEX, flowFile.getAttribute("encryptcontent.salt"));
         assertEquals("16", flowFile.getAttribute("encryptcontent.salt_length"));
         assertEquals(EXPECTED_KDF_SALT, flowFile.getAttribute("encryptcontent.kdf_salt"));
-        final int kdfSaltLength = Integer.valueOf(flowFile.getAttribute("encryptcontent.kdf_salt_length"));
+        final int kdfSaltLength = Integer.parseInt(flowFile.getAttribute("encryptcontent.kdf_salt_length"));
         assertTrue(kdfSaltLength >= 29 && kdfSaltLength <= 54);
         assertEquals(EXPECTED_IV_HEX, flowFile.getAttribute("encryptcontent.iv"));
         assertEquals("16", flowFile.getAttribute("encryptcontent.iv_length"));
@@ -1072,38 +730,6 @@ public class TestEncryptContent {
     }
 
     @Test
-    void testPGPPasswordShouldSupportExpressionLanguage() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
-        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
-        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());
-        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING, "src/test/resources/TestEncryptContent/secring.gpg");
-
-        Collection<ValidationResult> results;
-        MockProcessContext pc;
-
-        // Verify this is the correct password
-        final String passphraseWithoutEL = "thisIsABadPassword";
-        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, passphraseWithoutEL);
-
-        testRunner.clearTransferState();
-        testRunner.enqueue(new byte[0]);
-        pc = (MockProcessContext) testRunner.getProcessContext();
-
-        results = pc.validate();
-        assertEquals(0, results.size(), results.toString());
-
-        final String passphraseWithEL = "${literal('thisIsABadPassword')}";
-        testRunner.setProperty(EncryptContent.PRIVATE_KEYRING_PASSPHRASE, passphraseWithEL);
-
-        testRunner.clearTransferState();
-        testRunner.enqueue(new byte[0]);
-
-        results = pc.validate();
-
-        assertEquals(0, results.size(), results.toString());
-    }
-
-    @Test
     void testArgon2ShouldIncludeFullSalt() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
         testRunner.setProperty(EncryptContent.PASSWORD, "thisIsABadPassword");
@@ -1142,8 +768,7 @@ public class TestEncryptContent {
     private static String extractRawSaltHexFromFullSalt(byte[] fullSaltBytes, KeyDerivationFunction kdf) {
         // Salt will be in Base64 (or Radix64) for strong KDFs
         byte[] rawSaltBytes = CipherUtility.extractRawSalt(fullSaltBytes, kdf);
-        String rawSaltHex = Hex.encodeHexString(rawSaltBytes);
-        return rawSaltHex;
+        return Hex.encodeHexString(rawSaltBytes);
     }
 
     private static TimeDuration calculateTimestampDifference(Date date, String timestamp) throws ParseException {
