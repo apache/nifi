@@ -320,7 +320,7 @@ span.details-title {
     float: right;
     right: 7px;
     top: 7px;
-    color: #004849;
+    color: #000080;
 }
 
 #template-file-field,
@@ -371,7 +371,7 @@ span.details-title {
 
 #upload-template-button,
 #upload-file-button {
-    color: #004849;
+    color: #000080;
     font-size: 16px;
     cursor: pointer;
 }
@@ -403,7 +403,7 @@ span#import-process-group-link.link {
 }
 
 span#import-process-group-link.link-over {
-    border-bottom: 1px solid #004849;
+    border-bottom: 1px solid #000080;
 }
 
 span#import-process-group-link.link-bold {

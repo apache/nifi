@@ -685,7 +685,7 @@ md-progress-linear > div {
 .setting-field {
     line-height: normal;
     width: 100%;
-    color: #595757;
+    color: #000080;
     font-size: 13px;
     font-weight: 500;
 }
@@ -719,7 +719,7 @@ md-progress-linear > div {
 
 .ui-menu .ui-menu-item a {
     display: block;
-    border: 1px solid transparent;
+    border: 1px solid #000080;
     line-height: 1.5;
     margin: 0 !important;
     color: #333 !important;
