@@ -23,20 +23,26 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
  * Property Encryption Method enumerates supported values in addition to {@link org.apache.nifi.security.util.EncryptionMethod}
  */
 public enum PropertyEncryptionMethod {
+    @Deprecated
     NIFI_ARGON2_AES_GCM_128(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM,128),
 
     NIFI_ARGON2_AES_GCM_256(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM, 256),
 
+    @Deprecated
     NIFI_BCRYPT_AES_GCM_128(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 128),
 
+    @Deprecated
     NIFI_BCRYPT_AES_GCM_256(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 256),
 
+    @Deprecated
     NIFI_PBKDF2_AES_GCM_128(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 128),
 
     NIFI_PBKDF2_AES_GCM_256(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 256),
 
+    @Deprecated
     NIFI_SCRYPT_AES_GCM_128(KeyDerivationFunction.SCRYPT, EncryptionMethod.AES_GCM, 128),
 
+    @Deprecated
     NIFI_SCRYPT_AES_GCM_256(KeyDerivationFunction.SCRYPT, EncryptionMethod.AES_GCM, 256);
 
     private static final int HASH_LENGTH_DIVISOR = 8;
