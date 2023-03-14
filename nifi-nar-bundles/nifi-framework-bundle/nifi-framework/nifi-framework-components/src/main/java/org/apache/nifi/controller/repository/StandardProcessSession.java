@@ -687,37 +687,35 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             // Update local state
             final StateManager stateManager = context.getStateManager();
             if (checkpoint.localState != null) {
-                final StateMap stateMap = stateManager.getState(Scope.LOCAL);
-                final Optional<String> stateVersion = stateMap.getStateVersion();
-                if (!stateVersion.equals(checkpoint.localState.getStateVersion())) {
-                    LOG.debug("Updating State Manager's Local State");
-
-                    try {
+                try {
+                    final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+                    final Optional<String> stateVersion = stateMap.getStateVersion();
+                    if (!stateVersion.equals(checkpoint.localState.getStateVersion())) {
+                        LOG.debug("Updating State Manager's Local State");
                         stateManager.setState(checkpoint.localState.toMap(), Scope.LOCAL);
-                    } catch (final Exception e) {
-                        LOG.warn("Failed to update Local State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
+                    } else {
+                        LOG.debug("Will not update State Manager's Local State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
+                                stateVersion, checkpoint.localState.getStateVersion());
                     }
-                } else {
-                    LOG.debug("Will not update State Manager's Local State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                            stateVersion, checkpoint.localState.getStateVersion());
+                } catch (final Exception e) {
+                    LOG.warn("Failed to update Local State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
                 }
             }
 
             // Update cluster state
             if (checkpoint.clusterState != null) {
-                final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
-                final Optional<String> stateVersion = stateMap.getStateVersion();
-                if (!stateVersion.equals(checkpoint.clusterState.getStateVersion())) {
-                    LOG.debug("Updating State Manager's Cluster State");
-
-                    try {
+                try {
+                    final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
+                    final Optional<String> stateVersion = stateMap.getStateVersion();
+                    if (!stateVersion.equals(checkpoint.clusterState.getStateVersion())) {
+                        LOG.debug("Updating State Manager's Cluster State");
                         stateManager.setState(checkpoint.clusterState.toMap(), Scope.CLUSTER);
-                    } catch (final Exception e) {
-                        LOG.warn("Failed to update Cluster State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
+                    } else {
+                        LOG.debug("Will not update State Manager's Cluster State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
+                                stateVersion, checkpoint.clusterState.getStateVersion());
                     }
-                } else {
-                    LOG.debug("Will not update State Manager's Cluster State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
-                            stateVersion, checkpoint.clusterState.getStateVersion());
+                } catch (final Exception e) {
+                    LOG.warn("Failed to update Cluster State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
                 }
             }
 
