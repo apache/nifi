@@ -60,7 +60,6 @@ import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.function.Executable
 
 import javax.net.ssl.SSLContext
 import java.sql.Connection
@@ -74,7 +73,6 @@ import java.util.regex.Pattern
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertTrue
-import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.mockito.ArgumentMatchers.anyString
 import static org.mockito.Mockito.doReturn
 import static org.mockito.Mockito.mock
@@ -364,7 +362,8 @@ class CaptureChangeMySQLTest {
                 [timestamp: new Date().time, eventType: EventType.XID, nextPosition: 12] as EventHeaderV4,
                 {} as EventData
         ))
-        assertThrows(AssertionError.class, { testRunner.run(1, true, false) } as Executable)
+        // This should not throw an exception, rather warn that a COMMIT event was sent out-of-sync
+        testRunner.run(1, true, false)
     }
 
     @Test
@@ -634,7 +633,8 @@ class CaptureChangeMySQLTest {
                 {} as EventData
         ))
 
-        assertThrows(AssertionError.class, { testRunner.run(1, true, false) } as Executable)
+        // Should not throw an exception
+        testRunner.run(1, true, false)
     }
 
     @Test
@@ -1445,10 +1445,10 @@ class CaptureChangeMySQLTest {
         header2.setTimestamp(new Date().getTime())
         EventData eventData = new EventData() {
         };
-        client.sendEvent(new Event(header2, eventData));
+        client.sendEvent(new Event(header2, eventData))
 
-        // when we ge a xid event without having got a 'begin' event ,throw an exception
-        assertThrows(AssertionError.class, () -> testRunner.run(1, false, false))
+        // when we ge a xid event without having got a 'begin' event , don't throw an exception, just warn the user
+        testRunner.run(1, false, false)
     }
 
     @Test
@@ -1498,7 +1498,6 @@ class CaptureChangeMySQLTest {
         }
 
     }
-
 
     static DistributedMapCacheClientImpl createCacheClient() throws InitializationException {
 

@@ -739,6 +739,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             setup(context);
         }
 
+        // If no client could be created, try again
+        if (binlogClient == null) {
+            return;
+        }
+
         // If the client has been disconnected, try to reconnect
         if (!binlogClient.isConnected()) {
             Exception e = lifecycleListener.getException();
@@ -764,7 +769,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
         try {
             outputEvents(currentSession, log);
-        } catch (IOException ioe) {
+        } catch (Exception eventException) {
+            getLogger().error("Exception during event processing at file={} pos={}", currentBinlogFile, currentBinlogPosition, eventException);
             try {
                 // Perform some processor-level "rollback", then rollback the session
                 currentBinlogFile = xactBinlogFile == null ? "" : xactBinlogFile;
@@ -773,13 +779,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 currentGtidSet = xactGtidSet;
                 inTransaction = false;
                 stop();
-                queue.clear();
-                currentSession.rollback();
             } catch (Exception e) {
                 // Not much we can recover from here
-                log.warn("Error occurred during rollback", e);
+                log.error("Error stopping CDC client", e);
+            } finally {
+                queue.clear();
+                currentSession.rollback();
             }
-            throw new ProcessException(ioe);
+            context.yield();
         }
     }
 
@@ -936,7 +943,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid) {
                 currentBinlogPosition = header.getPosition();
             }
-            log.debug("Got message event type: {} ", header.getEventType().toString());
+            log.debug("Message event, type={} pos={} file={}", eventType, currentBinlogPosition, currentBinlogFile);
             switch (eventType) {
                 case TABLE_MAP:
                     // This is sent to inform which table is about to be changed by subsequent events
@@ -988,7 +995,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     if ("BEGIN".equals(sql)) {
                         // If we're already in a transaction, something bad happened, alert the user
                         if (inTransaction) {
-                            throw new IOException("BEGIN event received while already processing a transaction. This could indicate that your binlog position is invalid.");
+                            getLogger().debug("BEGIN event received at pos={} file={} while already processing a transaction. This could indicate that your binlog position is invalid "
+                                    + "or the event stream is out of sync or there was an issue with the processor state.", currentBinlogPosition, currentBinlogFile);
                         }
                         // Mark the current binlog position and GTID in case we have to rollback the transaction (if the processor is stopped, e.g.)
                         xactBinlogFile = currentBinlogFile;
@@ -1010,8 +1018,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         updateState(session);
                     } else if ("COMMIT".equals(sql)) {
                         if (!inTransaction) {
-                            throw new IOException("COMMIT event received while not processing a transaction (i.e. no corresponding BEGIN event). "
-                                    + "This could indicate that your binlog position is invalid.");
+                            getLogger().debug("COMMIT event received at pos={} file={} while not processing a transaction (i.e. no corresponding BEGIN event). "
+                                    + "This could indicate that your binlog position is invalid or the event stream is out of sync or there was an issue with the processor state "
+                                    + "or there was an issue with the processor state.", currentBinlogPosition, currentBinlogFile);
                         }
                         // InnoDB generates XID events for "commit", but MyISAM generates Query events with "COMMIT", so handle that here
                         if (includeBeginCommit) {
@@ -1093,8 +1102,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
                 case XID:
                     if (!inTransaction) {
-                        throw new IOException("COMMIT event received while not processing a transaction (i.e. no corresponding BEGIN event). "
-                                + "This could indicate that your binlog position is invalid.");
+                        getLogger().debug("COMMIT (XID) event received at pos={} file={} /while not processing a transaction (i.e. no corresponding BEGIN event). "
+                                + "This could indicate that your binlog position is invalid or the event stream is out of sync or there was an issue with the processor state.",
+                                currentBinlogPosition, currentBinlogFile);
                     }
                     if (includeBeginCommit) {
                         if (databaseNamePattern == null || databaseNamePattern.matcher(currentDatabase).matches()) {
@@ -1113,7 +1123,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                 // Flush the events to the FlowFile when the processor is stopped
                                 currentEventWriter.finishAndTransferFlowFile(currentSession, eventWriterConfiguration, transitUri, currentSequenceId.get(), currentEventInfo, REL_SUCCESS);
                             }
-                            currentSession.commitAsync();
                         }
                     }
                     // update inTransaction value and save next position
