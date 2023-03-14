@@ -121,6 +121,10 @@ public class ExtensionComponent extends DefinedType {
         return restricted;
     }
 
+    public Boolean getRestricted() {
+        return restricted;
+    }
+
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
     }
