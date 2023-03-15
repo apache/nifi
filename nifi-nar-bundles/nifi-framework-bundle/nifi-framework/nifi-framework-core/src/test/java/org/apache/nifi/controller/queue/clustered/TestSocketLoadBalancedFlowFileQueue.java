@@ -153,9 +153,28 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertFalse(queue.isEmpty());
         assertSame(FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED, queue.getFlowFileAvailability());
 
+        // Adjust the penalty expiration so that it's not longer penalized.
+        // This will not change the FlowFile Availability, however, because it has already stored the
+        // Penalty expiration date elsewhere. To trigger that to change, we need to add something to the queue
+        // or remove something. We don't want to remove the data yet, so we add a new FlowFile.
         penalizedFlowFile.setPenaltyExpiration(System.currentTimeMillis() - 1);
+        final MockFlowFileRecord readyFlowFile = new MockFlowFileRecord(1);
+        queue.put(readyFlowFile);
+
         assertFalse(queue.isEmpty());
         assertSame(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+        assertSame(penalizedFlowFile, queue.poll(Collections.emptySet()));
+
+        assertFalse(queue.isEmpty());
+        assertSame(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+        assertSame(readyFlowFile, queue.poll(Collections.emptySet()));
+
+        assertTrue(queue.isActiveQueueEmpty());
+        assertSame(FlowFileAvailability.ACTIVE_QUEUE_EMPTY, queue.getFlowFileAvailability());
+
+        queue.acknowledge(penalizedFlowFile);
+        queue.acknowledge(readyFlowFile);
+        assertTrue(queue.isEmpty());
     }
 
     @Test
