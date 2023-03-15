@@ -46,8 +46,8 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -290,8 +290,7 @@ public class ConvertExcelToCSVProcessor
         final SheetToCSV sheetHandler = new SheetToCSV(readConfig, csvFormat);
         try {
             ff = session.write(ff, out -> {
-                PrintStream outPrint = new PrintStream(out, false, StandardCharsets.UTF_8);
-                sheetHandler.setOutput(outPrint);
+                sheetHandler.setOutput(out);
                 sheet.forEach(row -> {
                     sheetHandler.startRow(row.getRowNum());
                     row.forEach(sheetHandler::cell);
@@ -351,7 +350,7 @@ public class ConvertExcelToCSVProcessor
             return rowCount;
         }
 
-        public void setOutput(PrintStream output) {
+        public void setOutput(OutputStream output) {
             final OutputStreamWriter streamWriter = new OutputStreamWriter(output, StandardCharsets.UTF_8);
 
             try {
