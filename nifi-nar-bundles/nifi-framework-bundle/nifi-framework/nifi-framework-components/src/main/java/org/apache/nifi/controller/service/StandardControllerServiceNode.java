@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -66,6 +68,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -770,6 +773,19 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
         this.bulletinLevel = level;
+    }
+
+    @Override
+    public void notifyPrimaryNodeChanged(final PrimaryNodeState nodeState) {
+        final Class<?> implementationClass = getControllerServiceImplementation().getClass();
+        final List<Method> methods = ReflectionUtils.findMethodsWithAnnotations(implementationClass, new Class[] {OnPrimaryNodeStateChange.class});
+        if (methods.isEmpty()) {
+            return;
+        }
+
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), implementationClass, getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getControllerServiceImplementation(), nodeState);
+        }
     }
 
 }

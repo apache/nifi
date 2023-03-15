@@ -30,6 +30,8 @@ import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -90,6 +92,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.management.ThreadInfo;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1595,6 +1598,24 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } else {
             final String procName = processorRef.get().getProcessor().toString();
             procLog.warn("Cannot start {} because it is not currently stopped. Current state is {}", procName, currentState);
+        }
+    }
+
+    @Override
+    public void notifyPrimaryNodeChanged(final PrimaryNodeState nodeState, final LifecycleState lifecycleState) {
+        final Class<?> implClass = getProcessor().getClass();
+        final List<Method> methods = ReflectionUtils.findMethodsWithAnnotations(implClass, new Class[] {OnPrimaryNodeStateChange.class});
+        if (methods.isEmpty()) {
+            return;
+        }
+
+        lifecycleState.incrementActiveThreadCount(null);
+        activateThread();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), implClass, getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getProcessor(), nodeState);
+        } finally {
+            deactivateThread();
+            lifecycleState.decrementActiveThreadCount();
         }
     }
 
