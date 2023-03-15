@@ -51,7 +51,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,14 +145,33 @@ public class ConvertExcelToCSVProcessor
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = List.of(DESIRED_SHEETS, ROWS_TO_SKIP, COLUMNS_TO_SKIP, FORMAT_VALUES, CSVUtils.CSV_FORMAT,
-                CSVUtils.VALUE_SEPARATOR, CSVUtils.INCLUDE_HEADER_LINE, CSVUtils.QUOTE_CHAR, CSVUtils.ESCAPE_CHAR,
-                CSVUtils.COMMENT_MARKER, CSVUtils.NULL_STRING, CSVUtils.TRIM_FIELDS, new PropertyDescriptor.Builder()
-                        .fromPropertyDescriptor(CSVUtils.QUOTE_MODE)
-                        .defaultValue(CSVUtils.QUOTE_NONE.getValue())
-                        .build(), CSVUtils.RECORD_SEPARATOR, CSVUtils.TRAILING_DELIMITER);
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(DESIRED_SHEETS);
+        descriptors.add(ROWS_TO_SKIP);
+        descriptors.add(COLUMNS_TO_SKIP);
+        descriptors.add(FORMAT_VALUES);
 
-        this.relationships = Set.of(ORIGINAL, SUCCESS, FAILURE);
+        descriptors.add(CSVUtils.CSV_FORMAT);
+        descriptors.add(CSVUtils.VALUE_SEPARATOR);
+        descriptors.add(CSVUtils.INCLUDE_HEADER_LINE);
+        descriptors.add(CSVUtils.QUOTE_CHAR);
+        descriptors.add(CSVUtils.ESCAPE_CHAR);
+        descriptors.add(CSVUtils.COMMENT_MARKER);
+        descriptors.add(CSVUtils.NULL_STRING);
+        descriptors.add(CSVUtils.TRIM_FIELDS);
+        descriptors.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(CSVUtils.QUOTE_MODE)
+                .defaultValue(CSVUtils.QUOTE_NONE.getValue())
+                .build());
+        descriptors.add(CSVUtils.RECORD_SEPARATOR);
+        descriptors.add(CSVUtils.TRAILING_DELIMITER);
+        this.descriptors = Collections.unmodifiableList(descriptors);
+
+        final Set<Relationship> relationships = new LinkedHashSet<>();
+        relationships.add(ORIGINAL);
+        relationships.add(SUCCESS);
+        relationships.add(FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
     }
 
     @Override
@@ -246,7 +267,7 @@ public class ConvertExcelToCSVProcessor
         final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
         if (desiredSheetsDelimited != null) {
             String[] desiredSheets = StringUtils.split(desiredSheetsDelimited, DESIRED_SHEETS_DELIMITER);
-            if(desiredSheets != null) {
+            if (desiredSheets != null) {
                 return Arrays.stream(desiredSheets)
                         .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE));
             } else {
@@ -313,7 +334,7 @@ public class ConvertExcelToCSVProcessor
      * do most of the work of parsing the contents of the Excel sheet
      * and outputs the contents as a (basic) CSV.
      */
-    private static class SheetToCSV {
+    private class SheetToCSV {
         private final ExcelSheetReadConfig readConfig;
         CSVFormat csvFormat;
         private boolean firstCellOfRow;
@@ -346,7 +367,7 @@ public class ConvertExcelToCSVProcessor
         }
 
         public void startRow(int rowNum) {
-            if(rowNum <= readConfig.getOverrideFirstRow()) {
+            if (rowNum <= readConfig.getOverrideFirstRow()) {
                 skipRow = true;
                 return;
             }
@@ -384,14 +405,14 @@ public class ConvertExcelToCSVProcessor
             try {
                 printer.printRecord(fieldValues);
             } catch (IOException e) {
-                e.printStackTrace();
+                getLogger().warn("Print Record failed", e);
             }
 
             rowCount++;
         }
 
         public void cell(Cell cell) {
-            if(skipRow) {
+            if (skipRow) {
                 return;
             }
 
@@ -399,22 +420,22 @@ public class ConvertExcelToCSVProcessor
             int thisCol = cell.getColumnIndex();
 
             //Use the first row of the file to decide on the area of data to export
-            if(firstRow && firstCellOfRow) {
+            if (firstRow && firstCellOfRow) {
                 readConfig.setFirstColumn(thisCol);
             }
 
             //if this cell falls outside our area, or has been explicitly marked as a skipped column, return and don't write it out.
-            if(!firstRow && (thisCol < readConfig.getFirstColumn() || thisCol > readConfig.getLastColumn())) {
+            if (!firstRow && (thisCol < readConfig.getFirstColumn() || thisCol > readConfig.getLastColumn())) {
                 return;
             }
 
-            if(readConfig.getColumnsToSkip().contains(thisCol)) {
+            if (readConfig.getColumnsToSkip().contains(thisCol)) {
                 skippedColumns++;
                 return;
             }
 
             int missedCols = (thisCol - readConfig.getFirstColumn()) - (currentCol - readConfig.getFirstColumn()) - 1;
-            if(firstCellOfRow) {
+            if (firstCellOfRow) {
                 missedCols = (thisCol - readConfig.getFirstColumn());
             }
 
