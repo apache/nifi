@@ -64,7 +64,7 @@ public class SwappablePriorityQueue {
     private final EventReporter eventReporter;
     private final FlowFileQueue flowFileQueue;
     private final DropFlowFileAction dropAction;
-    private final List<FlowFilePrioritizer> priorities = new ArrayList<>();
+    private volatile List<FlowFilePrioritizer> priorities = new ArrayList<>();
     private final String swapPartitionName;
 
     private final List<String> swapLocations = new ArrayList<>();
@@ -85,6 +85,7 @@ public class SwappablePriorityQueue {
     private PriorityQueue<FlowFileRecord> activeQueue;
     private ArrayList<FlowFileRecord> swapQueue;
     private boolean swapMode = false;
+    private volatile long topPenaltyExpiration = -1L;
 
     // The following members are used to keep metrics in memory for reporting purposes so that we don't have to constantly
     // read these values from swap files on disk.
@@ -113,19 +114,13 @@ public class SwappablePriorityQueue {
     }
 
     public List<FlowFilePrioritizer> getPriorities() {
-        readLock.lock();
-        try {
-            return Collections.unmodifiableList(priorities);
-        } finally {
-            readLock.unlock("getPriorities");
-        }
+        return Collections.unmodifiableList(priorities);
     }
 
     public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
         writeLock.lock();
         try {
-            priorities.clear();
-            priorities.addAll(newPriorities);
+            this.priorities = new ArrayList<>(newPriorities);
 
             final PriorityQueue<FlowFileRecord> newQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(newPriorities));
             newQueue.addAll(activeQueue);
@@ -443,52 +438,12 @@ public class SwappablePriorityQueue {
 
     public FlowFileAvailability getFlowFileAvailability() {
         // If queue is empty, avoid obtaining a lock.
-        final FlowFileQueueSize queueSize = getFlowFileQueueSize();
-        if (queueSize.getActiveCount() == 0 && queueSize.getSwappedCount() == 0) {
+        if (isActiveQueueEmpty()) {
             return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
         }
 
-        boolean mustMigrateSwapToActive = false;
-        FlowFileRecord top;
-        readLock.lock();
-        try {
-            top = activeQueue.peek();
-            if (top == null) {
-                if (swapQueue.isEmpty() && queueSize.getSwapFileCount() > 0) {
-                    // Nothing available in the active queue or swap queue, but there is data swapped out.
-                    // We need to trigger that data to be swapped back in. But to do this, we need to hold the write lock.
-                    // Because we cannot obtain the write lock while already holding the read lock, we set a flag so that we
-                    // can migrate swap to active queue only after we've released the read lock.
-                    mustMigrateSwapToActive = true;
-                } else if (swapQueue.isEmpty()) {
-                    return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
-                } else {
-                    top = swapQueue.get(0);
-                }
-            }
-        } finally {
-            readLock.unlock("isFlowFileAvailable");
-        }
-
-        // If we need to migrate swapped data to the active queue, we can do that now that the read lock has been released.
-        // There may well be multiple threads attempting this concurrently, though, so only use tryLock() and if the lock
-        // is not obtained, the other thread can swap data in, or the next iteration of #getFlowFileAvailability will.
-        if (mustMigrateSwapToActive) {
-            final boolean lockObtained = writeLock.tryLock();
-            if (lockObtained) {
-                try {
-                    migrateSwapToActive();
-                } finally {
-                    writeLock.unlock("getFlowFileAvailability");
-                }
-            }
-        }
-
-        if (top == null) {
-            return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
-        }
-
-        if (top.isPenalized()) {
+        final long expiration = topPenaltyExpiration;
+        if (expiration > 0 && expiration > System.currentTimeMillis()) { // compare against 0 to avoid unnecessary System call
             return FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED;
         }
 
@@ -525,6 +480,7 @@ public class SwappablePriorityQueue {
                 activeQueue.add(flowFile);
             }
 
+            updateTopPenaltyExpiration();
             logger.trace("{} put to {}", flowFile, this);
         } finally {
             writeLock.unlock("put(FlowFileRecord)");
@@ -550,6 +506,7 @@ public class SwappablePriorityQueue {
                 activeQueue.addAll(flowFiles);
             }
 
+            updateTopPenaltyExpiration();
             logger.trace("{} put to {}", flowFiles, this);
         } finally {
             writeLock.unlock("putAll");
@@ -572,6 +529,8 @@ public class SwappablePriorityQueue {
                 logger.trace("{} poll() returning {}", this, flowFile);
                 unacknowledge(1, flowFile.getSize());
             }
+
+            updateTopPenaltyExpiration();
 
             return flowFile;
         } finally {
@@ -624,6 +583,7 @@ public class SwappablePriorityQueue {
         writeLock.lock();
         try {
             doPoll(records, maxResults, expiredRecords, expirationMillis, pollStrategy);
+            updateTopPenaltyExpiration();
         } finally {
             writeLock.unlock("poll(int, Set)");
         }
@@ -704,10 +664,23 @@ public class SwappablePriorityQueue {
                 }
             }
 
+            updateTopPenaltyExpiration();
+
             return selectedFlowFiles;
         } finally {
             writeLock.unlock("poll(Filter, Set)");
         }
+    }
+
+    // MUST be called while holding read lock or write lock
+    private void updateTopPenaltyExpiration() {
+        final FlowFileRecord top = activeQueue.peek();
+        if (top == null) {
+            topPenaltyExpiration = -1L;
+            return;
+        }
+
+        topPenaltyExpiration = top.getPenaltyExpirationMillis();
     }
 
     private void doPoll(final List<FlowFileRecord> records, int maxResults, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
@@ -997,6 +970,7 @@ public class SwappablePriorityQueue {
 
             incrementSwapQueueSize(swapFlowFileCount, swapByteCount, swapLocations.size());
             this.swapLocations.addAll(swapLocations);
+            updateTopPenaltyExpiration();
         } finally {
             writeLock.unlock("Recover Swap Files");
         }
