@@ -1393,4 +1393,5 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public boolean isReferencingParameter(final String parameterName) {
         return parameterReferenceCounts.containsKey(parameterName);
     }
+
 }

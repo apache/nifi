@@ -288,5 +288,4 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
             return getRequestBuilder(target).delete(ProcessorEntity.class);
         });
     }
-
 }

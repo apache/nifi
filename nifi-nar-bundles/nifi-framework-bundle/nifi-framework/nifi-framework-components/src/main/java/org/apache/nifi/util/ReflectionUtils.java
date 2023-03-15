@@ -159,7 +159,7 @@ public class ReflectionUtils {
         return isSuccess;
     }
 
-    private static List<Method> findMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotationClasses) {
+    public static List<Method> findMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotationClasses) {
         // We use a cache here to store a mapping of Class & Annotation[] to those methods that contain the annotation.
         // This is done because discovering this using Reflection is fairly expensive (can take up to tens of milliseconds on laptop).
         // While this may not seem like much time, consider deleting a Process Group with thousands of Processors or instantiating
