@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -449,6 +450,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         LOG.info("Successfully terminated {} with {} active threads", procNode, tasksTerminated);
+    }
+
+    @Override
+    public void notifyPrimaryNodeStateChange(final ProcessorNode processor, final PrimaryNodeState primaryNodeState) {
+        final LifecycleState lifecycleState = getLifecycleState(processor, false);
+        processor.notifyPrimaryNodeChanged(primaryNodeState, lifecycleState);
+    }
+
+    @Override
+    public void notifyPrimaryNodeStateChange(final ReportingTaskNode taskNode, final PrimaryNodeState primaryNodeState) {
+        final LifecycleState lifecycleState = getLifecycleState(taskNode, false);
+        taskNode.notifyPrimaryNodeChanged(primaryNodeState, lifecycleState);
+    }
+
+    @Override
+    public void notifyPrimaryNodeStateChange(final ControllerServiceNode service, final PrimaryNodeState primaryNodeState) {
+        service.notifyPrimaryNodeChanged(primaryNodeState);
     }
 
     @Override

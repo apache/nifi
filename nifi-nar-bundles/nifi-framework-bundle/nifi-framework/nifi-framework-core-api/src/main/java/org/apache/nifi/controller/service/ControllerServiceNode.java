@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ComponentNode;
@@ -26,7 +28,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.components.ConfigVerificationResult;
 
 import java.util.List;
 import java.util.Map;
@@ -240,5 +241,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
     void setControllerServiceAndProxy(final LoggableComponent<ControllerService> implementation,
                                       final LoggableComponent<ControllerService> proxiedControllerService,
                                       final ControllerServiceInvocationHandler invocationHandler);
+
+    void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState);
 
 }

@@ -17,6 +17,8 @@
 package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -36,6 +38,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -50,10 +53,12 @@ import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -395,4 +400,23 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
         return results;
     }
+
+    @Override
+    public void notifyPrimaryNodeChanged(final PrimaryNodeState nodeState, final LifecycleState lifecycleState) {
+        final Class<?> taskClass = getReportingTask().getClass();
+        final List<Method> methods = ReflectionUtils.findMethodsWithAnnotations(taskClass, new Class[] {OnPrimaryNodeStateChange.class});
+        if (methods.isEmpty()) {
+            return;
+        }
+
+        lifecycleState.incrementActiveThreadCount(null);
+        try {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, getIdentifier())) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, getReportingTask(), nodeState);
+            }
+        } finally {
+            lifecycleState.decrementActiveThreadCount();
+        }
+    }
+
 }
