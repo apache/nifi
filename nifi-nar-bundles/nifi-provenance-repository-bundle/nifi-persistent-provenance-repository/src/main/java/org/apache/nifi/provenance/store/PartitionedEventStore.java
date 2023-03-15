@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -183,12 +184,14 @@ public abstract class PartitionedEventStore implements EventStore {
         final SortedMap<ProvenanceEventRecord, EventIterator> recordToIteratorMap = new TreeMap<>(
             (o1, o2) -> Long.compare(o1.getEventId(), o2.getEventId()));
 
+        final Collection<EventIterator> createdIterators = new ArrayList<>();
         try {
             // Seed our map with the first event in each Partition.
             for (final EventStorePartition partition : getPartitions()) {
                 final EventAuthorizer nonNullAuthorizer = authorizer == null ? EventAuthorizer.GRANT_ALL : authorizer;
                 final EventIterator partitionIterator = eventIteratorFactory.apply(partition);
                 final EventIterator iterator = new AuthorizingEventIterator(partitionIterator, nonNullAuthorizer, transformer);
+                createdIterators.add(iterator);
 
                 final Optional<ProvenanceEventRecord> option = iterator.nextEvent();
                 if (option.isPresent()) {
@@ -223,7 +226,7 @@ public abstract class PartitionedEventStore implements EventStore {
             return selectedEvents;
         } finally {
             // Ensure that we close all record readers that have been created
-            for (final EventIterator iterator : recordToIteratorMap.values()) {
+            for (final EventIterator iterator : createdIterators) {
                 try {
                     iterator.close();
                 } catch (final Exception e) {
