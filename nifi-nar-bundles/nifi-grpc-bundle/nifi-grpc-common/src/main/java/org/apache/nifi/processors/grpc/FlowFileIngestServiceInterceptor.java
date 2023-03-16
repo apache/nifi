@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.grpc;
 
-import org.apache.nifi.logging.ComponentLog;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.regex.Pattern;
-
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.security.cert.X509Certificate;
-
 import io.grpc.Attributes;
 import io.grpc.Context;
 import io.grpc.Contexts;
@@ -35,23 +25,33 @@ import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import org.apache.nifi.logging.ComponentLog;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+import javax.security.cert.X509Certificate;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
 /**
- * Simple gRPC service call interceptor that enforces various controls
+ * Simple gRPC service call interceptor that enforces various controls.
+ * Despite its name, it does not contain any FlowFileIngestService specific logic.
  */
 public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
+
     public static final String DEFAULT_FOUND_SUBJECT = "none";
     private static final String UNKNOWN_IP = "unknown-ip";
-    private static final String DN_UNAUTHORIZED = "The client DN does not have permission to post FlowFiles to this NiFi. ";
+    private static final String DN_UNAUTHORIZED = "The client DN does not have permission to send gRPC requests to this NiFi. ";
     private static final ServerCall.Listener IDENTITY_LISTENER = new ServerCall.Listener(){};
 
-    public static final Context.Key<String> REMOTE_HOST_KEY = Context.key(ListenGRPC.REMOTE_HOST);
-    public static final Context.Key<String> REMOTE_DN_KEY = Context.key(ListenGRPC.REMOTE_USER_DN);
+    public static final Context.Key<String> REMOTE_HOST_KEY = Context.key(GRPCAttributeNames.REMOTE_HOST);
+    public static final Context.Key<String> REMOTE_DN_KEY = Context.key(GRPCAttributeNames.REMOTE_USER_DN);
 
     private final ComponentLog logger;
-    private Pattern authorizedDNpattern;
+    private Pattern authorizedDNPattern;
 
     /**
      * Create an interceptor that applies various controls per request
@@ -70,7 +70,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
      * @return this
      */
     public FlowFileIngestServiceInterceptor enforceDNPattern(final Pattern authorizedDNPattern) {
-        this.authorizedDNpattern = requireNonNull(authorizedDNPattern);
+        this.authorizedDNPattern = requireNonNull(authorizedDNPattern);
         return this;
     }
 
@@ -98,13 +98,13 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
 
         // enforce that the DN on the client cert matches the configured pattern
         final SSLSession sslSession = attributes.get(Grpc.TRANSPORT_ATTR_SSL_SESSION);
-        if(this.authorizedDNpattern != null && sslSession != null) {
+        if (this.authorizedDNPattern != null && sslSession != null) {
             try {
                 final X509Certificate[] certs = sslSession.getPeerCertificateChain();
-                if(certs != null && certs.length > 0) {
+                if (certs != null && certs.length > 0) {
                     for (final X509Certificate cert : certs) {
                         foundSubject = cert.getSubjectDN().getName();
-                        if(authorizedDNpattern.matcher(foundSubject).matches()) {
+                        if (authorizedDNPattern.matcher(foundSubject).matches()) {
                             break;
                         } else {
                             logger.warn("Rejecting transfer attempt from " + foundSubject + " because the DN is not authorized, host=" + clientIp);
@@ -114,7 +114,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
                     }
                 }
             } catch (final SSLPeerUnverifiedException e) {
-                logger.debug("skipping DN authorization for request from {}.", new Object[] {clientIp}, e);
+                logger.debug("Skipping DN authorization for request from {}", clientIp, e);
             }
         }
         // contextualize the DN and IP for use in the RPC implementation
