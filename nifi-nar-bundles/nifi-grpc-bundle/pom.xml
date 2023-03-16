@@ -27,6 +27,7 @@
     <description>A bundle of processors that speak the gRPC protocol</description>
 
     <modules>
+        <module>nifi-grpc-common</module>
         <module>nifi-grpc-processors</module>
         <module>nifi-grpc-nar</module>
     </modules>

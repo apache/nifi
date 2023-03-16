@@ -18,25 +18,22 @@ package org.apache.nifi.processors.grpc;
 
 import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
-
+import io.grpc.stub.StreamObserver;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.grpc.util.BackpressureChecker;
 
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
-import io.grpc.stub.StreamObserver;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,11 +51,10 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
     public static final String SERVICE_NAME = "grpc://FlowFileIngestService";
     public static final int FILES_BEFORE_CHECKING_DESTINATION_SPACE = 5;
 
-    private final AtomicLong filesReceived = new AtomicLong(0L);
-    private final AtomicBoolean spaceAvailable = new AtomicBoolean(true);
     private final AtomicReference<ProcessSessionFactory> sessionFactoryReference;
-    private final ProcessContext context;
     private final ComponentLog logger;
+    private final Relationship relSuccess;
+    private final BackpressureChecker backpressureChecker;
 
     /**
      * Create a FlowFileIngestService
@@ -68,10 +64,12 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
      */
     public FlowFileIngestService(final ComponentLog logger,
                                  final AtomicReference<ProcessSessionFactory> sessionFactoryReference,
-                                 final ProcessContext context) {
-        this.context = requireNonNull(context);
+                                 final Relationship relSuccess,
+                                 final BackpressureChecker backpressureChecker) {
         this.sessionFactoryReference = requireNonNull(sessionFactoryReference);
         this.logger = requireNonNull(logger);
+        this.relSuccess = requireNonNull(relSuccess);
+        this.backpressureChecker = requireNonNull(backpressureChecker);
     }
 
     /**
@@ -81,7 +79,7 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
      * @param responseObserver the mechanism by which to reply to the client
      */
     @Override
-    public void send(final org.apache.nifi.processors.grpc.FlowFileRequest request, final StreamObserver<FlowFileReply> responseObserver) {
+    public void send(final FlowFileRequest request, final StreamObserver<FlowFileReply> responseObserver) {
         final FlowFileReply.Builder replyBuilder = FlowFileReply.newBuilder();
 
         final String remoteHost = FlowFileIngestServiceInterceptor.REMOTE_HOST_KEY.get();
@@ -102,23 +100,15 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
         final ProcessSession session = sessionFactory.createSession();
 
         // if there's no space available, reject the request.
-        final long n = filesReceived.getAndIncrement() % FILES_BEFORE_CHECKING_DESTINATION_SPACE;
-        if (n == 0 || !spaceAvailable.get()) {
-            if (context.getAvailableRelationships().isEmpty()) {
-                spaceAvailable.set(false);
-                final String message = "Received request from " + remoteHost + " but no space available; Indicating Service Unavailable";
-                if (logger.isDebugEnabled()) {
-                    logger.debug(message);
-                }
-                final FlowFileReply reply = replyBuilder.setResponseCode(FlowFileReply.ResponseCode.ERROR)
-                        .setBody(message)
-                        .build();
-                responseObserver.onNext(reply);
-                responseObserver.onCompleted();
-                return;
-            } else {
-                spaceAvailable.set(true);
-            }
+        if (backpressureChecker.isBackpressured()) {
+            final String message = "Received request from " + remoteHost + " but no space available; Indicating Service Unavailable";
+            logger.debug(message);
+            final FlowFileReply reply = replyBuilder.setResponseCode(FlowFileReply.ResponseCode.ERROR)
+                    .setBody(message)
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+            return;
         }
 
         if (logger.isDebugEnabled()) {
@@ -156,11 +146,11 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
                 sourceSystemFlowFileIdentifier,
                 "Remote DN=" + remoteDN,
                 transferMillis);
-        flowFile = session.putAttribute(flowFile, ListenGRPC.REMOTE_HOST, remoteHost);
-        flowFile = session.putAttribute(flowFile, ListenGRPC.REMOTE_USER_DN, remoteDN);
+        flowFile = session.putAttribute(flowFile, GRPCAttributeNames.REMOTE_HOST, remoteHost);
+        flowFile = session.putAttribute(flowFile, GRPCAttributeNames.REMOTE_USER_DN, remoteDN);
 
         // register success
-        session.transfer(flowFile, ListenGRPC.REL_SUCCESS);
+        session.transfer(flowFile, relSuccess);
         session.commit();
 
         // reply to client
