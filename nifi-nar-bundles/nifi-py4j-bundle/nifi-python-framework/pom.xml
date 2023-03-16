@@ -25,31 +25,53 @@
 
     <artifactId>nifi-python-framework</artifactId>
 
+    <properties>
+        <py4j.version>0.10.9.7</py4j.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.6.8</version>
+                <executions>
+                    <execution>
+                        <id>download-py4j</id>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <url>https://files.pythonhosted.org/packages/10/30/a58b32568f1623aaad7db22aa9eafc4c6c194b429ff35bdc55ca2726da47/py4j-${py4j.version}-py2.py3-none-any.whl</url>
+                            <outputFileName>py4j-${py4j.version}.zip</outputFileName>
+                            <unpack>true</unpack>
+                            <outputDirectory>${project.build.directory}/py4j-${py4j.version}</outputDirectory>
+                            <sha256>85defdfd2b2376eb3abf5ca6474b51ab7e0de341c75a02f46dc9b5976f5a5c1b</sha256>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.0</version>
                 <configuration>
                     <includeEmptyDirs>true</includeEmptyDirs>
+                    <outputDirectory>${project.build.outputDirectory}/framework</outputDirectory>
                     <resources>
                         <resource>
-                            <directory>src/main/python</directory>
+                            <directory>src/main/python/framework</directory>
                             <includes>
                                 <include>**/</include>
                             </includes>
                         </resource>
+                        <resource>
+                            <directory>${project.build.directory}/py4j-${py4j.version}</directory>
+                            <includes>
+                                <include>py4j/*.py</include>
+                            </includes>
+                        </resource>
                     </resources>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes combine.children="append">
-                        <exclude>src/main/python/framework/py4j/*</exclude>
-                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
