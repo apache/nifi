@@ -73,8 +73,8 @@ public class ITListenGRPC {
             assertThat(successFiles.size(), equalTo(1));
             final MockFlowFile mockFlowFile = successFiles.get(0);
             assertThat(mockFlowFile.getAttribute("FOO"), equalTo("BAR"));
-            assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_HOST), equalTo("127.0.0.1"));
-            assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_USER_DN), equalTo(FlowFileIngestServiceInterceptor.DEFAULT_FOUND_SUBJECT));
+            assertThat(mockFlowFile.getAttribute(GRPCConstants.REMOTE_HOST), equalTo("127.0.0.1"));
+            assertThat(mockFlowFile.getAttribute(GRPCConstants.REMOTE_USER_DN), equalTo(FlowFileIngestServiceInterceptor.DEFAULT_FOUND_SUBJECT));
 
         } finally {
             // stop the server
@@ -157,8 +157,8 @@ public class ITListenGRPC {
                 assertThat(successFiles.size(), equalTo(1));
                 final MockFlowFile mockFlowFile = successFiles.get(0);
                 assertThat(mockFlowFile.getAttribute("FOO"), equalTo("BAR"));
-                assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_HOST), equalTo("127.0.0.1"));
-                assertThat(mockFlowFile.getAttribute(ListenGRPC.REMOTE_USER_DN), equalTo(FlowFileIngestServiceInterceptor.DEFAULT_FOUND_SUBJECT));
+                assertThat(mockFlowFile.getAttribute(GRPCConstants.REMOTE_HOST), equalTo("127.0.0.1"));
+                assertThat(mockFlowFile.getAttribute(GRPCConstants.REMOTE_USER_DN), equalTo(FlowFileIngestServiceInterceptor.DEFAULT_FOUND_SUBJECT));
 
             } finally {
                 // stop the server
