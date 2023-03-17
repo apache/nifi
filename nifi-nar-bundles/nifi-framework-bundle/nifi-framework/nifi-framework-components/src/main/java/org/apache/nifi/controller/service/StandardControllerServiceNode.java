@@ -83,6 +83,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -574,6 +575,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             final ControllerServiceProvider controllerServiceProvider = this.serviceProvider;
             final StandardControllerServiceNode service = this;
+            AtomicLong enablingAttemptCount = new AtomicLong(0);
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -591,6 +593,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         final ValidationState validationState = getValidationState();
                         LOG.debug("Cannot enable {} because it is not currently valid. (Validation State is {}: {}). Will try again in 1 second",
                             StandardControllerServiceNode.this, validationState, validationState.getValidationErrors());
+
+                        enablingAttemptCount.incrementAndGet();
+                        if (enablingAttemptCount.get() == 120 || enablingAttemptCount.get() % 3600 == 0) {
+                            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
+                            componentLog.error("Encountering difficulty enabling. (Validation State is {}: {}). Will continue trying to enable.",
+                                    validationState, validationState.getValidationErrors());
+                        }
 
                         try {
                             scheduler.schedule(this, 1, TimeUnit.SECONDS);
