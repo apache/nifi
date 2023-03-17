@@ -62,8 +62,8 @@ import java.util.regex.Pattern;
         " so this processor should be used only when FlowFile sizes are on the order of megabytes. The default maximum message size is 4MB.")
 @Tags({"ingest", "grpc", "rpc", "listen"})
 @WritesAttributes({
-        @WritesAttribute(attribute = GRPCConstants.REMOTE_USER_DN, description = "The DN of the user who sent the FlowFile to this NiFi"),
-        @WritesAttribute(attribute = GRPCConstants.REMOTE_HOST, description = "The IP of the client who sent the FlowFile to this NiFi")
+        @WritesAttribute(attribute = GRPCAttributeNames.REMOTE_USER_DN, description = "The DN of the user who sent the FlowFile to this NiFi"),
+        @WritesAttribute(attribute = GRPCAttributeNames.REMOTE_HOST, description = "The IP of the client who sent the FlowFile to this NiFi")
 })
 public class ListenGRPC extends AbstractSessionFactoryProcessor {
 

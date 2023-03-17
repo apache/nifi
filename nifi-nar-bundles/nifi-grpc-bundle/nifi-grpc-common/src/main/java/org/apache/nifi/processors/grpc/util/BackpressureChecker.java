@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class BackpressureChecker {
 
-    public static final int RECHECK_THRESHOLD = 5;
+    private static final int RECHECK_THRESHOLD = 5;
 
     private final ProcessContext processContext;
     private final Set<Relationship> relationships;
@@ -37,7 +37,7 @@ public class BackpressureChecker {
         this.relationships = relationships;
     }
 
-    public boolean isBackpressure() {
+    public boolean isBackpressured() {
         long n = requestCount.getAndIncrement() % RECHECK_THRESHOLD;
         if (n == 0 || backPressure.get()) {
             backPressure.set(processContext.getAvailableRelationships().size() != relationships.size());

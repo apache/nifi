@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.grpc;
 
-public class GRPCConstants {
+public class GRPCAttributeNames {
 
     public static final String REMOTE_USER_DN = "listengrpc.remote.user.dn";
     public static final String REMOTE_HOST = "listengrpc.remote.host";

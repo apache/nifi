@@ -47,8 +47,8 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
     private static final String DN_UNAUTHORIZED = "The client DN does not have permission to send gRPC requests to this NiFi. ";
     private static final ServerCall.Listener IDENTITY_LISTENER = new ServerCall.Listener(){};
 
-    public static final Context.Key<String> REMOTE_HOST_KEY = Context.key(GRPCConstants.REMOTE_HOST);
-    public static final Context.Key<String> REMOTE_DN_KEY = Context.key(GRPCConstants.REMOTE_USER_DN);
+    public static final Context.Key<String> REMOTE_HOST_KEY = Context.key(GRPCAttributeNames.REMOTE_HOST);
+    public static final Context.Key<String> REMOTE_DN_KEY = Context.key(GRPCAttributeNames.REMOTE_USER_DN);
 
     private final ComponentLog logger;
     private Pattern authorizedDNPattern;
@@ -114,7 +114,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
                     }
                 }
             } catch (final SSLPeerUnverifiedException e) {
-                logger.debug("Skipping DN authorization for request from {}.", new Object[] {clientIp}, e);
+                logger.debug("Skipping DN authorization for request from {}", clientIp, e);
             }
         }
         // contextualize the DN and IP for use in the RPC implementation

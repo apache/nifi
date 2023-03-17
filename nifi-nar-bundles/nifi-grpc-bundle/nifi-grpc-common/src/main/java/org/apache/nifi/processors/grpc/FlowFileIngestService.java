@@ -100,11 +100,9 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
         final ProcessSession session = sessionFactory.createSession();
 
         // if there's no space available, reject the request.
-        if (backpressureChecker.isBackpressure()) {
+        if (backpressureChecker.isBackpressured()) {
             final String message = "Received request from " + remoteHost + " but no space available; Indicating Service Unavailable";
-            if (logger.isDebugEnabled()) {
-                logger.debug(message);
-            }
+            logger.debug(message);
             final FlowFileReply reply = replyBuilder.setResponseCode(FlowFileReply.ResponseCode.ERROR)
                     .setBody(message)
                     .build();
@@ -148,8 +146,8 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
                 sourceSystemFlowFileIdentifier,
                 "Remote DN=" + remoteDN,
                 transferMillis);
-        flowFile = session.putAttribute(flowFile, GRPCConstants.REMOTE_HOST, remoteHost);
-        flowFile = session.putAttribute(flowFile, GRPCConstants.REMOTE_USER_DN, remoteDN);
+        flowFile = session.putAttribute(flowFile, GRPCAttributeNames.REMOTE_HOST, remoteHost);
+        flowFile = session.putAttribute(flowFile, GRPCAttributeNames.REMOTE_USER_DN, remoteDN);
 
         // register success
         session.transfer(flowFile, relSuccess);
