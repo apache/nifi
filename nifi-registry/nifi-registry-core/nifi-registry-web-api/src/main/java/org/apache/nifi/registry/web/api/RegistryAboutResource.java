@@ -19,8 +19,7 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
-import org.apache.nifi.registry.NiFiRegistryApiApplication;
-import org.apache.nifi.registry.RegistryAbout;
+import org.apache.nifi.registry.about.RegistryAbout;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +55,7 @@ public class RegistryAboutResource extends ApplicationResource {
             response = RegistryAbout.class
     )
     public Response getVersion() {
-        final String implVersion = NiFiRegistryApiApplication.class.getPackage().getImplementationVersion();
+        final String implVersion = RegistryAbout.class.getPackage().getImplementationVersion();
         final RegistryAbout version = new RegistryAbout(implVersion);
         return Response.status(Response.Status.OK).entity(version).build();
     }
