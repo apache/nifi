@@ -19,7 +19,6 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
-import org.apache.nifi.registry.NiFiRegistryApiApplication;
 import org.apache.nifi.registry.RegistryAbout;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.web.service.ServiceFacade;
@@ -31,6 +30,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 @Component
 @Path("/about")
@@ -40,6 +42,7 @@ import javax.ws.rs.core.Response;
         authorizations = { @Authorization("Authorization") }
 )
 public class RegistryAboutResource extends ApplicationResource {
+    private static final String PROPERTIES_FILE = "/version.properties";
 
     @Autowired
     public RegistryAboutResource(
@@ -56,8 +59,13 @@ public class RegistryAboutResource extends ApplicationResource {
             response = RegistryAbout.class
     )
     public Response getVersion() {
-        final String implVersion = NiFiRegistryApiApplication.class.getPackage().getImplementationVersion();
-        final RegistryAbout version = new RegistryAbout(implVersion);
-        return Response.status(Response.Status.OK).entity(version).build();
+        Properties props = new Properties();
+        try (InputStream stream = getClass().getResourceAsStream(PROPERTIES_FILE)){
+            props.load(stream);
+        } catch (IOException e) {
+            return Response.status(Response.Status.OK).entity("unknown").build();
+        }
+        final RegistryAbout about = new RegistryAbout(props.get("version").toString());
+        return Response.status(Response.Status.OK).entity(about).build();
     }
 }

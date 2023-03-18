@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 @ApiModel
 public class RegistryAbout {
-    private String registryAboutVersion;
+    private final String registryAboutVersion;
 
     /**
      * Container for the version string of this Registry.
