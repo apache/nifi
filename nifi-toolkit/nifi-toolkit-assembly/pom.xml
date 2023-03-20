@@ -144,7 +144,6 @@ language governing permissions and limitations under the License. -->
                     <!-- Copy generated artifact to nifi-docker -->
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.8</version>
                         <executions>
                             <execution>
                                 <id>copy-for-docker</id>
