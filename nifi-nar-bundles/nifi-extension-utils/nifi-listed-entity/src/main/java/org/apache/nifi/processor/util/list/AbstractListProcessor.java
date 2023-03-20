@@ -571,7 +571,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
-            getLogger().debug("There is no data to list. Yielding.");
+            getLogger().debug("No data found: yielding");
             context.yield();
             return;
         }
@@ -676,7 +676,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (orderedEntries.isEmpty()) {
-            getLogger().debug("There is no data to list. Yielding.");
+            getLogger().debug("There is no data to list: yielding");
             context.yield();
             return;
         }
@@ -739,7 +739,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
                 justElectedPrimaryNode = false;
                 if (noUpdateRequired) {
-                    getLogger().debug("Updating the timestamp of the last listed entry is not required. Yielding.");
+                    getLogger().debug("No update required for last listed entity: yielding");
                     context.yield();
                     return;
                 }
@@ -763,7 +763,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
-            getLogger().debug(String.format("There is no data to list with the criteria minTimestampToListMillis=%d. Yielding.", minTimestampToListMillis));
+            getLogger().debug("No data found matching minimum timestamp [{}]: yielding", minTimestampToListMillis);
             context.yield();
             return;
         }
@@ -824,7 +824,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 final boolean minimalListingLagNotPassed = currentRunTimeNanos - lastRunTimeNanos < listingLagNanos;
 
                 if (minimalListingLagNotPassed) {
-                    getLogger().debug("Minimal listing lag has not passed. Yielding.");
+                    getLogger().debug("Minimal listing lag not passed: yielding");
                     context.yield();
                     return;
                 }
@@ -833,7 +833,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                         && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream().allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier()));
 
                 if (latestListedEntryIsUpToDate) {
-                    getLogger().debug("Already listed the latest entry. Yielding.");
+                    getLogger().debug("Latest entry already listed with timestamp [{}]: yielding", latestListedEntryTimestampThisCycleMillis);
                     context.yield();
                     return;
                 }
@@ -908,7 +908,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             lastRunTimeNanos = currentRunTimeNanos;
         } else {
-            getLogger().debug("There is no data to list. Yielding.");
+            getLogger().debug("There is no data to list: yielding");
             context.yield();
 
             // lastListingTime = 0 so that we don't continually poll the distributed cache / local file system
