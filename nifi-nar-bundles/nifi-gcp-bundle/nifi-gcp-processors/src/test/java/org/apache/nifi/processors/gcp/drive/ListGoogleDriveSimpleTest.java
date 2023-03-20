@@ -26,10 +26,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.apache.nifi.util.EqualsWrapper.wrapList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
@@ -73,19 +74,21 @@ public class ListGoogleDriveSimpleTest {
 
         String id = "id_1";
         String filename = "file_name_1";
-        Long size = 125L;
+        long size = 125L;
         long createdTime = 123456L;
         long modifiedTime = 234567L;
         String mimeType = "mime_type_1";
 
         when(mockDriverService.files()
                 .list()
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
                 .setQ("('null' in parents) and (mimeType != 'application/vnd.google-apps.folder') and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
                 .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                 .execute()
                 .getFiles()
-        ).thenReturn(Arrays.asList(
+        ).thenReturn(singletonList(
                 createFile(
                         id,
                         filename,
@@ -96,7 +99,7 @@ public class ListGoogleDriveSimpleTest {
                 )
         ));
 
-        List<GoogleDriveFileInfo> expected = Arrays.asList(
+        List<GoogleDriveFileInfo> expected = singletonList(
                 new GoogleDriveFileInfo.Builder()
                         .id(id)
                         .fileName(filename)
@@ -111,7 +114,7 @@ public class ListGoogleDriveSimpleTest {
         List<GoogleDriveFileInfo> actual = testSubject.performListing(mockProcessContext, minTimestamp, null);
 
         // THEN
-        List<Function<GoogleDriveFileInfo, Object>> propertyProviders = Arrays.asList(
+        List<Function<GoogleDriveFileInfo, Object>> propertyProviders = asList(
                 GoogleDriveFileInfo::getId,
                 GoogleDriveFileInfo::getIdentifier,
                 GoogleDriveFileInfo::getName,

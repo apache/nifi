@@ -324,10 +324,12 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         if (fileMetadata.getId() == null) {
             return driveService.files()
                     .create(fileMetadata, mediaContent)
+                    .setSupportsAllDrives(true)
                     .setFields("id, name, createdTime, mimeType, size");
         } else {
             return driveService.files()
                     .update(fileMetadata.getId(), new File(), mediaContent)
+                    .setSupportsAllDrives(true)
                     .setFields("id, name, createdTime, mimeType, size");
         }
     }
@@ -368,6 +370,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
         final FileList result = driveService.files()
                 .list()
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
                 .setQ(format("name='%s' and ('%s' in parents)", fileName, parentId))
                 .setFields("files(name, id)")
                 .execute();

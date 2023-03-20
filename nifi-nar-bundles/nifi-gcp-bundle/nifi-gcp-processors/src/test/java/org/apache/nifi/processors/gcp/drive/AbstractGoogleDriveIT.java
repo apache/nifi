@@ -45,6 +45,7 @@ import java.util.Arrays;
  * SHARED_FOLDER_ID - The ID of a Folder that is shared with the Service Account. The test will create files and sub-folders within this folder.<br />
  * <br />
  * Created files and folders are cleaned up, but it's advisable to dedicate a folder for this test so that it can be cleaned up easily should the test fail to do so.
+ * In case your shared folder is located on a shared drive, give Service Account "Manager" permission on the shared drive to make it capable of deleting the created test files.
  * <br /><br />
  * WARNING: The creation of a file is not a synchronized operation, may need to adjust tests accordingly!
  */
@@ -91,6 +92,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
         if (driveService != null) {
             driveService.files()
                     .delete(mainFolderId)
+                    .setSupportsAllDrives(true)
                     .execute();
         }
     }
@@ -120,6 +122,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         Drive.Files.Create create = driveService.files()
                 .create(fileMetaData)
+                .setSupportsAllDrives(true)
                 .setFields("id");
 
         File file = create.execute();
@@ -140,6 +143,7 @@ public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Process
 
         Drive.Files.Create create = driveService.files()
                 .create(fileMetadata, content)
+                .setSupportsAllDrives(true)
                 .setFields("id, name, modifiedTime, createdTime");
 
         File file = create.execute();

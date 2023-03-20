@@ -192,6 +192,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
     private void mockFileUpload(File uploadedFile) throws IOException {
         when(mockDriverService.files()
                 .create(any(File.class), any(InputStreamContent.class))
+                .setSupportsAllDrives(true)
                 .setFields("id, name, createdTime, mimeType, size")
                 .execute())
                 .thenReturn(uploadedFile);
@@ -200,6 +201,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
     private void mockFileUpdate(File uploadedFile) throws IOException {
         when(mockDriverService.files()
                 .update(eq(uploadedFile.getId()), any(File.class), any(InputStreamContent.class))
+                .setSupportsAllDrives(true)
                 .setFields("id, name, createdTime, mimeType, size")
                 .execute())
                 .thenReturn(uploadedFile);
@@ -207,13 +209,16 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest{
 
     private void mockFileUploadError(Exception exception) throws IOException {
         when(mockDriverService.files()
-                .create(any(File.class), any(InputStreamContent.class)))
+                .create(any(File.class), any(InputStreamContent.class))
+                .setSupportsAllDrives(true))
                 .thenThrow(exception);
     }
 
     private void mockFileExists(List<File> fileList) throws IOException {
         when(mockDriverService.files()
                 .list()
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
                 .setQ(format("name='%s' and ('%s' in parents)", TEST_FILENAME, SHARED_FOLDER_ID))
                 .setFields("files(name, id)")
                 .execute())

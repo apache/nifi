@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import static java.lang.String.valueOf;
-import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,7 +50,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
     private Drive mockDriverService;
 
-    private String folderId = "folderId";
+    private final String folderId = "folderId";
 
     @BeforeEach
     void setUp() throws Exception {
@@ -118,7 +118,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
 
         mockFetchedGoogleDriveFileList(id, filename, size, createdTime, modifiedTime, mimeType);
 
-        List<String> expectedContents = asList(
+        List<String> expectedContents = singletonList(
                 "[" +
                         "{" +
                         "\"drive.id\":\"" + id + "\"," +
@@ -143,12 +143,14 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
     private void mockFetchedGoogleDriveFileList(String id, String filename, Long size, Long createdTime, Long modifiedTime, String mimeType) throws IOException {
         when(mockDriverService.files()
                 .list()
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
                 .setQ("('" + folderId + "' in parents) and (mimeType != 'application/vnd.google-apps.folder') and (mimeType != 'application/vnd.google-apps.shortcut') and trashed = false")
                 .setPageToken(null)
                 .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                 .execute()
                 .getFiles()
-        ).thenReturn(asList(
+        ).thenReturn(singletonList(
                 createFile(
                         id,
                         filename,
@@ -170,7 +172,7 @@ public class ListGoogleDriveTestRunnerTest implements OutputChecker {
         inputFlowFileAttributes.put(GoogleDriveAttributes.TIMESTAMP, valueOf(expectedTimestamp));
         inputFlowFileAttributes.put(GoogleDriveAttributes.MIME_TYPE, mimeType);
 
-        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(asList(inputFlowFileAttributes));
+        HashSet<Map<String, String>> expectedAttributes = new HashSet<>(singletonList(inputFlowFileAttributes));
 
         testRunner.run();
 
