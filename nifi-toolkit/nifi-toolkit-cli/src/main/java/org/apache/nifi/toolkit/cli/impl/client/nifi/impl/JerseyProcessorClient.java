@@ -275,4 +275,18 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
             return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
         });
     }
+
+    @Override
+    public ProcessorEntity terminateProcessor(final String processorId) throws NiFiClientException, IOException {
+        Objects.requireNonNull(processorId, "Processor ID required");
+
+        return executeAction("Error terminating Processor", () -> {
+            final WebTarget target = processorTarget
+                .path("/threads")
+                .resolveTemplate("id", processorId);
+
+            return getRequestBuilder(target).delete(ProcessorEntity.class);
+        });
+    }
+
 }
