@@ -80,22 +80,23 @@ class Controller:
         implements = ["org.apache.nifi.py4j.PythonController"]
 
 
-# Create the Controller
-controller = Controller()
+if __name__ == "__main__":
+    # Create the Controller
+    controller = Controller()
 
-# Create the Java Gateway for communicating with NiFi Java process
-java_port = int(os.getenv('JAVA_PORT'))
-gateway = JavaGateway(
-   callback_server_parameters=CallbackServerParameters(port=0),
-   gateway_parameters=GatewayParameters(port=java_port, read_timeout=None, enable_memory_management=True),
-   auto_convert=True,
-   python_server_entry_point=controller)
+    # Create the Java Gateway for communicating with NiFi Java process
+    java_port = int(os.getenv('JAVA_PORT'))
+    gateway = JavaGateway(
+       callback_server_parameters=CallbackServerParameters(port=0),
+       gateway_parameters=GatewayParameters(port=java_port, read_timeout=None, enable_memory_management=True),
+       auto_convert=True,
+       python_server_entry_point=controller)
 
-controller.setGateway(gateway)
-python_port = gateway.get_callback_server().get_listening_port()
-logger.info("Listening for requests from Java side using Python Port {}, communicating with Java on port {}".format(python_port, java_port) )
+    controller.setGateway(gateway)
+    python_port = gateway.get_callback_server().get_listening_port()
+    logger.info("Listening for requests from Java side using Python Port {}, communicating with Java on port {}".format(python_port, java_port) )
 
-# Notify the Java side of the port that Python is listening on
-gateway.java_gateway_server.resetCallbackClient(
-    gateway.java_gateway_server.getCallbackClient().getAddress(),
-    python_port)
+    # Notify the Java side of the port that Python is listening on
+    gateway.java_gateway_server.resetCallbackClient(
+        gateway.java_gateway_server.getCallbackClient().getAddress(),
+        python_port)

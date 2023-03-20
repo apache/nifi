@@ -19,7 +19,7 @@ from nifiapi.properties import ProcessContext
 from nifiapi.__jvm__ import JvmHolder
 
 class RecordTransform(ABC):
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.arrayList = JvmHolder.jvm.java.util.ArrayList
 
     def setContext(self, context):

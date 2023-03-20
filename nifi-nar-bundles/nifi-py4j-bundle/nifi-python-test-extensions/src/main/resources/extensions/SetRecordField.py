@@ -26,7 +26,7 @@ class SetRecordField(RecordTransform):
         version = '0.0.1-SNAPSHOT'
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__()
 
     def transform(self, context, record, schema, attributemap):
         # Update dictionary based on the dynamic properties provided by user

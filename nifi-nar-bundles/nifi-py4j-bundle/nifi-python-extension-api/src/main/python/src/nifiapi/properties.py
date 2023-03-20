@@ -267,8 +267,8 @@ class PropertyDescriptor:
 
 
 class ProcessContext:
-    __trivial_attribute_reference__ = re.compile("\$\{([^${}\[\],:;/*\' \t\r\n\d][^${}\[\],:;/*\' \t\r\n]*)}")
-    __escaped_attribute_reference__ = re.compile("\$\{'([^${}\[\],:;/*\' \t\r\n\d][^${}\[\],:;/*\' \t\r\n]*)'}")
+    __trivial_attribute_reference__ = re.compile(r"\$\{([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\' \t\r\n]*)}")
+    __escaped_attribute_reference__ = re.compile(r"\$\{'([^${}\[\],:;/*\' \t\r\n\\d][^${}\[\],:;/*\'\t\r\n]*)'}")
 
     def __init__(self, java_context):
         self.java_context = java_context

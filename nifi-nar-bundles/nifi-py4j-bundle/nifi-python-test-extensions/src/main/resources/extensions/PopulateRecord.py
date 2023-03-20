@@ -24,7 +24,7 @@ class PopulateRecord(FlowFileTransform):
         version = '0.0.1-SNAPSHOT'
 
 
-    def __init__(self, jvm, **kwargs):
+    def __init__(self, **kwargs):
         self.descriptors = []
 
 

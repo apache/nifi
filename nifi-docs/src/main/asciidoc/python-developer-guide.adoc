@@ -518,8 +518,8 @@ Here, we accept any version of `pandas` (though the latest is preferred), and we
 [[dependency-isolation]]
 === Dependency Isolation
 
-On startup, NiFi will create a separate Python env (pyenv) for each Processor implementation and will use PyPI to install
-the specified dependencies only into the appropriate Python environment for that Processor. Therefore, dependencies of one
+On startup, NiFi will create a separate Python env (venv) for each Processor implementation and will use `pip` to install
+the specified dependencies from PyPI only into the appropriate Python environment for that Processor. Therefore, dependencies of one
 Processor are not made available to another Processor.
 
 Beyond that, dependencies of one version of a Processor are not made available to other versions of the Processor. So, for example,

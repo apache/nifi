@@ -474,7 +474,7 @@ class ExtensionManager:
 
         # Create the module specification
         moduleSpec = importlib.util.spec_from_file_location(moduleName, file)
-        logging.debug('Module Spec: %s' % moduleSpec)
+        logger.debug('Module Spec: %s' % moduleSpec)
 
         # Create the module from the specification
         module = importlib.util.module_from_spec(moduleSpec)

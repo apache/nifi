@@ -65,7 +65,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -135,25 +134,6 @@ public class PythonControllerInteractionIT {
     @AfterEach
     public void cleanup() {
         controllerServiceMap.clear();
-    }
-
-    private static void copyRecursively(final File file, final File destinationDir) throws IOException {
-        if (file.isDirectory()) {
-            final File targetDir = new File(destinationDir, file.getName());
-            if (!targetDir.exists()) {
-                Files.createDirectories(targetDir.toPath());
-            }
-
-            final File[] children = file.listFiles();
-            if (children != null) {
-                for (final File child : children) {
-                    copyRecursively(child, targetDir);
-                }
-            }
-        } else {
-            final File destinationFile = new File(destinationDir, file.getName());
-            Files.copy(file.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        }
     }
 
     @AfterAll
