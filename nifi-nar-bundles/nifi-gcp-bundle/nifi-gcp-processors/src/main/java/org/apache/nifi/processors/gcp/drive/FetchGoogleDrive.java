@@ -168,6 +168,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         try (final InputStream driveFileInputStream = driveService
                 .files()
                 .get(fileId)
+                .setSupportsAllDrives(true)
                 .executeMediaAsInputStream()) {
 
             return session.importFrom(driveFileInputStream, flowFile);
@@ -178,6 +179,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         return driveService
                 .files()
                 .get(fileId)
+                .setSupportsAllDrives(true)
                 .setFields("id, name, createdTime, mimeType, size")
                 .execute();
     }

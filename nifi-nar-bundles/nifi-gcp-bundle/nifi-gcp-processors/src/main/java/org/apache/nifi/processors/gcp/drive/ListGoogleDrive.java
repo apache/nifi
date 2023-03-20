@@ -78,8 +78,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @TriggerSerially
 @Tags({"google", "drive", "storage"})
 @CapabilityDescription("Lists concrete files (shortcuts are ignored) in a Google Drive folder. " +
-        "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
-        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
+        "Each listed file may result in one FlowFile, the metadata being written as FlowFile attributes. " +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single FlowFile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data. " +
         "Please see Additional Details to set up access to Google Drive.")
@@ -266,6 +266,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         do {
             FileList result = driveService.files()
                     .list()
+                    .setSupportsAllDrives(true)
+                    .setIncludeItemsFromAllDrives(true)
                     .setQ(queryBuilder.toString())
                     .setPageToken(pageToken)
                     .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
@@ -329,6 +331,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         do {
             FileList directoryList = service.files()
                     .list()
+                    .setSupportsAllDrives(true)
+                    .setIncludeItemsFromAllDrives(true)
                     .setQ("'" + folderId + "' in parents "
                             + "and mimeType = 'application/vnd.google-apps.folder'"
                     )

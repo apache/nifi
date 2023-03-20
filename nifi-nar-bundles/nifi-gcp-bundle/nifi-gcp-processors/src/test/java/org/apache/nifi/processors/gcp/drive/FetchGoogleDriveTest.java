@@ -98,10 +98,12 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     private void mockFileDownload(String fileId) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
+                .setSupportsAllDrives(true)
                 .executeMediaAsInputStream()).thenReturn(new ByteArrayInputStream(CONTENT.getBytes(UTF_8)));
 
         when(mockDriverService.files()
                 .get(fileId)
+                .setSupportsAllDrives(true)
                 .setFields("id, name, createdTime, mimeType, size")
                 .execute()).thenReturn(createFile());
     }
@@ -109,6 +111,7 @@ public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {
     private void mockFileDownloadError(String fileId, Exception exception) throws IOException {
         when(mockDriverService.files()
                 .get(fileId)
+                .setSupportsAllDrives(true)
                 .executeMediaAsInputStream())
                 .thenThrow(exception);
     }
