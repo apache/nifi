@@ -34,6 +34,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.FlowDifferenceUtil;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
@@ -192,22 +193,13 @@ public class FlowDifferenceFilters {
                 final VersionedFlowCoordinates coordinatesB = versionedProcessGroupB.getVersionedFlowCoordinates();
 
                 if (coordinatesA != null && coordinatesB != null) {
-                    String registryUrlA = coordinatesA.getRegistryUrl();
-                    String registryUrlB = coordinatesB.getRegistryUrl();
-
-                    if (registryUrlA != null && registryUrlB != null && !registryUrlA.equals(registryUrlB)) {
-                        if (registryUrlA.endsWith("/")) {
-                            registryUrlA = registryUrlA.substring(0, registryUrlA.length() - 1);
-                        }
-
-                        if (registryUrlB.endsWith("/")) {
-                            registryUrlB = registryUrlB.substring(0, registryUrlB.length() - 1);
-                        }
-
-                        if (registryUrlA.equals(registryUrlB)) {
-                            return true;
-                        }
+                    if (coordinatesA.getStorageLocation() != null || coordinatesB.getStorageLocation() != null) {
+                        return false;
                     }
+
+                    return  !FlowDifferenceUtil.areRegistryStrictlyEqual(coordinatesA, coordinatesB)
+                            && FlowDifferenceUtil.areRegistryUrlsEqual(coordinatesA, coordinatesB)
+                            && coordinatesA.getVersion() == coordinatesB.getVersion();
                 }
             }
         }
