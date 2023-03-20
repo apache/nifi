@@ -48,6 +48,22 @@
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>copy-scripts-for-docker</id>
+                                <phase>process-sources</phase>
+                                <configuration>
+                                    <target name="copy docker scripts to nifi-registry-docker for image build">
+                                        <copy todir="${project.basedir}/target/sh" overwrite="true" flatten="true">
+                                            <fileset dir="${project.basedir}/../../nifi-registry-core/nifi-registry-docker/dockerhub/sh" includes="*.sh">
+                                                <include name="*.sh" />
+                                            </fileset>
+                                        </copy>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
                                 <id>copy-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
