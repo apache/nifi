@@ -33,20 +33,21 @@
 
         <h3>Commit retry properties</h3>
         <p>
-            Iceberg supports multiple concurrent writes using optimistic concurrency. The processor provides properties to properly configure the commit retry behaviour according to its usage.
+            Iceberg supports multiple concurrent writes using optimistic concurrency.
+            The processor's commit retry implementation is using <b>exponential backoff</b> with <b>jitter</b> and <b>scale factor 2</b>, and provides the following properties to configure the behaviour according to its usage.
 
         <ul>
             <li>
-                Number Of Commit Retries (default: 3) - Number of retries that the processor is going to try to commit the new data files.
+                Number Of Commit Retries (default: 10) - Number of retries that the processor is going to try to commit the new data files.
             </li>
             <li>
                 Minimum Commit Wait Time (default: 100 ms) - Minimum time that the processor is going to wait before each commit attempt.
             </li>
             <li>
-                Maximum Commit Wait Time (default: 1 min) - Maximum time that the processor is going to wait before each commit attempt.
+                Maximum Commit Wait Time (default: 2 sec) - Maximum time that the processor is going to wait before each commit attempt.
             </li>
             <li>
-                Maximum Commit Duration (default: 30 min) - Maximum duration that the processor is going to wait before failing the current processor event's commit.
+                Maximum Commit Duration (default: 30 sec) - Maximum duration that the processor is going to wait before failing the current processor event's commit.
             </li>
         </ul>
 

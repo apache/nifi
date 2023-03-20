@@ -121,7 +121,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Number of Commit Retries")
             .description("Number of times to retry a commit before failing.")
             .required(true)
-            .defaultValue("3")
+            .defaultValue("10")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
@@ -139,7 +139,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Wait Time")
             .description("Maximum time to wait before retrying a commit.")
             .required(true)
-            .defaultValue("1 min")
+            .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -148,7 +148,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Duration")
             .description("Total retry timeout period for a commit.")
             .required(true)
-            .defaultValue("30 min")
+            .defaultValue("30 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
