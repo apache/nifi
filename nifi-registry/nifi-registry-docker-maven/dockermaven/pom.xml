@@ -46,7 +46,6 @@
                     <!-- Copy generated artifacts -->
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
-                        <version>1.8</version>
                         <executions>
                             <execution>
                                 <id>copy-for-docker</id>
