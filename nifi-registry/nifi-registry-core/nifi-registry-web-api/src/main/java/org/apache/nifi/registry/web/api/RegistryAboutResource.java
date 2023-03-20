@@ -22,6 +22,8 @@ import io.swagger.annotations.Authorization;
 import org.apache.nifi.registry.RegistryAbout;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.web.service.ServiceFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -43,6 +45,7 @@ import java.util.Properties;
 )
 public class RegistryAboutResource extends ApplicationResource {
     private static final String PROPERTIES_FILE = "/version.properties";
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegistryAboutResource.class);
 
     @Autowired
     public RegistryAboutResource(
@@ -63,6 +66,7 @@ public class RegistryAboutResource extends ApplicationResource {
         try (InputStream stream = getClass().getResourceAsStream(PROPERTIES_FILE)){
             props.load(stream);
         } catch (IOException e) {
+            LOGGER.warn("Error while reading properties file '{}'to obtain version information", PROPERTIES_FILE, e);
             return Response.status(Response.Status.OK).entity("unknown").build();
         }
         final RegistryAbout about = new RegistryAbout(props.get("version").toString());
