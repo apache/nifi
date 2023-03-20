@@ -42,6 +42,7 @@ case ${AUTH} in
         ;;
     oidc)
         echo 'Enabling OIDC user authentication'
+        prop_replace 'nifi.registry.security.needClientAuth' 'false'
 
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_oidc_properties.sh"
