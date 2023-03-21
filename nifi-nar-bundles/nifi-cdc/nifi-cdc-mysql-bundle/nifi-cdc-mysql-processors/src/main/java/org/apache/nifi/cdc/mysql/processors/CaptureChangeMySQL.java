@@ -1172,8 +1172,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     }
                     if (!inTransaction) {
                         // These events should only happen inside a transaction, warn the user otherwise
-                        log.warn("Table modification event occurred outside of a transaction.");
-                        break;
+                        log.info("Event {} occurred outside of a transaction, which is unexpected.", eventType.name());
                     }
                     if (currentTable == null && cacheClient != null) {
                         // No Table Map event was processed prior to this event, which should not happen, so throw an error
