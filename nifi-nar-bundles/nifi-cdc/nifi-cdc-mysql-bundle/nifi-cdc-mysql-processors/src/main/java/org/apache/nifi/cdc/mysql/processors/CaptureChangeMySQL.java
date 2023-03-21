@@ -719,6 +719,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
             connect(hosts, username, password, serverId, createEnrichmentConnection, driverLocation, driverName, connectTimeout, sslContextService, sslMode);
         } catch (IOException | IllegalStateException e) {
+            if (eventListener != null) {
+                eventListener.stop();
+                if (binlogClient != null) {
+                    binlogClient.unregisterEventListener(eventListener);
+                }
+            }
             context.yield();
             binlogClient = null;
             throw new ProcessException(e.getMessage(), e);
@@ -901,6 +907,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
         }
         if (!binlogClient.isConnected()) {
+            if (eventListener != null) {
+                eventListener.stop();
+                if (binlogClient != null) {
+                    binlogClient.unregisterEventListener(eventListener);
+                }
+            }
             binlogClient.disconnect();
             binlogClient = null;
             throw new IOException("Could not connect binlog client to any of the specified hosts due to: " + lastConnectException.getMessage(), lastConnectException);
@@ -915,9 +927,18 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                 // Ensure connection can be created.
                 getJdbcConnection();
             } catch (SQLException e) {
-                binlogClient.disconnect();
-                binlogClient = null;
-                throw new IOException("Error creating binlog enrichment JDBC connection to any of the specified hosts", e);
+                getLogger().error("Error creating binlog enrichment JDBC connection to any of the specified hosts", e);
+                if (eventListener != null) {
+                    eventListener.stop();
+                    if (binlogClient != null) {
+                        binlogClient.unregisterEventListener(eventListener);
+                    }
+                }
+                if (binlogClient != null) {
+                    binlogClient.disconnect();
+                    binlogClient = null;
+                }
+                return;
             }
         }
 
@@ -1245,14 +1266,14 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     protected void stop() throws CDCException {
         try {
-            if (binlogClient != null) {
-                binlogClient.disconnect();
-            }
             if (eventListener != null) {
                 eventListener.stop();
                 if (binlogClient != null) {
                     binlogClient.unregisterEventListener(eventListener);
                 }
+            }
+            if (binlogClient != null) {
+                binlogClient.disconnect();
             }
 
             if (currentSession != null) {
