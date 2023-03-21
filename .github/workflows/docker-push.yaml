@@ -30,10 +30,6 @@ jobs:
         username: ${{ secrets.REGISTRY_USERNAME }}
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
-
     - uses: docker/setup-buildx-action@v2
       id: builder
       with:
@@ -45,7 +41,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         builder: ${{ steps.builder.outputs.name }}
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         context: .
         file:  ./nifi-docker/dockermaven/Dockerfile
         push: true
