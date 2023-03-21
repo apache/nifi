@@ -25,6 +25,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
@@ -52,6 +53,8 @@ import java.util.Arrays;
 public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Processor> {
     protected static final String SHARED_FOLDER_ID = "";
     protected static final String DEFAULT_FILE_CONTENT = "test_content";
+
+    protected static final String LARGE_FILE_CONTENT = StringUtils.repeat("a", 355 * 1024);
 
     private static final String CREDENTIAL_JSON_FILE_PATH = "";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();

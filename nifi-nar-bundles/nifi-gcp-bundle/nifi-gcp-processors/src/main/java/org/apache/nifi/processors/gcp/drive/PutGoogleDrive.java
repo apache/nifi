@@ -187,7 +187,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             REL_FAILURE
     )));
 
-    public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+    public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
 
     private volatile Drive driveService;
 
@@ -349,7 +349,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             return fileMetadata;
         } else {
             throw new ProcessException(format("Upload of File [%s] to Folder [%s] failed, HTTP error code: [%d]",
-                    fileMetadata.getName(), fileMetadata.getId(), response.getStatusCode()));
+                    fileMetadata.getName(), fileMetadata.getParents().stream().findFirst().orElse(""), response.getStatusCode()));
         }
     }
 
