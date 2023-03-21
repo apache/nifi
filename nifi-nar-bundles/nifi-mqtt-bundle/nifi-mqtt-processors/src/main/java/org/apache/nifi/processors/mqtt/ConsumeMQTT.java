@@ -45,7 +45,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
-import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -104,7 +103,7 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
             "on the topic.")})
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The 'Max Queue Size' specifies the maximum number of messages that can be hold in memory by NiFi by a single "
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
-public class ConsumeMQTT extends AbstractMQTTProcessor implements ReceivedMqttMessageHandler {
+public class ConsumeMQTT extends AbstractMQTTProcessor {
 
     public final static String RECORD_COUNT_KEY = "record.count";
     public final static String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
@@ -384,7 +383,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements ReceivedMqttMe
         try {
             mqttClient = createMqttClient();
             mqttClient.connect();
-            mqttClient.subscribe(topicPrefix + topicFilter, qos, this);
+            mqttClient.subscribe(topicPrefix + topicFilter, qos, this::handleReceivedMessage);
         } catch (Exception e) {
             logger.error("Connection failed to {}. Yielding processor", clientProperties.getRawBrokerUris(), e);
             mqttClient = null; // prevent stucked processor when subscribe fails
@@ -613,8 +612,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements ReceivedMqttMe
         return stringBuilder.toString();
     }
 
-    @Override
-    public void handleReceivedMessage(ReceivedMqttMessage message) {
+    private void handleReceivedMessage(ReceivedMqttMessage message) {
         if (logger.isDebugEnabled()) {
             byte[] payload = message.getPayload();
             final String text = new String(payload, StandardCharsets.UTF_8);

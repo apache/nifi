@@ -57,7 +57,7 @@ public interface MqttClient {
      *            published at a lower quality of service will be received at the published
      *            QoS. Messages published at a higher quality of service will be received using
      *            the QoS specified on the subscribe.
-     * @param handler that further processes message received by the client
+     * @param handler that further processes the message received by the client
      */
     void subscribe(String topicFilter, int qos, ReceivedMqttMessageHandler handler);
 }

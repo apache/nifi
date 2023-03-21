@@ -183,12 +183,15 @@ public class PahoMqttClientAdapter implements MqttClient {
 
         @Override
         public void connectionLost(Throwable cause) {
-            logger.error("Connection to {} lost", clientProperties.getRawBrokerUris(), cause);
+            logger.error("Connection to [{}] lost", clientProperties.getRawBrokerUris(), cause);
         }
 
         @Override
         public void messageArrived(String topic, MqttMessage message) {
-            logger.error(String.format("MQTT message arrived { topic:%s; payload:%s}", topic, Arrays.toString(message.getPayload())));
+            // Unlikely situation. The Paho api uses the same callback for publisher and consumer as well. That's why
+            // we have this log message here to indicate something messy thing happened because we don't expect to
+            // receive messages until the client is not subscribed and the callback is not changed to ConsumerMqttCallback.
+            logger.error("MQTT message arrived [topic:{}; payload:{}]", topic, Arrays.toString(message.getPayload()));
         }
 
         @Override
@@ -210,14 +213,16 @@ public class PahoMqttClientAdapter implements MqttClient {
 
         @Override
         public void messageArrived(String topic, MqttMessage message) {
-            logger.debug("Message arrived with id: {}", message.getId());
+            logger.debug("Message arrived. Id: [{}]", message.getId());
             final ReceivedMqttMessage receivedMessage = new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic);
             handler.handleReceivedMessage(receivedMessage);
         }
 
         @Override
         public void deliveryComplete(IMqttDeliveryToken token) {
-            // In this unlikely situation we want to indicate that something really messy happened.
+            // Unlikely situation. The Paho api uses the same callback for publisher and consumer as well. That's why
+            // we have this log message here to indicate something messy thing happened because we don't expect to
+            // receive 'delivery complete' messages while the client is subscribed.
             logger.error("Received MQTT 'delivery complete' message to a subscribed client. Token: [{}]", token);
         }
     }
