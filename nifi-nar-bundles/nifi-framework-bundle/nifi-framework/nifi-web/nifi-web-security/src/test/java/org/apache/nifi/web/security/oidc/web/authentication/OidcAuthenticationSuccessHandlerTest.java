@@ -22,10 +22,14 @@ import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
+import org.apache.nifi.web.security.oidc.client.web.converter.StandardOAuth2AuthenticationToken;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.util.WebUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -33,14 +37,16 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Pattern;
@@ -62,6 +68,9 @@ class OidcAuthenticationSuccessHandlerTest {
 
     @Mock
     IdpUserGroupService idpUserGroupService;
+
+    @Captor
+    ArgumentCaptor<LoginAuthenticationToken> authenticationTokenCaptor;
 
     MockHttpServletRequest httpServletRequest;
 
@@ -94,6 +103,14 @@ class OidcAuthenticationSuccessHandlerTest {
     private static final String AUTHORITY = GrantedAuthority.class.getSimpleName();
 
     private static final String AUTHORITY_LOWER = AUTHORITY.toLowerCase();
+
+    private static final String ACCESS_TOKEN = "access-token";
+
+    private static final Duration TOKEN_EXPIRATION = Duration.ofHours(1);
+
+    private static final Instant ACCESS_TOKEN_ISSUED = Instant.ofEpochSecond(0);
+
+    private static final Instant ACCESS_TOKEN_EXPIRES = ACCESS_TOKEN_ISSUED.plus(TOKEN_EXPIRATION);
 
     private static final String FIRST_GROUP = "$1";
 
@@ -165,8 +182,7 @@ class OidcAuthenticationSuccessHandlerTest {
     void assertTargetUrlEquals(final String expectedTargetUrl) {
         setOidcUser();
 
-        final Collection<? extends GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(AUTHORITY));
-        final OAuth2AuthenticationToken authentication = new OAuth2AuthenticationToken(oidcUser, authorities, OidcRegistrationProperty.REGISTRATION_ID.getProperty());
+        final StandardOAuth2AuthenticationToken authentication = getAuthenticationToken();
 
         final String targetUrl = handler.determineTargetUrl(httpServletRequest, httpServletResponse, authentication);
 
@@ -178,13 +194,28 @@ class OidcAuthenticationSuccessHandlerTest {
 
         assertNotNull(responseCookie);
         assertEquals(expectedCookiePath, responseCookie.getPath());
+
+        verify(bearerTokenProvider).getBearerToken(authenticationTokenCaptor.capture());
+
+        final LoginAuthenticationToken authenticationToken = authenticationTokenCaptor.getValue();
+        final Instant expiration = Instant.ofEpochMilli(authenticationToken.getExpiration());
+
+        final ChronoUnit truncation = ChronoUnit.MINUTES;
+        final Instant expirationTruncated = expiration.truncatedTo(truncation);
+        final Instant expected = Instant.now().plus(TOKEN_EXPIRATION).truncatedTo(truncation);
+        assertEquals(expected, expirationTruncated);
     }
 
     void setOidcUser() {
         when(oidcUser.getClaimAsString(eq(USER_NAME_CLAIM))).thenReturn(IDENTITY);
         when(oidcUser.getClaimAsStringList(eq(GROUPS_CLAIM))).thenReturn(Collections.singletonList(AUTHORITY));
-        when(oidcUser.getExpiresAt()).thenReturn(Instant.now());
         when(oidcUser.getIssuer()).thenReturn(getIssuer());
+    }
+
+    StandardOAuth2AuthenticationToken getAuthenticationToken() {
+        final OAuth2AccessToken accessToken = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER, ACCESS_TOKEN, ACCESS_TOKEN_ISSUED, ACCESS_TOKEN_EXPIRES);
+        final Collection<? extends GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(AUTHORITY));
+        return new StandardOAuth2AuthenticationToken(oidcUser, authorities, OidcRegistrationProperty.REGISTRATION_ID.getProperty(), accessToken);
     }
 
     URL getIssuer() {

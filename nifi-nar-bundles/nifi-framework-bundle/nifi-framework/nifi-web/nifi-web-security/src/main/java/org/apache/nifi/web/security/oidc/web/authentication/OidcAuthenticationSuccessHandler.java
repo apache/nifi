@@ -29,6 +29,8 @@ import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.util.RequestUriBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2Token;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -117,23 +119,28 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
         final Set<String> groups = getGroups(oidcUser);
         idpUserGroupService.replaceUserGroups(identity, IdpType.OIDC, groups);
 
-        final String bearerToken = getBearerToken(identity, oidcUser);
+        final OAuth2AccessToken accessToken = getAccessToken(authenticationToken);
+        final String bearerToken = getBearerToken(identity, oidcUser, accessToken);
         applicationCookieService.addSessionCookie(resourceUri, response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
     }
 
-    private String getBearerToken(final String identity, final OidcUser oidcUser) {
-        final long sessionExpiration = getSessionExpiration(oidcUser);
+    private String getBearerToken(final String identity, final OidcUser oidcUser, final OAuth2AccessToken accessToken) {
+        final long sessionExpiration = getSessionExpiration(accessToken);
         final String issuer = oidcUser.getIssuer().toString();
         final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, identity, sessionExpiration, issuer);
         return bearerTokenProvider.getBearerToken(loginAuthenticationToken);
     }
 
-    private long getSessionExpiration(final OidcUser oidcUser) {
-        final Instant tokenExpiration = oidcUser.getExpiresAt();
+    private long getSessionExpiration(final OAuth2Token token) {
+        final Instant tokenExpiration = token.getExpiresAt();
         if (tokenExpiration == null) {
-            throw new IllegalArgumentException("OpenID Connect ID Token expiration claim not found");
+            throw new IllegalArgumentException("Token expiration claim not found");
         }
-        final Duration expiration = Duration.between(Instant.now(), tokenExpiration);
+        final Instant tokenIssued = token.getIssuedAt();
+        if (tokenIssued == null) {
+            throw new IllegalArgumentException("Token issued claim not found");
+        }
+        final Duration expiration = Duration.between(tokenIssued, tokenExpiration);
         return expiration.toMillis();
     }
 
@@ -142,6 +149,16 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
             return (OAuth2AuthenticationToken) authentication;
         } else {
             final String message = String.format("OAuth2AuthenticationToken not found [%s]", authentication.getClass());
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private OAuth2AccessToken getAccessToken(final OAuth2AuthenticationToken authenticationToken) {
+        final Object credentials = authenticationToken.getCredentials();
+        if (credentials instanceof OAuth2AccessToken) {
+            return (OAuth2AccessToken) credentials;
+        } else {
+            final String message = String.format("OAuth2AccessToken not found in credentials [%s]", credentials.getClass());
             throw new IllegalArgumentException(message);
         }
     }

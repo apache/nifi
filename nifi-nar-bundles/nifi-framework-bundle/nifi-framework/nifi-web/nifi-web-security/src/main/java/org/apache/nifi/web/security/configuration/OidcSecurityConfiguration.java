@@ -38,6 +38,7 @@ import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.OidcUrlPath;
 import org.apache.nifi.web.security.oidc.client.web.AuthorizedClientExpirationCommand;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
+import org.apache.nifi.web.security.oidc.client.web.converter.AuthenticationResultConverter;
 import org.apache.nifi.web.security.oidc.client.web.converter.AuthorizedClientConverter;
 import org.apache.nifi.web.security.oidc.client.web.StandardAuthorizationRequestRepository;
 import org.apache.nifi.web.security.oidc.client.web.converter.StandardAuthorizedClientConverter;
@@ -211,6 +212,7 @@ public class OidcSecurityConfiguration {
         filter.setAuthenticationSuccessHandler(getAuthenticationSuccessHandler());
         filter.setAllowSessionCreation(false);
         filter.setSessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy());
+        filter.setAuthenticationResultConverter(new AuthenticationResultConverter());
 
         final AuthenticationEntryPointFailureHandler authenticationFailureHandler = new AuthenticationEntryPointFailureHandler(authenticationEntryPoint);
         filter.setAuthenticationFailureHandler(authenticationFailureHandler);

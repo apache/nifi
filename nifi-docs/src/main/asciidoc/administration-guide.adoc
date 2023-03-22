@@ -498,7 +498,7 @@ link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] a
 link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
 
 After successful authentication with the Authorization Server, NiFi generates an application Bearer Token with an
-expiration based on the OpenID Connect ID Token `exp` claim. NiFi stores authorized tokens using the local State
+expiration based on the OAuth2 Access Token expiration. NiFi stores authorized tokens using the local State
 Provider and encrypts serialized information using the application Sensitive Properties Key.
 
 The implementation enables
@@ -513,10 +513,10 @@ Connect Providers to support Refresh Tokens. When an OpenID Connect Provider doe
 requires the user to initiate a new session when the application Bearer Token expires.
 
 The Refresh Token implementation allows the NiFi session to continue as long as the Refresh Token is valid and the
-user agent presents a valid Bearer Token. The default value for the token refresh window is 60 seconds. For an ID Token
-with an expiration of one hour, NiFi will attempt to renew access using the Refresh Token when receiving an HTTP request
-59 minutes after authenticating the ID Token. Revoked Refresh Tokens or expired application Bearer Tokens result in
-standard session timeout behavior, requiring the user to initiate a new session.
+user agent presents a valid Bearer Token. The default value for the token refresh window is 60 seconds. For an Access
+Token with an expiration of one hour, NiFi will attempt to renew access using the Refresh Token when receiving an HTTP
+request 59 minutes after authenticating the Access Token. Revoked Refresh Tokens or expired application Bearer Tokens
+result in standard session timeout behavior, requiring the user to initiate a new session.
 
 The OpenID Connect implementation supports OAuth 2.0 Token Revocation as defined in
 link:https://www.rfc-editor.org/rfc/rfc7009[RFC 7009^]. OpenID Connect Discovery configuration must include a
@@ -524,9 +524,9 @@ link:https://www.rfc-editor.org/rfc/rfc7009[RFC 7009^]. OpenID Connect Discovery
 Tokens when the authenticated Resource Owner initiates the logout process.
 
 The implementation includes a scheduled process for removing and revoking expired Refresh Tokens when the corresponding
-Access Token has expired, indicating that the Resource Owner has terminated the application session. Session termination
-occurs when user closes the browser without initiating the logout process. The scheduled process avoids extended storage
-of Refresh Tokens for users who are no longer interacting with the application.
+Access Token has expired, indicating that the Resource Owner has terminated the application session. Scheduled session
+termination occurs when the user closes the browser without initiating the logout process. The scheduled process avoids
+extended storage of Refresh Tokens for users who are no longer interacting with the application.
 
 OpenID Connect integration supports the following settings in _nifi.properties_.
 
