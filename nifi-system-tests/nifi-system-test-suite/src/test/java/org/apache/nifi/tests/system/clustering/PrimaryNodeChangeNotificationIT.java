@@ -53,12 +53,14 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
             counters = getClientUtil().getCountersAsMap(processor.getId());
         }
 
-        final String primaryNodeId = getPrimaryNodeId();
+        final NodeDTO primaryNode = getNode(ClusterRoles.PRIMARY_NODE, false);
         final NodeDTO nonPrimaryNode = getNode(ClusterRoles.PRIMARY_NODE, true);
 
-        getClientUtil().disconnectNode(primaryNodeId);
+        getClientUtil().disconnectNode(primaryNode.getNodeId());
         setupClient(nonPrimaryNode.getApiPort());
-        getClientUtil().connectNode(primaryNodeId);
+        waitForNodeStatus(primaryNode, "DISCONNECTED");
+
+        getClientUtil().connectNode(primaryNode.getNodeId());
         waitForAllNodesConnected();
 
         waitFor(() -> {
@@ -87,12 +89,14 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
             counters = getClientUtil().getCountersAsMap(processor.getId());
         }
 
-        final String primaryNodeId = getPrimaryNodeId();
+        final NodeDTO primaryNode = getNode(ClusterRoles.PRIMARY_NODE, false);
         final NodeDTO nonPrimaryNode = getNode(ClusterRoles.PRIMARY_NODE, true);
 
-        getClientUtil().disconnectNode(primaryNodeId);
+        getClientUtil().disconnectNode(primaryNode.getNodeId());
         setupClient(nonPrimaryNode.getApiPort());
-        getClientUtil().connectNode(primaryNodeId);
+        waitForNodeStatus(primaryNode, "DISCONNECTED");
+
+        getClientUtil().connectNode(primaryNode.getNodeId());
         waitForAllNodesConnected();
 
         // Wait until the "called" counter is incremented but hte ChangeCompleted counter is not
@@ -132,9 +136,6 @@ public class PrimaryNodeChangeNotificationIT extends NiFiSystemIT {
         waitFor(() -> processorClient.getProcessor(processor.getId()).getStatus().getAggregateSnapshot().getActiveThreadCount() == 0);
     }
 
-    private String getPrimaryNodeId() throws InterruptedException, NiFiClientException, IOException {
-        return getNode(ClusterRoles.PRIMARY_NODE, false).getNodeId();
-    }
 
     private NodeDTO getNode(final String roleName, final boolean invert) throws InterruptedException, NiFiClientException, IOException {
         while (true) {
