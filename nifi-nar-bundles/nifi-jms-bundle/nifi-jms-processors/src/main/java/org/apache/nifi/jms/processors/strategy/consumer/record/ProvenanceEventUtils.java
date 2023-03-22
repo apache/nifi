@@ -14,19 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.consumer;
+package org.apache.nifi.jms.processors.strategy.consumer.record;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 
-public interface EventReporter {
-    void reportSuccessEvent(ProcessSession session, FlowFile flowFile);
-
-    default void reportParseFailureEvent(ProcessSession session, FlowFile flowFile) {
-        // there is no default operation, created to match MessageConsumerCallback
-    }
-
-    default void reportFailureEvent(ProcessSession session, FlowFile flowFile) {
-        // there is no default operation, created to match MessageConsumerCallback
+public class ProvenanceEventUtils {
+    public static void reportSuccessEvent(ProcessSession session, FlowFile flowFile, String transitUri) {
+        session.getProvenanceReporter().receive(flowFile, transitUri);
     }
 }

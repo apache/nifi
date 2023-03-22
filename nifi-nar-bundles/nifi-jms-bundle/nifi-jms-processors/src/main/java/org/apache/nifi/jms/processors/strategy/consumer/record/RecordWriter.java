@@ -55,27 +55,26 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
     private final RecordReaderFactory readerFactory;
     private final RecordSetWriterFactory writerFactory;
     private final Serializer<T> serializer;
+    private final AttributeSupplier<T> attributeSupplier;
     private final OutputStrategy outputStrategy;
     private final ComponentLog logger;
 
     public RecordWriter(RecordReaderFactory readerFactory,
                         RecordSetWriterFactory writerFactory,
                         Serializer<T> serializer,
+                        AttributeSupplier<T> attributeSupplier,
                         OutputStrategy outputStrategy,
                         ComponentLog logger) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
         this.serializer = serializer;
+        this.attributeSupplier = attributeSupplier;
         this.outputStrategy = outputStrategy;
         this.logger = logger;
     }
 
     @Override
-    public void write(ProcessSession session, List<T> messages, AttributeSupplier<T> attributeSupplier, MessageConsumerCallback<T> messageConsumerCallback) {
-        consumeMessagesIntoRecords(session, messages, attributeSupplier, messageConsumerCallback);
-    }
-
-    private void consumeMessagesIntoRecords(ProcessSession session, List<T> messages, AttributeSupplier<T> attributeSupplier, MessageConsumerCallback<T> messageConsumerCallback) {
+    public void write(ProcessSession session, List<T> messages, MessageConsumerCallback<T> messageConsumerCallback) {
         FlowFile flowFile = session.create();
 
         final Map<String, String> attributes = new HashMap<>();
@@ -206,6 +205,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         private RecordReaderFactory readerFactory;
         private RecordSetWriterFactory writerFactory;
         private Serializer<T> serializer;
+        private AttributeSupplier<T> attributeSupplier;
         private OutputStrategy outputStrategy;
         private ComponentLog logger;
 
@@ -224,6 +224,11 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
             return this;
         }
 
+        public Builder<T> withAttributeSupplier(AttributeSupplier<T> attributeSupplier) {
+            this.attributeSupplier = attributeSupplier;
+            return this;
+        }
+
         public Builder<T> withOutputStrategy(OutputStrategy outputStrategy) {
             this.outputStrategy = outputStrategy;
             return this;
@@ -235,7 +240,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         }
 
         public RecordWriter<T> build() {
-            return new RecordWriter<>(readerFactory, writerFactory, serializer, outputStrategy, logger);
+            return new RecordWriter<>(readerFactory, writerFactory, serializer, attributeSupplier, outputStrategy, logger);
         }
     }
 }

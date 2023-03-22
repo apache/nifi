@@ -21,5 +21,5 @@ import org.apache.nifi.processor.ProcessSession;
 import java.util.List;
 
 public interface FlowFileWriter<T> {
-    void write(ProcessSession session, List<T> messages, AttributeSupplier<T> attributeSupplier, MessageConsumerCallback<T> messageConsumerCallback);
+    void write(ProcessSession session, List<T> messages, MessageConsumerCallback<T> messageConsumerCallback);
 }

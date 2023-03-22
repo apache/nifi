@@ -33,11 +33,10 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
-import org.apache.nifi.jms.processors.strategy.consumer.MessageConsumer;
+import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriter;
 import org.apache.nifi.jms.processors.strategy.consumer.MessageConsumerCallback;
 import org.apache.nifi.jms.processors.strategy.consumer.record.OutputStrategy;
 import org.apache.nifi.jms.processors.strategy.consumer.record.RecordWriter;
-import org.apache.nifi.jms.processors.strategy.consumer.record.StandardRecordReceivedEventReporter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -372,48 +371,43 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
 
+        final FlowFileWriter<JMSResponse> flowFileWriter = new RecordWriter.Builder<JMSResponse>()
+                .withReaderFactory(readerFactory)
+                .withWriterFactory(writerFactory)
+                .withSerializer(message -> message.getMessageBody() == null ? new byte[0] : message.getMessageBody())
+                .withAttributeSupplier(message -> mergeJmsAttributes(message.getMessageHeaders(), message.getMessageProperties()))
+                .withOutputStrategy(outputStrategy)
+                .withLogger(getLogger())
+                .build();
+
         consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, jmsResponses -> {
-            final MessageConsumer<JMSResponse> messageConsumer = new MessageConsumer.Builder<JMSResponse>()
-                    .withFlowFileWriter((new RecordWriter.Builder<JMSResponse>()
-                            .withReaderFactory(readerFactory)
-                            .withWriterFactory(writerFactory)
-                            .withSerializer(message -> message.getMessageBody() == null ? new byte[0] : message.getMessageBody())
-                            .withOutputStrategy(outputStrategy)
-                            .withLogger(getLogger()).build()))
-                    .withAttributeSupplier(message -> mergeJmsAttributes(message.getMessageHeaders(), message.getMessageProperties()))
-                    .withEventReporter(StandardRecordReceivedEventReporter.of(destinationName))
-                    .build();
+            flowFileWriter.write(session, jmsResponses, new MessageConsumerCallback<>() {
+                @Override
+                public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
+                    session.transfer(flowFile, REL_SUCCESS);
+                    session.commitAsync(
+                            () -> withLog(() -> acknowledge(processedMessages, failedMessages)),
+                            __ -> withLog(() -> reject(processedMessages, failedMessages))
+                    );
+                    session.getProvenanceReporter().receive(flowFile, destinationName);
+                    session.adjustCounter(COUNTER_RECORDS_RECEIVED, processedMessages.size() + failedMessages.size(), false);
+                    session.adjustCounter(COUNTER_RECORDS_PROCESSED, processedMessages.size(), false);
+                }
 
-            messageConsumer.consumeMessages(
-                    session,
-                    jmsResponses,
-                    new MessageConsumerCallback<>() {
-                        @Override
-                        public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
-                            session.transfer(flowFile, REL_SUCCESS);
-                            session.commitAsync(
-                                    () -> withLog(() -> acknowledge(processedMessages, failedMessages)),
-                                    __ -> withLog(() -> reject(processedMessages, failedMessages))
-                            );
-                            session.adjustCounter(COUNTER_RECORDS_RECEIVED, processedMessages.size() + failedMessages.size(), false);
-                            session.adjustCounter(COUNTER_RECORDS_PROCESSED, processedMessages.size(), false);
-                        }
+                @Override
+                public void onParseFailure(FlowFile flowFile, JMSResponse message, Exception e) {
+                    final FlowFile failedMessage = createFlowFileFromMessage(session, destinationName, message);
+                    session.transfer(failedMessage, REL_PARSE_FAILURE);
+                    session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
+                }
 
-                        @Override
-                        public void onParseFailure(FlowFile flowFile, JMSResponse message, Exception e) {
-                            final FlowFile failedMessage = createFlowFileFromMessage(session, destinationName, message);
-                            session.transfer(failedMessage, REL_PARSE_FAILURE);
-                            session.adjustCounter(COUNTER_PARSE_FAILURES, 1, false);
-                        }
-
-                        @Override
-                        public void onFailure(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages, Exception e) {
-                            reject(processedMessages, failedMessages);
-                            // It would be nicer to call rollback and yield here, but we are rethrowing the exception to have the same error handling with processSingleMessage.
-                            throw new ProcessException(e);
-                        }
-                    }
-            );
+                @Override
+                public void onFailure(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages, Exception e) {
+                    reject(processedMessages, failedMessages);
+                    // It would be nicer to call rollback and yield here, but we are rethrowing the exception to have the same error handling with processSingleMessage.
+                    throw new ProcessException(e);
+                }
+            });
         });
     }
 
