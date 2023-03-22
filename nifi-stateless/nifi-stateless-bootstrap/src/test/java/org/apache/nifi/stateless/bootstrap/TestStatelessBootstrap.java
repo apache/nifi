@@ -66,7 +66,7 @@ public class TestStatelessBootstrap {
         final String classToLoad = "org.apache.nifi.stateless.bootstrap.RunStatelessFlow";
 
         // A directory for NARs, jars, etc. that are allowed by the AllowListClassLoader
-        final File narDirectory = new File("target");
+        final File narDirectory = new File("target/generated-sources");
 
         // Create a URLClassLoader to use for the System ClassLoader. This will load the classes from the target/ directory.
         // Then create an AllowListClassLoader that will not allow these classes through.
