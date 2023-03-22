@@ -107,7 +107,10 @@ public class TestPutIcebergWithHiveCatalog {
     }
 
     private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService(metastore.getThriftConnectionUri(), metastore.getWarehouseLocation());
+        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder()
+                .withMetastoreUri(metastore.getThriftConnectionUri())
+                .withWarehouseLocation(metastore.getWarehouseLocation())
+                .build();
         Catalog catalog = catalogService.getCatalog();
 
         Map<String, String> tableProperties = new HashMap<>();
