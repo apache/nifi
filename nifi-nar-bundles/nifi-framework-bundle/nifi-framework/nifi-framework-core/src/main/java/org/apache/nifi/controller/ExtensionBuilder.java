@@ -232,7 +232,7 @@ public class ExtensionBuilder {
         try {
             loggableComponent = createLoggableProcessor();
         } catch (final ProcessorInstantiationException pie) {
-            logger.error("Could not create Processor of type " + type + " for ID " + identifier + " due to: " + pie.getMessage() + "; creating \"Ghost\" implementation", pie);
+            logger.error("Could not create Processor of type {} for ID {} due to: {}; creating \"Ghost\" implementation", type, identifier, pie.getMessage(), pie);
 
             final GhostProcessor ghostProc = new GhostProcessor();
             ghostProc.setIdentifier(identifier);

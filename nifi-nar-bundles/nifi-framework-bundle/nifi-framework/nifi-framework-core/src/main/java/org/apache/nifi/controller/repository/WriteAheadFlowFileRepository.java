@@ -29,7 +29,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SnapshotCapture;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -200,7 +199,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
             @Override
-            public Thread newThread(@NotNull final Runnable r) {
+            public Thread newThread(final Runnable r) {
                 final Thread t = Executors.defaultThreadFactory().newThread(r);
                 t.setName("Checkpoint FlowFile Repository");
                 return t;

@@ -235,7 +235,7 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 [[python_configuration]]
 == Python Configuration
 
-NiFi if a Java-based application. However, in the 2.0 release, support was introduces for a Python-based Processor API. This capability is still
+NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
 considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
 Python 3.9+ must be installed on the NiFi node.
 
