@@ -222,9 +222,9 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
             String asnFilesString = context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue();
 
             if (context.getProperty(DO_ADDITIONAL_PREPROCESSING).asBoolean()) {
-                AsnPreprocessorEngine asnPreprocessorEngine = new AsnPreprocessorEngine();
+                final AsnPreprocessorEngine asnPreprocessorEngine = new AsnPreprocessorEngine();
 
-                String preprocessOutputDirectory = context.getProperty(ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
+                final String preprocessOutputDirectory = context.getProperty(ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
 
                 asnFilesString = asnPreprocessorEngine.preprocess(
                         logger,
@@ -233,7 +233,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 );
             }
 
-            String[] asnFilesPaths = Arrays.stream(asnFilesString.split(","))
+            final String[] asnFilesPaths = Arrays.stream(asnFilesString.split(","))
                     .map(String::trim)
                     .toArray(String[]::new);
             compileAsnToClass(asnFilesPaths);

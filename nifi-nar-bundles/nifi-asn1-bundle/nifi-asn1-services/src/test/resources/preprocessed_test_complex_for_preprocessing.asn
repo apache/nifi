@@ -4,7 +4,7 @@ DEFINITIONS IMPLICIT TAGS ::=
 
 BEGIN
 
-MyType := SEQUENCE {
+MyType ::= SEQUENCE {
     field1   [0] INTEGER , --Comment
  -- comment2
 	field2		INTEGER OPTIONAL,
