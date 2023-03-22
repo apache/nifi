@@ -19,11 +19,9 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
-import org.apache.nifi.registry.RegistryAbout;
+import org.apache.nifi.registry.about.RegistryAbout;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.web.service.ServiceFacade;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -32,9 +30,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
 
 @Component
 @Path("/about")
@@ -44,8 +39,6 @@ import java.util.Properties;
         authorizations = { @Authorization("Authorization") }
 )
 public class RegistryAboutResource extends ApplicationResource {
-    private static final String PROPERTIES_FILE = "/version.properties";
-    private static final Logger LOGGER = LoggerFactory.getLogger(RegistryAboutResource.class);
 
     @Autowired
     public RegistryAboutResource(
@@ -62,14 +55,8 @@ public class RegistryAboutResource extends ApplicationResource {
             response = RegistryAbout.class
     )
     public Response getVersion() {
-        Properties props = new Properties();
-        try (InputStream stream = getClass().getResourceAsStream(PROPERTIES_FILE)){
-            props.load(stream);
-        } catch (IOException e) {
-            LOGGER.warn("Error while reading properties file '{}'to obtain version information", PROPERTIES_FILE, e);
-            return Response.status(Response.Status.OK).entity("unknown").build();
-        }
-        final RegistryAbout about = new RegistryAbout(props.get("version").toString());
-        return Response.status(Response.Status.OK).entity(about).build();
+        final String implVersion = RegistryAbout.class.getPackage().getImplementationVersion();
+        final RegistryAbout version = new RegistryAbout(implVersion);
+        return Response.status(Response.Status.OK).entity(version).build();
     }
 }
