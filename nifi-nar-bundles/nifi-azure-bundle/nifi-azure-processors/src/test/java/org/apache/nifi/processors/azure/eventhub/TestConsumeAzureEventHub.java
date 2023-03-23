@@ -325,7 +325,7 @@ public class TestConsumeAzureEventHub {
     @EnumSource(CheckpointStrategy.class)
     @ParameterizedTest
     public void testReceiveAllRecordFailure(CheckpointStrategy strategy) throws Exception {
-        setProperties(CheckpointStrategy.COMPONENT_STATE);
+        setProperties(strategy);
 
         final List<EventData> events = getEvents(FIRST_CONTENT);
         setupRecordReader(events, 0, null);
@@ -357,7 +357,7 @@ public class TestConsumeAzureEventHub {
     @EnumSource(CheckpointStrategy.class)
     @ParameterizedTest
     public void testReceiveRecordWriterFailure(CheckpointStrategy strategy) throws Exception {
-        setProperties(CheckpointStrategy.COMPONENT_STATE);
+        setProperties(strategy);
 
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT, THIRD_CONTENT, FOURTH_CONTENT);
         setupRecordReader(events, -1, SECOND_CONTENT);
