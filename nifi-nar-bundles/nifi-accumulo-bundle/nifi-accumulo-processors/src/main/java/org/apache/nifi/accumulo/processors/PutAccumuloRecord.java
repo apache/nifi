@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -82,6 +83,8 @@ import java.util.stream.Collectors;
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "accumulo", "put", "record"})
+@CapabilityDescription("This is a record aware processor that reads the content of the incoming FlowFile as individual records using the " +
+        "configured 'Record Reader' and writes them to Apache Accumulo.")
 @DynamicProperties({
         @DynamicProperty(name = "visibility.<COLUMN FAMILY>", description = "Visibility label for everything under that column family " +
                 "when a specific label for a particular column qualifier is not available.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -94,7 +97,7 @@ import java.util.stream.Collectors;
 })
 /**
  * Purpose and Design: Requires a connector be defined by way of an AccumuloService object. This class
- * simply extens BaseAccumuloProcessor to extract records from a flow file. The location of a record field value can be
+ * simply extends BaseAccumuloProcessor to extract records from a flow file. The location of a record field value can be
  * placed into the value or part of the column qualifier ( this can/may change )
  *
  * Supports deletes. If the delete flag is used we'll delete keys found within that flow file.
