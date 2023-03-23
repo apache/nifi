@@ -68,9 +68,9 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                         String entryConsumerGroup = parts[2];
                         String partitionId = parts[3];
 
-                        if (entryFullyQualifiedNamespace.equals(fullyQualifiedNamespace) &&
-                                entryEventHubName.equals(eventHubName) &&
-                                entryConsumerGroup.equals(consumerGroup)) {
+                        if (entryFullyQualifiedNamespace.equals(fullyQualifiedNamespace)
+                                && entryEventHubName.equals(eventHubName)
+                                && entryConsumerGroup.equals(consumerGroup)) {
                             return null;
                         }
 
