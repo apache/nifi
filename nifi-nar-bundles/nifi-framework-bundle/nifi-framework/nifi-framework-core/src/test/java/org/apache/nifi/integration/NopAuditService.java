@@ -39,6 +39,10 @@ public class NopAuditService implements AuditService {
     }
 
     @Override
+    public void deletePreviousValues(String propertyName, String componentId) {
+    }
+
+    @Override
     public History getActions(final HistoryQuery actionQuery) {
         return null;
     }

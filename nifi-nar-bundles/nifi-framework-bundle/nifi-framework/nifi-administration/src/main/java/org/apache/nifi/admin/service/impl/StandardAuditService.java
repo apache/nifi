@@ -21,6 +21,7 @@ import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.action.AddActionsAction;
+import org.apache.nifi.admin.service.action.DeletePreviousValues;
 import org.apache.nifi.admin.service.action.GetActionAction;
 import org.apache.nifi.admin.service.action.GetActionsAction;
 import org.apache.nifi.admin.service.action.GetPreviousValues;
@@ -109,6 +110,33 @@ public class StandardAuditService implements AuditService {
         }
 
         return previousValues;
+    }
+
+    @Override
+    public void deletePreviousValues(String propertyName, String componentId) {
+        Transaction transaction = null;
+
+        readLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // seed the accounts
+            DeletePreviousValues deleteAction = new DeletePreviousValues(propertyName, componentId);
+            transaction.execute(deleteAction);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            readLock.unlock();
+        }
     }
 
     @Override
