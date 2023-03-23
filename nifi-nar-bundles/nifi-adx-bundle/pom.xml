@@ -28,7 +28,7 @@
 
     <properties>
         <nifi-release-version>2.0.0-SNAPSHOT</nifi-release-version>
-        <azure-kusto-java-sdk-version>4.0.1</azure-kusto-java-sdk-version>
+        <azure-kusto-java-sdk-version>4.0.4</azure-kusto-java-sdk-version>
     </properties>
 
 
