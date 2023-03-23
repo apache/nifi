@@ -47,6 +47,14 @@ public interface AuditService {
     Map<String, List<PreviousValue>> getPreviousValues(String componentId);
 
     /**
+     * Deletes the history of a component's property.
+     *
+     * @param propertyName the name of the property
+     * @param componentId  to delete previous values of
+     */
+    void deletePreviousValues(String propertyName, String componentId);
+
+    /**
      * Get the actions within the given date range.
      *
      * @param actionQuery query
