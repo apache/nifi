@@ -22,6 +22,7 @@ import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -399,7 +400,19 @@ public class TestConsumeAzureEventHub {
             return checkpointStore;
         } else {
             ProcessSessionFactory processSessionFactory = testRunner.getProcessSessionFactory();
-            return new ComponentStateCheckpointStore(processSessionFactory);
+            return new ComponentStateCheckpointStore(
+                    new ComponentStateCheckpointStore.State() {
+                        @Override
+                        public Map<String, String> getState() throws IOException {
+                            return processSessionFactory.createSession().getState(Scope.CLUSTER).toMap();
+                        }
+
+                        @Override
+                        public void setState(Map<String, String> map) throws IOException {
+                            processSessionFactory.createSession().setState(map, Scope.CLUSTER);
+                        }
+                    }
+            );
         }
     }
 

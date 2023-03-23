@@ -19,10 +19,6 @@ package org.apache.nifi.processors.azure.eventhub.utils;
 import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.PartitionOwnership;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,10 +28,14 @@ import java.util.List;
 import java.util.Map;
 
 public class ComponentStateCheckpointStore implements CheckpointStore {
-    private final ProcessSessionFactory processSessionFactory;
+    public interface State {
+        Map<String, String> getState() throws IOException;
+        void setState(Map<String, String> map) throws IOException;
+    }
+    private final State state;
 
-    public ComponentStateCheckpointStore(ProcessSessionFactory processSessionFactory) {
-        this.processSessionFactory = processSessionFactory;
+    public ComponentStateCheckpointStore(State state) {
+        this.state = state;
     }
 
     @Override
@@ -55,10 +55,9 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     @Override
     public Flux<Checkpoint> listCheckpoints(String fullyQualifiedNamespace, String eventHubName, String consumerGroup) {
-        final ProcessSession session = processSessionFactory.createSession();
         try {
-            StateMap stateMap = session.getState(Scope.CLUSTER);
-            return Flux.fromIterable(stateMap.toMap().entrySet()).mapNotNull(
+            Map<String, String> stateMap = state.getState();
+            return Flux.fromIterable(stateMap.entrySet()).mapNotNull(
                     entry -> {
                         String[] parts = entry.getKey().split("/", 4);
                         if (parts.length < 4) {
@@ -90,10 +89,8 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
 
     @Override
     public Mono<Void> updateCheckpoint(Checkpoint checkpoint) {
-        final ProcessSession session = processSessionFactory.createSession();
         try {
-            StateMap stateMap = session.getState(Scope.CLUSTER);
-            Map<String, String> map = new HashMap<>(stateMap.toMap());
+            Map<String, String> map = new HashMap<>(state.getState());
             Long offset = checkpoint.getOffset();
             String key = String.format(
                     "%s/%s/%s/%s",
@@ -107,8 +104,11 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
             } else {
                 map.put(key, offset.toString());
             }
-            session.setState(map, Scope.CLUSTER);
-            session.commitAsync();
+
+            // Note that we do not commit here because there is an implicit
+            // agreement that the process session factory will provide a session
+            // that is automatically committed (this is done by the processor).
+            state.setState(map);
         } catch (IOException e) {
             return Mono.error(e);
         }

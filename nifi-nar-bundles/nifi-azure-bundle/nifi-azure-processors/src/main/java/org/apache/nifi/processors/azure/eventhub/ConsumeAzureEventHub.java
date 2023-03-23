@@ -338,6 +338,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     private volatile boolean isRecordReaderSet = false;
     private volatile boolean isRecordWriterSet = false;
     private volatile String serviceBusEndpoint;
+    private volatile CheckpointStrategy checkpointStrategy;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -402,6 +403,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             isRecordWriterSet = StringUtils.isNotEmpty(newValue);
         } else if (SERVICE_BUS_ENDPOINT.equals(descriptor)) {
             serviceBusEndpoint = newValue;
+        } else if (CHECKPOINT_STRATEGY.equals(descriptor)) {
+            checkpointStrategy = CheckpointStrategy.valueOf(newValue);
         }
     }
 
@@ -441,10 +444,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
 
-        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(
-                context.getProperty(CHECKPOINT_STRATEGY).getValue()
-        );
-
         CheckpointStore checkpointStore;
         final Map<String, EventPosition> legacyPartitionEventPosition;
 
@@ -458,7 +457,18 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
             legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         } else {
-            checkpointStore = new ComponentStateCheckpointStore(processSessionFactory);
+            checkpointStore = new ComponentStateCheckpointStore(
+                    new ComponentStateCheckpointStore.State() {
+                        @Override
+                        public Map<String, String> getState() throws IOException {
+                            return processSessionFactory.createSession().getState(Scope.CLUSTER).toMap();
+                        }
+
+                        @Override
+                        public void setState(Map<String, String> map) throws IOException {
+                            processSessionFactory.createSession().setState(map, Scope.CLUSTER);
+                        }
+                    });
             legacyPartitionEventPosition = Collections.emptyMap();
         }
 
@@ -528,8 +538,34 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 writeRecords(eventBatchContext, session, stopWatch);
             }
 
-            // Commit ProcessSession and then update Azure Event Hubs checkpoint status
-            session.commitAsync(eventBatchContext::updateCheckpoint);
+            // As a special case, when the checkpoint strategy is component state,
+            // we reuse the current session.
+            if (checkpointStrategy == CheckpointStrategy.COMPONENT_STATE) {
+                eventBatchContext = new EventBatchContext(
+                        eventBatchContext.getPartitionContext(),
+                        eventBatchContext.getEvents(),
+                        new ComponentStateCheckpointStore(
+                                new ComponentStateCheckpointStore.State() {
+                                    @Override
+                                    public Map<String, String> getState() throws IOException {
+                                        return session.getState(Scope.CLUSTER).toMap();
+                                    }
+
+                                    @Override
+                                    public void setState(Map<String, String> map) throws IOException {
+                                        session.setState(map, Scope.CLUSTER);
+                                    }
+                                }
+                        ),
+                        eventBatchContext.getLastEnqueuedEventProperties()
+                );
+                // Update checkpoint and then commit changes, sharing the session.
+                eventBatchContext.updateCheckpoint();
+                session.commitAsync();
+            } else {
+                // Commit ProcessSession and then update Azure Event Hubs checkpoint status
+                session.commitAsync(eventBatchContext::updateCheckpoint);
+            }
         } catch (final Exception e) {
             final PartitionContext partitionContext = eventBatchContext.getPartitionContext();
             getLogger().error("Event Batch processing failed Namespace [{}] Event Hub [{}] Consumer Group [{}] Partition [{}]",
