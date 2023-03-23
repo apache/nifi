@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StandardRuntimeManifestService implements RuntimeManifestService {
 
@@ -149,9 +150,9 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
                 continue;
             }
 
-            try {
+            try (final Stream<String> additionalDetailsLines = Files.lines(additionalDetailsFile.toPath())) {
                 final String typeName = additionalDetailsTypeDir.getName();
-                final String additionalDetailsContent = Files.lines(additionalDetailsFile.toPath()).collect(Collectors.joining());
+                final String additionalDetailsContent = additionalDetailsLines.collect(Collectors.joining());
                 LOGGER.debug("Added additionalDetails for {} from {}", typeName, additionalDetailsFile.getAbsolutePath());
                 additionalDetailsMap.put(typeName, additionalDetailsContent);
             } catch (final IOException e) {
