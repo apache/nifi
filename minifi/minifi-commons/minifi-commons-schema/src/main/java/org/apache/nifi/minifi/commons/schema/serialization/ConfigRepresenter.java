@@ -17,11 +17,13 @@
 
 package org.apache.nifi.minifi.commons.schema.serialization;
 
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 public class ConfigRepresenter extends Representer {
     public ConfigRepresenter() {
+        super(new DumperOptions());
         nullRepresenter = data -> representScalar(Tag.NULL, "");
     }
 }

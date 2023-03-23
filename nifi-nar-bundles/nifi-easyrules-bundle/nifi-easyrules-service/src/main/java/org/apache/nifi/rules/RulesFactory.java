@@ -22,6 +22,7 @@ import org.jeasy.rules.support.reader.JsonRuleDefinitionReader;
 import org.jeasy.rules.support.RuleDefinition;
 import org.jeasy.rules.support.reader.RuleDefinitionReader;
 import org.jeasy.rules.support.reader.YamlRuleDefinitionReader;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -116,7 +117,7 @@ public class RulesFactory {
 
     private static List<Rule> yamlToRules(InputStream rulesInputStream) throws FileNotFoundException {
         List<Rule> rules = new ArrayList<>();
-        Yaml yaml = new Yaml(new Constructor(Rule.class));
+        Yaml yaml = new Yaml(new Constructor(Rule.class, new LoaderOptions()));
         for (Object object : yaml.loadAll(rulesInputStream)) {
             if (object instanceof Rule) {
                 rules.add((Rule) object);
