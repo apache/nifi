@@ -66,7 +66,9 @@ public class RecordExtender {
 
     public MapRecord getExtendedRecord(String objectType, int count, Record record) {
 
-        Set<String> rawFieldNames = record.getRawFieldNames();
+        Set<String> rawFieldNames = record.getRawFieldNames().stream()
+                .filter(fieldName -> record.getValue(fieldName) != null)
+                .collect(Collectors.toSet());
         Map<String, Object> objectMap = rawFieldNames.stream()
                 .collect(Collectors.toMap(Function.identity(), record::getValue));
 

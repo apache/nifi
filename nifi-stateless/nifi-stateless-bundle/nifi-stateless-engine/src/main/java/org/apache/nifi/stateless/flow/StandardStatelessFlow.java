@@ -667,14 +667,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
         for (final Map.Entry<String, StateMap> entry : stateMaps.entrySet()) {
             final String componentId = entry.getKey();
             final StateMap stateMap = entry.getValue();
-            if (stateMap.getVersion() == -1) {
-                // Version of -1 indicates no state has been stored.
+            if (!stateMap.getStateVersion().isPresent()) {
                 continue;
             }
 
             final SerializableStateMap serializableStateMap = new SerializableStateMap();
             serializableStateMap.setStateValues(stateMap.toMap());
-            serializableStateMap.setVersion(stateMap.getVersion());
+            serializableStateMap.setVersion(stateMap.getStateVersion().orElse(null));
 
             final String serialized;
             try {
@@ -716,7 +715,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
                 continue;
             }
 
-            final StateMap stateMap = new StandardStateMap(deserialized.getStateValues(), deserialized.getVersion());
+            final StateMap stateMap = new StandardStateMap(deserialized.getStateValues(), Optional.ofNullable(deserialized.getVersion()));
             deserializedStateMaps.put(componentId, stateMap);
         }
 
@@ -779,14 +778,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     private static class SerializableStateMap {
-        private long version;
+        private String version;
         private Map<String, String> stateValues;
 
-        public long getVersion() {
+        public String getVersion() {
             return version;
         }
 
-        public void setVersion(final long version) {
+        public void setVersion(final String version) {
             this.version = version;
         }
 

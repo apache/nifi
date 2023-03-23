@@ -398,7 +398,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
         // Check if state already exists for this path. If so, we have already migrated the state.
         final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
-        if (stateMap.getVersion() == -1L) {
+        if (!stateMap.getStateVersion().isPresent()) {
             try {
                 // Migrate state from the old way of managing state (distributed cache service and local file)
                 // to the new mechanism (State Manager).
@@ -571,6 +571,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
+            getLogger().debug("No data found: yielding");
             context.yield();
             return;
         }
@@ -675,7 +676,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (orderedEntries.isEmpty()) {
-            getLogger().debug("There is no data to list. Yielding.");
+            getLogger().debug("There is no data to list: yielding");
             context.yield();
             return;
         }
@@ -738,6 +739,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                 }
                 justElectedPrimaryNode = false;
                 if (noUpdateRequired) {
+                    getLogger().debug("No update required for last listed entity: yielding");
                     context.yield();
                     return;
                 }
@@ -761,6 +763,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         if (entityList == null || entityList.isEmpty()) {
+            getLogger().debug("No data found matching minimum timestamp [{}]: yielding", minTimestampToListMillis);
             context.yield();
             return;
         }
@@ -817,11 +820,20 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                  *   - If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
                  *   - The latest listed entity timestamp is equal to the last processed time, meaning we handled those items originally passed over. No need to process it again.
                  */
-                final long  listingLagNanos = TimeUnit.MILLISECONDS.toNanos(listingLagMillis);
-                if (currentRunTimeNanos - lastRunTimeNanos < listingLagNanos
-                        || (latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)
-                        && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream()
-                                .allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier())))) {
+                final long listingLagNanos = TimeUnit.MILLISECONDS.toNanos(listingLagMillis);
+                final boolean minimalListingLagNotPassed = currentRunTimeNanos - lastRunTimeNanos < listingLagNanos;
+
+                if (minimalListingLagNotPassed) {
+                    getLogger().debug("Minimal listing lag not passed: yielding");
+                    context.yield();
+                    return;
+                }
+
+                final boolean latestListedEntryIsUpToDate = latestListedEntryTimestampThisCycleMillis.equals(lastProcessedLatestEntryTimestampMillis)
+                        && orderedEntries.get(latestListedEntryTimestampThisCycleMillis).stream().allMatch(entity -> latestIdentifiersProcessed.contains(entity.getIdentifier()));
+
+                if (latestListedEntryIsUpToDate) {
+                    getLogger().debug("Latest entry already listed with timestamp [{}]: yielding", latestListedEntryTimestampThisCycleMillis);
                     context.yield();
                     return;
                 }
@@ -896,7 +908,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
             lastRunTimeNanos = currentRunTimeNanos;
         } else {
-            getLogger().debug("There is no data to list. Yielding.");
+            getLogger().debug("There is no data to list: yielding");
             context.yield();
 
             // lastListingTime = 0 so that we don't continually poll the distributed cache / local file system

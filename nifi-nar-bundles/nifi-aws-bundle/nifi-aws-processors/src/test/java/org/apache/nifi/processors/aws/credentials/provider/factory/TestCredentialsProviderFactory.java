@@ -27,7 +27,6 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.auth.Signer;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
@@ -40,11 +39,8 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -59,14 +55,13 @@ public class TestCredentialsProviderFactory {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(DefaultAWSCredentialsProviderChain.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -78,14 +73,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.USE_DEFAULT_CREDENTIALS, "true");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(DefaultAWSCredentialsProviderChain.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(DefaultCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -107,14 +101,14 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.SECRET_KEY, "BogusSecretKey");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(StaticCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -140,14 +134,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(PropertiesFileCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(PropertiesCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -161,21 +154,11 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_NAME, "BogusSession");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
-
-        assertThrows(IllegalStateException.class, () -> factory.getAwsCredentialsProvider(properties));
-
-        runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_STS_REGION, Region.US_WEST_1.id());
-        final Map<PropertyDescriptor, String> properties2 = runner.getProcessContext().getProperties();
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties2);
-        assertNotNull(credentialsProviderV2);
-        assertEquals(StsAssumeRoleCredentialsProvider.class,
-                credentialsProviderV2.getClass(), "credentials provider should be equal");
     }
 
     @Test
@@ -194,14 +177,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         final AWSCredentials creds = credentialsProvider.getCredentials();
         assertEquals(AnonymousAWSCredentials.class, creds.getClass(), "credentials should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(AnonymousCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -222,14 +204,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.PROFILE_NAME, "BogusProfile");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(ProfileCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -246,14 +227,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT, "8080");
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProvider);
         assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
 
-        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(properties);
+        final AwsCredentialsProvider credentialsProviderV2 = factory.getAwsCredentialsProvider(runner.getProcessContext());
         assertNotNull(credentialsProviderV2);
         assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProviderV2.getClass(), "credentials provider should be equal");
@@ -300,13 +280,12 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME, CustomSTSSigner.class.getName());
         runner.assertValid();
 
-        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
 
         final Signer signerChecker = mock(Signer.class);
         CustomSTSSigner.setSignerChecker(signerChecker);
 
-        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
+        final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(runner.getProcessContext());
 
         try {
             credentialsProvider.getCredentials();

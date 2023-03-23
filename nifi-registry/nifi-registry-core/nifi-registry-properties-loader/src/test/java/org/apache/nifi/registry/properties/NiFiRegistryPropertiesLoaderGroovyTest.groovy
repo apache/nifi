@@ -37,6 +37,7 @@ class NiFiRegistryPropertiesLoaderGroovyTest extends GroovyTestCase {
     private static final String KEYSTORE_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD
     private static final String KEY_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEY_PASSWD
     private static final String TRUSTSTORE_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD
+    private static final String OIDC_CLIENT_SECRET = NiFiRegistryProperties.SECURITY_USER_OIDC_CLIENT_SECRET
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
@@ -170,6 +171,7 @@ class NiFiRegistryPropertiesLoaderGroovyTest extends GroovyTestCase {
         final def EXPECTED_PLAIN_VALUES = [
                 (KEYSTORE_PASSWORD_KEY): "thisIsABadPassword",
                 (KEY_PASSWORD_KEY): "thisIsABadPassword",
+                (OIDC_CLIENT_SECRET): "thisIsABadPassword",
         ]
 
         // This method is covered in tests above, so safe to use here to retrieve protected properties

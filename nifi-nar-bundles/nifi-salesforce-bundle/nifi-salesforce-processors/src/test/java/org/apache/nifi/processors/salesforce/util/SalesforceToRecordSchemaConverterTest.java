@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.salesforce.util;
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -69,7 +69,8 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
-            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
+            final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
+            final RecordSchema actual = converter.convertSchema(salesforceObject, fieldNames);
 
             assertEquals(expected, actual);
         }
@@ -102,7 +103,8 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
-            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
+            final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
+            final RecordSchema actual = converter.convertSchema(salesforceObject, fieldNames);
 
             assertEquals(expected, actual);
         }
@@ -119,21 +121,36 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
-            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
+            final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
+            final RecordSchema actual = converter.convertSchema(salesforceObject, fieldNames);
 
             assertEquals(expected, actual);
         }
     }
 
     @Test
-    void testSelectEmptyFields() throws IOException {
+    void testSelectAllFields() throws IOException {
         final String salesforceSchemaFileName = "simple_sf_schema.json";
         final String fieldNames = "";
 
-        final RecordSchema expected = new SimpleRecordSchema(Collections.emptyList());
+        final RecordSchema expected = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("ExampleInt", RecordFieldType.INT.getDataType()),
+                new RecordField("ExampleLong", RecordFieldType.LONG.getDataType()),
+                new RecordField("ExampleDouble", RecordFieldType.DOUBLE.getDataType()),
+                new RecordField("ExampleBoolean", RecordFieldType.BOOLEAN.getDataType()),
+                new RecordField("ExampleID", RecordFieldType.STRING.getDataType()),
+                new RecordField("ExampleString", RecordFieldType.STRING.getDataType()),
+                new RecordField("ExampleJson", RecordFieldType.STRING.getDataType()),
+                new RecordField("ExampleBase64Binary", RecordFieldType.STRING.getDataType()),
+                new RecordField("ExampleAnyType", RecordFieldType.STRING.getDataType()),
+                new RecordField("ExampleDate", RecordFieldType.DATE.getDataType("yyyy-mm-dd")),
+                new RecordField("ExampleDateTime", RecordFieldType.TIMESTAMP.getDataType("yyyy-mm-dd / hh:mm:ss")),
+                new RecordField("ExampleTime", RecordFieldType.TIME.getDataType("hh:mm:ss"))
+        ));
 
         try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
-            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
+            final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
+            final RecordSchema actual = converter.convertSchema(salesforceObject, fieldNames);
 
             assertEquals(expected, actual);
         }
@@ -142,22 +159,23 @@ class SalesforceToRecordSchemaConverterTest {
     @Test
     void testConvertEmptySchema() throws IOException {
         try (final InputStream sfSchema = new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8))) {
-            assertThrows(MismatchedInputException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
+            assertThrows(MismatchedInputException.class, () -> converter.getSalesforceObject(sfSchema));
         }
     }
 
     @Test
-    void testConvertNullSchema() {
+    void testConvertNullSchema() throws IOException {
         final InputStream sfSchema = null;
-        assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
+        assertThrows(IllegalArgumentException.class, () -> converter.getSalesforceObject(sfSchema));
     }
 
     @Test
     void testConvertUnknownDataType() throws IOException {
         try (final InputStream sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json")) {
             final String fieldNames = "FieldWithUnknownType";
-            final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, fieldNames));
-            final String errorMessage = "Could not create determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
+            final SObjectDescription salesforceObject = converter.getSalesforceObject(sfSchema);
+            final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(salesforceObject, fieldNames));
+            final String errorMessage = "Could not determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
             assertEquals(errorMessage, exception.getMessage());
         }
     }

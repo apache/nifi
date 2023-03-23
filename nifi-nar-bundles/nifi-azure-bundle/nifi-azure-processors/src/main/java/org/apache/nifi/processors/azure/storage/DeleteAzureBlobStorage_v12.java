@@ -40,6 +40,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
+import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
+
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
 @CapabilityDescription("Deletes the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
@@ -51,6 +54,16 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     public static final AllowableValue DELETE_SNAPSHOTS_ALSO = new AllowableValue(DeleteSnapshotsOptionType.INCLUDE.name(), "Include Snapshots", "Delete the blob and its snapshots.");
 
     public static final AllowableValue DELETE_SNAPSHOTS_ONLY = new AllowableValue(DeleteSnapshotsOptionType.ONLY.name(), "Delete Snapshots Only", "Delete only the blob's snapshots.");
+
+    public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
+            .defaultValue(String.format("${%s}", ATTR_NAME_CONTAINER))
+            .build();
+
+    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractAzureBlobProcessor_v12.BLOB_NAME)
+            .defaultValue(String.format("${%s}", ATTR_NAME_BLOBNAME))
+            .build();
 
     public static final PropertyDescriptor DELETE_SNAPSHOTS_OPTION = new PropertyDescriptor.Builder()
             .name("delete-snapshots-option")
@@ -64,7 +77,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             STORAGE_CREDENTIALS_SERVICE,
-            AzureStorageUtils.CONTAINER,
+            CONTAINER,
             BLOB_NAME,
             DELETE_SNAPSHOTS_OPTION,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE

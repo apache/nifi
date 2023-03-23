@@ -19,6 +19,7 @@ package org.apache.nifi.controller.leader.election;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,8 +47,8 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public String getLeader(final String roleName) {
-        return null;
+    public Optional<String> getLeader(final String roleName) {
+        return Optional.empty();
     }
 
     @Override
@@ -56,11 +57,6 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public boolean isLeader(final String roleName) {
-        return false;
-    }
-
-    @Override
-    public boolean isStopped() {
         return false;
     }
 
@@ -91,10 +87,5 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     @Override
     public long getPollCount() {
         return -1L;
-    }
-
-    @Override
-    public boolean isLeaderElected(String roleName) {
-        return false;
     }
 }

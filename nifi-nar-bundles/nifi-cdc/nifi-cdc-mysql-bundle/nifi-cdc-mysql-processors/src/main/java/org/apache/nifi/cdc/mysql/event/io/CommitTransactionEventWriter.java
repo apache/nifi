@@ -17,7 +17,10 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 
 import java.io.IOException;
 
@@ -25,6 +28,18 @@ import java.io.IOException;
  * A writer for events corresponding to the end (i.e. commit) of a MySQL transaction
  */
 public class CommitTransactionEventWriter extends AbstractBinlogEventWriter<CommitTransactionEventInfo> {
+
+    @Override
+    public long writeEvent(ProcessSession session, String transitUri, CommitTransactionEventInfo eventInfo, long currentSequenceId,
+                           Relationship relationship, EventWriterConfiguration eventWriterConfiguration) {
+        long sequenceId = super.writeEvent(session, transitUri, eventInfo, currentSequenceId, relationship, eventWriterConfiguration);
+        // If writing one transaction per flowfile, finish the flowfile here before committing the session
+        if (oneTransactionPerFlowFile(eventWriterConfiguration)) {
+            super.finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, sequenceId, eventInfo, relationship);
+        }
+        return sequenceId;
+    }
+
     protected void writeJson(CommitTransactionEventInfo event) throws IOException {
         super.writeJson(event);
         if (event.getDatabaseName() != null) {

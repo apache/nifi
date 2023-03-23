@@ -76,7 +76,8 @@ import java.util.stream.Collectors;
     + "This Processor works by creating 'bins' and then adding FlowFiles to these bins until they are full. Once a bin is full, all of the FlowFiles will be combined into "
     + "a single output FlowFile, and that FlowFile will be routed to the 'merged' Relationship. A bin will consist of potentially many 'like FlowFiles'. In order for two "
     + "FlowFiles to be considered 'like FlowFiles', they must have the same Schema (as identified by the Record Reader) and, if the <Correlation Attribute Name> property "
-    + "is set, the same value for the specified attribute. See Processor Usage and Additional Details for more information.")
+    + "is set, the same value for the specified attribute. See Processor Usage and Additional Details for more information. NOTE: this processor should NOT be configured "
+    + "with Cron Driven for the Scheduling Strategy.")
 @ReadsAttributes({
     @ReadsAttribute(attribute = "fragment.identifier", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "All FlowFiles with the same value for this attribute will be bundled together."),

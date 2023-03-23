@@ -30,7 +30,6 @@ import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.serialization.record.RecordFieldType
-import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -425,7 +424,7 @@ class PutElasticsearchRecordTest {
             [ id: "rec-2", op: "create", index: "bulk_b", type: "message", msg: "Hello" ],
             [ id: "rec-3", op: "update", index: "bulk_a", type: "message", msg: "Hello" ],
             [ id: "rec-4", op: "upsert", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", op: "create", index: "bulk_a", type: "message", msg: "Hello" ],
+            [ id: "rec-5", op: "create", index: "bulk_a", type: "message", msg: "Hello", code: null ],
             [ id: "rec-6", op: "delete", index: "bulk_b", type: "message", msg: "Hello", code: 101L ]
         ]))
 
@@ -436,7 +435,7 @@ class PutElasticsearchRecordTest {
             int upsert = items.findAll { it.operation == IndexOperationRequest.Operation.Upsert }.size()
             int delete = items.findAll { it.operation == IndexOperationRequest.Operation.Delete }.size()
             def timestampCount = items.findAll { it.fields.get("@timestamp") == 101L }.size()
-            def noTimestampCount = items.findAll { it.fields.get("@timestamp") == null }.size()
+            def noTimestampCount = items.findAll { !it.fields.containsKey("@timestamp") }.size()
             assertEquals(1, index)
             assertEquals(2, create)
             assertEquals(1, update)
@@ -487,7 +486,7 @@ class PutElasticsearchRecordTest {
 
         clientService.evalClosure = { List<IndexOperationRequest> items ->
             def nullIdCount = items.findAll { it.id == null }.size()
-            def noTimestampCount = items.findAll { it.fields.containsKey("@timestamp") }.size()
+            def noTimestampCount = items.findAll { !it.fields.containsKey("@timestamp") }.size()
             assertEquals(1, nullIdCount)
             assertEquals(1, noTimestampCount)
         }
@@ -512,7 +511,7 @@ class PutElasticsearchRecordTest {
 
         clientService.evalClosure = { List<IndexOperationRequest> items ->
             def nullIdCount = items.findAll { it.id == null }.size()
-            def noTimestampCount = items.findAll { it.fields.containsKey("@timestamp") }.size()
+            def noTimestampCount = items.findAll { !it.fields.containsKey("@timestamp") }.size()
             assertEquals(1, nullIdCount)
             assertEquals(1, noTimestampCount)
         }

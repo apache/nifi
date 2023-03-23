@@ -17,13 +17,6 @@
 
 version: 1
 
-dn: o=nifi
-objectclass: extensibleObject
-objectclass: top
-objectclass: domain
-dc: nifi
-o: nifi
-
 dn: ou=users,o=nifi
 objectClass: organizationalUnit
 objectClass: top

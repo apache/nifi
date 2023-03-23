@@ -96,28 +96,6 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
     Map<PropertyDescriptor, String> getProperties();
 
     /**
-     * Encrypts the given value using the password provided in the NiFi
-     * Properties
-     *
-     * @deprecated Processors should not depend on framework encryption operations
-     * @param unencrypted plaintext value
-     * @return encrypted value
-     */
-    @Deprecated
-    String encrypt(String unencrypted);
-
-    /**
-     * Decrypts the given value using the password provided in the NiFi
-     * Properties
-     *
-     * @deprecated Processors should not depend on framework encryption operations
-     * @param encrypted the encrypted value
-     * @return the plaintext value
-     */
-    @Deprecated
-    String decrypt(String encrypted);
-
-    /**
      * @return a {@code ControllerServiceLookup} that can be used to obtain a
      * Controller Service
      */

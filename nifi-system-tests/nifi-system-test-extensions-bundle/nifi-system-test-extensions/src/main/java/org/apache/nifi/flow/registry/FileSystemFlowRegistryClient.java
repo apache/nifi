@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
@@ -209,11 +210,57 @@ public class FileSystemFlowRegistryClient extends AbstractFlowRegistryClient {
         final File versionDir = new File(flowDir, String.valueOf(version));
         final File snapshotFile = new File(versionDir, "snapshot.json");
 
+        final Pattern intPattern = Pattern.compile("\\d+");
+        final File[] versionFiles = flowDir.listFiles(file -> intPattern.matcher(file.getName()).matches());
+
         final JsonFactory factory = new JsonFactory(objectMapper);
         try (final JsonParser parser = factory.createParser(snapshotFile)) {
             final RegisteredFlowSnapshot snapshot = parser.readValueAs(RegisteredFlowSnapshot.class);
+            populateBucket(snapshot, bucketId);
+            populateFlow(snapshot, bucketId, flowId, version, versionFiles == null ? 0 : versionFiles.length);
+
             return snapshot;
         }
+    }
+
+    private void populateBucket(final RegisteredFlowSnapshot snapshot, final String bucketId) {
+        final FlowRegistryBucket existingBucket = snapshot.getBucket();
+        if (existingBucket != null) {
+            return;
+        }
+
+        final FlowRegistryBucket bucket = new FlowRegistryBucket();
+        bucket.setCreatedTimestamp(System.currentTimeMillis());
+        bucket.setIdentifier(bucketId);
+        bucket.setName(bucketId);
+        bucket.setPermissions(createAllowAllPermissions());
+        snapshot.setBucket(bucket);
+
+        snapshot.getSnapshotMetadata().setBucketIdentifier(bucketId);
+    }
+
+    private void populateFlow(final RegisteredFlowSnapshot snapshot, final String bucketId, final String flowId, final int version, final int numVersions) {
+        final RegisteredFlow existingFlow = snapshot.getFlow();
+        if (existingFlow != null) {
+            return;
+        }
+
+        final RegisteredFlow flow = new RegisteredFlow();
+        flow.setCreatedTimestamp(System.currentTimeMillis());
+        flow.setLastModifiedTimestamp(System.currentTimeMillis());
+        flow.setBucketIdentifier(bucketId);
+        flow.setBucketName(bucketId);
+        flow.setIdentifier(flowId);
+        flow.setName(flowId);
+        flow.setPermissions(createAllowAllPermissions());
+        flow.setVersionCount(numVersions);
+
+        final RegisteredFlowVersionInfo versionInfo = new RegisteredFlowVersionInfo();
+        versionInfo.setVersion(version);
+        flow.setVersionInfo(versionInfo);
+
+        snapshot.setFlow(flow);
+        snapshot.getSnapshotMetadata().setFlowIdentifier(flowId);
     }
 
     @Override

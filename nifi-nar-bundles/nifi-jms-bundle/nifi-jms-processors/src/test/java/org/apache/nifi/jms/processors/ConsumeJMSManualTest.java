@@ -18,7 +18,6 @@ package org.apache.nifi.jms.processors;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMessage;
-import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -33,12 +32,10 @@ import javax.jms.Session;
 import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 
-import static org.mockito.Mockito.mock;
-
 @Disabled("Used for manual testing.")
 public class ConsumeJMSManualTest {
     @Test
-    public void testTextMessage() throws Exception {
+    public void testTextMessage() {
         MessageCreator messageCreator = session -> {
             TextMessage message = session.createTextMessage("textMessageContent");
 
@@ -49,7 +46,7 @@ public class ConsumeJMSManualTest {
     }
 
     @Test
-    public void testBytesMessage() throws Exception {
+    public void testBytesMessage() {
         MessageCreator messageCreator = session -> {
             BytesMessage message = session.createBytesMessage();
 
@@ -62,7 +59,7 @@ public class ConsumeJMSManualTest {
     }
 
     @Test
-    public void testObjectMessage() throws Exception {
+    public void testObjectMessage() {
         MessageCreator messageCreator = session -> {
             ObjectMessage message = session.createObjectMessage();
 
@@ -75,7 +72,7 @@ public class ConsumeJMSManualTest {
     }
 
     @Test
-    public void testStreamMessage() throws Exception {
+    public void testStreamMessage() {
         MessageCreator messageCreator = session -> {
             StreamMessage message = session.createStreamMessage();
 
@@ -98,7 +95,7 @@ public class ConsumeJMSManualTest {
     }
 
     @Test
-    public void testMapMessage() throws Exception {
+    public void testMapMessage() {
         MessageCreator messageCreator = session -> {
             MapMessage message = session.createMapMessage();
 
@@ -121,14 +118,14 @@ public class ConsumeJMSManualTest {
     }
 
     @Test
-    public void testUnsupportedMessage() throws Exception {
+    public void testUnsupportedMessage() {
         MessageCreator messageCreator = session -> new ActiveMQMessage();
 
         send(messageCreator);
     }
 
-    private void send(MessageCreator messageCreator) throws Exception {
-        final String  destinationName = "TEST";
+    private void send(MessageCreator messageCreator) {
+        final String destinationName = "TEST";
 
         ConnectionFactory activeMqConnectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
         final ConnectionFactory connectionFactory = new CachingConnectionFactory(activeMqConnectionFactory);
@@ -139,9 +136,7 @@ public class ConsumeJMSManualTest {
         jmsTemplate.setReceiveTimeout(10L);
 
         try {
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send(destinationName, messageCreator);
+            jmsTemplate.send(destinationName, messageCreator);
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }

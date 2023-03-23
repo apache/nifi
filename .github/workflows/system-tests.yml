@@ -23,10 +23,18 @@ on:
     paths:
       - '.github/workflows/system-tests.yml'
       - 'nifi-system-tests/**'
+      - 'nifi-api/**'
+      - 'nifi-framework-api/**'
+      - 'nifi-nar-bundles/nifi-framework-bundle/**'
+      - 'nifi-stateless/**'
   pull_request:
     paths:
       - '.github/workflows/system-tests.yml'
       - 'nifi-system-tests/**'
+      - 'nifi-api/**'
+      - 'nifi-framework-api/**'
+      - 'nifi-nar-bundles/nifi-framework-bundle/**'
+      - 'nifi-stateless/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-

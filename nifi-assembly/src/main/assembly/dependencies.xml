@@ -32,20 +32,12 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>*:nifi-bootstrap-utils</exclude>
                 <exclude>*:nifi-bootstrap</exclude>
                 <exclude>*:nifi-property-protection-api</exclude>
                 <exclude>*:nifi-property-protection-factory</exclude>
                 <exclude>*:nifi-resources</exclude>
                 <exclude>*:nifi-docs</exclude>
-
-                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
-                <!-- TODO: remove these once minimum Java version is 11 -->
-                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
-                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
-                <exclude>javax.annotation:javax.annotation-api</exclude>
-
-                <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
+                <!-- exclude AspectJ library from lib included in the aspectj subdir -->
                 <exclude>org.aspectj:aspectjweaver</exclude>
             </excludes>
         </dependencySet>

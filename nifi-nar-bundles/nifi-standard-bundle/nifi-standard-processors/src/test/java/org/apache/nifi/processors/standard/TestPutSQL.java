@@ -20,6 +20,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -35,7 +36,6 @@ import org.mockito.Mockito;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_TERMINATE;
 import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE;
@@ -69,6 +70,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
@@ -163,7 +166,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
 
@@ -303,17 +306,18 @@ public class TestPutSQL {
 
 
     @Test
-    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
         testFailInMiddleWithBadStatement(runner);
         runner.run();
 
         runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
+        assertErrorAttributesInTransaction(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
-    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         testFailInMiddleWithBadStatement(runner);
@@ -321,20 +325,12 @@ public class TestPutSQL {
 
         runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
-
-    private void testFailInMiddleWithBadStatement(final TestRunner runner) throws InitializationException {
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
-        runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
-        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
-    }
-
-
 
     @Test
-    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
@@ -343,16 +339,14 @@ public class TestPutSQL {
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
 
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         testFailInMiddleWithBadParameterType(runner);
@@ -360,34 +354,21 @@ public class TestPutSQL {
 
         runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 3);
+
+        assertErrorAttributesNotSet(runner, PutSQL.REL_SUCCESS);
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws InitializationException, ProcessException {
         final TestRunner runner = initTestRunner();
         testFailInMiddleWithBadParameterType(runner);
         runner.run();
 
         runner.assertTransferCount(PutSQL.REL_FAILURE, 4);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
-    }
 
-    private void testFailInMiddleWithBadParameterType(final TestRunner runner) throws InitializationException, ProcessException {
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-
-        final Map<String, String> goodAttributes = new HashMap<>();
-        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        goodAttributes.put("sql.args.1.value", "84");
-
-        final Map<String, String> badAttributes = new HashMap<>();
-        badAttributes.put("sql.args.1.type", String.valueOf(Types.VARCHAR));
-        badAttributes.put("sql.args.1.value", "hello");
-
-        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, badAttributes);
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, goodAttributes);
+        assertErrorAttributesInTransaction(runner, PutSQL.REL_FAILURE);
     }
 
     @Test
@@ -410,16 +391,14 @@ public class TestPutSQL {
         runner.enqueue(data, goodAttributes);
         runner.enqueue(data, goodAttributes);
 
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         testFailInMiddleWithBadParameterValue(runner);
         runner.run();
@@ -434,6 +413,9 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
+
+        assertErrorAttributesInTransaction(runner, PutSQL.REL_RETRY);
+        assertOriginalAttributesAreKept(runner);
     }
 
     @Test
@@ -447,6 +429,11 @@ public class TestPutSQL {
         runner.assertTransferCount(PutSQL.REL_FAILURE, 1);
         runner.assertTransferCount(PutSQL.REL_RETRY, 2);
 
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
+        assertOriginalAttributesAreKept(runner);
+        assertErrorAttributesNotSet(runner, PutSQL.REL_SUCCESS);
+        assertErrorAttributesNotSet(runner, PutSQL.REL_RETRY);
+
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS_AI");
@@ -457,24 +444,6 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
-    }
-
-    private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws ProcessException, SQLException {
-        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
-        recreateTable("PERSONS_AI",createPersonsAutoId);
-        final Map<String, String> goodAttributes = new HashMap<>();
-        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        goodAttributes.put("sql.args.1.value", "84");
-
-        final Map<String, String> badAttributes = new HashMap<>();
-        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        badAttributes.put("sql.args.1.value", "9999");
-
-        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, badAttributes);
-        runner.enqueue(data, goodAttributes);
-        runner.enqueue(data, goodAttributes);
     }
 
     @Test
@@ -499,9 +468,7 @@ public class TestPutSQL {
         runner.enqueue(data, goodAttributes);
         runner.enqueue(data, goodAttributes);
 
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
@@ -910,7 +877,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1005,16 +972,16 @@ public class TestPutSQL {
                 //First Batch
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                assertArrayEquals(arg2BIN.getBytes("ASCII"), rs.getBytes(2));
-                assertArrayEquals(art3VARBIN.getBytes("ASCII"), rs.getBytes(3));
-                assertArrayEquals(art4LongBin.getBytes("ASCII"), rs.getBytes(4));
+                assertArrayEquals(arg2BIN.getBytes(US_ASCII), rs.getBytes(2));
+                assertArrayEquals(art3VARBIN.getBytes(US_ASCII), rs.getBytes(3));
+                assertArrayEquals(art4LongBin.getBytes(US_ASCII), rs.getBytes(4));
 
                 //Second batch
                 assertTrue(rs.next());
                 assertEquals(2, rs.getInt(1));
-                assertArrayEquals(arg2BIN.getBytes("ASCII"), rs.getBytes(2));
-                assertArrayEquals(art3VARBIN.getBytes("ASCII"), rs.getBytes(3));
-                assertArrayEquals(art4LongBin.getBytes("ASCII"), rs.getBytes(4));
+                assertArrayEquals(arg2BIN.getBytes(US_ASCII), rs.getBytes(2));
+                assertArrayEquals(art3VARBIN.getBytes(US_ASCII), rs.getBytes(3));
+                assertArrayEquals(art4LongBin.getBytes(US_ASCII), rs.getBytes(4));
 
                 //Third Batch (Hex)
                 assertTrue(rs.next());
@@ -1094,7 +1061,7 @@ public class TestPutSQL {
 
 
     @Test
-    public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
 
         recreateTable("PERSONS", createPersons);
@@ -1119,6 +1086,7 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1129,7 +1097,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testMultipleStatementsWithinFlowFileRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testMultipleStatementsWithinFlowFileRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
@@ -1151,9 +1119,7 @@ public class TestPutSQL {
         attributes.put("sql.args.4.value", "1");
 
         runner.enqueue(sql.getBytes(), attributes);
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
 
         try (final Connection conn = service.getConnection()) {
@@ -1220,6 +1186,7 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_FAILURE);
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1252,9 +1219,7 @@ public class TestPutSQL {
         attributes.put("sql.args.4.value", "1");
 
         runner.enqueue(sql.getBytes(), attributes);
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
 
         try (final Connection conn = service.getConnection()) {
@@ -1295,6 +1260,7 @@ public class TestPutSQL {
 
         // should fail because of the semicolon
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 1);
+        assertSQLExceptionRelatedAttributes(runner, PutSQL.REL_RETRY);
     }
 
     @Test
@@ -1323,9 +1289,7 @@ public class TestPutSQL {
         attributes.put("sql.args.4.value", "1");
 
         runner.enqueue(sql.getBytes(), attributes);
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 0);
     }
@@ -1353,7 +1317,7 @@ public class TestPutSQL {
         runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?)".getBytes(), attributes);
         runner.run();
 
-        // No FlowFiles should be transferred because there were not enough flowfiles with the same fragment identifier
+        // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 0);
 
         attributes.clear();
@@ -1410,7 +1374,7 @@ public class TestPutSQL {
         // ProcessException should not be thrown in this case, because the input FlowFiles are simply differed.
         runner.run();
 
-        // No FlowFiles should be transferred because there were not enough flowfiles with the same fragment identifier
+        // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 0);
 
     }
@@ -1445,8 +1409,9 @@ public class TestPutSQL {
         runner.enqueue(mff);
         runner.run();
 
-        // No FlowFiles should be transferred because there were not enough flowfiles with the same fragment identifier
+        // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 1);
+        assertNonSQLExceptionRelatedAttribute(runner);
     }
 
     @Test
@@ -1475,12 +1440,11 @@ public class TestPutSQL {
             public String getAttribute(final String attrName) {
                 return attributes.get(attrName);
             }
+
         };
 
         runner.enqueue(mff);
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
@@ -1505,9 +1469,7 @@ public class TestPutSQL {
         runner.enqueue(new byte[]{}, attribute1);
         runner.enqueue(new byte[]{}, attribute2);
 
-        final AssertionError e = assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
+        final AssertionError e = assertThrows(AssertionError.class, runner::run);
         assertInstanceOf(ProcessException.class, e.getCause());
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
@@ -1520,7 +1482,7 @@ public class TestPutSQL {
 
         recreateTable("PERSONS", createPersons);
 
-        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<String,String>() {{
+        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<>() {{
             put("row.id", "1");
         }});
         runner.run();
@@ -1539,7 +1501,7 @@ public class TestPutSQL {
         }
 
         runner.setProperty(PutSQL.SQL_STATEMENT, "UPDATE PERSONS SET NAME='George' WHERE ID=${row.id}");
-        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<String,String>() {{
+        runner.enqueue("This statement should be ignored".getBytes(), new HashMap<>() {{
             put("row.id", "1");
         }});
         runner.run();
@@ -1554,14 +1516,6 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
-    }
-
-    private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("fragment.identifier", id);
-        attributes.put("fragment.count", String.valueOf(count));
-        attributes.put("fragment.index", String.valueOf(index));
-        return attributes;
     }
 
     @Test
@@ -1622,6 +1576,58 @@ public class TestPutSQL {
         assertEquals(REJECT_AND_CONTINUE, txFilter.filter(ff4));
     }
 
+    private void testFailInMiddleWithBadParameterType(final TestRunner runner) throws ProcessException {
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.VARCHAR));
+        badAttributes.put("sql.args.1.value", "hello");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+    }
+
+    private void testFailInMiddleWithBadParameterValue(final TestRunner runner) throws ProcessException, SQLException {
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        recreateTable("PERSONS_AI",createPersonsAutoId);
+        final Map<String, String> goodAttributes = new HashMap<>();
+        goodAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        goodAttributes.put("sql.args.1.value", "84");
+
+        final Map<String, String> badAttributes = new HashMap<>();
+        badAttributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        badAttributes.put("sql.args.1.value", "9999");
+
+        final byte[] data = "INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', ?)".getBytes();
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, badAttributes);
+        runner.enqueue(data, goodAttributes);
+        runner.enqueue(data, goodAttributes);
+    }
+
+    private void testFailInMiddleWithBadStatement(final TestRunner runner) {
+        runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI".getBytes()); // intentionally wrong syntax
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Tom', 3)".getBytes());
+        runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Harry', 44)".getBytes());
+    }
+
+    private Map<String, String> createFragmentedTransactionAttributes(String id, int count, int index) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("fragment.identifier", id);
+        attributes.put("fragment.count", String.valueOf(count));
+        attributes.put("fragment.index", String.valueOf(index));
+        return attributes;
+    }
+
     /**
      * Simple implementation only for testing purposes
      */
@@ -1671,8 +1677,8 @@ public class TestPutSQL {
         public Connection getConnection() throws ProcessException {
             try {
                 if (++successful > allowedBeforeFailure) {
-                    final Connection conn = Mockito.mock(Connection.class);
-                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
+                    final Connection conn = mock(Connection.class);
+                    when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
                     return conn;
                 } else {
                     return service.getConnection();
@@ -1683,6 +1689,7 @@ public class TestPutSQL {
             }
         }
     }
+
 
     private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
@@ -1696,7 +1703,7 @@ public class TestPutSQL {
     private String fixedSizeByteArrayAsASCIIString(int length){
         byte[] bBinary = RandomUtils.nextBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
-        StringBuffer sbBytes = new StringBuffer();
+        StringBuilder sbBytes = new StringBuilder();
         for (int i = bytes.position(); i < bytes.limit(); i++)
             sbBytes.append((char)bytes.get(i));
 
@@ -1726,6 +1733,49 @@ public class TestPutSQL {
     private static File getEmptyDirectory() {
         final String randomDirectory = String.format("%s-%s", TestPutSQL.class.getSimpleName(), UUID.randomUUID());
         return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
+    }
+
+    private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+        flowFiles.forEach(ff -> {
+            ff.assertAttributeExists("error.message");
+            ff.assertAttributeExists("error.code");
+            ff.assertAttributeExists("error.sql.state");
+        });
+    }
+
+    private static void assertNonSQLExceptionRelatedAttribute(final TestRunner runner) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSQL.REL_FAILURE);
+        flowFiles.forEach(ff -> {
+            ff.assertAttributeExists("error.message");
+        });
+    }
+
+    private static void assertOriginalAttributesAreKept(final TestRunner runner) {
+        runner.assertAllFlowFilesContainAttribute("sql.args.1.type");
+        runner.assertAllFlowFilesContainAttribute("sql.args.1.value");
+    }
+
+
+    private static void assertErrorAttributesInTransaction(final TestRunner runner, Relationship relationship) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+        assertEquals(1, flowFiles.stream()
+                .filter(TestPutSQL::errorAttributesAreSet)
+                .count(),
+                "Only one FlowFile should have the error attributes when transaction is used.");
+    }
+
+    private static void assertErrorAttributesNotSet(final TestRunner runner, Relationship relationship) {
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
+        flowFiles.forEach(ff -> {
+            ff.assertAttributeNotExists("error.message");
+        });
+    }
+
+    private static boolean errorAttributesAreSet(MockFlowFile ff) {
+        return ff.getAttribute("error.message") != null
+                && ff.getAttribute("error.code") != null
+                && ff.getAttribute("error.sql.state") != null;
     }
 
     private static String getSystemTemporaryDirectory() {

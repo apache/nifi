@@ -17,13 +17,12 @@
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.util.Collection;
-import java.util.Map;
 
 
 /**
@@ -43,13 +42,13 @@ public interface CredentialsStrategy {
      * Determines if this strategy can create primary credentials using the given properties.
      * @return true if primary credentials can be created
      */
-    boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties);
+    boolean canCreatePrimaryCredential(PropertyContext propertyContext);
 
     /**
      * Determines if this strategy can create derived credentials using the given properties.
      * @return true if derived credentials can be created
      */
-    boolean canCreateDerivedCredential(Map<PropertyDescriptor, String> properties);
+    boolean canCreateDerivedCredential(PropertyContext propertyContext);
 
     /**
      * Validates the properties belonging to this strategy, given the selected primary strategy.  Errors may result
@@ -63,25 +62,25 @@ public interface CredentialsStrategy {
     /**
      * Creates an AWSCredentialsProvider instance for this strategy, given the properties defined by the user.
      */
-    AWSCredentialsProvider getCredentialsProvider(Map<PropertyDescriptor, String> properties);
+    AWSCredentialsProvider getCredentialsProvider(PropertyContext propertyContext);
 
     /**
      * Creates an AWSCredentialsProvider instance for this strategy, given the properties defined by the user and
      * the AWSCredentialsProvider from the winning primary strategy.
      */
-    AWSCredentialsProvider getDerivedCredentialsProvider(Map<PropertyDescriptor, String> properties,
+    AWSCredentialsProvider getDerivedCredentialsProvider(PropertyContext propertyContext,
                                                          AWSCredentialsProvider primaryCredentialsProvider);
 
     /**
      * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user.
      */
-    AwsCredentialsProvider getAwsCredentialsProvider(Map<PropertyDescriptor, String> properties);
+    AwsCredentialsProvider getAwsCredentialsProvider(PropertyContext propertyContext);
 
     /**
      * Creates an AwsCredentialsProvider instance for this strategy, given the properties defined by the user and
      * the AwsCredentialsProvider from the winning primary strategy.
      */
-    AwsCredentialsProvider getDerivedAwsCredentialsProvider(Map<PropertyDescriptor, String> properties,
+    AwsCredentialsProvider getDerivedAwsCredentialsProvider(PropertyContext propertyContext,
                                                             AwsCredentialsProvider primaryCredentialsProvider);
 
 }

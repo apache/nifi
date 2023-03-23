@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.kafka.shared.login;
 
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 
 /**
  * Kerberos Delegating Login Module implementation of configuration provider
  */
 public class KerberosDelegatingLoginConfigProvider implements LoginConfigProvider {
-    private static final LoginConfigProvider CREDENTIALS_PROVIDER = new KerberosCredentialsLoginConfigProvider();
-
     private static final LoginConfigProvider USER_SERVICE_PROVIDER = new KerberosUserServiceLoginConfigProvider();
 
     /**
@@ -36,15 +32,6 @@ public class KerberosDelegatingLoginConfigProvider implements LoginConfigProvide
      */
     @Override
     public String getConfiguration(final PropertyContext context) {
-        final PropertyValue userServiceProperty = context.getProperty(KafkaClientComponent.SELF_CONTAINED_KERBEROS_USER_SERVICE);
-
-        final String configuration;
-        if (userServiceProperty.isSet()) {
-            configuration = USER_SERVICE_PROVIDER.getConfiguration(context);
-        } else {
-            configuration = CREDENTIALS_PROVIDER.getConfiguration(context);
-        }
-
-        return configuration;
+        return USER_SERVICE_PROVIDER.getConfiguration(context);
     }
 }

@@ -95,8 +95,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -260,59 +258,6 @@ public class InvokeHTTP extends AbstractProcessor {
             .required(true)
             .defaultValue("5")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .build();
-
-    @Deprecated
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("Proxy Host and dependent properties are deprecated in favor of Proxy Configuration Service. Proxy Host can be configured using an IP address or DNS address.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    @Deprecated
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("Proxy Port and dependent properties are deprecated in favor of Proxy Configuration Service. Port number for the configured Proxy Host address.")
-            .required(false)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .dependsOn(PROXY_HOST)
-            .build();
-
-    @Deprecated
-    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
-            .name("Proxy Type")
-            .displayName("Proxy Type")
-            .description("Proxy Type and dependent properties are deprecated in favor of Proxy Configuration Service. Proxy protocol type is not used")
-            .defaultValue("http")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .dependsOn(PROXY_HOST)
-            .build();
-
-    @Deprecated
-    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("invokehttp-proxy-user")
-            .displayName("Proxy Username")
-            .description("Proxy Username and dependent properties are deprecated in favor of Proxy Configuration Service. Username to set when authenticating with a Proxy server.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .dependsOn(PROXY_HOST)
-            .build();
-
-    @Deprecated
-    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("invokehttp-proxy-password")
-            .displayName("Proxy Password")
-            .description("Proxy Password and dependent properties are deprecated in favor of Proxy Configuration Service. Password to set when authenticating with a Proxy server.")
-            .required(false)
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .dependsOn(PROXY_HOST)
             .build();
 
     public static final PropertyDescriptor REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
@@ -563,11 +508,6 @@ public class InvokeHTTP extends AbstractProcessor {
             SOCKET_IDLE_TIMEOUT,
             SOCKET_IDLE_CONNECTIONS,
             PROXY_CONFIGURATION_SERVICE,
-            PROXY_HOST,
-            PROXY_PORT,
-            PROXY_TYPE,
-            PROXY_USERNAME,
-            PROXY_PASSWORD,
             REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER,
             REQUEST_USERNAME,
             REQUEST_PASSWORD,
@@ -631,8 +571,6 @@ public class InvokeHTTP extends AbstractProcessor {
     private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
 
     private static final String MULTIPLE_HEADER_DELIMITER = ", ";
-
-    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(InvokeHTTP.class);
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
@@ -706,33 +644,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(3);
-        final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
-        if (proxyHostSet) {
-            deprecationLogger.warn("{}[id={}] [{}] Property should be replaced with [{}] Property",
-                    getClass().getSimpleName(),
-                    getIdentifier(),
-                    PROXY_HOST.getDisplayName(),
-                    PROXY_CONFIGURATION_SERVICE.getDisplayName()
-            );
-        }
-
-        final boolean proxyPortSet = validationContext.getProperty(PROXY_PORT).isSet();
-
-        if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
-            results.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
-        }
-
-        final boolean proxyUserSet = validationContext.getProperty(PROXY_USERNAME).isSet();
-        final boolean proxyPwdSet = validationContext.getProperty(PROXY_PASSWORD).isSet();
-
-        if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
-            results.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
-        }
-        if (proxyUserSet && !proxyHostSet) {
-            results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
-        }
-
+        final List<ValidationResult> results = new ArrayList<>();
         ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
         // Check for dynamic properties for form components.
@@ -794,21 +706,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
 
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
-            final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
-            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
-            if (proxyHost != null && proxyPort != null) {
-                componentProxyConfig.setProxyType(Type.HTTP);
-                componentProxyConfig.setProxyServerHost(proxyHost);
-                componentProxyConfig.setProxyServerPort(proxyPort);
-                final String proxyUsername = trimToEmpty(context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue());
-                final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
-                componentProxyConfig.setProxyUserName(proxyUsername);
-                componentProxyConfig.setProxyUserPassword(proxyPassword);
-            }
-            return componentProxyConfig;
-        });
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
 
         final Proxy proxy = proxyConfig.createProxy();
         if (!Type.DIRECT.equals(proxy.type())) {

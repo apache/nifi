@@ -86,7 +86,11 @@ import java.util.regex.Pattern;
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
-@CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
+@CapabilityDescription("Receives messages from Microsoft Azure Event Hubs with checkpointing to ensure consistent event processing. "
+        + "Checkpoint tracking avoids consuming a message multiple times and enables reliable resumption of processing in the event of intermittent network failures. "
+        + "Checkpoint tracking requires external storage and provides the preferred approach to consuming messages from Azure Event Hubs. "
+        + "In clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
+        + "(each message is processed on one cluster node only).")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @WritesAttributes({

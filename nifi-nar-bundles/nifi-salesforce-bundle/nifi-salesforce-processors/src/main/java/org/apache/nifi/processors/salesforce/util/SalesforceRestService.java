@@ -44,7 +44,7 @@ public class SalesforceRestService {
     }
 
     public InputStream describeSObject(String sObject) {
-        String url = baseUrl + "/services/data/v" + version + "/sobjects/" + sObject + "/describe?maxRecords=1";
+        String url = getVersionedBaseUrl() + "/sobjects/" + sObject + "/describe?maxRecords=1";
 
         Request request = new Request.Builder()
                 .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
@@ -56,7 +56,7 @@ public class SalesforceRestService {
     }
 
     public InputStream query(String query) {
-        String url = baseUrl + "/services/data/v" + version + "/query";
+        String url = getVersionedBaseUrl() + "/query";
 
         HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
                 .addQueryParameter("q", query)
@@ -87,7 +87,7 @@ public class SalesforceRestService {
     }
 
     public InputStream postRecord(String sObjectApiName, String body) {
-        String url = baseUrl + "/services/data/v" + version + "/composite/tree/" + sObjectApiName;
+        String url = getVersionedBaseUrl() + "/composite/tree/" + sObjectApiName;
 
         HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
                 .build();
@@ -103,6 +103,10 @@ public class SalesforceRestService {
         return request(request);
     }
 
+    public String getVersionedBaseUrl() {
+        return baseUrl + "/services/data/v" + version;
+    }
+
     private InputStream request(Request request) {
         Response response = null;
         try {
@@ -115,6 +119,11 @@ public class SalesforceRestService {
                 );
             }
             return response.body().byteStream();
+        } catch (ProcessException e) {
+            if (response != null) {
+                response.close();
+            }
+            throw e;
         } catch (Exception e) {
             if (response != null) {
                 response.close();

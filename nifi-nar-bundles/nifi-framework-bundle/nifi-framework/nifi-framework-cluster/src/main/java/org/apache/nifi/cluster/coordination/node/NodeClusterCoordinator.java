@@ -84,6 +84,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -146,7 +147,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.leaderElectionManager = leaderElectionManager;
         this.flowElection = flowElection;
         this.nodeProtocolSender = nodeProtocolSender;
-        this.stateManager = stateManagerProvider.getStateManager("Cluster Coordinator");
+        this.stateManager = stateManagerProvider.getStateManager(ClusterRoles.CLUSTER_COORDINATOR);
 
         recoverState();
 
@@ -250,7 +251,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         if (localId != null) {
             final NodeConnectionStatus shutdownStatus = new NodeConnectionStatus(localId, DisconnectionCode.NODE_SHUTDOWN);
             updateNodeStatus(shutdownStatus, false);
-            logger.info("Successfully notified other nodes that I am shutting down");
+            logger.info("Node ID [{}] Disconnection Code [{}] send completed", localId, DisconnectionCode.NODE_SHUTDOWN);
         }
     }
 
@@ -297,7 +298,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return localNodeId;
     }
 
-    private String getElectedActiveCoordinatorAddress() {
+    private Optional<String> getElectedActiveCoordinatorAddress() {
         return leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
@@ -726,14 +727,14 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public NodeIdentifier getPrimaryNode() {
-        final String primaryNodeAddress = leaderElectionManager.getLeader(ClusterRoles.PRIMARY_NODE);
-        if (primaryNodeAddress == null) {
+        final Optional<String> primaryNodeLeader = leaderElectionManager.getLeader(ClusterRoles.PRIMARY_NODE);
+        if (!primaryNodeLeader.isPresent()) {
             return null;
         }
 
         return nodeStatuses.values().stream()
                 .map(NodeConnectionStatus::getNodeIdentifier)
-                .filter(nodeId -> primaryNodeAddress.equals(nodeId.getSocketAddress() + ":" + nodeId.getSocketPort()))
+                .filter(nodeId -> primaryNodeLeader.get().equals(nodeId.getSocketAddress() + ":" + nodeId.getSocketPort()))
                 .findFirst()
                 .orElse(null);
     }
@@ -744,25 +745,25 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private NodeIdentifier getElectedActiveCoordinatorNode(final boolean warnOnError) {
-        String electedNodeAddress;
+        final Optional<String> electedActiveCoordinatorAddress;
         try {
-            electedNodeAddress = getElectedActiveCoordinatorAddress();
+            electedActiveCoordinatorAddress = getElectedActiveCoordinatorAddress();
         } catch (final NoClusterCoordinatorException ncce) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
 
-        if (electedNodeAddress == null || electedNodeAddress.trim().isEmpty()) {
+        if (!electedActiveCoordinatorAddress.isPresent()) {
             logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
 
-        electedNodeAddress = electedNodeAddress.trim();
+        final String electedNodeAddress = electedActiveCoordinatorAddress.get().trim();
 
         final int colonLoc = electedNodeAddress.indexOf(':');
         if (colonLoc < 1) {
             if (warnOnError) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but this is not a valid address", electedNodeAddress);
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but this is not a valid address", electedNodeAddress);
             }
 
             return null;
@@ -775,7 +776,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             electedNodePort = Integer.parseInt(portString);
         } catch (final NumberFormatException nfe) {
             if (warnOnError) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but this is not a valid address", electedNodeAddress);
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but this is not a valid address", electedNodeAddress);
             }
 
             return null;
@@ -788,7 +789,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 .orElse(null);
 
         if (electedNodeId == null && warnOnError) {
-            logger.debug("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {},"
+            logger.debug("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {},"
                     + "but there is no node with this address. Will attempt to communicate with node to determine its information", electedNodeAddress);
 
             try {
@@ -807,7 +808,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     return existingStatus.getNodeIdentifier();
                 }
             } catch (final Exception e) {
-                logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but there is no node with this address. "
+                logger.warn("Failed to determine which node is elected active Cluster Coordinator: Manager reports the address as {}, but there is no node with this address. "
                         + "Attempted to determine the node's information but failed to retrieve its information due to {}", electedNodeAddress, e.toString());
 
                 if (logger.isDebugEnabled()) {
@@ -1446,7 +1447,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
+    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() {
         final ClusterWorkloadRequestMessage request = new ClusterWorkloadRequestMessage();
         final ClusterWorkloadResponseMessage response = nodeProtocolSender.clusterWorkload(request);
         return response.getNodeWorkloads();

@@ -79,7 +79,8 @@ class NettyEventServer implements EventServer {
             final String message = String.format("Close channel interrupted: Remote Address [%s]", channel.remoteAddress());
             throw new EventException(message, e);
         } finally {
-            group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS).syncUninterruptibly();
+            group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                    .awaitUninterruptibly(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS);
         }
     }
 }

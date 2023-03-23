@@ -252,6 +252,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = "nifi.cluster.protocol.heartbeat.missable.max";
     public static final String CLUSTER_PROTOCOL_IS_SECURE = "nifi.cluster.protocol.is.secure";
+    public static final String CLUSTER_LEADER_ELECTION_IMPLEMENTATION = "nifi.cluster.leader.election.implementation";
 
     // cluster node properties
     public static final String CLUSTER_IS_NODE = "nifi.cluster.is.node";
@@ -405,6 +406,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_CLUSTER_NODE_READ_TIMEOUT = "5 sec";
     public static final String DEFAULT_CLUSTER_NODE_CONNECTION_TIMEOUT = "5 sec";
     public static final int DEFAULT_CLUSTER_NODE_MAX_CONCURRENT_REQUESTS = 100;
+    public static final String DEFAULT_CLUSTER_LEADER_ELECTION_IMPLEMENTATION = "CuratorLeaderElectionManager";
 
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 10;

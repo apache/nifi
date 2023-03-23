@@ -33,6 +33,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -47,6 +48,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
+import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.PortDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
@@ -78,6 +80,7 @@ public class SnippetAuditor extends NiFiAuditor {
     private ProcessorDAO processorDAO;
     private FunnelDAO funnelDAO;
     private ConnectionDAO connectionDAO;
+    private LabelDAO labelDAO;
 
     private PortAuditor portAuditor;
     private RemoteProcessGroupAuditor remoteProcessGroupAuditor;
@@ -85,6 +88,7 @@ public class SnippetAuditor extends NiFiAuditor {
     private ProcessorAuditor processorAuditor;
     private FunnelAuditor funnelAuditor;
     private RelationshipAuditor relationshipAuditor;
+    private LabelAuditor labelAuditor;
 
     /**
      * Audits copy/paste.
@@ -328,6 +332,14 @@ public class SnippetAuditor extends NiFiAuditor {
                 }
             }
 
+            for (String id : snippet.getLabels().keySet()) {
+                final Label label = labelDAO.getLabel(id);
+                final Action action = labelAuditor.generateAuditRecord(label, Operation.Move, createMoveDetails(previousGroupId, groupId, logger));
+                if (action != null) {
+                    actions.add(action);
+                }
+            }
+
             // save the actions
             if (CollectionUtils.isNotEmpty(actions)) {
                 saveActions(actions, logger);
@@ -390,6 +402,11 @@ public class SnippetAuditor extends NiFiAuditor {
             connections.add(connectionDAO.getConnection(id));
         }
 
+        final Set<Label> labels = new HashSet<>();
+        for (String id : snippet.getLabels().keySet()) {
+            labels.add(labelDAO.getLabel(id));
+        }
+
         // remove the snippet and components
         proceedingJoinPoint.proceed();
 
@@ -446,6 +463,13 @@ public class SnippetAuditor extends NiFiAuditor {
             }
         }
 
+        for (Label label : labels) {
+            final Action action = labelAuditor.generateAuditRecord(label, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
+            }
+        }
+
         // save the actions
         if (CollectionUtils.isNotEmpty(actions)) {
             saveActions(actions, logger);
@@ -479,6 +503,10 @@ public class SnippetAuditor extends NiFiAuditor {
 
     public void setRemoteProcessGroupAuditor(RemoteProcessGroupAuditor remoteProcessGroupAuditor) {
         this.remoteProcessGroupAuditor = remoteProcessGroupAuditor;
+    }
+
+    public void setLabelAuditor(LabelAuditor labelAuditor) {
+        this.labelAuditor = labelAuditor;
     }
 
     public void setRemoteProcessGroupDAO(RemoteProcessGroupDAO remoteProcessGroupDAO) {

@@ -30,8 +30,6 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -129,8 +127,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
-
-    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(StandardSSLContextService.class);
 
     private static final List<PropertyDescriptor> properties;
     protected ConfigurationContext configContext;
@@ -259,39 +255,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
             throw new ProcessException("Unable to create SSLContext", e);
         }
-    }
-
-    /**
-     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
-     * due to the Client Authentication policy not being applicable when initializing the SSLContext
-     *
-     * @param clientAuth the desired level of client authentication
-     * @return the configured SSLContext
-     * @throws ProcessException if there is a problem configuring the context
-     * @deprecated The {@link #createContext()} method should be used instead
-     */
-    @Deprecated
-    @Override
-    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
-        deprecationLogger.warn("{}[id={}] createSSLContext() should be replaced with createContext()", getClass().getSimpleName(), getIdentifier());
-        return createContext();
-    }
-
-    /**
-     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
-     * due to the use of the deprecated {@link ClientAuth} enum
-     * {@link #createContext()} method is preferred.
-     *
-     * @param clientAuth the desired level of client authentication
-     * @return the configured SSLContext
-     * @throws ProcessException if there is a problem configuring the context
-     * @deprecated The {@link #createContext()} method should be used instead
-     */
-    @Deprecated
-    @Override
-    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
-        deprecationLogger.warn("{}[id={}] createSSLContext() should be replaced with createContext()", getClass().getSimpleName(), getIdentifier());
-        return createContext();
     }
 
     /**

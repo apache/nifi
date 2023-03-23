@@ -23,6 +23,7 @@ import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.transport.tcp.TcpTransport;
 import org.apache.activemq.transport.tcp.TcpTransportFactory;
 import org.apache.activemq.wireformat.WireFormat;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
@@ -30,6 +31,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -62,12 +64,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.apache.nifi.jms.processors.helpers.AssertionUtils.assertCausedBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class ConsumeJMSIT {
@@ -196,9 +201,7 @@ public class ConsumeJMSIT {
         try {
             ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send("testMapMessage", __ -> createUnsupportedMessage("unsupportedMessagePropertyKey", "unsupportedMessagePropertyValue"));
+            jmsTemplate.send("testMapMessage", __ -> createUnsupportedMessage("unsupportedMessagePropertyKey", "unsupportedMessagePropertyValue"));
 
             TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -226,9 +229,7 @@ public class ConsumeJMSIT {
     private void testMessageTypeAttribute(String destinationName, final MessageCreator messageCreator, String expectedJmsMessageTypeAttribute) throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         try {
-            JMSPublisher sender = new JMSPublisher((CachingConnectionFactory) jmsTemplate.getConnectionFactory(), jmsTemplate, mock(ComponentLog.class));
-
-            sender.jmsTemplate.send(destinationName, messageCreator);
+            jmsTemplate.send(destinationName, messageCreator);
 
             TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
             JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -324,7 +325,8 @@ public class ConsumeJMSIT {
         TestRunner runner = createNonSharedDurableConsumer(cf, destinationName);
         runner.setThreadCount(2);
         final TestRunner temp = runner;
-        assertThrows(Throwable.class, () -> temp.run(1, true));
+
+        assertCausedBy(ProcessException.class, "Durable non shared subscriptions cannot work on multiple threads.", () -> temp.run(1, true));
 
         runner = createNonSharedDurableConsumer(cf, destinationName);
         // using one thread, it should not fail.
@@ -334,7 +336,7 @@ public class ConsumeJMSIT {
 
     /**
      * <p>
-     * This test validates the connection resources are closed if the publisher is marked as invalid.
+     * This test validates the connection resources are closed if the consumer is marked as invalid.
      * </p>
      * <p>
      * This tests validates the proper resources handling for TCP connections using ActiveMQ (the bug was discovered against ActiveMQ 5.x). In this test, using some ActiveMQ's classes is possible to
@@ -356,7 +358,7 @@ public class ConsumeJMSIT {
         BrokerService broker = new BrokerService();
         try {
             broker.setPersistent(false);
-            broker.setBrokerName("nifi7034publisher");
+            broker.setBrokerName("nifi7034consumer");
             TransportConnector connector = broker.addConnector("tcp://127.0.0.1:0");
             int port = connector.getServer().getSocketAddress().getPort();
             broker.start();
@@ -384,7 +386,9 @@ public class ConsumeJMSIT {
             runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
             runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-            assertThrows(AssertionError.class, () -> runner.run());
+            runner.run();
+            // since the worker is marked to invalid, we don't need to expect an exception here, because the worker recreation is handled automatically
+
             assertFalse(tcpTransport.get().isConnected(), "It is expected transport be closed. ");
         } finally {
             if (broker != null) {
@@ -409,18 +413,21 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "foo");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-         assertThrows(AssertionError.class, () -> runner.run());
-         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
+        assertCausedBy(UnknownHostException.class, runner::run);
+
+        assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
     }
 
     @Test
     public void whenExceptionIsRaisedDuringConnectionFactoryInitializationTheProcessorShouldBeYielded() throws Exception {
+        final String nonExistentClassName = "DummyJMSConnectionFactoryClass";
+
         TestRunner runner = TestRunners.newTestRunner(ConsumeJMS.class);
 
         // using (non-JNDI) JMS Connection Factory via controller service
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, "DummyJMSConnectionFactoryClass");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL, nonExistentClassName);
         runner.setProperty(cfProvider, JMSConnectionFactoryProperties.JMS_BROKER_URI, "DummyBrokerUri");
         runner.enableControllerService(cfProvider);
 
@@ -428,8 +435,47 @@ public class ConsumeJMSIT {
         runner.setProperty(ConsumeJMS.DESTINATION, "myTopic");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.TOPIC);
 
-        assertThrows(AssertionError.class, () -> runner.run());
+        assertCausedBy(ClassNotFoundException.class, nonExistentClassName, runner::run);
+
         assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
+    }
+
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
+    public void whenExceptionIsRaisedInAcceptTheProcessorShouldYieldAndRollback() throws Exception {
+        final String destination = "testQueue";
+        final RuntimeException expectedException = new RuntimeException();
+
+        final ConsumeJMS processor = new ConsumeJMS() {
+            @Override
+            protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession, JMSConsumer consumer) throws ProcessException {
+                ProcessSession spiedSession = spy(processSession);
+                doThrow(expectedException).when(spiedSession).write(any(FlowFile.class), any(OutputStreamCallback.class));
+                super.rendezvousWithJms(context, spiedSession, consumer);
+            }
+        };
+
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        try {
+            jmsTemplate.send(destination, session -> session.createTextMessage("msg"));
+
+            TestRunner runner = TestRunners.newTestRunner(processor);
+            JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+            when(cs.getIdentifier()).thenReturn("cfProvider");
+            when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
+            runner.addControllerService("cfProvider", cs);
+            runner.enableControllerService(cs);
+
+            runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+            runner.setProperty(ConsumeJMS.DESTINATION, destination);
+            runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
+
+            assertCausedBy(expectedException, () -> runner.run(1, false));
+
+            assertTrue(((MockProcessContext) runner.getProcessContext()).isYieldCalled(), "In case of an exception, the processor should be yielded.");
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
     }
 
     private static void publishAMessage(ActiveMQConnectionFactory cf, final String destinationName, String messageContent) throws JMSException {

@@ -28,7 +28,7 @@ import org.apache.nifi.cluster.protocol.AbstractNodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException.NoNodeException;

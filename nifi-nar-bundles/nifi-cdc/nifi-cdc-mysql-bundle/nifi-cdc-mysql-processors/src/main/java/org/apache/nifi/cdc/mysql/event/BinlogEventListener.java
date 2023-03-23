@@ -18,6 +18,8 @@ package org.apache.nifi.cdc.mysql.event;
 
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.Event;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * An event listener wrapper for MYSQL binlog events generated from the mysql-binlog-connector.
  */
 public class BinlogEventListener implements BinaryLogClient.EventListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(BinlogEventListener.class);
 
     private final AtomicBoolean stopNow = new AtomicBoolean(false);
     private static final int QUEUE_OFFER_TIMEOUT_MSEC = 100;
@@ -57,9 +61,9 @@ public class BinlogEventListener implements BinaryLogClient.EventListener {
                 }
             }
 
-            throw new RuntimeException("Stopped while waiting to enqueue event");
+            logger.info("Stopped while waiting to enqueue event");
         } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while adding event to the queue");
+            logger.warn("Interrupted while adding event to the queue", e);
         }
     }
 }

@@ -2495,7 +2495,7 @@ public class StandardProcessSessionIT {
     public void testStateRetrievedHasVersion() throws IOException {
         StateMap retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
-        assertEquals(-1, retrieved.getVersion());
+        assertFalse(retrieved.getStateVersion().isPresent());
         assertEquals(1, stateManager.getRetrievalCount(Scope.LOCAL));
         assertEquals(0, stateManager.getRetrievalCount(Scope.CLUSTER));
 
@@ -2505,13 +2505,13 @@ public class StandardProcessSessionIT {
 
         retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
-        assertEquals(0, retrieved.getVersion());
+        assertTrue(retrieved.getStateVersion().isPresent());
         assertEquals(Collections.singletonMap("abc", "123"), retrieved.toMap());
 
         session.setState(Collections.singletonMap("abc", "222"), Scope.LOCAL);
         retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
-        assertEquals(1, retrieved.getVersion());
+        assertTrue(retrieved.getStateVersion().isPresent());
 
         session.commit();
         stateManager.assertStateEquals("abc", "222", Scope.LOCAL);
@@ -2519,7 +2519,7 @@ public class StandardProcessSessionIT {
 
         retrieved = session.getState(Scope.LOCAL);
         assertNotNull(retrieved);
-        assertEquals(1, retrieved.getVersion());
+        assertTrue(retrieved.getStateVersion().isPresent());
     }
 
     @Test

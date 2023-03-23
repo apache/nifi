@@ -17,10 +17,6 @@
 package org.apache.nifi.registry.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.registry.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,13 +33,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.reflect.Method;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -51,7 +45,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -93,7 +86,6 @@ public class RunNiFiRegistry {
     public static final String NIFI_REGISTRY_PID_FILE_NAME = "nifi-registry.pid";
     public static final String NIFI_REGISTRY_STATUS_FILE_NAME = "nifi-registry.status";
     public static final String NIFI_REGISTRY_LOCK_FILE_NAME = "nifi-registry.lock";
-    public static final String NIFI_REGISTRY_BOOTSTRAP_SENSITIVE_KEY = "nifi.registry.bootstrap.sensitive.key";
 
     public static final String PID_KEY = "pid";
 
@@ -122,12 +114,11 @@ public class RunNiFiRegistry {
     private final Logger cmdLogger = LoggerFactory.getLogger("org.apache.nifi.registry.bootstrap.Command");
     // used for logging all info. These by default will be written to the log file
     private final Logger defaultLogger = LoggerFactory.getLogger(RunNiFiRegistry.class);
-    private final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(RunNiFiRegistry.class);
 
     private final ExecutorService loggingExecutor;
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
 
-    public RunNiFiRegistry(final File bootstrapConfigFile, final boolean verbose) throws IOException {
+    public RunNiFiRegistry(final File bootstrapConfigFile, final boolean verbose) {
         this.bootstrapConfigFile = bootstrapConfigFile;
 
         loggingExecutor = Executors.newFixedThreadPool(2, new ThreadFactory() {
@@ -147,7 +138,7 @@ public class RunNiFiRegistry {
         System.out.println("java org.apache.nifi.bootstrap.RunNiFiRegistry [<-verbose>] <command> [options]");
         System.out.println();
         System.out.println("Valid commands include:");
-        System.out.println("");
+        System.out.println();
         System.out.println("Start : Start a new instance of Apache NiFi Registry");
         System.out.println("Stop : Stop a running instance of Apache NiFi Registry");
         System.out.println("Restart : Stop Apache NiFi Registry, if it is running, and then start a new instance");
@@ -161,7 +152,7 @@ public class RunNiFiRegistry {
         return Arrays.copyOfRange(orig, 1, orig.length);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
         if (args.length < 1 || args.length > 3) {
             printUsage();
             return;
@@ -337,7 +328,7 @@ public class RunNiFiRegistry {
             fos.getFD().sync();
         }
 
-        logger.debug("Saved Properties {} to {}", new Object[]{pidProperties, statusFile});
+        logger.debug("Saved Properties {} to {}", pidProperties, statusFile);
     }
 
     private synchronized void writePidFile(final String pid, final Logger logger) throws IOException {
@@ -368,7 +359,7 @@ public class RunNiFiRegistry {
             fos.getFD().sync();
         }
 
-        logger.debug("Saved Pid {} to {}", new Object[]{pid, pidFile});
+        logger.debug("Saved PID [{}] to [{}]", pid, pidFile);
     }
 
     private boolean isPingSuccessful(final int port, final String secretKey, final Logger logger) {
@@ -500,17 +491,16 @@ public class RunNiFiRegistry {
         return new Status(port, pid, pingSuccess, alive);
     }
 
-    public int status() throws IOException {
+    public int status() {
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         if (status.isRespondingToPing()) {
-            logger.info("Apache NiFi Registry is currently running, listening to Bootstrap on port {}, PID={}",
-                    new Object[]{status.getPort(), status.getPid() == null ? "unknown" : status.getPid()});
+            logger.info("Apache NiFi Registry PID [{}] running with Bootstrap Port [{}]", status.getPid(), status.getPort());
             return 0;
         }
 
         if (status.isProcessRunning()) {
-            logger.info("Apache NiFi Registry is running at PID {} but is not responding to ping requests", status.getPid());
+            logger.info("Apache NiFi Registry PID [{}] running but not responding with Bootstrap Port [{}]", status.getPid(), status.getPort());
             return 4;
         }
 
@@ -631,13 +621,7 @@ public class RunNiFiRegistry {
     }
 
     public void notifyStop() {
-        final String hostname = getHostname();
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        final String now = sdf.format(System.currentTimeMillis());
-        String user = System.getProperty("user.name");
-        if (user == null || user.trim().isEmpty()) {
-            user = "Unknown User";
-        }
+
     }
 
     public void stop() throws IOException {
@@ -740,9 +724,9 @@ public class RunNiFiRegistry {
         } catch (final IOException ioe) {
             if (pid == null) {
                 logger.error("Failed to send shutdown command to port {} due to {}. No PID found for the NiFi Registry process, so unable to kill process; "
-                        + "the process should be killed manually.", new Object[]{port, ioe.toString()});
+                        + "the process should be killed manually.", port, ioe);
             } else {
-                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the NiFi Registry Process with PID {}.", port, ioe.toString(), pid);
+                logger.error("Failed to send shutdown command to port {} due to {}. Will kill the NiFi Registry Process with PID {}.", port, ioe, pid);
                 notifyStop();
                 killProcessTree(pid, logger);
                 if (statusFile.exists() && !statusFile.delete()) {
@@ -775,7 +759,7 @@ public class RunNiFiRegistry {
         logger.debug("Killing Process Tree for PID {}", pid);
 
         final List<String> children = getChildProcesses(pid);
-        logger.debug("Children of PID {}: {}", new Object[]{pid, children});
+        logger.debug("Children of PID {}: {}", pid, children);
 
         for (final String childPid : children) {
             killProcessTree(childPid, logger);
@@ -793,22 +777,8 @@ public class RunNiFiRegistry {
         }
     }
 
-    private String getHostname() {
-        String hostname = "Unknown Host";
-        String ip = "Unknown IP Address";
-        try {
-            final InetAddress localhost = InetAddress.getLocalHost();
-            hostname = localhost.getHostName();
-            ip = localhost.getHostAddress();
-        } catch (final Exception e) {
-            defaultLogger.warn("Failed to obtain hostname for notification due to:", e);
-        }
-
-        return hostname + " (" + ip + ")";
-    }
-
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void start() throws IOException, InterruptedException {
+    public void start() throws IOException {
         final Integer port = getCurrentPort(cmdLogger);
         if (port != null) {
             cmdLogger.info("Apache NiFi Registry is already running, listening to Bootstrap on port " + port);
@@ -924,25 +894,6 @@ public class RunNiFiRegistry {
             cpFiles.add(file.getAbsolutePath());
         }
 
-        final String runtimeJavaVersion = System.getProperty("java.version");
-        defaultLogger.info("Runtime Java version: {}", runtimeJavaVersion);
-        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
-        if (javaMajorVersion >= 11) {
-            // If running on Java 11 or greater, add lib/java11 to the classpath.
-            // TODO: Once the minimum Java version requirement of NiFi Registry is 11, this processing should be removed.
-            final String libJava11Filename = replaceNull(props.get("lib.dir"), "./lib").trim() + "/java11";
-            final File libJava11Dir = getFile(libJava11Filename, workingDir);
-            if (libJava11Dir.exists()) {
-                for (final File file : Objects.requireNonNull(libJava11Dir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar")))) {
-                    cpFiles.add(file.getAbsolutePath());
-                }
-            }
-        }
-
-        if (RuntimeVersionProvider.isMajorVersionDeprecated(javaMajorVersion)) {
-            deprecationLogger.warn("Support for Java {} is deprecated. Java {} is the minimum recommended version", javaMajorVersion, RuntimeVersionProvider.getMinimumMajorVersion());
-        }
-
         final StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
             final String filename = cpFiles.get(i);
@@ -985,12 +936,6 @@ public class RunNiFiRegistry {
         cmd.add("-Dapp=NiFiRegistry");
         cmd.add("-Dorg.apache.nifi.registry.bootstrap.config.log.dir=" + nifiRegistryLogDir);
 
-        if (runtimeJavaVersion.startsWith("9") || runtimeJavaVersion.startsWith("10")) {
-            // running on Java 9+, java.xml.bind module must be made available
-            // running on Java 9 or 10, internal module java.xml.bind module must be made available
-            cmd.add("--add-modules=java.xml.bind");
-        }
-
         cmd.add("org.apache.nifi.registry.NiFiRegistry");
 
         builder.command(cmd);
@@ -1002,7 +947,7 @@ public class RunNiFiRegistry {
 
         cmdLogger.info("Starting Apache NiFi Registry...");
         cmdLogger.info("Working Directory: {}", workingDir.getAbsolutePath());
-        cmdLogger.info("Command: {}", cmdBuilder.toString());
+        cmdLogger.info("Command: {}", cmdBuilder);
 
         String gracefulShutdown = props.get(GRACEFUL_SHUTDOWN_PROP);
         if (gracefulShutdown == null) {
@@ -1024,28 +969,15 @@ public class RunNiFiRegistry {
 
         Process process = builder.start();
         handleLogging(process);
-        Long pid = OSUtils.getProcessId(process, cmdLogger);
-        if (pid == null) {
-            cmdLogger.warn("Launched Apache NiFi Registry but could not determined the Process ID");
-        } else {
-            nifiRegistryPid = pid;
-            final Properties pidProperties = new Properties();
-            pidProperties.setProperty(PID_KEY, String.valueOf(nifiRegistryPid));
-            savePidProperties(pidProperties, cmdLogger);
-            cmdLogger.info("Launched Apache NiFi Registry with Process ID {}", pid);
-        }
+        nifiRegistryPid = process.pid();
+        final Properties pidProperties = new Properties();
+        pidProperties.setProperty(PID_KEY, String.valueOf(nifiRegistryPid));
+        savePidProperties(pidProperties, cmdLogger);
+        cmdLogger.info("Application Process [{}] launched", nifiRegistryPid);
 
         shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
         final Runtime runtime = Runtime.getRuntime();
         runtime.addShutdownHook(shutdownHook);
-
-        final String hostname = getHostname();
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        String now = sdf.format(System.currentTimeMillis());
-        String user = System.getProperty("user.name");
-        if (user == null || user.trim().isEmpty()) {
-            user = "Unknown User";
-        }
 
         while (true) {
             final boolean alive = isAlive(process);
@@ -1062,7 +994,6 @@ public class RunNiFiRegistry {
                     // happens when already shutting down
                 }
 
-                now = sdf.format(System.currentTimeMillis());
                 if (autoRestartNiFiRegistry) {
                     final File statusFile = getStatusFile(defaultLogger);
                     if (!statusFile.exists()) {
@@ -1089,16 +1020,10 @@ public class RunNiFiRegistry {
                     process = builder.start();
                     handleLogging(process);
 
-                    pid = OSUtils.getProcessId(process, defaultLogger);
-                    if (pid == null) {
-                        cmdLogger.warn("Launched Apache NiFi Registry but could not obtain the Process ID");
-                    } else {
-                        nifiRegistryPid = pid;
-                        final Properties pidProperties = new Properties();
-                        pidProperties.setProperty(PID_KEY, String.valueOf(nifiRegistryPid));
-                        savePidProperties(pidProperties, defaultLogger);
-                        cmdLogger.info("Launched Apache NiFi Registry with Process ID " + pid);
-                    }
+                    nifiRegistryPid = process.pid();
+                    pidProperties.setProperty(PID_KEY, String.valueOf(nifiRegistryPid));
+                    savePidProperties(pidProperties, defaultLogger);
+                    cmdLogger.info("Application Process [{}] launched", nifiRegistryPid);
 
                     shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
                     runtime.addShutdownHook(shutdownHook);
@@ -1106,9 +1031,9 @@ public class RunNiFiRegistry {
                     final boolean started = waitForStart();
 
                     if (started) {
-                        defaultLogger.info("Successfully started Apache NiFi Registry {}", (pid == null ? "" : " with PID " + pid));
+                        defaultLogger.info("Application Process [{}] started", nifiRegistryPid);
                     } else {
-                        defaultLogger.error("Apache NiFi Registry does not appear to have started");
+                        defaultLogger.error("Application Process [{}] not started", nifiRegistryPid);
                     }
                 } else {
                     return;
@@ -1236,7 +1161,7 @@ public class RunNiFiRegistry {
         try {
             savePidProperties(nifiProps, defaultLogger);
         } catch (final IOException ioe) {
-            defaultLogger.warn("Apache NiFi Registry has started but failed to persist NiFi Registry Port information to {} due to {}", new Object[]{statusFile.getAbsolutePath(), ioe});
+            defaultLogger.warn("Apache NiFi Registry has started but failed to persist NiFi Registry Port information to {} due to {}", statusFile.getAbsolutePath(), ioe);
         }
 
         defaultLogger.info("Apache NiFi Registry now running and listening for Bootstrap requests on port {}", port);

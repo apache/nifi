@@ -16,30 +16,24 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
-
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Property Encryptor implementation using Keyed Cipher Provider
+ * Property Encryptor implementation using AES-GCM
  */
 class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     private static final int INITIALIZATION_VECTOR_LENGTH = 16;
 
+    private static final int GCM_TAG_LENGTH_BITS = 128;
+
     private static final int ARRAY_START = 0;
 
-    private static final boolean ENCRYPT = true;
-
-    private static final boolean DECRYPT = false;
-
-    private final KeyedCipherProvider cipherProvider;
-
-    private final EncryptionMethod encryptionMethod;
+    private static final String CIPHER_ALGORITHM = "AES/GCM/NoPadding";
 
     private final SecretKey secretKey;
 
@@ -47,16 +41,11 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
 
     private final String description;
 
-    protected KeyedCipherPropertyEncryptor(final KeyedCipherProvider cipherProvider,
-                                           final EncryptionMethod encryptionMethod,
-                                           final SecretKey secretKey) {
-        this.cipherProvider = cipherProvider;
-        this.encryptionMethod = encryptionMethod;
+    protected KeyedCipherPropertyEncryptor(final SecretKey secretKey) {
         this.secretKey = secretKey;
         this.secureRandom = new SecureRandom();
-        this.description = String.format("%s Encryption Method [%s] Key Algorithm [%s] Key Bytes [%d]",
+        this.description = String.format("%s Key Algorithm [%s] Key Bytes [%d]",
                 getClass().getSimpleName(),
-                encryptionMethod.getAlgorithm(),
                 secretKey.getAlgorithm(),
                 secretKey.getEncoded().length);
     }
@@ -70,7 +59,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     @Override
     protected Cipher getDecryptionCipher(final byte[] encryptedBinary) {
         final byte[] initializationVector = readInitializationVector(encryptedBinary);
-        return getCipher(initializationVector, DECRYPT);
+        return getCipher(initializationVector, Cipher.DECRYPT_MODE);
     }
 
     /**
@@ -81,7 +70,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
      */
     @Override
     protected Cipher getEncryptionCipher(byte[] encodedParameters) {
-        return getCipher(encodedParameters, ENCRYPT);
+        return getCipher(encodedParameters, Cipher.ENCRYPT_MODE);
     }
 
     /**
@@ -107,11 +96,14 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
         return initializationVector;
     }
 
-    private Cipher getCipher(final byte[] initializationVector, final boolean encrypt) {
+    private Cipher getCipher(final byte[] initializationVector, final int cipherMode) {
         try {
-            return cipherProvider.getCipher(encryptionMethod, secretKey, initializationVector, encrypt);
+            final Cipher cipher = Cipher.getInstance(CIPHER_ALGORITHM);
+            final GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, initializationVector);
+            cipher.init(cipherMode, secretKey, parameterSpec);
+            return cipher;
         } catch (final Exception e) {
-            final String message = String.format("Failed to get Cipher for Algorithm [%s]", encryptionMethod.getAlgorithm());
+            final String message = String.format("Failed to get Cipher for Algorithm [%s]", CIPHER_ALGORITHM);
             throw new EncryptionException(message, e);
         }
     }
@@ -123,7 +115,7 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
     }
 
     /**
-     * Return object equality based on Encryption Method and Secret Key
+     * Return object equality based on Secret Key
      *
      * @param object Object for comparison
      * @return Object equality status
@@ -135,19 +127,19 @@ class KeyedCipherPropertyEncryptor extends CipherPropertyEncryptor {
             equals = true;
         } else if (object instanceof KeyedCipherPropertyEncryptor) {
             final KeyedCipherPropertyEncryptor encryptor = (KeyedCipherPropertyEncryptor) object;
-            equals = Objects.equals(encryptionMethod, encryptor.encryptionMethod) && Objects.equals(secretKey, encryptor.secretKey);
+            equals = Objects.equals(secretKey, encryptor.secretKey);
         }
         return equals;
     }
 
     /**
-     * Return hash code based on Encryption Method and Secret Key
+     * Return hash code based on Secret Key
      *
-     * @return Hash Code based on Encryption Method and Secret Key
+     * @return Hash Code based on Secret Key
      */
     @Override
     public int hashCode() {
-        return Objects.hash(encryptionMethod, secretKey);
+        return Objects.hash(secretKey);
     }
 
     /**

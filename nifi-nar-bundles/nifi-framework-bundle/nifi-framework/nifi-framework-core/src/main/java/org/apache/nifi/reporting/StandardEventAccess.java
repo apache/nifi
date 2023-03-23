@@ -113,7 +113,7 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         final ProcessGroup group = flowManager.getGroup(groupId);
 
         // on demand status request for a specific user... require authorization per component and filter results as appropriate
-        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), Integer.MAX_VALUE, 1);
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), Integer.MAX_VALUE, 1, false);
     }
 
     /**
@@ -144,6 +144,6 @@ public class StandardEventAccess extends AbstractEventAccess implements UserAwar
         final ProcessGroup group = flowManager.getGroup(groupId);
 
         // on demand status request for a specific user... require authorization per component and filter results as appropriate
-        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), recursiveStatusDepth, 1);
+        return getGroupStatus(group, statusReport, authorizable -> authorizable.isAuthorized(this.authorizer, RequestAction.READ, user), recursiveStatusDepth, 1, false);
     }
 }

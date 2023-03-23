@@ -222,7 +222,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 processSession.getProvenanceReporter().send(flowFile, destinationName);
             } catch (Exception e) {
                 processSession.transfer(flowFile, REL_FAILURE);
-                this.getLogger().error("Failed while sending message to JMS via " + publisher, e);
+                getLogger().error("Failed while sending message to JMS via " + publisher, e);
                 context.yield();
                 publisher.setValid(false);
             }

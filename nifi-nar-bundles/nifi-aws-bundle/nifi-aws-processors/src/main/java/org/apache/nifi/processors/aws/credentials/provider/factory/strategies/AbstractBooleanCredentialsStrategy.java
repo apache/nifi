@@ -18,11 +18,12 @@ package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 
 
@@ -42,8 +43,15 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
     }
 
     @Override
-    public boolean canCreatePrimaryCredential(final Map<PropertyDescriptor, String> properties) {
-        final String useStrategyString = properties.get(strategyProperty);
+    public boolean canCreatePrimaryCredential(final PropertyContext propertyContext) {
+        PropertyValue strategyPropertyValue = propertyContext.getProperty(strategyProperty);
+        if (strategyPropertyValue == null) {
+            return false;
+        }
+        if (strategyProperty.isExpressionLanguageSupported()) {
+            strategyPropertyValue = strategyPropertyValue.evaluateAttributeExpressions();
+        }
+        final String useStrategyString = strategyPropertyValue.getValue();
         final Boolean useStrategy = Boolean.parseBoolean(useStrategyString);
         return useStrategy;
     }

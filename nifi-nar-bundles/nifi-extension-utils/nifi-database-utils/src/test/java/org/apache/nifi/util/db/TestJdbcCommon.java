@@ -67,14 +67,18 @@ import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
+import static org.apache.nifi.util.db.JdbcCommon.MASKED_LOG_VALUE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -196,7 +200,7 @@ public class TestJdbcCommon {
     }
 
     @Test
-    public void testCreateSchemaOnlyColumnLabel() throws ClassNotFoundException, SQLException {
+    public void testCreateSchemaOnlyColumnLabel() throws SQLException {
 
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
@@ -843,6 +847,34 @@ public class TestJdbcCommon {
     public void testDriverLoad() throws ClassNotFoundException {
         final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         assertNotNull(clazz);
+    }
+
+    @Test
+    public void testSetSensitiveParametersDoesNotLogSensitiveValues() throws SQLException {
+        final Map<String, SensitiveValueWrapper> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", new SensitiveValueWrapper("4", false));
+        attributes.put("sql.args.1.value", new SensitiveValueWrapper("123.4", true));
+        try (final Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE inttest (id INT)");
+            PreparedStatement ps = con.prepareStatement("INSERT INTO inttest VALUES (?)");
+            final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setSensitiveParameters(ps, attributes));
+            assertTrue(exception.getMessage().contains(MASKED_LOG_VALUE));
+            assertFalse(exception.getMessage().contains("123.4"));
+        }
+    }
+
+    @Test
+    public void testSetParametersDoesNotHaveSensitiveValues() throws SQLException {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", "4");
+        attributes.put("sql.args.1.value","123.4");
+        try (final Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE inttest (id INT)");
+            PreparedStatement ps = con.prepareStatement("INSERT INTO inttest VALUES (?)");
+            final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setParameters(ps, attributes));
+            assertFalse(exception.getMessage().contains(MASKED_LOG_VALUE));
+            assertTrue(exception.getMessage().contains("123.4"));
+        }
     }
 
 }

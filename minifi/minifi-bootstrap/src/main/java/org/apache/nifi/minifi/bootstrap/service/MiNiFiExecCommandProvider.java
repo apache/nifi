@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
-import org.apache.nifi.bootstrap.util.RuntimeVersionProvider;
 
 public class MiNiFiExecCommandProvider {
 
@@ -129,7 +128,6 @@ public class MiNiFiExecCommandProvider {
         for (File file : libFiles) {
             cpFiles.add(file.getAbsolutePath());
         }
-        cpFiles.addAll(getJava11Files(libDir));
 
         StringBuilder classPathBuilder = new StringBuilder();
         for (int i = 0; i < cpFiles.size(); i++) {
@@ -141,25 +139,6 @@ public class MiNiFiExecCommandProvider {
         }
 
         return classPathBuilder.toString();
-    }
-
-    private List<String> getJava11Files(File libDir) {
-        List<String> java11Files = new ArrayList();
-        final int javaMajorVersion = RuntimeVersionProvider.getMajorVersion();
-        if (javaMajorVersion >= 11) {
-            /* If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
-             *
-             * TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
-             * JAXB/activation/annotation will be added as an actual dependency via pom.xml.
-             */
-            File libJava11Dir = getFile("java11", libDir);
-            if (libJava11Dir.exists()) {
-                for (File file : libJava11Dir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar"))) {
-                    java11Files.add(file.getAbsolutePath());
-                }
-            }
-        }
-        return java11Files;
     }
 
     private List<String> getJavaAdditionalArgs(Properties props) {

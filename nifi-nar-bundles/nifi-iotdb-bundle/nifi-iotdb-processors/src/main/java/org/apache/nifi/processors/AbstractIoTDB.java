@@ -64,6 +64,9 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     private static final Map<RecordFieldType, TSDataType> typeMap =
             new HashMap<>();
 
+    private static final Map<String, RecordFieldType> reversedTypeMap =
+            new HashMap<>();
+
     static final Set<RecordFieldType> supportedType =
             new HashSet<>();
 
@@ -126,6 +129,9 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
         typeMap.put(RecordFieldType.LONG, TSDataType.INT64);
         typeMap.put(RecordFieldType.FLOAT, TSDataType.FLOAT);
         typeMap.put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
+        for (Map.Entry<RecordFieldType, TSDataType> it : typeMap.entrySet()) {
+            reversedTypeMap.put(String.valueOf(it.getValue()),it.getKey());
+        }
 
         supportedType.add(RecordFieldType.BOOLEAN);
         supportedType.add(RecordFieldType.STRING);
@@ -182,6 +188,10 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
 
     protected TSDataType getType(RecordFieldType type) {
         return typeMap.get(type);
+    }
+
+    protected RecordFieldType getType(String type) {
+        return reversedTypeMap.get(type);
     }
 
     protected ValidationResult validateSchemaAttribute(String schemaAttribute) {

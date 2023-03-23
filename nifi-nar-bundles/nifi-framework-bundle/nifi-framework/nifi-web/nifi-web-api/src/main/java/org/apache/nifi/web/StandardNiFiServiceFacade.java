@@ -5928,6 +5928,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case UserGroup:
                     authorizable = authorizableLookup.getTenant();
                     break;
+                case Label:
+                    authorizable = authorizableLookup.getLabel(sourceId);
+                    break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());
             }
@@ -6286,12 +6289,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String nodeAddress = nodeId.getSocketAddress() + ":" + nodeId.getSocketPort();
 
         for (final String roleName : ClusterRoles.getAllRoles()) {
-            final String leader = leaderElectionManager.getLeader(roleName);
-            if (leader == null) {
+            final Optional<String> leader = leaderElectionManager.getLeader(roleName);
+            if (!leader.isPresent()) {
                 continue;
             }
 
-            if (leader.equals(nodeAddress)) {
+            final String leaderAddress = leader.get();
+            if (leaderAddress.equals(nodeAddress)) {
                 roles.add(roleName);
             }
         }

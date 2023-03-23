@@ -28,9 +28,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStateMapSerDe {
 
@@ -42,7 +44,9 @@ public class TestStateMapSerDe {
         final Map<String, String> stateValues = new HashMap<>();
         stateValues.put("abc", "xyz");
         stateValues.put("cba", "zyx");
-        final StateMap stateMap = new StandardStateMap(stateValues, 3L);
+
+        String version = "3";
+        final StateMap stateMap = new StandardStateMap(stateValues, Optional.of(version));
         final StateMapUpdate record = new StateMapUpdate(stateMap, componentId, UpdateType.CREATE);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -61,7 +65,9 @@ public class TestStateMapSerDe {
         assertEquals(UpdateType.CREATE, update.getUpdateType());
         final StateMap recoveredStateMap = update.getStateMap();
 
-        assertEquals(3L, recoveredStateMap.getVersion());
+        final Optional<String> stateVersion = recoveredStateMap.getStateVersion();
+        assertTrue(stateVersion.isPresent());
+        assertEquals(version, stateVersion.get());
         assertEquals(stateValues, recoveredStateMap.toMap());
     }
 }

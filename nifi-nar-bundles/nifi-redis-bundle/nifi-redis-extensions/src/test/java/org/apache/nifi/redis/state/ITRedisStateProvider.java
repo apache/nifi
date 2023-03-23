@@ -101,7 +101,7 @@ public class ITRedisStateProvider {
 
         StateMap map = provider.getState(componentId);
         assertNotNull(map);
-        assertEquals(-1, map.getVersion());
+        assertFalse(map.getStateVersion().isPresent());
 
         assertNotNull(map.toMap());
         assertTrue(map.toMap().isEmpty());
@@ -109,7 +109,7 @@ public class ITRedisStateProvider {
 
         map = provider.getState(componentId);
         assertNotNull(map);
-        assertEquals(0, map.getVersion());
+        assertTrue(map.getStateVersion().isPresent());
         assertEquals("value1", map.get(key));
         assertEquals("value1", map.toMap().get(key));
 
@@ -119,7 +119,7 @@ public class ITRedisStateProvider {
 
         map = provider.getState(componentId);
         assertEquals("value2", map.get(key));
-        assertEquals(1L, map.getVersion());
+        assertTrue(map.getStateVersion().isPresent());
     }
 
     @Test
@@ -131,7 +131,7 @@ public class ITRedisStateProvider {
         StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
         assertEquals("value1", stateMap.get(key));
-        assertEquals(0, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
 
         provider.setState(Collections.singletonMap(key, "intermediate value"), componentId);
 
@@ -140,7 +140,7 @@ public class ITRedisStateProvider {
         assertEquals(key, stateMap.toMap().keySet().iterator().next());
         assertEquals(1, stateMap.toMap().size());
         assertEquals("intermediate value", stateMap.get(key));
-        assertEquals(1, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
     }
 
 
@@ -164,7 +164,7 @@ public class ITRedisStateProvider {
         map = stateMap.toMap();
         assertNotNull(map);
         assertTrue(map.isEmpty());
-        assertEquals(1, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
     }
 
     @Test
@@ -172,21 +172,21 @@ public class ITRedisStateProvider {
         final StateProvider provider = getProvider();
         StateMap stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(-1L, stateMap.getVersion());
+        assertFalse(stateMap.getStateVersion().isPresent());
         assertTrue(stateMap.toMap().isEmpty());
 
         provider.setState(Collections.singletonMap("testClear", "value"), componentId);
 
         stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(0, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
         assertEquals("value", stateMap.get("testClear"));
 
         provider.clear(componentId);
 
         stateMap = provider.getState(componentId);
         assertNotNull(stateMap);
-        assertEquals(1L, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
         assertTrue(stateMap.toMap().isEmpty());
     }
 
@@ -238,7 +238,7 @@ public class ITRedisStateProvider {
 
         provider.setState(newValue, componentId);
         final StateMap stateMap = provider.getState(componentId);
-        assertEquals(0L, stateMap.getVersion());
+        assertTrue(stateMap.getStateVersion().isPresent());
 
         provider.onComponentRemoved(componentId);
 
@@ -247,8 +247,8 @@ public class ITRedisStateProvider {
 
         final StateMap stateMapAfterRemoval = provider.getState(componentId);
 
-        // version should be -1 because the state has been removed entirely.
-        assertEquals(-1L, stateMapAfterRemoval.getVersion());
+        // version should be not present because the state has been removed entirely.
+        assertFalse(stateMap.getStateVersion().isPresent());
     }
 
 

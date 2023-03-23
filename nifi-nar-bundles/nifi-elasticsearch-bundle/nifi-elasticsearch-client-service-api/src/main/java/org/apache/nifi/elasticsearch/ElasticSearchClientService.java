@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.elasticsearch;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -32,8 +30,6 @@ import org.apache.nifi.ssl.SSLContextService;
 import java.util.List;
 import java.util.Map;
 
-@Tags({"elasticsearch", "client"})
-@CapabilityDescription("A controller service for accessing an Elasticsearch client.")
 public interface ElasticSearchClientService extends ControllerService, VerifiableControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
@@ -123,19 +119,6 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .defaultValue("60000")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
-    /**
-     * @deprecated this setting is no longer used and will be removed in a future version.
-     * Property retained for now to prevent existing Flows with this processor from breaking upon upgrade.
-     */
-    @Deprecated
-    PropertyDescriptor RETRY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("el-cs-retry-timeout")
-            .displayName("Retry timeout")
-            .description("Controls the amount of time, in milliseconds, before a timeout occurs when retrying the operation.")
-            .required(true)
-            .defaultValue("60000")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
 
     PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("el-cs-charset")
@@ -158,6 +141,118 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .description("Specifies how the writer should handle null and empty fields (including objects and arrays)")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS)
             .defaultValue(ALWAYS_SUPPRESS.getValue())
+            .required(true)
+            .build();
+
+    PropertyDescriptor COMPRESSION = new PropertyDescriptor.Builder()
+            .name("el-cs-enable-compression")
+            .displayName("Enable Compression")
+            .description("Whether the REST client should compress requests using gzip content encoding and add the " +
+                    "\"Accept-Encoding: gzip\" header to receive compressed responses")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    PropertyDescriptor SEND_META_HEADER = new PropertyDescriptor.Builder()
+            .name("el-cs-send-meta-header")
+            .displayName("Send Meta Header")
+            .description("Whether to send a \"X-Elastic-Client-Meta\" header that describes the runtime environment. " +
+                    "It contains information that is similar to what could be found in User-Agent. " +
+                    "Using a separate header allows applications to use User-Agent for their own needs, " +
+                    "e.g. to identify application version or other environment information")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
+    PropertyDescriptor STRICT_DEPRECATION = new PropertyDescriptor.Builder()
+            .name("el-cs-strict-deprecation")
+            .displayName("Strict Deprecation")
+            .description("Whether the REST client should return any response containing at least one warning header as a failure")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    AllowableValue NODE_SELECTOR_ANY = new AllowableValue("ANY", "Any",
+            "Select any Elasticsearch node to handle requests");
+    AllowableValue NODE_SELECTOR_SKIP_DEDICATED_MASTERS = new AllowableValue("SKIP_DEDICATED_MASTERS", "Skip Dedicated Masters",
+            "Skip dedicated Elasticsearch master nodes for handling request");
+
+    PropertyDescriptor NODE_SELECTOR = new PropertyDescriptor.Builder()
+            .name("el-cs-node-selector")
+            .displayName("Node Selector")
+            .description("Selects Elasticsearch nodes that can receive requests. Used to keep requests away from dedicated Elasticsearch master nodes")
+            .allowableValues(NODE_SELECTOR_ANY, NODE_SELECTOR_SKIP_DEDICATED_MASTERS)
+            .defaultValue(NODE_SELECTOR_ANY.getValue())
+            .required(true)
+            .build();
+
+    PropertyDescriptor PATH_PREFIX = new PropertyDescriptor.Builder()
+            .name("el-cs-path-prefix")
+            .displayName("Path Prefix")
+            .description("Sets the path's prefix for every request used by the http client. " +
+                    "For example, if this is set to \"/my/path\", then any client request will become \"/my/path/\" + endpoint. " +
+                    "In essence, every request's endpoint is prefixed by this pathPrefix. " +
+                    "The path prefix is useful for when Elasticsearch is behind a proxy that provides a base path or a proxy that requires all paths to start with '/'; " +
+                    "it is not intended for other purposes and it should not be supplied in other scenarios")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    PropertyDescriptor SNIFF_CLUSTER_NODES = new PropertyDescriptor.Builder()
+            .name("el-cs-sniff-cluster-nodes")
+            .displayName("Sniff Cluster Nodes")
+            .description("Periodically sniff for nodes within the Elasticsearch cluster via the Elasticsearch Node Info API. " +
+                    "If Elasticsearch security features are enabled (default to \"true\" for 8.x+), the Elasticsearch user must " +
+                    "have the \"monitor\" or \"manage\" cluster privilege to use this API." +
+                    "Note that all " + HTTP_HOSTS.getDisplayName() + " (and those that may be discovered within the cluster " +
+                    "using the Sniffer) must use the same protocol, e.g. http or https, and be contactable using the same client settings. " +
+                    "Finally the Elasticsearch \"network.publish_host\" must match one of the \"network.bind_host\" list entries " +
+                    "see https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html for more information")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    PropertyDescriptor SNIFF_ON_FAILURE = new PropertyDescriptor.Builder()
+            .name("el-cs-sniff-failure")
+            .displayName("Sniff on Failure")
+            .description("Enable sniffing on failure, meaning that after each failure the Elasticsearch nodes list gets updated " +
+                    "straightaway rather than at the following ordinary sniffing round")
+            .dependsOn(SNIFF_CLUSTER_NODES, "true")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
+    PropertyDescriptor SNIFFER_INTERVAL = new PropertyDescriptor.Builder()
+            .name("el-cs-sniffer-interval")
+            .displayName("Sniffer Interval")
+            .description("Interval between Cluster sniffer operations")
+            .dependsOn(SNIFF_CLUSTER_NODES, "true")
+            .defaultValue("5 mins")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .required(true)
+            .build();
+
+    PropertyDescriptor SNIFFER_REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("el-cs-sniffer-request-timeout")
+            .displayName("Sniffer Request Timeout")
+            .description("Cluster sniffer timeout for node info requests")
+            .dependsOn(SNIFF_CLUSTER_NODES, "true")
+            .defaultValue("1 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .required(true)
+            .build();
+
+    PropertyDescriptor SNIFFER_FAILURE_DELAY = new PropertyDescriptor.Builder()
+            .name("el-cs-sniffer-failure-delay")
+            .displayName("Sniffer Failure Delay")
+            .description("Delay between an Elasticsearch request failure and updating available Cluster nodes using the Sniffer")
+            .dependsOn(SNIFF_ON_FAILURE, "true")
+            .defaultValue("1 min")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .build();
 

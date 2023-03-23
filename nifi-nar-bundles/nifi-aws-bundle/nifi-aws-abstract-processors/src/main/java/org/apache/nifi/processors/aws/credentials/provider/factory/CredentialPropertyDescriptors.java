@@ -23,6 +23,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
+import org.apache.nifi.ssl.SSLContextService;
 import software.amazon.awssdk.regions.Region;
 
 import java.util.ArrayList;
@@ -170,6 +171,15 @@ public class CredentialPropertyDescriptors {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .description("External ID for cross-account access. This is used in conjunction with Assume Role ARN.")
+            .dependsOn(ASSUME_ROLE_ARN)
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("assume-role-ssl-context-service")
+            .displayName("Assume Role SSL Context Service")
+            .description("SSL Context Service used when connecting to the STS Endpoint.")
+            .identifiesControllerService(SSLContextService.class)
+            .required(false)
             .dependsOn(ASSUME_ROLE_ARN)
             .build();
 

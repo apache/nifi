@@ -155,13 +155,17 @@ public class ClassLoaderUtils {
     }
 
     private static long getLastModified(String url) {
-        File file = null;
+        long lastModified = 0;
         try {
-            file = new File(new URI(url));
+            final URI uri = new URI(url);
+            if (uri.getScheme().equals("file")) {
+                final File file = new File(uri);
+                lastModified = file.lastModified();
+            }
         } catch (URISyntaxException e) {
             LOGGER.error("Error getting last modified date for " + url);
         }
-        return file != null ? file.lastModified() : 0;
+        return lastModified;
     }
 
     protected static ClassLoader createModuleClassLoader(URL[] modules, ClassLoader parentClassLoader) {

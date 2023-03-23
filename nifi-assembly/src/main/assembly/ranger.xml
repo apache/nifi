@@ -37,19 +37,12 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>*:nifi-bootstrap-utils</exclude>
                 <exclude>*:nifi-bootstrap</exclude>
                 <exclude>*:nifi-property-protection-api</exclude>
                 <exclude>*:nifi-property-protection-factory</exclude>
                 <exclude>*:nifi-resources</exclude>
                 <exclude>*:nifi-docs</exclude>
                 <exclude>org.apache.nifi:nifi-ranger-resources:jar</exclude>
-
-                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
-                <!-- TODO: remove these once minimum Java version is 11 -->
-                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
-                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
-                <exclude>javax.annotation:javax.annotation-api</exclude>
             </excludes>
         </dependencySet>
         <!-- Write out dependencies for Ranger's credentialbuilder to ext/ranger/install/lib -->

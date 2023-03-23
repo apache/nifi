@@ -28,8 +28,8 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
-import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
+import org.apache.nifi.framework.cluster.zookeeper.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -61,6 +61,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +73,8 @@ import java.util.stream.Collectors;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
+    private static final int EMPTY_VERSION = -1;
+
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
     private NiFiProperties nifiProperties;
 
@@ -344,7 +347,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 stateValues.put(key, value);
             }
 
-            return new StandardStateMap(stateValues, recordVersion);
+            final String stateVersion = String.valueOf(recordVersion);
+            return new StandardStateMap(stateValues, Optional.of(stateVersion));
         }
     }
 
@@ -470,7 +474,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         } catch (final KeeperException ke) {
             final Code exceptionCode = ke.code();
             if (Code.NONODE == exceptionCode) {
-                return new StandardStateMap(null, -1L);
+                return new StandardStateMap(null, Optional.empty());
             }
             if (Code.SESSIONEXPIRED == exceptionCode) {
                 invalidateClient();
@@ -488,8 +492,9 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) throws IOException {
         verifyEnabled();
 
+        final int version = oldValue.getStateVersion().map(Integer::parseInt).orElse(EMPTY_VERSION);
         try {
-            setState(newValue, (int) oldValue.getVersion(), componentId, false);
+            setState(newValue, version, componentId, false);
             return true;
         } catch (final NoNodeException nne) {
             return false;

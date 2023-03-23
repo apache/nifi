@@ -40,7 +40,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.XmlFlowSynchronizer;
 import org.apache.nifi.controller.flow.StandardFlowManager;
-import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
+import org.apache.nifi.framework.cluster.leader.zookeeper.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -240,7 +240,8 @@ public class FrameworkIntegrationTest {
             clusterCoordinator = Mockito.mock(ClusterCoordinator.class);
             final HeartbeatMonitor heartbeatMonitor = Mockito.mock(HeartbeatMonitor.class);
             final NodeProtocolSender protocolSender = Mockito.mock(NodeProtocolSender.class);
-            final LeaderElectionManager leaderElectionManager = new CuratorLeaderElectionManager(2, nifiProperties);
+
+            final LeaderElectionManager leaderElectionManager = new CuratorLeaderElectionManager(nifiProperties);
 
             final NodeIdentifier localNodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 8111, "localhost", 8081,
                 "localhost", 8082, "localhost", 8083, 8084, false, Collections.emptySet());

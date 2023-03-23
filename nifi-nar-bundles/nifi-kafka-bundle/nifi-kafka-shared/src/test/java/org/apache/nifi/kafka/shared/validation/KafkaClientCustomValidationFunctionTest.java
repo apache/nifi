@@ -99,39 +99,6 @@ class KafkaClientCustomValidationFunctionTest {
     }
 
     @Test
-    void testApplyUserServiceWithCredentialsServiceInvalid() {
-        runner.setProperty(KafkaClientComponent.SELF_CONTAINED_KERBEROS_USER_SERVICE, KafkaClientComponent.SELF_CONTAINED_KERBEROS_USER_SERVICE.getName());
-        runner.setProperty(KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE, KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE.getName());
-
-        final ValidationContext validationContext = getValidationContext();
-        final Collection<ValidationResult> results = validationFunction.apply(validationContext);
-
-        assertPropertyValidationResultFound(results, KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE.getDisplayName());
-    }
-
-    @Test
-    void testApplyCredentialsServiceWithPrincipalInvalid() {
-        runner.setProperty(KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE, KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE.getName());
-        runner.setProperty(KafkaClientComponent.KERBEROS_PRINCIPAL, KafkaClientComponent.KERBEROS_PRINCIPAL.getName());
-
-        final ValidationContext validationContext = getValidationContext();
-        final Collection<ValidationResult> results = validationFunction.apply(validationContext);
-
-        assertPropertyValidationResultFound(results, KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE.getDisplayName());
-    }
-
-    @Test
-    void testApplyPrincipalKeyTabValid() {
-        runner.setProperty(KafkaClientComponent.KERBEROS_PRINCIPAL, KafkaClientComponent.KERBEROS_PRINCIPAL.getName());
-        runner.setProperty(KafkaClientComponent.KERBEROS_KEYTAB, KafkaClientComponent.KERBEROS_KEYTAB.getName());
-
-        final ValidationContext validationContext = getValidationContext();
-        final Collection<ValidationResult> results = validationFunction.apply(validationContext);
-
-        assertTrue(results.isEmpty());
-    }
-
-    @Test
     void testApplyPlainUsernameWithoutPasswordInvalid() {
         runner.setProperty(KafkaClientComponent.SASL_USERNAME, KafkaClientComponent.SASL_USERNAME.getName());
         runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.PLAIN.getValue());

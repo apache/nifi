@@ -17,14 +17,13 @@ limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-c2</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi-c2-docker</artifactId>
     <version>2.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -35,13 +34,12 @@ limitations under the License.
 
     <profiles>
         <!-- Profile for building official Docker images. Not bound to build phases since that would require anyone build to have the Docker engine installed on their machine -->       
-        <profile>                                   
+        <profile>
             <id>docker</id>
             <build>
                 <plugins>
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
-                        <version>3.0.0</version>
                         <executions>
                             <execution>
                                 <id>copy-assembly-for-docker</id>

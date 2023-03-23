@@ -520,6 +520,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         ColumnDescription columnToAdd = new ColumnDescription(recordFieldName, DataTypeUtils.getSQLTypeValue(recordField.getDataType()),
                                 recordField.getDefaultValue() != null, null, recordField.isNullable());
                         columnsToAdd.add(columnToAdd);
+                        dbColumns.add(recordFieldName);
                         getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
                 }

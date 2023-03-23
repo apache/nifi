@@ -420,7 +420,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
             final StateMap stateMap = session.getState(Scope.CLUSTER);
-            if (stateMap.getVersion() == -1L) {
+            if (!stateMap.getStateVersion().isPresent()) {
                 latestTimestampEmitted = -1L;
                 latestTimestampListed = -1L;
                 getLogger().debug("Found no state stored");

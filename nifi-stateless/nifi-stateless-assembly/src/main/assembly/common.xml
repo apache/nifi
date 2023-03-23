@@ -30,24 +30,6 @@
             </includes>
         </dependencySet>
 
-        <!-- Write out the libs for java11 to its own directory -->
-        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>lib/java11</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>org.glassfish.jaxb:jaxb-runtime</include>
-                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
-                <include>javax.annotation:javax.annotation-api</include>
-                <include>com.sun.activation:jakarta.activation</include>
-                <include>jakarta.activation:jakarta.activation-api</include>
-            </includes>
-        </dependencySet>
-
         <!-- Write out the conf directory contents -->
         <dependencySet>
             <scope>runtime</scope>

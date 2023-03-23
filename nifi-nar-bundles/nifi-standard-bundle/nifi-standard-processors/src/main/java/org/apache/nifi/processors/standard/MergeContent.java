@@ -107,7 +107,8 @@ import java.util.zip.ZipOutputStream;
 @Tags({"merge", "content", "correlation", "tar", "zip", "stream", "concatenation", "archive", "flowfile-stream", "flowfile-stream-v3"})
 @CapabilityDescription("Merges a Group of FlowFiles together based on a user-defined strategy and packages them into a single FlowFile. "
         + "It is recommended that the Processor be configured with only a single incoming connection, as Group of FlowFiles will not be "
-        + "created from FlowFiles in different connections. This processor updates the mime.type attribute as appropriate.")
+        + "created from FlowFiles in different connections. This processor updates the mime.type attribute as appropriate. "
+        + "NOTE: this processor should NOT be configured with Cron Driven for the Scheduling Strategy.")
 @ReadsAttributes({
     @ReadsAttribute(attribute = "fragment.identifier", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "All FlowFiles with the same value for this attribute will be bundled together."),

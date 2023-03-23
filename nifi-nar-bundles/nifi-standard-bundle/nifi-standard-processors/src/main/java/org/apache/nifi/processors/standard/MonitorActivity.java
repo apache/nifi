@@ -346,7 +346,7 @@ public class MonitorActivity extends AbstractProcessor {
                     }
                     newValues.put(STATE_KEY_LATEST_SUCCESS_TRANSFER, String.valueOf(now));
 
-                    if (state == null || state.getVersion() == -1) {
+                    if (state == null || !state.getStateVersion().isPresent()) {
                         session.setState(newValues, Scope.CLUSTER);
                     } else {
                         final String existingTimestamp = state.get(STATE_KEY_LATEST_SUCCESS_TRANSFER);

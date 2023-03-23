@@ -79,8 +79,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -111,8 +109,12 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
-            final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory(), extensionRootClassLoader);
-            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
+            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(
+                    extensionsWorkingDir,
+                    extensionRootClassLoader,
+                    narClassLoaders,
+                    engineConfiguration.isLogExtensionDiscovery()
+            );
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 
@@ -196,7 +198,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
-            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
+            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, stateManagerProvider);
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
             contentRepo = createContentRepository(engineConfiguration);
             flowFileRepo = new StatelessFlowFileRepository();
@@ -298,60 +300,5 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
     private boolean isValidExtensionClientType(final String type) {
         return "nexus".equalsIgnoreCase(type.trim());
-    }
-
-    private ClassLoader createSystemClassLoader(final File narDirectory, final ClassLoader extensionRootClassLoader) throws StatelessConfigurationException {
-        final int javaMajorVersion = getJavaMajorVersion();
-        if (javaMajorVersion >= 11) {
-            // If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
-            // TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
-            // JAXB/activation/annotation will be added as an actual dependency via pom.xml.
-            return createJava11OrLaterSystemClassLoader(javaMajorVersion, narDirectory, extensionRootClassLoader);
-        }
-
-        return extensionRootClassLoader;
-    }
-
-    private ClassLoader createJava11OrLaterSystemClassLoader(final int javaMajorVersion, final File narDirectory, final ClassLoader parentClassLoader) throws StatelessConfigurationException {
-        final List<URL> java11JarFileUrls = new ArrayList<>();
-
-        final File java11Dir = new File(narDirectory, "java11");
-        if (!java11Dir.exists()) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
-                "at " + java11Dir.getAbsolutePath());
-        }
-
-        final File[] java11JarFiles = java11Dir.listFiles(filename -> filename.getName().toLowerCase().endsWith(".jar"));
-        if (java11JarFiles == null || java11JarFiles.length == 0) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
-                "at " + java11Dir.getAbsolutePath());
-        }
-
-        try {
-            for (final File file : java11JarFiles) {
-                java11JarFileUrls.add(file.toURI().toURL());
-            }
-        } catch (final Exception e) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader", e);
-        }
-
-        final ClassLoader classLoader = new URLClassLoader(java11JarFileUrls.toArray(new URL[0]), parentClassLoader);
-        return classLoader;
-    }
-
-    private int getJavaMajorVersion() {
-        final String javaVersion = System.getProperty("java.version");
-        logger.debug("Java Version is {}", javaVersion);
-
-        if (javaVersion.startsWith("1.")) {
-            return Integer.parseInt(javaVersion.substring(2, 3));
-        }
-
-        final int dotIndex = javaVersion.indexOf(".");
-        if (dotIndex < 0) {
-            return Integer.parseInt(javaVersion);
-        }
-
-        return Integer.parseInt(javaVersion.substring(0, dotIndex));
     }
 }

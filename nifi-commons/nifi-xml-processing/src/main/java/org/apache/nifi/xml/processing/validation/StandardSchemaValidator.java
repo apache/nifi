@@ -53,7 +53,7 @@ public class StandardSchemaValidator implements SchemaValidator {
         try {
             validator.validate(source);
         } catch (final SAXException|IOException e) {
-            throw new ProcessingException("Validation failed", e);
+            throw new ProcessingException(String.format("Validation failed: %s", e.getMessage()), e);
         }
     }
 }

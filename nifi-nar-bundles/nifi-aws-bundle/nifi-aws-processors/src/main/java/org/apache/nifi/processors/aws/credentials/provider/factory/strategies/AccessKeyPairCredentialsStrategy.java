@@ -20,11 +20,10 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-
-import java.util.Map;
 
 
 /**
@@ -43,17 +42,17 @@ public class AccessKeyPairCredentialsStrategy extends AbstractCredentialsStrateg
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
-        final String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
-        final String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
+    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
+        final String accessKey = propertyContext.getProperty(CredentialPropertyDescriptors.ACCESS_KEY).evaluateAttributeExpressions().getValue();
+        final String secretKey = propertyContext.getProperty(CredentialPropertyDescriptors.SECRET_KEY).evaluateAttributeExpressions().getValue();
         final BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
         return new StaticCredentialsProvider(credentials);
     }
 
     @Override
-    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
-        final String accessKey = properties.get(CredentialPropertyDescriptors.ACCESS_KEY);
-        final String secretKey = properties.get(CredentialPropertyDescriptors.SECRET_KEY);
+    public AwsCredentialsProvider getAwsCredentialsProvider(final PropertyContext propertyContext) {
+        final String accessKey = propertyContext.getProperty(CredentialPropertyDescriptors.ACCESS_KEY).evaluateAttributeExpressions().getValue();
+        final String secretKey = propertyContext.getProperty(CredentialPropertyDescriptors.SECRET_KEY).evaluateAttributeExpressions().getValue();
         return software.amazon.awssdk.auth.credentials.StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
     }
 

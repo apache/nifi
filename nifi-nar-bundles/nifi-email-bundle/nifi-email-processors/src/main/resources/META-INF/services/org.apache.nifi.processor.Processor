@@ -18,4 +18,3 @@ org.apache.nifi.processors.email.ExtractEmailHeaders
 org.apache.nifi.processors.email.ListenSMTP
 org.apache.nifi.processors.email.ConsumeIMAP
 org.apache.nifi.processors.email.ConsumePOP3
-org.apache.nifi.processors.email.ConsumeEWS

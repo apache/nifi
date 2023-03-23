@@ -1186,7 +1186,7 @@ For NiFi Registry 0.2.0 and forward, the location of the H2 database is specifie
 
 3. Connect to database
 
-  Welcome to H2 Shell 1.4.200 (2019-10-14)
+  Welcome to H2 Shell 2.1
   Exit with Ctrl+C
   URL       jdbc:h2:./database/nifi-registry-primary
   Driver    org.h2.Driver

@@ -28,6 +28,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 
@@ -1062,4 +1063,10 @@ public interface TestRunner {
      */
      void setRunSchedule(long runSchedule);
 
+    /**
+     * Assert that provenance event was created with the specified event type.
+     *
+     * @param eventType Provenance event type
+     */
+     void assertProvenanceEvent(ProvenanceEventType eventType);
 }

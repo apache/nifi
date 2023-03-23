@@ -329,7 +329,7 @@ public class TestGetSplunk {
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
         assertNotNull(state);
-        assertTrue(state.getVersion() > 0);
+        assertTrue(state.getStateVersion().isPresent());
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);
@@ -377,7 +377,7 @@ public class TestGetSplunk {
 
         final StateMap state = runner.getStateManager().getState(Scope.CLUSTER);
         assertNotNull(state);
-        assertTrue(state.getVersion() > 0);
+        assertTrue(state.getStateVersion().isPresent());
 
         // save the latest time from the first run which should be earliest time of next run
         final String lastLatest = state.get(GetSplunk.LATEST_TIME_KEY);

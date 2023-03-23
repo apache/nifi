@@ -94,33 +94,6 @@ locateJava() {
     fi
 }
 
-apply_java_compatibility() {
-    compatibility_arg=""
-    compatibility_lib=""
-    java_version="$("${JAVA}" -version 2>&1 | head -n 1 | awk -F '"' '{print $2}')"
-
-    case "$java_version" in
-        9*|10*)
-            compatibility_arg="--add-modules=java.xml.bind"
-            ;;
-        [1-9][1-9]*)
-            # java versions 11-99
-            compatibility_lib="${NIFI_TOOLKIT_HOME}/lib/java11/*"
-            ;;
-        1.*)
-            ;;
-    esac
-
-    JAVA_OPTS="${JAVA_OPTS:--Xms128m -Xmx256m}"
-    if [ "x${compatibility_arg}" != "x" ]; then
-        JAVA_OPTS="${JAVA_OPTS} $compatibility_arg"
-    fi
-
-    if [ "x${compatibility_lib}" != "x" ]; then
-        CLASSPATH="$CLASSPATH$classpath_separator$compatibility_lib"
-    fi
-}
-
 init() {
     # Determine if there is special OS handling we must perform
     detectOS
@@ -144,7 +117,6 @@ run() {
 
    export JAVA_HOME="$JAVA_HOME"
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
-   apply_java_compatibility
 
    umask 0077
    exec "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS} org.apache.nifi.toolkit.cli.CLIMain "$@"

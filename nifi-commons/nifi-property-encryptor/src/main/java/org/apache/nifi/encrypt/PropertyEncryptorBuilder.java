@@ -17,8 +17,6 @@
 package org.apache.nifi.encrypt;
 
 import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
-import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
 
 import javax.crypto.SecretKey;
@@ -66,10 +64,8 @@ public class PropertyEncryptorBuilder {
         if (propertyEncryptionMethod == null) {
             return getPasswordBasedCipherPropertyEncryptor();
         } else {
-            final KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
             final SecretKey secretKey = SECRET_KEY_PROVIDER.getSecretKey(propertyEncryptionMethod, password);
-            final EncryptionMethod encryptionMethod = propertyEncryptionMethod.getEncryptionMethod();
-            return new KeyedCipherPropertyEncryptor(keyedCipherProvider, encryptionMethod, secretKey);
+            return new KeyedCipherPropertyEncryptor(secretKey);
         }
     }
 

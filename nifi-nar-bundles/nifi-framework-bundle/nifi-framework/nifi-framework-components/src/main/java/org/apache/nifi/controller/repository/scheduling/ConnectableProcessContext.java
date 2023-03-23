@@ -25,9 +25,6 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -51,16 +48,11 @@ import java.util.concurrent.TimeUnit;
 public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
-    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
 
-    private final DeprecationLogger deprecationLogger;
-
-    public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor propertyEncryptor, final StateManager stateManager) {
+    public ConnectableProcessContext(final Connectable connectable, final StateManager stateManager) {
         this.connectable = connectable;
-        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
-        this.deprecationLogger = DeprecationLoggerFactory.getLogger(connectable.getClass());
     }
 
     @Override
@@ -225,18 +217,6 @@ public class ConnectableProcessContext implements ProcessContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return new HashMap<>();
-    }
-
-    @Override
-    public String decrypt(String encrypted) {
-        deprecationLogger.warn("ProcessContext.decrypt() should be replaced an alternative implementation");
-        return propertyEncryptor.decrypt(encrypted);
-    }
-
-    @Override
-    public String encrypt(String unencrypted) {
-        deprecationLogger.warn("ProcessContext.encrypt() should be replaced an alternative implementation");
-        return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override

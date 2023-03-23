@@ -42,24 +42,7 @@ for /f tokens^=2-5^ delims^=.-+_^" %%j in ('"%JAVA_EXE%" -fullversion 2^>^&1') d
     set "micro=%%l"
     set "build=%%m"
 )
-set compatibility_arg=
-set compatibility_lib=
-if %major% EQU 9 (
-    set compatibility_arg=--add-modules=java.xml.bind
-    echo Detected Java 9 runtime version
-) else if %major% EQU 10 (
-    set compatibility_arg=--add-modules=java.xml.bind
-    echo Detected Java 10 runtime version
-) else if %major% GEQ 11 (
-    set compatibility_lib=%NIFI_TOOLKIT_HOME%\lib\java11\
-    echo Detected java 11 or later runtime version: %major%
-)
-if not "%compatibility_arg%" == "" (set JAVA_OPTS=%JAVA_OPTS% %compatibility_arg%)
-if not "%compatibility_lib%" == "" (
-   set LIB_DIR="%LIB_DIR%*;%compatibility_lib%*"
-) else (
-   set LIB_DIR="%LIB_DIR%*"
-)
+set LIB_DIR="%LIB_DIR%*"
 
 rem remove surrounding quotes
 SET LIB_DIR=%LIB_DIR:"=%

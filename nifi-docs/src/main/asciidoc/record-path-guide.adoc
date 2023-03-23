@@ -758,7 +758,7 @@ and a record such as:
 }
 ----
 
-The following record path expression would remove extraneous whitespace:
+The following record path expression change lower case letters to upper case:
 
 |==========================================================
 | RecordPath | Return value
@@ -787,11 +787,11 @@ and a record such as:
 }
 ----
 
-The following record path expression would remove extraneous whitespace:
+The following record path expression change upper case letters to lower case:
 
 |==========================================================
 | RecordPath | Return value
-| `trim(/message)` | hello world
+| `toLowerCase(/message)` | hello world
 |==========================================================
 
 === base64Encode

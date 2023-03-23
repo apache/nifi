@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.dbcp;
 
+import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.MockKerberosCredentialsService;
@@ -83,10 +84,10 @@ public class DBCPServiceTest {
         runner.addControllerService(SERVICE_ID, service);
 
         final String url = String.format("jdbc:derby:%s;create=true", databaseDirectory);
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, url);
-        runner.setProperty(service, DBCPConnectionPool.DB_USER, String.class.getSimpleName());
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, String.class.getName());
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, DBCPProperties.DATABASE_URL, url);
+        runner.setProperty(service, DBCPProperties.DB_USER, String.class.getSimpleName());
+        runner.setProperty(service, DBCPProperties.DB_PASSWORD, String.class.getName());
+        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
     }
 
     @AfterEach
@@ -117,7 +118,7 @@ public class DBCPServiceTest {
 
         // kerberos credential service with kerberos user service is invalid
         final KerberosUserService kerberosUserService = enableKerberosUserService(runner);
-        runner.setProperty(service, DBCPConnectionPool.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
+        runner.setProperty(service, DBCPProperties.KERBEROS_USER_SERVICE, kerberosUserService.getIdentifier());
         runner.assertNotValid(service);
 
         // kerberos user service by itself is valid
@@ -132,7 +133,7 @@ public class DBCPServiceTest {
 
     @Test
     public void testNotValidWithNegativeMinIdleProperty() {
-        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "-1");
+        runner.setProperty(service, DBCPProperties.MIN_IDLE, "-1");
         runner.assertNotValid(service);
     }
 
@@ -185,9 +186,9 @@ public class DBCPServiceTest {
         runner.enableControllerService(kerberosCredentialsService);
 
         // set fake Derby database connection url
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
+        runner.setProperty(service, DBCPProperties.DATABASE_URL, "jdbc:derby://localhost:1527/NoDB");
         // Use the client driver here rather than the embedded one, as it will generate a ConnectException for the test
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
+        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "org.apache.derby.jdbc.ClientDriver");
         runner.setProperty(service, DBCPConnectionPool.KERBEROS_CREDENTIALS_SERVICE, kerberosServiceId);
 
         try {
@@ -202,7 +203,7 @@ public class DBCPServiceTest {
 
     @Test
     public void testGetConnection() throws SQLException {
-        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
+        runner.setProperty(service, DBCPProperties.MAX_TOTAL_CONNECTIONS, "2");
         runner.enableControllerService(service);
         runner.assertValid(service);
 
@@ -216,8 +217,8 @@ public class DBCPServiceTest {
 
     @Test
     public void testGetConnectionMaxTotalConnectionsExceeded() {
-        runner.setProperty(service, DBCPConnectionPool.MAX_TOTAL_CONNECTIONS, "1");
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "1 ms");
+        runner.setProperty(service, DBCPProperties.MAX_TOTAL_CONNECTIONS, "1");
+        runner.setProperty(service, DBCPProperties.MAX_WAIT_TIME, "1 ms");
         runner.enableControllerService(service);
         runner.assertValid(service);
 
@@ -228,13 +229,13 @@ public class DBCPServiceTest {
 
     @Test
     public void testGetDataSourceProperties() throws SQLException {
-        runner.setProperty(service, DBCPConnectionPool.MAX_WAIT_TIME, "-1");
-        runner.setProperty(service, DBCPConnectionPool.MAX_IDLE, "6");
-        runner.setProperty(service, DBCPConnectionPool.MIN_IDLE, "4");
-        runner.setProperty(service, DBCPConnectionPool.MAX_CONN_LIFETIME, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.EVICTION_RUN_PERIOD, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME, "1 secs");
-        runner.setProperty(service, DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPProperties.MAX_WAIT_TIME, "-1");
+        runner.setProperty(service, DBCPProperties.MAX_IDLE, "6");
+        runner.setProperty(service, DBCPProperties.MIN_IDLE, "4");
+        runner.setProperty(service, DBCPProperties.MAX_CONN_LIFETIME, "1 secs");
+        runner.setProperty(service, DBCPProperties.EVICTION_RUN_PERIOD, "1 secs");
+        runner.setProperty(service, DBCPProperties.MIN_EVICTABLE_IDLE_TIME, "1 secs");
+        runner.setProperty(service, DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME, "1 secs");
 
         runner.enableControllerService(service);
 

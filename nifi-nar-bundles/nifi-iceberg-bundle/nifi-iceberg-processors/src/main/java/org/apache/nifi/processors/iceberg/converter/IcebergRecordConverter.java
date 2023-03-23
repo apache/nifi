@@ -34,8 +34,11 @@ import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * This class is responsible for schema traversal and data conversion between NiFi and Iceberg internal record structure.
@@ -56,7 +59,7 @@ public class IcebergRecordConverter {
     private static class IcebergSchemaVisitor extends SchemaWithPartnerVisitor<DataType, DataConverter<?, ?>> {
 
         public static DataConverter<?, ?> visit(Schema schema, RecordDataType recordDataType, FileFormat fileFormat) {
-            return visit(schema, recordDataType, new IcebergSchemaVisitor(), new IcebergPartnerAccessors(fileFormat));
+            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(), new IcebergPartnerAccessors(schema, fileFormat));
         }
 
         @Override
@@ -66,6 +69,8 @@ public class IcebergRecordConverter {
 
         @Override
         public DataConverter<?, ?> field(Types.NestedField field, DataType dataType, DataConverter<?, ?> converter) {
+            // set Iceberg schema field name (targetFieldName) in the data converter
+            converter.setTargetFieldName(field.name());
             return converter;
         }
 
@@ -80,26 +85,26 @@ public class IcebergRecordConverter {
                     case DOUBLE:
                     case DATE:
                     case STRING:
-                        return GenericDataConverters.SameTypeConverter.INSTANCE;
+                        return new GenericDataConverters.SameTypeConverter();
                     case TIME:
-                        return GenericDataConverters.TimeConverter.INSTANCE;
+                        return new GenericDataConverters.TimeConverter();
                     case TIMESTAMP:
                         final Types.TimestampType timestampType = (Types.TimestampType) type;
                         if (timestampType.shouldAdjustToUTC()) {
-                            return GenericDataConverters.TimestampWithTimezoneConverter.INSTANCE;
+                            return new GenericDataConverters.TimestampWithTimezoneConverter();
                         }
-                        return GenericDataConverters.TimestampConverter.INSTANCE;
+                        return new GenericDataConverters.TimestampConverter();
                     case UUID:
                         final UUIDDataType uuidType = (UUIDDataType) dataType;
                         if (uuidType.getFileFormat() == FileFormat.PARQUET) {
-                            return GenericDataConverters.UUIDtoByteArrayConverter.INSTANCE;
+                            return new GenericDataConverters.UUIDtoByteArrayConverter();
                         }
-                        return GenericDataConverters.SameTypeConverter.INSTANCE;
+                        return new GenericDataConverters.SameTypeConverter();
                     case FIXED:
                         final Types.FixedType fixedType = (Types.FixedType) type;
                         return new GenericDataConverters.FixedConverter(fixedType.length());
                     case BINARY:
-                        return GenericDataConverters.BinaryConverter.INSTANCE;
+                        return new GenericDataConverters.BinaryConverter();
                     case DECIMAL:
                         final Types.DecimalType decimalType = (Types.DecimalType) type;
                         return new GenericDataConverters.BigDecimalConverter(decimalType.precision(), decimalType.scale());
@@ -113,8 +118,17 @@ public class IcebergRecordConverter {
         @Override
         public DataConverter<?, ?> struct(Types.StructType type, DataType dataType, List<DataConverter<?, ?>> converters) {
             Validate.notNull(type, "Can not create reader for null type");
-            final List<RecordField> recordFields = ((RecordDataType) dataType).getChildSchema().getFields();
-            return new GenericDataConverters.RecordConverter(converters, recordFields, type);
+            final RecordTypeWithFieldNameMapper recordType = (RecordTypeWithFieldNameMapper) dataType;
+            final RecordSchema recordSchema = recordType.getChildSchema();
+
+            // set NiFi schema field names (sourceFieldName) in the data converters
+            for (DataConverter<?, ?> converter : converters) {
+                final Optional<String> mappedFieldName = recordType.getNameMapping(converter.getTargetFieldName());
+                final Optional<RecordField> recordField = recordSchema.getField(mappedFieldName.get());
+                converter.setSourceFieldName(recordField.get().getFieldName());
+            }
+
+            return new GenericDataConverters.RecordConverter(converters, recordSchema, type);
         }
 
         @Override
@@ -129,20 +143,29 @@ public class IcebergRecordConverter {
     }
 
     public static class IcebergPartnerAccessors implements SchemaWithPartnerVisitor.PartnerAccessors<DataType> {
+        private final Schema schema;
         private final FileFormat fileFormat;
 
-        IcebergPartnerAccessors(FileFormat fileFormat) {
+        IcebergPartnerAccessors(Schema schema, FileFormat fileFormat) {
+            this.schema = schema;
             this.fileFormat = fileFormat;
         }
 
         @Override
         public DataType fieldPartner(DataType dataType, int fieldId, String name) {
-            Validate.isTrue(dataType instanceof RecordDataType, String.format("Invalid record: %s is not a record", dataType));
-            final RecordDataType recordType = (RecordDataType) dataType;
-            final Optional<RecordField> recordField = recordType.getChildSchema().getField(name);
+            Validate.isTrue(dataType instanceof RecordTypeWithFieldNameMapper, String.format("Invalid record: %s is not a record", dataType));
+            final RecordTypeWithFieldNameMapper recordType = (RecordTypeWithFieldNameMapper) dataType;
 
-            Validate.isTrue(recordField.isPresent(), String.format("Cannot find record field with name %s", name));
+            final Optional<String> mappedFieldName = recordType.getNameMapping(name);
+            Validate.isTrue(mappedFieldName.isPresent(), String.format("Cannot find field with name '%s' in the record schema", name));
+
+            final Optional<RecordField> recordField = recordType.getChildSchema().getField(mappedFieldName.get());
             final RecordField field = recordField.get();
+
+            // If the actual record contains a nested record then we need to create a RecordTypeWithFieldNameMapper wrapper object for it.
+            if (field.getDataType() instanceof RecordDataType) {
+                return new RecordTypeWithFieldNameMapper(new Schema(schema.findField(fieldId).type().asStructType().fields()), (RecordDataType) field.getDataType());
+            }
 
             if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)) {
                 return new UUIDDataType(field.getDataType(), fileFormat);
@@ -187,4 +210,29 @@ public class IcebergRecordConverter {
             return fileFormat;
         }
     }
+
+    /**
+     * Since the {@link RecordSchema} stores the field name and value pairs in a HashMap it makes the retrieval case-sensitive, so we create a name mapper for case-insensitive handling.
+     */
+    private static class RecordTypeWithFieldNameMapper extends RecordDataType {
+
+        private final Map<String, String> fieldNameMap;
+
+        RecordTypeWithFieldNameMapper(Schema schema, RecordDataType recordType) {
+            super(recordType.getChildSchema());
+
+            // create a lowercase map for the NiFi record schema fields
+            final Map<String, String> lowerCaseMap = recordType.getChildSchema().getFieldNames().stream()
+                    .collect(Collectors.toMap(String::toLowerCase, s -> s));
+
+            // map the Iceberg record schema fields to the NiFi record schema fields
+            this.fieldNameMap = new HashMap<>();
+            schema.columns().forEach((s) -> this.fieldNameMap.put(s.name(), lowerCaseMap.get(s.name().toLowerCase())));
+        }
+
+        Optional<String> getNameMapping(String name) {
+            return Optional.ofNullable(fieldNameMap.get(name));
+        }
+    }
+
 }

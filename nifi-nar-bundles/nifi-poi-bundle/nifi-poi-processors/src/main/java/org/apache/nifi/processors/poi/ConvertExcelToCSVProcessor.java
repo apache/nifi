@@ -16,21 +16,10 @@
  */
 package org.apache.nifi.processors.poi;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
+import com.github.pjfanning.xlsx.StreamingReader;
+import com.github.pjfanning.xlsx.exceptions.OpenException;
+import com.github.pjfanning.xlsx.exceptions.ParseException;
+import com.github.pjfanning.xlsx.exceptions.ReadException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FilenameUtils;
@@ -50,26 +39,25 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
-import org.apache.poi.openxml4j.exceptions.OpenXML4JException;
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.util.CellAddress;
-import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.ooxml.util.SAXHelper;
-import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
-import org.apache.poi.xssf.eventusermodel.XSSFReader;
-import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler;
-import org.apache.poi.xssf.model.StylesTable;
-import org.apache.poi.xssf.usermodel.XSSFComment;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 
-import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Tags({"excel", "csv", "poi"})
@@ -78,10 +66,10 @@ import javax.xml.parsers.ParserConfigurationException;
         "where the each row from the excel sheet is output as a newline in the csv file. This processor is currently only capable of processing .xlsx " +
         "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents. This processor also expects well formatted " +
         "CSV content and will not escape cell's containing invalid content such as newlines or additional commas.")
-@WritesAttributes({@WritesAttribute(attribute="sheetname", description="The name of the Excel sheet that this particular row of data came from in the Excel document"),
-        @WritesAttribute(attribute="numrows", description="The number of rows in this Excel Sheet"),
-        @WritesAttribute(attribute="sourcefilename", description="The name of the Excel document file that this data originated from"),
-        @WritesAttribute(attribute="convertexceltocsvprocessor.error", description="Error message that was encountered on a per Excel sheet basis. This attribute is" +
+@WritesAttributes({@WritesAttribute(attribute = "sheetname", description = "The name of the Excel sheet that this particular row of data came from in the Excel document"),
+        @WritesAttribute(attribute = "numrows", description = "The number of rows in this Excel Sheet"),
+        @WritesAttribute(attribute = "sourcefilename", description = "The name of the Excel document file that this data originated from"),
+        @WritesAttribute(attribute = "convertexceltocsvprocessor.error", description = "Error message that was encountered on a per Excel sheet basis. This attribute is" +
                 " only populated if an error was occured while processing the particular sheet. Having the error present at the sheet level will allow for the end" +
                 " user to better understand what syntax errors in their excel doc on a larger scale caused the error.")})
 public class ConvertExcelToCSVProcessor
@@ -179,7 +167,7 @@ public class ConvertExcelToCSVProcessor
         descriptors.add(CSVUtils.TRAILING_DELIMITER);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
-        final Set<Relationship> relationships = new HashSet<>();
+        final Set<Relationship> relationships = new LinkedHashSet<>();
         relationships.add(ORIGINAL);
         relationships.add(SUCCESS);
         relationships.add(FAILURE);
@@ -199,93 +187,52 @@ public class ConvertExcelToCSVProcessor
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
-        if ( flowFile == null ) {
+        if (flowFile == null) {
             return;
         }
 
-        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
+        final Map<String, Boolean> desiredSheets = getDesiredSheets(context, flowFile);
         final boolean formatValues = context.getProperty(FORMAT_VALUES).asBoolean();
-
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, flowFile.getAttributes());
 
         //Switch to 0 based index
         final int firstRow = context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions(flowFile).asInteger() - 1;
-        final String[] sColumnsToSkip = StringUtils
-                .split(context.getProperty(COLUMNS_TO_SKIP).evaluateAttributeExpressions(flowFile).getValue(), ",");
-
-        final List<Integer> columnsToSkip = new ArrayList<>();
-
-        if(sColumnsToSkip != null && sColumnsToSkip.length > 0) {
-            for (String c : sColumnsToSkip) {
-                try {
-                    //Switch to 0 based index
-                    columnsToSkip.add(Integer.parseInt(c) - 1);
-                } catch (NumberFormatException e) {
-                    throw new ProcessException("Invalid column in Columns to Skip list.", e);
-                }
-            }
-        }
+        final List<Integer> columnsToSkip = getColumnsToSkip(context, flowFile);
 
         try {
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream inputStream) throws IOException {
+            session.read(flowFile, inputStream -> {
+                try (Workbook workbook = StreamingReader.builder()
+                        .rowCacheSize(100)
+                        .bufferSize(4096)
+                        .setReadStyles(formatValues)
+                        .open(inputStream)) {
 
-                    try {
-                        OPCPackage pkg = OPCPackage.open(inputStream);
-                        XSSFReader r = new XSSFReader(pkg);
-                        ReadOnlySharedStringsTable sst = new ReadOnlySharedStringsTable(pkg);
-                        StylesTable styles = r.getStylesTable();
-                        XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) r.getSheetsData();
+                    if (!desiredSheets.isEmpty()) {
+                        desiredSheets.keySet().forEach(desiredSheet -> workbook.forEach(sheet -> {
+                           if (sheet.getSheetName().equalsIgnoreCase(desiredSheet)) {
+                               ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheet.getSheetName());
+                               handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
+                               desiredSheets.put(desiredSheet, Boolean.TRUE);
+                           }
+                       }));
 
-                        if (desiredSheetsDelimited != null) {
-                            String[] desiredSheets = StringUtils
-                                    .split(desiredSheetsDelimited, DESIRED_SHEETS_DELIMITER);
-
-                            if (desiredSheets != null) {
-                                Map<String, Boolean> sheetsFound = Arrays.stream(desiredSheets)
-                                        .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE));
-                                while (iter.hasNext()) {
-                                    InputStream sheet = iter.next();
-                                    String sheetName = iter.getSheetName();
-
-                                    for (String desiredSheet : desiredSheets) {
-                                        //If the sheetName is a desired one parse it
-                                        if (sheetName.equalsIgnoreCase(desiredSheet)) {
-                                            ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheetName, formatValues, sst, styles);
-                                            handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
-                                            sheetsFound.put(desiredSheet, Boolean.TRUE);
-                                            break;
-                                        }
-                                    }
-                                }
-                                String sheetsNotFound = sheetsFound.entrySet().stream()
-                                        .filter(entry -> !entry.getValue())
-                                        .map(Map.Entry::getKey)
-                                        .collect(Collectors.joining(","));
-                                if (!sheetsNotFound.isEmpty()) {
-                                    getLogger().warn("Excel sheets not found: {}", sheetsNotFound);
-                                }
-                            } else {
-                                getLogger().debug("Excel document was parsed but no sheets with the specified desired names were found.");
-                            }
-
-                        } else {
-                            //Get all the sheets in the document.
-                            while (iter.hasNext()) {
-                                InputStream sheet = iter.next();
-                                String sheetName = iter.getSheetName();
-
-                                ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheetName, formatValues, sst, styles);
-                                handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
-                            }
+                        String sheetsNotFound = getSheetsNotFound(desiredSheets);
+                        if (!sheetsNotFound.isEmpty()) {
+                            getLogger().warn("Excel sheet(s) not found: {}", sheetsNotFound);
                         }
-                    } catch (InvalidFormatException ife) {
-                        getLogger().error("Only .xlsx Excel 2007 OOXML files are supported", ife);
-                        throw new UnsupportedOperationException("Only .xlsx Excel 2007 OOXML files are supported", ife);
-                    } catch (OpenXML4JException | SAXException e) {
-                        getLogger().error("Error occurred while processing Excel document metadata", e);
+                    } else {
+                        workbook.forEach(sheet -> {
+                            ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheet.getSheetName());
+                            handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
+                        });
                     }
+                } catch (ParseException | OpenException | ReadException e) {
+                    if (e.getCause() instanceof InvalidFormatException) {
+                        String msg = "Only .xlsx Excel 2007 OOXML files are supported";
+                        getLogger().error(msg, e);
+                        throw new UnsupportedOperationException(msg, e);
+                    }
+                    getLogger().error("Error occurred while processing Excel document metadata", e);
                 }
             });
 
@@ -299,55 +246,62 @@ public class ConvertExcelToCSVProcessor
         }
     }
 
+    private List<Integer> getColumnsToSkip(final ProcessContext context, FlowFile flowFile) {
+        final String[] columnsToSkip = StringUtils.split(context.getProperty(COLUMNS_TO_SKIP)
+                .evaluateAttributeExpressions(flowFile).getValue(), ",");
+
+        if (columnsToSkip != null) {
+            try {
+                return Arrays.stream(columnsToSkip)
+                        .map(columnToSkip -> Integer.parseInt(columnToSkip) - 1)
+                        .collect(Collectors.toList());
+            } catch (NumberFormatException e) {
+                throw new ProcessException("Invalid column in Columns to Skip list.", e);
+            }
+        }
+
+        return new ArrayList<>();
+    }
+
+    private Map<String, Boolean> getDesiredSheets(final ProcessContext context, FlowFile flowFile) {
+        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).evaluateAttributeExpressions(flowFile).getValue();
+        if (desiredSheetsDelimited != null) {
+            String[] desiredSheets = StringUtils.split(desiredSheetsDelimited, DESIRED_SHEETS_DELIMITER);
+            if (desiredSheets != null) {
+                return Arrays.stream(desiredSheets)
+                        .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE));
+            } else {
+                getLogger().debug("Excel document was parsed but no sheets with the specified desired names were found.");
+            }
+        }
+
+        return new HashMap<>();
+    }
 
     /**
      * Handles an individual Excel sheet from the entire Excel document. Each sheet will result in an individual flowfile.
      *
-     * @param session
-     *  The NiFi ProcessSession instance for the current invocation.
+     * @param session The NiFi ProcessSession instance for the current invocation.
      */
-    private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF, final InputStream sheetInputStream, ExcelSheetReadConfig readConfig,
-                                  CSVFormat csvFormat) throws IOException {
+    private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF, final Sheet sheet, ExcelSheetReadConfig readConfig,
+                                  CSVFormat csvFormat) {
 
         FlowFile ff = session.create(originalParentFF);
+        final SheetToCSV sheetHandler = new SheetToCSV(readConfig, csvFormat);
         try {
-            final DataFormatter formatter = new DataFormatter();
-            final InputSource sheetSource = new InputSource(sheetInputStream);
-
-            final SheetToCSV sheetHandler = new SheetToCSV(readConfig, csvFormat);
-
-            final XMLReader parser = SAXHelper.newXMLReader();
-
-            //If Value Formatting is set to false then don't pass in the styles table.
-            // This will cause the XSSF Handler to return the raw value instead of the formatted one.
-            final StylesTable sst = readConfig.getFormatValues()?readConfig.getStyles():null;
-
-            final XSSFSheetXMLHandler handler = new XSSFSheetXMLHandler(
-                    sst, null, readConfig.getSharedStringsTable(), sheetHandler, formatter, false);
-
-            parser.setContentHandler(handler);
-
-            ff = session.write(ff, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    PrintStream outPrint = new PrintStream(out, false, StandardCharsets.UTF_8.name());
-                    sheetHandler.setOutput(outPrint);
-
-                    try {
-                        parser.parse(sheetSource);
-
-                        sheetInputStream.close();
-
-                        sheetHandler.close();
-                        outPrint.close();
-                    } catch (SAXException se) {
-                        getLogger().error("Error occurred while processing Excel sheet {}", new Object[]{readConfig.getSheetName()}, se);
-                    }
-                }
+            ff = session.write(ff, out -> {
+                PrintStream outPrint = new PrintStream(out, false, StandardCharsets.UTF_8);
+                sheetHandler.setOutput(outPrint);
+                sheet.forEach(row -> {
+                    sheetHandler.startRow(row.getRowNum());
+                    row.forEach(sheetHandler::cell);
+                    sheetHandler.endRow();
+                });
+                sheetHandler.close();
             });
 
             ff = session.putAttribute(ff, SHEET_NAME, readConfig.getSheetName());
-            ff = session.putAttribute(ff, ROW_NUM, new Long(sheetHandler.getRowCount()).toString());
+            ff = session.putAttribute(ff, ROW_NUM, Long.toString(sheetHandler.getRowCount()));
 
             if (StringUtils.isNotEmpty(originalParentFF.getAttribute(CoreAttributes.FILENAME.key()))) {
                 ff = session.putAttribute(ff, SOURCE_FILE_NAME, originalParentFF.getAttribute(CoreAttributes.FILENAME.key()));
@@ -362,44 +316,42 @@ public class ConvertExcelToCSVProcessor
 
             session.transfer(ff, SUCCESS);
 
-        } catch (SAXException | ParserConfigurationException saxE) {
-            getLogger().error("Failed to create instance of Parser.", saxE);
-            ff = session.putAttribute(ff,
-                    ConvertExcelToCSVProcessor.class.getName() + ".error", saxE.getMessage());
+        } catch (RuntimeException e) {
+            ff = session.putAttribute(ff, ConvertExcelToCSVProcessor.class.getName() + ".error", e.getMessage());
             session.transfer(ff, FAILURE);
-        } finally {
-            sheetInputStream.close();
         }
     }
 
-    /**
-     * Uses the XSSF Event SAX helpers to do most of the work
-     *  of parsing the Sheet XML, and outputs the contents
-     *  as a (basic) CSV.
-     */
-    private class SheetToCSV implements XSSFSheetXMLHandler.SheetContentsHandler {
-        private ExcelSheetReadConfig readConfig;
-        CSVFormat csvFormat;
+    private String getSheetsNotFound(Map<String, Boolean> desiredSheets) {
+        return desiredSheets.entrySet().stream()
+                .filter(entry -> !entry.getValue())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.joining(","));
+    }
 
+    /**
+     * Uses the com.github.pjfanning streaming cell implementation to
+     * do most of the work of parsing the contents of the Excel sheet
+     * and outputs the contents as a (basic) CSV.
+     */
+    private class SheetToCSV {
+        private final ExcelSheetReadConfig readConfig;
+        CSVFormat csvFormat;
         private boolean firstCellOfRow;
         private boolean skipRow;
         private int currentRow = -1;
         private int currentCol = -1;
         private int rowCount = 0;
-        private boolean rowHasValues=false;
-        private int skippedColumns=0;
-
+        private int skippedColumns = 0;
         private CSVPrinter printer;
+        private boolean firstRow = false;
+        private ArrayList<String> fieldValues;
 
-        private boolean firstRow=false;
-
-        private ArrayList<Object> fieldValues;
-
-        public int getRowCount(){
+        public int getRowCount() {
             return rowCount;
         }
 
-        public void setOutput(PrintStream output){
+        public void setOutput(PrintStream output) {
             final OutputStreamWriter streamWriter = new OutputStreamWriter(output, StandardCharsets.UTF_8);
 
             try {
@@ -409,14 +361,13 @@ public class ConvertExcelToCSVProcessor
             }
         }
 
-        public SheetToCSV(ExcelSheetReadConfig readConfig, CSVFormat csvFormat){
+        public SheetToCSV(ExcelSheetReadConfig readConfig, CSVFormat csvFormat) {
             this.readConfig = readConfig;
             this.csvFormat = csvFormat;
         }
 
-        @Override
         public void startRow(int rowNum) {
-            if(rowNum <= readConfig.getOverrideFirstRow()) {
+            if (rowNum <= readConfig.getOverrideFirstRow()) {
                 skipRow = true;
                 return;
             }
@@ -424,79 +375,67 @@ public class ConvertExcelToCSVProcessor
             // Prepare for this row
             skipRow = false;
             firstCellOfRow = true;
-            firstRow = currentRow==-1;
+            firstRow = currentRow == -1;
             currentRow = rowNum;
             currentCol = -1;
-            rowHasValues = false;
-
             fieldValues = new ArrayList<>();
         }
 
-        @Override
-        public void endRow(int rowNum) {
+        public void endRow() {
             if(skipRow) {
                 return;
             }
 
-            if(firstRow){
+            if(firstRow) {
                 readConfig.setLastColumn(currentCol);
             }
 
             //if there was no data in this row, don't write it
-            if(!rowHasValues) {
+            if(fieldValues.stream()
+                    .noneMatch(string -> string != null && !string.isEmpty())) {
                 return;
             }
 
             // Ensure the correct number of columns
             int columnsToAdd = (readConfig.getLastColumn() - currentCol) - readConfig.getColumnsToSkip().size();
-            for (int i=0; i<columnsToAdd; i++) {
+            for (int i = 0; i < columnsToAdd; i++) {
                 fieldValues.add(null);
             }
 
             try {
                 printer.printRecord(fieldValues);
             } catch (IOException e) {
-                e.printStackTrace();
+                getLogger().warn("Print Record failed", e);
             }
 
             rowCount++;
         }
 
-        @Override
-        public void cell(String cellReference, String formattedValue,
-                         XSSFComment comment) {
-            if(skipRow) {
+        public void cell(Cell cell) {
+            if (skipRow) {
                 return;
-            }
-
-            // gracefully handle missing CellRef here in a similar way as XSSFCell does
-            if(cellReference == null) {
-                cellReference = new CellAddress(currentRow, currentCol).formatAsString();
             }
 
             // Did we miss any cells?
-            int thisCol = (new CellReference(cellReference)).getCol();
-
-            // Should we skip this
+            int thisCol = cell.getColumnIndex();
 
             //Use the first row of the file to decide on the area of data to export
-            if(firstRow && firstCellOfRow){
-                readConfig.setFirstRow(currentRow);
+            if (firstRow && firstCellOfRow) {
                 readConfig.setFirstColumn(thisCol);
             }
 
-            //if this cell falls outside our area, or has been explcitely marked as a skipped column, return and don't write it out.
-            if(!firstRow && (thisCol < readConfig.getFirstColumn() || thisCol > readConfig.getLastColumn())){
+            //if this cell falls outside our area, or has been explicitly marked as a skipped column, return and don't write it out.
+            if (!firstRow && (thisCol < readConfig.getFirstColumn() || thisCol > readConfig.getLastColumn())) {
                 return;
             }
 
-            if(readConfig.getColumnsToSkip().contains(thisCol)){
+            if (readConfig.getColumnsToSkip().contains(thisCol)) {
                 skippedColumns++;
                 return;
             }
 
             int missedCols = (thisCol - readConfig.getFirstColumn()) - (currentCol - readConfig.getFirstColumn()) - 1;
-            if(firstCellOfRow){
+            if (firstCellOfRow) {
                 missedCols = (thisCol - readConfig.getFirstColumn());
             }
 
@@ -506,20 +445,15 @@ public class ConvertExcelToCSVProcessor
                 firstCellOfRow = false;
             }
 
-            for (int i=0; i<missedCols; i++) {
+            for (int i = 0; i < missedCols; i++) {
                 fieldValues.add(null);
             }
             currentCol = thisCol;
 
-            fieldValues.add(formattedValue);
+            String stringCellValue = cell.getStringCellValue();
+            fieldValues.add(stringCellValue != null && !stringCellValue.isEmpty() ? stringCellValue : null);
 
-            rowHasValues = true;
             skippedColumns = 0;
-        }
-
-        @Override
-        public void headerFooter(String s, boolean b, String s1) {
-
         }
 
         public void close() throws IOException {
@@ -531,11 +465,8 @@ public class ConvertExcelToCSVProcessor
      * Takes the original input filename and updates it by removing the file extension and replacing it with
      * the .csv extension.
      *
-     * @param origFileName
-     *  Original filename from the input file.
-     *
-     * @return
-     *  The new filename with the .csv extension that should be place in the output flowfile's attributes
+     * @param origFileName Original filename from the input file.
+     * @return The new filename with the .csv extension that should be place in the output flowfile's attributes
      */
     private String updateFilenameToCSVExtension(String nifiUUID, String origFileName, String sheetName) {
 
@@ -560,20 +491,20 @@ public class ConvertExcelToCSVProcessor
         return stringBuilder.toString();
     }
 
-    private class ExcelSheetReadConfig {
-        public String getSheetName(){
+    private static class ExcelSheetReadConfig {
+        public String getSheetName() {
             return sheetName;
         }
 
-        public int getFirstColumn(){
+        public int getFirstColumn() {
             return firstColumn;
         }
 
-        public void setFirstColumn(int value){
+        public void setFirstColumn(int value) {
             this.firstColumn = value;
         }
 
-        public int getLastColumn(){
+        public int getLastColumn() {
             return lastColumn;
         }
 
@@ -581,66 +512,25 @@ public class ConvertExcelToCSVProcessor
             this.lastColumn = lastColumn;
         }
 
-        public int getOverrideFirstRow(){
+        public int getOverrideFirstRow() {
             return overrideFirstRow;
         }
 
-        public boolean getFormatValues() {
-            return formatValues;
-        }
-
-        public int getFirstRow(){
-            return firstRow;
-        }
-
-        public void setFirstRow(int value){
-            firstRow = value;
-        }
-
-        public int getLastRow(){
-            return lastRow;
-        }
-
-        public void setLastRow(int value){
-            lastRow = value;
-        }
-
-        public List<Integer> getColumnsToSkip(){
+        public List<Integer> getColumnsToSkip() {
             return columnsToSkip;
-        }
-
-        public ReadOnlySharedStringsTable getSharedStringsTable(){
-            return sst;
-        }
-
-        public StylesTable getStyles(){
-            return styles;
         }
 
         private int firstColumn;
         private int lastColumn;
+        private final int overrideFirstRow;
+        private final String sheetName;
+        private final List<Integer> columnsToSkip;
 
-        private int firstRow;
-        private int lastRow;
-        private int overrideFirstRow;
-        private String sheetName;
-        private boolean formatValues;
-
-        private ReadOnlySharedStringsTable sst;
-        private StylesTable styles;
-
-        private List<Integer> columnsToSkip;
-
-        public ExcelSheetReadConfig(List<Integer> columnsToSkip, int overrideFirstRow, String sheetName, boolean formatValues,
-                                    ReadOnlySharedStringsTable sst, StylesTable styles){
+        public ExcelSheetReadConfig(List<Integer> columnsToSkip, int overrideFirstRow, String sheetName) {
 
             this.sheetName = sheetName;
             this.columnsToSkip = columnsToSkip;
             this.overrideFirstRow = overrideFirstRow;
-            this.formatValues = formatValues;
-
-            this.sst = sst;
-            this.styles = styles;
         }
     }
 }

@@ -19,12 +19,12 @@ package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.PropertiesFileCredentialsProvider;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.io.File;
-import java.util.Map;
 
 
 /**
@@ -47,14 +47,14 @@ public class FileCredentialsStrategy extends AbstractCredentialsStrategy {
     }
 
     @Override
-    public AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
-        final String credentialsFile = properties.get(CredentialPropertyDescriptors.CREDENTIALS_FILE);
+    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
+        final String credentialsFile = propertyContext.getProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE).getValue();
         return new PropertiesFileCredentialsProvider(credentialsFile);
     }
 
     @Override
-    public AwsCredentialsProvider getAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties) {
-        final String credentialsFile = properties.get(CredentialPropertyDescriptors.CREDENTIALS_FILE);
+    public AwsCredentialsProvider getAwsCredentialsProvider(final PropertyContext propertyContext) {
+        final String credentialsFile = propertyContext.getProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE).getValue();
         return new PropertiesCredentialsProvider(new File(credentialsFile));
     }
 

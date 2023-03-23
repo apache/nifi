@@ -54,7 +54,8 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     public static final List<String> DEFAULT_SENSITIVE_PROPERTIES = new ArrayList<>(asList(
             NiFiRegistryProperties.SECURITY_KEY_PASSWD,
             NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD,
-            NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD));
+            NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD,
+            NiFiRegistryProperties.SECURITY_USER_OIDC_CLIENT_SECRET));
 
     public ProtectedNiFiRegistryProperties() {
         this(new NiFiRegistryProperties());

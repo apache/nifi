@@ -17,6 +17,8 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
@@ -54,7 +56,6 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -298,11 +299,8 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(SECURITY_PROTOCOL);
         properties.add(SASL_MECHANISM);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         properties.add(KERBEROS_SERVICE_NAME);
-        properties.add(KERBEROS_PRINCIPAL);
-        properties.add(KERBEROS_KEYTAB);
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
         properties.add(AWS_PROFILE_NAME);
@@ -541,7 +539,11 @@ public class PublishKafka_2_6 extends AbstractProcessor implements KafkaPublishC
             return uninterpretedKey.getBytes(StandardCharsets.UTF_8);
         }
 
-        return DatatypeConverter.parseHexBinary(uninterpretedKey);
+        try {
+            return Hex.decodeHex(uninterpretedKey);
+        } catch (final DecoderException e) {
+            throw new RuntimeException("Hexadecimal decoding failed", e);
+        }
     }
 
     private Integer getPartition(final ProcessContext context, final FlowFile flowFile) {

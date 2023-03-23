@@ -72,7 +72,9 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.tar.gz", "application/gzip");
         expectedMimeTypes.put("1.jar", "application/java-archive");
         expectedMimeTypes.put("1.xml", "application/xml");
+        expectedMimeTypes.put("1.xhtml", "application/xhtml+xml");
         expectedMimeTypes.put("flowfilev3", StandardFlowFileMediaType.VERSION_3.getMediaType());
+        expectedMimeTypes.put("flowfilev3WithXhtml", StandardFlowFileMediaType.VERSION_3.getMediaType());
         expectedMimeTypes.put("flowfilev1.tar", StandardFlowFileMediaType.VERSION_1.getMediaType());
         expectedMimeTypes.put("fake.csv", "text/csv");
         expectedMimeTypes.put("2.custom", "text/plain");
@@ -93,7 +95,9 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.tar.gz", ".gz");
         expectedExtensions.put("1.jar", ".jar");
         expectedExtensions.put("1.xml", ".xml");
+        expectedExtensions.put("1.xhtml", ".xhtml");
         expectedExtensions.put("flowfilev3", "");
+        expectedExtensions.put("flowfilev3WithXhtml", "");
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", ".csv");
         expectedExtensions.put("2.custom", ".txt");
@@ -185,7 +189,9 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.tar.gz", "application/octet-stream");
         expectedMimeTypes.put("1.jar", "application/octet-stream");
         expectedMimeTypes.put("1.xml", "text/plain");
+        expectedMimeTypes.put("1.xhtml", "text/plain");
         expectedMimeTypes.put("flowfilev3", "application/octet-stream");
+        expectedMimeTypes.put("flowfilev3WithXhtml", "application/octet-stream");
         expectedMimeTypes.put("flowfilev1.tar", "application/octet-stream");
         expectedMimeTypes.put("fake.csv", "text/plain");
         expectedMimeTypes.put("2.custom", "custom/abcd");
@@ -206,7 +212,9 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.tar.gz", "");
         expectedExtensions.put("1.jar", "");
         expectedExtensions.put("1.xml", "");
+        expectedExtensions.put("1.xhtml", "");
         expectedExtensions.put("flowfilev3", "");
+        expectedExtensions.put("flowfilev3WithXhtml", "");
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", "");
         expectedExtensions.put("2.custom", ".abcd");
@@ -268,7 +276,9 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.tar.gz", "application/octet-stream");
         expectedMimeTypes.put("1.jar", "application/octet-stream");
         expectedMimeTypes.put("1.xml", "text/plain");
+        expectedMimeTypes.put("1.xhtml", "text/plain");
         expectedMimeTypes.put("flowfilev3", "application/octet-stream");
+        expectedMimeTypes.put("flowfilev3WithXhtml", "application/octet-stream");
         expectedMimeTypes.put("flowfilev1.tar", "application/octet-stream");
         expectedMimeTypes.put("fake.csv", "text/plain");
         expectedMimeTypes.put("2.custom", "text/plain");
@@ -289,7 +299,9 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.tar.gz", "");
         expectedExtensions.put("1.jar", "");
         expectedExtensions.put("1.xml", "");
+        expectedExtensions.put("1.xhtml", "");
         expectedExtensions.put("flowfilev3", "");
+        expectedExtensions.put("flowfilev3WithXhtml", "");
         expectedExtensions.put("flowfilev1.tar", "");
         expectedExtensions.put("fake.csv", "");
         expectedExtensions.put("2.custom", "");

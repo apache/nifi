@@ -342,11 +342,8 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements KafkaPu
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(SECURITY_PROTOCOL);
         properties.add(SASL_MECHANISM);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(SELF_CONTAINED_KERBEROS_USER_SERVICE);
         properties.add(KERBEROS_SERVICE_NAME);
-        properties.add(KERBEROS_PRINCIPAL);
-        properties.add(KERBEROS_KEYTAB);
         properties.add(SASL_USERNAME);
         properties.add(SASL_PASSWORD);
         properties.add(TOKEN_AUTHENTICATION);

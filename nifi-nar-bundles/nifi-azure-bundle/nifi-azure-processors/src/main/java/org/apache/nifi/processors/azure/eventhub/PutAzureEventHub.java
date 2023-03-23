@@ -124,8 +124,8 @@ public class PutAzureEventHub extends AbstractProcessor {
 
     static {
         final List<PropertyDescriptor> configuredDescriptors = new ArrayList<>();
-        configuredDescriptors.add(EVENT_HUB_NAME);
         configuredDescriptors.add(NAMESPACE);
+        configuredDescriptors.add(EVENT_HUB_NAME);
         configuredDescriptors.add(SERVICE_BUS_ENDPOINT);
         configuredDescriptors.add(ACCESS_POLICY);
         configuredDescriptors.add(POLICY_PRIMARY_KEY);

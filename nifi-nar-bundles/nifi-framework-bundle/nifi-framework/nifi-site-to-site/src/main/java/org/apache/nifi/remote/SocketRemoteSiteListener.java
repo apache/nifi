@@ -26,6 +26,10 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.security.GeneralSecurityException;
+import java.security.Principal;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +37,12 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -46,7 +55,6 @@ import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ServerProtocol;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -160,7 +168,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         try {
                             if (secure) {
                                 LOG.trace("{} Connection is secure", this);
-                                dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
+                                final SSLSocket sslSocket = (SSLSocket) socket;
+                                dn = getPeerIdentity(sslSocket);
 
                                 commsSession = new SocketCommunicationsSession(socket);
                                 commsSession.setUserDn(dn);
@@ -174,7 +183,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             // TODO: Add SocketProtocolListener#handleTlsError logic here
                             String msg = String.format("RemoteSiteListener Unable to accept connection from %s due to %s", socket, e.getLocalizedMessage());
                             // Suppress repeated TLS errors
-                            if (CertificateUtils.isTlsError(e)) {
+                            if (isTlsError(e)) {
                                 boolean printedAsWarning = handleTlsError(msg);
 
                                 // TODO: Move into handleTlsError and refactor shared behavior
@@ -320,6 +329,32 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.start();
     }
 
+    private boolean isTlsError(final Throwable e) {
+        final boolean tlsError;
+
+        if (e instanceof SSLException || e instanceof GeneralSecurityException) {
+            tlsError = true;
+        } else if (e.getCause() == null) {
+            tlsError = false;
+        } else {
+            tlsError = isTlsError(e.getCause());
+        }
+
+        return tlsError;
+    }
+
+    private String getPeerIdentity(final SSLSocket sslSocket) throws SSLPeerUnverifiedException {
+        final SSLSession sslSession = sslSocket.getSession();
+        final Certificate[] peerCertificates = sslSession.getPeerCertificates();
+        if (peerCertificates == null || peerCertificates.length == 0) {
+            throw new SSLPeerUnverifiedException(String.format("Peer [%s] certificates not found", sslSocket.getRemoteSocketAddress()));
+        }
+
+        final X509Certificate peerCertificate = (X509Certificate) peerCertificates[0];
+        final Principal subjectDistinguishedName = peerCertificate.getSubjectDN();
+        return subjectDistinguishedName.getName();
+    }
+
     private boolean handleTlsError(String msg) {
         if (tlsErrorRecentlySeen()) {
             LOG.debug(msg);
@@ -331,7 +366,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     }
 
     /**
-     * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+     * Returns {@code true} if any related exception has occurred within the last
      * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
      * simply checks the last time the timestamp was updated.
      *

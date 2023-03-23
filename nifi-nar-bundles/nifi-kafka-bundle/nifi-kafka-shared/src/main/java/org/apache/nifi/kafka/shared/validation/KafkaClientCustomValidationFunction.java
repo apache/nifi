@@ -24,7 +24,6 @@ import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvider;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.kerberos.KerberosUserService;
 
 import java.util.ArrayList;
@@ -34,9 +33,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_KEYTAB;
-import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.KERBEROS_SERVICE_NAME;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_PASSWORD;
@@ -50,8 +46,6 @@ import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SELF_C
 public class KafkaClientCustomValidationFunction implements Function<ValidationContext, Collection<ValidationResult>> {
 
     static final String JAVA_SECURITY_AUTH_LOGIN_CONFIG = "java.security.auth.login.config";
-
-    private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final String JNDI_LOGIN_MODULE_CLASS = "JndiLoginModule";
 
@@ -72,7 +66,6 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
     public Collection<ValidationResult> apply(final ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
         validateLoginModule(validationContext, results);
-        validateKerberosServices(validationContext, results);
         validateKerberosCredentials(validationContext, results);
         validateUsernamePassword(validationContext, results);
         validateAwsMskIamMechanism(validationContext, results);
@@ -100,67 +93,6 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
         }
     }
 
-    private void validateKerberosServices(final ValidationContext validationContext, final Collection<ValidationResult> results) {
-        final PropertyValue userServiceProperty = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE);
-        final PropertyValue credentialsServiceProperty = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE);
-        final String principal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-        final String keyTab = validationContext.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
-
-        if (userServiceProperty.isSet()) {
-            if (credentialsServiceProperty.isSet()) {
-                final String explanation = String.format("Cannot configure both [%s] and [%s]",
-                        SELF_CONTAINED_KERBEROS_USER_SERVICE.getDisplayName(),
-                        KERBEROS_CREDENTIALS_SERVICE.getDisplayName()
-                );
-                results.add(new ValidationResult.Builder()
-                        .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                        .valid(false)
-                        .explanation(explanation)
-                        .build());
-            }
-
-            if (isNotEmpty(principal) || isNotEmpty(keyTab)) {
-                final String explanation = String.format("Cannot configure [%s] with [%s] or [%s]",
-                        SELF_CONTAINED_KERBEROS_USER_SERVICE.getDisplayName(),
-                        KERBEROS_PRINCIPAL.getDisplayName(),
-                        KERBEROS_KEYTAB.getDisplayName()
-                );
-                results.add(new ValidationResult.Builder()
-                        .subject(SELF_CONTAINED_KERBEROS_USER_SERVICE.getDisplayName())
-                        .valid(false)
-                        .explanation(explanation)
-                        .build());
-            }
-        } else if (credentialsServiceProperty.isSet()) {
-            if (isNotEmpty(principal) || isNotEmpty(keyTab)) {
-                final String explanation = String.format("Cannot configure [%s] with [%s] or [%s]",
-                        KERBEROS_CREDENTIALS_SERVICE.getDisplayName(),
-                        KERBEROS_PRINCIPAL.getDisplayName(),
-                        KERBEROS_KEYTAB.getDisplayName()
-                );
-                results.add(new ValidationResult.Builder()
-                        .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                        .valid(false)
-                        .explanation(explanation)
-                        .build());
-            }
-        }
-
-        final String allowExplicitKeytab = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-        if (Boolean.FALSE.toString().equalsIgnoreCase(allowExplicitKeytab) && (isNotEmpty(principal) || isNotEmpty(keyTab))) {
-            final String explanation = String.format("Environment Variable [%s] disables configuring [%s] and [%s] properties",
-                    ALLOW_EXPLICIT_KEYTAB,
-                    KERBEROS_PRINCIPAL.getDisplayName(),
-                    KERBEROS_KEYTAB.getDisplayName()
-            );
-            results.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
-                    .valid(false)
-                    .explanation(explanation)
-                    .build());
-        }
-    }
-
     private void validateKerberosCredentials(final ValidationContext validationContext, final Collection<ValidationResult> results) {
         final String saslMechanism = validationContext.getProperty(SASL_MECHANISM).getValue();
         final String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
@@ -176,29 +108,10 @@ public class KafkaClientCustomValidationFunction implements Function<ValidationC
                         .build());
             }
 
-            final String principal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
-            final String keyTab = validationContext.getProperty(KERBEROS_KEYTAB).evaluateAttributeExpressions().getValue();
             final String systemLoginConfig = System.getProperty(JAVA_SECURITY_AUTH_LOGIN_CONFIG);
 
-            if (isEmpty(principal) && isNotEmpty(keyTab)) {
-                final String explanation = String.format("[%s] required when configuring [%s]", KERBEROS_KEYTAB.getDisplayName(), KERBEROS_PRINCIPAL.getDisplayName());
-                results.add(new ValidationResult.Builder()
-                        .subject(KERBEROS_PRINCIPAL.getDisplayName())
-                        .valid(false)
-                        .explanation(explanation)
-                        .build());
-            } else if (isNotEmpty(principal) && isEmpty(keyTab)) {
-                final String explanation = String.format("[%s] required when configuring [%s]", KERBEROS_PRINCIPAL.getDisplayName(), KERBEROS_KEYTAB.getDisplayName());
-                results.add(new ValidationResult.Builder()
-                        .subject(KERBEROS_KEYTAB.getDisplayName())
-                        .valid(false)
-                        .explanation(explanation)
-                        .build());
-            }
-
             final KerberosUserService userService = validationContext.getProperty(SELF_CONTAINED_KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-            final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-            if (userService == null && credentialsService == null && isEmpty(principal) && isEmpty(keyTab) && isEmpty(systemLoginConfig)) {
+            if (userService == null && isEmpty(systemLoginConfig)) {
                 final String explanation = String.format("Kerberos Credentials not found in component properties or System Property [%s]", JAVA_SECURITY_AUTH_LOGIN_CONFIG);
                 results.add(new ValidationResult.Builder()
                         .subject(SASL_MECHANISM.getDisplayName())

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.state.server;
 
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.X509Util;
 import org.apache.zookeeper.server.DatadirCleanupManager;

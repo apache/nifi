@@ -57,6 +57,8 @@ public interface ProcessorClient {
 
     PropertyDescriptorEntity getPropertyDescriptor(String processorId, String propertyName, Boolean sensitive) throws NiFiClientException, IOException;
 
+    ProcessorEntity terminateProcessor(String processorId) throws NiFiClientException, IOException;
+
     /**
      * Indicates that mutable requests should indicate that the client has acknowledged that the node is disconnected.
      */

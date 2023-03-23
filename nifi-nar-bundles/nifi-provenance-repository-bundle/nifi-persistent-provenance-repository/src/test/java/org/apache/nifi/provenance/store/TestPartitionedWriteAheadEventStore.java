@@ -37,6 +37,7 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,12 +51,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 
 public class TestPartitionedWriteAheadEventStore {
     private static final RecordWriterFactory writerFactory = (file, idGen, compress, createToc) -> RecordWriters.newSchemaRecordWriter(file, idGen, compress, createToc);
@@ -417,6 +422,36 @@ public class TestPartitionedWriteAheadEventStore {
         }
     }
 
+    @Test
+    public void testCloseIterators() throws IOException {
+        final RepositoryConfiguration config = createConfig();
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(config, writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        final PartitionedWriteAheadEventStore spy = Mockito.spy(store);
+
+        final List<WriteAheadStorePartition> partitions = new ArrayList<>();
+        final WriteAheadStorePartition exceptionalPartition = Mockito.mock(WriteAheadStorePartition.class);
+
+        final AtomicInteger iteratorsClosed = new AtomicInteger(0);
+        when(exceptionalPartition.createEventIterator(anyLong())).thenReturn(new EventIterator() {
+            @Override
+            public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
+                throw new IOException("An exception");
+            }
+
+            @Override
+            public void close() throws IOException {
+                iteratorsClosed.incrementAndGet();
+            }
+        });
+        when(exceptionalPartition.getMaxEventId()).thenReturn(10L);
+        partitions.add(exceptionalPartition);
+        when(spy.getPartitions()).thenReturn(partitions);
+
+        assertThrows(IOException.class, () -> spy.getEvents(1, 5));
+        assertEquals(1, iteratorsClosed.get());
+    }
 
     @Test
     public void testGetEventsByTimestamp() throws IOException {

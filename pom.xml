@@ -42,7 +42,6 @@
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
         <module>c2</module>
-        <module>nifi-h2</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -107,7 +106,8 @@
         <com.amazonaws.version>1.12.371</com.amazonaws.version>
         <software.amazon.awssdk.version>2.17.295</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
-        <kotlin.version>1.7.20</kotlin.version>
+        <io.fabric8.kubernetes.client.version>6.3.1</io.fabric8.kubernetes.client.version>
+        <kotlin.version>1.8.10</kotlin.version>
         <okhttp.version>4.10.0</okhttp.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
@@ -118,15 +118,15 @@
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.71</org.bouncycastle.version>
         <testcontainers.version>1.17.6</testcontainers.version>
-        <org.slf4j.version>2.0.6</org.slf4j.version>
+        <org.slf4j.version>2.0.7</org.slf4j.version>
         <ranger.version>2.3.0</ranger.version>
         <jetty.version>9.4.50.v20221201</jetty.version>
-        <jackson.bom.version>2.14.1</jackson.bom.version>
+        <jackson.bom.version>2.14.2</jackson.bom.version>
         <avro.version>1.11.1</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <javax.annotation-api.version>1.3.2</javax.annotation-api.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
-        <json.smart.version>2.4.8</json.smart.version>
+        <json.smart.version>2.4.10</json.smart.version>
         <nifi.groovy.version>3.0.14</nifi.groovy.version>
         <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
         <surefire.version>3.0.0-M8</surefire.version>
@@ -135,16 +135,16 @@
         <hadoop.version>3.3.4</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
-        <aspectj.version>1.9.6</aspectj.version>
+        <aspectj.version>1.9.19</aspectj.version>
         <jersey.bom.version>2.36</jersey.bom.version>
-        <log4j2.version>2.18.0</log4j2.version>
+        <log4j2.version>2.20.0</log4j2.version>
         <logback.version>1.3.5</logback.version>
         <mockito.version>3.12.4</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>1.33</snakeyaml.version>
-        <netty.4.version>4.1.87.Final</netty.4.version>
-        <spring.version>5.3.24</spring.version>
-        <spring.security.version>5.8.0</spring.security.version>
+        <netty.4.version>4.1.90.Final</netty.4.version>
+        <spring.version>5.3.26</spring.version>
+        <spring.security.version>5.8.2</spring.security.version>
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
         <zookeeper.version>3.8.1</zookeeper.version>
@@ -590,6 +590,21 @@
                 <version>${swagger.annotations.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client-api</artifactId>
+                <version>${io.fabric8.kubernetes.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-client</artifactId>
+                <version>${io.fabric8.kubernetes.client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.fabric8</groupId>
+                <artifactId>kubernetes-server-mock</artifactId>
+                <version>${io.fabric8.kubernetes.client.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.yaml</groupId>
                 <artifactId>snakeyaml</artifactId>
                 <version>${snakeyaml.version}</version>
@@ -687,7 +702,26 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
-
+            <dependency>
+                <groupId>jakarta.xml.bind</groupId>
+                <artifactId>jakarta.xml.bind-api</artifactId>
+                <version>${jakarta.xml.bind-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
+                <version>${jaxb.runtime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sun.activation</groupId>
+                <artifactId>javax.activation</artifactId>
+                <version>1.2.0</version>
+            </dependency>
+            <dependency>
+                <groupId>javax.annotation</groupId>
+                <artifactId>javax.annotation-api</artifactId>
+                <version>1.3.2</version>
+            </dependency>
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
@@ -791,6 +825,11 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
                     <version>2.5.0</version>
@@ -815,6 +854,7 @@
                         <quiet>true</quiet>
                         <javadocVersion>1.8</javadocVersion>
                         <additionalJOption>-J-Xmx512m</additionalJOption>
+                        <doclint>none</doclint>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -947,6 +987,14 @@
                     <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
                     <serverId>repository.apache.org</serverId>
                     <nexusUrl>https://repository.apache.org/</nexusUrl>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jvnet.jaxb2.maven2</groupId>
+                <artifactId>maven-jaxb2-plugin</artifactId>
+                <version>0.14.0</version>
+                <configuration>
+                    <noFileHeader>true</noFileHeader>
                 </configuration>
             </plugin>
             <plugin>
@@ -1106,81 +1154,6 @@
                     </plugin>
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <!-- This profile will disable DocLint which performs strict
-                JavaDoc processing which was introduced in JDK 8. These are technically errors
-                in the JavaDoc which we need to eventually address. However, if a release
-                is performed using JDK 8 or newer, the JavaDoc generation would fail. By activating
-                this profile when running on JDK 8 or newer we can ensure the JavaDocs continue to
-                generate successfully -->
-            <id>disable-doclint</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-javadoc-plugin</artifactId>
-                            <configuration>
-                                <additionalparam>-Xdoclint:none</additionalparam>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-        </profile>
-        <profile>
-            <!-- This profile, activating when compiling on Java versions above 1.8, provides configuration changes to
-                 allow NiFi to be compiled on those JDKs. -->
-            <id>jigsaw</id>
-            <activation>
-                <jdk>(1.8,)</jdk>
-            </activation>
-            <properties>
-                <maven.compiler.source>11</maven.compiler.source>
-                <maven.compiler.target>11</maven.compiler.target>
-            </properties>
-            <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.jvnet.jaxb2.maven2</groupId>
-                            <artifactId>maven-jaxb2-plugin</artifactId>
-                            <version>0.14.0</version>
-                            <configuration>
-                                <noFileHeader>true</noFileHeader>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
-            </build>
-            <dependencyManagement>
-                <dependencies>
-                    <dependency>
-                        <groupId>jakarta.xml.bind</groupId>
-                        <artifactId>jakarta.xml.bind-api</artifactId>
-                        <version>${jakarta.xml.bind-api.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.glassfish.jaxb</groupId>
-                        <artifactId>jaxb-runtime</artifactId>
-                        <version>${jaxb.runtime.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.sun.activation</groupId>
-                        <artifactId>javax.activation</artifactId>
-                        <version>1.2.0</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>javax.annotation</groupId>
-                        <artifactId>javax.annotation-api</artifactId>
-                        <version>1.3.2</version>
-                    </dependency>
-                </dependencies>
-            </dependencyManagement>
         </profile>
         <profile>
             <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->

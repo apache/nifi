@@ -32,11 +32,13 @@ class ProtectedNiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
     private static final String KEYSTORE_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD
     private static final String KEY_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEY_PASSWD
     private static final String TRUSTSTORE_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_TRUSTSTORE_PASSWD
+    private static final String OIDC_CLIENT_SECRET = NiFiRegistryProperties.SECURITY_USER_OIDC_CLIENT_SECRET
 
     private static final def DEFAULT_SENSITIVE_PROPERTIES = [
             KEYSTORE_PASSWORD_KEY,
             KEY_PASSWORD_KEY,
-            TRUSTSTORE_PASSWORD_KEY
+            TRUSTSTORE_PASSWORD_KEY,
+            OIDC_CLIENT_SECRET
     ]
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
@@ -302,7 +304,7 @@ class ProtectedNiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
                 loadFromResourceFile("/conf/nifi-registry.with_sensitive_props_protected_aes_128.properties", KEY_HEX_128)
 
         double percentProtected = getPercentOfSensitivePropertiesProtected(properties)
-        assert percentProtected == 67.0D
+        assert percentProtected == 75.0D
     }
 
     @Test
@@ -400,6 +402,10 @@ class ProtectedNiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
             !unprotectedNiFiProperties.getProperty(it).endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX)
         }
         assert unprotectedNiFiProperties.hashCode() != hashCode
+
+        assert unprotectedNiFiProperties.getProperty(OIDC_CLIENT_SECRET) == "thisIsABadOidcSecret"
+        assert unprotectedNiFiProperties.getProperty(KEY_PASSWORD_KEY) == "thisIsABadKeyPassword"
+        assert unprotectedNiFiProperties.getProperty(KEYSTORE_PASSWORD_KEY) == "thisIsABadKeystorePassword"
     }
 
     @Test

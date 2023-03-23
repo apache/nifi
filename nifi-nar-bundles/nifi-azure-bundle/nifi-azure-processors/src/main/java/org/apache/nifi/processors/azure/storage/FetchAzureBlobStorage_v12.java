@@ -80,12 +80,12 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
-            .defaultValue("${azure.container}")
+            .defaultValue(String.format("${%s}", ATTR_NAME_CONTAINER))
             .build();
 
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractAzureBlobProcessor_v12.BLOB_NAME)
-            .defaultValue("${azure.blobname}")
+            .defaultValue(String.format("${%s}", ATTR_NAME_BLOBNAME))
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()

@@ -33,8 +33,8 @@ import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DES
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.DbxUserListFolderBuilder;
 import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -201,7 +201,7 @@ public class ListDropbox extends AbstractListProcessor<DropboxFileInfo> implemen
         try {
             Predicate<FileMetadata> metadataFilter = createMetadataFilter(minTimestamp, minAge);
 
-            final ListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
+            final DbxUserListFolderBuilder listFolderBuilder = dropboxApiClient.files().listFolderBuilder(convertFolderName(folderName));
             ListFolderResult result = listFolderBuilder
                     .withRecursive(recursive)
                     .start();

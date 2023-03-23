@@ -56,8 +56,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
+import java.net.URL;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -333,7 +334,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -373,7 +374,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -414,7 +415,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false);
 
         StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            flowController.getEncryptor(), getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+            getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState);
@@ -440,7 +441,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(procNode).incrementMaxThreadCount(tasksTerminated);
 
         try {
-            flowController.getReloadComponent().reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), Collections.emptySet());
+            final Set<URL> additionalUrls = procNode.getAdditionalClasspathResources(procNode.getPropertyDescriptors());
+            flowController.getReloadComponent().reload(procNode, procNode.getProcessor().getClass().getName(), procNode.getBundleCoordinate(), additionalUrls);
         } catch (final ProcessorInstantiationException e) {
             // This shouldn't happen because we already have been able to instantiate the processor before
             LOG.error("Failed to replace instance of Processor for {} when terminating Processor", procNode);
@@ -563,7 +565,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
-            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, flowController.getEncryptor(), getStateManager(connectable.getIdentifier()));
+            final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, getStateManager(connectable.getIdentifier()));
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getClass(), connectable.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }

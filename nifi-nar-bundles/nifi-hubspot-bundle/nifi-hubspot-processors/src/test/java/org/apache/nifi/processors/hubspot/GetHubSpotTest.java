@@ -45,6 +45,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -109,6 +110,8 @@ class GetHubSpotTest {
 
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         assertEquals(expectedJsonNode, actualJsonNode);
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     @Test
@@ -122,6 +125,7 @@ class GetHubSpotTest {
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHubSpot.REL_SUCCESS);
 
         assertTrue(flowFiles.isEmpty());
+        assertTrue(runner.getProvenanceEvents().isEmpty());
     }
 
     @Test
@@ -131,6 +135,7 @@ class GetHubSpotTest {
         server.enqueue(new MockResponse().setBody(response).setResponseCode(429));
 
         assertThrows(AssertionError.class, () -> runner.run(1));
+        assertTrue(runner.getProvenanceEvents().isEmpty());
     }
 
     @Test
@@ -173,6 +178,8 @@ class GetHubSpotTest {
         final String expectedJsonString = root.toString();
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     @Test
@@ -220,6 +227,8 @@ class GetHubSpotTest {
         final String expectedJsonString = root.toString();
 
         assertEquals(OBJECT_MAPPER.readTree(expectedJsonString), OBJECT_MAPPER.readTree(requestBodyString));
+        List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertEquals(baseUrl.toString(), provenanceEvents.get(0).getTransitUri());
     }
 
     static class MockGetHubSpot extends GetHubSpot {

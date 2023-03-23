@@ -35,6 +35,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.db.JdbcCommon;
+import org.apache.nifi.util.db.SensitiveValueWrapper;
 
 import java.nio.charset.Charset;
 import java.sql.Connection;
@@ -52,6 +53,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 
 public abstract class AbstractExecuteSQL extends AbstractProcessor {
@@ -273,10 +275,23 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     throw failure.getRight();
                 }
 
+                final Map<String, SensitiveValueWrapper> sqlParameters = context.getProperties()
+                        .entrySet()
+                        .stream()
+                        .filter(e -> e.getKey().isDynamic())
+                        .collect(Collectors.toMap(e -> e.getKey().getName(), e -> new SensitiveValueWrapper(e.getValue(), e.getKey().isSensitive())));
+
                 if (fileToProcess != null) {
-                    JdbcCommon.setParameters(st, fileToProcess.getAttributes());
+                    for (Map.Entry<String, String> entry : fileToProcess.getAttributes().entrySet()) {
+                        sqlParameters.put(entry.getKey(), new SensitiveValueWrapper(entry.getValue(), false));
+                    }
                 }
-                logger.debug("Executing query {}", new Object[]{selectQuery});
+
+                if (!sqlParameters.isEmpty()) {
+                    JdbcCommon.setSensitiveParameters(st, sqlParameters);
+                }
+
+                logger.debug("Executing query {}", selectQuery);
 
                 int fragmentIndex = 0;
                 final String fragmentId = UUID.randomUUID().toString();
@@ -350,7 +365,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         resultSetFF = session.putAttribute(resultSetFF, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                                     }
 
-                                    logger.info("{} contains {} records; transferring to 'success'", new Object[]{resultSetFF, nrOfRows.get()});
+                                    logger.info("{} contains {} records; transferring to 'success'", resultSetFF, nrOfRows.get());
 
                                     // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
                                     if (context.hasIncomingConnection()) {
@@ -414,7 +429,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 failure = executeConfigStatements(con, postQueries);
                 if (failure != null) {
                     selectQuery = failure.getLeft();
-                    resultSetFlowFiles.forEach(ff -> session.remove(ff));
+                    resultSetFlowFiles.forEach(session::remove);
                     throw failure.getRight();
                 }
 
@@ -454,17 +469,14 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             //  pass the original flow file down the line to trigger downstream processors
             if (fileToProcess == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
-                logger.error("Unable to execute SQL select query {} due to {}. No FlowFile to route to failure",
-                        new Object[]{selectQuery, e});
+                logger.error("Unable to execute SQL select query [{}]. No FlowFile to route to failure", selectQuery, e);
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
-                    logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure",
-                            new Object[]{selectQuery, fileToProcess, e});
+                    logger.error("Unable to execute SQL select query [{}] for {} routing to failure", selectQuery, fileToProcess, e);
                     fileToProcess = session.penalize(fileToProcess);
                 } else {
-                    logger.error("Unable to execute SQL select query {} due to {}; routing to failure",
-                            new Object[]{selectQuery, e});
+                    logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
                     context.yield();
                 }
                 session.putAttribute(fileToProcess,RESULT_ERROR_MESSAGE,e.getMessage());

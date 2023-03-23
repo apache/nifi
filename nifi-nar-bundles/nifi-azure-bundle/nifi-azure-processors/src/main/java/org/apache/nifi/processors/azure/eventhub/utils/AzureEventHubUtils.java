@@ -37,7 +37,8 @@ public final class AzureEventHubUtils {
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
         .name("Shared Access Policy Primary Key")
-        .description("The primary key of the shared access policy")
+        .displayName("Shared Access Policy Key")
+        .description("The key of the shared access policy. Either the primary or the secondary key can be used.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .sensitive(true)

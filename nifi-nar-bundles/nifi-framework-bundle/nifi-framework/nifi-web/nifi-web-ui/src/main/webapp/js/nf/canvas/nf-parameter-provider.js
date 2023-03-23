@@ -910,9 +910,11 @@
             if (!_.isEmpty(parameterProviderGroupEntity.component.parameterStatus)) {
                 $.each(parameterProviderGroupEntity.component.parameterStatus, function (i, status) {
                     if (status.status !== 'UNCHANGED') {
-                        var group = groupsData.getItems().find(function (group) { return group.name === status.parameter.parameter.parameterContext.component.name });
+                        var group = groupsData.getItems().find(function (group) { return group.parameterContextName === status.parameter.parameter.parameterContext.component.name });
 
-                        loadSelectableParameters(group.parameterSensitivities, group, true);
+                        if (nfCommon.isDefinedAndNotNull(group)) {
+                            loadSelectableParameters(group.parameterSensitivities, group, true);
+                        }
                         $('#fetch-parameters-dialog').modal('refreshButtons');
                     }
                 })

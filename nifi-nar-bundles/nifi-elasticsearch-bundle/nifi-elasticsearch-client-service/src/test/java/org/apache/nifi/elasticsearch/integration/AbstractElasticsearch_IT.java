@@ -38,6 +38,8 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService(CLIENT_SERVICE_NAME, service);
+        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, CLIENT_SERVICE_NAME);
+
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, elasticsearchHost);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");
         runner.setProperty(service, ElasticSearchClientService.SOCKET_TIMEOUT, "60000");
@@ -45,6 +47,15 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
         runner.setProperty(service, ElasticSearchClientService.AUTHORIZATION_SCHEME, AuthorizationScheme.BASIC.getValue());
         runner.setProperty(service, ElasticSearchClientService.USERNAME, "elastic");
         runner.setProperty(service, ElasticSearchClientService.PASSWORD, ELASTIC_USER_PASSWORD);
+        runner.removeProperty(service, ElasticSearchClientService.API_KEY);
+        runner.removeProperty(service, ElasticSearchClientService.API_KEY_ID);
+        runner.setProperty(service, ElasticSearchClientService.COMPRESSION, "false");
+        runner.setProperty(service, ElasticSearchClientService.SEND_META_HEADER, "true");
+        runner.setProperty(service, ElasticSearchClientService.STRICT_DEPRECATION, "false");
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_CLUSTER_NODES, "false");
+        runner.setProperty(service, ElasticSearchClientService.SNIFF_ON_FAILURE, "false");
+        runner.removeProperty(service, ElasticSearchClientService.PATH_PREFIX);
+        runner.setProperty(service, ElasticSearchClientService.NODE_SELECTOR, ElasticSearchClientService.NODE_SELECTOR_ANY.getValue());
 
         runner.enableControllerService(service);
 

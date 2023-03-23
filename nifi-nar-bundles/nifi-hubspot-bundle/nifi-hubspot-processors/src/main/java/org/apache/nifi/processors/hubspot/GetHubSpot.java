@@ -239,6 +239,7 @@ public class GetHubSpot extends AbstractProcessor {
             if (total.get() > 0) {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                 session.transfer(flowFile, REL_SUCCESS);
+                session.getProvenanceReporter().receive(flowFile, uri.toString());
             } else {
                 getLogger().debug("Empty response when requested HubSpot endpoint: [{}]", endpoint);
                 context.yield();

@@ -22,7 +22,8 @@ import java.util.Map;
 
 import org.apache.curator.framework.api.ACLProvider;
 import org.apache.curator.framework.imps.DefaultACLProvider;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.framework.cluster.leader.zookeeper.CuratorACLProviderFactory;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.data.ACL;
 import org.junit.jupiter.api.BeforeEach;

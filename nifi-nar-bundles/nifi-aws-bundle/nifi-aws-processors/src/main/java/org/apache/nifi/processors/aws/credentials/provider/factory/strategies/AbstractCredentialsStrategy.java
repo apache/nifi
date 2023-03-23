@@ -18,11 +18,12 @@ package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -42,12 +43,10 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
     }
 
     @Override
-    public boolean canCreatePrimaryCredential(final Map<PropertyDescriptor, String> properties) {
+    public boolean canCreatePrimaryCredential(final PropertyContext propertyContext) {
         for (final PropertyDescriptor requiredProperty : requiredProperties) {
-            final boolean containsRequiredProperty = properties.containsKey(requiredProperty);
-            final String propertyValue = properties.get(requiredProperty);
-            final boolean containsValue = propertyValue != null;
-            if (!containsRequiredProperty || !containsValue) {
+            final PropertyValue propertyValue = propertyContext.getProperty(requiredProperty);
+            if (!propertyValue.isSet()) {
                 return false;
             }
         }
@@ -81,7 +80,7 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
         return validationFailureResults;
     }
 
-    public abstract AWSCredentialsProvider getCredentialsProvider(final Map<PropertyDescriptor, String> properties);
+    public abstract AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext);
 
     public String getName() {
         return name;
@@ -89,18 +88,18 @@ public abstract class AbstractCredentialsStrategy implements CredentialsStrategy
 
 
     @Override
-    public boolean canCreateDerivedCredential(final Map<PropertyDescriptor, String> properties) {
+    public boolean canCreateDerivedCredential(final PropertyContext propertyContext) {
         return false;
     }
 
     @Override
-    public AWSCredentialsProvider getDerivedCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+    public AWSCredentialsProvider getDerivedCredentialsProvider(final PropertyContext propertyContext,
                                                                 final AWSCredentialsProvider primaryCredentialsProvider) {
         return null;
     }
 
     @Override
-    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final Map<PropertyDescriptor, String> properties,
+    public AwsCredentialsProvider getDerivedAwsCredentialsProvider(final PropertyContext propertyContext,
                                                                    final AwsCredentialsProvider primaryCredentialsProvider) {
         return null;
     }

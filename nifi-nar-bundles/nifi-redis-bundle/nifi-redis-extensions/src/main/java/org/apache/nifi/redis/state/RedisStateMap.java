@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 
 /**
@@ -47,6 +48,17 @@ public class RedisStateMap implements StateMap {
     @Override
     public long getVersion() {
         return version;
+    }
+
+    @Override
+    public Optional<String> getStateVersion() {
+        final String stateVersion;
+        if (DEFAULT_VERSION == version || version == null) {
+            stateVersion = null;
+        } else {
+            stateVersion = String.valueOf(version);
+        }
+        return Optional.ofNullable(stateVersion);
     }
 
     @Override

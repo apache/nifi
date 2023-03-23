@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.CopySnippetRequestEntity;
+import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
@@ -70,4 +71,5 @@ public interface ProcessGroupClient {
     FlowEntity copySnippet(String processGroupId, CopySnippetRequestEntity copySnippetRequestEntity)
         throws NiFiClientException, IOException;
 
+    FlowComparisonEntity getLocalModifications(String processGroupId) throws NiFiClientException, IOException;
 }

@@ -22,12 +22,15 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.nifi.components.state.StateMap;
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
 public class StateMapSerDe implements SerDe<StateMapUpdate> {
+    private static final long EMPTY_VERSION = -1;
+
     private static final int VERSION = 0;
 
     @Override
@@ -44,7 +47,7 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
         }
 
         final StateMap stateMap = record.getStateMap();
-        final long recordVersion = stateMap.getVersion();
+        final long recordVersion = stateMap.getStateVersion().map(Long::parseLong).orElse(EMPTY_VERSION);
         out.writeLong(recordVersion);
 
         final Map<String, String> map = stateMap.toMap();
@@ -89,7 +92,8 @@ public class StateMapSerDe implements SerDe<StateMapUpdate> {
             stateValues.put(key, value);
         }
 
-        return new StateMapUpdate(new StandardStateMap(stateValues, recordVersion), componentId, updateType);
+        final String stateVersion = String.valueOf(recordVersion);
+        return new StateMapUpdate(new StandardStateMap(stateValues, Optional.of(stateVersion)), componentId, updateType);
     }
 
     @Override

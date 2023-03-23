@@ -34,6 +34,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+import org.apache.nifi.registry.flow.diff.FlowDifferenceUtil;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
@@ -58,6 +59,7 @@ public class FlowDifferenceFilters {
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
             || isVariableValueChange(difference)
+            || isSensitivePropertyDueToGhosting(difference, flowManager)
             || isAncestorVariableAdded(difference, flowManager)
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
@@ -73,6 +75,43 @@ public class FlowDifferenceFilters {
             || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
             || isRegistryUrlChange(difference)
             || isParameterContextChange(difference);
+    }
+
+    private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
+        if (difference.getDifferenceType() != DifferenceType.PROPERTY_SENSITIVITY_CHANGED) {
+            return false;
+        }
+
+        final String componentAId = difference.getComponentA().getInstanceIdentifier();
+        if (componentAId != null) {
+            final ComponentNode componentNode = getComponent(flowManager, difference.getComponentA().getComponentType(), componentAId);
+            if (componentNode != null && componentNode.isExtensionMissing()) {
+                return true;
+            }
+        }
+
+        final String componentBId = difference.getComponentB().getInstanceIdentifier();
+        if (componentBId != null) {
+            final ComponentNode componentNode = getComponent(flowManager, difference.getComponentA().getComponentType(), componentBId);
+            if (componentNode != null && componentNode.isExtensionMissing()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static ComponentNode getComponent(final FlowManager flowManager, final ComponentType componentType, final String componentId) {
+        switch (componentType) {
+            case CONTROLLER_SERVICE:
+                return flowManager.getControllerServiceNode(componentId);
+            case PROCESSOR:
+                return flowManager.getProcessorNode(componentId);
+            case REPORTING_TASK:
+                return flowManager.getReportingTaskNode(componentId);
+        }
+
+        return null;
     }
 
     // The Registry URL may change if, for instance, a registry is moved to a new host, or is made secure, the port changes, etc.
@@ -154,22 +193,13 @@ public class FlowDifferenceFilters {
                 final VersionedFlowCoordinates coordinatesB = versionedProcessGroupB.getVersionedFlowCoordinates();
 
                 if (coordinatesA != null && coordinatesB != null) {
-                    String registryUrlA = coordinatesA.getRegistryUrl();
-                    String registryUrlB = coordinatesB.getRegistryUrl();
-
-                    if (registryUrlA != null && registryUrlB != null && !registryUrlA.equals(registryUrlB)) {
-                        if (registryUrlA.endsWith("/")) {
-                            registryUrlA = registryUrlA.substring(0, registryUrlA.length() - 1);
-                        }
-
-                        if (registryUrlB.endsWith("/")) {
-                            registryUrlB = registryUrlB.substring(0, registryUrlB.length() - 1);
-                        }
-
-                        if (registryUrlA.equals(registryUrlB)) {
-                            return true;
-                        }
+                    if (coordinatesA.getStorageLocation() != null || coordinatesB.getStorageLocation() != null) {
+                        return false;
                     }
+
+                    return  !FlowDifferenceUtil.areRegistryStrictlyEqual(coordinatesA, coordinatesB)
+                            && FlowDifferenceUtil.areRegistryUrlsEqual(coordinatesA, coordinatesB)
+                            && coordinatesA.getVersion() == coordinatesB.getVersion();
                 }
             }
         }

@@ -69,6 +69,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -86,7 +87,7 @@ public class TestStandardControllerServiceProvider {
         @Override
         public StateManager getStateManager(final String componentId) {
             final StateManager stateManager = Mockito.mock(StateManager.class);
-            final StateMap emptyStateMap = new StandardStateMap(Collections.emptyMap(), -1);
+            final StateMap emptyStateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
             try {
                 Mockito.when(stateManager.getState(any(Scope.class))).thenReturn(emptyStateMap);
             } catch (IOException e) {

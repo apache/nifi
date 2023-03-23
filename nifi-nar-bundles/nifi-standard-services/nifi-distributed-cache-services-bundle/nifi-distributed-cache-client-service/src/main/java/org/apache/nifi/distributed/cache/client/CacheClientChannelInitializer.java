@@ -79,7 +79,7 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
         channelPipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
         channelPipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
         channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator, writeTimeout.toMillis()));
-        channelPipeline.addLast(new CacheClientRequestHandler());
+        channelPipeline.addLast(new CacheClientRequestHandler(writeTimeout.toMillis()));
         channelPipeline.addLast(new CloseContextIdleStateHandler());
     }
 }

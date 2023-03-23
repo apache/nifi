@@ -18,12 +18,10 @@ package org.apache.nifi.security.util;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
-import java.net.Socket;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Security;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
@@ -42,8 +40,6 @@ import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSocket;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -81,13 +77,7 @@ import org.slf4j.LoggerFactory;
 
 public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
-    private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
-
-    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
-    public static final String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
-    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
-    public static final String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -204,136 +194,6 @@ public final class CertificateUtils {
         }
 
         return result;
-    }
-
-    /**
-     * Returns the DN extracted from the peer certificate (the server DN if run on the client; the client DN (if available) if run on the server).
-     * <p>
-     * If the client auth setting is WANT or NONE and a client certificate is not present, this method will return {@code null}.
-     * If the client auth is NEED, it will throw a {@link CertificateException}.
-     *
-     * @param socket the SSL Socket
-     * @return the extracted DN
-     * @throws CertificateException if there is a problem parsing the certificate
-     */
-    public static String extractPeerDNFromSSLSocket(Socket socket) throws CertificateException {
-        String dn = null;
-        if (socket instanceof SSLSocket) {
-            final SSLSocket sslSocket = (SSLSocket) socket;
-
-            boolean clientMode = sslSocket.getUseClientMode();
-            logger.debug("SSL Socket in {} mode", clientMode ? "client" : "server");
-            ClientAuth clientAuth = getClientAuthStatus(sslSocket);
-            logger.debug("SSL Socket client auth status: {}", clientAuth);
-
-            if (clientMode) {
-                logger.debug("This socket is in client mode, so attempting to extract certificate from remote 'server' socket");
-                dn = extractPeerDNFromServerSSLSocket(sslSocket);
-            } else {
-                logger.debug("This socket is in server mode, so attempting to extract certificate from remote 'client' socket");
-                dn = extractPeerDNFromClientSSLSocket(sslSocket);
-            }
-        }
-
-        return dn;
-    }
-
-    /**
-     * Returns the DN extracted from the client certificate.
-     * <p>
-     * If the client auth setting is WANT or NONE and a certificate is not present (and {@code respectClientAuth} is {@code true}), this method will return {@code null}.
-     * If the client auth is NEED, it will throw a {@link CertificateException}.
-     *
-     * @param sslSocket the SSL Socket
-     * @return the extracted DN
-     * @throws CertificateException if there is a problem parsing the certificate
-     */
-    private static String extractPeerDNFromClientSSLSocket(SSLSocket sslSocket) throws CertificateException {
-        String dn = null;
-
-        /** The clientAuth value can be "need", "want", or "none"
-         * A client must send client certificates for need, should for want, and will not for none.
-         * This method should throw an exception if none are provided for need, return null if none are provided for want, and return null (without checking) for none.
-         */
-
-        ClientAuth clientAuth = getClientAuthStatus(sslSocket);
-        logger.debug("SSL Socket client auth status: {}", clientAuth);
-
-        if (clientAuth != ClientAuth.NONE) {
-            try {
-                final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
-                if (certChains != null && certChains.length > 0) {
-                    X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
-                    dn = x509Certificate.getSubjectDN().getName().trim();
-                    logger.debug("Extracted DN={} from client certificate", dn);
-                }
-            } catch (SSLPeerUnverifiedException e) {
-                if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
-                    logger.error("The incoming request did not contain client certificates and thus the DN cannot" +
-                            " be extracted. Check that the other endpoint is providing a complete client certificate chain");
-                }
-                if (clientAuth == ClientAuth.WANT) {
-                    logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
-                    return null;
-                }
-                throw new CertificateException(e);
-            }
-        }
-        return dn;
-    }
-
-    /**
-     * Returns the DN extracted from the server certificate.
-     *
-     * @param socket the SSL Socket
-     * @return the extracted DN
-     * @throws CertificateException if there is a problem parsing the certificate
-     */
-    private static String extractPeerDNFromServerSSLSocket(Socket socket) throws CertificateException {
-        String dn = null;
-        if (socket instanceof SSLSocket) {
-            final SSLSocket sslSocket = (SSLSocket) socket;
-            try {
-                final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
-                if (certChains != null && certChains.length > 0) {
-                    X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
-                    dn = x509Certificate.getSubjectDN().getName().trim();
-                    logger.debug("Extracted DN={} from server certificate", dn);
-                }
-            } catch (SSLPeerUnverifiedException e) {
-                if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
-                    logger.error("The server did not present a certificate and thus the DN cannot" +
-                            " be extracted. Check that the other endpoint is providing a complete certificate chain");
-                }
-                throw new CertificateException(e);
-            }
-        }
-        return dn;
-    }
-
-    private static ClientAuth getClientAuthStatus(SSLSocket sslSocket) {
-        return sslSocket.getNeedClientAuth() ? ClientAuth.REQUIRED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
-    }
-
-    /**
-     * Accepts a legacy {@link javax.security.cert.X509Certificate} and returns an {@link X509Certificate}. The {@code javax.*} package certificate classes are for legacy compatibility and should
-     * not be used for new development.
-     *
-     * @param legacyCertificate the {@code javax.security.cert.X509Certificate}
-     * @return a new {@code java.security.cert.X509Certificate}
-     * @throws CertificateException if there is an error generating the new certificate
-     */
-    @SuppressWarnings("deprecation")
-    public static X509Certificate convertLegacyX509Certificate(javax.security.cert.X509Certificate legacyCertificate) throws CertificateException {
-        if (legacyCertificate == null) {
-            throw new IllegalArgumentException("The X.509 certificate cannot be null");
-        }
-
-        try {
-            return formX509Certificate(legacyCertificate.getEncoded());
-        } catch (javax.security.cert.CertificateEncodingException e) {
-            throw new CertificateException(e);
-        }
     }
 
     /**

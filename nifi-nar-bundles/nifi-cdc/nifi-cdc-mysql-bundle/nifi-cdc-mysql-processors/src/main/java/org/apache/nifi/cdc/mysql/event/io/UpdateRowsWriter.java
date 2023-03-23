@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.MySQLCDCUtils;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
 import org.apache.nifi.processor.Relationship;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.BitSet;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -43,13 +44,14 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
      * @return The next available CDC sequence ID for use by the CDC processor
      */
     @Override
-    public long writeEvent(final ProcessSession session, String transitUri, final UpdateRowsEventInfo eventInfo, final long currentSequenceId, Relationship relationship) {
-        final AtomicLong seqId = new AtomicLong(currentSequenceId);
+    public long writeEvent(final ProcessSession session, String transitUri, final UpdateRowsEventInfo eventInfo, final long currentSequenceId, Relationship relationship,
+                           final EventWriterConfiguration eventWriterConfiguration) {
+        long seqId = currentSequenceId;
         for (Map.Entry<Serializable[], Serializable[]> row : eventInfo.getRows()) {
+            configureEventWriter(eventWriterConfiguration, session, eventInfo);
+            OutputStream outputStream = eventWriterConfiguration.getFlowFileOutputStream();
 
-            FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, outputStream -> {
-
+            try {
                 super.startJson(outputStream, eventInfo);
                 super.writeJson(eventInfo);
 
@@ -57,14 +59,20 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
                 writeRow(eventInfo, row, bitSet);
 
                 super.endJson();
-            });
+            } catch (IOException ioe) {
+                throw new UncheckedIOException("Write JSON start array failed", ioe);
+            }
 
-            flowFile = session.putAllAttributes(flowFile, getCommonAttributes(seqId.get(), eventInfo));
-            session.transfer(flowFile, relationship);
-            session.getProvenanceReporter().receive(flowFile, transitUri);
-            seqId.getAndIncrement();
+            eventWriterConfiguration.incrementNumberOfEventsWritten();
+
+            // Check if it is time to finish the FlowFile
+            if (maxEventsPerFlowFile(eventWriterConfiguration)
+                    && eventWriterConfiguration.getNumberOfEventsWritten() == eventWriterConfiguration.getNumberOfEventsPerFlowFile()) {
+                finishAndTransferFlowFile(session, eventWriterConfiguration, transitUri, seqId, eventInfo, relationship);
+            }
+            seqId++;
         }
-        return seqId.get();
+        return seqId;
     }
 
     protected void writeRow(UpdateRowsEventInfo event, Map.Entry<Serializable[], Serializable[]> row, BitSet includedColumns) throws IOException {

@@ -33,7 +33,11 @@
         <module>nifi-framework-components</module>
         <module>nifi-framework-core</module>
         <module>nifi-framework-cluster-protocol</module>
+        <module>nifi-framework-cluster-zookeeper</module>
         <module>nifi-framework-cluster</module>
+        <module>nifi-framework-leader-election-shared</module>
+        <module>nifi-framework-zookeeper-leader-election</module>
+        <module>nifi-framework-kubernetes-bundle</module>
         <module>nifi-framework-nar-utils</module>
         <module>nifi-framework-nar-loading-utils</module>
         <module>nifi-user-actions</module>
