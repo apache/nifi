@@ -1555,9 +1555,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final Set<ControllerServiceNode> referencingServices = referenceManager.getControllerServicesReferencing(parameterContext, paramName);
 
                     for (final ControllerServiceNode referencingService : referencingServices) {
+                        final boolean isServiceActive = referencingService.isActive();
                         stopControllerService(referencingService, null, timeout, synchronizationOptions.getComponentStopTimeoutAction(), componentsToRestart, servicesToRestart,
                                 synchronizationOptions);
-                        servicesToRestart.add(referencingService);
+                        if (isServiceActive) {
+                            servicesToRestart.add(referencingService);
+                        }
                     }
                 }
 
