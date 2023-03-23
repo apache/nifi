@@ -170,6 +170,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
                         .explanation("'hadoop.security.authentication' is set to 'kerberos' in the hadoop configuration files but no KerberosUserService is configured.")
                         .build());
             }
+
+            if (!securityEnabled && kerberosUserServiceIsSet) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(KERBEROS_USER_SERVICE.getDisplayName())
+                        .valid(false)
+                        .explanation("KerberosUserService is configured but 'hadoop.security.authentication' is not set to 'kerberos' in the hadoop configuration files.")
+                        .build());
+            }
         }
 
         return problems;

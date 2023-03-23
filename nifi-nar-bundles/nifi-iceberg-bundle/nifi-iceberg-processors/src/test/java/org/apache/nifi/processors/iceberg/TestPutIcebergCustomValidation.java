@@ -124,6 +124,6 @@ public class TestPutIcebergCustomValidation {
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
-        runner.assertValid();
+        runner.assertNotValid();
     }
 }
