@@ -24,6 +24,9 @@ import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.azure.eventhub.utils.CheckpointStrategy;
+import org.apache.nifi.processors.azure.eventhub.utils.ComponentStateCheckpointStore;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
@@ -46,6 +49,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -67,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,9 +107,6 @@ public class TestConsumeAzureEventHub {
 
     @Mock
     PartitionContext partitionContext;
-
-    @Mock
-    CheckpointStore checkpointStore;
 
     @Mock
     RecordSetWriterFactory writerFactory;
@@ -145,7 +148,7 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.assertNotValid();
-        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY, "true");
         testRunner.assertValid();
     }
 
@@ -205,12 +208,14 @@ public class TestConsumeAzureEventHub {
         testRunner.assertValid();
     }
 
-    @Test
-    public void testReceiveOne() {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveOne(CheckpointStrategy strategy) {
+        setProperties(strategy);
         testRunner.run(1, false);
         final List<EventData> events = getEvents(FIRST_CONTENT);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -227,12 +232,14 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
-    @Test
-    public void testReceiveTwo() {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveTwo(CheckpointStrategy strategy) {
+        setProperties(strategy);
         testRunner.run(1, false);
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -247,9 +254,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(2, provenanceEvents.size());
     }
 
-    @Test
-    public void testReceiveRecords() throws Exception {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveRecords(CheckpointStrategy strategy) throws Exception {
+        setProperties(strategy);
 
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT);
         setupRecordReader(events);
@@ -257,6 +265,7 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -273,9 +282,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
-    @Test
-    public void testReceiveRecordReaderFailure() throws Exception {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveRecordReaderFailure(CheckpointStrategy strategy) throws Exception {
+        setProperties(strategy);
 
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT, THIRD_CONTENT, FOURTH_CONTENT);
         setupRecordReader(events, 2, null);
@@ -283,6 +293,7 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -310,9 +321,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
     }
 
-    @Test
-    public void testReceiveAllRecordFailure() throws Exception {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveAllRecordFailure(CheckpointStrategy strategy) throws Exception {
+        setProperties(CheckpointStrategy.COMPONENT_STATE);
 
         final List<EventData> events = getEvents(FIRST_CONTENT);
         setupRecordReader(events, 0, null);
@@ -320,6 +332,7 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -340,9 +353,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent1.getTransitUri());
     }
 
-    @Test
-    public void testReceiveRecordWriterFailure() throws Exception {
-        setProperties();
+    @EnumSource(CheckpointStrategy.class)
+    @ParameterizedTest
+    public void testReceiveRecordWriterFailure(CheckpointStrategy strategy) throws Exception {
+        setProperties(CheckpointStrategy.COMPONENT_STATE);
 
         final List<EventData> events = getEvents(FIRST_CONTENT, SECOND_CONTENT, THIRD_CONTENT, FOURTH_CONTENT);
         setupRecordReader(events, -1, SECOND_CONTENT);
@@ -350,6 +364,7 @@ public class TestConsumeAzureEventHub {
 
         testRunner.run(1, false);
 
+        CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
         processor.eventBatchProcessor.accept(eventBatchContext);
 
@@ -377,19 +392,38 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
     }
 
-    private void setProperties() {
+    private CheckpointStore createCheckpointStore(CheckpointStrategy strategy) {
+        if (strategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
+            CheckpointStore checkpointStore = mock(CheckpointStore.class);
+            when(checkpointStore.updateCheckpoint(any(Checkpoint.class))).thenReturn(Mono.empty());
+            return checkpointStore;
+        } else {
+            ProcessSessionFactory processSessionFactory = testRunner.getProcessSessionFactory();
+            return new ComponentStateCheckpointStore(processSessionFactory);
+        }
+    }
+
+    private void setProperties(CheckpointStrategy strategy) {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, POLICY_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
-        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
+        testRunner.setProperty(ConsumeAzureEventHub.CHECKPOINT_STRATEGY, strategy.getValue());
+
+        switch (strategy) {
+            case AZURE_BLOB_STORAGE: {
+                testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+                testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
+                break;
+            }
+            case COMPONENT_STATE: {
+                break;
+            }
+        }
 
         when(partitionContext.getEventHubName()).thenReturn(EVENT_HUB_NAME);
         when(partitionContext.getConsumerGroup()).thenReturn(CONSUMER_GROUP);
         when(partitionContext.getPartitionId()).thenReturn(PARTITION_ID);
-
-        when(checkpointStore.updateCheckpoint(any(Checkpoint.class))).thenReturn(Mono.empty());
     }
 
     private Record toRecord(String value) {

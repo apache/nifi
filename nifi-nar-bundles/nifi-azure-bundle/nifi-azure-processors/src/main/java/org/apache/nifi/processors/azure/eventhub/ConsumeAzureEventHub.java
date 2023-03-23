@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.EventProcessorClientBuilder;
@@ -31,6 +32,7 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -41,6 +43,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -55,6 +58,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.eventhub.position.EarliestEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.position.LegacyBlobStorageEventPositionProvider;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
+import org.apache.nifi.processors.azure.eventhub.utils.CheckpointStrategy;
+import org.apache.nifi.processors.azure.eventhub.utils.ComponentStateCheckpointStore;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -92,6 +97,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
         + "In clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
         + "(each message is processed on one cluster node only).")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@Stateful(scopes = {Scope.CLUSTER}, description = "Used to store partitions offsets when component state is configured as the checkpointing strategy.")
 @TriggerSerially
 @WritesAttributes({
         @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
@@ -226,6 +232,17 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
+
+    static final PropertyDescriptor CHECKPOINT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("checkpoint-strategy")
+            .displayName("Checkpoint Strategy")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(true)
+            .allowableValues(CheckpointStrategy.class)
+            .defaultValue(CheckpointStrategy.AZURE_BLOB_STORAGE.getValue())
+            .description("Specifies which strategy to use for storing and retrieving partition ownership information and checkpoint details for each partition.")
+            .build();
+
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name("storage-account-name")
             .displayName("Storage Account Name")
@@ -233,7 +250,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
+            .dependsOn(CHECKPOINT_STRATEGY, CheckpointStrategy.AZURE_BLOB_STORAGE)
             .build();
+
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
             .name("storage-account-key")
             .displayName("Storage Account Key")
@@ -295,6 +314,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 PREFETCH_COUNT,
                 BATCH_SIZE,
                 RECEIVE_TIMEOUT,
+                CHECKPOINT_STRATEGY,
                 STORAGE_ACCOUNT_NAME,
                 STORAGE_ACCOUNT_KEY,
                 STORAGE_SAS_TOKEN,
@@ -336,6 +356,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).asControllerService();
         final String storageAccountKey = validationContext.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = validationContext.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(
+                validationContext.getProperty(CHECKPOINT_STRATEGY).getValue()
+        );
 
         if ((recordReader != null && recordWriter == null) || (recordReader == null && recordWriter != null)) {
             results.add(new ValidationResult.Builder()
@@ -346,24 +369,26 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
-            results.add(new ValidationResult.Builder()
-                    .subject(String.format("%s or %s",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .explanation(String.format("either %s or %s should be set.",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .valid(false)
-                    .build());
-        }
+        if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
+            if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(String.format("%s or %s",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .explanation(String.format("either %s or %s should be set.",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .valid(false)
+                        .build());
+            }
 
-        if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
-            results.add(new ValidationResult.Builder()
-                    .subject(String.format("%s or %s",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .explanation(String.format("%s and %s should not be set at the same time.",
-                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
-                    .valid(false)
-                    .build());
+            if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(String.format("%s or %s",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .explanation(String.format("%s and %s should not be set at the same time.",
+                                STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                        .valid(false)
+                        .build());
+            }
         }
         results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, validationContext));
         return results;
@@ -375,6 +400,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             isRecordReaderSet = StringUtils.isNotEmpty(newValue);
         } else if (RECORD_WRITER.equals(descriptor)) {
             isRecordWriterSet = StringUtils.isNotEmpty(newValue);
+        } else if (SERVICE_BUS_ENDPOINT.equals(descriptor)) {
+            serviceBusEndpoint = newValue;
         }
     }
 
@@ -414,13 +441,26 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
 
-        final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
-        final String storageConnectionString = createStorageConnectionString(context);
-        final BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
-                .connectionString(storageConnectionString)
-                .containerName(containerName)
-                .buildAsyncClient();
-        final BlobCheckpointStore checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
+        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(
+                context.getProperty(CHECKPOINT_STRATEGY).getValue()
+        );
+
+        CheckpointStore checkpointStore;
+        final Map<String, EventPosition> legacyPartitionEventPosition;
+
+        if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
+            final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
+            final String storageConnectionString = createStorageConnectionString(context);
+            final BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
+                    .connectionString(storageConnectionString)
+                    .containerName(containerName)
+                    .buildAsyncClient();
+            checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
+            legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
+        } else {
+            checkpointStore = new ComponentStateCheckpointStore(processSessionFactory);
+            legacyPartitionEventPosition = Collections.emptyMap();
+        }
 
         final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
@@ -451,7 +491,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             eventProcessorClientBuilder.prefetchCount(prefetchCount);
         }
 
-        final Map<String, EventPosition> legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         if (legacyPartitionEventPosition.isEmpty()) {
             final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
             // EventPosition.latest() is the default behavior is absence of existing checkpoints
@@ -653,7 +692,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     private String createStorageConnectionString(final ProcessContext context) {
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
 
-        serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
         final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
