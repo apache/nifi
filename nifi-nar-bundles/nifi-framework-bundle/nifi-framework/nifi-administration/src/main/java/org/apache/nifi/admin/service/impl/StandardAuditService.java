@@ -21,6 +21,7 @@ import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.action.AddActionsAction;
+import org.apache.nifi.admin.service.action.DeletePreviousValues;
 import org.apache.nifi.admin.service.action.GetActionAction;
 import org.apache.nifi.admin.service.action.GetActionsAction;
 import org.apache.nifi.admin.service.action.GetPreviousValues;
@@ -31,8 +32,6 @@ import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -45,8 +44,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *
  */
 public class StandardAuditService implements AuditService {
-
-    private static final Logger logger = LoggerFactory.getLogger(StandardAuditService.class);
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
@@ -109,6 +106,33 @@ public class StandardAuditService implements AuditService {
         }
 
         return previousValues;
+    }
+
+    @Override
+    public void deletePreviousValues(String propertyName, String componentId) {
+        Transaction transaction = null;
+
+        readLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // seed the accounts
+            DeletePreviousValues deleteAction = new DeletePreviousValues(propertyName, componentId);
+            transaction.execute(deleteAction);
+
+            // commit the transaction
+            transaction.commit();
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            readLock.unlock();
+        }
     }
 
     @Override

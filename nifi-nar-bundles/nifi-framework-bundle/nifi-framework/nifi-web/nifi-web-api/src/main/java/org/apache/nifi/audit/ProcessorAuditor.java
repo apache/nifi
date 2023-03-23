@@ -172,6 +172,9 @@ public class ProcessorAuditor extends NiFiAuditor {
                     final PropertyDescriptor propertyDescriptor = processor.getPropertyDescriptor(property);
                     // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
                     if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
+                        // Delete previous property history
+                        deletePreviousValues(propertyDescriptor.getName(), processor.getIdentifier(), logger);
+
                         if (newValue != null) {
                             newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
