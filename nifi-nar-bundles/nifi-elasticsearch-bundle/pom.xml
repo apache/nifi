@@ -58,7 +58,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.21</version>
+                <version>1.23.0</version>
             </dependency>
 
             <dependency>
