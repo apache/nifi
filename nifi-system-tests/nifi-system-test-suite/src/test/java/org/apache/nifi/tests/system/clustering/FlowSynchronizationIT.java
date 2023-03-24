@@ -53,6 +53,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -399,6 +400,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         // Wait for node to show as disconnected because it doesn't have the necessary nar
         waitForNodeState(2, NodeConnectionState.DISCONNECTED);
+
+        // Reconnect so that flow teardown can happen
+        reconnectNode(2);
+        waitForAllNodesConnected();
     }
 
     @Test
@@ -424,29 +429,41 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         assertTrue(getNifiClient().getProcessorClient().getProcessor(generate.getId()).getComponent().getExtensionMissing());
     }
 
+
     @Test
-    public void testCannotJoinIfMissingConnectionHasData() throws NiFiClientException, IOException, InterruptedException {
+    public void testCannotRemoveComponentsWhileNodeDisconnected() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
 
-        getClientUtil().updateProcessorSchedulingPeriod(generate, "60 sec");
-
         // Shut down node 2
         disconnectNode(2);
+        waitForNodeState(2, NodeConnectionState.DISCONNECTED);
 
-        switchClientToNode(2);
-        getClientUtil().startProcessor(generate);
-        waitForQueueCount(connection.getId(), 1);
+        // Attempt to delete connection. It should throw an Exception.
+        try {
+            getNifiClient().getConnectionClient().deleteConnection(connection);
+            Assertions.fail("Was able to remove connection while node disconnected");
+        } catch (final Exception expected) {
+        }
 
-        switchClientToNode(1);
-        getNifiClient().getConnectionClient().deleteConnection(connection);
+        // Attempt to delete processor. It should throw an Exception.
+        try {
+            getNifiClient().getProcessorClient().deleteProcessor(generate);
+            Assertions.fail("Was able to remove connection while node disconnected");
+        } catch (final Exception expected) {
+        }
 
+        // Reconnect the node
         reconnectNode(2);
+        waitForAllNodesConnected();
 
-        // Wait for node to be disconnected due to connection containing data
-        waitFor(() -> isNodeDisconnectedDueToMissingConnection(5672, connection.getId()));
+        // Ensure that we can delete the connection and the processors
+        getNifiClient().getConnectionClient().deleteConnection(connection);
+        getNifiClient().getProcessorClient().deleteProcessor(generate);
+        getNifiClient().getProcessorClient().deleteProcessor(terminate);
     }
+
 
     @Test
     public void testComponentStatesRestoredOnReconnect() throws NiFiClientException, IOException, InterruptedException {
