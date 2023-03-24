@@ -27,11 +27,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ParameterProviderEndpointMerger extends AbstractSingleEntityEndpoint<ParameterProviderEntity> implements EndpointResponseMerger {
-    private static final Pattern PARAMETER_PROVIDER_URI = Pattern.compile("/nifi-api/parameter-providers/[a-f0-9\\-]{36}");
+    public static final Pattern PARAMETER_PROVIDER_URI_PATTERN = Pattern.compile("/nifi-api/parameter-providers/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return ("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && PARAMETER_PROVIDER_URI.matcher(uri.getPath()).matches();
+        return ("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && PARAMETER_PROVIDER_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
     @Override
