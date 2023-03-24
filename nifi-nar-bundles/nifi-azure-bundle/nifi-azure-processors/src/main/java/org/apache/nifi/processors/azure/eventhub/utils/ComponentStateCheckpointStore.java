@@ -71,15 +71,14 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                         if (entryFullyQualifiedNamespace.equals(fullyQualifiedNamespace)
                                 && entryEventHubName.equals(eventHubName)
                                 && entryConsumerGroup.equals(consumerGroup)) {
-                            return null;
+                            return new Checkpoint()
+                                    .setFullyQualifiedNamespace(fullyQualifiedNamespace)
+                                    .setEventHubName(eventHubName)
+                                    .setConsumerGroup(consumerGroup)
+                                    .setPartitionId(partitionId)
+                                    .setOffset(Long.parseLong(entry.getValue()));
                         }
-
-                        return new Checkpoint()
-                                .setFullyQualifiedNamespace(fullyQualifiedNamespace)
-                                .setEventHubName(eventHubName)
-                                .setConsumerGroup(consumerGroup)
-                                .setPartitionId(partitionId)
-                                .setOffset(Long.parseLong(entry.getValue()));
+                        return null;
                     }
             );
         } catch (IOException e) {
