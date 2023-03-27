@@ -25,6 +25,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 
 /**
  * An InputStream that is provided a Content Repository, Content Claim, and offset into the Content Claim where a FlowFile's
@@ -81,11 +82,11 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        int value;
-        if (bufferedIn != null) {
-            value = bufferedIn.read();
-        } else {
+        final int value;
+        if (bufferedIn == null) {
             value = getDelegate().read();
+        } else {
+            value = bufferedIn.read();
         }
 
         if (value != -1) {
@@ -98,11 +99,11 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
-        int count;
-        if (bufferedIn != null) {
-            count = bufferedIn.read(b);
-        } else {
+        final int count;
+        if (bufferedIn == null) {
             count = getDelegate().read(b);
+        } else {
+            count = bufferedIn.read(b);
         }
 
         if (count != -1) {
@@ -115,11 +116,11 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
-        int count;
-        if (bufferedIn != null) {
-            count = bufferedIn.read(b, off, len);
-        } else {
+        final int count;
+        if (bufferedIn == null) {
             count = getDelegate().read(b, off, len);
+        } else {
+            count = bufferedIn.read(b, off, len);
         }
 
         if (count != -1) {
@@ -158,29 +159,29 @@ public class ContentClaimInputStream extends InputStream {
     /**
      * Marks the current position. Can be returned to with {@code reset()}.
      *
+     * @param readLimit hint on how much data should be buffered.
      * @see ContentClaimInputStream#reset()
-     * @param readlimit   hint on how much data should be buffered.
      */
     @Override
-    public void mark(final int readlimit) {
+    public void mark(final int readLimit) {
         markOffset = currentOffset;
-        markReadLimit = readlimit;
+        markReadLimit = readLimit;
         if (bufferedIn == null) {
             try {
                 bufferedIn = new BufferedInputStream(getDelegate());
-            } catch (IOException ex) {
-                throw new RuntimeException("Failed to read content claim!", ex);
+            } catch (final IOException e) {
+                throw new UncheckedIOException("Failed to read repository Content Claim", e);
             }
         }
 
-        bufferedIn.mark(readlimit);
+        bufferedIn.mark(readLimit);
     }
 
     /**
      * Resets to the last marked position.
      *
+     * @throws IOException Thrown when a mark position is not set or on other stream handling failures
      * @see ContentClaimInputStream#mark(int)
-     * @throws IOException only if no mark point has been set.
      */
     @Override
     public void reset() throws IOException {
@@ -218,7 +219,7 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public void close() throws IOException {
-        if  (bufferedIn != null) {
+        if (bufferedIn != null) {
             bufferedIn.close();
         }
 

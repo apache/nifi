@@ -63,7 +63,7 @@ public class TestContentClaimInputStream {
         final byte[] buff = new byte[5];
         StreamUtils.fillBuffer(in, buff);
 
-        Mockito.verify(repo, Mockito.times(1)).read(contentClaim);
+        Mockito.verify(repo).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         final String contentRead = new String(buff);
@@ -85,7 +85,7 @@ public class TestContentClaimInputStream {
         final byte[] buff = new byte[2];
         StreamUtils.fillBuffer(in, buff);
 
-        Mockito.verify(repo, Mockito.times(1)).read(contentClaim);
+        Mockito.verify(repo).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         final String contentRead = new String(buff);
@@ -107,7 +107,7 @@ public class TestContentClaimInputStream {
         final byte[] buff = new byte[5];
 
         final int invocations = 10;
-        for (int i=0; i < invocations; i++) {
+        for (int i = 0; i < invocations; i++) {
             in.mark(5);
 
             StreamUtils.fillBuffer(in, buff, true);
@@ -115,14 +115,14 @@ public class TestContentClaimInputStream {
             final String contentRead = new String(buff);
             assertEquals("hello", contentRead);
 
-            assertEquals(5 * (i+1), in.getBytesConsumed());
+            assertEquals(5 * (i + 1), in.getBytesConsumed());
             assertEquals(5, in.getCurrentOffset());
             assertEquals(-1, in.read());
 
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
+        Mockito.verify(repo).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -140,20 +140,20 @@ public class TestContentClaimInputStream {
         final int invocations = 10;
         in.mark(5);
 
-        for (int i=0; i < invocations; i++) {
+        for (int i = 0; i < invocations; i++) {
             StreamUtils.fillBuffer(in, buff, true);
 
             final String contentRead = new String(buff);
             assertEquals("hello", contentRead);
 
-            assertEquals(5 * (i+1), in.getBytesConsumed());
+            assertEquals(5 * (i + 1), in.getBytesConsumed());
             assertEquals(5, in.getCurrentOffset());
             assertEquals(-1, in.read());
 
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
+        Mockito.verify(repo).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -169,7 +169,7 @@ public class TestContentClaimInputStream {
         final byte[] buff = new byte[2];
 
         final int invocations = 10;
-        for (int i=0; i < invocations; i++) {
+        for (int i = 0; i < invocations; i++) {
             in.mark(5);
 
             StreamUtils.fillBuffer(in, buff, true);
@@ -177,14 +177,14 @@ public class TestContentClaimInputStream {
             final String contentRead = new String(buff);
             assertEquals("lo", contentRead);
 
-            assertEquals(2 * (i+1), in.getBytesConsumed());
+            assertEquals(2 * (i + 1), in.getBytesConsumed());
             assertEquals(5, in.getCurrentOffset());
             assertEquals(-1, in.read());
 
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times( 1)).read(contentClaim);
+        Mockito.verify(repo).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -202,20 +202,20 @@ public class TestContentClaimInputStream {
         final int invocations = 10;
         in.mark(2);
 
-        for (int i=0; i < invocations; i++) {
+        for (int i = 0; i < invocations; i++) {
             StreamUtils.fillBuffer(in, buff, true);
 
             final String contentRead = new String(buff);
             assertEquals("hello", contentRead);
 
-            assertEquals(5 * (i+1), in.getBytesConsumed());
+            assertEquals(5 * (i + 1), in.getBytesConsumed());
             assertEquals(5, in.getCurrentOffset());
             assertEquals(-1, in.read());
 
             in.reset();
         }
 
-        Mockito.verify(repo, Mockito.times( invocations + 1)).read(contentClaim);
+        Mockito.verify(repo, Mockito.times(invocations + 1)).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         // Ensure that underlying stream is closed
@@ -246,11 +246,11 @@ public class TestContentClaimInputStream {
         final ContentClaimInputStream in = new ContentClaimInputStream(repo, contentClaim, 100L, repo.read(contentClaim), new NopPerformanceTracker());
 
         int invocations = 5;
-        for (int i=0; i < invocations; i++) {
+        for (int i = 0; i < invocations; i++) {
             in.mark(1);
             in.read();
 
-            assertEquals(i+1, in.getBytesConsumed());
+            assertEquals(i + 1, in.getBytesConsumed());
             assertEquals(101, in.getCurrentOffset());
 
             in.reset();
@@ -262,7 +262,7 @@ public class TestContentClaimInputStream {
         in.read(buff);
         in.reset();
 
-        Mockito.verify(repo, Mockito.times( 2)).read(contentClaim);
+        Mockito.verify(repo, Mockito.times(2)).read(contentClaim);
         Mockito.verifyNoMoreInteractions(repo);
 
         in.close();
