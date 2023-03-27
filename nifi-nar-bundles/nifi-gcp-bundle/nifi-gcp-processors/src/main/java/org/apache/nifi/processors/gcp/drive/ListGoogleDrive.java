@@ -194,7 +194,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
-        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE);
+        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE_METADATA_READONLY);
     }
 
     @Override
