@@ -95,7 +95,8 @@ public class LimitingInputStream extends InputStream {
 
     @Override
     public long skip(final long n) throws IOException {
-        final long skipped = in.skip(Math.min(n, limit - bytesRead));
+        final long toSkip = Math.min(n, limit - bytesRead);
+        final long skipped = in.skip(toSkip);
         bytesRead += skipped;
         return skipped;
     }

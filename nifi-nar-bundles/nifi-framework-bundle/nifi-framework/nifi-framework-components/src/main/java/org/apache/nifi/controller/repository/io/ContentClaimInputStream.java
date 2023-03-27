@@ -135,7 +135,14 @@ public class ContentClaimInputStream extends InputStream {
 
     @Override
     public long skip(final long n) throws IOException {
-        final long count = getDelegate().skip(n);
+        long count = 0;
+        if (bufferedIn != null) {
+            count = bufferedIn.skip(n);
+        }
+        if (count <= 0) {
+            count = getDelegate().skip(n);
+        }
+
         if (count > 0) {
             bytesConsumed += count;
             currentOffset += count;
