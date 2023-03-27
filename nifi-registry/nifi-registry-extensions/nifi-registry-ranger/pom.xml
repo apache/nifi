@@ -60,6 +60,12 @@
                 <artifactId>zookeeper</artifactId>
                 <version>${zookeeper.version}</version>
             </dependency>
+            <!-- Override SolrJ 8.6.3 from Ranger -->
+            <dependency>
+                <groupId>org.apache.solr</groupId>
+                <artifactId>solr-solrj</artifactId>
+                <version>8.11.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

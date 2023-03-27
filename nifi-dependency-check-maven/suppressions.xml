@@ -45,11 +45,6 @@
         <vulnerabilityName>CVE-2020-5408</vulnerabilityName>
     </suppress>
     <suppress>
-        <notes>Spark 2.13 used in nifi-spark-receiver is not impacted by Spark Server vulnerabilities</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.spark/spark\-.+?_2\.13@.*$</packageUrl>
-        <cpe>cpe:/a:apache:spark</cpe>
-    </suppress>
-    <suppress>
         <notes>Apache Hive vulnerabilities do not apply to Flume Hive Sink</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-hive\-sink@.*$</packageUrl>
         <cpe>cpe:/a:apache:hive</cpe>
@@ -85,34 +80,9 @@
         <cve>CVE-2017-10355</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2020-13955 applies to Apache Calcite not Apache Calcite Avatica</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica/avatica\-core@.*$</packageUrl>
-        <cve>CVE-2020-13955</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2020-13955 applies to Apache Calcite not Apache Calcite Avatica</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\/calcite-avatica@.*$</packageUrl>
-        <cve>CVE-2020-13955</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2020-13955 applies to Apache Calcite not Apache Calcite Druid</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\/calcite-druid@.*$</packageUrl>
         <cve>CVE-2020-13955</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2020-13955 applies to Apache Calcite Core not Apache Calcite Avatica subproject</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica\/avatica(-metrics)?@.*$</packageUrl>
-        <cve>CVE-2020-13955</cve>
-    </suppress>
-    <suppress>
-        <notes>OpenTSDB vulnerabilities do not apply to HBase Async library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.hbase/asynchbase@.*$</packageUrl>
-        <cpe>cpe:/a:opentsdb:opentsdb</cpe>
-    </suppress>
-    <suppress>
-        <notes>Eclipse Equinox vulnerabilities do not apply to DataNucleus core library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.datanucleus/datanucleus\-core@.*$</packageUrl>
-        <cpe>cpe:/a:eclipse:equinox</cpe>
     </suppress>
     <suppress>
         <notes>CVE-2018-8025 applies to HBase Server not HBase Client</notes>
@@ -123,11 +93,6 @@
         <notes>CVE-2019-0212 applies to HBase Server not HBase Client</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-client@.*$</packageUrl>
         <cve>CVE-2019-0212</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2014-3643 applies to Jersey Server not Jersey Core</notes>
-        <packageUrl regex="true">^pkg:maven/com\.sun\.jersey/jersey\-core@.*$</packageUrl>
-        <vulnerabilityName>CVE-2014-3643</vulnerabilityName>
     </suppress>
     <suppress>
         <notes>CVE-2007-6465 applies to Ganglia Server not Ganglia client libraries</notes>
@@ -180,23 +145,83 @@
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2022-45046 description notes that the initial issue was not a security vulnerability</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.camel/camel\-salesforce@.*$</packageUrl>
-        <cve>CVE-2022-45046</cve>
+        <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch-rest-client-sniffer</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.client/elasticsearch\-.*?\-client-sniffer@.*$</packageUrl>
+        <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2020-36632 applies to JavaScript module named hughsk/flat not flatbuffers</notes>
-        <packageUrl regex="true">^pkg:maven/com\.vlkan/flatbuffers@.*$</packageUrl>
-        <cve>CVE-2020-36632</cve>
+        <notes>CVE-2022-34271 applies to Atlas Server not the Atlas client library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.atlas/.*$</packageUrl>
+        <cve>CVE-2022-34271</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2018-8015 applies to Apache ORC not to Apache Iceberg</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.iceberg/iceberg\-orc@.*$</packageUrl>
-        <cve>CVE-2018-8015</cve>
+        <notes>CVE-2022-30187 applies to Azure Blob not the EventHubs Checkpoint Store Blob library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.azure/azure\-messaging\-eventhubs\-checkpointstore\-blob@.*$</packageUrl>
+        <cve>CVE-2022-30187</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2022-39135 applies to Calcite not Calcite Avatica</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite\.avatica/.*?@.*$</packageUrl>
+        <notes>CVE-2022-39135 applies to Apache Calcite core not the Calcite Druid library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.calcite/calcite\-druid@.*$</packageUrl>
         <cve>CVE-2022-39135</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-8016 applies to Apache Cassandra server not the client library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
+        <cve>CVE-2018-8016</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-1000873 applies to Jackson Java 8 Time modules not Jackson Annotations</notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-annotations@.*$</packageUrl>
+        <cve>CVE-2018-1000873</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-34371 applies to Neo4j server not the driver library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.opencypher\.gremlin/cypher\-gremlin\-neo4j\-driver@.*$</packageUrl>
+        <cve>CVE-2021-34371</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2010-1151 applies to mod_auth_shadow in Apache HTTP Server not the FTP server library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.ftpserver/.*$</packageUrl>
+        <cve>CVE-2010-1151</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-14335 applies to H2 running with a web server console enabled</notes>
+        <packageUrl regex="true">^pkg:maven/com\.h2database/h2@.*$</packageUrl>
+        <vulnerabilityName>CVE-2018-14335</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-31160 included in hadoop-client-api is not used</notes>
+        <packageUrl regex="true">^pkg:javascript/jquery\-ui@.*$</packageUrl>
+        <cve>CVE-2022-31160</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-37533 applies to the Commons Net FTP Client which is not used in the version bundled with hadoop-client-runtime for Accumulo</notes>
+        <packageUrl regex="true">^pkg:maven/commons\-net/commons\-net@.*$</packageUrl>
+        <cve>CVE-2021-37533</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2021-0341 applies to Android not OkHttp</notes>
+        <packageUrl regex="true">^pkg:maven/com\.squareup\.okhttp/okhttp@.*$</packageUrl>
+        <vulnerabilityName>CVE-2021-0341</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-25613 applies to an LDAP backend class for Apache Kerby not the Token Provider library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kerby/token\-provider@.*$</packageUrl>
+        <cve>CVE-2023-25613</cve>
+    </suppress>
+    <suppress>
+        <notes>The Jetty Apache JSP library is not subject to Apache Tomcat vulnerabilities</notes>
+        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jasper/apache\-jsp@.*$</packageUrl>
+        <cpe>cpe:/a:apache:tomcat</cpe>
+    </suppress>
+    <suppress>
+        <notes>Google BigQuery Storage is not the same as the gGRPC framework library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.api\.grpc/grpc\-google\-cloud\-bigquerystorage\-.*$</packageUrl>
+        <cpe>cpe:/a:grpc:grpc</cpe>
+    </suppress>
+    <suppress>
+        <notes>Google PubSubLite is not the same as the gRPC framework library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.api\.grpc/grpc\-google\-cloud\-pubsublite\-v1@.*$</packageUrl>
+        <cpe>cpe:/a:grpc:grpc</cpe>
     </suppress>
 </suppressions>
