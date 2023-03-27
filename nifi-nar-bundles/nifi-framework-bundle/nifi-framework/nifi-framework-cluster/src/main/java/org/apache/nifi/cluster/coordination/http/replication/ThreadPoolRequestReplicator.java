@@ -26,8 +26,11 @@ import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowRegistryClientEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FunnelEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.LabelEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ParameterContextEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
@@ -689,6 +692,9 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             || ControllerServiceEndpointMerger.CONTROLLER_SERVICE_URI_PATTERN.matcher(uriPath).matches()
             || ReportingTaskEndpointMerger.REPORTING_TASK_URI_PATTERN.matcher(uriPath).matches()
             || ParameterContextEndpointMerger.PARAMETER_CONTEXT_URI_PATTERN.matcher(uriPath).matches()
+            || LabelEndpointMerger.LABEL_URI_PATTERN.matcher(uriPath).matches()
+            || ParameterProviderEndpointMerger.PARAMETER_PROVIDER_URI_PATTERN.matcher(uriPath).matches()
+            || FlowRegistryClientEndpointMerger.CONTROLLER_REGISTRY_URI_PATTERN.matcher(uriPath).matches()
             || SNIPPET_URI_PATTERN.matcher(uriPath).matches();
 
         return componentUri;
