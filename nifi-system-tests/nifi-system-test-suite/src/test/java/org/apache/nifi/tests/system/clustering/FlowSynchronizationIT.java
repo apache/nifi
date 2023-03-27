@@ -454,11 +454,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         assertThrows(Exception.class, () -> getNifiClient().getConnectionClient().deleteConnection(connection));
 
         // Attempt to delete processor. It should throw an Exception.
-        try {
-            getNifiClient().getProcessorClient().deleteProcessor(generate);
-            Assertions.fail("Was able to remove connection while node disconnected");
-        } catch (final Exception expected) {
-        }
+        assertThrows(Exception.class, () -> getNifiClient().getProcessorClient().deleteProcessor(generate));
 
         // Reconnect the node
         reconnectNode(2);
