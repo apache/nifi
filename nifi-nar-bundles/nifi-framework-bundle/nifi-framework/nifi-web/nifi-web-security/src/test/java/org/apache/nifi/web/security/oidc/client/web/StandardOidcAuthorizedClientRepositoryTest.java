@@ -95,11 +95,11 @@ class StandardOidcAuthorizedClientRepositoryTest {
 
     MockHttpServletResponse response;
 
-    StandardOidcAuthorizedAuthorizedClientRepository repository;
+    StandardOidcAuthorizedClientRepository repository;
 
     @BeforeEach
     void setRepository() {
-        repository = new StandardOidcAuthorizedAuthorizedClientRepository(stateManager, authorizedClientConverter);
+        repository = new StandardOidcAuthorizedClientRepository(stateManager, authorizedClientConverter);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
     }

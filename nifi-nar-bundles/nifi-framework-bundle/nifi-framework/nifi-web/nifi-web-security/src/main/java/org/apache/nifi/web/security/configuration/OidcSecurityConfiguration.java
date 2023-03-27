@@ -42,7 +42,7 @@ import org.apache.nifi.web.security.oidc.client.web.converter.AuthenticationResu
 import org.apache.nifi.web.security.oidc.client.web.converter.AuthorizedClientConverter;
 import org.apache.nifi.web.security.oidc.client.web.StandardAuthorizationRequestRepository;
 import org.apache.nifi.web.security.oidc.client.web.converter.StandardAuthorizedClientConverter;
-import org.apache.nifi.web.security.oidc.client.web.StandardOidcAuthorizedAuthorizedClientRepository;
+import org.apache.nifi.web.security.oidc.client.web.StandardOidcAuthorizedClientRepository;
 import org.apache.nifi.web.security.oidc.logout.OidcLogoutFilter;
 import org.apache.nifi.web.security.oidc.logout.OidcLogoutSuccessHandler;
 import org.apache.nifi.web.security.oidc.registration.ClientRegistrationProvider;
@@ -317,9 +317,9 @@ public class OidcSecurityConfiguration {
      * @return Authorized Client Repository
      */
     @Bean
-    public StandardOidcAuthorizedAuthorizedClientRepository authorizedClientRepository() {
-        final StateManager stateManager = stateManagerProvider.getStateManager(StandardOidcAuthorizedAuthorizedClientRepository.class.getName());
-        return new StandardOidcAuthorizedAuthorizedClientRepository(stateManager, authorizedClientConverter());
+    public StandardOidcAuthorizedClientRepository authorizedClientRepository() {
+        final StateManager stateManager = stateManagerProvider.getStateManager(StandardOidcAuthorizedClientRepository.class.getName());
+        return new StandardOidcAuthorizedClientRepository(stateManager, authorizedClientConverter());
     }
 
     @Bean

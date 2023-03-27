@@ -46,8 +46,8 @@ import java.util.function.Consumer;
 /**
  * OpenID Connect implementation of Authorized Client Repository for storing OAuth2 Tokens
  */
-public class StandardOidcAuthorizedAuthorizedClientRepository implements OAuth2AuthorizedClientRepository, TrackedAuthorizedClientRepository {
-    private static final Logger logger = LoggerFactory.getLogger(StandardOidcAuthorizedAuthorizedClientRepository.class);
+public class StandardOidcAuthorizedClientRepository implements OAuth2AuthorizedClientRepository, TrackedAuthorizedClientRepository {
+    private static final Logger logger = LoggerFactory.getLogger(StandardOidcAuthorizedClientRepository.class);
 
     private static final Scope SCOPE = Scope.LOCAL;
 
@@ -61,7 +61,7 @@ public class StandardOidcAuthorizedAuthorizedClientRepository implements OAuth2A
      * @param stateManager State Manager for storing authorized clients
      * @param authorizedClientConverter Authorized Client Converter
      */
-    public StandardOidcAuthorizedAuthorizedClientRepository(
+    public StandardOidcAuthorizedClientRepository(
             final StateManager stateManager,
             final AuthorizedClientConverter authorizedClientConverter
     ) {
@@ -143,7 +143,7 @@ public class StandardOidcAuthorizedAuthorizedClientRepository implements OAuth2A
     }
 
     /**
-     * Delete expired Authorized Clients from the configured Stated Manager
+     * Delete expired Authorized Clients from the configured State Manager
      *
      * @return Deleted OIDC Authorized Clients
      */

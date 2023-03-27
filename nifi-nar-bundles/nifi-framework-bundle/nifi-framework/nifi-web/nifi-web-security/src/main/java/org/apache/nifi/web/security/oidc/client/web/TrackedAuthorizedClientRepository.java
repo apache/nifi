@@ -23,7 +23,7 @@ import java.util.List;
  */
 public interface TrackedAuthorizedClientRepository {
     /**
-     * Deleted expired Authorized Clients
+     * Delete expired Authorized Clients
      *
      * @return Deleted OIDC Authorized Clients
      */
