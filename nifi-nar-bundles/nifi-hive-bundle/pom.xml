@@ -110,6 +110,11 @@
                 <artifactId>xercesImpl</artifactId>
                 <version>2.12.2</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-hadoop-bundle</artifactId>
+                <version>1.12.3</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
