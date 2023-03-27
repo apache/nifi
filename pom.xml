@@ -1164,7 +1164,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>8.0.2</version>
+                        <version>8.2.1</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
@@ -1178,6 +1178,7 @@
                                     <skipSystemScope>true</skipSystemScope>
                                     <!-- Disable .NET Assembly Analyzer to avoid non-applicable errors -->
                                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                                    <skipProvidedScope>true</skipProvidedScope>
                                 </configuration>
                             </execution>
                         </executions>
