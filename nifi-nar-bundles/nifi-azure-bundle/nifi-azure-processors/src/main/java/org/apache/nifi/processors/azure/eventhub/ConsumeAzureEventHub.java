@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.amqp.AmqpClientOptions;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -44,6 +45,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -84,6 +86,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
@@ -329,17 +332,18 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         RECORD_RELATIONSHIPS = Collections.unmodifiableSet(relationships);
     }
 
-    private volatile ProcessSessionFactory processSessionFactory;
     private volatile EventProcessorClient eventProcessorClient;
-    private volatile RecordReaderFactory readerFactory;
-    private volatile RecordSetWriterFactory writerFactory;
-
-    private volatile String namespaceName;
     private volatile boolean isRecordReaderSet = false;
     private volatile boolean isRecordWriterSet = false;
-    private volatile String serviceBusEndpoint;
-    private volatile CheckpointStrategy checkpointStrategy;
 
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (RECORD_READER.equals(descriptor)) {
+            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
+        } else if (RECORD_WRITER.equals(descriptor)) {
+            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
+        }
+    }
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -396,26 +400,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        if (RECORD_READER.equals(descriptor)) {
-            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
-        } else if (RECORD_WRITER.equals(descriptor)) {
-            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
-        } else if (SERVICE_BUS_ENDPOINT.equals(descriptor)) {
-            serviceBusEndpoint = newValue;
-        } else if (CHECKPOINT_STRATEGY.equals(descriptor)) {
-            checkpointStrategy = CheckpointStrategy.valueOf(newValue);
-        }
-    }
-
-    @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (eventProcessorClient == null) {
-            processSessionFactory = sessionFactory;
-            readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-            writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-            eventProcessorClient = createClient(context);
+            eventProcessorClient = createClient(context, sessionFactory);
             eventProcessorClient.start();
         }
 
@@ -433,20 +420,21 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 getLogger().warn("Event Processor Client stop failed", e);
             }
             eventProcessorClient = null;
-            processSessionFactory = null;
-            readerFactory = null;
-            writerFactory = null;
         }
     }
 
-    protected EventProcessorClient createClient(final ProcessContext context) {
-        namespaceName = context.getProperty(NAMESPACE).evaluateAttributeExpressions().getValue();
+    protected EventProcessorClient createClient(final ProcessContext context, final ProcessSessionFactory processSessionFactory) {
+        final String namespaceName = context.getProperty(NAMESPACE).evaluateAttributeExpressions().getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).evaluateAttributeExpressions().getValue();
+        final String identifier = UUID.randomUUID().toString();
 
         CheckpointStore checkpointStore;
         final Map<String, EventPosition> legacyPartitionEventPosition;
 
+        final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(
+                context.getProperty(CHECKPOINT_STRATEGY).getValue()
+        );
         if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
             final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
             final String storageConnectionString = createStorageConnectionString(context);
@@ -458,15 +446,27 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         } else {
             checkpointStore = new ComponentStateCheckpointStore(
+                    identifier,
                     new ComponentStateCheckpointStore.State() {
-                        @Override
-                        public Map<String, String> getState() throws IOException {
-                            return processSessionFactory.createSession().getState(Scope.CLUSTER).toMap();
+                        public StateMap getState() throws IOException {
+                            final ProcessSession session = processSessionFactory.createSession();
+                            return session.getState(Scope.CLUSTER);
                         }
 
-                        @Override
                         public void setState(Map<String, String> map) throws IOException {
-                            processSessionFactory.createSession().setState(map, Scope.CLUSTER);
+                            final ProcessSession session = processSessionFactory.createSession();
+                            session.setState(map, Scope.CLUSTER);
+                            session.commitAsync();
+                        }
+
+                        public boolean replaceState(StateMap oldValue, Map<String, String> newValue) throws IOException {
+                            final ProcessSession session = processSessionFactory.createSession();
+                            if (!session.replaceState(oldValue, newValue, Scope.CLUSTER)) {
+                                return false;
+                            }
+                            session.commit();
+                            StateMap updatedMap = session.getState(Scope.CLUSTER);
+                            return (updatedMap.toMap().equals(newValue));
                         }
                     });
             legacyPartitionEventPosition = Collections.emptyMap();
@@ -476,13 +476,29 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
         final Integer maxBatchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
         final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
                 .consumerGroup(consumerGroup)
                 .trackLastEnqueuedEventProperties(true)
                 .checkpointStore(checkpointStore)
                 .processError(errorProcessor)
-                .processEventBatch(eventBatchProcessor, maxBatchSize, maxWaitTime);
+                .clientOptions(new AmqpClientOptions().setIdentifier(identifier))
+                .processEventBatch(
+                        eventBatchContext -> eventBatchProcessor(
+                                eventBatchContext,
+                                processSessionFactory,
+                                readerFactory,
+                                writerFactory,
+                                checkpointStrategy,
+                                identifier
+                        ),
+                        maxBatchSize,
+                        maxWaitTime
+                );
 
+        final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String fullyQualifiedNamespace = String.format("%s%s", namespaceName, serviceBusEndpoint);
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         if (useManagedIdentity) {
@@ -517,16 +533,22 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     }
 
     protected String getTransitUri(final PartitionContext partitionContext) {
-        return String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
-                namespaceName,
-                serviceBusEndpoint,
+        return String.format("amqps://%s/%s/ConsumerGroups/%s/Partitions/%s",
+                partitionContext.getFullyQualifiedNamespace(),
                 partitionContext.getEventHubName(),
                 partitionContext.getConsumerGroup(),
                 partitionContext.getPartitionId()
         );
     }
 
-    protected final Consumer<EventBatchContext> eventBatchProcessor = eventBatchContext -> {
+    protected void eventBatchProcessor(
+            EventBatchContext eventBatchContext,
+            final ProcessSessionFactory processSessionFactory,
+            final RecordReaderFactory readerFactory,
+            final RecordSetWriterFactory writerFactory,
+            final CheckpointStrategy checkpointStrategy,
+            final String identifier
+    ) {
         final ProcessSession session = processSessionFactory.createSession();
 
         try {
@@ -535,7 +557,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             if (readerFactory == null || writerFactory == null) {
                 writeFlowFiles(eventBatchContext, session, stopWatch);
             } else {
-                writeRecords(eventBatchContext, session, stopWatch);
+                writeRecords(eventBatchContext, session, readerFactory, writerFactory, stopWatch);
             }
 
             // As a special case, when the checkpoint strategy is component state,
@@ -545,15 +567,18 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                         eventBatchContext.getPartitionContext(),
                         eventBatchContext.getEvents(),
                         new ComponentStateCheckpointStore(
+                                identifier,
                                 new ComponentStateCheckpointStore.State() {
-                                    @Override
-                                    public Map<String, String> getState() throws IOException {
-                                        return session.getState(Scope.CLUSTER).toMap();
+                                    public StateMap getState() throws IOException {
+                                        return session.getState(Scope.CLUSTER);
                                     }
 
-                                    @Override
                                     public void setState(Map<String, String> map) throws IOException {
                                         session.setState(map, Scope.CLUSTER);
+                                    }
+
+                                    public boolean replaceState(StateMap oldValue, Map<String, String> newValue) {
+                                        return false;
                                     }
                                 }
                         ),
@@ -577,7 +602,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             );
             session.rollback();
         }
-    };
+    }
 
     private final Consumer<ErrorContext> errorProcessor = errorContext -> {
         final PartitionContext partitionContext = errorContext.getPartitionContext();
@@ -633,6 +658,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     private void writeRecords(
             final EventBatchContext eventBatchContext,
             final ProcessSession session,
+            final RecordReaderFactory readerFactory,
+            final RecordSetWriterFactory writerFactory,
             final StopWatch stopWatch
     ) throws IOException {
         final PartitionContext partitionContext = eventBatchContext.getPartitionContext();
@@ -727,7 +754,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     private String createStorageConnectionString(final ProcessContext context) {
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-
+        final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
         final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();

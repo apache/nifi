@@ -23,8 +23,10 @@ import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.azure.eventhub.utils.CheckpointStrategy;
 import org.apache.nifi.processors.azure.eventhub.utils.ComponentStateCheckpointStore;
@@ -88,6 +90,7 @@ public class TestConsumeAzureEventHub {
     private static final String SERVICE_BUS_ENDPOINT = ".endpoint";
     private static final String CONSUMER_GROUP = "CONSUMER";
     private static final String PARTITION_ID = "0";
+    private static final String IDENTIFIER = "identity";
     private static final String FIRST_CONTENT = "CONTENT-1";
     private static final String SECOND_CONTENT = "CONTENT-2";
     private static final String THIRD_CONTENT = "CONTENT-3";
@@ -218,7 +221,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, null, null);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -242,7 +245,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, null, null);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(2, flowFiles.size());
@@ -268,7 +271,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, readerFactory, writerFactory);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -296,7 +299,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, readerFactory, writerFactory);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -335,7 +338,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, readerFactory, writerFactory);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(0, flowFiles.size());
@@ -367,7 +370,7 @@ public class TestConsumeAzureEventHub {
 
         CheckpointStore checkpointStore = createCheckpointStore(strategy);
         final EventBatchContext eventBatchContext = new EventBatchContext(partitionContext, events, checkpointStore, null);
-        processor.eventBatchProcessor.accept(eventBatchContext);
+        processEventBatch(eventBatchContext, strategy, readerFactory, writerFactory);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
         assertEquals(1, flowFiles.size());
@@ -393,6 +396,10 @@ public class TestConsumeAzureEventHub {
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
     }
 
+    private void processEventBatch(final EventBatchContext eventBatchContext, final CheckpointStrategy strategy, RecordReaderFactory readerFactory, RecordSetWriterFactory writerFactory) {
+        processor.eventBatchProcessor(eventBatchContext, testRunner.getProcessSessionFactory(), readerFactory, writerFactory, strategy, IDENTIFIER);
+    }
+
     private CheckpointStore createCheckpointStore(CheckpointStrategy strategy) {
         if (strategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
             CheckpointStore checkpointStore = mock(CheckpointStore.class);
@@ -401,15 +408,29 @@ public class TestConsumeAzureEventHub {
         } else {
             ProcessSessionFactory processSessionFactory = testRunner.getProcessSessionFactory();
             return new ComponentStateCheckpointStore(
+                    "test",
                     new ComponentStateCheckpointStore.State() {
                         @Override
-                        public Map<String, String> getState() throws IOException {
-                            return processSessionFactory.createSession().getState(Scope.CLUSTER).toMap();
+                        public StateMap getState() throws IOException {
+                            return processSessionFactory.createSession().getState(Scope.CLUSTER);
                         }
 
                         @Override
                         public void setState(Map<String, String> map) throws IOException {
-                            processSessionFactory.createSession().setState(map, Scope.CLUSTER);
+                            final ProcessSession session = processSessionFactory.createSession();
+                            session.setState(map, Scope.CLUSTER);
+                            session.commitAsync();
+                        }
+
+                        @Override
+                        public boolean replaceState(StateMap oldValue, Map<String, String> newValue) throws IOException {
+                            final ProcessSession session = processSessionFactory.createSession();
+                            if (!session.replaceState(oldValue, newValue, Scope.CLUSTER)) {
+                                return false;
+                            }
+                            session.commit();
+                            StateMap updatedMap = session.getState(Scope.CLUSTER);
+                            return (updatedMap.toMap().equals(newValue));
                         }
                     }
             );
@@ -543,7 +564,7 @@ public class TestConsumeAzureEventHub {
     private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {
 
         @Override
-        protected EventProcessorClient createClient(final ProcessContext context) {
+        protected EventProcessorClient createClient(final ProcessContext context, final ProcessSessionFactory processSessionFactory) {
             return eventProcessorClient;
         }
 
