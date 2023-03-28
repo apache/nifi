@@ -59,8 +59,8 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -228,7 +228,7 @@ public class JwtAuthenticationSecurityConfiguration {
     @Bean
     public ThreadPoolTaskScheduler commandScheduler() {
         final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setThreadNamePrefix(getClass().getSimpleName());
+        scheduler.setThreadNamePrefix(JwtAuthenticationSecurityConfiguration.class.getSimpleName());
         return scheduler;
     }
 }
