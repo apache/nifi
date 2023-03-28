@@ -49,11 +49,11 @@ public class RecordUtils {
         return new MapRecord(mergedSchema, recordValues);
     }
 
-    public static MapRecord wrap(final Record originalRecord, final Map<String, String> decoratorValues, final String decoratorKey)
+    public static MapRecord wrap(final Record originalRecord, final String originalRecordKey, final Map<String, String> decoratorValues, final String decoratorKey)
             throws IOException, MalformedRecordException {
 
         // create schema
-        final Tuple<RecordField, Object> originalRecordLeaf = wrapStandardRecord(originalRecord);
+        final Tuple<RecordField, Object> originalRecordLeaf = wrapStandardRecord(originalRecord, originalRecordKey);
         final Tuple<RecordField, Object> decoratorLeaf = wrapDecoratorValues(decoratorValues, decoratorKey);
         final RecordSchema rootRecordSchema = new SimpleRecordSchema(Arrays.asList(originalRecordLeaf.getKey(), decoratorLeaf.getKey()));
 
@@ -64,9 +64,9 @@ public class RecordUtils {
         return new MapRecord(rootRecordSchema, recordValues);
     }
 
-    private static Tuple<RecordField, Object> wrapStandardRecord(final Record record) {
+    private static Tuple<RecordField, Object> wrapStandardRecord(final Record record, final String recordKey) {
         final RecordSchema recordSchema = (record == null) ? null : record.getSchema();
-        final RecordField recordField = new RecordField("value", RecordFieldType.RECORD.getRecordDataType(recordSchema));
+        final RecordField recordField = new RecordField(recordKey, RecordFieldType.RECORD.getRecordDataType(recordSchema));
         return new Tuple<>(recordField, record);
     }
 

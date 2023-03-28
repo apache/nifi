@@ -18,10 +18,10 @@ package org.apache.nifi.jms.processors.strategy.consumer.record;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.jms.processors.strategy.consumer.AttributeSupplier;
+import org.apache.nifi.jms.processors.strategy.consumer.AttributeSource;
 import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriter;
 import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriterCallback;
-import org.apache.nifi.jms.processors.strategy.consumer.Serializer;
+import org.apache.nifi.jms.processors.strategy.consumer.Marshaller;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -54,21 +54,21 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
 
     private final RecordReaderFactory readerFactory;
     private final RecordSetWriterFactory writerFactory;
-    private final Serializer<T> serializer;
-    private final AttributeSupplier<T> attributeSupplier;
+    private final Marshaller<T> marshaller;
+    private final AttributeSource<T> attributeSource;
     private final OutputStrategy outputStrategy;
     private final ComponentLog logger;
 
     public RecordWriter(RecordReaderFactory readerFactory,
                         RecordSetWriterFactory writerFactory,
-                        Serializer<T> serializer,
-                        AttributeSupplier<T> attributeSupplier,
+                        Marshaller<T> marshaller,
+                        AttributeSource<T> attributeSource,
                         OutputStrategy outputStrategy,
                         ComponentLog logger) {
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
-        this.serializer = serializer;
-        this.attributeSupplier = attributeSupplier;
+        this.marshaller = marshaller;
+        this.attributeSource = attributeSource;
         this.outputStrategy = outputStrategy;
         this.logger = logger;
     }
@@ -92,7 +92,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                     break;
                 }
 
-                final byte[] recordBytes = serializer.serialize(message);
+                final byte[] recordBytes = marshaller.marshall(message);
                 try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
                     final RecordReader reader;
 
@@ -116,12 +116,12 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
 
-                            if (attributeSupplier != null && !outputStrategy.equals(USE_VALUE)) {
-                                final Map<String, String> additionalAttributes = attributeSupplier.supply(message);
+                            if (attributeSource != null && !outputStrategy.equals(USE_VALUE)) {
+                                final Map<String, String> additionalAttributes = attributeSource.getAttributes(message);
                                 if (outputStrategy.equals(USE_APPENDER)) {
                                     record = RecordUtils.append(record, additionalAttributes, "_");
                                 } else if (outputStrategy.equals(USE_WRAPPER)){
-                                    record = RecordUtils.wrap(record, additionalAttributes, "_");
+                                    record = RecordUtils.wrap(record, "value", additionalAttributes, "_");
                                 }
                             }
 
@@ -185,10 +185,11 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         }
 
         session.putAllAttributes(flowFile, attributes);
-        flowFileWriterCallback.onSuccess(flowFile, processedMessages, failedMessages);
 
         final int count = recordCount.get();
         logger.info("Successfully processed {} records for {}", count, flowFile);
+
+        flowFileWriterCallback.onSuccess(flowFile, processedMessages, failedMessages);
     }
 
     private void closeWriter(final RecordSetWriter writer) {
@@ -201,46 +202,4 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         }
     }
 
-    public static final class Builder<T> {
-        private RecordReaderFactory readerFactory;
-        private RecordSetWriterFactory writerFactory;
-        private Serializer<T> serializer;
-        private AttributeSupplier<T> attributeSupplier;
-        private OutputStrategy outputStrategy;
-        private ComponentLog logger;
-
-        public Builder<T> withReaderFactory(RecordReaderFactory readerFactory) {
-            this.readerFactory = readerFactory;
-            return this;
-        }
-
-        public Builder<T> withWriterFactory(RecordSetWriterFactory writerFactory) {
-            this.writerFactory = writerFactory;
-            return this;
-        }
-
-        public Builder<T> withSerializer(Serializer<T> serializer) {
-            this.serializer = serializer;
-            return this;
-        }
-
-        public Builder<T> withAttributeSupplier(AttributeSupplier<T> attributeSupplier) {
-            this.attributeSupplier = attributeSupplier;
-            return this;
-        }
-
-        public Builder<T> withOutputStrategy(OutputStrategy outputStrategy) {
-            this.outputStrategy = outputStrategy;
-            return this;
-        }
-
-        public Builder<T> withLogger(ComponentLog logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        public RecordWriter<T> build() {
-            return new RecordWriter<>(readerFactory, writerFactory, serializer, attributeSupplier, outputStrategy, logger);
-        }
-    }
 }

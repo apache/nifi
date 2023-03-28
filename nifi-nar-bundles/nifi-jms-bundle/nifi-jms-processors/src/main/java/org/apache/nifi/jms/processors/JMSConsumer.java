@@ -140,9 +140,9 @@ class JMSConsumer extends JMSWorker {
             @Override
             public Void doInJms(final Session session) throws JMSException {
 
-                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
+                final MessageConsumer messageConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
                 try {
-                    messageReceiver.consume(session, msgConsumer);
+                    messageReceiver.consume(session, messageConsumer);
                 } catch (Exception e) {
                     // We need to call recover to ensure that in the event of
                     // abrupt end or exception the current session will stop message
@@ -154,7 +154,7 @@ class JMSConsumer extends JMSWorker {
                         processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
                     }
 
-                    JmsUtils.closeMessageConsumer(msgConsumer);
+                    JmsUtils.closeMessageConsumer(messageConsumer);
                     throw e;
                 }
 

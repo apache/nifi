@@ -19,14 +19,14 @@ package org.apache.nifi.jms.processors.strategy.consumer.record;
 import org.apache.nifi.components.DescribedValue;
 
 /**
- * Enumeration of supported JMS Output Strategies
+ * Enumeration of supported Output Strategies
  */
 public enum OutputStrategy implements DescribedValue {
-    USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the JMS Message to the FlowFile record."),
+    USE_VALUE("USE_VALUE", "Use Content as Value", "Write only the message to the FlowFile record."),
 
-    USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the JMS Attributes into the FlowFile record on a separate leaf. (See processor usage for more information.)"),
+    USE_WRAPPER("USE_WRAPPER", "Use Wrapper", "Write the additional attributes into the FlowFile record on a separate leaf. (See processor usage for more information.)"),
 
-    USE_APPENDER("USE_APPENDER", "Use Appender", "Write the JMS Attributes into the FlowFile record prefixed with \"_\". (See processor usage for more information.)");
+    USE_APPENDER("USE_APPENDER", "Use Appender", "Write the additional attributes into the FlowFile record prefixed with \"_\". (See processor usage for more information.)");
 
     private final String value;
 

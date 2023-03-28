@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors.strategy.consumer;
 
-public interface Serializer<T> {
-    byte[] serialize(T message);
+import java.util.Map;
+
+public interface AttributeSource<T> {
+    Map<String, String> getAttributes(T message);
 }

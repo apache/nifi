@@ -33,6 +33,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
 import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReaderCallback;
+import org.apache.nifi.jms.processors.strategy.publisher.StateTrackingFlowFileReader;
+import org.apache.nifi.jms.processors.strategy.publisher.record.RecordSupplier;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
@@ -62,7 +64,6 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.StateTrackingReader.RecordBasedFlowFileReaderBuilder.aRecordBasedFlowFileReader;
 
 /**
  * An implementation of JMS Message publishing {@link Processor} which upon each
@@ -224,12 +225,11 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                     final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
                     final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-                    final FlowFileReader flowFileReader = aRecordBasedFlowFileReader()
-                            .withIdentifier(getIdentifier())
-                            .withReaderFactory(readerFactory)
-                            .withWriterFactory(writerFactory)
-                            .withLogger(getLogger())
-                            .build();
+                    final FlowFileReader flowFileReader = new StateTrackingFlowFileReader(
+                            getIdentifier(),
+                            new RecordSupplier(readerFactory, writerFactory),
+                            getLogger()
+                    );
 
                     flowFileReader.read(
                             processSession,

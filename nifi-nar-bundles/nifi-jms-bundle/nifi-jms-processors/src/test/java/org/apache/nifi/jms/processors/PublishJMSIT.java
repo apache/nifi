@@ -69,7 +69,7 @@ import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecor
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.StateTrackingReader.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+import static org.apache.nifi.jms.processors.strategy.publisher.StateTrackingFlowFileReader.ATTR_READ_FAILED_INDEX_SUFFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -598,7 +598,7 @@ public class PublishJMSIT {
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile successfulFlowFile = flowFiles.get(0);
-        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
         assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
     }
 
@@ -637,7 +637,7 @@ public class PublishJMSIT {
         assertEquals(1, flowFiles.size());
 
         final MockFlowFile failedFlowFile = flowFiles.get(0);
-        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
         assertEquals("1", failedFlowFile.getAttribute(publishFailedIndexAttributeName), "Only one record is expected to be published successfully.");
     }
 
@@ -661,7 +661,7 @@ public class PublishJMSIT {
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.assertValid();
 
-        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
         final ArrayNode testInput = createTestJsonInput();
 
         final Map<String, String> attributes = new HashMap<>();
@@ -691,7 +691,7 @@ public class PublishJMSIT {
         testRunner.setProperty(PublishJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
         testRunner.assertValid();
 
-        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_READ_FAILED_INDEX_SUFFIX;
         final ArrayNode testInput = createTestJsonInput();
 
         final Map<String, String> attributes = new HashMap<>();

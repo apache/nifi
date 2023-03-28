@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.jms.processors.strategy.consumer;
 
-import java.util.Map;
-
-public interface AttributeSupplier<T> {
-    Map<String, String> supply(T message);
+public interface Marshaller<T> {
+    byte[] marshall(T message);
 }

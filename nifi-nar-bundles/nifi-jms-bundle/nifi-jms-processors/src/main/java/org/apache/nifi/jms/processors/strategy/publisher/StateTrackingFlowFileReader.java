@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher.record;
+package org.apache.nifi.jms.processors.strategy.publisher;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReaderCallback;
-import org.apache.nifi.jms.processors.strategy.publisher.MessageHandler;
+import org.apache.nifi.jms.processors.strategy.publisher.record.RecordSupplier;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.StopWatch;
 
 import java.util.concurrent.TimeUnit;
@@ -31,15 +27,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.ofNullable;
 
-public class StateTrackingReader implements FlowFileReader {
+public class StateTrackingFlowFileReader implements FlowFileReader {
 
-    public static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".publish.failed.index";
+    public static final String ATTR_READ_FAILED_INDEX_SUFFIX = ".read.failed.index";
 
     private final String identifier;
     private final RecordSupplier recordSupplier;
     private final ComponentLog logger;
 
-    public StateTrackingReader(String identifier, RecordSupplier recordSupplier, ComponentLog logger) {
+    public StateTrackingFlowFileReader(String identifier, RecordSupplier recordSupplier, ComponentLog logger) {
         this.identifier = identifier;
         this.recordSupplier = recordSupplier;
         this.logger = logger;
@@ -50,7 +46,7 @@ public class StateTrackingReader implements FlowFileReader {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
-        final String publishFailedIndexAttributeName = identifier + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        final String publishFailedIndexAttributeName = identifier + ATTR_READ_FAILED_INDEX_SUFFIX;
 
         try {
             final Long previousProcessFailedAt = ofNullable(flowFile.getAttribute(publishFailedIndexAttributeName)).map(Long::valueOf).orElse(null);
@@ -74,41 +70,4 @@ public class StateTrackingReader implements FlowFileReader {
         }
     }
 
-    public static final class RecordBasedFlowFileReaderBuilder {
-        private String identifier;
-        private RecordReaderFactory readerFactory;
-        private RecordSetWriterFactory writerFactory;
-        private ComponentLog logger;
-
-        private RecordBasedFlowFileReaderBuilder() {
-        }
-
-        public static RecordBasedFlowFileReaderBuilder aRecordBasedFlowFileReader() {
-            return new RecordBasedFlowFileReaderBuilder();
-        }
-
-        public RecordBasedFlowFileReaderBuilder withIdentifier(String identifier) {
-            this.identifier = identifier;
-            return this;
-        }
-
-        public RecordBasedFlowFileReaderBuilder withReaderFactory(RecordReaderFactory readerFactory) {
-            this.readerFactory = readerFactory;
-            return this;
-        }
-
-        public RecordBasedFlowFileReaderBuilder withWriterFactory(RecordSetWriterFactory writerFactory) {
-            this.writerFactory = writerFactory;
-            return this;
-        }
-
-        public RecordBasedFlowFileReaderBuilder withLogger(ComponentLog logger) {
-            this.logger = logger;
-            return this;
-        }
-
-        public StateTrackingReader build() {
-            return new StateTrackingReader(identifier, new RecordSupplier(readerFactory, writerFactory), logger);
-        }
-    }
 }
