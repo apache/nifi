@@ -224,4 +224,14 @@
         <packageUrl regex="true">^pkg:maven/com\.google\.api\.grpc/grpc\-google\-cloud\-pubsublite\-v1@.*$</packageUrl>
         <cpe>cpe:/a:grpc:grpc</cpe>
     </suppress>
+    <suppress>
+        <notes>CVE-2020-9040 applies to Couchbase Server not the client library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.couchbase\.client/core\-io@.*$</packageUrl>
+        <vulnerabilityName>CVE-2020-9040</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-41881 applies to HA Proxy components in Netty which are not used in Couchbase or other components</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/.*$</packageUrl>
+        <cve>CVE-2022-41881</cve>
+    </suppress>
 </suppressions>
