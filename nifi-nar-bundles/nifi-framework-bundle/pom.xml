@@ -265,12 +265,12 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
-                <version>9.43</version>
+                <version>9.43.1</version>
             </dependency>
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.24.3</version>
+                <version>9.31</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
