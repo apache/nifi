@@ -67,6 +67,12 @@
                 <artifactId>proton-j</artifactId>
                 <version>${qpid.proton.version}</version>
             </dependency>
+            <!-- Override nimbus-jose-jwt 9.22 from msal4j -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.31</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

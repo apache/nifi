@@ -66,6 +66,12 @@
                 <artifactId>solr-solrj</artifactId>
                 <version>8.11.1</version>
             </dependency>
+            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.31</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
