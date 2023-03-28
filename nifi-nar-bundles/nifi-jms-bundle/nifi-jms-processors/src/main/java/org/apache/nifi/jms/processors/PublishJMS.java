@@ -31,8 +31,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
-import org.apache.nifi.jms.processors.strategy.publisher.MessagePublisher;
-import org.apache.nifi.jms.processors.strategy.publisher.MessagePublisherCallback;
+import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
+import org.apache.nifi.jms.processors.strategy.publisher.ReaderCallback;
 import org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -60,8 +60,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.jms.processors.strategy.publisher.MessagePublisher.MessagePublisherBuilder.aMessagePublisher;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.RecordBasedFlowFileReader.RecordBasedFlowFileReaderBuilder.aRecordBasedFlowFileReader;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.StateTrackingReader.RecordBasedFlowFileReaderBuilder.aRecordBasedFlowFileReader;
 
 /**
  * An implementation of JMS Message publishing {@link Processor} which upon each
@@ -223,28 +225,43 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                     final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
                     final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-                    final MessagePublisher messagePublisher = aMessagePublisher()
-                            .withFlowFileReader(aRecordBasedFlowFileReader()
-                                    .withIdentifier(getIdentifier())
-                                    .withReaderFactory(readerFactory)
-                                    .withWriterFactory(writerFactory)
-                                    .withEventReporter(StandardRecordsPublishedEventReporter.of(destinationName))
-                                    .withLogger(getLogger())
-                                .build())
-                            .withRecordPublisher(content -> publisher.publish(destinationName, content, attributesToSend))
+                    final FlowFileReader flowFileReader = aRecordBasedFlowFileReader()
+                            .withIdentifier(getIdentifier())
+                            .withReaderFactory(readerFactory)
+                            .withWriterFactory(writerFactory)
+                            .withEventReporter(StandardRecordsPublishedEventReporter.of(destinationName))
+                            .withLogger(getLogger())
                             .build();
 
-                    messagePublisher.publish(processSession, flowFile, new MessagePublisherCallback() {
-                        @Override
-                        public void onSuccess(FlowFile flowFile) {
-                            processSession.transfer(flowFile, REL_SUCCESS);
-                        }
+                    flowFileReader.read(
+                            processSession,
+                            flowFile,
+                            content -> publisher.publish(destinationName, content, attributesToSend),
+                            new ReaderCallback() {
+                                @Override
+                                public void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis) {
+                                    final String eventTemplate = isRecover ? PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER : PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+                                    processSession.getProvenanceReporter().send(
+                                            flowFile,
+                                            destinationName,
+                                            String.format(eventTemplate, processedRecords),
+                                            transmissionMillis);
 
-                        @Override
-                        public void onFailure(FlowFile flowFile, Exception e) {
-                            handleException(context, processSession, publisher, flowFile, e);
-                        }
-                    });
+                                    processSession.transfer(flowFile, REL_SUCCESS);
+                                }
+
+                                @Override
+                                public void onFailure(FlowFile flowFile, int processedRecords, long transmissionMillis, Exception e) {
+                                    processSession.getProvenanceReporter().send(
+                                            flowFile,
+                                            destinationName,
+                                            String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE, processedRecords),
+                                            transmissionMillis);
+
+                                    handleException(context, processSession, publisher, flowFile, e);
+                                }
+                            }
+                    );
                 } else {
                     processStandardFlowFile(context, processSession, publisher, flowFile, destinationName, charset, attributesToSend);
                     processSession.transfer(flowFile, REL_SUCCESS);

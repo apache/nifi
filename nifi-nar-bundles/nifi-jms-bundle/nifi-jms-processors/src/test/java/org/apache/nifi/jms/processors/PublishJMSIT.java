@@ -66,7 +66,7 @@ import static org.apache.nifi.jms.processors.PublishJMS.REL_SUCCESS;
 import static org.apache.nifi.jms.processors.helpers.AssertionUtils.assertCausedBy;
 import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetReaderService;
 import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetWriterService;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.RecordBasedFlowFileReader.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.StateTrackingReader.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;

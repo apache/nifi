@@ -19,7 +19,7 @@ package org.apache.nifi.jms.processors.strategy.publisher.record;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.processors.strategy.publisher.EventReporter;
 import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.MessagePublisherCallback;
+import org.apache.nifi.jms.processors.strategy.publisher.ReaderCallback;
 import org.apache.nifi.jms.processors.strategy.publisher.MessageHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.Optional.ofNullable;
 
-public class RecordBasedFlowFileReader implements FlowFileReader {
+public class StateTrackingReader implements FlowFileReader {
 
     public static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".publish.failed.index";
 
@@ -41,7 +41,7 @@ public class RecordBasedFlowFileReader implements FlowFileReader {
     private final EventReporter eventReporter;
     private final ComponentLog logger;
 
-    public RecordBasedFlowFileReader(String identifier, RecordSupplier recordSupplier, EventReporter eventReporter, ComponentLog logger) {
+    public StateTrackingReader(String identifier, RecordSupplier recordSupplier, EventReporter eventReporter, ComponentLog logger) {
         this.identifier = identifier;
         this.recordSupplier = recordSupplier;
         this.eventReporter = eventReporter;
@@ -49,7 +49,7 @@ public class RecordBasedFlowFileReader implements FlowFileReader {
     }
 
     @Override
-    public void processFlowFileContent(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, MessagePublisherCallback messagePublisherCallback) {
+    public void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, ReaderCallback readerCallback) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
@@ -62,24 +62,18 @@ public class RecordBasedFlowFileReader implements FlowFileReader {
 
             FlowFile successFlowFile = flowFile;
 
-            if (previousProcessFailedAt != null) {
+            final boolean isRecover = previousProcessFailedAt != null;
+            if (isRecover) {
                 successFlowFile = session.removeAttribute(flowFile, publishFailedIndexAttributeName);
-                eventReporter.reportRecoverEvent(session, flowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            } else {
-                eventReporter.reportSuccessEvent(session, flowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             }
 
-            messagePublisherCallback.onSuccess(successFlowFile);
+            readerCallback.onSuccess(successFlowFile, processedRecords.get(), isRecover, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
-            logger.error("An error happened during publishing records. Routing to failure.", e);
+            logger.error("An error happened while processing records. Routing to failure.", e);
 
             final FlowFile failedFlowFile = session.putAttribute(flowFile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));
 
-            if (processedRecords.get() > 0) {
-                eventReporter.reportFailureEvent(session, failedFlowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            }
-
-            messagePublisherCallback.onFailure(failedFlowFile, e);
+            readerCallback.onFailure(failedFlowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), e);
         }
     }
 
@@ -122,8 +116,8 @@ public class RecordBasedFlowFileReader implements FlowFileReader {
             return this;
         }
 
-        public RecordBasedFlowFileReader build() {
-            return new RecordBasedFlowFileReader(identifier, new RecordSupplier(readerFactory, writerFactory), eventReporter, logger);
+        public StateTrackingReader build() {
+            return new StateTrackingReader(identifier, new RecordSupplier(readerFactory, writerFactory), eventReporter, logger);
         }
     }
 }

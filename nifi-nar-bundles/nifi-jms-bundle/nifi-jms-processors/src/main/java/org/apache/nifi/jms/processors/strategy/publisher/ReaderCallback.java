@@ -18,7 +18,7 @@ package org.apache.nifi.jms.processors.strategy.publisher;
 
 import org.apache.nifi.flowfile.FlowFile;
 
-public interface MessagePublisherCallback {
-    void onSuccess(FlowFile flowFile);
-    void onFailure(FlowFile flowFile, Exception e);
+public interface ReaderCallback {
+    void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis);
+    void onFailure(FlowFile flowFile, int processedRecords, long transmissionMillis, Exception e);
 }

@@ -22,11 +22,7 @@ import org.apache.nifi.processor.ProcessSession;
 public interface EventReporter {
     void reportSuccessEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
 
-    default void reportRecoverEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis) {
-        // there is no default operation
-    }
+    void reportRecoverEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
 
-    default void reportFailureEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis) {
-        // there is no default operation
-    }
+    void reportFailureEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
 }
