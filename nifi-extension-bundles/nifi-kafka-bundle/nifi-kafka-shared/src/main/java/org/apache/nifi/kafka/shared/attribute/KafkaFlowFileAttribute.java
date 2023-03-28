@@ -41,4 +41,6 @@ public interface KafkaFlowFileAttribute {
     String KAFKA_CONSUMER_OFFSETS_COMMITTED = "kafka.consumer.offsets.committed";
 
     String KAFKA_TOMBSTONE = "kafka.tombstone";
+
+    String KAFKA_HEADER_COUNT = "kafka.header.count";
 }
