@@ -60,21 +60,35 @@ limitations under the License.
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>build-docker-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
                                 <configuration>
-                                    <dockerfile>dockermaven/Dockerfile</dockerfile>
-                                    <buildArgs>
-                                        <UID>1000</UID>
-                                        <GID>1000</GID>
-                                        <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
-                                        <MINIFI_C2_BINARY_NAME>minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY_NAME>
-                                        <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY>
-                                    </buildArgs>
-                                    <repository>apacheminific2</repository>
-                                    <tag>${minifi.c2.version}</tag>
+                                    <images>
+                                        <image>
+                                            <name>apache/nifi-minifi-c2</name>
+                                            <build>
+                                                <tags>
+                                                    <tag>${minifi.c2.version}-maven</tag>
+                                                </tags>
+                                                <dockerFile>dockermaven/Dockerfile</dockerFile>
+                                                <contextDir>${project.basedir}</contextDir>
+                                                <args>
+                                                    <UID>1000</UID>
+                                                    <GID>1000</GID>
+                                                    <MINIFI_C2_VERSION>${minifi.c2.version}</MINIFI_C2_VERSION>
+                                                    <MINIFI_C2_BINARY_NAME>minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY_NAME>
+                                                    <MINIFI_C2_BINARY>target/minifi-c2-${minifi.c2.version}-bin.zip</MINIFI_C2_BINARY>
+                                                </args>
+                                            </build>
+                                        </image>
+                                    </images>
                                 </configuration>
                             </execution>
                         </executions>

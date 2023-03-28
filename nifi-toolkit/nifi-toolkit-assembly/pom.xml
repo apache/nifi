@@ -192,19 +192,33 @@ language governing permissions and limitations under the License. -->
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>build-docker-image</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
                                 <configuration>
-                                    <contextDirectory>./target/docker-build</contextDirectory>
-                                    <buildArgs>
-                                        <UID>1000</UID>
-                                        <GID>1000</GID>
-                                        <NIFI_TOOLKIT_VERSION>${project.version}</NIFI_TOOLKIT_VERSION>
-                                    </buildArgs>
-                                    <repository>apache/nifi-toolkit</repository>
-                                    <tag>${project.version}</tag>
+                                    <images>
+                                        <image>
+                                            <name>apache/nifi-toolkit</name>
+                                            <build>
+                                                <tags>
+                                                    <tag>${project.version}-maven</tag>
+                                                </tags>
+                                                <dockerFile>Dockerfile</dockerFile>
+                                                <contextDir>${project.basedir}/target/docker-build</contextDir>
+                                                <args>
+                                                    <UID>1000</UID>
+                                                    <GID>1000</GID>
+                                                    <NIFI_TOOLKIT_VERSION>${project.version}</NIFI_TOOLKIT_VERSION>
+                                                </args>
+                                            </build>
+                                        </image>
+                                    </images>
                                 </configuration>
                             </execution>
                         </executions>
@@ -221,7 +235,7 @@ language governing permissions and limitations under the License. -->
                                 </goals>
                                 <configuration>
                                     <arguments>
-                                        <argument>${project.version}</argument>
+                                        <argument>${project.version}-maven</argument>
                                     </arguments>
                                     <executable>${project.basedir}/docker/tests/exit-codes.sh</executable>
                                 </configuration>
@@ -234,7 +248,7 @@ language governing permissions and limitations under the License. -->
                                 </goals>
                                 <configuration>
                                     <arguments>
-                                        <argument>${project.version}</argument>
+                                        <argument>${project.version}-maven</argument>
                                     </arguments>
                                     <executable>${project.basedir}/docker/tests/tls-toolkit.sh</executable>
                                 </configuration>

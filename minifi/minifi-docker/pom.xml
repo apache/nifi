@@ -77,24 +77,38 @@ limitations under the License.
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
                         <executions>
                             <execution>
+                                <id>build-docker-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
                                 <configuration>
-                                    <dockerfile>dockermaven/Dockerfile</dockerfile>
-                                    <buildArgs>
-                                        <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
-                                        <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
-                                        <UID>1000</UID>
-                                        <GID>1000</GID>
-                                        <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
-                                        <MINIFI_BINARY_NAME>minifi-${minifi.version}-bin.zip</MINIFI_BINARY_NAME>
-                                        <MINIFI_BINARY>target/minifi-${minifi.version}-bin.zip</MINIFI_BINARY>
-                                        <MINIFI_SCRIPTS>target/sh</MINIFI_SCRIPTS>
-                                    </buildArgs>
-                                    <repository>apacheminifi</repository>
-                                    <tag>${minifi.version}</tag>
+                                    <images>
+                                        <image>
+                                            <name>apache/nifi-minifi</name>
+                                            <build>
+                                                <tags>
+                                                    <tag>${minifi.version}-maven</tag>
+                                                </tags>
+                                                <dockerFile>dockermaven/Dockerfile</dockerFile>
+                                                <contextDir>${project.basedir}</contextDir>
+                                                <args>
+                                                    <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
+                                                    <UID>1000</UID>
+                                                    <GID>1000</GID>
+                                                    <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>
+                                                    <MINIFI_BINARY_NAME>minifi-${minifi.version}-bin.zip</MINIFI_BINARY_NAME>
+                                                    <MINIFI_BINARY>target/minifi-${minifi.version}-bin.zip</MINIFI_BINARY>
+                                                    <MINIFI_SCRIPTS>target/sh</MINIFI_SCRIPTS>
+                                                </args>
+                                            </build>
+                                        </image>
+                                    </images>
                                 </configuration>
                             </execution>
                         </executions>
