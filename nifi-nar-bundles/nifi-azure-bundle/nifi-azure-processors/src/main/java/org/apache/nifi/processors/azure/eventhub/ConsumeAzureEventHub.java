@@ -438,11 +438,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
             final String containerName = defaultIfBlank(context.getProperty(STORAGE_CONTAINER_NAME).evaluateAttributeExpressions().getValue(), eventHubName);
             final String storageConnectionString = createStorageConnectionString(context);
-            final BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
-                    .connectionString(storageConnectionString)
-                    .containerName(containerName)
-                    .buildAsyncClient();
-            checkpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
+            final BlobContainerAsyncClient blobContainerAsyncClient = getBlobContainerAsyncClient(containerName, storageConnectionString);
+            checkpointStore = getCheckpointStoreFromBlobContainer(blobContainerAsyncClient);
             legacyPartitionEventPosition = getLegacyPartitionEventPosition(blobContainerAsyncClient, consumerGroup);
         } else {
             checkpointStore = new ComponentStateCheckpointStore(
@@ -479,7 +476,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
+        final EventProcessorClientBuilder eventProcessorClientBuilder = getEventProcessorClientBuilder()
                 .consumerGroup(consumerGroup)
                 .trackLastEnqueuedEventProperties(true)
                 .checkpointStore(checkpointStore)
@@ -507,7 +504,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
         } else {
             final String policyName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
-            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
             final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
             eventProcessorClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
         }
@@ -530,6 +527,21 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         }
 
         return eventProcessorClientBuilder.buildEventProcessorClient();
+    }
+
+    protected BlobContainerAsyncClient getBlobContainerAsyncClient(String containerName, String storageConnectionString) {
+        return new BlobContainerClientBuilder()
+                .connectionString(storageConnectionString)
+                .containerName(containerName)
+                .buildAsyncClient();
+    }
+
+    protected EventProcessorClientBuilder getEventProcessorClientBuilder() {
+        return new EventProcessorClientBuilder();
+    }
+
+    protected CheckpointStore getCheckpointStoreFromBlobContainer(BlobContainerAsyncClient blobContainerAsyncClient) {
+        return new BlobCheckpointStore(blobContainerAsyncClient);
     }
 
     protected String getTransitUri(final PartitionContext partitionContext) {
