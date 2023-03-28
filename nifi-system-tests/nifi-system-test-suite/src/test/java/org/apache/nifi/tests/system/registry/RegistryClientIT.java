@@ -18,6 +18,7 @@
 package org.apache.nifi.tests.system.registry;
 
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.tests.system.NiFiClientUtil;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -25,8 +26,11 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -40,6 +44,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +56,148 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryClientIT extends NiFiSystemIT {
+
+    /**
+     * Test a scenario where we have Parent Process Group with a child process group. The child group is under Version Control.
+     * Then the parent is placed under Version Control. Then modify a Processor in child. Register snapshot for child, then for parent.
+     * Then start Flow.
+     * Then change between versions at the Parent level while the flow is stopped and while it's running.
+     */
+    @Test
+    public void testChangeVersionOnParentThatCascadesToChild() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity parent = util.createProcessGroup("Parent", "root");
+        final ProcessGroupEntity child = util.createProcessGroup("Child", parent.getId());
+        final PortEntity inputPort = util.createInputPort("Input Port", child.getId());
+        final PortEntity outputPort = util.createOutputPort("Output Port", child.getId());
+        final ProcessorEntity updateContents = util.createProcessor("UpdateContent", child.getId());
+        util.updateProcessorProperties(updateContents, Collections.singletonMap("Content", "Updated"));
+
+        util.createConnection(inputPort, updateContents);
+        util.createConnection(updateContents, outputPort, "success");
+
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", parent.getId());
+        util.updateProcessorProperties(generate, Collections.singletonMap("Text", "Hello World"));
+        util.createConnection(generate, inputPort, "success");
+
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", parent.getId());
+        final ConnectionEntity connectionToTerminate = util.createConnection(outputPort, terminate);
+
+        final VersionControlInformationEntity childVci = util.startVersionControl(child, clientEntity, "testChangeVersionOnParentThatCascadesToChild", "Child");
+        final VersionControlInformationEntity parentVci = util.startVersionControl(parent, clientEntity, "testChangeVersionOnParentThatCascadesToChild", "Parent");
+
+        // Change the properties of the UpdateContent processor and commit as v2
+        util.updateProcessorProperties(updateContents, Collections.singletonMap("Content", "Updated v2"));
+
+        util.saveFlowVersion(child, clientEntity, childVci);
+        util.saveFlowVersion(parent, clientEntity, parentVci);
+
+        // Ensure that we have the correct state
+        util.assertFlowUpToDate(parent.getId());
+        util.assertFlowUpToDate(child.getId());
+
+        // Verify that we are able to switch back to v1 while everything is stopped
+        util.changeFlowVersion(parent.getId(), 1);
+        util.assertFlowStaleAndUnmodified(parent.getId());
+        util.assertFlowStaleAndUnmodified(child.getId());
+
+        // Start the flow and verify the contents of the flow file
+        util.waitForValidProcessor(updateContents.getId());
+        util.waitForValidProcessor(generate.getId());
+        util.startProcessGroupComponents(child.getId());
+        util.startProcessor(generate);
+
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
+
+        final String contents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), 0);
+        assertEquals("Updated", contents);
+
+        // Switch Version back to v2 while it's running
+        util.changeFlowVersion(parent.getId(), 2);
+        util.assertFlowUpToDate(parent.getId());
+        util.assertFlowUpToDate(child.getId());
+
+        // With flow running, change version to v1. Restart GenerateFlowFile to trigger another FlowFile to be generated
+        util.stopProcessor(generate);
+        util.startProcessor(generate);
+        waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
+
+        // Ensure that the contents are correct
+        final String secondFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), getNumberOfNodes());
+        assertEquals("Updated v2", secondFlowFileContents);
+
+        // Switch back to v1 while flow is running to verify that the version can change back to a lower version as well
+        util.changeFlowVersion(parent.getId(), 1);
+        util.assertFlowStaleAndUnmodified(parent.getId());
+        util.assertFlowStaleAndUnmodified(child.getId());
+
+        util.stopProcessor(generate);
+        util.startProcessor(generate);
+        waitForQueueCount(connectionToTerminate.getId(), 3 * getNumberOfNodes());
+
+        final String thirdFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), getNumberOfNodes() * 2);
+        assertEquals("Updated", thirdFlowFileContents);
+    }
+
+
+    @Test
+    public void testControllerServiceUpdateWhileRunning() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        final ProcessGroupEntity group = util.createProcessGroup("Parent", "root");
+        final ControllerServiceEntity service = util.createControllerService("StandardCountService", group.getId());
+
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", group.getId());
+        final ProcessorEntity countProcessor = util.createProcessor("CountFlowFiles", group.getId());
+        util.updateProcessorProperties(countProcessor, Collections.singletonMap("Count Service", service.getComponent().getId()));
+
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", group.getId());
+        final ConnectionEntity connectionToTerminate = util.createConnection(countProcessor, terminate, "success");
+        util.setFifoPrioritizer(connectionToTerminate);
+        util.createConnection(generate, countProcessor, "success");
+
+        // Save the flow as v1
+        final VersionControlInformationEntity vci = util.startVersionControl(group, clientEntity, "testControllerServiceUpdateWhileRunning", "Parent");
+
+        // Change the value of of the Controller Service's start value to 2000, and change the text of the GenerateFlowFile just to make it run each time the version is changed
+        util.updateControllerServiceProperties(service, Collections.singletonMap("Start Value", "2000"));
+        util.updateProcessorProperties(generate, Collections.singletonMap("Text", "Hello World"));
+
+        // Save the flow as v2
+        util.saveFlowVersion(group, clientEntity, vci);
+
+        // Change back to v1 and start the flow
+        util.changeFlowVersion(group.getId(), 1);
+        util.assertFlowStaleAndUnmodified(group.getId());
+        util.enableControllerService(service);
+
+        util.waitForValidProcessor(generate.getId());
+        util.startProcessor(generate);
+        util.waitForValidProcessor(countProcessor.getId());
+        util.startProcessor(countProcessor);
+
+        // Ensure that we get the expected result
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
+        final Map<String, String> firstFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), 0).getFlowFile().getAttributes();
+        assertEquals("1", firstFlowFileAttributes.get("count"));
+
+        // Change to v2 and ensure that the output is correct
+        util.changeFlowVersion(group.getId(), 2);
+        util.assertFlowUpToDate(group.getId());
+        waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
+        final Map<String, String> secondFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes()).getFlowFile().getAttributes();
+        assertEquals("2001", secondFlowFileAttributes.get("count"));
+
+        // Change back to v1 and ensure that the output is correct. It should reset count back to 0.
+        util.changeFlowVersion(group.getId(), 1);
+        util.assertFlowStaleAndUnmodified(group.getId());
+        waitForQueueCount(connectionToTerminate.getId(), 3 * getNumberOfNodes());
+        final Map<String, String> thirdFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes() * 2).getFlowFile().getAttributes();
+        assertEquals("1", thirdFlowFileAttributes.get("count"));
+    }
 
     @Test
     public void testChangeVersionWithPortMoveBetweenGroups() throws NiFiClientException, IOException, InterruptedException {
@@ -107,7 +254,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         assertNotNull(imported);
         getClientUtil().assertFlowStaleAndUnmodified(imported.getId());
 
-        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2);
+        final VersionedFlowUpdateRequestEntity version2Result = getClientUtil().changeFlowVersion(imported.getId(), 2, false);
         final String failureReason = version2Result.getRequest().getFailureReason();
         assertNotNull(failureReason);
 
