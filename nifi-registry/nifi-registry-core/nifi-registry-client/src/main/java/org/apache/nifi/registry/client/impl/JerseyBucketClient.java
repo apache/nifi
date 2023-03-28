@@ -51,17 +51,29 @@ public class JerseyBucketClient extends AbstractJerseyClient implements BucketCl
 
     @Override
     public Bucket create(final Bucket bucket) throws NiFiRegistryException, IOException {
+        return create(bucket, Boolean.FALSE);
+    }
+
+    @Override
+    public Bucket create(final Bucket bucket, final boolean migration) throws NiFiRegistryException, IOException {
         if (bucket == null) {
             throw new IllegalArgumentException("Bucket cannot be null");
         }
 
-        return executeAction("Error creating bucket", () -> {
-            return getRequestBuilder(bucketsTarget)
-                    .post(
-                            Entity.entity(bucket, MediaType.APPLICATION_JSON),
-                            Bucket.class
-                    );
-        });
+        final WebTarget target;
+
+        if (migration) {
+            target = bucketsTarget
+                    .path("/migrate");
+        } else {
+            target = bucketsTarget;
+        }
+
+        return executeAction("Error creating bucket", () -> getRequestBuilder(target)
+                .post(
+                        Entity.entity(bucket, MediaType.APPLICATION_JSON),
+                        Bucket.class
+                ));
 
     }
 

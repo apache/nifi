@@ -296,6 +296,48 @@ public class BucketFlowResource extends ApplicationResource {
     }
 
     @POST
+    @Path("{flowId}/versions/migrate")
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(
+            value = "Create flow version with keeping the author from snapshot.",
+            notes = "Creates the next version of a flow. The version number of the object being created must be the " +
+                    "next available version integer. Flow versions are immutable after they are created.",
+            response = VersionedFlowSnapshot.class,
+            extensions = {
+                    @Extension(name = "access-policy", properties = {
+                            @ExtensionProperty(name = "action", value = "write"),
+                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}") })
+            }
+    )
+    @ApiResponses({
+            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
+            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
+            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403),
+            @ApiResponse(code = 404, message = HttpStatusMessages.MESSAGE_404),
+            @ApiResponse(code = 409, message = HttpStatusMessages.MESSAGE_409) })
+    public Response createFlowVersionWithKeepingAuthor(
+            @PathParam("bucketId")
+            @ApiParam("The bucket identifier")
+            final String bucketId,
+            @PathParam("flowId")
+            @ApiParam(value = "The flow identifier")
+            final String flowId,
+            @ApiParam(value = "The new versioned flow snapshot.", required = true)
+            final VersionedFlowSnapshot snapshot) {
+
+        verifyPathParamsMatchBody(bucketId, flowId, snapshot);
+
+        // bucketId and flowId fields are optional in the body parameter, but required before calling the service layer
+        setSnaphotMetadataIfMissing(bucketId, flowId, snapshot);
+
+        final VersionedFlowSnapshot createdSnapshot = serviceFacade.createFlowSnapshot(snapshot);
+        publish(EventFactory.flowVersionMigrated(createdSnapshot));
+
+        return Response.status(Response.Status.OK).entity(createdSnapshot).build();
+    }
+
+    @POST
     @Path("{flowId}/versions/import")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)

@@ -202,6 +202,22 @@ public class StandardServiceFacade implements ServiceFacade {
                 () -> registryService.deleteBucket(bucketIdentifier));
     }
 
+    @Override
+    public Bucket migrateBucket(final Bucket bucket) {
+        authorizeBucketsAccess(RequestAction.WRITE);
+        validateCreationOfRevisableEntity(bucket, BUCKET_ENTITY_TYPE);
+
+        if (bucket.getIdentifier() == null) {
+            throw new IllegalArgumentException("Identifier cannot be null");
+        }
+
+        final Bucket createdBucket = createRevisableEntity(bucket, BUCKET_ENTITY_TYPE, currentUserIdentity(),
+                () -> registryService.createBucket(bucket));
+        permissionsService.populateBucketPermissions(createdBucket);
+        linkService.populateLinks(createdBucket);
+        return createdBucket;
+    }
+
     // ---------------------- BucketItem methods ----------------------------------------------
 
     @Override

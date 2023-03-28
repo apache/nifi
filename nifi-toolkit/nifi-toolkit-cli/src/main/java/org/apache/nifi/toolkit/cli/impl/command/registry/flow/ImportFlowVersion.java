@@ -91,8 +91,15 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         metadata.setVersion(version);
 
         final VersionedFlowSnapshotMetadata deserializedSnapshotMetadata = deserializedSnapshot.getSnapshotMetadata();
+        //migration should be only true if using import-all-flows registry migration
+        final boolean migration = Boolean.parseBoolean(properties.getProperty(CommandOption.KEEP.getLongName(), Boolean.FALSE.toString()));
         if (deserializedSnapshotMetadata != null) {
             metadata.setComments(deserializedSnapshotMetadata.getComments());
+            // required for importing all the flows. Author is imported by the current user, so not keeping the original author
+            // may cause access problems after the migration
+            if (migration) {
+                metadata.setAuthor(deserializedSnapshotMetadata.getAuthor());
+            }
         }
 
         // create a new snapshot using the new metadata and the contents from the deserialized snapshot
@@ -104,7 +111,7 @@ public class ImportFlowVersion extends AbstractNiFiRegistryCommand<StringResult>
         snapshot.setParameterProviders(deserializedSnapshot.getParameterProviders());
         snapshot.setFlowEncodingVersion(deserializedSnapshot.getFlowEncodingVersion());
 
-        final VersionedFlowSnapshot createdSnapshot = snapshotClient.create(snapshot);
+        final VersionedFlowSnapshot createdSnapshot = snapshotClient.create(snapshot, migration);
         final VersionedFlowSnapshotMetadata createdMetadata = createdSnapshot.getSnapshotMetadata();
 
         return new StringResult(String.valueOf(createdMetadata.getVersion()), getContext().isInteractive());

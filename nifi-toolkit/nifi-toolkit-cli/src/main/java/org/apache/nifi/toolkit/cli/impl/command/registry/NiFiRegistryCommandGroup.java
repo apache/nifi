@@ -37,7 +37,9 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.extension.UploadBundles
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.CreateFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.DeleteFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.DiffFlowVersions;
+import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportAllFlows;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ExportFlowVersion;
+import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ImportAllFlows;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ImportFlowVersion;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlowVersions;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ListFlows;
@@ -104,6 +106,8 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new GetAccessToken());
         commandList.add(new GetAccessTokenSpnego());
         commandList.add(new LogoutAccessToken());
+        commandList.add(new ExportAllFlows());
+        commandList.add(new ImportAllFlows());
         return new ArrayList<>(commandList);
     }
 }

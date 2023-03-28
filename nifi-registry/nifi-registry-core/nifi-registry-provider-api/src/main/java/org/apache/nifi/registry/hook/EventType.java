@@ -41,6 +41,14 @@ public enum EventType {
             EventFieldName.VERSION,
             EventFieldName.USER,
             EventFieldName.COMMENT),
+
+    MIGRATE_FLOW_VERSION(
+            EventFieldName.BUCKET_ID,
+            EventFieldName.FLOW_ID,
+            EventFieldName.VERSION,
+            EventFieldName.USER_IDENTITY,
+            EventFieldName.USER,
+            EventFieldName.COMMENT),
     CREATE_EXTENSION_BUNDLE(
             EventFieldName.BUCKET_ID,
             EventFieldName.EXTENSION_BUNDLE_ID,
