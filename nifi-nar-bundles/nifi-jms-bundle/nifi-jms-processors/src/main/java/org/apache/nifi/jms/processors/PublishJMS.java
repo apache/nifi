@@ -32,8 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.ReaderCallback;
-import org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter;
+import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReaderCallback;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
@@ -60,9 +59,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.StandardRecordsPublishedEventReporter.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
 import static org.apache.nifi.jms.processors.strategy.publisher.record.StateTrackingReader.RecordBasedFlowFileReaderBuilder.aRecordBasedFlowFileReader;
 
 /**
@@ -229,7 +228,6 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                             .withIdentifier(getIdentifier())
                             .withReaderFactory(readerFactory)
                             .withWriterFactory(writerFactory)
-                            .withEventReporter(StandardRecordsPublishedEventReporter.of(destinationName))
                             .withLogger(getLogger())
                             .build();
 
@@ -237,7 +235,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                             processSession,
                             flowFile,
                             content -> publisher.publish(destinationName, content, attributesToSend),
-                            new ReaderCallback() {
+                            new FlowFileReaderCallback() {
                                 @Override
                                 public void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis) {
                                     final String eventTemplate = isRecover ? PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER : PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;

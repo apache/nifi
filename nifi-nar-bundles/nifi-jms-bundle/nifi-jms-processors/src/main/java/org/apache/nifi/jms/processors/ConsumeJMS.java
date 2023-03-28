@@ -34,7 +34,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriter;
-import org.apache.nifi.jms.processors.strategy.consumer.MessageConsumerCallback;
+import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriterCallback;
 import org.apache.nifi.jms.processors.strategy.consumer.record.OutputStrategy;
 import org.apache.nifi.jms.processors.strategy.consumer.record.RecordWriter;
 import org.apache.nifi.processor.ProcessContext;
@@ -381,7 +381,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                 .build();
 
         consumer.consumeMessageSet(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, jmsResponses -> {
-            flowFileWriter.write(session, jmsResponses, new MessageConsumerCallback<>() {
+            flowFileWriter.write(session, jmsResponses, new FlowFileWriterCallback<>() {
                 @Override
                 public void onSuccess(FlowFile flowFile, List<JMSResponse> processedMessages, List<JMSResponse> failedMessages) {
                     session.transfer(flowFile, REL_SUCCESS);

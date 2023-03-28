@@ -17,9 +17,8 @@
 package org.apache.nifi.jms.processors.strategy.publisher.record;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.jms.processors.strategy.publisher.EventReporter;
 import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.ReaderCallback;
+import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReaderCallback;
 import org.apache.nifi.jms.processors.strategy.publisher.MessageHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
@@ -38,18 +37,16 @@ public class StateTrackingReader implements FlowFileReader {
 
     private final String identifier;
     private final RecordSupplier recordSupplier;
-    private final EventReporter eventReporter;
     private final ComponentLog logger;
 
-    public StateTrackingReader(String identifier, RecordSupplier recordSupplier, EventReporter eventReporter, ComponentLog logger) {
+    public StateTrackingReader(String identifier, RecordSupplier recordSupplier, ComponentLog logger) {
         this.identifier = identifier;
         this.recordSupplier = recordSupplier;
-        this.eventReporter = eventReporter;
         this.logger = logger;
     }
 
     @Override
-    public void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, ReaderCallback readerCallback) {
+    public void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, FlowFileReaderCallback flowFileReaderCallback) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
@@ -67,13 +64,13 @@ public class StateTrackingReader implements FlowFileReader {
                 successFlowFile = session.removeAttribute(flowFile, publishFailedIndexAttributeName);
             }
 
-            readerCallback.onSuccess(successFlowFile, processedRecords.get(), isRecover, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            flowFileReaderCallback.onSuccess(successFlowFile, processedRecords.get(), isRecover, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             logger.error("An error happened while processing records. Routing to failure.", e);
 
             final FlowFile failedFlowFile = session.putAttribute(flowFile, publishFailedIndexAttributeName, String.valueOf(processedRecords.get()));
 
-            readerCallback.onFailure(failedFlowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), e);
+            flowFileReaderCallback.onFailure(failedFlowFile, processedRecords.get(), stopWatch.getElapsed(TimeUnit.MILLISECONDS), e);
         }
     }
 
@@ -81,7 +78,6 @@ public class StateTrackingReader implements FlowFileReader {
         private String identifier;
         private RecordReaderFactory readerFactory;
         private RecordSetWriterFactory writerFactory;
-        private EventReporter eventReporter;
         private ComponentLog logger;
 
         private RecordBasedFlowFileReaderBuilder() {
@@ -106,18 +102,13 @@ public class StateTrackingReader implements FlowFileReader {
             return this;
         }
 
-        public RecordBasedFlowFileReaderBuilder withEventReporter(EventReporter eventReporter) {
-            this.eventReporter = eventReporter;
-            return this;
-        }
-
         public RecordBasedFlowFileReaderBuilder withLogger(ComponentLog logger) {
             this.logger = logger;
             return this;
         }
 
         public StateTrackingReader build() {
-            return new StateTrackingReader(identifier, new RecordSupplier(readerFactory, writerFactory), eventReporter, logger);
+            return new StateTrackingReader(identifier, new RecordSupplier(readerFactory, writerFactory), logger);
         }
     }
 }

@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.consumer.record;
+package org.apache.nifi.jms.processors.strategy.publisher;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 
-public class ProvenanceEventUtils {
-    public static void reportSuccessEvent(ProcessSession session, FlowFile flowFile, String transitUri) {
-        session.getProvenanceReporter().receive(flowFile, transitUri);
-    }
+public interface FlowFileReaderCallback {
+    void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis);
+    void onFailure(FlowFile flowFile, int processedRecords, long transmissionMillis, Exception e);
 }

@@ -20,7 +20,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jms.processors.strategy.consumer.AttributeSupplier;
 import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriter;
-import org.apache.nifi.jms.processors.strategy.consumer.MessageConsumerCallback;
+import org.apache.nifi.jms.processors.strategy.consumer.FlowFileWriterCallback;
 import org.apache.nifi.jms.processors.strategy.consumer.Serializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
@@ -74,7 +74,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
     }
 
     @Override
-    public void write(ProcessSession session, List<T> messages, MessageConsumerCallback<T> messageConsumerCallback) {
+    public void write(ProcessSession session, List<T> messages, FlowFileWriterCallback<T> flowFileWriterCallback) {
         FlowFile flowFile = session.create();
 
         final Map<String, String> attributes = new HashMap<>();
@@ -101,13 +101,13 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                         reader = readerFactory.createRecordReader(attributes, in, recordBytes.length, logger);
                     } catch (final IOException ioe) {
                         logger.error("Failed to parse message due to comms failure. Will roll back session and try again momentarily.");
-                        messageConsumerCallback.onFailure(flowFile, processedMessages, failedMessages, ioe);
+                        flowFileWriterCallback.onFailure(flowFile, processedMessages, failedMessages, ioe);
                         closeWriter(writer);
                         return;
                     } catch (final Exception e) {
                         logger.error("Failed to parse message, sending to the parse failure relationship", e);
                         failedMessages.add(message);
-                        messageConsumerCallback.onParseFailure(flowFile, message, e);
+                        flowFileWriterCallback.onParseFailure(flowFile, message, e);
                         continue;
                     }
 
@@ -135,7 +135,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                                 } catch (final Exception e) {
                                     logger.error("Failed to obtain Schema for FlowFile, sending to the parse failure relationship", e);
                                     failedMessages.add(message);
-                                    messageConsumerCallback.onParseFailure(flowFile, message, e);
+                                    flowFileWriterCallback.onParseFailure(flowFile, message, e);
                                     continue;
                                 }
 
@@ -150,18 +150,18 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
                             } catch (final RuntimeException re) {
                                 logger.error("Failed to write message using the configured Record Writer, sending to the parse failure relationship", re);
                                 failedMessages.add(message);
-                                messageConsumerCallback.onParseFailure(flowFile, message, re);
+                                flowFileWriterCallback.onParseFailure(flowFile, message, re);
                             }
                         }
                     } catch (final IOException | MalformedRecordException | SchemaValidationException e) {
                         logger.error("Failed to write message, sending to the parse failure relationship", e);
                         failedMessages.add(message);
-                        messageConsumerCallback.onParseFailure(flowFile, message, e);
+                        flowFileWriterCallback.onParseFailure(flowFile, message, e);
                     }
                 } catch (Exception e) {
                     logger.error("Failed to write message, sending to the parse failure relationship", e);
                     failedMessages.add(message);
-                    messageConsumerCallback.onParseFailure(flowFile, message, e);
+                    flowFileWriterCallback.onParseFailure(flowFile, message, e);
                 }
             }
 
@@ -174,7 +174,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
             }
 
         } catch (final Exception e) {
-            messageConsumerCallback.onFailure(flowFile, processedMessages, failedMessages, e);
+            flowFileWriterCallback.onFailure(flowFile, processedMessages, failedMessages, e);
         } finally {
             closeWriter(writer);
         }
@@ -185,7 +185,7 @@ public class RecordWriter<T> implements FlowFileWriter<T> {
         }
 
         session.putAllAttributes(flowFile, attributes);
-        messageConsumerCallback.onSuccess(flowFile, processedMessages, failedMessages);
+        flowFileWriterCallback.onSuccess(flowFile, processedMessages, failedMessages);
 
         final int count = recordCount.get();
         logger.info("Successfully processed {} records for {}", count, flowFile);

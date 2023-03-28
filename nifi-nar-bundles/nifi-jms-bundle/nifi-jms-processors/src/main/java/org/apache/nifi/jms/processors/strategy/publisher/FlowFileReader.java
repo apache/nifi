@@ -20,5 +20,5 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 
 public interface FlowFileReader {
-    void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, ReaderCallback readerCallback);
+    void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, FlowFileReaderCallback flowFileReaderCallback);
 }

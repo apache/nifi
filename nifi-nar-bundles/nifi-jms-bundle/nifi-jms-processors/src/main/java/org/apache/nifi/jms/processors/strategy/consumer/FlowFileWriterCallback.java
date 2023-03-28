@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher;
+package org.apache.nifi.jms.processors.strategy.consumer;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 
-public interface EventReporter {
-    void reportSuccessEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
+import java.util.List;
 
-    void reportRecoverEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
-
-    void reportFailureEvent(ProcessSession session, FlowFile flowFile, int processedRecords, long transmissionMillis);
+public interface FlowFileWriterCallback<T> {
+    void onSuccess(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages);
+    void onParseFailure(FlowFile flowFile, T message, Exception e);
+    void onFailure(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages, Exception e);
 }
