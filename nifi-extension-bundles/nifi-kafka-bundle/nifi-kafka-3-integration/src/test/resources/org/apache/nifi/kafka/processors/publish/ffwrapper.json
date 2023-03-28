@@ -1,0 +1,53 @@
+[
+  {
+    "headers": {
+      "a1": "valueA1"
+    },
+    "key": {
+      "street-number": 105,
+      "street-name": "Main"
+    },
+    "value": {
+      "id": 1,
+      "name": "A",
+      "address": {
+        "street-number": 105,
+        "street-name": "Main"
+      }
+    }
+  },
+  {
+    "headers": {
+      "a1": "valueA1"
+    },
+    "key": {
+      "street-number": 205,
+      "street-name": "Main"
+    },
+    "value": {
+      "id": 2,
+      "name": "B",
+      "address": {
+        "street-number": 205,
+        "street-name": "Main"
+      }
+    }
+  },
+  {
+    "headers": {
+      "a1": "valueA1"
+    },
+    "key": {
+      "street-number": 305,
+      "street-name": "Main"
+    },
+    "value": {
+      "id": 3,
+      "name": "C",
+      "address": {
+        "street-number": 305,
+        "street-name": "Main"
+      }
+    }
+  }
+]

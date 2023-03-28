@@ -1,0 +1,14 @@
+{
+  "key": [65, 27, 10, 20, 11, 57, 88, 19, 65],
+  "value": {
+    "address": "1234 First Street",
+    "zip": "12345",
+    "account": {
+      "name": "Acme",
+      "number":"AC1234"
+    }
+  },
+  "otherField": {
+    "a": "b"
+  }
+}

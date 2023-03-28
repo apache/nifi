@@ -1,0 +1,17 @@
+{
+  "value": {
+    "address": "1234 First Street",
+    "zip": "12345",
+    "account": {
+      "name": "Acme",
+      "number": "AC1234"
+    }
+  },
+  "headers": {
+    "a": "b"
+  },
+  "metadata": {
+    "topic": "topic1",
+    "partition": "1"
+  }
+}
