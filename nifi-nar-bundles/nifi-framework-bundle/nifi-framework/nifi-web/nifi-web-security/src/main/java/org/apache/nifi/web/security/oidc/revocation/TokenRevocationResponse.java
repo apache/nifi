@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
+package org.apache.nifi.web.security.oidc.revocation;
 
-import org.apache.nifi.web.security.logout.StandardLogoutFilter;
-import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 /**
- * SAML 2 Logout Filter completes application Logout Requests
+ * OAuth2 Token Revocation Request as described in RFC 7009 Section 2.1
  */
-public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
-    public Saml2LocalLogoutFilter(
-            final LogoutSuccessHandler logoutSuccessHandler
-    ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
+public class TokenRevocationResponse {
+    private final boolean success;
+
+    private final int statusCode;
+
+    public TokenRevocationResponse(final boolean success, final int statusCode) {
+        this.success = success;
+        this.statusCode = statusCode;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
     }
 }

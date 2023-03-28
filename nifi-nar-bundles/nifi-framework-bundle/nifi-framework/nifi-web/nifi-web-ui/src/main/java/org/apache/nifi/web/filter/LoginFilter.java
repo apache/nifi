@@ -34,6 +34,8 @@ import java.net.URI;
  * Filter for determining appropriate login location.
  */
 public class LoginFilter implements Filter {
+    private static final String OAUTH2_AUTHORIZATION_PATH = "/nifi-api/oauth2/authorization/consumer";
+
     private static final String SAML2_AUTHENTICATE_FILTER_PATH = "/nifi-api/saml2/authenticate/consumer";
 
     private ServletContext servletContext;
@@ -49,18 +51,20 @@ public class LoginFilter implements Filter {
         final boolean supportsKnoxSso = Boolean.parseBoolean(servletContext.getInitParameter("knox-supported"));
         final boolean supportsSAML = Boolean.parseBoolean(servletContext.getInitParameter("saml-supported"));
 
-        if (supportsOidc) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            apiContext.getRequestDispatcher("/access/oidc/request").forward(request, response);
-        } else if (supportsKnoxSso) {
+        final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+        final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
+
+        if  (supportsKnoxSso) {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/request").forward(request, response);
+        } else if (supportsOidc) {
+            final URI redirectUri = requestUriBuilder.path(OAUTH2_AUTHORIZATION_PATH).build();
+            // Redirect to authorization URL defined in Spring Security OAuth2AuthorizationRequestRedirectFilter
+            sendRedirect(response, redirectUri);
         } else if (supportsSAML) {
-            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            final URI authenticateUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(SAML2_AUTHENTICATE_FILTER_PATH).build();
+            final URI redirectUri = requestUriBuilder.path(SAML2_AUTHENTICATE_FILTER_PATH).build();
             // Redirect to request consumer URL defined in Spring Security OpenSamlAuthenticationRequestResolver.requestMatcher
-            final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-            httpServletResponse.sendRedirect(authenticateUri.toString());
+            sendRedirect(response, redirectUri);
         } else {
             filterChain.doFilter(request, response);
         }
@@ -68,5 +72,10 @@ public class LoginFilter implements Filter {
 
     @Override
     public void destroy() {
+    }
+
+    private void sendRedirect(final ServletResponse response, final URI redirectUri) throws IOException {
+        final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+        httpServletResponse.sendRedirect(redirectUri.toString());
     }
 }

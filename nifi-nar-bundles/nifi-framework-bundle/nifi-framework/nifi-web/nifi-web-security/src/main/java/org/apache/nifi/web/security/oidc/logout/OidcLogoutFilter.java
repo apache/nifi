@@ -14,19 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
+package org.apache.nifi.web.security.oidc.logout;
 
 import org.apache.nifi.web.security.logout.StandardLogoutFilter;
-import org.apache.nifi.web.security.saml2.SamlUrlPath;
+import org.apache.nifi.web.security.oidc.OidcUrlPath;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
 /**
- * SAML 2 Logout Filter completes application Logout Requests
+ * OpenID Connect Logout Filter completes application Logout Requests
  */
-public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
-    public Saml2LocalLogoutFilter(
+public class OidcLogoutFilter extends StandardLogoutFilter {
+    public OidcLogoutFilter(
             final LogoutSuccessHandler logoutSuccessHandler
     ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
+        super(new AntPathRequestMatcher(OidcUrlPath.LOGOUT.getPath()), logoutSuccessHandler);
     }
 }

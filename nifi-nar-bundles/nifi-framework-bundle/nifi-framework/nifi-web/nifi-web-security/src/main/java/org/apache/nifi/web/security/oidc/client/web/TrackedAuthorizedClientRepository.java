@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.security.saml2.web.authentication.logout;
+package org.apache.nifi.web.security.oidc.client.web;
 
-import org.apache.nifi.web.security.logout.StandardLogoutFilter;
-import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import java.util.List;
+
 /**
- * SAML 2 Logout Filter completes application Logout Requests
+ * Tracked abstraction for Authorized Client Repository supporting deletion of expired clients
  */
-public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
-    public Saml2LocalLogoutFilter(
-            final LogoutSuccessHandler logoutSuccessHandler
-    ) {
-        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
-    }
+public interface TrackedAuthorizedClientRepository {
+    /**
+     * Delete expired Authorized Clients
+     *
+     * @return Deleted OIDC Authorized Clients
+     */
+    List<OidcAuthorizedClient> deleteExpired();
 }

@@ -58,7 +58,7 @@ class Saml2LocalLogoutFilterTest {
 
     @Test
     void testDoFilterInternalNotMatched() throws ServletException, IOException {
-        filter.doFilterInternal(httpServletRequest, httpServletResponse, filterChain);
+        filter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         verifyNoInteractions(logoutSuccessHandler);
     }
@@ -66,7 +66,7 @@ class Saml2LocalLogoutFilterTest {
     @Test
     void testDoFilterInternal() throws ServletException, IOException {
         httpServletRequest.setPathInfo(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath());
-        filter.doFilterInternal(httpServletRequest, httpServletResponse, filterChain);
+        filter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
         verify(logoutSuccessHandler).onLogoutSuccess(eq(httpServletRequest), eq(httpServletResponse), isNull());
     }
