@@ -1597,9 +1597,16 @@ public class NiFiClientUtil {
     public VersionControlInformationEntity startVersionControl(final ProcessGroupEntity group, final FlowRegistryClientEntity registryClient, final String bucketId, final String flowName)
             throws NiFiClientException, IOException{
 
+        return publishFlowVersion(group, registryClient, bucketId, flowName, null);
+    }
+
+    private VersionControlInformationEntity publishFlowVersion(final ProcessGroupEntity group, final FlowRegistryClientEntity registryClient, final String bucketId, final String flowName,
+                                                               final String flowId) throws NiFiClientException, IOException{
+
         final VersionedFlowDTO versionedFlowDto = new VersionedFlowDTO();
         versionedFlowDto.setBucketId(bucketId);
         versionedFlowDto.setFlowName(flowName);
+        versionedFlowDto.setFlowId(flowId);
         versionedFlowDto.setRegistryId(registryClient.getId());
         versionedFlowDto.setAction(VersionedFlowDTO.COMMIT_ACTION);
 
@@ -1609,6 +1616,15 @@ public class NiFiClientUtil {
 
         return nifiClient.getVersionsClient().startVersionControl(group.getId(), requestEntity);
     }
+
+    public VersionControlInformationEntity saveFlowVersion(final ProcessGroupEntity group, final FlowRegistryClientEntity registryClient, final VersionControlInformationEntity currentVci)
+            throws NiFiClientException, IOException {
+
+        final VersionControlInformationDTO currentDto = currentVci.getVersionControlInformation();
+        return publishFlowVersion(group, registryClient, currentDto.getBucketId(), currentDto.getFlowName(), currentDto.getFlowId());
+    }
+
+
 
     public VersionedFlowUpdateRequestEntity revertChanges(final ProcessGroupEntity group) throws NiFiClientException, IOException, InterruptedException {
         final VersionControlInformationEntity vciEntity = nifiClient.getVersionsClient().getVersionControlInfo(group.getId());
