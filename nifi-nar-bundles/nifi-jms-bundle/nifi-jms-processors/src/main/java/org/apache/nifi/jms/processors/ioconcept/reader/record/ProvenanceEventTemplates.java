@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.consumer;
+package org.apache.nifi.jms.processors.ioconcept.reader.record;
 
-import org.apache.nifi.flowfile.FlowFile;
+public class ProvenanceEventTemplates {
 
-import java.util.List;
+    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
+    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
+    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
 
-public interface FlowFileWriterCallback<T> {
-    void onSuccess(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages);
-    void onParseFailure(FlowFile flowFile, T message, Exception e);
-    void onFailure(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages, Exception e);
 }

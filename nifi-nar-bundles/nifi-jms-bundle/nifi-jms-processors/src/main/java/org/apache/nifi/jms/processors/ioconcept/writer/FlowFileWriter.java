@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.consumer;
+package org.apache.nifi.jms.processors.ioconcept.writer;
 
 import org.apache.nifi.processor.ProcessSession;
 

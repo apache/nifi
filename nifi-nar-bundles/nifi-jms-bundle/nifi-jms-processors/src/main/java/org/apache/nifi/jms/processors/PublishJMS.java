@@ -31,10 +31,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
-import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.FlowFileReaderCallback;
-import org.apache.nifi.jms.processors.strategy.publisher.StateTrackingFlowFileReader;
-import org.apache.nifi.jms.processors.strategy.publisher.record.RecordSupplier;
+import org.apache.nifi.jms.processors.ioconcept.reader.FlowFileReader;
+import org.apache.nifi.jms.processors.ioconcept.reader.FlowFileReaderCallback;
+import org.apache.nifi.jms.processors.ioconcept.reader.StateTrackingFlowFileReader;
+import org.apache.nifi.jms.processors.ioconcept.reader.record.RecordSupplier;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
@@ -61,9 +61,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
-import static org.apache.nifi.jms.processors.strategy.publisher.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER;
+import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceEventTemplates.PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS;
 
 /**
  * An implementation of JMS Message publishing {@link Processor} which upon each

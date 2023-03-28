@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher.record;
+package org.apache.nifi.jms.processors.ioconcept.reader.record;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.jms.processors.strategy.publisher.MessageHandler;
+import org.apache.nifi.jms.processors.ioconcept.reader.MessageHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;

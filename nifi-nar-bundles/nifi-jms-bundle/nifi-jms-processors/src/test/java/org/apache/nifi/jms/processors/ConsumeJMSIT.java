@@ -31,7 +31,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
-import org.apache.nifi.jms.processors.strategy.consumer.record.OutputStrategy;
+import org.apache.nifi.jms.processors.ioconcept.writer.record.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;

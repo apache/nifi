@@ -14,11 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher;
+package org.apache.nifi.jms.processors.ioconcept.reader;
 
-import org.apache.nifi.flowfile.FlowFile;
-
-public interface FlowFileReaderCallback {
-    void onSuccess(FlowFile flowFile, int processedRecords, boolean isRecover, long transmissionMillis);
-    void onFailure(FlowFile flowFile, int processedRecords, long transmissionMillis, Exception e);
+public interface MessageHandler {
+    void handle(byte[] content);
 }

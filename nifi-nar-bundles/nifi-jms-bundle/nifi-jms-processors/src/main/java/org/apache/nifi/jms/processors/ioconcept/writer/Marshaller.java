@@ -14,12 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher.record;
+package org.apache.nifi.jms.processors.ioconcept.writer;
 
-public class ProvenanceEventTemplates {
-
-    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_FAILURE = "Publish failed after %d successfully published records.";
-    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_RECOVER = "Successfully finished publishing previously failed records. Total record count: %d";
-    public static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
-
+public interface Marshaller<T> {
+    byte[] marshall(T message);
 }

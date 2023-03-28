@@ -14,8 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.consumer;
+package org.apache.nifi.jms.processors.ioconcept.writer;
 
-public interface Marshaller<T> {
-    byte[] marshall(T message);
+import org.apache.nifi.flowfile.FlowFile;
+
+import java.util.List;
+
+public interface FlowFileWriterCallback<T> {
+    void onSuccess(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages);
+    void onParseFailure(FlowFile flowFile, T message, Exception e);
+    void onFailure(FlowFile flowFile, List<T> processedMessages, List<T> failedMessages, Exception e);
 }

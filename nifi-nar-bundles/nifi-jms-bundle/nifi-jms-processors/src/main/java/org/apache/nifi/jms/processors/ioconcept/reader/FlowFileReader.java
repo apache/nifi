@@ -14,8 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.jms.processors.strategy.publisher;
+package org.apache.nifi.jms.processors.ioconcept.reader;
 
-public interface MessageHandler {
-    void handle(byte[] content);
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
+
+public interface FlowFileReader {
+    void read(ProcessSession session, FlowFile flowFile, MessageHandler messageHandler, FlowFileReaderCallback flowFileReaderCallback);
 }
