@@ -54,6 +54,7 @@ public class StandardCountService extends AbstractControllerService implements C
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final long startValue = Long.parseLong(context.getProperty(START_VALUE).getValue());
+        getLogger().info("Setting counter to {}", startValue);
         counter.set(startValue);
     }
 

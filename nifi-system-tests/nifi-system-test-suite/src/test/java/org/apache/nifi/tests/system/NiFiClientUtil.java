@@ -1671,6 +1671,12 @@ public class NiFiClientUtil {
     }
 
     public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version) throws NiFiClientException, IOException, InterruptedException {
+        return changeFlowVersion(processGroupId, version, true);
+    }
+
+    public VersionedFlowUpdateRequestEntity changeFlowVersion(final String processGroupId, final int version, final boolean throwOnFailure)
+                throws NiFiClientException, IOException, InterruptedException {
+
         final ProcessGroupEntity groupEntity = nifiClient.getProcessGroupClient().getProcessGroup(processGroupId);
         final ProcessGroupDTO groupDto = groupEntity.getComponent();
         final VersionControlInformationDTO vciDto = groupDto.getVersionControlInformation();
@@ -1685,14 +1691,18 @@ public class NiFiClientUtil {
         requestEntity.setVersionControlInformation(vciDto);
 
         final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().updateVersionControlInfo(processGroupId, requestEntity);
-        return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId());
+        return waitForVersionFlowUpdateComplete(result.getRequest().getRequestId(), throwOnFailure);
     }
 
-    public VersionedFlowUpdateRequestEntity waitForVersionFlowUpdateComplete(final String updateRequestId) throws NiFiClientException, IOException, InterruptedException {
+    public VersionedFlowUpdateRequestEntity waitForVersionFlowUpdateComplete(final String updateRequestId, final boolean throwOnFailure) throws NiFiClientException, IOException, InterruptedException {
         while (true) {
             final VersionedFlowUpdateRequestEntity result = nifiClient.getVersionsClient().getUpdateRequest(updateRequestId);
             final boolean complete = result.getRequest().isComplete();
             if (complete) {
+                if (throwOnFailure && result.getRequest().getFailureReason() != null) {
+                    throw new RuntimeException("Version Flow Update request failed due to: " + result.getRequest().getFailureReason());
+                }
+
                 return nifiClient.getVersionsClient().deleteUpdateRequest(updateRequestId);
             }
 
@@ -1754,5 +1764,11 @@ public class NiFiClientUtil {
         requestEntity.setSnippetId(createdSnippetEntity.getSnippet().getId());
 
         return nifiClient.getProcessGroupClient().copySnippet(destinationGroupId, requestEntity);
+    }
+
+    public ConnectionEntity setFifoPrioritizer(final ConnectionEntity connectionEntity) throws NiFiClientException, IOException {
+        final ConnectionDTO connectionDto = connectionEntity.getComponent();
+        connectionDto.setPrioritizers(Collections.singletonList("org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"));
+        return nifiClient.getConnectionClient().updateConnection(connectionEntity);
     }
 }
