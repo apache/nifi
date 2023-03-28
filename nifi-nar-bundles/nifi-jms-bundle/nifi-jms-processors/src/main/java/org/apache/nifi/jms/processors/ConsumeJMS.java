@@ -355,10 +355,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final Map<String, String> jmsHeaders = response.getMessageHeaders();
         final Map<String, String> jmsProperties = response.getMessageProperties();
 
-        flowFile = updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-        flowFile = updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+        flowFile = updateFlowFileAttributesWithJMSAttributes(mergeJmsAttributes(jmsHeaders, jmsProperties), flowFile, processSession);
         flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-
         flowFile = processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
 
         return flowFile;
@@ -508,12 +506,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final Map<String, String> jmsAttributes = new HashMap<>(headers);
         properties.forEach((key, value) -> {
             if (jmsAttributes.containsKey(key)) {
-                getLogger().warn("JMS Header and Property name collides as an attribute. JMS Property won't be added as an attribute. name=[{}]", key);
-            } else {
-                jmsAttributes.put(key, value);
+                getLogger().warn("JMS Header and Property name collides as an attribute. JMS Property will override the JMS Header attribute. attributeName=[{}]", key);
             }
+            jmsAttributes.put(key, value);
         });
-        jmsAttributes.putAll(properties);
 
         return jmsAttributes;
     }
