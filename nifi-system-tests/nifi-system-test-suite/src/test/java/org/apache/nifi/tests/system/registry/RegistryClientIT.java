@@ -109,7 +109,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.startProcessGroupComponents(child.getId());
         util.startProcessor(generate);
 
-        waitForQueueCount(connectionToTerminate.getId(), 1);
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
 
         final String contents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), 0);
         assertEquals("Updated", contents);
@@ -122,10 +122,10 @@ public class RegistryClientIT extends NiFiSystemIT {
         // With flow running, change version to v1. Restart GenerateFlowFile to trigger another FlowFile to be generated
         util.stopProcessor(generate);
         util.startProcessor(generate);
-        waitForQueueCount(connectionToTerminate.getId(), 2);
+        waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
 
         // Ensure that the contents are correct
-        final String secondFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), 1);
+        final String secondFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), getNumberOfNodes());
         assertEquals("Updated v2", secondFlowFileContents);
 
         // Switch back to v1 while flow is running to verify that the version can change back to a lower version as well
@@ -135,9 +135,9 @@ public class RegistryClientIT extends NiFiSystemIT {
 
         util.stopProcessor(generate);
         util.startProcessor(generate);
-        waitForQueueCount(connectionToTerminate.getId(), 3);
+        waitForQueueCount(connectionToTerminate.getId(), 3 * getNumberOfNodes());
 
-        final String thirdFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), 2);
+        final String thirdFlowFileContents = util.getFlowFileContentAsUtf8(connectionToTerminate.getId(), getNumberOfNodes() * 2);
         assertEquals("Updated", thirdFlowFileContents);
     }
 
@@ -180,22 +180,22 @@ public class RegistryClientIT extends NiFiSystemIT {
         util.startProcessor(countProcessor);
 
         // Ensure that we get the expected result
-        waitForQueueCount(connectionToTerminate.getId(), 1);
+        waitForQueueCount(connectionToTerminate.getId(), getNumberOfNodes());
         final Map<String, String> firstFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), 0).getFlowFile().getAttributes();
         assertEquals("1", firstFlowFileAttributes.get("count"));
 
         // Change to v2 and ensure that the output is correct
         util.changeFlowVersion(group.getId(), 2);
         util.assertFlowUpToDate(group.getId());
-        waitForQueueCount(connectionToTerminate.getId(), 2);
-        final Map<String, String> secondFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), 1).getFlowFile().getAttributes();
+        waitForQueueCount(connectionToTerminate.getId(), 2 * getNumberOfNodes());
+        final Map<String, String> secondFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes()).getFlowFile().getAttributes();
         assertEquals("2001", secondFlowFileAttributes.get("count"));
 
         // Change back to v1 and ensure that the output is correct. It should reset count back to 0.
         util.changeFlowVersion(group.getId(), 1);
         util.assertFlowStaleAndUnmodified(group.getId());
-        waitForQueueCount(connectionToTerminate.getId(), 3);
-        final Map<String, String> thirdFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), 2).getFlowFile().getAttributes();
+        waitForQueueCount(connectionToTerminate.getId(), 3 * getNumberOfNodes());
+        final Map<String, String> thirdFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes() * 2).getFlowFile().getAttributes();
         assertEquals("1", thirdFlowFileAttributes.get("count"));
     }
 
