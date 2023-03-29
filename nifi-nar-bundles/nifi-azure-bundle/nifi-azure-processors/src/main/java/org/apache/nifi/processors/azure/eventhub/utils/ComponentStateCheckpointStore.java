@@ -35,7 +35,6 @@ import java.util.function.BiFunction;
 public class ComponentStateCheckpointStore implements CheckpointStore {
     public interface State {
         StateMap getState() throws IOException;
-        void setState(Map<String, String> value) throws IOException;
         boolean replaceState(StateMap oldValue, Map<String, String> newValue) throws IOException;
     }
 
@@ -128,14 +127,14 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
     }
 
     public Mono<Void> updateCheckpoint(Checkpoint checkpoint) {
-        Map<String, String> stateMap;
+        final StateMap oldState;
         try {
-            stateMap = state.getState().toMap();
+            oldState = state.getState();
         } catch (IOException e) {
             return Mono.error(e);
         }
 
-        Map<String, String> map = new HashMap<>(stateMap);
+        Map<String, String> newState = new HashMap<>(oldState.toMap());
         Long offset = checkpoint.getOffset();
         String key = makeKey(
                 KEY_CHECKPOINT,
@@ -145,13 +144,13 @@ public class ComponentStateCheckpointStore implements CheckpointStore {
                 checkpoint.getPartitionId()
         );
         if (offset == null) {
-            map.remove(key);
+            newState.remove(key);
         } else {
-            map.put(key, offset.toString());
+            newState.put(key, offset.toString());
         }
 
         try {
-            state.setState(map);
+            state.replaceState(oldState, newState);
         } catch (IOException e) {
             return Mono.error(e);
         }

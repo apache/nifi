@@ -450,12 +450,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                             return session.getState(Scope.CLUSTER);
                         }
 
-                        public void setState(Map<String, String> map) throws IOException {
-                            final ProcessSession session = processSessionFactory.createSession();
-                            session.setState(map, Scope.CLUSTER);
-                            session.commitAsync();
-                        }
-
                         public boolean replaceState(StateMap oldValue, Map<String, String> newValue) throws IOException {
                             final ProcessSession session = processSessionFactory.createSession();
                             if (!session.replaceState(oldValue, newValue, Scope.CLUSTER)) {
@@ -583,10 +577,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                                 new ComponentStateCheckpointStore.State() {
                                     public StateMap getState() throws IOException {
                                         return session.getState(Scope.CLUSTER);
-                                    }
-
-                                    public void setState(Map<String, String> map) throws IOException {
-                                        session.setState(map, Scope.CLUSTER);
                                     }
 
                                     public boolean replaceState(StateMap oldValue, Map<String, String> newValue) {
