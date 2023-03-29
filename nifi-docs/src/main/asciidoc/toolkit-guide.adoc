@@ -28,7 +28,6 @@ The NiFi Toolkit contains several command line utilities to setup and support Ni
 * Flow Analyzer -- The `flow-analyzer` tool produces a report that helps administrators understand the max amount of data which can be stored in backpressure for a given flow.
 * Node Manager -- The `node-manager` tool enables administrators to perform status checks on nodes as well as the ability to connect, disconnect, or remove nodes from the cluster.
 * Notify -- The `notify` tool enables administrators to send bulletins to the NiFi UI.
-* S2S -- The `s2s` tool enables administrators to send data into or out of NiFi flows over site-to-site.
 * TLS Toolkit -- The `tls-toolkit` utility generates the required keystores, truststore, and relevant configuration files to facilitate the setup of a secure NiFi instance.
 * ZooKeeper Migrator -- The `zk-migrator` tool enables administrators to:
 ** move ZooKeeper information from one ZooKeeper cluster to another
@@ -964,54 +963,6 @@ Example usage on Windows:
 Executing the above command line should result in a bulletin appearing in NiFi:
 
 image::nifi-notifications.png["NiFi Notifications"]
-
-== S2S
-S2S is a command line tool (invoked as `./bin/s2s.sh` or `bin\s2s.bat`) that can either read a list of DataPackets from stdin to send over site-to-site or write the received DataPackets to stdout.
-
-=== Usage
-To show help:
-
- ./bin/s2s.sh -h
-
-The following are available options:
-
-* `--batchCount <arg>`             Number of flow files in a batch
-* `--batchDuration <arg>`          Duration of a batch
-* `--batchSize <arg>`              Size of flow files in a batch
-* `-c`,`--compression`             Use compression
-* `-d`,`--direction`               Direction (valid directions: `SEND`, `RECEIVE`) (default: `SEND`)
-* `-h`,`--help`                    Help Text (optional)
-* `-i`,`--portIdentifier <arg>`    Port id
-* `--keystore <arg>`               Keystore
-* `--keyStorePassword <arg>`       Keystore password
-* `--keyStoreType <arg>`           Keystore type (default: `JKS`)
-* `-n`,`--portName`                Port name
-* `-p`,`--transportProtocol`       Site to site transport protocol (default: `RAW`)
-* `--peerPersistenceFile <arg>`    File to write peer information to so it can be recovered on restart
-* `--penalization <arg>`           Penalization period
-* `--proxyHost <arg>`              Proxy hostname
-* `--proxyPassword <arg>`          Proxy password
-* `--proxyPort <arg>`              Proxy port
-* `--proxyUsername <arg>`          Proxy username
-* `--timeout <arg>`                Timeout
-* `--trustStore <arg>`             Truststore
-* `--trustStorePassword <arg>`     Truststore password
-* `--trustStoreType <arg>`         Truststore type (default: `JKS`)
-* `-u,--url <arg>`                 NiFI URL to connect to (default: `http://localhost:8080/nifi`)
-
-The s2s cli input/output format is a JSON list of DataPackets.  They can have the following formats:
-
- [{"attributes":{"key":"value"},"data":"aGVsbG8gbmlmaQ=="}]
-
-where data is the base64 encoded value of the FlowFile content (always used for received data) or:
-
- [{"attributes":{"key":"value"},"dataFile":"/Users/pvillard/Documents/GitHub/nifi/nifi-toolkit/nifi-toolkit-assembly/target/nifi-toolkit-1.9.0-SNAPSHOT-bin/nifi-toolkit-1.9.0-SNAPSHOT/bin/EXAMPLE"}]
-
-where dataFile is a file to read the FlowFile content from.
-
-Example usage to send a FlowFile with the contents of "hey nifi" to a local unsecured NiFi over http with an input port named "input":
-
- echo '[{"data":"aGV5IG5pZmk="}]' | bin/s2s.sh -n input -p http
 
 [[tls_toolkit]]
 == TLS Toolkit
