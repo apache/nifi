@@ -17,35 +17,51 @@
 
 package org.apache.nifi.minifi.c2.provider.util;
 
-import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
-import org.apache.nifi.minifi.c2.api.InvalidParameterException;
-import org.apache.nifi.minifi.c2.api.properties.C2Properties;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE_TYPE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEY_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE_TYPE;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
+import org.apache.nifi.minifi.c2.api.InvalidParameterException;
+import org.apache.nifi.minifi.c2.api.properties.C2Properties;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HttpConnector {
+
     private static final Logger logger = LoggerFactory.getLogger(HttpConnector.class);
+    private static final String HTTPS = "https:";
+    private static final String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
 
     private final String baseUrl;
-    private final SslContextFactory sslContextFactory;
+    private final SSLContext sslContext;
     private final Proxy proxy;
     private final String proxyAuthorization;
 
@@ -57,14 +73,11 @@ public class HttpConnector {
         this(baseUrl, proxyHost, proxyPort, null, null);
     }
 
-    public HttpConnector(String baseUrl, String proxyHost, int proxyPort, String proxyUsername, String proxyPassword) throws InvalidParameterException, GeneralSecurityException, IOException {
-        if (baseUrl.startsWith("https:")) {
-            sslContextFactory = C2Properties.getInstance().getSslContextFactory();
-            if (sslContextFactory == null) {
-                throw new InvalidParameterException("Need sslContextFactory to connect to https endpoint (" + baseUrl + ")");
-            }
+    public HttpConnector(String baseUrl, String proxyHost, int proxyPort, String proxyUsername, String proxyPassword) throws InvalidParameterException {
+        if (baseUrl.startsWith(HTTPS)) {
+            sslContext = buildSSLContext();
         } else {
-            sslContextFactory = null;
+            sslContext = null;
         }
         this.baseUrl = baseUrl;
         if (proxyHost != null && !proxyHost.isEmpty()) {
@@ -87,6 +100,43 @@ public class HttpConnector {
         } else {
             proxyAuthorization = null;
         }
+    }
+
+    private SSLContext buildSSLContext() {
+        C2Properties properties = C2Properties.getInstance();
+        KeyStore keyStore;
+        KeyStore truststore;
+
+        Path c2ServerHome = Paths.get(C2_SERVER_HOME);
+        File keyStoreFile = c2ServerHome.resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toFile();
+        logger.debug("Loading Key Store [{}]", keyStoreFile.getPath());
+        try (FileInputStream keyStoreStream = new FileInputStream(keyStoreFile)) {
+            keyStore = new StandardKeyStoreBuilder()
+                .type(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE))
+                .inputStream(keyStoreStream)
+                .password(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray())
+                .build();
+        } catch (IOException ioe) {
+            throw new UncheckedIOException("Key Store loading failed", ioe);
+        }
+
+        File trustStoreFile = c2ServerHome.resolve(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE)).toFile();
+        logger.debug("Loading Trust Store [{}]", trustStoreFile.getPath());
+        try (FileInputStream trustStoreStream = new FileInputStream(trustStoreFile)) {
+            truststore = new StandardKeyStoreBuilder()
+                .type(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE))
+                .inputStream(trustStoreStream)
+                .password(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD).toCharArray())
+                .build();
+        } catch (IOException ioe) {
+            throw new UncheckedIOException("Trust Store loading failed", ioe);
+        }
+
+        return new StandardSslContextBuilder()
+            .keyStore(keyStore)
+            .keyPassword(properties.getProperty(MINIFI_C2_SERVER_KEY_PASSWD).toCharArray())
+            .trustStore(truststore)
+            .build();
     }
 
     public HttpURLConnection get(String endpointPath) throws ConfigurationProviderException {
@@ -112,9 +162,8 @@ public class HttpConnector {
             } else {
                 httpURLConnection = (HttpURLConnection) url.openConnection(proxy);
             }
-            if (sslContextFactory != null) {
+            if (sslContext != null) {
                 HttpsURLConnection httpsURLConnection = (HttpsURLConnection) httpURLConnection;
-                SSLContext sslContext = sslContextFactory.getSslContext();
                 SSLSocketFactory socketFactory = sslContext.getSocketFactory();
                 httpsURLConnection.setSSLSocketFactory(socketFactory);
             }
@@ -124,7 +173,7 @@ public class HttpConnector {
         if (proxyAuthorization != null) {
             httpURLConnection.setRequestProperty("Proxy-Authorization", proxyAuthorization);
         }
-        headers.forEach((s, strings) -> httpURLConnection.setRequestProperty(s, strings.stream().collect(Collectors.joining(","))));
+        headers.forEach((s, strings) -> httpURLConnection.setRequestProperty(s, String.join(",", strings)));
         return httpURLConnection;
     }
 }
