@@ -17,59 +17,72 @@
 
 package org.apache.nifi.minifi.c2.jetty;
 
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEYSTORE_TYPE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_KEY_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE_PASSWD;
+import static org.apache.nifi.minifi.c2.api.properties.C2Properties.MINIFI_C2_SERVER_TRUSTSTORE_TYPE;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.Security;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
+import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.minifi.c2.api.properties.C2Properties;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.webapp.WebAppClassLoader;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class JettyServer {
     private static final Logger logger = LoggerFactory.getLogger(JettyServer.class);
-    private static String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
+    private static final String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
     private static final String WEB_DEFAULTS_XML = "webdefault.xml";
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     public static void main(String[] args) throws Exception {
         C2Properties properties = C2Properties.getInstance();
 
         final HandlerCollection handlers = new HandlerCollection();
-        for (Path path : Files.list(Paths.get(C2_SERVER_HOME, "webapps")).collect(Collectors.toList())) {
-             handlers.addHandler(loadWar(path.toFile(), "/c2", JettyServer.class.getClassLoader()));
+        try (Stream<Path> files = Files.list(Paths.get(C2_SERVER_HOME, "webapps"))) {
+            files.forEach(path -> {
+                handlers.addHandler(loadWar(path.toFile(), "/c2", JettyServer.class.getClassLoader()));
+            });
         }
 
         Server server;
         int port = Integer.parseInt(properties.getProperty("minifi.c2.server.port", "10090"));
         if (properties.isSecure()) {
-            SslContextFactory sslContextFactory = properties.getSslContextFactory();
-            HttpConfiguration config = new HttpConfiguration();
-            config.setSecureScheme("https");
-            config.setSecurePort(port);
-            config.addCustomizer(new SecureRequestCustomizer());
-
             server = new Server();
+            StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+            serverConnectorFactory.setSslContext(buildSSLContext(properties));
+            serverConnectorFactory.setWantClientAuth(true);
 
-            ServerConnector serverConnector = new ServerConnector(server, new SslConnectionFactory(sslContextFactory, "http/1.1"), new HttpConnectionFactory(config));
-            serverConnector.setPort(port);
-
-            server.addConnector(serverConnector);
+            ServerConnector https = serverConnectorFactory.getServerConnector();
+            https.setPort(port);
+            server.addConnector(https);
         } else {
             server = new Server(port);
         }
@@ -100,7 +113,42 @@ public class JettyServer {
         server.join();
     }
 
-    private static WebAppContext loadWar(final File warFile, final String contextPath, final ClassLoader parentClassLoader) throws IOException {
+    private static SSLContext buildSSLContext(C2Properties properties) {
+        KeyStore keyStore;
+        KeyStore truststore;
+
+        File keyStoreFile = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toFile();
+        logger.debug("keystore path: " + keyStoreFile.getPath());
+        try (FileInputStream keyStoreStream = new FileInputStream(keyStoreFile)) {
+            keyStore = new StandardKeyStoreBuilder()
+                .type(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE))
+                .inputStream(keyStoreStream)
+                .password(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray())
+                .build();
+        } catch (IOException ioe) {
+            throw new UncheckedIOException(ioe);
+        }
+
+        File trustStoreFile = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE)).toFile();
+        logger.debug("trustStore path: " + trustStoreFile.getPath());
+        try (FileInputStream trustStoreStream = new FileInputStream(trustStoreFile)) {
+            truststore = new StandardKeyStoreBuilder()
+                .type(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE))
+                .inputStream(trustStoreStream)
+                .password(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD).toCharArray())
+                .build();
+        } catch (IOException ioe) {
+            throw new UncheckedIOException(ioe);
+        }
+
+        return new StandardSslContextBuilder()
+            .keyStore(keyStore)
+            .keyPassword(properties.getProperty(MINIFI_C2_SERVER_KEY_PASSWD).toCharArray())
+            .trustStore(truststore)
+            .build();
+    }
+
+    private static WebAppContext loadWar(final File warFile, final String contextPath, final ClassLoader parentClassLoader) {
         final WebAppContext webappContext = new WebAppContext(warFile.getPath(), contextPath);
         webappContext.setContextPath(contextPath);
         webappContext.setDisplayName(contextPath);
@@ -134,7 +182,11 @@ public class JettyServer {
         // configure the max form size (3x the default)
         webappContext.setMaxFormContentSize(600000);
 
-        webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
+        try {
+            webappContext.setClassLoader(new WebAppClassLoader(parentClassLoader, webappContext));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
 
         logger.info("Loading WAR: " + warFile.getAbsolutePath() + " with context path set to " + contextPath);
         return webappContext;

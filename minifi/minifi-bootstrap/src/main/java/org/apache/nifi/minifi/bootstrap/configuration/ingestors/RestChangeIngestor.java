@@ -20,19 +20,25 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
 import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.security.Security;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
@@ -40,12 +46,15 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differenti
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
+import org.apache.nifi.security.ssl.StandardSslContextBuilder;
+import org.apache.nifi.security.util.TlsPlatform;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +69,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator);
 
         DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
+        Security.addProvider(new BouncyCastleProvider());
     }
 
 
@@ -99,7 +109,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         this.configurationFileHolder = configurationFileHolder;
         this.properties = properties;
         logger.info("Initializing");
-        final String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
+        String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
 
         if (differentiatorName != null && !differentiatorName.isEmpty()) {
             Supplier<Differentiator<ByteBuffer>> differentiatorSupplier = DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiatorName);
@@ -132,7 +142,7 @@ public class RestChangeIngestor implements ChangeIngestor {
     public void start() {
         try {
             jetty.start();
-            logger.info("RestChangeIngester has started and is listening on port {}.", new Object[]{getPort()});
+            logger.info("RestChangeIngester has started and is listening on port {}.", getPort());
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -163,7 +173,7 @@ public class RestChangeIngestor implements ChangeIngestor {
     }
 
     private void createConnector(Properties properties) {
-        final ServerConnector http = new ServerConnector(jetty);
+        ServerConnector http = new ServerConnector(jetty);
 
         http.setPort(Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
         http.setHost(properties.getProperty(HOST_KEY, "localhost"));
@@ -172,39 +182,53 @@ public class RestChangeIngestor implements ChangeIngestor {
         http.setIdleTimeout(30000L);
         jetty.addConnector(http);
 
-        logger.info("Added an http connector on the host '{}' and port '{}'", new Object[]{http.getHost(), http.getPort()});
+        logger.info("Added an http connector on the host '{}' and port '{}'", http.getHost(), http.getPort());
     }
 
     private void createSecureConnector(Properties properties) {
-        SslContextFactory ssl = new SslContextFactory();
+        KeyStore keyStore;
+        KeyStore truststore = null;
 
-        if (properties.getProperty(KEYSTORE_LOCATION_KEY) != null) {
-            ssl.setKeyStorePath(properties.getProperty(KEYSTORE_LOCATION_KEY));
-            ssl.setKeyStorePassword(properties.getProperty(KEYSTORE_PASSWORD_KEY));
-            ssl.setKeyStoreType(properties.getProperty(KEYSTORE_TYPE_KEY));
+        try (FileInputStream keyStoreStream = new FileInputStream(properties.getProperty(KEYSTORE_LOCATION_KEY))) {
+            keyStore = new StandardKeyStoreBuilder()
+                .type(properties.getProperty(KEYSTORE_TYPE_KEY))
+                .inputStream(keyStoreStream)
+                .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
+                .build();
+        } catch (IOException ioe) {
+            throw new UncheckedIOException(ioe);
         }
 
         if (properties.getProperty(TRUSTSTORE_LOCATION_KEY) != null) {
-            ssl.setTrustStorePath(properties.getProperty(TRUSTSTORE_LOCATION_KEY));
-            ssl.setTrustStorePassword(properties.getProperty(TRUSTSTORE_PASSWORD_KEY));
-            ssl.setTrustStoreType(properties.getProperty(TRUSTSTORE_TYPE_KEY));
-            ssl.setNeedClientAuth(Boolean.parseBoolean(properties.getProperty(NEED_CLIENT_AUTH_KEY, "true")));
+            try (FileInputStream trustStoreStream = new FileInputStream(properties.getProperty(TRUSTSTORE_LOCATION_KEY))) {
+                truststore = new StandardKeyStoreBuilder()
+                    .type(properties.getProperty(TRUSTSTORE_TYPE_KEY))
+                    .inputStream(trustStoreStream)
+                    .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray())
+                    .build();
+            } catch (IOException ioe) {
+                throw new UncheckedIOException(ioe);
+            }
         }
 
-        // build the connector
-        final ServerConnector https = new ServerConnector(jetty, ssl);
+        SSLContext sslContext = new StandardSslContextBuilder()
+            .keyStore(keyStore)
+            .keyPassword(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
+            .trustStore(truststore)
+            .build();
 
-        // set host and port
-        https.setPort(Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
+        StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(jetty, Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
+        serverConnectorFactory.setNeedClientAuth(Boolean.parseBoolean(properties.getProperty(NEED_CLIENT_AUTH_KEY, "true")));
+        serverConnectorFactory.setSslContext(sslContext);
+        serverConnectorFactory.setIncludeSecurityProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
+
+        ServerConnector https = serverConnectorFactory.getServerConnector();
         https.setHost(properties.getProperty(HOST_KEY, "localhost"));
-
-        // Severely taxed environments may have significant delays when executing.
-        https.setIdleTimeout(30000L);
 
         // add the connector
         jetty.addConnector(https);
 
-        logger.info("Added an https connector on the host '{}' and port '{}'", new Object[]{https.getHost(), https.getPort()});
+        logger.info("Added an https connector on the host '{}' and port '{}'", https.getHost(), https.getPort());
     }
 
     protected void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
