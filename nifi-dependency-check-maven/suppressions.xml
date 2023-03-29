@@ -234,4 +234,29 @@
         <packageUrl regex="true">^pkg:maven/io\.netty/.*$</packageUrl>
         <cve>CVE-2022-41881</cve>
     </suppress>
+    <suppress>
+        <notes>CVE-2021-34538 applies to Apache Hive server not the Storage API library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hive/hive\-storage\-api@.*$</packageUrl>
+        <cve>CVE-2021-34538</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-8025 applies to HBase server not the shaded libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase\.thirdparty/hbase\-shaded\-.*$</packageUrl>
+        <cve>CVE-2018-8025</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2018-8025 applies to HBase Server not HBase libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-.*$</packageUrl>
+        <cve>CVE-2018-8025</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2019-0212 applies to HBase Server not HBase libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-.*$</packageUrl>
+        <cve>CVE-2019-0212</cve>
+    </suppress>
+    <suppress>
+        <notes>Hadoop vulnerabilities do not apply to HBase Hadoop2 compatibility library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-hadoop2\-compat@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hadoop</cpe>
+    </suppress>
 </suppressions>

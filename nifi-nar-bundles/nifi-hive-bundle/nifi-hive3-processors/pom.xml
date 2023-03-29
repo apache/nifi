@@ -316,6 +316,12 @@
             <artifactId>groovy-all</artifactId>
             <version>2.4.21</version>
         </dependency>
+        <!-- Override Jettison 1.5.3 from Hive -->
+        <dependency>
+            <groupId>org.codehaus.jettison</groupId>
+            <artifactId>jettison</artifactId>
+            <version>1.5.4</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
