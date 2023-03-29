@@ -42,8 +42,6 @@ Paths:
     Default Action: deny
     Actions:
       - Authorization: CLASS_RASPI_3
-        Query Parameters:
-          class: raspi3
         Action: allow
       - Authorization: ROLE_SUPERUSER
         Action: allow
@@ -56,8 +54,6 @@ Paths:
     Default Action: deny
     Actions:
       - Authorization: CLASS_RASPI_3
-        Query Parameters:
-          class: raspi3
         Action: allow
       - Authorization: ROLE_SUPERUSER
         Action: allow

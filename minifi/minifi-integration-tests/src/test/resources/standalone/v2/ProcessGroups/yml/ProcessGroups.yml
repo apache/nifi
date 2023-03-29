@@ -53,7 +53,7 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key:
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    algorithm: NIFI_PBKDF2_AES_GCM_256
     provider: BC
 Processors:
 - id: e25cd92a-0157-1000-0000-000000000000

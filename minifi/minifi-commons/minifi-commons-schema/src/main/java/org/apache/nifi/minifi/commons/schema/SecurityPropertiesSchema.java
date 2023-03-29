@@ -17,11 +17,14 @@
 
 package org.apache.nifi.minifi.commons.schema;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
+import org.apache.nifi.security.util.KeystoreType;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SENSITIVE_PROPS_KEY;
@@ -60,7 +63,8 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
         keystoreType = getOptionalKeyAsType(map, KEYSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, "");
         if (!StringUtil.isNullOrEmpty(keystoreType)) {
             if (validateStoreType(keystoreType)) {
-                addValidationIssue(KEYSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either PKCS12 or JKS format)");
+                addValidationIssue(KEYSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either " +
+                    Arrays.stream(KeystoreType.values()).map(KeystoreType::getType).collect(Collectors.joining(", ")) + " format)");
             }
         }
 
@@ -73,7 +77,8 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
         truststoreType = getOptionalKeyAsType(map, TRUSTSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, "");
         if (!StringUtil.isNullOrEmpty(truststoreType)) {
             if (validateStoreType(truststoreType)) {
-                addValidationIssue(TRUSTSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either PKCS12 or JKS format)");
+                addValidationIssue(TRUSTSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either " +
+                    Arrays.stream(KeystoreType.values()).map(KeystoreType::getType).collect(Collectors.joining(", ")) + " format)");
             }
         }
 
@@ -134,7 +139,7 @@ public class SecurityPropertiesSchema extends BaseSchema implements WritableSche
     }
 
     private boolean validateStoreType(String store) {
-        return !store.isEmpty() && !(store.equalsIgnoreCase("JKS") || store.equalsIgnoreCase("PKCS12"));
+        return !store.isEmpty() && !KeystoreType.isValidKeystoreType(store);
     }
 
     public boolean useSSL() {
