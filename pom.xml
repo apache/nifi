@@ -130,9 +130,7 @@
         <nifi.groovy.version>3.0.14</nifi.groovy.version>
         <groovy.eclipse.batch.version>3.0.8-01</groovy.eclipse.batch.version>
         <surefire.version>3.0.0-M8</surefire.version>
-        <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
-            a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.3.4</hadoop.version>
+        <hadoop.version>3.3.5</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.19</aspectj.version>
