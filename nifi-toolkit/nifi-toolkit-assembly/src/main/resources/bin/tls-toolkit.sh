@@ -111,7 +111,7 @@ run() {
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
 
    umask 0077
-   exec "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS:--Xms12m -Xmx24m} org.apache.nifi.toolkit.tls.TlsToolkitMain "$@"
+   exec "${JAVA}" -cp "${CLASSPATH}" ${JAVA_OPTS:--Xms128m -Xmx256m} org.apache.nifi.toolkit.tls.TlsToolkitMain "$@"
 }
 
 
