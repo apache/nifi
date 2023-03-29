@@ -34,9 +34,8 @@ import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import static org.apache.nifi.adx.NiFiVersion.NIFI_SOURCE;
 
 @Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flow file content or stream flow file content to an Azure ADX cluster.")
@@ -94,15 +93,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(
-            Arrays.asList(
-                    KUSTO_AUTH_STRATEGY,
-                    APP_ID,
-                    APP_KEY,
-                    APP_TENANT,
-                    CLUSTER_URL
-            )
-    );
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(KUSTO_AUTH_STRATEGY,APP_ID,APP_KEY,APP_TENANT,CLUSTER_URL);
 
     private Client executionClient;
 
@@ -133,11 +124,18 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
 
     @OnStopped
     public final void onStopped() {
+        if(this.executionClient!=null){
+            try {
+                this.executionClient.close();
+            } catch (Exception e) {
+                getLogger().error("Error closing Kusto Execution Client", e);
+            }
+        }
         this.executionClient = null;
     }
 
     @Override
-    public Client getKustoExecutionClient() {
+    public Client getKustoQueryClient() {
         return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
                 adxConnectionParams.getAppId(),
                 adxConnectionParams.getAppKey(),
@@ -145,6 +143,8 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                 adxConnectionParams.getKustoAuthStrategy());
     }
 
+
+    @SuppressWarnings("unchecked")
     public ConnectionStringBuilder createKustoEngineConnectionString(final String clusterUrl, final String appId, final String appKey, final String appTenant, final String kustoAuthStrategy) {
         final ConnectionStringBuilder kcsb;
         switch (kustoAuthStrategy) {
@@ -171,7 +171,8 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                         "provide valid credentials. Either Kusto managed identity or " +
                         "Kusto appId, appKey, and authority should be configured.");
         }
-        kcsb.setClientVersionForTracing(NiFiVersion.CLIENT_NAME + ":" + NiFiVersion.getVersion());
+        kcsb.setConnectorDetails(NiFiVersion.CLIENT_NAME, NiFiVersion.getVersion(), null, null,
+                false, null,NIFI_SOURCE);
         return kcsb;
     }
 

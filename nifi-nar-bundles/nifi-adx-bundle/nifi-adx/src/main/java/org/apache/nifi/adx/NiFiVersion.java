@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.adx;
 
-import org.slf4j.Logger;
+import org.apache.commons.lang3.tuple.Pair;import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
@@ -25,6 +25,7 @@ import java.util.Properties;
 public class NiFiVersion {
     public static final String CLIENT_NAME = "Kusto.Nifi";
 
+    public static final Pair<String,String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
     private static final Logger log = LoggerFactory.getLogger(NiFiVersion.class);
     private static final String VERSION_FILE = "/azure-kusto-nifi-version.properties";
     private static String version = "unknown";
