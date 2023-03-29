@@ -128,6 +128,63 @@
         <jsp:include page="/WEB-INF/partials/canvas/registry-configuration-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-registry-client-dialog.jsp"/>
         <div id="canvas-container" class="unselectable"></div>
+        <section id="recs-and-policies-drawer">
+            <div class="recs-and-policies-header">
+                <div class="recs-policies-refresh-container">
+                    <div class="recs-policies-refresh">Next check in: <span class="recs-policies-check-in">21</span></div>
+                    <button id="recs-policies-check-now-btn" class="recs-policies-check-now-btn">Check Now</button>
+                </div>
+            </div>
+            <div class="recs-and-policies-flow-guide-container">
+                <div class="recs-policies-flow-guide">
+                    <div class="recs-policies-flow-guide-title">Flow Guide</div>
+                    <div class="recs-and-policies-violations-options">
+                        <div class="nf-checkbox checkbox-unchecked" id="show-only-violations"></div>
+                        <span class="nf-checkbox-label show-only-violations-label">Only show violations</span>
+                    </div>
+                </div>
+                <div class="recs-policies-flow-guide-breadcrumb">NiFi Flow</div>
+            </div>
+            <div id="recs-and-policies-rules-accordion" class="recs-and-policies-rules-accordion">
+
+                <div id="required-rules" class="required-rules">
+                    <div>
+                        <div>Required Rules <span id="required-rule-count" class="required-rule-count"></span></div>
+                    </div>
+                    <ul id="required-rules-list" class="required-rules-list">
+                    </ul>
+                </div>
+
+                <div id="recommended-rules" class="recommended-rules">
+                    <div>
+                        <div>Recommended Rules <span id="recommended-rule-count" class="recommended-rule-count"></span></div>
+                    </div>
+                    <ul id="recommended-rules-list" class="recommended-rules-list"></ul>
+                </div>
+
+                <div id="rule-violations" class="rule-violations">
+                    <div class="rules-violations-header">
+                        <div>Rule Violations <span id="rule-violation-count" class="rule-violation-count"></span></div>
+                    </div>
+                    <ul id="rule-violations-list" class="rule-violations-list"></ul>
+                </div>
+
+                <div class="rule-menu" id="rule-menu">
+                    <ul>
+                        <li class="rule-menu-option" id="rule-menu-more-info"><i class="fa fa-info-circle rule-menu-option-icon" aria-hidden="true"></i>More
+                            Information</li>
+                        <li class="rule-menu-option" id="rule-menu-edit-rule"><i class="fa fa-pencil rule-menu-option-icon" aria-hidden="true"></i>Edit Rule</li>
+                    </ul>
+                </div>
+
+                <div class="violation-menu" id="violation-menu">
+                    <ul>
+                        <li class="violation-menu-option" id="violation-menu-more-info"><i class="fa fa-info-circle violation-menu-option-icon" aria-hidden="true"></i>Violation details</li>
+                        <li class="violation-menu-option" id="violation-menu-go-to"><i class="fa fa-pencil violation-menu-option-icon" aria-hidden="true"></i>Go to component</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>
             <div id="port-tooltips"></div>
@@ -144,6 +201,8 @@
         <jsp:include page="/WEB-INF/partials/canvas/flow-analysis-rule-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/parameter-provider-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/rule-description-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/violation-description-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/override-policy-dialog.jsp"/>
