@@ -143,7 +143,7 @@ public class StandardFlowEncryptorTest {
 
     private String getSampleFlowJson(final String password) {
         Objects.requireNonNull(password);
-        return String.format("{\"properties\":{\"username\":\"sample_username\",\"password\":\"%s\"}}", password);
+        return String.format("{\"properties\":{\"username\":\"sample_username\",\"password\":\"%s\",\"position\":1.123456789123456789}}", password);
     }
 
     private String getSampleFlowXml(final String password) {

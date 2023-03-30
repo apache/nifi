@@ -25,7 +25,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <ranger.hadoop.version>3.3.3</ranger.hadoop.version>
+        <ranger.hadoop.version>3.3.5</ranger.hadoop.version>
         <ranger.ozone.version>1.2.1</ranger.ozone.version>
         <ranger.gcs.version>2.1.5</ranger.gcs.version>
     </properties>
@@ -287,7 +287,7 @@
         <dependency>
             <groupId>org.codehaus.jettison</groupId>
             <artifactId>jettison</artifactId>
-            <version>1.5.2</version>
+            <version>1.5.4</version>
         </dependency>
     </dependencies>
 

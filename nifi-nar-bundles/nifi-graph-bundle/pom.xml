@@ -33,8 +33,6 @@
         <module>nifi-graph-nar</module>
         <module>nifi-neo4j-cypher-service</module>
         <module>nifi-neo4j-cypher-service-nar</module>
-        <module>nifi-neo4j-3-cypher-service</module>
-        <module>nifi-neo4j-3-cypher-service-nar</module>
         <module>nifi-other-graph-services</module>
         <module>nifi-other-graph-services-nar</module>
     </modules>
@@ -50,7 +48,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.21</version>
+                <version>1.23.0</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>

@@ -187,7 +187,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             REL_FAILURE
     )));
 
-    public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
+    public static final String MULTIPART_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true";
 
     private volatile Drive driveService;
 
@@ -324,10 +324,12 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         if (fileMetadata.getId() == null) {
             return driveService.files()
                     .create(fileMetadata, mediaContent)
+                    .setSupportsAllDrives(true)
                     .setFields("id, name, createdTime, mimeType, size");
         } else {
             return driveService.files()
                     .update(fileMetadata.getId(), new File(), mediaContent)
+                    .setSupportsAllDrives(true)
                     .setFields("id, name, createdTime, mimeType, size");
         }
     }
@@ -347,7 +349,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             return fileMetadata;
         } else {
             throw new ProcessException(format("Upload of File [%s] to Folder [%s] failed, HTTP error code: [%d]",
-                    fileMetadata.getName(), fileMetadata.getId(), response.getStatusCode()));
+                    fileMetadata.getName(), fileMetadata.getParents().stream().findFirst().orElse(""), response.getStatusCode()));
         }
     }
 
@@ -368,6 +370,8 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     private Optional<File> checkFileExistence(String fileName, String parentId) throws IOException {
         final FileList result = driveService.files()
                 .list()
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
                 .setQ(format("name='%s' and ('%s' in parents)", fileName, parentId))
                 .setFields("files(name, id)")
                 .execute();

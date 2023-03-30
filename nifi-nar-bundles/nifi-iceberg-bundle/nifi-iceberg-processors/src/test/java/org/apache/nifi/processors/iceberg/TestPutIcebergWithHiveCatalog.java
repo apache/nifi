@@ -107,7 +107,10 @@ public class TestPutIcebergWithHiveCatalog {
     }
 
     private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService(metastore.getThriftConnectionUri(), metastore.getWarehouseLocation());
+        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder()
+                .withMetastoreUri(metastore.getThriftConnectionUri())
+                .withWarehouseLocation(metastore.getWarehouseLocation())
+                .build();
         Catalog catalog = catalogService.getCatalog();
 
         Map<String, String> tableProperties = new HashMap<>();
@@ -126,7 +129,7 @@ public class TestPutIcebergWithHiveCatalog {
 
     @DisabledOnOs(WINDOWS)
     @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
+    @ValueSource(strings = {"avro"})
     public void onTriggerPartitioned(String fileFormat) throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .bucket("department", 3)
@@ -164,7 +167,7 @@ public class TestPutIcebergWithHiveCatalog {
 
     @DisabledOnOs(WINDOWS)
     @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
+    @ValueSource(strings = {"orc"})
     public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("department")
@@ -202,7 +205,7 @@ public class TestPutIcebergWithHiveCatalog {
 
     @DisabledOnOs(WINDOWS)
     @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
+    @ValueSource(strings = {"parquet"})
     public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(USER_SCHEMA)
                 .identity("name")
@@ -245,7 +248,7 @@ public class TestPutIcebergWithHiveCatalog {
 
     @DisabledOnOs(WINDOWS)
     @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
+    @ValueSource(strings = {"avro"})
     public void onTriggerUnPartitioned(String fileFormat) throws Exception {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();

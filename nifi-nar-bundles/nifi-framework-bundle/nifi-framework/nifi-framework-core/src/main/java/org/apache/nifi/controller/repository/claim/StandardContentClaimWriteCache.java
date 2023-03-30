@@ -95,6 +95,8 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
 
         final OutputStream bcos = out;
         return new OutputStream() {
+            private boolean closed = false;
+
             private long bytesWritten = 0L;
 
             @Override
@@ -122,7 +124,12 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+
                 queue.offer(claim);
             }
         };

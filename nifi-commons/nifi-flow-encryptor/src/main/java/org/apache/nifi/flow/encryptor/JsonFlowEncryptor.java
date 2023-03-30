@@ -82,7 +82,7 @@ public class JsonFlowEncryptor extends AbstractFlowEncryptor {
                     generator.writeNumber(parser.getIntValue());
                     break;
                 case VALUE_NUMBER_FLOAT:
-                    generator.writeNumber(parser.getFloatValue());
+                    generator.writeRawValue(parser.getValueAsString());
                     break;
                 case VALUE_TRUE:
                     generator.writeBoolean(true);

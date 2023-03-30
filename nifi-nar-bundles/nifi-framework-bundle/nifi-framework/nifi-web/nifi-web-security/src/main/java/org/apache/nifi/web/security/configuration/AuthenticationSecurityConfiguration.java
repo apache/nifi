@@ -37,7 +37,7 @@ import org.springframework.security.authentication.AuthenticationManager;
         JwtAuthenticationSecurityConfiguration.class,
         KerberosAuthenticationSecurityConfiguration.class,
         KnoxAuthenticationSecurityConfiguration.class,
-        OidcAuthenticationSecurityConfiguration.class,
+        OidcSecurityConfiguration.class,
         SamlAuthenticationSecurityConfiguration.class,
         X509AuthenticationSecurityConfiguration.class
 })

@@ -258,7 +258,7 @@ properties can be specified.
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset. NiFi only supports running on HTTP *or* HTTPS, not both simultaneously.
 
 NiFi's web server will REQUIRE certificate based client authentication for users accessing the User Interface when not configured with an alternative
-authentication mechanism which would require one way SSL (for instance LDAP, OpenId Connect, etc). Enabling an alternative authentication mechanism will
+authentication mechanism which would require one way SSL (for instance LDAP, OpenID Connect, etc). Enabling an alternative authentication mechanism will
 configure the web server to WANT certificate base client authentication. This will allow it to support users with certificates and those without that
 may be logging in with credentials. See <<user_authentication>> for more details.
 
@@ -315,9 +315,9 @@ The semantics match the use of the following Jetty APIs:
 [[user_authentication]]
 == User Authentication
 
-NiFi supports user authentication via client certificates, via username/password, via Apache Knox, or via link:http://openid.net/connect[OpenId Connect^].
+NiFi supports user authentication using a number of configurable protocols and strategies.
 
-Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
+Username and password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
 authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
 Currently NiFi offers username/password with Login Identity Providers options for <<single_user_identity_provider>>, <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
 
@@ -326,14 +326,14 @@ The `nifi.login.identity.provider.configuration.file` property specifies the con
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
 used. The default value of this property is `single-user-provider` supporting authentication with a generated username and password.
 
-During OpenId Connect authentication, NiFi will redirect users to login with the Provider before returning to NiFi. NiFi will then
-call the Provider to obtain the user identity.
+For Single sign-on authentication, NiFi will redirect users to the Identity Provider before returning to NiFi. NiFi will then
+process responses and convert attributes to application token information.
 
 During Apache Knox authentication, NiFi will redirect users to login with Apache Knox before returning to NiFi. NiFi will verify the Apache Knox
 token during authentication.
 
-NOTE: NiFi can only be configured for username/password, OpenId Connect, or Apache Knox at a given time. It does not support running each of
-these concurrently. NiFi will require client certificates for authenticating users over HTTPS if none of these are configured.
+NOTE: NiFi cannot be configured for multiple authentication strategies simultaneously.
+NiFi will require client certificates for authenticating users over HTTPS if no other strategies have been configured.
 
 A user cannot anonymously authenticate with a secured instance of NiFi unless `nifi.security.allow.anonymous.authentication` is set to `true`.
 If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
@@ -490,30 +490,80 @@ See also <<kerberos_service>> to allow single sign-on access via client Kerberos
 NOTE: For changes to _nifi.properties_ and _login-identity-providers.xml_ to take effect, NiFi needs to be restarted. If NiFi is clustered, configuration files must be the same on all nodes.
 
 [[openid_connect]]
-=== OpenId Connect
+=== OpenID Connect
 
-To enable authentication via OpenId Connect the following properties must be configured in _nifi.properties_.
+OpenID Connect integration provides single sign-on using a specified Authorization Server.
+The implementation supports the Authorization Code Grant Type as described in
+link:https://www.rfc-editor.org/rfc/rfc6749#section-4.1[RFC 6749 Section 4.1^] and
+link:https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowSteps[OpenID Connect Core Section 3.1.1^].
+
+After successful authentication with the Authorization Server, NiFi generates an application Bearer Token with an
+expiration based on the OAuth2 Access Token expiration. NiFi stores authorized tokens using the local State
+Provider and encrypts serialized information using the application Sensitive Properties Key.
+
+The implementation enables
+link:https://openid.net/specs/openid-connect-rpinitiated-1_0.html[OpenID Connect RP-Initiated Logout 1.0^] when the
+Authorization Server includes an `end_session_endpoint` element in the OpenID Discovery configuration.
+
+OpenID Connect integration supports using Refresh Tokens as described in
+link:https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens[OpenID Connect Core Section 12].
+NiFi tracks the expiration of the application Bearer Token and uses the stored Refresh Token to renew
+access prior to Bearer Token expiration, based on the configured token refresh window. NiFi does not require OpenID
+Connect Providers to support Refresh Tokens. When an OpenID Connect Provider does not return a Refresh Token, NiFi
+requires the user to initiate a new session when the application Bearer Token expires.
+
+The Refresh Token implementation allows the NiFi session to continue as long as the Refresh Token is valid and the
+user agent presents a valid Bearer Token. The default value for the token refresh window is 60 seconds. For an Access
+Token with an expiration of one hour, NiFi will attempt to renew access using the Refresh Token when receiving an HTTP
+request 59 minutes after authenticating the Access Token. Revoked Refresh Tokens or expired application Bearer Tokens
+result in standard session timeout behavior, requiring the user to initiate a new session.
+
+The OpenID Connect implementation supports OAuth 2.0 Token Revocation as defined in
+link:https://www.rfc-editor.org/rfc/rfc7009[RFC 7009^]. OpenID Connect Discovery configuration must include a
+`revocation_endpoint` element that supports RFC 7009 standards. The application sends revocation requests for Refresh
+Tokens when the authenticated Resource Owner initiates the logout process.
+
+The implementation includes a scheduled process for removing and revoking expired Refresh Tokens when the corresponding
+Access Token has expired, indicating that the Resource Owner has terminated the application session. Scheduled session
+termination occurs when the user closes the browser without initiating the logout process. The scheduled process avoids
+extended storage of Refresh Tokens for users who are no longer interacting with the application.
+
+OpenID Connect integration supports the following settings in _nifi.properties_.
 
 [options="header"]
 |==================================================================================================================================================
-| Property Name | Description
-|`nifi.security.user.oidc.discovery.url` | The discovery URL for the desired OpenId Connect Provider (link:http://openid.net/specs/openid-connect-discovery-1_0.html[http://openid.net/specs/openid-connect-discovery-1_0.html^]).
-|`nifi.security.user.oidc.connect.timeout` | Connect timeout when communicating with the OpenId Connect Provider. The default value is `5 secs`.
-|`nifi.security.user.oidc.read.timeout` | Read timeout when communicating with the OpenId Connect Provider. The default value is `5 secs`.
-|`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
-|`nifi.security.user.oidc.client.secret` | The client secret for NiFi after registration with the OpenId Connect Provider.
-|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
-by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
+| Property Name                                             | Description
+|`nifi.security.user.oidc.discovery.url`                    | The link:http://openid.net/specs/openid-connect-discovery-1_0.html[Discovery Configuration URL^] for the OpenID Connect Provider
+|`nifi.security.user.oidc.connect.timeout`                  | Socket Connect timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.security.user.oidc.read.timeout`                     | Socket Read timeout when communicating with the OpenID Connect Provider. The default value is `5 secs`
+|`nifi.security.user.oidc.client.id`                        | The Client ID for NiFi registered with the OpenID Connect Provider
+|`nifi.security.user.oidc.client.secret`                    | The Client Secret for NiFi registered with the OpenID Connect Provider
+|`nifi.security.user.oidc.preferred.jwsalgorithm`           | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+by the OpenID Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
-JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL.
-|`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
-|`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage.
-|`nifi.security.user.oidc.fallback.claims.identifying.user` | Comma separated possible fallback claims used to identify the user in case `nifi.security.user.oidc.claim.identifying.user` claim is not present for the login user.
-|`nifi.security.user.oidc.claim.groups` | Name of the ID token claim that contains an array of group names of which the
+JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL
+|`nifi.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`
+|`nifi.security.user.oidc.claim.identifying.user`           | Claim that identifies the authenticated user. The default value is `email`. Claim names may need to be requested using the `nifi.security.user.oidc.additional.scopes` property
+|`nifi.security.user.oidc.fallback.claims.identifying.user` | Comma-separated list of possible fallback claims used to identify the user when the `nifi.security.user.oidc.claim.identifying.user` claim is not found.
+|`nifi.security.user.oidc.claim.groups`                     | Name of the ID token claim that contains an array of group names of which the
 user is a member. Application groups must be supplied from a User Group Provider with matching names in order for the
 authorization process to use ID token claim groups. The default value is `groups`.
-|`nifi.security.user.oidc.truststore.strategy` | If value is `NIFI`, use the NiFi truststore when connecting to the OIDC service, otherwise if value is `JDK` use Java's default `cacerts` truststore. The default value is `JDK`.
+|`nifi.security.user.oidc.truststore.strategy`              | HTTPS Certificate Trust Store Strategy defines the source of certificate authorities that NiFi uses when communicating with the OpenID Connect Provider.
+The value of `JDK` uses the Java platform default configuration stored in `cacerts` under the Java Home directory.
+The value of `NIFI` enables using the trust store configured in the `nifi.security.truststore` property. The default value is `JDK`
+|`nifi.security.user.oidc.token.refresh.window`             | The Token Refresh Window specifies the amount of time before the NiFi authorization session expires when the application will attempt to renew access using a cached Refresh Token. The default is `60 secs`
 |==================================================================================================================================================
+
+==== OpenID Connect REST Resources
+
+OpenID Connect authentication enables the following REST resources for integration with an OpenID Connect 1.0 Authorization Server:
+
+[options="header"]
+|======================================
+| Resource Path                                  | Description
+| /nifi-api/access/oidc/callback/consumer        | Process OIDC 1.0 Login Authentication Responses from an Authentication Server.
+| /nifi/logout-complete                          | Path for redirect after successful OIDC RP-Initiated Logout 1.0 processing
+|======================================
 
 [[saml]]
 === SAML

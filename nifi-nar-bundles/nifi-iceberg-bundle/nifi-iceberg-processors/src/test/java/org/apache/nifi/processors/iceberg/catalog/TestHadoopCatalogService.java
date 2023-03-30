@@ -30,7 +30,7 @@ import static java.nio.file.Files.createTempDirectory;
 
 public class TestHadoopCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    private final Catalog catalog;
+    private final HadoopCatalog catalog;
 
     public TestHadoopCatalogService() throws IOException {
         File warehouseLocation = createTempDirectory("metastore").toFile();
@@ -45,7 +45,7 @@ public class TestHadoopCatalogService extends AbstractControllerService implemen
 
     @Override
     public Configuration getConfiguration() {
-        return null;
+        return catalog.getConf();
     }
 
 }

@@ -76,7 +76,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -597,6 +596,39 @@ public class StandardProcessSessionIT {
         final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
         final long bytesRead = report.getReportEntry("connectable-1").getBytesRead();
         assertEquals(1, bytesRead);
+    }
+
+    @Test
+    public void testWriteToOutputStreamThenRead() throws IOException {
+        FlowFile flowFile = session.create();
+        OutputStream out2 = session.write(flowFile);
+        out2.write("1".getBytes(StandardCharsets.UTF_8));
+        out2.close();
+
+        assertArrayEquals("1".getBytes(StandardCharsets.UTF_8), readContents(flowFile));
+    }
+
+    @Test
+    public void testWriteCallbackThenOutputStream() throws IOException {
+        FlowFile ff1 = session.create();
+        ff1 = session.write(ff1, out -> out.write("1".getBytes(StandardCharsets.UTF_8)));
+        assertEquals(1, ff1.getSize());
+        assertArrayEquals("1".getBytes(StandardCharsets.UTF_8), readContents(ff1));
+
+        FlowFile ff2 = session.create();
+        OutputStream out2 = session.write(ff2);
+        out2.write("2".getBytes(StandardCharsets.UTF_8));
+        out2.close();
+
+        assertArrayEquals("2".getBytes(StandardCharsets.UTF_8), readContents(ff2));
+    }
+
+    private byte[] readContents(final FlowFile flowFile) throws IOException {
+        try (final InputStream in = session.read(flowFile);
+             final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            StreamUtils.copy(in, baos);
+            return baos.toByteArray();
+        }
     }
 
     @Test
@@ -3456,31 +3488,7 @@ public class StandardProcessSessionIT {
                 throw new IOException("Unable to create directory " + parentFile.getAbsolutePath());
             }
 
-            final OutputStream fos = new FileOutputStream(file);
-            return new FilterOutputStream(fos) {
-                @Override
-                public void write(final int b) throws IOException {
-                    fos.write(b);
-                    ((StandardContentClaim) claim).setLength(claim.getLength() + 1);
-                }
-
-                @Override
-                public void write(byte[] b, int off, int len) throws IOException {
-                    fos.write(b, off, len);
-                    ((StandardContentClaim) claim).setLength(claim.getLength() + len);
-                }
-
-                @Override
-                public void write(byte[] b) throws IOException {
-                    fos.write(b);
-                    ((StandardContentClaim) claim).setLength(claim.getLength() + b.length);
-                }
-
-                @Override
-                public void close() throws IOException {
-                    super.close();
-                }
-            };
+            return new FileOutputStream(file);
         }
 
         @Override
