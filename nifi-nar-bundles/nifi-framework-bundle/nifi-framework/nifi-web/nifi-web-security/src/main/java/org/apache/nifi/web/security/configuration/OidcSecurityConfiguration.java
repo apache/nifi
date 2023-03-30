@@ -38,6 +38,7 @@ import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.OidcUrlPath;
 import org.apache.nifi.web.security.oidc.client.web.AuthorizedClientExpirationCommand;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
+import org.apache.nifi.web.security.oidc.client.web.StandardOAuth2AuthorizationRequestResolver;
 import org.apache.nifi.web.security.oidc.client.web.converter.AuthenticationResultConverter;
 import org.apache.nifi.web.security.oidc.client.web.converter.AuthorizedClientConverter;
 import org.apache.nifi.web.security.oidc.client.web.StandardAuthorizationRequestRepository;
@@ -187,7 +188,8 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public OAuth2AuthorizationRequestRedirectFilter oAuth2AuthorizationRequestRedirectFilter() {
-        final OAuth2AuthorizationRequestRedirectFilter filter = new OAuth2AuthorizationRequestRedirectFilter(clientRegistrationRepository());
+        final StandardOAuth2AuthorizationRequestResolver authorizationRequestResolver = new StandardOAuth2AuthorizationRequestResolver(clientRegistrationRepository());
+        final OAuth2AuthorizationRequestRedirectFilter filter = new OAuth2AuthorizationRequestRedirectFilter(authorizationRequestResolver);
         filter.setAuthorizationRequestRepository(authorizationRequestRepository());
         filter.setRequestCache(nullRequestCache);
         return filter;
