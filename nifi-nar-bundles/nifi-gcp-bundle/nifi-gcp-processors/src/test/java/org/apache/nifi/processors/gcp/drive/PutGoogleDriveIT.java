@@ -48,14 +48,11 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
 
     @Test
     void testUploadFileToFolderById() {
-        // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS);
@@ -65,22 +62,17 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
 
     @Test
     void testUploadedFileAlreadyExistsFailResolution() {
-        // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         testRunner.clearTransferState();
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 0);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 1);
 
@@ -88,23 +80,18 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
 
     @Test
     void testUploadedFileAlreadyExistsReplaceResolution() {
-        // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
         testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, REPLACE.getValue());
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         testRunner.clearTransferState();
 
-        // WHEN
         runWithFileContent("012345678");
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
 
@@ -115,26 +102,35 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> impl
 
     @Test
     void testUploadedFileAlreadyExistsIgnoreResolution() {
-        // GIVEN
         testRunner.setProperty(FOLDER_ID, mainFolderId);
         testRunner.setProperty(FILE_NAME, TEST_FILENAME);
         testRunner.setProperty(PutGoogleDrive.CONFLICT_RESOLUTION, IGNORE.getValue());
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
         testRunner.clearTransferState();
 
-        // WHEN
         runWithFileContent();
 
-        // THEN
         testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
         testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
     }
+
+    @Test
+    void testChunkedUpload() {
+        testRunner.setProperty(FOLDER_ID, mainFolderId);
+        testRunner.setProperty(FILE_NAME, TEST_FILENAME);
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_SIZE, "256 KB");
+        testRunner.setProperty(PutGoogleDrive.CHUNKED_UPLOAD_THRESHOLD, "300 KB");
+
+        runWithFileContent(LARGE_FILE_CONTENT);
+
+        testRunner.assertTransferCount(PutGoogleDrive.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(PutGoogleDrive.REL_FAILURE, 0);
+    }
+
 
     private void runWithFileContent() {
        runWithFileContent(DEFAULT_FILE_CONTENT);

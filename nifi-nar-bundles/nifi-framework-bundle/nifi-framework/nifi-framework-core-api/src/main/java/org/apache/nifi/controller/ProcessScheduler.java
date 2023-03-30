@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -260,4 +261,11 @@ public interface ProcessScheduler {
      * @param task the task to perform
      */
     Future<?> submitFrameworkTask(Runnable task);
+
+    void notifyPrimaryNodeStateChange(ProcessorNode processor, PrimaryNodeState primaryNodeState);
+
+    void notifyPrimaryNodeStateChange(ControllerServiceNode service, PrimaryNodeState primaryNodeState);
+
+    void notifyPrimaryNodeStateChange(ReportingTaskNode taskNode, PrimaryNodeState primaryNodeState);
+
 }

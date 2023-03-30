@@ -35,6 +35,12 @@ import java.net.URI;
  */
 public class LogoutFilter implements Filter {
 
+    private static final String OIDC_LOGOUT_URL = "/nifi-api/access/oidc/logout";
+
+    private static final String SAML_LOCAL_LOGOUT_URL = "/nifi-api/access/saml/local-logout/request";
+
+    private static final String SAML_SINGLE_LOGOUT_URL = "/nifi-api/access/saml/single-logout/request";
+
     private ServletContext servletContext;
 
     @Override
@@ -57,19 +63,13 @@ public class LogoutFilter implements Filter {
         // to retrieve information about the user logging out.
 
         if (supportsOidc) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            apiContext.getRequestDispatcher("/access/oidc/logout").forward(request, response);
+            sendRedirect(OIDC_LOGOUT_URL, request, response);
         } else if (supportsKnoxSso) {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/logout").forward(request, response);
         } else if (supportsSaml) {
-            // Redirect to request URL defined in nifi-web-api security filter configuration
-            final String logoutUrl = supportsSamlSingleLogout ? "/nifi-api/access/saml/single-logout/request" : "/nifi-api/access/saml/local-logout/request";
-
-            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            final URI targetUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(logoutUrl).build();
-            final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-            httpServletResponse.sendRedirect(targetUri.toString());
+            final String logoutUrl = supportsSamlSingleLogout ? SAML_SINGLE_LOGOUT_URL : SAML_LOCAL_LOGOUT_URL;
+            sendRedirect(logoutUrl, request, response);
         } else {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);
@@ -78,5 +78,12 @@ public class LogoutFilter implements Filter {
 
     @Override
     public void destroy() {
+    }
+
+    private void sendRedirect(final String logoutUrl, final ServletRequest request, final ServletResponse response) throws IOException {
+        final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+        final URI targetUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(logoutUrl).build();
+        final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+        httpServletResponse.sendRedirect(targetUri.toString());
     }
 }

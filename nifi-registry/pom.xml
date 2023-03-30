@@ -177,25 +177,6 @@
                 <scope>runtime</scope>
                 <type>zip</type>
             </dependency>
-	    <!-- Test dependencies -->
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>2.28.2</version>
-                <scope>test</scope>
-            </dependency>
-            <!-- force mockito-core to a newer version -->
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy</artifactId>
-                <version>1.12.14</version>
-            </dependency>
-            <!-- force mockito-core to a newer version -->
-            <dependency>
-                <groupId>net.bytebuddy</groupId>
-                <artifactId>byte-buddy-agent</artifactId>
-                <version>1.12.14</version>
-            </dependency>
             <!-- exclude all transitive groovy deps so that spock uses whatever is directly declared -->
             <dependency>
                 <groupId>org.spockframework</groupId>

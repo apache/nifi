@@ -46,7 +46,7 @@
             <dependency>
                 <groupId>org.codehaus.jettison</groupId>
                 <artifactId>jettison</artifactId>
-                <version>1.5.2</version>
+                <version>1.5.4</version>
             </dependency>
             <dependency>
                 <groupId>commons-configuration</groupId>
@@ -68,6 +68,12 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>${netty.3.version}</version>
+            </dependency>
+            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.31</version>
             </dependency>
             <!-- Override zookeeper -->
             <dependency>

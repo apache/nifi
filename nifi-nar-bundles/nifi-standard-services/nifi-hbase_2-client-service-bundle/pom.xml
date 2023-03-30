@@ -25,7 +25,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <hbase.version>2.2.2</hbase.version>
+        <hbase.version>2.5.3-hadoop3</hbase.version>
     </properties>
 
     <modules>
@@ -59,7 +59,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.21</version>
+                <version>1.23.0</version>
             </dependency>
             <!-- Override commons-beanutils -->
             <dependency>
@@ -78,6 +78,18 @@
                         <artifactId>logback-classic</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>9.31</version>
+            </dependency>
+            <!-- Override woodstox-core 5.3.0 from HBase -->
+            <dependency>
+                <groupId>com.fasterxml.woodstox</groupId>
+                <artifactId>woodstox-core</artifactId>
+                <version>5.4.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

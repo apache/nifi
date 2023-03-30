@@ -213,21 +213,22 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
         final long maxTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60);
         while (true) {
+            int connectedNodeCount = -1;
             try {
                 final ClusteSummaryEntity clusterSummary = client.getFlowClient().getClusterSummary();
-                final int connectedNodeCount = clusterSummary.getClusterSummary().getConnectedNodeCount();
+                connectedNodeCount = clusterSummary.getClusterSummary().getConnectedNodeCount();
                 if (connectedNodeCount == expectedNumberOfNodes) {
                     logger.info("Wait successful, {} nodes connected", expectedNumberOfNodes);
                     return;
                 }
 
                 logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
-
-                if (System.currentTimeMillis() > maxTime) {
-                    throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
-                }
             } catch (final Exception e) {
                 e.printStackTrace();
+            }
+
+            if (System.currentTimeMillis() > maxTime) {
+                throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
             }
 
             try {

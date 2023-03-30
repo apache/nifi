@@ -680,18 +680,18 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 continue;
             }
 
-            // If the Connection's destination didn't change, nothing to do
+            // If the Connection's destination didn't change, and the new is still reachable, nothing to do
             final String destinationVersionId = connection.getDestination().getVersionedComponentId().orElse(null);
             final String proposedDestinationId = proposedConnection.getDestination().getId();
-            final String destinationGroupVersionId = connection.getDestination().getProcessGroup().getVersionedComponentId().orElse(null);
-            final String proposedDestinationGroupId = proposedConnection.getDestination().getGroupId();
-            if (Objects.equals(destinationVersionId, proposedDestinationId) && Objects.equals(destinationGroupVersionId, proposedDestinationGroupId)) {
+
+            Connectable newDestination = getConnectable(group, proposedConnection.getDestination());
+            final boolean newDestinationReachableFromSource = isConnectionDestinationReachable(connection.getSource(), newDestination);
+            if (Objects.equals(destinationVersionId, proposedDestinationId) && newDestinationReachableFromSource) {
                 continue;
             }
 
             // Find the destination of the connection. If the destination doesn't yet exist (because it's part of the proposed Process Group but not yet added),
             // we will set the destination to a temporary destination. Then, after adding components, we will update the destinations again.
-            Connectable newDestination = getConnectable(group, proposedConnection.getDestination());
             final boolean useTempDestination = isTempDestinationNecessary(connection, proposedConnection, newDestination);
             if (useTempDestination) {
                 final Funnel temporaryDestination = getTemporaryFunnel(connection.getProcessGroup());
@@ -704,6 +704,29 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
 
         return connectionsWithTempDestination;
+    }
+
+    /**
+     * Checks if a Connection can be made from the given source component to the given destination component
+     * @param source the source component
+     * @param destination the destination component
+     * @return true if the connection is allowable, <code>false</code> if the connection cannot be made due to the Process Group hierarchies
+     */
+    private boolean isConnectionDestinationReachable(final Connectable source, final Connectable destination) {
+        if (source == null || destination == null) {
+            return false;
+        }
+
+        // If the source is an Output Port, the destination must be in the parent group, unless the destination is the Input Port of another group
+        if (source.getConnectableType() == ConnectableType.OUTPUT_PORT) {
+            if (destination.getConnectableType() == ConnectableType.INPUT_PORT) {
+                return Objects.equals(source.getProcessGroup().getParent(), destination.getProcessGroup().getParent());
+            }
+
+            return Objects.equals(source.getProcessGroup().getParent(), destination.getProcessGroup());
+        }
+
+        return Objects.equals(source.getProcessGroup(), destination.getProcessGroup());
     }
 
     private boolean isTempDestinationNecessary(final Connection existingConnection, final VersionedConnection proposedConnection, final Connectable newDestination) {
@@ -994,18 +1017,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 processor.setPosition(new Position(proposedProcessor.getPosition().getX(), proposedProcessor.getPosition().getY()));
             }
         }
-    }
-
-    private Set<Relationship> getAutoTerminatedRelationships(final ProcessorNode processor, final VersionedProcessor proposedProcessor) {
-        final Set<String> relationshipNames = proposedProcessor.getAutoTerminatedRelationships();
-        if (relationshipNames == null) {
-            return Collections.emptySet();
-        }
-
-        return relationshipNames.stream()
-            .map(processor::getRelationship)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
     }
 
     private void synchronizeRemoteGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, RemoteProcessGroup> rpgsByVersionedId) {
@@ -1555,9 +1566,12 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     final Set<ControllerServiceNode> referencingServices = referenceManager.getControllerServicesReferencing(parameterContext, paramName);
 
                     for (final ControllerServiceNode referencingService : referencingServices) {
+                        final boolean isServiceActive = referencingService.isActive();
                         stopControllerService(referencingService, null, timeout, synchronizationOptions.getComponentStopTimeoutAction(), componentsToRestart, servicesToRestart,
                                 synchronizationOptions);
-                        servicesToRestart.add(referencingService);
+                        if (isServiceActive) {
+                            servicesToRestart.add(referencingService);
+                        }
                     }
                 }
 

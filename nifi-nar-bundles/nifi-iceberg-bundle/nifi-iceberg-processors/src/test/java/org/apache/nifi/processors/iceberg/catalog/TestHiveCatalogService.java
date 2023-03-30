@@ -29,20 +29,51 @@ import java.util.Map;
 
 public class TestHiveCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    private Catalog catalog;
+    private final HiveCatalog catalog;
 
-    public TestHiveCatalogService(String metastoreUri, String warehouseLocation) {
-        initCatalog(metastoreUri, warehouseLocation);
+    public TestHiveCatalogService(HiveCatalog catalog) {
+        this.catalog = catalog;
     }
 
-    public void initCatalog(String metastoreUri, String warehouseLocation) {
-        catalog = new HiveCatalog();
+    public static class Builder {
+        private String metastoreUri;
+        private String warehouseLocation;
+        private Configuration config;
 
-        Map<String, String> properties = new HashMap<>();
-        properties.put(CatalogProperties.URI, metastoreUri);
-        properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);
+        public Builder withMetastoreUri(String metastoreUri) {
+            this.metastoreUri = metastoreUri;
+            return this;
+        }
 
-        catalog.initialize("hive-catalog", properties);
+        public Builder withWarehouseLocation(String warehouseLocation) {
+            this.warehouseLocation = warehouseLocation;
+            return this;
+        }
+
+        public Builder withConfig(Configuration config) {
+            this.config = config;
+            return this;
+        }
+
+        public TestHiveCatalogService build() {
+            HiveCatalog catalog = new HiveCatalog();
+            Map<String, String> properties = new HashMap<>();
+
+            if (metastoreUri != null) {
+                properties.put(CatalogProperties.URI, metastoreUri);
+            }
+
+            if (warehouseLocation != null) {
+                properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);
+            }
+
+            if (config != null) {
+                catalog.setConf(config);
+            }
+
+            catalog.initialize("hive-catalog", properties);
+            return new TestHiveCatalogService(catalog);
+        }
     }
 
     @Override
@@ -52,7 +83,7 @@ public class TestHiveCatalogService extends AbstractControllerService implements
 
     @Override
     public Configuration getConfiguration() {
-        return null;
+        return catalog.getConf();
     }
 
 }

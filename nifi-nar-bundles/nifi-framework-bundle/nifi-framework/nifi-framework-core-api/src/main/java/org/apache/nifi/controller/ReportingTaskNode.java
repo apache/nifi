@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -132,4 +134,7 @@ public interface ReportingTaskNode extends ComponentNode {
     void enable();
 
     void disable();
+
+    void notifyPrimaryNodeChanged(PrimaryNodeState primaryNodeState, LifecycleState lifecycleState);
+
 }

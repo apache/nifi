@@ -350,13 +350,13 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
             try {
                 final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
-                final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
                 if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
                     // Create the target directory if necessary.
-                    transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
+                    transfer.ensureDirectoryExists(flowFile, new File(absoluteTargetDirPath));
                 }
 
-                transfer.rename(flowFile, filename, targetFile.getAbsolutePath());
+                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, simpleFilename);
+                transfer.rename(flowFile, filename, destinationPath);
 
             } catch (final IOException ioe) {
                 getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",

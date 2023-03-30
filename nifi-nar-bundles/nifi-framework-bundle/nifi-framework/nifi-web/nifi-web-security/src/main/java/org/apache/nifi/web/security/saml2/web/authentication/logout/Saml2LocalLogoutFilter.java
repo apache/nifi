@@ -16,51 +16,17 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication.logout;
 
+import org.apache.nifi.web.security.logout.StandardLogoutFilter;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
 /**
  * SAML 2 Logout Filter completes application Logout Requests
  */
-public class Saml2LocalLogoutFilter extends OncePerRequestFilter {
-    private final AntPathRequestMatcher requestMatcher = new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath());
-
-    private final LogoutSuccessHandler logoutSuccessHandler;
-
+public class Saml2LocalLogoutFilter extends StandardLogoutFilter {
     public Saml2LocalLogoutFilter(
             final LogoutSuccessHandler logoutSuccessHandler
     ) {
-        this.logoutSuccessHandler = logoutSuccessHandler;
-    }
-
-    /**
-     * Call Logout Success Handler when request path matches
-     *
-     * @param request HTTP Servlet Request
-     * @param response HTTP Servlet Response
-     * @param filterChain Filter Chain
-     * @throws ServletException Thrown on FilterChain.doFilter() failures
-     * @throws IOException Thrown on FilterChain.doFilter() failures
-     */
-    @Override
-    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
-        if (requestMatcher.matches(request)) {
-            final SecurityContext securityContext = SecurityContextHolder.getContext();
-            final Authentication authentication = securityContext.getAuthentication();
-            logoutSuccessHandler.onLogoutSuccess(request, response, authentication);
-        } else {
-            filterChain.doFilter(request, response);
-        }
+        super(new AntPathRequestMatcher(SamlUrlPath.LOCAL_LOGOUT_REQUEST.getPath()), logoutSuccessHandler);
     }
 }
