@@ -42,7 +42,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -310,9 +309,7 @@ public class ResultSetRecordSetTest {
         assertEquals(booleanValue, record.getAsBoolean(COLUMN_NAME_BOOLEAN));
         assertEquals(charValue, record.getValue(COLUMN_NAME_CHAR));
 
-        // Date is expected in UTC normalized form
-        Date expectedDate = new Date(testDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());
-        assertEquals(expectedDate, record.getAsDate(COLUMN_NAME_DATE, null));
+        assertEquals(dateValue, record.getAsDate(COLUMN_NAME_DATE, null));
         assertEquals(timestampValue, DataTypeUtils.toTimestamp(record.getValue(COLUMN_NAME_TIMESTAMP), null, COLUMN_NAME_TIMESTAMP));
 
         assertEquals(integerValue, record.getAsInt(COLUMN_NAME_INTEGER));
