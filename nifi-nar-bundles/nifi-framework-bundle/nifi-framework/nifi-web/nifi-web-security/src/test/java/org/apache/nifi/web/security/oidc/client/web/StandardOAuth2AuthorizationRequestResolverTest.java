@@ -1,0 +1,133 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.security.oidc.client.web;
+
+import org.apache.nifi.web.util.WebUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+
+import javax.servlet.ServletContext;
+import java.net.URI;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class StandardOAuth2AuthorizationRequestResolverTest {
+    private static final String REDIRECT_URI = "https://localhost:8443/nifi-api/callback";
+
+    private static final String FORWARDED_PATH = "/forwarded";
+
+    private static final String FORWARDED_REDIRECT_URI = String.format("https://localhost.localdomain%s/nifi-api/callback", FORWARDED_PATH);
+
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
+
+    private static final String AUTHORIZATION_URI = "http://localhost/authorize";
+
+    private static final String TOKEN_URI = "http://localhost/token";
+
+    private static final String CLIENT_ID = "client-id";
+
+    private static final String REGISTRATION_ID = OidcRegistrationProperty.REGISTRATION_ID.getProperty();
+
+    MockHttpServletRequest httpServletRequest;
+
+    MockHttpServletResponse httpServletResponse;
+
+    @Mock
+    ClientRegistrationRepository clientRegistrationRepository;
+
+    StandardOAuth2AuthorizationRequestResolver resolver;
+
+    @BeforeEach
+    void setResolver() {
+        resolver = new StandardOAuth2AuthorizationRequestResolver(clientRegistrationRepository);
+        httpServletRequest = new MockHttpServletRequest();
+        httpServletResponse = new MockHttpServletResponse();
+    }
+
+    @Test
+    void testResolveNotFound() {
+        final OAuth2AuthorizationRequest authorizationRequest = resolver.resolve(httpServletRequest);
+
+        assertNull(authorizationRequest);
+    }
+
+    @Test
+    void testResolveClientRegistrationIdNotFound() {
+        final OAuth2AuthorizationRequest authorizationRequest = resolver.resolve(httpServletRequest, null);
+
+        assertNull(authorizationRequest);
+    }
+
+    @Test
+    void testResolveFound() {
+        final URI redirectUri = URI.create(REDIRECT_URI);
+        httpServletRequest.setScheme(redirectUri.getScheme());
+        httpServletRequest.setServerPort(redirectUri.getPort());
+
+        final ClientRegistration clientRegistration = getClientRegistration();
+        when(clientRegistrationRepository.findByRegistrationId(eq(REGISTRATION_ID))).thenReturn(clientRegistration);
+
+        final OAuth2AuthorizationRequest authorizationRequest = resolver.resolve(httpServletRequest, REGISTRATION_ID);
+
+        assertNotNull(authorizationRequest);
+        assertEquals(REDIRECT_URI, authorizationRequest.getRedirectUri());
+    }
+
+    @Test
+    void testResolveFoundRedirectUriProxyHeaders() {
+        final ClientRegistration clientRegistration = getClientRegistration();
+        when(clientRegistrationRepository.findByRegistrationId(eq(REGISTRATION_ID))).thenReturn(clientRegistration);
+
+        final ServletContext servletContext = httpServletRequest.getServletContext();
+        servletContext.setInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER, FORWARDED_PATH);
+
+        final URI forwardedRedirectUri = URI.create(FORWARDED_REDIRECT_URI);
+        httpServletRequest.addHeader(WebUtils.PROXY_SCHEME_HTTP_HEADER, forwardedRedirectUri.getScheme());
+        httpServletRequest.addHeader(WebUtils.PROXY_HOST_HTTP_HEADER, forwardedRedirectUri.getHost());
+        httpServletRequest.addHeader(WebUtils.PROXY_PORT_HTTP_HEADER, forwardedRedirectUri.getPort());
+        httpServletRequest.addHeader(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER, FORWARDED_PATH);
+
+        final OAuth2AuthorizationRequest authorizationRequest = resolver.resolve(httpServletRequest, REGISTRATION_ID);
+
+        assertNotNull(authorizationRequest);
+        assertEquals(FORWARDED_REDIRECT_URI, authorizationRequest.getRedirectUri());
+    }
+
+    ClientRegistration getClientRegistration() {
+        return ClientRegistration.withRegistrationId(OidcRegistrationProperty.REGISTRATION_ID.getProperty())
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .clientId(CLIENT_ID)
+                .redirectUri(REDIRECT_URI)
+                .authorizationUri(AUTHORIZATION_URI)
+                .tokenUri(TOKEN_URI)
+                .build();
+    }
+}
