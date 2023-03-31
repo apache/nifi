@@ -76,6 +76,11 @@
             <artifactId>jackson-dataformat-csv</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.github.pjfanning</groupId>
+            <artifactId>excel-streaming-reader</artifactId>
+            <version>4.0.5</version>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
@@ -196,6 +201,14 @@
                         <exclude>src/test/resources/csv/multi-bank-account_escapechar.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account_spec_delimiter.csv</exclude>
                         <exclude>src/test/resources/csv/prov-events.csv</exclude>
+                        <exclude>src/test/resources/excel/collegeScorecard.xlsx</exclude>
+                        <exclude>src/test/resources/excel/dataformatting.xlsx</exclude>
+                        <exclude>src/test/resources/excel/dates.xlsx</exclude>
+                        <exclude>src/test/resources/excel/notExcel.txt</exclude>
+                        <exclude>src/test/resources/excel/numbers.xlsx</exclude>
+                        <exclude>src/test/resources/excel/olderFormat.xls</exclude>
+                        <exclude>src/test/resources/excel/simpleDataFormatting.xlsx</exclude>
+                        <exclude>src/test/resources/excel/twoSheets.xlsx</exclude>
                         <exclude>src/test/resources/grok/error-with-stack-trace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample-multiline-with-stacktrace.log</exclude>
                         <exclude>src/test/resources/grok/nifi-log-sample.log</exclude>

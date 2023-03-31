@@ -27,7 +27,7 @@ org.apache.nifi.csv.CSVReader
 org.apache.nifi.csv.CSVRecordSetWriter
 
 org.apache.nifi.cef.CEFReader
-
+org.apache.nifi.excel.ExcelReader
 org.apache.nifi.grok.GrokReader
 
 org.apache.nifi.text.FreeFormTextRecordSetWriter
