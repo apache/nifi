@@ -32,11 +32,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,7 +70,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testMultipleRecordsSingleSheet() throws IOException, MalformedRecordException {
+    public void testMultipleRecordsSingleSheet() throws MalformedRecordException {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(getDataFormattingSchema())
                 .build();
@@ -95,13 +91,16 @@ public class TestExcelRecordReader {
         return new SimpleRecordSchema(fields);
     }
 
-    private InputStream getInputStream(String excelFile) throws IOException {
-        String excelResourcesDir = "src/test/resources/excel";
-        Path excelDoc = Paths.get(excelResourcesDir, excelFile);
-        return Files.newInputStream(excelDoc);
+    private InputStream getInputStream(final String excelFile) {
+        final String resourcePath = String.format("/excel/%s", excelFile);
+        final InputStream resourceStream = getClass().getResourceAsStream(resourcePath);
+        if (resourceStream == null) {
+            throw new IllegalStateException(String.format("Resource [%s] not found", resourcePath));
+        }
+        return resourceStream;
     }
 
-    private List<Record> getRecords(ExcelRecordReader recordReader, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    private List<Record> getRecords(ExcelRecordReader recordReader, boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
         Record record;
         List<Record> records = new ArrayList<>();
         while ((record = recordReader.nextRecord(coerceTypes, dropUnknownFields)) != null) {
@@ -113,7 +112,7 @@ public class TestExcelRecordReader {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void testDropUnknownFields(boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public void testDropUnknownFields(boolean dropUnknownFields) throws MalformedRecordException {
         final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
@@ -137,7 +136,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSkipLines() throws IOException, MalformedRecordException {
+    public void testSkipLines() throws MalformedRecordException {
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withFirstRow(5)
                 .withSchema(getDataFormattingSchema())
@@ -151,7 +150,7 @@ public class TestExcelRecordReader {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void tesCoerceTypes(boolean coerceTypes) throws IOException, MalformedRecordException {
+    public void tesCoerceTypes(boolean coerceTypes) throws MalformedRecordException {
         String fieldName = "dates";
         RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -169,7 +168,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectSpecificSheet() throws IOException, MalformedRecordException {
+    public void testSelectSpecificSheet() throws MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
         List<String> requiredSheets = Collections.singletonList("TestSheetA");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -207,7 +206,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectAllSheets() throws IOException, MalformedRecordException {
+    public void testSelectAllSheets() throws MalformedRecordException {
         RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()

@@ -22,7 +22,7 @@ public class ExcelUtils {
     private ExcelUtils() {
     }
 
-    public static boolean hasCells(Row row) {
+    public static boolean hasCells(final Row row) {
         return row != null && row.getFirstCellNum() != -1;
     }
 }

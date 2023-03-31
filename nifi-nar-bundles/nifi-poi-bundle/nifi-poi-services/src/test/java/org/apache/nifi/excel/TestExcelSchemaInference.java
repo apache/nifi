@@ -33,9 +33,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -62,16 +59,15 @@ public class TestExcelSchemaInference {
     @ParameterizedTest
     @MethodSource("getLocales")
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException {
-        final File file = new File("src/test/resources/excel/numbers.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
-        final RecordSchema schema;
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+
+        try (final InputStream inputStream = getResourceStream("/excel/numbers.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                     new ExcelSchemaInference(timestampInference, locale), logger);
-            schema = accessStrategy.getSchema(null, inputStream, null);
+            final RecordSchema schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
             assertEquals(Collections.singletonList(EXPECTED_FIRST_FIELD_NAME), fieldNames);
 
@@ -96,13 +92,12 @@ public class TestExcelSchemaInference {
 
     @Test
     public void testInferenceIncludesAllRecords() throws IOException {
-        final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
 
         final RecordSchema schema;
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+        try (final InputStream inputStream = getResourceStream("/excel/simpleDataFormatting.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                     new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
@@ -123,7 +118,6 @@ public class TestExcelSchemaInference {
 
     @Test
     public void testInferenceIncludesAllRecordsWithEL() throws IOException {
-        final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         properties.put(ExcelReader.REQUIRED_SHEETS, "${required.sheets}");
@@ -134,7 +128,7 @@ public class TestExcelSchemaInference {
         attributes.put("rows.to.skip", "2");
 
         final RecordSchema schema;
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+        try (final InputStream inputStream = getResourceStream("/excel/simpleDataFormatting.xlsx")) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
                     (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                     new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
@@ -149,5 +143,13 @@ public class TestExcelSchemaInference {
                 schema.getDataType(EXPECTED_SECOND_FIELD_NAME).get());
         assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
         assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType(EXPECTED_FOURTH_FIELD_NAME).get());
+    }
+
+    private InputStream getResourceStream(final String relativePath) {
+        final InputStream resourceStream = getClass().getResourceAsStream(relativePath);
+        if (resourceStream == null) {
+            throw new IllegalStateException(String.format("Resource [%s] not found", relativePath));
+        }
+        return resourceStream;
     }
 }

@@ -41,23 +41,23 @@ class RowIterator implements Iterator<Row>, Closeable {
     private Iterator<Row> currentRows;
     private Row currentRow;
 
-    RowIterator(InputStream in, List<String> requiredSheets, int firstRow, ComponentLog logger) {
+    RowIterator(final InputStream in, final List<String> requiredSheets, final int firstRow, final ComponentLog logger) {
         this.workbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
                 .open(in);
 
-        if(requiredSheets == null || requiredSheets.isEmpty()) {
+        if (requiredSheets == null || requiredSheets.isEmpty()) {
             this.sheets = this.workbook.iterator();
         } else {
-            Map<String, Integer> requiredSheetsMap = requiredSheets.stream()
+            final Map<String, Integer> requiredSheetsMap = requiredSheets.stream()
                     .collect(Collectors.toMap(key -> key, this.workbook::getSheetIndex));
-            String requiredSheetsNotFoundMessage = requiredSheetsMap.entrySet().stream()
+            final String sheetsNotFound = requiredSheetsMap.entrySet().stream()
                     .filter(entry -> entry.getValue() == -1)
                     .map(Map.Entry::getKey)
                     .collect(Collectors.joining(","));
-            if (!requiredSheetsNotFoundMessage.isEmpty()) {
-                throw new ProcessException("Required Excel Sheets not found " + requiredSheetsNotFoundMessage);
+            if (!sheetsNotFound.isEmpty()) {
+                throw new ProcessException("Required Excel Sheets not found: " + sheetsNotFound);
             }
 
             this.sheets = requiredSheetsMap.values().stream()
@@ -77,11 +77,11 @@ class RowIterator implements Iterator<Row>, Closeable {
 
     @Override
     public Row next() {
-        if(currentRow == null) {
+        if (currentRow == null) {
             throw new NoSuchElementException();
         }
 
-        Row next = currentRow;
+        final Row next = currentRow;
         setCurrent();
 
         return next;
@@ -110,7 +110,7 @@ class RowIterator implements Iterator<Row>, Closeable {
 
     private Row getNextRow() {
         while (currentRows != null && !hasExhaustedRows()) {
-            Row tempCurrentRow = currentRows.next();
+            final Row tempCurrentRow = currentRows.next();
             if (tempCurrentRow.getRowNum() >= firstRow) {
                 return tempCurrentRow;
             }
@@ -119,7 +119,7 @@ class RowIterator implements Iterator<Row>, Closeable {
     }
 
     private boolean hasExhaustedRows() {
-        boolean exhausted = !currentRows.hasNext();
+        final boolean exhausted = !currentRows.hasNext();
         if (exhausted) {
             logger.debug("Exhausted all rows from sheet {}", currentSheet.getSheetName());
         }

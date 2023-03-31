@@ -64,7 +64,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")
             .displayName("Required Sheets")
-            .description("Comma separated list of Excel document sheet names whose rows should be extracted from the excel document. If this property" +
+            .description("Comma-separated list of Excel document sheet names whose rows should be extracted from the excel document. If this property" +
                     " is left blank then all the rows from all the sheets will be extracted from the Excel document. The list of names is case sensitive. Any sheets not" +
                     " specified in this value will be ignored. An exception will be thrown if a specified sheet(s) are not found.")
             .required(false)
@@ -83,7 +83,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    private volatile List<String> requiredSheets;
+    private volatile ConfigurationContext configurationContext;
     private volatile int firstRow;
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -91,21 +91,23 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
+        this.configurationContext = context;
         this.firstRow = getStartingRow(context);
-        this.requiredSheets = getRequiredSheets(context);
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+            throws MalformedRecordException, IOException, SchemaNotFoundException {
         // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
         in.mark(1024 * 1024);
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
 
-        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
+        final List<String> requiredSheets = getRequiredSheets(variables);
+        final ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat(dateFormat)
                 .withRequiredSheets(requiredSheets)
                 .withFirstRow(firstRow)
@@ -161,8 +163,8 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return rawStartingRow > 0 ? rawStartingRow - 1 : 0;
     }
 
-    private List<String> getRequiredSheets(final PropertyContext context) {
-        final String requiredSheetsDelimited = context.getProperty(REQUIRED_SHEETS).getValue();
+    private List<String> getRequiredSheets(final Map<String, String> attributes) {
+        final String requiredSheetsDelimited = configurationContext.getProperty(REQUIRED_SHEETS).evaluateAttributeExpressions(attributes).getValue();
         return getRequiredSheets(requiredSheetsDelimited);
     }
 

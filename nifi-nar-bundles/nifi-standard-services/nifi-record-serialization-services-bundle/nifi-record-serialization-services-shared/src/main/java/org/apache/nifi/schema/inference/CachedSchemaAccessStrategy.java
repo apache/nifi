@@ -51,11 +51,11 @@ public class CachedSchemaAccessStrategy implements SchemaAccessStrategy {
 
         final Optional<RecordSchema> schemaOption = schemaCacheService.getSchema(cacheIdentifier);
         if (schemaOption.isPresent()) {
-            logger.debug("Found Cached Record Schema with identifier {}", new Object[] {cacheIdentifier});
+            logger.debug("Found Cached Record Schema with identifier {}", cacheIdentifier);
             return schemaOption.get();
         }
 
-        logger.debug("Encountered Cache Miss with identifier {}. Will delegate to backup Schema Access Strategy", new Object[] {cacheIdentifier});
+        logger.debug("Encountered Cache Miss with identifier {}. Will delegate to backup Schema Access Strategy", cacheIdentifier);
         return backupStrategy.getSchema(variables, contentStream, readSchema);
     }
 

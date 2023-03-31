@@ -22,7 +22,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.RecordSource;
 import org.apache.poi.ss.usermodel.Row;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -30,17 +29,17 @@ import java.util.Map;
 public class ExcelRecordSource implements RecordSource<Row> {
     private final RowIterator rowIterator;
 
-    public ExcelRecordSource(final InputStream in, final PropertyContext context, final Map<String, String> variables, ComponentLog logger) {
-        String requiredSheetsDelimited = context.getProperty(ExcelReader.REQUIRED_SHEETS).evaluateAttributeExpressions(variables).getValue();
-        List<String> requiredSheets = ExcelReader.getRequiredSheets(requiredSheetsDelimited);
-        Integer rawFirstRow = context.getProperty(ExcelReader.STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
-        int firstRow = rawFirstRow != null ? rawFirstRow : NumberUtils.toInt(ExcelReader.STARTING_ROW.getDefaultValue());
-        firstRow = ExcelReader.getZeroBasedIndex(firstRow);
-        this.rowIterator = new RowIterator(in, requiredSheets, firstRow, logger);
+    public ExcelRecordSource(final InputStream in, final PropertyContext context, final Map<String, String> variables, final ComponentLog logger) {
+        final String requiredSheetsDelimited = context.getProperty(ExcelReader.REQUIRED_SHEETS).evaluateAttributeExpressions(variables).getValue();
+        final List<String> requiredSheets = ExcelReader.getRequiredSheets(requiredSheetsDelimited);
+        final Integer rawFirstRow = context.getProperty(ExcelReader.STARTING_ROW).evaluateAttributeExpressions(variables).asInteger();
+        final int firstRow = rawFirstRow == null ? NumberUtils.toInt(ExcelReader.STARTING_ROW.getDefaultValue()) : rawFirstRow;
+        final int zeroBasedFirstRow = ExcelReader.getZeroBasedIndex(firstRow);
+        this.rowIterator = new RowIterator(in, requiredSheets, zeroBasedFirstRow, logger);
     }
 
     @Override
-    public Row next() throws IOException {
+    public Row next() {
         return rowIterator.hasNext() ? rowIterator.next() : null;
     }
 }

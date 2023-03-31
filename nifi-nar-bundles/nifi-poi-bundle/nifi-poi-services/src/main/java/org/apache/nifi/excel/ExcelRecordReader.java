@@ -80,12 +80,12 @@ public class ExcelRecordReader implements RecordReader {
         try {
             this.rowIterator = new RowIterator(inputStream, configuration.getRequiredSheets(), configuration.getFirstRow(), logger);
         } catch (RuntimeException e) {
-            throw new MalformedRecordException("Error occurred while processing record file", e);
+            throw new MalformedRecordException("Read initial Record from Excel XLSX failed", e);
         }
     }
 
     @Override
-    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
+    public Record nextRecord(boolean coerceTypes, boolean dropUnknownFields) throws MalformedRecordException {
         try {
             if (rowIterator.hasNext()) {
                 Row currentRow = rowIterator.next();
@@ -93,13 +93,13 @@ public class ExcelRecordReader implements RecordReader {
                 return new MapRecord(schema, currentRowValues);
             }
         } catch (Exception e) {
-            throw new MalformedRecordException("Error while getting next record", e);
+            throw new MalformedRecordException("Read next Record from Excel XLSX failed", e);
         }
         return null;
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return schema;
     }
 

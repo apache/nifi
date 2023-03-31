@@ -55,7 +55,7 @@ public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
     public RecordSchema inferSchema(RecordSource<Row> recordSource) throws IOException {
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
         Row row;
-        while((row = recordSource.next()) != null) {
+        while ((row = recordSource.next()) != null) {
             inferSchema(row, typeMap);
         }
         return createSchema(typeMap);

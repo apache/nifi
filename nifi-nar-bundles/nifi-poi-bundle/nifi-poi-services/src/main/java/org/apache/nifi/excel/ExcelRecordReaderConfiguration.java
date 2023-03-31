@@ -99,8 +99,7 @@ public class ExcelRecordReaderConfiguration {
             excelRecordReaderConfiguration.schema = this.schema;
             excelRecordReaderConfiguration.timeFormat = this.timeFormat;
             excelRecordReaderConfiguration.timestampFormat = this.timestampFormat;
-            excelRecordReaderConfiguration.requiredSheets = this.requiredSheets != null && !this.requiredSheets.isEmpty()
-                    ? this.requiredSheets : Collections.emptyList();
+            excelRecordReaderConfiguration.requiredSheets = this.requiredSheets == null ? Collections.emptyList() : this.requiredSheets;
             excelRecordReaderConfiguration.dateFormat = this.dateFormat;
             excelRecordReaderConfiguration.firstRow = this.firstRow;
             return excelRecordReaderConfiguration;
