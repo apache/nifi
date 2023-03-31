@@ -30,12 +30,12 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.oidc.OidcUrlPath;
+import org.apache.nifi.web.security.oidc.authentication.StandardOidcIdTokenDecoderFactory;
 import org.apache.nifi.web.security.oidc.client.web.AuthorizedClientExpirationCommand;
 import org.apache.nifi.web.security.oidc.client.web.OidcBearerTokenRefreshFilter;
 import org.apache.nifi.web.security.oidc.client.web.StandardOAuth2AuthorizationRequestResolver;
@@ -69,7 +69,6 @@ import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResp
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.oidc.authentication.OidcAuthorizationCodeAuthenticationProvider;
-import org.springframework.security.oauth2.client.oidc.authentication.OidcIdTokenDecoderFactory;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -81,9 +80,6 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
-import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
@@ -375,14 +371,8 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory() {
-        OidcIdTokenDecoderFactory idTokenDecoderFactory = new OidcIdTokenDecoderFactory();
-
         final String preferredJwdAlgorithm = properties.getOidcPreferredJwsAlgorithm();
-        if (StringUtils.isNotEmpty(preferredJwdAlgorithm)) {
-            idTokenDecoderFactory.setJwsAlgorithmResolver(clientRegistration -> getJwsAlgorithm(preferredJwdAlgorithm));
-        }
-
-        return idTokenDecoderFactory;
+        return new StandardOidcIdTokenDecoderFactory(preferredJwdAlgorithm, oidcRestOperations());
     }
 
     /**
@@ -496,23 +486,5 @@ public class OidcSecurityConfiguration {
                 userClaimNames,
                 properties.getOidcClaimGroups()
         );
-    }
-
-    private JwsAlgorithm getJwsAlgorithm(final String preferredJwsAlgorithm) {
-        final JwsAlgorithm jwsAlgorithm;
-
-        final MacAlgorithm macAlgorithm = MacAlgorithm.from(preferredJwsAlgorithm);
-        if (macAlgorithm == null) {
-            final SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.from(preferredJwsAlgorithm);
-            if (signatureAlgorithm == null) {
-                final String message = String.format("Preferred JWS Algorithm [%s] not supported", preferredJwsAlgorithm);
-                throw new OidcConfigurationException(message);
-            }
-            jwsAlgorithm = signatureAlgorithm;
-        } else {
-            jwsAlgorithm = macAlgorithm;
-        }
-
-        return jwsAlgorithm;
     }
 }
