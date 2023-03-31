@@ -109,7 +109,7 @@ public class HttpConnector {
 
         Path c2ServerHome = Paths.get(C2_SERVER_HOME);
         File keyStoreFile = c2ServerHome.resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toFile();
-        logger.debug("keystore path: " + keyStoreFile.getPath());
+        logger.debug("Loading Key Store [{}]", keyStoreFile.getPath());
         try (FileInputStream keyStoreStream = new FileInputStream(keyStoreFile)) {
             keyStore = new StandardKeyStoreBuilder()
                 .type(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE))
@@ -117,11 +117,11 @@ public class HttpConnector {
                 .password(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray())
                 .build();
         } catch (IOException ioe) {
-            throw new UncheckedIOException(ioe);
+            throw new UncheckedIOException("Key Store loading failed", ioe);
         }
 
         File trustStoreFile = c2ServerHome.resolve(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE)).toFile();
-        logger.debug("trustStore path: " + trustStoreFile.getPath());
+        logger.debug("Loading Trust Store [{}]", trustStoreFile.getPath());
         try (FileInputStream trustStoreStream = new FileInputStream(trustStoreFile)) {
             truststore = new StandardKeyStoreBuilder()
                 .type(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE))
@@ -129,7 +129,7 @@ public class HttpConnector {
                 .password(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD).toCharArray())
                 .build();
         } catch (IOException ioe) {
-            throw new UncheckedIOException(ioe);
+            throw new UncheckedIOException("Trust Store loading failed", ioe);
         }
 
         return new StandardSslContextBuilder()

@@ -187,7 +187,7 @@ public class RestChangeIngestor implements ChangeIngestor {
 
     private void createSecureConnector(Properties properties) {
         KeyStore keyStore;
-        KeyStore truststore = null;
+        KeyStore trustStore = null;
 
         try (FileInputStream keyStoreStream = new FileInputStream(properties.getProperty(KEYSTORE_LOCATION_KEY))) {
             keyStore = new StandardKeyStoreBuilder()
@@ -196,25 +196,25 @@ public class RestChangeIngestor implements ChangeIngestor {
                 .password(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
                 .build();
         } catch (IOException ioe) {
-            throw new UncheckedIOException(ioe);
+            throw new UncheckedIOException("Key Store loading failed", ioe);
         }
 
         if (properties.getProperty(TRUSTSTORE_LOCATION_KEY) != null) {
             try (FileInputStream trustStoreStream = new FileInputStream(properties.getProperty(TRUSTSTORE_LOCATION_KEY))) {
-                truststore = new StandardKeyStoreBuilder()
+                trustStore = new StandardKeyStoreBuilder()
                     .type(properties.getProperty(TRUSTSTORE_TYPE_KEY))
                     .inputStream(trustStoreStream)
                     .password(properties.getProperty(TRUSTSTORE_PASSWORD_KEY).toCharArray())
                     .build();
             } catch (IOException ioe) {
-                throw new UncheckedIOException(ioe);
+                throw new UncheckedIOException("Trust Store loading failed", ioe);
             }
         }
 
         SSLContext sslContext = new StandardSslContextBuilder()
             .keyStore(keyStore)
             .keyPassword(properties.getProperty(KEYSTORE_PASSWORD_KEY).toCharArray())
-            .trustStore(truststore)
+            .trustStore(trustStore)
             .build();
 
         StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(jetty, Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
@@ -228,7 +228,7 @@ public class RestChangeIngestor implements ChangeIngestor {
         // add the connector
         jetty.addConnector(https);
 
-        logger.info("Added an https connector on the host '{}' and port '{}'", https.getHost(), https.getPort());
+        logger.info("HTTPS Connector added for Host [{}] and Port [{}]", https.getHost(), https.getPort());
     }
 
     protected void setDifferentiator(Differentiator<ByteBuffer> differentiator) {

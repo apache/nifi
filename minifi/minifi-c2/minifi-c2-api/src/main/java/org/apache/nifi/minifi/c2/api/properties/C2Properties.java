@@ -20,8 +20,6 @@ package org.apache.nifi.minifi.c2.api.properties;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class C2Properties extends Properties {
     public static final String MINIFI_C2_SERVER_SECURE = "minifi.c2.server.secure";
@@ -33,9 +31,7 @@ public class C2Properties extends Properties {
     public static final String MINIFI_C2_SERVER_TRUSTSTORE_TYPE = "minifi.c2.server.truststoreType";
     public static final String MINIFI_C2_SERVER_TRUSTSTORE_PASSWD = "minifi.c2.server.truststorePasswd";
 
-    private static final Logger logger = LoggerFactory.getLogger(C2Properties.class);
     private static final C2Properties properties = initProperties();
-    private static final String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
 
     private static C2Properties initProperties() {
         C2Properties properties = new C2Properties();
