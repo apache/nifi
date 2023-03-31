@@ -48,7 +48,7 @@ public class InferSchemaAccessStrategy<T> implements SchemaAccessStrategy {
             final RecordSource<T> recordSource = recordSourceFactory.create(variables, new NonCloseableInputStream(contentStream));
             final RecordSchema schema = schemaInference.inferSchema(recordSource);
 
-            logger.debug("Successfully inferred schema {}", new Object[] {schema});
+            logger.debug("Successfully inferred schema {}", schema);
             return schema;
         } finally {
             contentStream.reset();

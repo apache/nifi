@@ -26,6 +26,7 @@
     <modules>
         <module>nifi-record-serialization-services</module>
         <module>nifi-record-serialization-services-nar</module>
+        <module>nifi-record-serialization-services-shared</module>
     </modules>
 
     <dependencyManagement>
