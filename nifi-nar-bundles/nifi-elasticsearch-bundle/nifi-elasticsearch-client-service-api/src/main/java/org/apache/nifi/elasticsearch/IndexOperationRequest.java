@@ -32,18 +32,21 @@ public class IndexOperationRequest {
     private final Map<String, Object> fields;
     private final Operation operation;
     private final Map<String, Object> script;
+
+    private final boolean scriptedUpsert;
     private final Map<String, Object> dynamicTemplates;
     private final Map<String, String> headerFields;
 
     public IndexOperationRequest(final String index, final String type, final String id, final Map<String, Object> fields,
-                                 final Operation operation, final Map<String, Object> script, final Map<String, Object> dynamicTemplates,
-                                 final Map<String, String> headerFields) {
+                                 final Operation operation, final Map<String, Object> script, final boolean scriptedUpsert,
+                                 final Map<String, Object> dynamicTemplates, final Map<String, String> headerFields) {
         this.index = index;
         this.type = type;
         this.id = id;
         this.fields = fields;
         this.operation = operation;
         this.script = script;
+        this.scriptedUpsert = scriptedUpsert;
         this.dynamicTemplates = dynamicTemplates;
         this.headerFields = headerFields;
     }
@@ -70,6 +73,10 @@ public class IndexOperationRequest {
 
     public Map<String, Object> getScript() {
         return script;
+    }
+
+    public boolean isScriptedUpsert() {
+        return scriptedUpsert;
     }
 
     public Map<String, Object> getDynamicTemplates() {
@@ -112,6 +119,7 @@ public class IndexOperationRequest {
                 ", fields=" + fields +
                 ", operation=" + operation +
                 ", script=" + script +
+                ", scriptedUpsert=" + scriptedUpsert +
                 ", dynamicTemplates=" + dynamicTemplates +
                 ", headerFields=" + headerFields +
                 '}';

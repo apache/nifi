@@ -112,6 +112,11 @@ class TestElasticsearchClientService extends AbstractControllerService implement
     }
 
     @Override
+    boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
+        return true
+    }
+
+    @Override
     Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         common(throwErrorInGet || throwNotFoundInGet, requestParameters)
         return [ "msg": "one" ]

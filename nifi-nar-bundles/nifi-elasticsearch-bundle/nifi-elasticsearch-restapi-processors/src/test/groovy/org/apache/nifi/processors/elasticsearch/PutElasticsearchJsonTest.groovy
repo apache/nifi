@@ -78,13 +78,15 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
             int emptyScriptCount = items.findAll { it.script.isEmpty() }.size()
-            int emptyDynamicTemplatesCount = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int emptyDynamicTemplatesCount = items.findAll { it.dynamicTemplates.isEmpty() }.size()
             int emptyHeaderFields = items.findAll { it.headerFields.isEmpty() }.size()
             assertEquals(1, nullIdCount)
             assertEquals(1, indexCount)
             assertEquals(1, typeCount)
             assertEquals(1, opCount)
             assertEquals(1, emptyScriptCount)
+            assertEquals(1, falseScriptedUpsertCount)
             assertEquals(1, emptyDynamicTemplatesCount)
             assertEquals(1, emptyHeaderFields)
         }
@@ -219,14 +221,33 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
 
         def evalClosure = { List<IndexOperationRequest> items ->
             int scriptCount = items.findAll { it.script == [ _source: "some script", language: "painless" ] }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
             int dynamicTemplatesCount = items.findAll { it.dynamicTemplates == [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]] }.size()
             assertEquals(1, scriptCount)
+            assertEquals(1, falseScriptedUpsertCount)
             assertEquals(1, dynamicTemplatesCount)
         }
 
         basicTest(0, 0, 1, evalClosure)
 
         runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Upsert.getValue().toLowerCase())
+        runner.setProperty(PutElasticsearchJson.SCRIPTED_UPSERT, "true")
+        evalClosure = { List<IndexOperationRequest> items ->
+            int scriptCount = items.findAll { it.script == [ _source: "some script", language: "painless" ] }.size()
+            int trueScriptedUpsertCount = items.findAll { it.scriptedUpsert }.size()
+            int dynamicTemplatesCount = items.findAll { it.dynamicTemplates == [ my_field: "keyword", your_field: [type: "text", keyword: [type: "text"]]] }.size()
+            assertEquals(1, scriptCount)
+            assertEquals(1, trueScriptedUpsertCount)
+            assertEquals(1, dynamicTemplatesCount)
+        }
+
+        basicTest(0, 0, 1, evalClosure)
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
 
         runner.setProperty(PutElasticsearchJson.SCRIPT, "not-json")
         runner.removeProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES)

@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
@@ -109,9 +110,24 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor SCRIPTED_UPSERT = new PropertyDescriptor.Builder()
+            .name("put-es-json-scripted-upsert")
+            .displayName("Scripted Upsert")
+            .description("Whether to add the scripted_upsert flag to the Upsert Operation. " +
+                    "Forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
+                    "If the Upsert Document provided (from FlowFile content) will be empty, but sure to set the " +
+                    CLIENT_SERVICE.getDisplayName() + " controller service's " + ElasticSearchClientService.SUPPRESS_NULLS.getDisplayName() +
+                    " to " + ElasticSearchClientService.NEVER_SUPPRESS.getDisplayName() + " or no \"upsert\" doc will be, " +
+                    "included in the request to Elasticsearch and the operation will not create a new document for the script " +
+                    "to execute against, resulting in a \"not_found\" error")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor DYNAMIC_TEMPLATES = new PropertyDescriptor.Builder()
             .name("put-es-json-dynamic_templates")
-            .displayName("Script")
+            .displayName("Dynamic Templates")
             .description("The dynamic_templates for the document. Must be parsable as a JSON Object. " +
                     "Requires Elasticsearch 7+")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -155,11 +171,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
+        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, SCRIPTED_UPSERT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
         LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
     )));
 
     private boolean outputErrors;
@@ -234,6 +250,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         final String id = StringUtils.isNotBlank(idAttribute) && StringUtils.isNotBlank(input.getAttribute(idAttribute)) ? input.getAttribute(idAttribute) : null;
 
         final Map<String, Object> scriptMap = getMapFromAttribute(SCRIPT, context, input);
+        final boolean scriptedUpsert = context.getProperty(SCRIPTED_UPSERT).evaluateAttributeExpressions(input).asBoolean();
         final Map<String, Object> dynamicTemplatesMap = getMapFromAttribute(DYNAMIC_TEMPLATES, context, input);
 
         final Map<String, String> dynamicProperties = getDynamicProperties(context, input);
@@ -247,7 +264,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             final Map<String, Object> contentMap = objectMapper.readValue(new String(result, charset), Map.class);
 
             final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(indexOp);
-            operations.add(new IndexOperationRequest(index, type, id, contentMap, o, scriptMap, dynamicTemplatesMap, bulkHeaderFields));
+            operations.add(new IndexOperationRequest(index, type, id, contentMap, o, scriptMap, scriptedUpsert, dynamicTemplatesMap, bulkHeaderFields));
 
             originals.add(input);
         } catch (final IOException ioe) {

@@ -67,6 +67,30 @@ done
 - [Elasticsearch Client Service](nifi-elasticsearch-client-service)
 - [Elasticsearch REST API Processors](nifi-elasticsearch-restapi-processors)
 
+## Running on Mac
+
+Testcontainers support for "Mac OS X - Docker for Mac" is currently [best-efforts](https://www.testcontainers.org/supported_docker_environment/).
+
+It may be necessary to do the following to run the tests successfully:
+
+- Link the Docker Unix Socket to the standard location
+
+    ```sh
+    sudo ln -s $HOME/.docker/run/docker.sock /var/run/docker.sock
+    ```
+
+- Set the `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` environment variable
+
+    ```sh
+    export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+    ```
+
+## Running in IDEs
+
+- Edit "Run Configurations" to:
+  - enable Testcontainers via the system property, i.e. `-Delasticsearch.testcontainers.enabled=true`
+  - set the `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` environment variable if required
+
 ## Misc
 
 Integration Tests with Testcontainers currently only uses the `amd64` Docker Images.

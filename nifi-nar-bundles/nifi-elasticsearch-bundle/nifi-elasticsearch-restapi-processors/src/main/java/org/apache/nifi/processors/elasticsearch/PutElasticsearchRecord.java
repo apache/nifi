@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
@@ -203,10 +204,25 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
     static final PropertyDescriptor SCRIPT_RECORD_PATH = new PropertyDescriptor.Builder()
             .name("put-es-record-script-path")
-            .displayName("script Record Path")
+            .displayName("Script Record Path")
             .description("A RecordPath pointing to a field in the record(s) that contains the script for the document update/upsert. " +
                     "Only applies to Update/Upsert operations. Field must be Map-type compatible (e.g. a Map or a Record) " +
                     "or a String parsable into a JSON Object")
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor SCRIPTED_UPSERT_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-es-record-scripted-upsert-path")
+            .displayName("Scripted Upsert Record Path")
+            .description("A RecordPath pointing to a field in the record(s) that contains the scripted_upsert boolean flag. " +
+                    "Whether to add the scripted_upsert flag to the Upsert Operation. " +
+                    "Forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
+                    "If the Upsert Document provided (from FlowFile content) will be empty, but sure to set the " +
+                    CLIENT_SERVICE.getDisplayName() + " controller service's " + ElasticSearchClientService.SUPPRESS_NULLS.getDisplayName() +
+                    " to " + ElasticSearchClientService.NEVER_SUPPRESS.getDisplayName() + " or no \"upsert\" doc will be, " +
+                    "included in the request to Elasticsearch and the operation will not create a new document for the script " +
+                    "to execute against, resulting in a \"not_found\" error")
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -299,11 +315,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
-        SCRIPT_RECORD_PATH, DYNAMIC_TEMPLATES_RECORD_PATH, DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES,
-        OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
+        SCRIPT_RECORD_PATH, SCRIPTED_UPSERT_RECORD_PATH, DYNAMIC_TEMPLATES_RECORD_PATH, DATE_FORMAT, TIME_FORMAT,
+        TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
     )));
 
     private RecordPathCache recordPathCache;
@@ -417,7 +433,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 stopWatch.getDuration(TimeUnit.MILLISECONDS)
         );
 
-        input = session.putAllAttributes(input, new HashMap<String, String>() {{
+        input = session.putAllAttributes(input, new HashMap<>() {{
             put("elasticsearch.put.error.count", String.valueOf(erroredRecords.get()));
             put("elasticsearch.put.success.count", String.valueOf(successfulRecords.get()));
         }});
@@ -439,6 +455,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final Object atTimestamp = getTimestampFromRecordPath(record, indexOperationParameters.getAtTimestampPath(),
                 indexOperationParameters.getDefaultAtTimestamp(), indexOperationParameters.isRetainTimestamp());
         final Map<String, Object> script = getMapFromRecordPath(record, indexOperationParameters.getScriptPath());
+        final boolean scriptedUpsert = Boolean.parseBoolean(getFromRecordPath(record, indexOperationParameters.getScriptedUpsertPath(), false, "false", false));
         final Map<String, Object> dynamicTemplates = getMapFromRecordPath(record, indexOperationParameters.getDynamicTypesPath());
 
         final Map<String, String> bulkHeaderFields = new HashMap<>(indexOperationParameters.getBulkHeaderRecordPaths().size(), 1);
@@ -454,7 +471,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             contentMap.putIfAbsent("@timestamp", atTimestamp);
         }
 
-        operationList.add(new IndexOperationRequest(index, type, id, contentMap, indexOp, script, dynamicTemplates, bulkHeaderFields));
+        operationList.add(new IndexOperationRequest(index, type, id, contentMap, indexOp, script, scriptedUpsert, dynamicTemplates, bulkHeaderFields));
     }
 
     private void operate(final List<IndexOperationRequest> operationList, final List<Record> originals, final RecordReader reader,
@@ -755,6 +772,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         private final RecordPath typePath;
         private final RecordPath atTimestampPath;
         private final RecordPath scriptPath;
+
+        private final RecordPath scriptedUpsertPath;
         private final RecordPath dynamicTypesPath;
 
         private final Map<String, String> requestParameters;
@@ -776,6 +795,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             typePath = compileRecordPathFromProperty(context, TYPE_RECORD_PATH, input);
             atTimestampPath = compileRecordPathFromProperty(context, AT_TIMESTAMP_RECORD_PATH, input);
             scriptPath = compileRecordPathFromProperty(context, SCRIPT_RECORD_PATH, input);
+            scriptedUpsertPath = compileRecordPathFromProperty(context, SCRIPTED_UPSERT_RECORD_PATH, input);
             dynamicTypesPath = compileRecordPathFromProperty(context, DYNAMIC_TEMPLATES_RECORD_PATH, input);
 
             final Map<String, String> dynamicProperties = getDynamicProperties(context, input);
@@ -842,6 +862,10 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             return scriptPath;
         }
 
+        public RecordPath getScriptedUpsertPath() {
+            return scriptedUpsertPath;
+        }
+
         public RecordPath getDynamicTypesPath() {
             return dynamicTypesPath;
         }
@@ -866,6 +890,4 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             return batchSize;
         }
     }
-
-
 }

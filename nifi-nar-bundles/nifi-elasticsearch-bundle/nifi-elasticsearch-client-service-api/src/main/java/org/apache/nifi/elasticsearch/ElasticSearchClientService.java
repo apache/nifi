@@ -341,10 +341,20 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
     /**
      * Check whether an index exists.
      *
-     * @param index The index to target, if omitted then all indices will be updated.
+     * @param index The index to check.
      * @param requestParameters A collection of URL request parameters. Optional.
      */
     boolean exists(final String index, final Map<String, String> requestParameters);
+
+    /**
+     * Check whether a document exists.
+     *
+     * @param index The index that holds the document.
+     * @param type The document type. Optional. Will not be used in future versions of Elasticsearch.
+     * @param id The document ID
+     * @param requestParameters A collection of URL request parameters. Optional.
+     */
+    boolean documentExists(final String index, final String type, final String id, final Map<String, String> requestParameters);
 
     /**
      * Get a document by ID.

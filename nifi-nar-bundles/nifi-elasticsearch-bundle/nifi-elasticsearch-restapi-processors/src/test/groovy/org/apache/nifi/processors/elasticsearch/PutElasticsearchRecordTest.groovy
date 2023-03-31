@@ -129,13 +129,15 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             int typeCount = items.findAll { it.type == "test_type" }.size()
             int opCount = items.findAll { it.operation == IndexOperationRequest.Operation.Index }.size()
             int emptyScriptCount = items.findAll { it.script.isEmpty() }.size()
-            int emptyDynamicTemplatesCount = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int emptyDynamicTemplatesCount = items.findAll { it.dynamicTemplates.isEmpty() }.size()
             int emptyHeaderFields = items.findAll { it.headerFields.isEmpty() }.size()
             assertEquals(2, timestampDefaultCount)
             assertEquals(2, indexCount)
             assertEquals(2, typeCount)
             assertEquals(2, opCount)
             assertEquals(2, emptyScriptCount)
+            assertEquals(2, falseScriptedUpsertCount)
             assertEquals(2, emptyDynamicTemplatesCount)
             assertEquals(2, emptyHeaderFields)
         }
@@ -303,6 +305,7 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
                 [ name: "time", type: [ type: "int", logicalType: "time-millis" ] ],
                 [ name: "code", type: "long" ],
                 [ name: "script", type: [ type: "map", values: "string" ] ],
+                [ name: "scripted_upsert", type: ["null", "boolean", "string"] ],
                 [ name: "script_record", type: [ type: "record", name: "nested", fields: [
                         [ name: "source", type: "string" ], [ name: "language", type: "string" ]
                 ] ] ],
@@ -316,9 +319,9 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             [ id: "rec-1", op: "index", index: "bulk_a", type: "message", msg: "Hello", ts: Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli() ],
             [ id: "rec-2", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
             [ id: "rec-3", op: "index", index: "bulk_a", type: "message", msg: "Hello" ],
-            [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello" ],
-            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "", script: script, dynamic_templates: null],
-            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: null, script: null, dynamic_templates: prettyPrint(toJson(dynamicTemplates)) ]
+            [ id: "rec-4", op: "index", index: "bulk_b", type: "message", msg: "Hello", scripted_upsert: null ],
+            [ id: "rec-5", op: "index", index: "bulk_a", type: "message", msg: "", script: script, scripted_upsert: false, dynamic_templates: null],
+            [ id: "rec-6", op: "create", index: "bulk_b", type: "message", msg: null, script: null, scripted_upsert: true, dynamic_templates: prettyPrint(toJson(dynamicTemplates)) ]
         ]))
 
         def evalClosure = { List<IndexOperationRequest> items ->
@@ -336,6 +339,8 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             int ts = items.findAll { it.fields.get("ts") != null }.size()
             int id = items.findAll { it.fields.get("id") != null }.size()
             int emptyScript = items.findAll { it.script.isEmpty() }.size()
+            int falseScriptedUpsertCount = items.findAll { !it.scriptedUpsert }.size()
+            int trueScriptedUpsertCount = items.findAll { it.scriptedUpsert }.size()
             int s = items.findAll { it.script == script }.size()
             int emptyDynamicTemplates = items.findAll { it.dynamicTemplates.isEmpty() }.size()
             int dt = items.findAll { it.dynamicTemplates == dynamicTemplates }.size()
@@ -357,6 +362,8 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
             assertEquals(0, ts)
             assertEquals(0, id)
             assertEquals(5, emptyScript)
+            assertEquals(5, falseScriptedUpsertCount)
+            assertEquals(1, trueScriptedUpsertCount)
             assertEquals(1, s)
             assertEquals(5, emptyDynamicTemplates)
             assertEquals(1, dt)
@@ -373,6 +380,7 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/ts")
         runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script")
+        runner.setProperty(PutElasticsearchRecord.SCRIPTED_UPSERT_RECORD_PATH, "/scripted_upsert")
         runner.setProperty(PutElasticsearchRecord.DYNAMIC_TEMPLATES_RECORD_PATH, "/dynamic_templates")
         runner.enqueue(flowFileContents, [
             "schema.name": "recordPathTest"

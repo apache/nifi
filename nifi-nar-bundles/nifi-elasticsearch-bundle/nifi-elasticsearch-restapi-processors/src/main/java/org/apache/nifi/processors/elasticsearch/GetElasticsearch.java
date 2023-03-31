@@ -182,15 +182,12 @@ public class GetElasticsearch extends AbstractProcessor implements Elasticsearch
             try {
                 final Map<String, String> requestParameters = new HashMap<>(getDynamicProperties(context, attributes));
                 requestParameters.putIfAbsent("_source", "false");
-                verifyClientService.get(index, type, id, requestParameters);
-                documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                        .explanation(String.format("Document [%s] exists in index [%s]", id, index));
-            } catch (final ElasticsearchException ee) {
-                if (ee.isNotFound()) {
+                if (verifyClientService.documentExists(index, type, id, requestParameters)) {
+                    documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Document [%s] exists in index [%s]", id, index));
+                } else {
                     documentExistsResult.outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                             .explanation(String.format("Document [%s] does not exist in index [%s]", id, index));
-                } else {
-                    handleDocumentExistsCheckException(ee, documentExistsResult, verificationLogger, index, id);
                 }
             } catch (final Exception ex) {
                 handleDocumentExistsCheckException(ex, documentExistsResult, verificationLogger, index, id);

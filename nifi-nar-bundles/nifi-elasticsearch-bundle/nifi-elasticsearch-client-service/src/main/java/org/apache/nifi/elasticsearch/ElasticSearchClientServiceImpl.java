@@ -114,31 +114,10 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     private ObjectWriter prettyPrintWriter;
 
     static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(HTTP_HOSTS);
-        props.add(PATH_PREFIX);
-        props.add(AUTHORIZATION_SCHEME);
-        props.add(USERNAME);
-        props.add(PASSWORD);
-        props.add(API_KEY_ID);
-        props.add(API_KEY);
-        props.add(PROP_SSL_CONTEXT_SERVICE);
-        props.add(PROXY_CONFIGURATION_SERVICE);
-        props.add(CONNECT_TIMEOUT);
-        props.add(SOCKET_TIMEOUT);
-        props.add(CHARSET);
-        props.add(SUPPRESS_NULLS);
-        props.add(COMPRESSION);
-        props.add(SEND_META_HEADER);
-        props.add(STRICT_DEPRECATION);
-        props.add(NODE_SELECTOR);
-        props.add(SNIFF_CLUSTER_NODES);
-        props.add(SNIFFER_INTERVAL);
-        props.add(SNIFFER_REQUEST_TIMEOUT);
-        props.add(SNIFF_ON_FAILURE);
-        props.add(SNIFFER_FAILURE_DELAY);
-
-        properties = Collections.unmodifiableList(props);
+        properties = List.of(HTTP_HOSTS, PATH_PREFIX, AUTHORIZATION_SCHEME, USERNAME, PASSWORD, API_KEY_ID, API_KEY,
+                PROP_SSL_CONTEXT_SERVICE, PROXY_CONFIGURATION_SERVICE, CONNECT_TIMEOUT, SOCKET_TIMEOUT, CHARSET,
+                SUPPRESS_NULLS, COMPRESSION, SEND_META_HEADER, STRICT_DEPRECATION, NODE_SELECTOR, SNIFF_CLUSTER_NODES,
+                SNIFFER_INTERVAL, SNIFFER_REQUEST_TIMEOUT, SNIFF_ON_FAILURE, SNIFFER_FAILURE_DELAY);
     }
 
     @Override
@@ -650,6 +629,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                 if (request.getScript() != null && !request.getScript().isEmpty()) {
                     updateBody.put("script", request.getScript());
                     if (request.getOperation().equals(IndexOperationRequest.Operation.Upsert)) {
+                        updateBody.put("scripted_upsert", request.isScriptedUpsert());
                         updateBody.put("upsert", request.getFields());
                     }
                 } else {
@@ -800,6 +780,23 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         }
     }
 
+    @Override
+    public boolean documentExists(final String index, final String type, final String id, final Map<String, String> requestParameters) {
+        boolean exists = true;
+        try {
+            final Map<String, String> existsParameters = requestParameters != null ? new HashMap<>(requestParameters) : new HashMap<>();
+            existsParameters.putIfAbsent("_source", "false");
+            get(index, type, id, existsParameters);
+        } catch (final ElasticsearchException ee) {
+            if (ee.isNotFound()) {
+                exists = false;
+            } else {
+                throw ee;
+            }
+        }
+        return exists;
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
@@ -861,7 +858,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     @Override
     public String initialisePointInTime(final String index, final String keepAlive) {
         try {
-            final Map<String, String> params = new HashMap<String, String>() {{
+            final Map<String, String> params = new HashMap<>() {{
                 if (StringUtils.isNotBlank(keepAlive)) {
                     put("keep_alive", keepAlive);
                 }
