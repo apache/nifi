@@ -159,7 +159,6 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) spring-bridge (org.glassfish.hk2:spring-bridge:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - https://jax-rs-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.el (org.glassfish:javax.el:jar:3.0.1-b08 - https://github.com/javaee/el-spec)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-bean-validation (org.glassfish.jersey.ext:jersey-bean-validation:jar:2.29.1 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-client (org.glassfish.jersey.core:jersey-client:jar:2.27 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-common (org.glassfish.jersey.core:jersey-common:jar:2.29.1 - https://jersey.github.io/)
