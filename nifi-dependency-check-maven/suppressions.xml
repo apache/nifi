@@ -111,17 +111,17 @@
     </suppress>
     <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to Elasticsearch Plugin</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.plugin/.*?@7.6.0$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch\.plugin/.*?@7.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch-core</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-core@7.6.0$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-core@7.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@7.6.0$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@7.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
@@ -135,8 +135,13 @@
         <cve>CVE-2020-7014</cve>
     </suppress>
     <suppress>
+        <notes>CVE-2021-22145 applies to Elasticsearch Server not client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch@.*$</packageUrl>
+        <vulnerabilityName>CVE-2021-22145</vulnerabilityName>
+    </suppress>
+    <suppress>
         <notes>Elasticsearch Server vulnerabilities do not apply to elasticsearch libraries</notes>
-        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-.*?@7.6.0$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/org\.elasticsearch/elasticsearch\-.*?@7.*$</packageUrl>
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
