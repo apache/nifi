@@ -269,10 +269,6 @@
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.el</artifactId>
-        </dependency>
         <!-- We're using spring-boot-starter-data-jpa to bring in spring-data-jdbc and a few other dependencies, but
             we aren't actually using any JPA dependencies, this also brings in the standard Spring dependencies for the backend -->
         <dependency>
