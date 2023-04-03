@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class C2HttpClientTest {
 
+    public static final String INCORRECT_PATH = "http://localhost/incorrectPath";
     private static final String HEARTBEAT_PATH = "c2/heartbeat";
     private static final String UPDATE_PATH = "c2/update";
     private static final String ACK_PATH = "c2/acknowledge";
@@ -59,8 +61,6 @@ public class C2HttpClientTest {
     @Mock
     private C2Serializer serializer;
 
-    private C2HttpClient c2HttpClient;
-
     private MockWebServer mockWebServer;
 
     private String baseUrl;
@@ -71,7 +71,8 @@ public class C2HttpClientTest {
         baseUrl = mockWebServer.url("/").newBuilder().host("localhost").build().toString();
         when(c2ClientConfig.getKeepAliveDuration()).thenReturn(KEEP_ALIVE_DURATION);
         when(c2ClientConfig.getMaxIdleConnections()).thenReturn(MAX_IDLE_CONNECTIONS);
-        c2HttpClient = new C2HttpClient(c2ClientConfig, serializer);
+        lenient().when(c2ClientConfig.getC2Url()).thenReturn(baseUrl + HEARTBEAT_PATH);
+        lenient().when(c2ClientConfig.getC2AckUrl()).thenReturn(baseUrl + ACK_PATH);
     }
 
     @AfterEach
@@ -86,8 +87,8 @@ public class C2HttpClientTest {
 
         when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
         when(serializer.deserialize(any(), any())).thenReturn(Optional.of(hbResponse));
-        when(c2ClientConfig.getC2Url()).thenReturn(baseUrl + HEARTBEAT_PATH);
 
+        C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<C2HeartbeatResponse> response = c2HttpClient.publishHeartbeat(new C2Heartbeat());
 
         assertTrue(response.isPresent());
@@ -100,8 +101,10 @@ public class C2HttpClientTest {
     @Test
     void testPublishHeartbeatReturnEmptyInCaseOfCommunicationIssue() {
         when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
-        when(c2ClientConfig.getC2Url()).thenReturn("http://localhost/incorrectPath");
+        when(c2ClientConfig.getC2Url()).thenReturn(INCORRECT_PATH);
+        when(c2ClientConfig.getC2AckUrl()).thenReturn(INCORRECT_PATH);
 
+        C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<C2HeartbeatResponse> response = c2HttpClient.publishHeartbeat(new C2Heartbeat());
 
         assertFalse(response.isPresent());
@@ -111,7 +114,7 @@ public class C2HttpClientTest {
     void testConstructorThrowsExceptionForInvalidKeystoreFilenameAtInitialization() {
         when(c2ClientConfig.getKeystoreFilename()).thenReturn("incorrectKeystoreFilename");
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> new C2HttpClient(c2ClientConfig, serializer));
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> C2HttpClient.create(c2ClientConfig, serializer));
 
         assertTrue(exception.getMessage().contains("TLS"));
     }
@@ -120,6 +123,7 @@ public class C2HttpClientTest {
     void testRetrieveUpdateContentReturnsEmptyWhenServerErrorResponse() throws InterruptedException {
         mockWebServer.enqueue(new MockResponse().setBody("updateContent").setResponseCode(HTTP_STATUS_BAD_REQUEST));
 
+        C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
 
         assertFalse(response.isPresent());
@@ -133,6 +137,7 @@ public class C2HttpClientTest {
         String content = "updateContent";
         mockWebServer.enqueue(new MockResponse().setBody(content).setResponseCode(HTTP_STATUS_OK));
 
+        C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
 
         assertTrue(response.isPresent());
@@ -145,10 +150,10 @@ public class C2HttpClientTest {
     @Test
     void testAcknowledgeOperation() throws InterruptedException {
         String ackContent = "ack";
-        when(c2ClientConfig.getC2AckUrl()).thenReturn(baseUrl + ACK_PATH);
         when(serializer.serialize(any(C2OperationAck.class))).thenReturn(Optional.of(ackContent));
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_STATUS_OK));
 
+        C2HttpClient c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
         c2HttpClient.acknowledgeOperation(new C2OperationAck());
 
         RecordedRequest request = mockWebServer.takeRequest();

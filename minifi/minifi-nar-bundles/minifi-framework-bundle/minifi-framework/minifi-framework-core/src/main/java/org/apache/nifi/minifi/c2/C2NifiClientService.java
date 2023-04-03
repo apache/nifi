@@ -27,8 +27,11 @@ import static org.apache.nifi.minifi.MiNiFiProperties.C2_FULL_HEARTBEAT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_MAX_IDLE_CONNECTIONS;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REQUEST_COMPRESSION;
+import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_BASE;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CALL_TIMEOUT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CONNECTION_TIMEOUT;
+import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_ACKNOWLEDGE;
+import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_HEARTBEAT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_READ_TIMEOUT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_URL;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_URL_ACK;
@@ -138,7 +141,6 @@ public class C2NifiClientService {
     private final PropertiesPersister propertiesPersister;
     private final ObjectMapper objectMapper;
 
-
     private final long heartbeatPeriod;
 
     public C2NifiClientService(NiFiProperties niFiProperties, FlowController flowController, BootstrapCommunicator bootstrapCommunicator) {
@@ -154,7 +156,7 @@ public class C2NifiClientService {
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
         this.flowController = flowController;
 
-        C2HttpClient client = new C2HttpClient(clientConfig, new C2JacksonSerializer());
+        C2HttpClient client = C2HttpClient.create(clientConfig, new C2JacksonSerializer());
         C2HeartbeatFactory heartbeatFactory = new C2HeartbeatFactory(clientConfig, flowIdHolder, new ManifestHashProvider());
         OperandPropertiesProvider emptyOperandPropertiesProvider = new EmptyOperandPropertiesProvider();
         TransferDebugCommandHelper transferDebugCommandHelper = new TransferDebugCommandHelper(niFiProperties);
@@ -196,19 +198,22 @@ public class C2NifiClientService {
             .maxIdleConnections(Integer.parseInt(properties.getProperty(C2_MAX_IDLE_CONNECTIONS.getKey(), C2_MAX_IDLE_CONNECTIONS.getDefaultValue())))
             .keepAliveDuration((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2_KEEP_ALIVE_DURATION.getKey(),
                 C2_KEEP_ALIVE_DURATION.getDefaultValue()), TimeUnit.MILLISECONDS))
-            .c2Url(properties.getProperty(C2_REST_URL.getKey(), C2_REST_URL.getDefaultValue()))
             .c2RequestCompression(properties.getProperty(C2_REQUEST_COMPRESSION.getKey(), C2_REQUEST_COMPRESSION.getDefaultValue()))
             .c2AssetDirectory(properties.getProperty(C2_ASSET_DIRECTORY.getKey(), C2_ASSET_DIRECTORY.getDefaultValue()))
             .confDirectory(properties.getProperty(C2_CONFIG_DIRECTORY.getKey(), C2_CONFIG_DIRECTORY.getDefaultValue()))
             .runtimeManifestIdentifier(properties.getProperty(C2_RUNTIME_MANIFEST_IDENTIFIER.getKey(), C2_RUNTIME_MANIFEST_IDENTIFIER.getDefaultValue()))
             .runtimeType(properties.getProperty(C2_RUNTIME_TYPE.getKey(), C2_RUNTIME_TYPE.getDefaultValue()))
-            .c2AckUrl(properties.getProperty(C2_REST_URL_ACK.getKey(), C2_REST_URL_ACK.getDefaultValue()))
             .truststoreFilename(properties.getProperty(C2_SECURITY_TRUSTSTORE_LOCATION.getKey(), C2_SECURITY_TRUSTSTORE_LOCATION.getDefaultValue()))
             .truststorePassword(properties.getProperty(C2_SECURITY_TRUSTSTORE_PASSWORD.getKey(), C2_SECURITY_TRUSTSTORE_PASSWORD.getDefaultValue()))
             .truststoreType(properties.getProperty(C2_SECURITY_TRUSTSTORE_TYPE.getKey(), C2_SECURITY_TRUSTSTORE_TYPE.getDefaultValue()))
             .keystoreFilename(properties.getProperty(C2_SECURITY_KEYSTORE_LOCATION.getKey(), C2_SECURITY_KEYSTORE_LOCATION.getDefaultValue()))
             .keystorePassword(properties.getProperty(C2_SECURITY_KEYSTORE_PASSWORD.getKey(), C2_SECURITY_KEYSTORE_PASSWORD.getDefaultValue()))
             .keystoreType(properties.getProperty(C2_SECURITY_KEYSTORE_TYPE.getKey(), C2_SECURITY_KEYSTORE_TYPE.getDefaultValue()))
+            .c2Url(properties.getProperty(C2_REST_URL.getKey(), C2_REST_URL.getDefaultValue()))
+            .c2AckUrl(properties.getProperty(C2_REST_URL_ACK.getKey(), C2_REST_URL_ACK.getDefaultValue()))
+            .c2RestPathBase(properties.getProperty(C2_REST_PATH_BASE.getKey(), C2_REST_PATH_BASE.getDefaultValue()))
+            .c2RestPathHeartbeat(properties.getProperty(C2_REST_PATH_HEARTBEAT.getKey(), C2_REST_PATH_HEARTBEAT.getDefaultValue()))
+            .c2RestPathAcknowledge(properties.getProperty(C2_REST_PATH_ACKNOWLEDGE.getKey(), C2_REST_PATH_ACKNOWLEDGE.getDefaultValue()))
             .build();
     }
 

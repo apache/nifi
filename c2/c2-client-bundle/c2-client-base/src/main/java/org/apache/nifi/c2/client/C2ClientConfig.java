@@ -23,6 +23,9 @@ public class C2ClientConfig {
 
     private final String c2Url;
     private final String c2AckUrl;
+    private final String c2RestPathBase;
+    private final String c2RestPathHeartbeat;
+    private final String c2RestPathAcknowledge;
     private final String agentClass;
     private final String agentIdentifier;
     private final boolean fullHeartbeat;
@@ -48,6 +51,9 @@ public class C2ClientConfig {
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
         this.c2AckUrl = builder.c2AckUrl;
+        this.c2RestPathBase = builder.c2RestPathBase;
+        this.c2RestPathHeartbeat = builder.c2RestPathHeartbeat;
+        this.c2RestPathAcknowledge = builder.c2RestPathAcknowledge;
         this.agentClass = builder.agentClass;
         this.agentIdentifier = builder.agentIdentifier;
         this.fullHeartbeat = builder.fullHeartbeat;
@@ -85,6 +91,18 @@ public class C2ClientConfig {
 
     public String getAgentIdentifier() {
         return agentIdentifier;
+    }
+
+    public String getC2RestPathBase() {
+        return c2RestPathBase;
+    }
+
+    public String getC2RestPathHeartbeat() {
+        return c2RestPathHeartbeat;
+    }
+
+    public String getC2RestPathAcknowledge() {
+        return c2RestPathAcknowledge;
     }
 
     public boolean isFullHeartbeat() {
@@ -170,6 +188,9 @@ public class C2ClientConfig {
 
         private String c2Url;
         private String c2AckUrl;
+        private String c2RestPathBase;
+        private String c2RestPathHeartbeat;
+        private String c2RestPathAcknowledge;
         private String agentClass;
         private String agentIdentifier;
         private boolean fullHeartbeat;
@@ -192,117 +213,130 @@ public class C2ClientConfig {
         private String c2RequestCompression;
         private String c2AssetDirectory;
 
-        public Builder c2Url(final String c2Url) {
+        public Builder c2Url(String c2Url) {
             this.c2Url = c2Url;
             return this;
         }
 
-        public Builder c2AckUrl(final String c2AckUrl) {
+        public Builder c2AckUrl(String c2AckUrl) {
             this.c2AckUrl = c2AckUrl;
             return this;
         }
 
-        public Builder agentClass(final String agentClass) {
+        public Builder c2RestPathBase(String c2RestPathBase) {
+            this.c2RestPathBase = c2RestPathBase;
+            return this;
+        }
+        public Builder c2RestPathHeartbeat(String c2RestPathHeartbeat) {
+            this.c2RestPathHeartbeat = c2RestPathHeartbeat;
+            return this;
+        }
+        public Builder c2RestPathAcknowledge(String c2RestPathAcknowledge) {
+            this.c2RestPathAcknowledge = c2RestPathAcknowledge;
+            return this;
+        }
+
+        public Builder agentClass(String agentClass) {
             this.agentClass = agentClass;
             return this;
         }
 
-        public Builder agentIdentifier(final String agentIdentifier) {
+        public Builder agentIdentifier(String agentIdentifier) {
             this.agentIdentifier = agentIdentifier;
             return this;
         }
 
-        public Builder fullHeartbeat(final boolean fullHeartbeat) {
+        public Builder fullHeartbeat(boolean fullHeartbeat) {
             this.fullHeartbeat = fullHeartbeat;
             return this;
         }
 
-        public Builder confDirectory(final String confDirectory) {
+        public Builder confDirectory(String confDirectory) {
             this.confDirectory = confDirectory;
             return this;
         }
 
-        public Builder runtimeManifestIdentifier(final String runtimeManifestIdentifier) {
+        public Builder runtimeManifestIdentifier(String runtimeManifestIdentifier) {
             this.runtimeManifestIdentifier = runtimeManifestIdentifier;
             return this;
         }
 
-        public Builder runtimeType(final String runtimeType) {
+        public Builder runtimeType(String runtimeType) {
             this.runtimeType = runtimeType;
             return this;
         }
 
-        public Builder heartbeatPeriod(final long heartbeatPeriod) {
+        public Builder heartbeatPeriod(long heartbeatPeriod) {
             this.heartbeatPeriod = heartbeatPeriod;
             return this;
         }
 
-        public Builder callTimeout(final long callTimeout) {
+        public Builder callTimeout(long callTimeout) {
             this.callTimeout = callTimeout;
             return this;
         }
 
-        public Builder keystoreFilename(final String keystoreFilename) {
+        public Builder keystoreFilename(String keystoreFilename) {
             this.keystoreFilename = keystoreFilename;
             return this;
         }
 
-        public Builder keystorePassword(final String keystorePass) {
+        public Builder keystorePassword(String keystorePass) {
             this.keystorePass = keystorePass;
             return this;
         }
 
-        public Builder keyPassword(final String keyPass) {
+        public Builder keyPassword(String keyPass) {
             this.keyPass = keyPass;
             return this;
         }
 
-        public Builder keystoreType(final String keystoreType) {
+        public Builder keystoreType(String keystoreType) {
             this.keystoreType = keystoreType;
             return this;
         }
 
-        public Builder truststoreFilename(final String truststoreFilename) {
+        public Builder truststoreFilename(String truststoreFilename) {
             this.truststoreFilename = truststoreFilename;
             return this;
         }
 
-        public Builder truststorePassword(final String truststorePass) {
+        public Builder truststorePassword(String truststorePass) {
             this.truststorePass = truststorePass;
             return this;
         }
 
-        public Builder truststoreType(final String truststoreType) {
+        public Builder truststoreType(String truststoreType) {
             this.truststoreType = truststoreType;
             return this;
         }
 
-        public Builder readTimeout(final long readTimeout) {
+        public Builder readTimeout(long readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }
 
-        public Builder connectTimeout(final long connectTimeout) {
+        public Builder connectTimeout(long connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }
 
-        public Builder maxIdleConnections(final int maxIdleConnections) {
+        public Builder maxIdleConnections(int maxIdleConnections) {
             this.maxIdleConnections = maxIdleConnections;
             return this;
         }
 
-        public Builder keepAliveDuration(final long keepAliveDuration) {
+        public Builder keepAliveDuration(long keepAliveDuration) {
             this.keepAliveDuration = keepAliveDuration;
             return this;
         }
 
-        public Builder c2RequestCompression(final String c2RequestCompression) {
+        public Builder c2RequestCompression(String c2RequestCompression) {
             this.c2RequestCompression = c2RequestCompression;
             return this;
         }
 
-        public Builder c2AssetDirectory(final String c2AssetDirectory) {
+        public Builder c2AssetDirectory(String c2AssetDirectory) {
             this.c2AssetDirectory = c2AssetDirectory;
             return this;
         }

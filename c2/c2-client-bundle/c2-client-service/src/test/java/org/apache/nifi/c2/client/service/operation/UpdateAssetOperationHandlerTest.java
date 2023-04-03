@@ -37,6 +37,8 @@ import static org.apache.nifi.c2.protocol.api.OperandType.ASSET;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,6 +51,7 @@ import java.util.stream.Stream;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -89,6 +92,11 @@ public class UpdateAssetOperationHandlerTest {
             Arguments.of(mock(C2Client.class), mock(OperandPropertiesProvider.class), mock(BiPredicate.class), null));
     }
 
+    @BeforeEach
+    public void setup() {
+        lenient().when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.of(ASSET_URL));
+    }
+
     @ParameterizedTest(name = "c2Client={0} operandPropertiesProvider={1} bundleFileList={2} contentFilter={3}")
     @MethodSource("invalidConstructorArguments")
     public void testAttemptingCreateWithInvalidParametersWillThrowException(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
@@ -107,6 +115,7 @@ public class UpdateAssetOperationHandlerTest {
     public void testAssetUrlCanNotBeNull() {
         // given
         C2Operation operation = operation(null, ASSET_FILE_NAME, FORCE_DOWNLOAD);
+        when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.empty());
 
         // when
         C2OperationAck result = testHandler.handle(operation);
