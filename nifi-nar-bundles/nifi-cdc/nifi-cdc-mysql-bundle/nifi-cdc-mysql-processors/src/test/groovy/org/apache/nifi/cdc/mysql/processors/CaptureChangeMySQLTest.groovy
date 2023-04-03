@@ -23,6 +23,7 @@ import com.github.shyiko.mysql.binlog.event.EventData
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4
 import com.github.shyiko.mysql.binlog.event.EventType
 import com.github.shyiko.mysql.binlog.event.GtidEventData
+import com.github.shyiko.mysql.binlog.event.MySqlGtid
 import com.github.shyiko.mysql.binlog.event.QueryEventData
 import com.github.shyiko.mysql.binlog.event.RotateEventData
 import com.github.shyiko.mysql.binlog.event.TableMapEventData
@@ -30,7 +31,6 @@ import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData
 import com.github.shyiko.mysql.binlog.event.WriteRowsEventData
 import com.github.shyiko.mysql.binlog.network.SSLMode
 import groovy.json.JsonSlurper
-import org.apache.commons.io.output.WriterOutputStream
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading
 import org.apache.nifi.cdc.event.ColumnDefinition
 import org.apache.nifi.cdc.event.TableInfo
@@ -40,22 +40,12 @@ import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy
 import org.apache.nifi.cdc.mysql.MockBinlogClient
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory
-import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.components.state.Scope
-import org.apache.nifi.controller.AbstractControllerService
-import org.apache.nifi.distributed.cache.client.Deserializer
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
-import org.apache.nifi.distributed.cache.client.Serializer
 import org.apache.nifi.flowfile.attributes.CoreAttributes
-import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.ssl.SSLContextService
-import org.apache.nifi.state.MockStateManager
-import org.apache.nifi.util.MockComponentLog
-import org.apache.nifi.util.MockControllerServiceInitializationContext
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.BeforeEach
@@ -67,8 +57,6 @@ import java.sql.ResultSet
 import java.sql.SQLException
 import java.sql.Statement
 import java.util.concurrent.TimeoutException
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertNotNull
@@ -378,13 +366,6 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, '4')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, 'true')
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        def clientProperties = [:]
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
-        testRunner.addControllerService('client', cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
-        testRunner.enableControllerService(cacheClient)
-
 
         testRunner.run(1, false, true)
 
@@ -521,7 +502,7 @@ class CaptureChangeMySQLTest {
     @Test
     void testExcludeSchemaChanges() throws Exception {
         testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
-        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost') // Don't include port here, should default to 3306
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.SERVER_ID, '1')
@@ -530,13 +511,6 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_POSITION, '4')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_DDL_EVENTS, 'false')
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        def clientProperties = [:]
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
-        testRunner.addControllerService('client', cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
-        testRunner.enableControllerService(cacheClient)
-
 
         testRunner.run(1, false, true)
 
@@ -595,16 +569,10 @@ class CaptureChangeMySQLTest {
     @Test
     void testNoTableInformationAvailable() throws Exception {
         testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
-        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
+        testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost') // Port should default to 3306
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        def clientProperties = [:]
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
-        testRunner.addControllerService('client', cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
-        testRunner.enableControllerService(cacheClient)
 
         testRunner.run(1, false, true)
 
@@ -1106,12 +1074,7 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        def clientProperties = [:]
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
-        testRunner.addControllerService('client', cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
-        testRunner.enableControllerService(cacheClient)
+
         testRunner.run(1, false, true)
 
         // ROTATE
@@ -1174,19 +1137,13 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, 'true')
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        def clientProperties = [:]
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), 'localhost')
-        testRunner.addControllerService('client', cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, 'client')
-        testRunner.enableControllerService(cacheClient)
 
         testRunner.run(1, false, true)
 
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1'] as GtidEventData
+                [gtid: MySqlGtid.fromString( 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')] as GtidEventData
         ))
 
         // BEGIN
@@ -1206,7 +1163,7 @@ class CaptureChangeMySQLTest {
         // Stop the processor and verify the state is set
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '6', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1-1', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-1', Scope.CLUSTER)
 
         ((CaptureChangeMySQL) testRunner.getProcessor()).clearState()
         testRunner.stateManager.clear(Scope.CLUSTER)
@@ -1218,7 +1175,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 8] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2'] as GtidEventData
         ))
 
         // BEGIN
@@ -1239,12 +1196,12 @@ class CaptureChangeMySQLTest {
 
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '12', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-2', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-2', Scope.CLUSTER)
 
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 14] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1263,7 +1220,7 @@ class CaptureChangeMySQLTest {
 
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '18', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-3', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-3', Scope.CLUSTER)
     }
 
     @Test
@@ -1340,12 +1297,12 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, 'true')
-        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1')
+        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')
         testRunner.setProperty(CaptureChangeMySQL.INIT_SEQUENCE_ID, '10')
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, 'false')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
         testRunner.getStateManager().setState([
-                ("${BinlogEventInfo.BINLOG_GTIDSET_KEY}".toString()): 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2',
+                ("${BinlogEventInfo.BINLOG_GTIDSET_KEY}".toString()): 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2',
                 ("${EventWriter.SEQUENCE_ID_KEY}".toString()): '1'
         ], Scope.CLUSTER)
 
@@ -1354,7 +1311,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1375,7 +1332,7 @@ class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size())
         assertEquals(
-                'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-3',
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-3',
                 resultFiles.last().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY)
         )
     }
@@ -1388,7 +1345,7 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, 'true')
-        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1')
+        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, 'false')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
 
@@ -1397,7 +1354,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1418,7 +1375,7 @@ class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size())
         assertEquals(
-                'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1-1:3-3',
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-1:3-3',
                 resultFiles.last().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY)
         )
     }
@@ -1430,12 +1387,6 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, "root")
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, "2 seconds")
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, "true")
-        final DistributedMapCacheClientImpl cacheClient = createCacheClient()
-        Map<String, String> clientProperties = new HashMap<>()
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost")
-        testRunner.addControllerService("client", cacheClient, clientProperties)
-        testRunner.setProperty(CaptureChangeMySQL.DIST_CACHE_CLIENT, "client")
-        testRunner.enableControllerService(cacheClient)
 
         testRunner.run(1, false, true)
         // COMMIT
@@ -1495,132 +1446,6 @@ class CaptureChangeMySQLTest {
             ResultSet mockResultSet = mock(ResultSet)
             when(mockStatement.executeQuery(anyString())).thenReturn(mockResultSet)
             return mockConnection
-        }
-
-    }
-
-    static DistributedMapCacheClientImpl createCacheClient() throws InitializationException {
-
-        final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl()
-        final ComponentLog logger = new MockComponentLog("client", client)
-        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger, new MockStateManager(client))
-
-        client.initialize(clientInitContext)
-
-        return client
-    }
-
-    static
-    final class DistributedMapCacheClientImpl extends AbstractControllerService implements DistributedMapCacheClient {
-
-        private Map<String, String> cacheMap = new HashMap<>()
-
-        @Override
-        void close() throws IOException {
-        }
-
-        @Override
-        void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        }
-
-        @Override
-        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-
-            return [DistributedMapCacheClientService.HOSTNAME,
-                    DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT,
-                    DistributedMapCacheClientService.PORT,
-                    DistributedMapCacheClientService.SSL_CONTEXT_SERVICE]
-        }
-
-        @Override
-        <K, V> boolean putIfAbsent(
-                final K key,
-                final V value,
-                final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
-            if (cacheMap.containsKey(keyString)) return false
-
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
-            return true
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        <K, V> V getAndPutIfAbsent(
-                final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
-            if (cacheMap.containsKey(keyString)) return valueDeserializer.deserialize(cacheMap.get(keyString).bytes)
-
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
-            return null
-        }
-
-        @Override
-        <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
-            return cacheMap.containsKey(keyString)
-        }
-
-        @Override
-        <K, V> V get(
-                final K key,
-                final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
-            return (cacheMap.containsKey(keyString)) ? valueDeserializer.deserialize(cacheMap.get(keyString).bytes) : null
-        }
-
-        @Override
-        <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            serializer.serialize(key, new WriterOutputStream(keyWriter))
-            String keyString = keyWriter.toString()
-
-            boolean removed = (cacheMap.containsKey(keyString))
-            cacheMap.remove(keyString)
-            return removed
-        }
-
-        @Override
-        long removeByPattern(String regex) throws IOException {
-            final List<String> removedRecords = new ArrayList<>()
-            Pattern p = Pattern.compile(regex)
-            for (String key : cacheMap.keySet()) {
-                // Key must be backed by something that can be converted into a String
-                Matcher m = p.matcher(key)
-                if (m.matches()) {
-                    removedRecords.add(cacheMap.get(key))
-                }
-            }
-            final long numRemoved = removedRecords.size()
-            removedRecords.each {cacheMap.remove(it)}
-            return numRemoved
-        }
-
-        @Override
-        <K, V> void put(
-                final K key,
-                final V value,
-                final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            StringWriter keyWriter = new StringWriter()
-            keySerializer.serialize(key, new WriterOutputStream(keyWriter))
-            StringWriter valueWriter = new StringWriter()
-            valueSerializer.serialize(value, new WriterOutputStream(valueWriter))
         }
     }
 }

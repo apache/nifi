@@ -41,7 +41,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.zendesk</groupId>
             <artifactId>mysql-binlog-connector-java</artifactId>
-            <version>0.27.6</version>
+            <version>0.28.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
