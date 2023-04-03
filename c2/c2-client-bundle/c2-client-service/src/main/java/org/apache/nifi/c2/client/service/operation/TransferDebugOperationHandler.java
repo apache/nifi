@@ -67,6 +67,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
     private static final String UNABLE_TO_CREATE_BUNDLE = "Unable to create debug bundle";
 
     static final String TARGET_ARG = "target";
+    static final String RELATIVE_TARGET_ARG = "relativeTarget";
     static final String NEW_LINE = "\n";
 
     private final C2Client c2Client;
@@ -116,9 +117,12 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
 
     @Override
     public C2OperationAck handle(C2Operation operation) {
-        String debugCallbackUrl = ofNullable(operation.getArgs()).orElse(emptyMap()).get(TARGET_ARG);
-        if (debugCallbackUrl == null) {
-            LOG.error("Callback URL was not found in C2 request.");
+        Map<String, String> arguments = ofNullable(operation.getArgs()).orElse(emptyMap());
+        String callbackUrl;
+        try {
+            callbackUrl = c2Client.getCallbackUrl(arguments.get(TARGET_ARG), arguments.get(RELATIVE_TARGET_ARG));
+        } catch (Exception e) {
+            LOG.error("Callback URL could not be constructed from C2 request and current configuration", e);
             return operationAck(operation, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
@@ -127,7 +131,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         try {
             contentFilteredFilePaths = filterContent(operation.getIdentifier(), bundleFilePaths);
             operationState = createDebugBundle(contentFilteredFilePaths)
-                .map(bundle -> c2Client.uploadBundle(debugCallbackUrl, bundle)
+                .map(bundle -> c2Client.uploadBundle(callbackUrl, bundle)
                     .map(errorMessage -> operationState(NOT_APPLIED, errorMessage))
                     .orElseGet(() -> operationState(FULLY_APPLIED, SUCCESSFUL_UPLOAD)))
                 .orElseGet(() -> operationState(NOT_APPLIED, UNABLE_TO_CREATE_BUNDLE));

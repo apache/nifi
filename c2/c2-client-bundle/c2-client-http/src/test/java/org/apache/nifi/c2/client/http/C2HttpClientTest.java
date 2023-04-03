@@ -71,7 +71,7 @@ public class C2HttpClientTest {
         baseUrl = mockWebServer.url("/").newBuilder().host("localhost").build().toString();
         when(c2ClientConfig.getKeepAliveDuration()).thenReturn(KEEP_ALIVE_DURATION);
         when(c2ClientConfig.getMaxIdleConnections()).thenReturn(MAX_IDLE_CONNECTIONS);
-        c2HttpClient = new C2HttpClient(c2ClientConfig, serializer);
+        c2HttpClient = C2HttpClient.create(c2ClientConfig, serializer);
     }
 
     @AfterEach
@@ -111,7 +111,7 @@ public class C2HttpClientTest {
     void testConstructorThrowsExceptionForInvalidKeystoreFilenameAtInitialization() {
         when(c2ClientConfig.getKeystoreFilename()).thenReturn("incorrectKeystoreFilename");
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> new C2HttpClient(c2ClientConfig, serializer));
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> C2HttpClient.create(c2ClientConfig, serializer));
 
         assertTrue(exception.getMessage().contains("TLS"));
     }

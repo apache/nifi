@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 public class UpdateAssetOperationHandler implements C2OperationHandler {
 
     static final String ASSET_URL_KEY = "url";
+    static final String ASSET_RELATIVE_URL_KEY = "relativeUrl";
     static final String ASSET_FILE_KEY = "file";
     static final String ASSET_FORCE_DOWNLOAD_KEY = "forceDownload";
 
@@ -55,14 +56,14 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateAssetOperationHandler.class);
 
-    private final C2Client client;
+    private final C2Client c2Client;
     private final OperandPropertiesProvider operandPropertiesProvider;
     private final BiPredicate<String, Boolean> assetUpdatePrecondition;
     private final BiFunction<String, byte[], Boolean> assetPersistFunction;
 
-    public UpdateAssetOperationHandler(C2Client client, OperandPropertiesProvider operandPropertiesProvider,
+    public UpdateAssetOperationHandler(C2Client c2Client, OperandPropertiesProvider operandPropertiesProvider,
                                        BiPredicate<String, Boolean> assetUpdatePrecondition, BiFunction<String, byte[], Boolean> assetPersistFunction) {
-        this.client = client;
+        this.c2Client = c2Client;
         this.operandPropertiesProvider = operandPropertiesProvider;
         this.assetUpdatePrecondition = assetUpdatePrecondition;
         this.assetPersistFunction = assetPersistFunction;
@@ -105,11 +106,14 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        String assetUrl = getOperationArg(operation, ASSET_URL_KEY);
-        if (assetUrl == null) {
-            LOG.error("Callback URL with key={} was not found in C2 request. C2 request arguments={}", ASSET_URL_KEY, operation.getArgs());
+        String callbackUrl;
+        try {
+            callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY));
+        } catch (Exception e) {
+            LOG.error("Callback URL could not be constructed from C2 request and current configuration", e);
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
+
         String assetFileName = getOperationArg(operation, ASSET_FILE_KEY);
         if (assetFileName == null) {
             LOG.error("Asset file name with key={} was not found in C2 request. C2 request arguments={}", ASSET_FILE_KEY, operation.getArgs());
@@ -117,10 +121,10 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
         }
         boolean forceDownload = parseBoolean(getOperationArg(operation, ASSET_FORCE_DOWNLOAD_KEY));
 
-        LOG.info("Initiating asset update from url {} with name {}, force update is {}", assetUrl, assetFileName, forceDownload);
+        LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
         C2OperationState operationState = assetUpdatePrecondition.test(assetFileName, forceDownload)
-            ? client.retrieveUpdateContent(assetUrl)
+            ? c2Client.retrieveUpdateContent(callbackUrl)
                 .map(content -> assetPersistFunction.apply(assetFileName, content)
                     ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
                     : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))

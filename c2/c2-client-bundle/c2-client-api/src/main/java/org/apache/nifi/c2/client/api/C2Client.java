@@ -35,19 +35,19 @@ public interface C2Client {
     Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat);
 
     /**
-     * Retrieve the content of the new flow from the C2 Server
-     *
-     * @param flowUpdateUrl url where the content should be downloaded from
-     * @return the actual downloaded content. Will be empty if no content can be downloaded
-     */
-    Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl);
-
-    /**
      * After operation completed the acknowledge to be sent to the C2 Server
      *
      * @param operationAck the acknowledge details to be sent
      */
     void acknowledgeOperation(C2OperationAck operationAck);
+
+    /**
+     * Retrieve the content of the new flow from the C2 Server
+     *
+     * @param callbackUrl url where the content should be downloaded from
+     * @return the actual downloaded content. Will be empty if no content can be downloaded
+     */
+    Optional<byte[]> retrieveUpdateContent(String callbackUrl);
 
     /**
      * Uploads a binary bundle to C2 server
@@ -57,4 +57,14 @@ public interface C2Client {
      * @return optional error message if any issues occurred
      */
     Optional<String> uploadBundle(String callbackUrl, byte[] bundle);
+
+    /**
+     * Creates a callback URL according to proxy aware C2 settings
+     *
+     * @param absoluteUrl absolute url sent by C2 server
+     * @param relativeUrl relative url sent by C2 server
+     * @return finalised callback url
+     * @throws Exception when the callback url can not be created as per the current configuration and parameters
+     */
+    String getCallbackUrl(String absoluteUrl, String relativeUrl) throws Exception;
 }
