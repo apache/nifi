@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cdc.mysql.event;
+package org.apache.nifi.cdc.mysql.event.io;
+
 
 import org.junit.jupiter.api.Test;
 
@@ -23,17 +24,15 @@ import java.sql.Types;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+class TestInsertRowsWriter {
 
-/**
- * Unit Tests for MySQLCDCUtils utility class
- */
-public class MySQLCDCUtilsTest {
     @Test
-    public void testGetWritableObject() throws Exception {
-        assertNull(MySQLCDCUtils.getWritableObject(null, null));
-        assertNull(MySQLCDCUtils.getWritableObject(Types.INTEGER, null));
-        assertEquals((byte) 1, MySQLCDCUtils.getWritableObject(Types.INTEGER, (byte) 1));
-        assertEquals("Hello", MySQLCDCUtils.getWritableObject(Types.VARCHAR, "Hello".getBytes()));
+    public void testGetWritableObject() {
+        InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
+        assertNull(insertRowsWriter.getWritableObject(null, null));
+        assertNull(insertRowsWriter.getWritableObject(Types.INTEGER, null));
+        assertEquals((byte) 1, insertRowsWriter.getWritableObject(Types.INTEGER, (byte) 1));
+        assertEquals("Hello", insertRowsWriter.getWritableObject(Types.VARCHAR, "Hello".getBytes()));
     }
 
 }
