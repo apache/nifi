@@ -35,8 +35,10 @@ import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -49,6 +51,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -136,6 +139,7 @@ public class TransferDebugOperationHandlerTest {
             .collect(toList());
         TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, createBundleFiles, DEFAULT_CONTENT_FILTER);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
+        when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.of(C2_DEBUG_UPLOAD_ENDPOINT));
 
         // when
         C2OperationAck result = testHandler.handle(c2Operation);
@@ -196,6 +200,7 @@ public class TransferDebugOperationHandlerTest {
         Predicate<String> testContentFilter = content -> !content.contains(filterKeyword);
         TransferDebugOperationHandler testHandler = TransferDebugOperationHandler.create(c2Client, operandPropertiesProvider, singletonList(bundleFile), testContentFilter);
         C2Operation c2Operation = operation(C2_DEBUG_UPLOAD_ENDPOINT);
+        when(c2Client.getCallbackUrl(any(), any())).thenReturn(Optional.of(C2_DEBUG_UPLOAD_ENDPOINT));
 
         // when
         C2OperationAck result = testHandler.handle(c2Operation);
