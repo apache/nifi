@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.jms.processors;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.TransportConnector;
@@ -27,6 +31,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
+import org.apache.nifi.jms.processors.ioconcept.writer.record.OutputStrategy;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -46,6 +51,7 @@ import org.springframework.jms.support.JmsHeaders;
 
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import javax.jms.Message;
@@ -64,7 +70,10 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Arrays.asList;
 import static org.apache.nifi.jms.processors.helpers.AssertionUtils.assertCausedBy;
+import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetReaderService;
+import static org.apache.nifi.jms.processors.helpers.JMSTestUtil.createJsonRecordSetWriterService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -76,6 +85,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class ConsumeJMSIT {
+
+    private static final String JMS_DESTINATION_ATTRIBUTE_NAME = "jms_destination";
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
@@ -476,6 +487,194 @@ public class ConsumeJMSIT {
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
+    }
+
+    @Test
+    public void testConsumeRecords() throws InitializationException {
+        String destination = "testConsumeRecords";
+        ArrayNode expectedRecordSet = createTestJsonInput();
+
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        try {
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(0).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(1).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(2).toString()));
+
+            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+            testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+
+            testRunner.run(1, false);
+
+            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(1, successFlowFiles.size());
+            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.get(0).toByteArray()));
+
+            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            assertEquals(0, parseFailedFlowFiles.size());
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
+
+    @Test
+    public void testConsumeMalformedRecords() throws InitializationException {
+        String destination = "testConsumeRecords";
+        ArrayNode expectedRecordSet = createTestJsonInput();
+        String expectedParseFailedContent1 = "this is not a json";
+        String expectedParseFailedContent2 = "this is still not a json";
+
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        try {
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(0).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedParseFailedContent1));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(1).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedParseFailedContent2));
+            jmsTemplate.send(destination, session -> session.createTextMessage(expectedRecordSet.get(2).toString()));
+
+            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+            testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setRelationshipAvailable(ConsumeJMS.REL_PARSE_FAILURE);
+
+            testRunner.run(1, false);
+
+            // checking whether the processor was able to construct a valid recordSet from the properly formatted messages
+            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(1, successFlowFiles.size());
+            assertEquals(expectedRecordSet.toString(), new String(successFlowFiles.get(0).toByteArray()));
+
+            // and checking whether it creates separate FlowFiles for the malformed messages
+            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            assertEquals(2, parseFailedFlowFiles.size());
+            assertEquals(expectedParseFailedContent1, new String(parseFailedFlowFiles.get(0).toByteArray()));
+            assertEquals(expectedParseFailedContent2, new String(parseFailedFlowFiles.get(1).toByteArray()));
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
+
+    @Test
+    public void testConsumeRecordsWithAppenderOutputStrategy() throws InitializationException, JsonProcessingException {
+        String destination = "testConsumeRecordsWithAppenderOutputStrategy";
+        ArrayNode inputRecordSet = createTestJsonInput();
+
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        try {
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(0).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(1).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(2).toString()));
+
+            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+            testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(ConsumeJMS.OUTPUT_STRATEGY, OutputStrategy.USE_APPENDER.getValue());
+
+            testRunner.run(1, false);
+
+            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(1, successFlowFiles.size());
+            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.get(0).toByteArray()));
+            // checking that the output contains at least a part of the original input
+            assertEquals(inputRecordSet.get(0).get("firstAttribute").asText(), flowFileContentAsJson.get(0).get("firstAttribute").asText());
+            assertEquals(inputRecordSet.get(1).get("firstAttribute").asText(), flowFileContentAsJson.get(1).get("firstAttribute").asText());
+            assertEquals(inputRecordSet.get(2).get("firstAttribute").asText(), flowFileContentAsJson.get(2).get("firstAttribute").asText());
+            // checking jms_destination attribute exists with the given value
+            // this attribute has been chosen because it is deterministic; others vary based on host, time, etc.
+            // not nice, but stubbing all attributes would be uglier with the current code structure
+            assertEquals(destination, flowFileContentAsJson.get(0).get("_" + JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+            assertEquals(destination, flowFileContentAsJson.get(1).get("_" + JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+            assertEquals(destination, flowFileContentAsJson.get(2).get("_" + JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+
+            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            assertEquals(0, parseFailedFlowFiles.size());
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
+
+    @Test
+    public void testConsumeRecordsWithWrapperOutputStrategy() throws InitializationException, JsonProcessingException {
+        String destination = "testConsumeRecordsWithWrapperOutputStrategy";
+        String valueKey = "value";
+        String attributeKey = "_";
+        ArrayNode inputRecordSet = createTestJsonInput();
+
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
+        try {
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(0).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(1).toString()));
+            jmsTemplate.send(destination, session -> session.createTextMessage(inputRecordSet.get(2).toString()));
+
+            TestRunner testRunner = initializeTestRunner(jmsTemplate.getConnectionFactory(), destination);
+            testRunner.setProperty(ConsumeJMS.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+            testRunner.setProperty(ConsumeJMS.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+            testRunner.setProperty(ConsumeJMS.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER.getValue());
+
+            testRunner.run(1, false);
+
+            List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_SUCCESS);
+            assertEquals(1, successFlowFiles.size());
+            JsonNode flowFileContentAsJson = deserializeToJsonNode(new String(successFlowFiles.get(0).toByteArray()));
+            // checking that the original json is equal to the leaf
+            assertEquals(inputRecordSet.get(0), flowFileContentAsJson.get(0).get(valueKey));
+            assertEquals(inputRecordSet.get(1), flowFileContentAsJson.get(1).get(valueKey));
+            assertEquals(inputRecordSet.get(2), flowFileContentAsJson.get(2).get(valueKey));
+            // checking that the attribute leaf contains at least the jms_destination attribute
+            // this attribute has been chosen because it is deterministic; others vary based on host, time, etc.
+            // not nice, but stubbing all attributes would be uglier with the current code structure
+            assertEquals(destination, flowFileContentAsJson.get(0).get(attributeKey).get(JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+            assertEquals(destination, flowFileContentAsJson.get(1).get(attributeKey).get(JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+            assertEquals(destination, flowFileContentAsJson.get(2).get(attributeKey).get(JMS_DESTINATION_ATTRIBUTE_NAME).asText());
+
+            List<MockFlowFile> parseFailedFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeJMS.REL_PARSE_FAILURE);
+            assertEquals(0, parseFailedFlowFiles.size());
+        } finally {
+            ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+        }
+    }
+
+    private static ArrayNode createTestJsonInput() {
+        final ObjectMapper mapper = new ObjectMapper();
+
+        return mapper.createArrayNode().addAll(asList(
+                mapper.createObjectNode()
+                        .put("recordId", 1)
+                        .put("firstAttribute", "foo")
+                        .put("secondAttribute", false),
+                mapper.createObjectNode()
+                        .put("recordId", 2)
+                        .put("firstAttribute", "bar")
+                        .put("secondAttribute", true),
+                mapper.createObjectNode()
+                        .put("recordId", 3)
+                        .put("firstAttribute", "foobar")
+                        .put("secondAttribute", false)
+        ));
+    }
+
+    private JsonNode deserializeToJsonNode(String rawJson) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readTree(rawJson);
+    }
+
+    private TestRunner initializeTestRunner(ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
+        return initializeTestRunner(new ConsumeJMS(), connectionFactory, destinationName);
+    }
+
+    private TestRunner initializeTestRunner(ConsumeJMS processor, ConnectionFactory connectionFactory, String destinationName) throws InitializationException {
+        TestRunner runner = TestRunners.newTestRunner(processor);
+        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        when(cs.getIdentifier()).thenReturn("cfProvider");
+        when(cs.getConnectionFactory()).thenReturn(connectionFactory);
+        runner.addControllerService("cfProvider", cs);
+        runner.enableControllerService(cs);
+
+        runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
+        runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
+
+        return runner;
     }
 
     private static void publishAMessage(ActiveMQConnectionFactory cf, final String destinationName, String messageContent) throws JMSException {
