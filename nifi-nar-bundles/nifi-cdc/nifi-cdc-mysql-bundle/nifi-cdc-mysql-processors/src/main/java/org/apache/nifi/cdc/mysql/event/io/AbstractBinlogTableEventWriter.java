@@ -19,11 +19,35 @@ package org.apache.nifi.cdc.mysql.event.io;
 import org.apache.nifi.cdc.mysql.event.BinlogTableEventInfo;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * An abstract base class for writing MYSQL table-related binlog events into flow file(s), e.g.
  */
 public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventInfo> extends AbstractBinlogEventWriter<T> {
+
+    protected Object getWritableObject(Integer type, Serializable value) {
+        if (value == null) {
+            return null;
+        }
+        if (type == null) {
+            if (value instanceof byte[]) {
+                return new String((byte[]) value);
+            } else if (value instanceof Number) {
+                return value;
+            } else {
+                return null;
+            }
+        } else {
+            if (value instanceof byte[]) {
+                return new String((byte[]) value);
+            } else if (value instanceof Number) {
+                return value;
+            } else {
+                return value.toString();
+            }
+        }
+    }
 
     protected void writeJson(T event) throws IOException {
         super.writeJson(event);

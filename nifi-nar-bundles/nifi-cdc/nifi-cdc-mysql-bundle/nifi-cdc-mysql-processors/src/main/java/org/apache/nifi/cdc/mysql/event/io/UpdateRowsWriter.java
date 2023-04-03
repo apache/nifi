@@ -17,7 +17,6 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.cdc.mysql.event.MySQLCDCUtils;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.ColumnDefinition;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
@@ -95,13 +94,13 @@ public class UpdateRowsWriter extends AbstractBinlogTableEventWriter<UpdateRowsE
             if (oldRow[i] == null) {
                 jsonGenerator.writeNullField("last_value");
             } else {
-                jsonGenerator.writeObjectField("last_value", MySQLCDCUtils.getWritableObject(columnType, oldRow[i]));
+                jsonGenerator.writeObjectField("last_value", getWritableObject(columnType, oldRow[i]));
             }
 
             if (newRow[i] == null) {
                 jsonGenerator.writeNullField("value");
             } else {
-                jsonGenerator.writeObjectField("value", MySQLCDCUtils.getWritableObject(columnType, newRow[i]));
+                jsonGenerator.writeObjectField("value", getWritableObject(columnType, newRow[i]));
             }
             jsonGenerator.writeEndObject();
             i = includedColumns.nextSetBit(i + 1);

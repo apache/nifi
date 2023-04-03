@@ -17,12 +17,6 @@
 package org.apache.nifi.cdc.event;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-
-import java.io.IOException;
-import java.io.OutputStream;
-
-import static org.apache.nifi.cdc.event.TableInfo.DB_TABLE_NAME_DELIMITER;
 
 /**
  * This class represents a key in a cache that contains information (column definitions, e.g.) for a database table
@@ -79,20 +73,5 @@ public class TableInfoCacheKey {
 
     public String getUuidPrefix() {
         return uuidPrefix;
-    }
-
-    public static class Serializer implements org.apache.nifi.distributed.cache.client.Serializer<TableInfoCacheKey> {
-
-        @Override
-        public void serialize(TableInfoCacheKey key, OutputStream output) throws SerializationException, IOException {
-            StringBuilder sb = new StringBuilder(key.getUuidPrefix());
-            sb.append(DB_TABLE_NAME_DELIMITER);
-            sb.append(key.getDatabaseName());
-            sb.append(DB_TABLE_NAME_DELIMITER);
-            sb.append(key.getTableName());
-            sb.append(DB_TABLE_NAME_DELIMITER);
-            sb.append(key.getTableId());
-            output.write(sb.toString().getBytes());
-        }
     }
 }
