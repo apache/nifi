@@ -25,24 +25,6 @@
             <id>docker</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <configuration>
-                                    <buildArgs>
-                                        <UID>1000</UID>
-                                        <GID>1000</GID>
-                                        <NIFI_REGISTRY_VERSION>${project.version}</NIFI_REGISTRY_VERSION>
-                                        <NIFI_REGISTRY_BINARY>target/nifi-registry-${project.version}-bin.zip</NIFI_REGISTRY_BINARY>
-                                    </buildArgs>
-                                    <repository>apache/nifi-registry</repository>
-                                    <tag>${project.version}-dockermaven</tag>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <!-- Copy generated artifacts -->
                     <plugin>
                         <artifactId>maven-antrun-plugin</artifactId>
@@ -64,11 +46,11 @@
                                 </goals>
                             </execution>
                             <execution>
-                                <id>copy-for-docker</id>
+                                <id>copy-assembly-for-docker</id>
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <target name="copy assembly to nifi-registry-docker for image build">
-                                        <copy todir="${project.basedir}/target" overwrite="true" flatten="true">
+                                        <copy todir="${project.basedir}/target/" overwrite="true" flatten="true">
                                             <fileset dir="${project.basedir}/../../nifi-registry-assembly/target" includes="*.zip">
                                                 <include name="*.zip" />
                                             </fileset>
@@ -81,7 +63,41 @@
                             </execution>
                         </executions>
                     </plugin>
-
+                    <plugin>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>build-docker-image</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <images>
+                                        <image>
+                                            <name>apache/nifi-registry</name>
+                                            <build>
+                                                <tags>
+                                                    <tag>${project.version}-maven</tag>
+                                                </tags>
+                                                <dockerFile>Dockerfile</dockerFile>
+                                                <contextDir>${project.basedir}</contextDir>
+                                                <args>
+                                                    <UID>1000</UID>
+                                                    <GID>1000</GID>
+                                                    <NIFI_REGISTRY_VERSION>${project.version}</NIFI_REGISTRY_VERSION>
+                                                    <NIFI_REGISTRY_SCRIPTS>target/sh</NIFI_REGISTRY_SCRIPTS>
+                                                    <NIFI_REGISTRY_BINARY>target/nifi-registry-${project.version}-bin.zip</NIFI_REGISTRY_BINARY>
+                                                    <NIFI_REGISTRY_BINARY_NAME>nifi-registry-${project.version}-bin.zip</NIFI_REGISTRY_BINARY_NAME>
+                                                </args>
+                                            </build>
+                                        </image>
+                                    </images>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
                     <plugin>
                         <artifactId>exec-maven-plugin</artifactId>
                         <groupId>org.codehaus.mojo</groupId>
@@ -95,7 +111,7 @@
                                 <configuration>
                                     <skip>${skipTests}</skip>
                                     <arguments>
-                                        <argument>${project.version}-dockermaven</argument>
+                                        <argument>${project.version}-maven</argument>
                                         <argument>${project.version}</argument>
                                     </arguments>
                                     <executable>${project.basedir}/integration-test.sh</executable>
@@ -103,7 +119,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

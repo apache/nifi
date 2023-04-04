@@ -37,6 +37,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapter;
@@ -151,6 +153,20 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
                     .collect(Collectors.toList())
     );
 
+    static final PropertyDescriptor BASE_RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(false)
+            .build();
+
+    static final PropertyDescriptor BASE_RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("record-writer")
+            .displayName("Record Writer")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .dependsOn(BASE_RECORD_READER)
+            .required(true)
+            .build();
 
     private volatile IJMSConnectionFactoryProvider connectionFactoryProvider;
     private volatile BlockingQueue<T> workerPool;

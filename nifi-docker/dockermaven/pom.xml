@@ -33,28 +33,38 @@
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>com.spotify</groupId>
-                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <groupId>io.fabric8</groupId>
+                        <artifactId>docker-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>default</id>
+                                <id>build-docker-image</id>
+                                <phase>package</phase>
                                 <goals>
                                     <goal>build</goal>
                                 </goals>
                                 <configuration>
-                                    <buildArgs>
-                                        <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
-                                        <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
-                                        <MAINTAINER>${docker.maintainer}</MAINTAINER>
-                                        <UID>1000</UID>
-                                        <GID>1000</GID>
-                                        <NIFI_VERSION>${project.version}</NIFI_VERSION>
-                                        <NIFI_BINARY>target/nifi-${nifi.version}-bin.zip</NIFI_BINARY>
-                                        <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${nifi.version}-bin.zip</NIFI_TOOLKIT_BINARY>
-                                        <NIFI_SCRIPTS>target/sh</NIFI_SCRIPTS>
-                                    </buildArgs>
-                                    <repository>apache/nifi</repository>
-                                    <tag>${project.version}-dockermaven</tag>
+                                    <images>
+                                        <image>
+                                            <name>apache/nifi</name>
+                                            <build>
+                                                <tags>
+                                                    <tag>${project.version}-maven</tag>
+                                                </tags>
+                                                <dockerFile>Dockerfile</dockerFile>
+                                                <contextDir>${project.basedir}</contextDir>
+                                                <args>
+                                                    <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                                    <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
+                                                    <UID>1000</UID>
+                                                    <GID>1000</GID>
+                                                    <NIFI_VERSION>${project.version}</NIFI_VERSION>
+                                                    <NIFI_BINARY>target/nifi-${nifi.version}-bin.zip</NIFI_BINARY>
+                                                    <NIFI_TOOLKIT_BINARY>target/nifi-toolkit-${nifi.version}-bin.zip</NIFI_TOOLKIT_BINARY>
+                                                    <NIFI_SCRIPTS>target/sh</NIFI_SCRIPTS>
+                                                </args>
+                                            </build>
+                                        </image>
+                                    </images>
                                 </configuration>
                             </execution>
                         </executions>
@@ -125,7 +135,7 @@
                                 </goals>
                                 <configuration>
                                     <arguments>
-                                        <argument>${project.version}-dockermaven</argument>
+                                        <argument>${project.version}-maven</argument>
                                         <argument>${project.version}</argument>
                                     </arguments>
                                     <executable>${project.basedir}/integration-test.sh</executable>

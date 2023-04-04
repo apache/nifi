@@ -38,19 +38,24 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Generic consumer of messages from JMS compliant messaging system.
  */
 class JMSConsumer extends JMSWorker {
 
+    private final static int MAX_MESSAGES_PER_FLOW_FILE = 10000;
+
     JMSConsumer(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ComponentLog logger) {
         super(connectionFactory, jmsTemplate, logger);
-        logger.debug("Created Message Consumer for '{}'", new Object[] {jmsTemplate});
+        logger.debug("Created Message Consumer for '{}'", jmsTemplate);
     }
 
 
@@ -82,79 +87,62 @@ class JMSConsumer extends JMSWorker {
         }
     }
 
-
     /**
      * Receives a message from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
      */
-    public void consume(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
-                        final String charset, final ConsumerCallback consumerCallback) {
-        this.jmsTemplate.execute(new SessionCallback<Void>() {
+    public void consumeSingleMessage(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
+                                     final String charset, final Consumer<JMSResponse> singleMessageConsumer) {
+        doWithJmsTemplate(destinationName, durable, shared, subscriptionName, messageSelector, (session, messageConsumer) -> {
+            final JMSResponse response = receiveMessage(session, messageConsumer, charset, errorQueueName);
+            if (response != null) {
+                // Provide the JMSResponse to the processor to handle. It is the responsibility of the
+                // processor to handle acknowledgment of the message (if Client Acknowledge), and it is
+                // the responsibility of the processor to handle closing the Message Consumer.
+                // Both of these actions can be handled by calling the acknowledge() or reject() methods of
+                // the JMSResponse.
+                singleMessageConsumer.accept(response);
+            }
+        });
+    }
+
+    /**
+     * Receives a list of messages from the broker. It is the consumerCallback's responsibility to acknowledge the received message.
+     */
+    public void consumeMessageSet(final String destinationName, String errorQueueName, final boolean durable, final boolean shared, final String subscriptionName, final String messageSelector,
+                        final String charset, final Consumer<List<JMSResponse>> messageSetConsumer) {
+        doWithJmsTemplate(destinationName, durable, shared, subscriptionName, messageSelector, new MessageReceiver() {
             @Override
-            public Void doInJms(final Session session) throws JMSException {
+            public void consume(Session session, MessageConsumer messageConsumer) throws JMSException {
+                final List<JMSResponse> jmsResponses = new ArrayList<>();
+                int batchCounter = 0;
 
-                final MessageConsumer msgConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
-                try {
-                    final Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
+                JMSResponse response;
+                while ((response = receiveMessage(session, messageConsumer, charset, errorQueueName)) != null && batchCounter < MAX_MESSAGES_PER_FLOW_FILE) {
+                    response.setBatchOrder(batchCounter);
+                    jmsResponses.add(response);
+                    batchCounter++;
+                }
 
-                    // If there is no message, there's nothing for us to do. We can simply close the consumer and return.
-                    if (message == null) {
-                        JmsUtils.closeMessageConsumer(msgConsumer);
-                        return null;
-                    }
-
-                    String messageType;
-                    byte[] messageBody;
-
-                    try {
-                        if (message instanceof TextMessage) {
-                            messageType = TextMessage.class.getSimpleName();
-                            messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message, Charset.forName(charset));
-                        } else if (message instanceof BytesMessage) {
-                            messageType = BytesMessage.class.getSimpleName();
-                            messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
-                        } else if (message instanceof ObjectMessage) {
-                            messageType = ObjectMessage.class.getSimpleName();
-                            messageBody = MessageBodyToBytesConverter.toBytes((ObjectMessage) message);
-                        } else if (message instanceof StreamMessage) {
-                            messageType = StreamMessage.class.getSimpleName();
-                            messageBody = MessageBodyToBytesConverter.toBytes((StreamMessage) message);
-                        } else if (message instanceof MapMessage) {
-                            messageType = MapMessage.class.getSimpleName();
-                            messageBody = MessageBodyToBytesConverter.toBytes((MapMessage) message);
-                        } else {
-                            acknowledge(message, session);
-
-                            if (errorQueueName != null) {
-                                processLog.error("Received unsupported JMS Message type [{}]; rerouting message to error queue [{}].", new Object[] {message, errorQueueName});
-                                jmsTemplate.send(errorQueueName, __ -> message);
-                            } else {
-                                processLog.error("Received unsupported JMS Message type [{}]; will skip this message.", new Object[] {message});
-                            }
-
-                            return null;
-                        }
-                    } catch (final MessageConversionException mce) {
-                        processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.",
-                            new Object[] {message}, mce);
-                        acknowledge(message, session);
-
-                        if (errorQueueName != null) {
-                            jmsTemplate.send(errorQueueName, __ -> message);
-                        }
-
-                        return null;
-                    }
-
-                    final Map<String, String> messageHeaders = extractMessageHeaders(message);
-                    final Map<String, String> messageProperties = extractMessageProperties(message);
-                    final JMSResponse response = new JMSResponse(message, session.getAcknowledgeMode(), messageType, messageBody, messageHeaders, messageProperties, msgConsumer);
-
+                if (!jmsResponses.isEmpty()) {
                     // Provide the JMSResponse to the processor to handle. It is the responsibility of the
                     // processor to handle acknowledgment of the message (if Client Acknowledge), and it is
                     // the responsibility of the processor to handle closing the Message Consumer.
                     // Both of these actions can be handled by calling the acknowledge() or reject() methods of
                     // the JMSResponse.
-                    consumerCallback.accept(response);
+                    messageSetConsumer.accept(jmsResponses);
+                }
+            }
+        });
+    }
+
+    private void doWithJmsTemplate(String destinationName, boolean durable, boolean shared, String subscriptionName, String messageSelector, MessageReceiver messageReceiver) {
+        this.jmsTemplate.execute(new SessionCallback<Void>() {
+            @Override
+            public Void doInJms(final Session session) throws JMSException {
+
+                final MessageConsumer messageConsumer = createMessageConsumer(session, destinationName, durable, shared, subscriptionName, messageSelector);
+                try {
+                    messageReceiver.consume(session, messageConsumer);
                 } catch (Exception e) {
                     // We need to call recover to ensure that in the event of
                     // abrupt end or exception the current session will stop message
@@ -166,13 +154,71 @@ class JMSConsumer extends JMSWorker {
                         processLog.debug("Failed to recover JMS session while handling initial error. The recover error is: ", e1);
                     }
 
-                    JmsUtils.closeMessageConsumer(msgConsumer);
+                    JmsUtils.closeMessageConsumer(messageConsumer);
                     throw e;
                 }
 
                 return null;
             }
         }, true);
+    }
+
+    private JMSResponse receiveMessage(Session session, MessageConsumer msgConsumer, String charset, String errorQueueName) throws JMSException {
+        final Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
+
+        // If there is no message, there's nothing for us to do. We can simply close the consumer and return.
+        if (message == null) {
+            JmsUtils.closeMessageConsumer(msgConsumer);
+            return null;
+        }
+
+        String messageType;
+        byte[] messageBody;
+
+        try {
+            if (message instanceof TextMessage) {
+                messageType = TextMessage.class.getSimpleName();
+                messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message, Charset.forName(charset));
+            } else if (message instanceof BytesMessage) {
+                messageType = BytesMessage.class.getSimpleName();
+                messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
+            } else if (message instanceof ObjectMessage) {
+                messageType = ObjectMessage.class.getSimpleName();
+                messageBody = MessageBodyToBytesConverter.toBytes((ObjectMessage) message);
+            } else if (message instanceof StreamMessage) {
+                messageType = StreamMessage.class.getSimpleName();
+                messageBody = MessageBodyToBytesConverter.toBytes((StreamMessage) message);
+            } else if (message instanceof MapMessage) {
+                messageType = MapMessage.class.getSimpleName();
+                messageBody = MessageBodyToBytesConverter.toBytes((MapMessage) message);
+            } else {
+                acknowledge(message, session);
+
+                if (errorQueueName != null) {
+                    processLog.error("Received unsupported JMS Message type [{}]; rerouting message to error queue [{}].", message, errorQueueName);
+                    jmsTemplate.send(errorQueueName, __ -> message);
+                } else {
+                    processLog.error("Received unsupported JMS Message type [{}]; will skip this message.", message);
+                }
+
+                return null;
+            }
+        } catch (final MessageConversionException mce) {
+            processLog.error("Received a JMS Message [{}] but failed to obtain the content of the message; will acknowledge this message without creating a FlowFile for it.",
+                new Object[] {message}, mce);
+            acknowledge(message, session);
+
+            if (errorQueueName != null) {
+                jmsTemplate.send(errorQueueName, __ -> message);
+            }
+
+            return null;
+        }
+
+        final Map<String, String> messageHeaders = extractMessageHeaders(message);
+        final Map<String, String> messageProperties = extractMessageProperties(message);
+
+        return new JMSResponse(message, session.getAcknowledgeMode(), messageType, messageBody, messageHeaders, messageProperties, msgConsumer);
     }
 
     private void acknowledge(final Message message, final Session session) throws JMSException {
@@ -245,6 +291,7 @@ class JMSConsumer extends JMSWorker {
         private final Map<String, String> messageHeaders;
         private final Map<String, String> messageProperties;
         private final MessageConsumer messageConsumer;
+        private Integer batchOrder;
 
         JMSResponse(final Message message, final int acknowledgementMode, final String messageType, final byte[] messageBody, final Map<String, String> messageHeaders,
                     final Map<String, String> messageProperties, final MessageConsumer msgConsumer) {
@@ -286,13 +333,18 @@ class JMSConsumer extends JMSWorker {
         public void reject() {
             JmsUtils.closeMessageConsumer(messageConsumer);
         }
+
+        public Integer getBatchOrder() {
+            return batchOrder;
+        }
+
+        public void setBatchOrder(Integer batchOrder) {
+            this.batchOrder = batchOrder;
+        }
     }
 
-    /**
-     * Callback to be invoked while executing inJMS call (the call within the
-     * live JMS session)
-     */
-    static interface ConsumerCallback {
-        void accept(JMSResponse response);
+    interface MessageReceiver {
+        void consume(Session session, MessageConsumer messageConsumer) throws JMSException;
     }
+
 }

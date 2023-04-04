@@ -17,17 +17,8 @@
 
 package org.apache.nifi.minifi.c2.api.properties;
 
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
 import java.util.Properties;
 
 public class C2Properties extends Properties {
@@ -40,9 +31,7 @@ public class C2Properties extends Properties {
     public static final String MINIFI_C2_SERVER_TRUSTSTORE_TYPE = "minifi.c2.server.truststoreType";
     public static final String MINIFI_C2_SERVER_TRUSTSTORE_PASSWD = "minifi.c2.server.truststorePasswd";
 
-    private static final Logger logger = LoggerFactory.getLogger(C2Properties.class);
     private static final C2Properties properties = initProperties();
-    private static final String C2_SERVER_HOME = System.getenv("C2_SERVER_HOME");
 
     private static C2Properties initProperties() {
         C2Properties properties = new C2Properties();
@@ -59,31 +48,6 @@ public class C2Properties extends Properties {
     }
 
     public boolean isSecure() {
-        return Boolean.valueOf(getProperty(MINIFI_C2_SERVER_SECURE, "false"));
-    }
-
-    public SslContextFactory getSslContextFactory() throws GeneralSecurityException, IOException {
-        SslContextFactory sslContextFactory = new SslContextFactory.Server();
-        KeyStore keyStore = KeyStore.getInstance(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE));
-        Path keyStorePath = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toAbsolutePath();
-        logger.debug("keystore path: " + keyStorePath);
-        try (InputStream inputStream = Files.newInputStream(keyStorePath)) {
-            keyStore.load(inputStream, properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_PASSWD).toCharArray());
-        }
-        sslContextFactory.setKeyStore(keyStore);
-        sslContextFactory.setKeyManagerPassword(properties.getProperty(MINIFI_C2_SERVER_KEY_PASSWD));
-        sslContextFactory.setWantClientAuth(true);
-
-        String trustStorePath = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE)).toAbsolutePath().toFile().getAbsolutePath();
-        logger.debug("truststore path: " + trustStorePath);
-        sslContextFactory.setTrustStorePath(trustStorePath);
-        sslContextFactory.setTrustStoreType(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_TYPE));
-        sslContextFactory.setTrustStorePassword(properties.getProperty(MINIFI_C2_SERVER_TRUSTSTORE_PASSWD));
-        try {
-            sslContextFactory.start();
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-        return sslContextFactory;
+        return Boolean.parseBoolean(getProperty(MINIFI_C2_SERVER_SECURE, "false"));
     }
 }

@@ -35,6 +35,7 @@
             <excludes>
                 <exclude>*:minifi-bootstrap</exclude>
                 <exclude>*:minifi-resources</exclude>
+                <exclude>org.eclipse.jetty:*</exclude>
                 <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
                 <exclude>*:swagger-annotations</exclude>
             </excludes>
@@ -49,6 +50,7 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
+                <include>org.eclipse.jetty:*</include>
                 <include>*:minifi-bootstrap</include>
                 <include>*:minifi-utils</include>
                 <include>*:nifi-utils</include>

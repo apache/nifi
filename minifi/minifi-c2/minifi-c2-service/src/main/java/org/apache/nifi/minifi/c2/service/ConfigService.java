@@ -17,6 +17,9 @@
 
 package org.apache.nifi.minifi.c2.service;
 
+import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
+import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.CacheBuilder;
@@ -28,33 +31,6 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-import org.apache.nifi.c2.protocol.api.C2Heartbeat;
-import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.minifi.c2.api.ConfigurationProvider;
-import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
-import org.apache.nifi.minifi.c2.api.InvalidParameterException;
-import org.apache.nifi.minifi.c2.api.security.authorization.AuthorizationException;
-import org.apache.nifi.minifi.c2.api.security.authorization.Authorizer;
-import org.apache.nifi.minifi.c2.api.util.Pair;
-import org.apache.nifi.minifi.c2.util.HttpRequestUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,9 +48,32 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
-import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import org.apache.nifi.c2.protocol.api.C2Heartbeat;
+import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.apache.nifi.minifi.c2.api.ConfigurationProvider;
+import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
+import org.apache.nifi.minifi.c2.api.InvalidParameterException;
+import org.apache.nifi.minifi.c2.api.security.authorization.AuthorizationException;
+import org.apache.nifi.minifi.c2.api.security.authorization.Authorizer;
+import org.apache.nifi.minifi.c2.api.util.Pair;
+import org.apache.nifi.minifi.c2.util.HttpRequestUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Configuration
 @Path("/config")
@@ -361,14 +360,11 @@ public class ConfigService {
             int read;
             try (InputStream inputStream = configuration.getInputStream();
                  ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                MessageDigest md5 = MessageDigest.getInstance("MD5");
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
                 while ((read = inputStream.read(buffer)) >= 0) {
                     outputStream.write(buffer, 0, read);
-                    md5.update(buffer, 0, read);
                     sha256.update(buffer, 0, read);
                 }
-                ok = ok.header("Content-MD5", bytesToHex(md5.digest()));
                 ok = ok.header("X-Content-SHA-256", bytesToHex(sha256.digest()));
                 ok = ok.entity(outputStream.toByteArray());
             } catch (ConfigurationProviderException | IOException | NoSuchAlgorithmException e) {

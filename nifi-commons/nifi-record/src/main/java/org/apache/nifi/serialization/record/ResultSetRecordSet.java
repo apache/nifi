@@ -19,7 +19,6 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,12 +155,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     private Object normalizeValue(final Object value) throws SQLException {
         if (value == null) {
             return null;
-        }
-
-        if (value instanceof java.sql.Date) {
-            // Date objects should be stored in records as UTC normalized dates (UTC 00:00:00)
-            // but they come from the driver in JVM's local time zone 00:00:00 and need to be converted.
-            return DataTypeUtils.convertDateToUTC((java.sql.Date) value);
         }
 
         if (value instanceof List) {

@@ -32,8 +32,6 @@ test -z $(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c 
 
 echo "Checking environment variables"
 test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c 'echo -n $NIFI_REGISTRY_HOME')"
-test "/opt/nifi-registry/nifi-registry-current" = "$(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c "readlink \${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${VERSION}")"
-
 test "/opt/nifi-registry" = "$(docker run --rm --entrypoint /bin/bash apache/nifi-registry:${TAG} -c 'echo -n $NIFI_REGISTRY_BASE_DIR')"
 
 echo "Starting NiFi Registry container..."
