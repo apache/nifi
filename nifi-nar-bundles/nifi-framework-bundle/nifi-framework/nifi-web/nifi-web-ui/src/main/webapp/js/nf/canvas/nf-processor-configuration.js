@@ -1111,9 +1111,47 @@
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)
                         .propertytable('setSupportsSensitiveDynamicProperties', processor.supportsSensitiveDynamicProperties)
-                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory)
                         .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                             nfVerify.verify(processor['id'], processorResponse['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#processor-properties-verification-results-listing'));
+                        });
+
+                    $('#processor-properties')
+                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory, {
+                            getParameterContext: function () {
+                                // processors being configured must be in the current group
+                                return nfCanvasUtils.getParameterContext();
+                            },
+                            getFullParameterContextDeferred: function (groupId) {
+                                return $.Deferred(function (deferred) {
+                                    if (nfCommon.isDefinedAndNotNull(groupId)) {
+                                        // processors being configured must be in the current group
+                                        var parameterContext = nfCanvasUtils.getParameterContext();
+
+                                        if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+                                            $.ajax({
+                                                type: 'GET',
+                                                url: '../nifi-api/parameter-contexts/' + encodeURIComponent(parameterContext.id),
+                                                data: {
+                                                    includeInheritedParameters: 'true'
+                                                },
+                                                dataType: 'json'
+                                            }).done(function (response) {
+                                                if (response.permissions.canRead) {
+                                                    deferred.resolve(response);
+                                                } else {
+                                                    deferred.resolve([]);
+                                                }
+                                            }).fail(function () {
+                                                deferred.resolve([]);
+                                            });
+                                        } else {
+                                            deferred.resolve([]);
+                                        }
+                                    } else {
+                                        deferred.resolve([]);
+                                    }
+                                }).promise();
+                            }
                         });
 
                     // show the details

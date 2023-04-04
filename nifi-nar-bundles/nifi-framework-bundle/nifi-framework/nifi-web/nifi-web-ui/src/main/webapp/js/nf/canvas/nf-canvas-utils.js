@@ -2173,7 +2173,7 @@
         /**
          * Whether the current user can read from this group.
          *
-         * @returns {boolean}   can write
+         * @returns {boolean}   can read
          */
         canReadCurrentGroup: function () {
             return nfCanvas.canRead();

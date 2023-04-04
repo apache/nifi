@@ -107,6 +107,7 @@
     var groupId = null;
     var supportsSensitiveDynamicProperties = false;
     var propertyVerificationCallback = null;
+    var currentParameterContext = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -1698,6 +1699,7 @@
                         // Get the property descriptor object
                         var descriptor = descriptors[item.property];
                         var dependent = false;
+                        var referencingParameter = null;
 
                         // Check if descriptor is a dynamic property
                         if (!descriptor.dynamic) {
@@ -1720,12 +1722,20 @@
                                                 // Get the current property value to compare with the dependent value
                                                 var propertyValue = property.value;
 
+                                                referencingParameter = null;
+
+                                                // check if the property references a parameter
+                                                if (!_.isEmpty(currentParameterContext)) {
+                                                    const paramReference = getExistingParametersReferenced(propertyValue, currentParameterContext, false);
+                                                    if (paramReference.length > 0) {
+                                                        referencingParameter = paramReference[0].parameter.value;
+                                                    }
+                                                }
+
                                                 // Test the dependentValues array against the current value of the property
                                                 // If not, then mark the current property hidden attribute is true
-                                                if (propertyValue != null) {
-                                                    if (dependency.hasOwnProperty("dependentValues")) {
-                                                        hidden = !dependency.dependentValues.includes(propertyValue);
-                                                    }
+                                                if (propertyValue != null && dependency.hasOwnProperty("dependentValues")) {
+                                                    hidden = !dependency.dependentValues.includes(referencingParameter || propertyValue);
                                                 } else {
                                                     hidden = true;
                                                 }
@@ -1867,8 +1877,9 @@
      * @param {type} properties
      * @param {type} descriptors
      * @param {type} history
+     * @param {{currentParameterContext}} options
      */
-    var loadProperties = function (table, properties, descriptors, history) {
+    var loadProperties = function (table, properties, descriptors, history, options = {}) {
         // save the original descriptors and history
         table.data({
             'descriptors': descriptors,
@@ -1911,6 +1922,7 @@
 
                 var hidden = false;
                 var dependent = false;
+                var referencingParameter = null;
 
                 // Check for dependencies
                 if (descriptor.dependencies.length > 0) {
@@ -1931,13 +1943,20 @@
                                 if (property.hidden === false) {
                                     // Get the property value by propertyName
                                     var propertyValue = properties[dependency.propertyName];
+                                    referencingParameter = null;
+
+                                    // check if the property references a parameter
+                                    if (!_.isEmpty(options.currentParameterContext)) {
+                                        const paramReference = getExistingParametersReferenced(propertyValue, options.currentParameterContext, false);
+                                        if (paramReference.length > 0) {
+                                            referencingParameter = paramReference[0].parameter.value;
+                                        }
+                                    }
 
                                     // Test the dependentValues against the current value of the property
                                     // If not, then mark the current property hidden attribute is true
-                                    if (propertyValue != null) {
-                                        if (dependency.hasOwnProperty("dependentValues")) {
-                                            hidden = !dependency.dependentValues.includes(propertyValue);
-                                        }
+                                    if (propertyValue != null && dependency.hasOwnProperty("dependentValues")) {
+                                        hidden = !dependency.dependentValues.includes(referencingParameter || propertyValue);
                                     } else {
                                         hidden = true;
                                     }
@@ -1978,6 +1997,7 @@
      * @param {jQuery} propertyTableContainer
      */
     var clear = function (propertyTableContainer) {
+        currentParameterContext = null;
         var options = propertyTableContainer.data('options');
         if (options.readOnly === true) {
             nfUniversalCapture.removeAllPropertyDetailDialogs();
@@ -1999,6 +2019,43 @@
         var propertyGrid = table.data('gridInstance');
         var propertyData = propertyGrid.getData();
         propertyData.setItems([]);
+    };
+
+    /**
+     * Gets all the referenced parameters from the {parameterContext} based on the value of {parameterReference} with matching {sensitive} property
+     *
+     * @param {string} parameterReference
+     * @param {ParameterContextEntity} parameterContext
+     * @param {boolean} sensitive
+     * @returns {ParameterEntity[]}
+     */
+    var getExistingParametersReferenced = function (parameterReference, parameterContext, sensitive) {
+        var parameters = _.get(parameterContext.component, 'parameters', []);
+        var existingParametersReferenced = [];
+
+        if (!_.isNil(parameterReference) && !_.isEmpty(parameters)) {
+            // can't use from common/constants because we are modifying the lastIndex below
+            var paramRefsRegex = /#{(')?([a-zA-Z0-9-_. ]+)\1}/gm;
+            var possibleMatch;
+
+            // eslint-disable-next-line no-cond-assign
+            while ((possibleMatch = paramRefsRegex.exec(parameterReference)) !== null) {
+                // This is necessary to avoid infinite loops with zero-width matches
+                if (possibleMatch.index === paramRefsRegex.lastIndex) {
+                    paramRefsRegex.lastIndex++;
+                }
+
+                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 3) {
+                    const parameterName = possibleMatch[2];
+                    // only parameters with the matching name and sensitive values are considered real matches
+                    var found = parameters.find((param) => _.get(param.parameter, 'name') === parameterName && _.get(param.parameter, 'sensitive', false) === sensitive);
+                    if (!_.isNil(found)) {
+                        existingParametersReferenced.push(found);
+                    }
+                }
+            }
+        }
+        return existingParametersReferenced;
     };
 
     var methods = {
@@ -2261,9 +2318,33 @@
          * @argument {object} properties        The properties
          * @argument {map} descriptors          The property descriptors (property name -> property descriptor)
          * @argument {map} history
+         * @argument {object} options
          */
-        loadProperties: function (properties, descriptors, history) {
-            return this.each(function () {
+        loadProperties: function (properties, descriptors, history, options = {}) {
+            var self = this;
+            var groupId = null;
+
+            var loadParameterContext = function (options) {
+                if (typeof options.getFullParameterContextDeferred === 'function') {
+
+                    options.getFullParameterContextDeferred(groupId).done(function (parameterContext) {
+                        currentParameterContext = parameterContext;
+                        return self.each(function () {
+                            var table = $(this).find('div.property-table');
+                            loadProperties(table, properties, descriptors, history, { currentParameterContext: parameterContext });
+                        });
+                    });
+                }
+            };
+
+            if (typeof options.getParameterContext === 'function') {
+                var context = options.getParameterContext();
+                if (context?.permissions.canRead) {
+                    groupId = context.id;
+                    return loadParameterContext(options);
+                }
+            }
+            return self.each(function () {
                 var table = $(this).find('div.property-table');
                 loadProperties(table, properties, descriptors, history);
             });
