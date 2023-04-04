@@ -211,18 +211,22 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             return explicitKerberosPrincipal;
         }
 
-        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
-        if (credentialsService != null) {
-            final String credentialsServicePrincipal = credentialsService.getPrincipal();
-            if (credentialsServicePrincipal != null) {
-                return credentialsServicePrincipal;
+        try {
+            final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+            if (credentialsService != null) {
+                final String credentialsServicePrincipal = credentialsService.getPrincipal();
+                if (credentialsServicePrincipal != null) {
+                    return credentialsServicePrincipal;
+                }
             }
-        }
 
-        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-        if (kerberosUserService != null) {
-            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
-            return kerberosUser.getPrincipal();
+            final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+            if (kerberosUserService != null) {
+                final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+                return kerberosUser.getPrincipal();
+            }
+        } catch (Exception e) {
+            return null;
         }
 
         return null;
