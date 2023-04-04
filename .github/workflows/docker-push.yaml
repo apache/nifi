@@ -3,7 +3,7 @@ name: Push alp-nifi-base docker image to alpCR
 on:
   push:
     branches:
-      - "SGGREEN-481_remove-email-scope"
+      - "main"
 
   workflow_dispatch:
 
@@ -18,11 +18,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: alp-nifi-base:SGGREEN-481_remove-email-scope
+          - name: alp-nifi-base:main
             directory: ./nifi-docker/dockermaven
             context: .
             fileName: Dockerfile
-          - name: alp-nifi-registry-base:SGGREEN-481_remove-email-scope
+          - name: alp-nifi-registry-base:main
             directory: ./nifi-registry/nifi-registry-docker-maven/dockermaven
             context: .
             fileName: Dockerfile
