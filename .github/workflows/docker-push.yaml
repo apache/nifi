@@ -48,16 +48,6 @@ jobs:
         with:
           builder: ${{ steps.builder.outputs.name }}
           platforms: linux/amd64
-          context: .
-          file: ./nifi-docker/dockermaven/Dockerfile
-          push: true
-          tags: alpcr.azurecr.io/alp-nifi-base:main
-
-      - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          builder: ${{ steps.builder.outputs.name }}
-          platforms: linux/amd64
           context: ${{ matrix.context }}
           file: ${{ matrix.directory }}/${{ matrix.fileName }}
           push: true
