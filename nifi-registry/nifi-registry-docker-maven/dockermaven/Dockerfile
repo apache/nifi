@@ -38,7 +38,7 @@ ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
 
 # ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
-COPY --from=builder /home/nifi-registry/nifi-registry/nifi-registry-docker-maven/dockermaven/sh/* ${NIFI_BASE_DIR}/scripts/
+COPY --from=builder /home/nifi-registry/nifi-registry/nifi-registry-docker-maven/dockermaven/sh/* ${NIFI_REGISTRY_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh \
    && apt-get update \
    && apt-get install -y unzip
