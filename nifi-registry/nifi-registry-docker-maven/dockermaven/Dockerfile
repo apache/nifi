@@ -24,8 +24,8 @@ FROM maven:${IMAGE_NAME} AS builder
 WORKDIR /home/nifi-registry
 COPY . .
 
-# Build nifi-registry-assemby
-RUN cd ./nifi-registry/nifi-registry-assembly && mvn -T 2.0C clean install -DskipTests
+# Build nifi-registry
+RUN cd ./nifi-registry && mvn -T 2.0C clean install -DskipTests
 
 FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
