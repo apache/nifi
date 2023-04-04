@@ -25,5 +25,5 @@ import com.microsoft.azure.kusto.data.Client;
 @Tags({"azure", "adx"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) cluster.")
 public interface AdxSourceConnectionService extends ControllerService {
-    Client getKustoExecutionClient();
+    Client getKustoQueryClient();
 }

@@ -43,10 +43,8 @@ import org.apache.nifi.processors.adx.enums.RelationshipStatusEnum;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -97,16 +95,8 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptorList = new ArrayList<>();
-        descriptorList.add(ADX_SOURCE_SERVICE);
-        descriptorList.add(DB_NAME);
-        descriptorList.add(ADX_QUERY);
-        this.descriptors = Collections.unmodifiableList(descriptorList);
-
-        final Set<Relationship> relationshipList = new HashSet<>();
-        relationshipList.add(RL_SUCCEEDED);
-        relationshipList.add(RL_FAILED);
-        this.relationships = Collections.unmodifiableSet(relationshipList);
+        this.descriptors = List.of(ADX_SOURCE_SERVICE,DB_NAME,ADX_QUERY);
+        this.relationships = Set.of(RL_SUCCEEDED,RL_FAILED);
     }
 
     @Override
@@ -122,7 +112,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         AdxSourceConnectionService service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSourceConnectionService.class);
-        executionClient = service.getKustoExecutionClient();
+        executionClient = service.getKustoQueryClient();
     }
 
     @Override
@@ -196,10 +186,7 @@ public class AzureAdxSourceProcessor extends AbstractProcessor {
     protected String getQuery(final ProcessSession session, FlowFile incomingFlowFile) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             session.exportTo(incomingFlowFile, baos);
-            return baos.toString("UTF-8");
+            return baos.toString(StandardCharsets.UTF_8);
         }
     }
-
-
-
 }

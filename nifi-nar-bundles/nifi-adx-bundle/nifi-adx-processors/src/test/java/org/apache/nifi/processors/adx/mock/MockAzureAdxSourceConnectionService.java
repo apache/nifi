@@ -34,7 +34,7 @@ import java.util.Objects;
 public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectionService {
 
     @Override
-    public Client getKustoExecutionClient(){
+    public Client getKustoQueryClient(){
         return new Client() {
 
             @Override

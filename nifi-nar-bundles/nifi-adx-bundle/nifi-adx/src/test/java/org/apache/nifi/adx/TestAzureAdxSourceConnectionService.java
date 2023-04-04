@@ -86,7 +86,7 @@ class TestAzureAdxSourceConnectionService {
         runner.assertValid(service);
         runner.setValidateExpressionUsage(false);
         runner.enableControllerService(service);
-        Client executionClient = service.getKustoExecutionClient();
+        Client executionClient = service.getKustoQueryClient();
 
         Assertions.assertNotNull(executionClient);
     }
