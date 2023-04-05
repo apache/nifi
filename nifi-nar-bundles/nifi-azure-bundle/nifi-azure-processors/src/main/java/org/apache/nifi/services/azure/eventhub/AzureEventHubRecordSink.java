@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.azure.eventhub;
 
+import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
@@ -44,6 +45,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,7 +57,7 @@ import java.util.Map;
 
 @Tags({"azure", "record", "sink"})
 @CapabilityDescription("Format and send Records to Azure Event Hubs")
-public class AzureEventHubRecordSink extends AbstractControllerService implements RecordSinkService {
+public class AzureEventHubRecordSink extends AbstractControllerService implements RecordSinkService, AzureEventHubComponent {
 
     static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net","Azure", "Default Service Bus Endpoint");
 
@@ -133,6 +135,7 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
                     SERVICE_BUS_ENDPOINT,
                     EVENT_HUB_NAMESPACE,
                     EVENT_HUB_NAME,
+                    TRANSPORT_TYPE,
                     RECORD_WRITER_FACTORY,
                     AUTHENTICATION_STRATEGY,
                     SHARED_ACCESS_POLICY,
@@ -155,10 +158,12 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
                                                           final String eventHubName,
                                                           final String policyName,
                                                           final String policyKey,
-                                                          final AzureAuthenticationStrategy authenticationStrategy
+                                                          final AzureAuthenticationStrategy authenticationStrategy,
+                                                          final AmqpTransportType transportType
     ) {
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
         final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
+        eventHubClientBuilder.transportType(transportType);
         if (AzureAuthenticationStrategy.SHARED_ACCESS_KEY == authenticationStrategy) {
             final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
             eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
@@ -181,7 +186,8 @@ public class AzureEventHubRecordSink extends AbstractControllerService implement
         final String policyKey = context.getProperty(SHARED_ACCESS_POLICY_KEY).getValue();
         final String authenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).getValue();
         final AzureAuthenticationStrategy azureAuthenticationStrategy = AzureAuthenticationStrategy.valueOf(authenticationStrategy);
-        client = createEventHubClient(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey, azureAuthenticationStrategy);
+        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
+        client = createEventHubClient(namespace, serviceBusEndpoint, eventHubName, policyName, policyKey, azureAuthenticationStrategy, transportType);
     }
 
     @OnDisabled

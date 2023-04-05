@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +71,8 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
+        testRunner.assertValid();
+        testRunner.setProperty(PutAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
         testRunner.assertValid();
     }
 

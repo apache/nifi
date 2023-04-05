@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -56,6 +57,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.FlowFileResultCarrier;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
@@ -64,7 +66,7 @@ import org.apache.nifi.util.StopWatch;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Send FlowFile contents to Azure Event Hubs")
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The Processor buffers FlowFile contents in memory before sending")
-public class PutAzureEventHub extends AbstractProcessor {
+public class PutAzureEventHub extends AbstractProcessor implements AzureEventHubComponent {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s%s/%s";
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
@@ -127,6 +129,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         configuredDescriptors.add(NAMESPACE);
         configuredDescriptors.add(EVENT_HUB_NAME);
         configuredDescriptors.add(SERVICE_BUS_ENDPOINT);
+        configuredDescriptors.add(TRANSPORT_TYPE);
         configuredDescriptors.add(ACCESS_POLICY);
         configuredDescriptors.add(POLICY_PRIMARY_KEY);
         configuredDescriptors.add(USE_MANAGED_IDENTITY);
@@ -194,9 +197,11 @@ public class PutAzureEventHub extends AbstractProcessor {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
 
         try {
             final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
+            eventHubClientBuilder.transportType(transportType);
 
             final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
             if (useManagedIdentity) {

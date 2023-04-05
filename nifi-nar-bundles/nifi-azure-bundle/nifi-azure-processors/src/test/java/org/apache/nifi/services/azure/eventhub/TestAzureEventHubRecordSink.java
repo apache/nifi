@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.azure.eventhub;
 
+import com.azure.core.amqp.AmqpTransportType;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventDataBatch;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
@@ -30,6 +31,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -90,6 +92,7 @@ public class TestAzureEventHubRecordSink {
         runner.setProperty(azureEventHubRecordSink, AzureEventHubRecordSink.EVENT_HUB_NAMESPACE, EVENT_HUB_NAMESPACE);
         runner.setProperty(azureEventHubRecordSink, AzureEventHubRecordSink.SHARED_ACCESS_POLICY_KEY, POLICY_KEY);
         runner.setProperty(azureEventHubRecordSink, AzureEventHubRecordSink.RECORD_WRITER_FACTORY, WRITER_IDENTIFIER);
+        runner.setProperty(azureEventHubRecordSink, AzureEventHubRecordSink.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
         runner.enableControllerService(azureEventHubRecordSink);
     }
 
@@ -149,7 +152,8 @@ public class TestAzureEventHubRecordSink {
                 final String eventHubName,
                 final String policyName,
                 final String policyKey,
-                final AzureAuthenticationStrategy authenticationStrategy) throws ProcessException {
+                final AzureAuthenticationStrategy authenticationStrategy,
+                final AmqpTransportType transportType) throws ProcessException {
             return client;
         }
     }
