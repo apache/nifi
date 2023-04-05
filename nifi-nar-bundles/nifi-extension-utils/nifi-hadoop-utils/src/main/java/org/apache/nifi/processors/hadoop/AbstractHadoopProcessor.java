@@ -225,7 +225,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
                 final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
                 return kerberosUser.getPrincipal();
             }
-        } catch (Exception e) {
+        } catch (IllegalStateException e) {
             return null;
         }
 
