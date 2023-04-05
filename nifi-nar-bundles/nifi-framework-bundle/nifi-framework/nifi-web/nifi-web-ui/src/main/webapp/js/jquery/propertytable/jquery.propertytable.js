@@ -1877,9 +1877,8 @@
      * @param {type} properties
      * @param {type} descriptors
      * @param {type} history
-     * @param {{currentParameterContext}} options
      */
-    var loadProperties = function (table, properties, descriptors, history, options = {}) {
+    var loadProperties = function (table, properties, descriptors, history) {
         // save the original descriptors and history
         table.data({
             'descriptors': descriptors,
@@ -1946,8 +1945,8 @@
                                     referencingParameter = null;
 
                                     // check if the property references a parameter
-                                    if (!_.isEmpty(options.currentParameterContext)) {
-                                        const paramReference = getExistingParametersReferenced(propertyValue, options.currentParameterContext, false);
+                                    if (!_.isEmpty(currentParameterContext)) {
+                                        const paramReference = getExistingParametersReferenced(propertyValue, currentParameterContext, false);
                                         if (paramReference.length > 0) {
                                             referencingParameter = paramReference[0].parameter.value;
                                         }
@@ -2035,7 +2034,7 @@
 
         if (!_.isNil(parameterReference) && !_.isEmpty(parameters)) {
             // can't use from common/constants because we are modifying the lastIndex below
-            var paramRefsRegex = /#{(')?([a-zA-Z0-9-_. ]+)\1}/gm;
+            var paramRefsRegex = /#{'?([a-zA-Z0-9-_. ]+)'?}/gm;
             var possibleMatch;
 
             // eslint-disable-next-line no-cond-assign
@@ -2045,10 +2044,12 @@
                     paramRefsRegex.lastIndex++;
                 }
 
-                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 3) {
-                    const parameterName = possibleMatch[2];
+                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 2) {
+                    const parameterName = possibleMatch[1];
                     // only parameters with the matching name and sensitive values are considered real matches
-                    var found = parameters.find((param) => _.get(param.parameter, 'name') === parameterName && _.get(param.parameter, 'sensitive', false) === sensitive);
+                    var found = parameters.find(function (param) {
+                        return _.get(param.parameter, 'name') === parameterName && _.get(param.parameter, 'sensitive', false) === sensitive;
+                    });
                     if (!_.isNil(found)) {
                         existingParametersReferenced.push(found);
                     }
@@ -2320,26 +2321,25 @@
          * @argument {map} history
          * @argument {object} options
          */
-        loadProperties: function (properties, descriptors, history, options = {}) {
+        loadProperties: function (properties, descriptors, history, options) {
             var self = this;
             var groupId = null;
 
             var loadParameterContext = function (options) {
                 if (typeof options.getFullParameterContextDeferred === 'function') {
-
                     options.getFullParameterContextDeferred(groupId).done(function (parameterContext) {
                         currentParameterContext = parameterContext;
                         return self.each(function () {
                             var table = $(this).find('div.property-table');
-                            loadProperties(table, properties, descriptors, history, { currentParameterContext: parameterContext });
+                            loadProperties(table, properties, descriptors, history);
                         });
                     });
                 }
             };
 
-            if (typeof options.getParameterContext === 'function') {
+            if (!_.isEmpty(options) && typeof options.getParameterContext === 'function') {
                 var context = options.getParameterContext();
-                if (context?.permissions.canRead) {
+                if (!_.isEmpty(context) && context.permissions.canRead) {
                     groupId = context.id;
                     return loadParameterContext(options);
                 }
