@@ -1,48 +1,54 @@
 name: Push alp-nifi-base docker image to alpCR
 
-on: 
+on:
   push:
     branches:
       - "main"
 
   workflow_dispatch:
 
-
 # Run only one job per branch
-concurrency: 
-  group: ${{ github.ref }}-docker-build # Run the latest push 
+concurrency:
+  group: ${{ github.ref }}-docker-build # Run the latest push
   cancel-in-progress: true # Cancel in progress jobs of the workflow of the branch
-
 
 jobs:
   nifi-base-docker-push:
-
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: alp-nifi-base:main
+            directory: ./nifi-docker/dockermaven
+            context: .
+            fileName: Dockerfile
+          - name: alp-nifi-registry-base:main
+            directory: ./nifi-registry/nifi-registry-docker-maven/dockermaven
+            context: .
+            fileName: Dockerfile
 
     steps:
-    - 
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - 
-      uses: azure/docker-login@v1
-      with:
-        login-server: alpcr.azurecr.io
-        username: ${{ secrets.REGISTRY_USERNAME }}
-        password: ${{ secrets.REGISTRY_PASSWORD }}
+      - uses: azure/docker-login@v1
+        with:
+          login-server: alpcr.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
-    - uses: docker/setup-buildx-action@v2
-      id: builder
-      with:
-        driver-opts: |
-          env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000
-          env.BUILDKIT_STEP_LOG_MAX_SPEED=50000000
+      - uses: docker/setup-buildx-action@v2
+        id: builder
+        with:
+          driver-opts: |
+            env.BUILDKIT_STEP_LOG_MAX_SIZE=50000000
+            env.BUILDKIT_STEP_LOG_MAX_SPEED=50000000
 
-    - name: Build and push
-      uses: docker/build-push-action@v4
-      with:
-        builder: ${{ steps.builder.outputs.name }}
-        platforms: linux/amd64
-        context: .
-        file:  ./nifi-docker/dockermaven/Dockerfile
-        push: true
-        tags: alpcr.azurecr.io/alp-nifi-base:main
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          builder: ${{ steps.builder.outputs.name }}
+          platforms: linux/amd64
+          context: ${{ matrix.context }}
+          file: ${{ matrix.directory }}/${{ matrix.fileName }}
+          push: true
+          tags: alpcr.azurecr.io/${{ matrix.name }}

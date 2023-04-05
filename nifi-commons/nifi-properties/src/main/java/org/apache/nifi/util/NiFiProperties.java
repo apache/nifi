@@ -1138,12 +1138,12 @@ public class NiFiProperties extends ApplicationProperties {
     /**
      * Returns the claim to be used to identify a user.
      * Claim must be requested by adding the scope for it.
-     * Default is 'email'.
+     * Default is 'openid'.
      *
      * @return The claim to be used to identify the user.
      */
     public String getOidcClaimIdentifyingUser() {
-        return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "email").trim();
+        return getProperty(SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, "openid").trim();
     }
 
     /**

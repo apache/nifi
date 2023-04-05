@@ -16,29 +16,42 @@
 # under the License.
 #
 
-FROM eclipse-temurin:11-jre AS artifactbase
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jre
+
+FROM maven:${IMAGE_NAME} AS builder
+
+WORKDIR /home/nifi-registry
+COPY . .
+
+# Build nifi-registry
+RUN cd ./nifi-registry && mvn -T 2.0C clean install -DskipTests
+
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
-ARG NIFI_REGISTRY_BINARY
 ARG NIFI_REGISTRY_VERSION=1.19.1
+ARG NIFI_REGISTRY_BINARY=nifi-registry-${NIFI_REGISTRY_VERSION}-bin.zip
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
 
-ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
+# ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
+COPY --from=builder /home/nifi-registry/nifi-registry/nifi-registry-docker-maven/dockermaven/sh/* ${NIFI_REGISTRY_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh \
    && apt-get update \
    && apt-get install -y unzip
 
-COPY $NIFI_REGISTRY_BINARY $NIFI_REGISTRY_BASE_DIR
-RUN unzip ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION}-bin.zip -d ${NIFI_REGISTRY_BASE_DIR} \
-    && rm ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION}-bin.zip \
+# COPY $NIFI_REGISTRY_BINARY $NIFI_REGISTRY_BASE_DIR
+COPY --from=builder /home/nifi-registry/nifi-registry/nifi-registry-assembly/target/${NIFI_REGISTRY_BINARY} $NIFI_REGISTRY_BASE_DIR
+RUN unzip ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY} -d ${NIFI_REGISTRY_BASE_DIR} \
+    && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY} \
     && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION} ${NIFI_REGISTRY_HOME} \
     && ln -s ${NIFI_REGISTRY_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-${NIFI_REGISTRY_VERSION}
 
 
-FROM eclipse-temurin:11-jre
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi Registry <dev@nifi.apache.org>"
 LABEL site="https://nifi.apache.org"
 
