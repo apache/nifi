@@ -4174,6 +4174,8 @@ request headers. The default value is:
 The CustomRequestLog writes formatted messages using the following SLF4J logger:
 
 `org.apache.nifi.web.server.RequestLog`
+|`nifi.web.jmx.metrics.allowed.filter.pattern`|The regular expression controlling the JMX MBean names that the REST API
+is allowed to return. The default value is empty, blocking all MBeans. Configuring `.*` allows all registered MBeans.
 |====
 
 [[security_properties]]
@@ -4844,3 +4846,37 @@ nifi.diagnostics.on.shutdown.max.directory.size=10 MB
 ```
 
 In the case of a lengthy diagnostic, NiFi may terminate before the command execution ends. In this case, the `graceful.shutdown.seconds` property should be set to a higher value in the `bootstrap.conf` configuration file.
+
+[[jmx_metrics]]
+== JMX Metrics
+
+It is possible to get JMX metrics using the REST API with read permissions on system diagnostics resources.
+
+The information available depends on the registered MBeans. Metrics can contain data related to performance indicators.
+
+Listing of MBeans is controlled using a regular expression pattern in application properties. Leaving the
+property empty means no MBeans will be returned. The default value blocks all MBeans and must be changed to return
+information.
+
+ nifi.web.jmx.metrics.allowed.filter.pattern=.*
+
+An optionally provided query parameter using a regular expression pattern, will display only MBeans with matching names.
+Leaving this parameter empty means listing all MBeans except those filtered out by the blocked filter pattern.
+
+ https://localhost:8443/nifi-api/system-diagnostics/jmx-metrics?beanNameFilter=bean.name.1|bean.name.2
+
+An example output would look like this:
+
+ [
+   {
+     "beanName" : "bean.name.1,type=type1",
+     "attributeName" : “attribute-name",
+     "attributeValue" : “attribute-value”
+   },
+   {
+     "beanName" : "bean.name.2, type=type2",
+     "attributeName" : "attribute-name",
+     "attributeValue" : integer-value
+   }
+ ]
+
