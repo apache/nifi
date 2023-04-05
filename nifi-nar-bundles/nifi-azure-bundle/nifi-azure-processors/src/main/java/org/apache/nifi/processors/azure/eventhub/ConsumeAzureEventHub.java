@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -62,6 +63,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -101,7 +103,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
         @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled"),
         @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
-public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
+public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implements AzureEventHubComponent {
 
     private static final Pattern SAS_TOKEN_PATTERN = Pattern.compile("^\\?.*$");
     private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s;EndpointSuffix=core.%s";
@@ -284,6 +286,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 NAMESPACE,
                 EVENT_HUB_NAME,
                 SERVICE_BUS_ENDPOINT,
+                TRANSPORT_TYPE,
                 ACCESS_POLICY_NAME,
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
@@ -425,8 +428,10 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final Long receiveTimeout = context.getProperty(RECEIVE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         final Duration maxWaitTime = Duration.ofMillis(receiveTimeout);
         final Integer maxBatchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
 
         final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
+                .transportType(transportType)
                 .consumerGroup(consumerGroup)
                 .trackLastEnqueuedEventProperties(true)
                 .checkpointStore(checkpointStore)
