@@ -4824,3 +4824,32 @@ nifi.diagnostics.on.shutdown.max.directory.size=10 MB
 ```
 
 In the case of a lengthy diagnostic, NiFi may terminate before the command execution ends. In this case, the `graceful.shutdown.seconds` property should be set to a higher value in the `bootstrap.conf` configuration file.
+
+[[jmx_bean_metrics]]
+== JMX Bean metrics
+
+It is possible to get JMX metrics data calling  `<your_nifi_url>/nifi-api/jmx-metrics` with 'Flow' 'Read' and 'SystemDiagnostics' 'Read' permissions.
+
+The information available depends on the registered MBeans and usually related to performance indicators such as request/response rate, latency, request size, request counts or tool specific ones like commit rate or sync/join time for Kafka.
+
+Listing of certain MBeans can be prohibited by a list of regex expressions, separated by a `;` and can be configured by a NiFi application property. Leaving the property empty means all the MBeans may appear in the result list. Default value is to display all MBeans.
+
+ nifi.jmx.metrics.blacklisting.filter=prohibited.bean1;prohibited.bean2
+
+
+An optionally provided query parameter using a `;` separated list of regex expressions, will display only MBeans with matching names. Leaving this parameter empty means listing all MBeans except the ones filtered out by the security filter.
+
+ https://nifihost.com:8443/nifi-api/jmx-metrics?beanNameFilter=bean.name.1;bbean.name.2
+
+An example output would look like this:
+
+ [{
+  "beanName" : "bean.name.1,type=type1",
+  "attributeName" : “attribute-name",
+  "attributeValue" : “attribute-value”
+  }, {
+  "beanName" : "bean.name.2, type=type2",
+  "attributeName" : "attribute-name",
+  "attributeValue" : integer-value
+ }]
+
