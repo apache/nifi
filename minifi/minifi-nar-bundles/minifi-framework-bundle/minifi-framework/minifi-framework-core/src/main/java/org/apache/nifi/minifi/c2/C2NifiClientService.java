@@ -27,7 +27,7 @@ import static org.apache.nifi.minifi.MiNiFiProperties.C2_FULL_HEARTBEAT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_KEEP_ALIVE_DURATION;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_MAX_IDLE_CONNECTIONS;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REQUEST_COMPRESSION;
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_API;
+import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_BASE;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CALL_TIMEOUT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_CONNECTION_TIMEOUT;
 import static org.apache.nifi.minifi.MiNiFiProperties.C2_REST_PATH_ACKNOWLEDGE;
@@ -211,7 +211,7 @@ public class C2NifiClientService {
             .keystoreType(properties.getProperty(C2_SECURITY_KEYSTORE_TYPE.getKey(), C2_SECURITY_KEYSTORE_TYPE.getDefaultValue()))
             .c2Url(properties.getProperty(C2_REST_URL.getKey(), C2_REST_URL.getDefaultValue()))
             .c2AckUrl(properties.getProperty(C2_REST_URL_ACK.getKey(), C2_REST_URL_ACK.getDefaultValue()))
-            .c2RestApi(properties.getProperty(C2_REST_API.getKey(), C2_REST_API.getDefaultValue()))
+            .c2RestPathBase(properties.getProperty(C2_REST_PATH_BASE.getKey(), C2_REST_PATH_BASE.getDefaultValue()))
             .c2RestPathHeartbeat(properties.getProperty(C2_REST_PATH_HEARTBEAT.getKey(), C2_REST_PATH_HEARTBEAT.getDefaultValue()))
             .c2RestPathAcknowledge(properties.getProperty(C2_REST_PATH_ACKNOWLEDGE.getKey(), C2_REST_PATH_ACKNOWLEDGE.getDefaultValue()))
             .build();

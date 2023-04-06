@@ -14,11 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.http.url;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LegacyC2UrlProvider implements C2UrlProvider {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LegacyC2UrlProvider.class);
 
     private final String c2Url;
     private final String c2AckUrl;
@@ -39,10 +45,11 @@ public class LegacyC2UrlProvider implements C2UrlProvider {
     }
 
     @Override
-    public String getCallbackUrl(String absoluteUrl, String relativeUrl) throws Exception {
-        if (isBlank(absoluteUrl)) {
-            throw new Exception("Provided absolute url was empty or null. Relative urls are not supported with this configuration");
+    public Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl) {
+        Optional<String> url = Optional.ofNullable(absoluteUrl).filter(StringUtils::isNotBlank);
+        if (!url.isPresent()) {
+            LOG.error("Provided absolute url was empty or null. Relative urls are not supported with this configuration");
         }
-        return absoluteUrl;
+        return url;
     }
 }

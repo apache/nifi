@@ -14,13 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.http.url;
+
+import java.util.Optional;
 
 public interface C2UrlProvider {
 
+    /**
+     * Retrieves the url of the C2 server to send heartbeats to
+     *
+     * @return the url of the C2 server to send heartbeats to
+     */
     String getHeartbeatUrl();
 
+    /**
+     * Retrieves the url of the C2 server to send acknowledgements to
+     *
+     * @return the url of the C2 server to send acknowledgements to
+     */
     String getAcknowledgeUrl();
 
-    String getCallbackUrl(String absoluteUrl, String relativeUrl) throws Exception;
+    /**
+     * Retrieves the callback url of the C2 server according to the C2 configuration (proxy aware or not)
+     *
+     * @param absoluteUrl absolute url sent by the C2 server
+     * @param relativeUrl relative url sent by the C2 server
+     * @return the url of the C2 server to send requests to
+     */
+    Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl);
 }

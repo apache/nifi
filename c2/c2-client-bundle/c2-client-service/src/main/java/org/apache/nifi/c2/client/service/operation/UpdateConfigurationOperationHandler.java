@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client.service.operation;
 
 import static java.util.Collections.emptyMap;
@@ -87,16 +88,14 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
         String operationId = Optional.ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
         Map<String, String> arguments = ofNullable(operation.getArgs()).orElse(emptyMap());
-        String callbackUrl;
-        try {
-            String absoluteFlowUrl = ofNullable(arguments.get(FLOW_URL_KEY)).orElse(arguments.get(LOCATION));
-            callbackUrl = client.getCallbackUrl(absoluteFlowUrl, arguments.get(FLOW_RELATIVE_URL_KEY));
-        } catch (Exception e) {
-            logger.error("Callback URL could not be constructed from C2 request and current configuration", e);
+        String absoluteFlowUrl = ofNullable(arguments.get(FLOW_URL_KEY)).orElse(arguments.get(LOCATION));
+        Optional<String> callbackUrl = client.getCallbackUrl(absoluteFlowUrl, arguments.get(FLOW_RELATIVE_URL_KEY));
+        if (!callbackUrl.isPresent()) {
+            logger.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get callback url from operation and current configuration"));
         }
 
-        String flowId = getFlowId(operation.getArgs(), callbackUrl);
+        String flowId = getFlowId(operation.getArgs(), callbackUrl.get());
         if (flowId == null) {
             logger.error("FlowId is missing, no update will be performed");
             return operationAck(operationId, operationState(NOT_APPLIED, "Could not get flowId from the operation"));
@@ -109,7 +108,7 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
         logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}",
             callbackUrl, operationId, ofNullable(flowIdHolder.getFlowId()).orElse("not set"), flowId);
-        return operationAck(operationId, updateFlow(operationId, callbackUrl));
+        return operationAck(operationId, updateFlow(operationId, callbackUrl.get()));
     }
 
     private C2OperationState updateFlow(String opIdentifier, String callbackUrl) {

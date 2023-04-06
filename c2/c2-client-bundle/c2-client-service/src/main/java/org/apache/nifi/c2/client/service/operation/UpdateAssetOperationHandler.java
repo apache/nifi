@@ -28,6 +28,7 @@ import static org.apache.nifi.c2.protocol.api.OperandType.ASSET;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import org.apache.nifi.c2.client.api.C2Client;
@@ -106,11 +107,9 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
     public C2OperationAck handle(C2Operation operation) {
         String operationId = ofNullable(operation.getIdentifier()).orElse(EMPTY);
 
-        String callbackUrl;
-        try {
-            callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY));
-        } catch (Exception e) {
-            LOG.error("Callback URL could not be constructed from C2 request and current configuration", e);
+        Optional<String> callbackUrl = c2Client.getCallbackUrl(getOperationArg(operation, ASSET_URL_KEY), getOperationArg(operation, ASSET_RELATIVE_URL_KEY));
+        if (!callbackUrl.isPresent()) {
+            LOG.error("Callback URL could not be constructed from C2 request and current configuration");
             return operationAck(operationId, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
@@ -124,11 +123,11 @@ public class UpdateAssetOperationHandler implements C2OperationHandler {
         LOG.info("Initiating asset update from url {} with name {}, force update is {}", callbackUrl, assetFileName, forceDownload);
 
         C2OperationState operationState = assetUpdatePrecondition.test(assetFileName, forceDownload)
-            ? c2Client.retrieveUpdateContent(callbackUrl)
-                .map(content -> assetPersistFunction.apply(assetFileName, content)
-                    ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
-                    : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
-                .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
+            ? c2Client.retrieveUpdateContent(callbackUrl.get())
+            .map(content -> assetPersistFunction.apply(assetFileName, content)
+                ? operationState(FULLY_APPLIED, SUCCESSFULLY_UPDATE_ASSET)
+                : operationState(NOT_APPLIED, FAILED_TO_PERSIST_ASSET_TO_DISK))
+            .orElseGet(() -> operationState(NOT_APPLIED, UPDATE_ASSET_RETRIEVAL_RESULTED_IN_EMPTY_CONTENT))
             : operationState(NO_OPERATION, UPDATE_ASSET_PRECONDITIONS_WERE_NOT_MET);
 
         return operationAck(operationId, operationState);

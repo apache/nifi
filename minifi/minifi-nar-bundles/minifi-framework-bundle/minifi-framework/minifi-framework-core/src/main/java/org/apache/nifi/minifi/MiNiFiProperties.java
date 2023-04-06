@@ -85,7 +85,7 @@ public enum MiNiFiProperties {
     C2_ENABLE("c2.enable", "false", false, true, BOOLEAN_VALIDATOR),
     C2_REST_URL("c2.rest.url", "", false, true, VALID),
     C2_REST_URL_ACK("c2.rest.url.ack", "", false, true, VALID),
-    C2_REST_API("c2.rest.api", "", false, true, VALID),
+    C2_REST_PATH_BASE("c2.rest.path.base", "", false, true, VALID),
     C2_REST_PATH_HEARTBEAT("c2.rest.path.heartbeat", "", false, true, VALID),
     C2_REST_PATH_ACKNOWLEDGE("c2.rest.path.acknowledge", "", false, true, VALID),
     C2_REST_CONNECTION_TIMEOUT("c2.rest.connectionTimeout", "5 sec", false, true, TIME_PERIOD_VALIDATOR),

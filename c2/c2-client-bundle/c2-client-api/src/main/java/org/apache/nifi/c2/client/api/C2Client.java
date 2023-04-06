@@ -35,9 +35,9 @@ public interface C2Client {
     Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat);
 
     /**
-     * After operation completed the acknowledge to be sent to the C2 Server
+     * After operation completed the acknowledgment to be sent to the C2 Server
      *
-     * @param operationAck the acknowledge details to be sent
+     * @param operationAck the acknowledgment details to be sent
      */
     void acknowledgeOperation(C2OperationAck operationAck);
 
@@ -63,8 +63,7 @@ public interface C2Client {
      *
      * @param absoluteUrl absolute url sent by C2 server
      * @param relativeUrl relative url sent by C2 server
-     * @return finalised callback url
-     * @throws Exception when the callback url can not be created as per the current configuration and parameters
+     * @return an optional with content of finalised callback url
      */
-    String getCallbackUrl(String absoluteUrl, String relativeUrl) throws Exception;
+    Optional<String> getCallbackUrl(String absoluteUrl, String relativeUrl);
 }

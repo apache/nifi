@@ -23,7 +23,7 @@ public class C2ClientConfig {
 
     private final String c2Url;
     private final String c2AckUrl;
-    private final String c2RestApi;
+    private final String c2RestPathBase;
     private final String c2RestPathHeartbeat;
     private final String c2RestPathAcknowledge;
     private final String agentClass;
@@ -51,7 +51,7 @@ public class C2ClientConfig {
     private C2ClientConfig(final Builder builder) {
         this.c2Url = builder.c2Url;
         this.c2AckUrl = builder.c2AckUrl;
-        this.c2RestApi = builder.c2RestApi;
+        this.c2RestPathBase = builder.c2RestPathBase;
         this.c2RestPathHeartbeat = builder.c2RestPathHeartbeat;
         this.c2RestPathAcknowledge = builder.c2RestPathAcknowledge;
         this.agentClass = builder.agentClass;
@@ -93,8 +93,8 @@ public class C2ClientConfig {
         return agentIdentifier;
     }
 
-    public String getC2RestApi() {
-        return c2RestApi;
+    public String getC2RestPathBase() {
+        return c2RestPathBase;
     }
 
     public String getC2RestPathHeartbeat() {
@@ -188,7 +188,7 @@ public class C2ClientConfig {
 
         private String c2Url;
         private String c2AckUrl;
-        private String c2RestApi;
+        private String c2RestPathBase;
         private String c2RestPathHeartbeat;
         private String c2RestPathAcknowledge;
         private String agentClass;
@@ -223,8 +223,8 @@ public class C2ClientConfig {
             return this;
         }
 
-        public Builder c2RestApi(String c2RestApi) {
-            this.c2RestApi = c2RestApi;
+        public Builder c2RestPathBase(String c2RestPathBase) {
+            this.c2RestPathBase = c2RestPathBase;
             return this;
         }
         public Builder c2RestPathHeartbeat(String c2RestPathHeartbeat) {
