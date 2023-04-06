@@ -86,8 +86,7 @@ public class AsnPreprocessorEngine {
         try {
             lines = Files.readAllLines(inputFilePath);
         } catch (IOException e) {
-            componentLog.error("Couldn't read {}", inputFile, e);
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException(String.format("Read ASN.1 Schema failed [%s]", inputFile), e);
         }
         return lines;
     }
@@ -96,8 +95,7 @@ public class AsnPreprocessorEngine {
         try {
             Files.write(preprocessedAsnPath, preprocessedAsn.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            componentLog.error("Couldn't write {}", preprocessedAsnPath.toString(), e);
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException(String.format("Write ASN.1 Schema failed [%s]", preprocessedAsnPath), e);
         }
     }
 

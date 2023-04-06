@@ -17,9 +17,9 @@
 package org.apache.nifi.jasn1.preprocess;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -46,6 +45,9 @@ public class AsnPreprocessorEngineTest {
     private List<AsnPreprocessor> preprocessors;
 
     private ComponentLog log;
+
+    @TempDir
+    private File additionalPreprocessingOutputDirectory;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -76,16 +78,6 @@ public class AsnPreprocessorEngineTest {
                 return preprocessors;
             }
         };
-
-        Files.createDirectories(Path.of("target/" + this.getClass().getSimpleName()));
-    }
-
-    @AfterEach
-    void tearDown() throws Exception {
-        Files.walk(Path.of("target/" + this.getClass().getSimpleName()))
-                .sorted(Comparator.reverseOrder())
-                .map(Path::toFile)
-                .forEach(File::delete);
     }
 
     @Test
@@ -162,7 +154,7 @@ public class AsnPreprocessorEngineTest {
         String preprocessedFile = testSubject.preprocess(
                 log,
                 new File(getClass().getClassLoader().getResource(input).toURI()).getAbsolutePath(),
-                "target/" + this.getClass().getSimpleName()
+                additionalPreprocessingOutputDirectory.getAbsolutePath()
         );
 
         String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)

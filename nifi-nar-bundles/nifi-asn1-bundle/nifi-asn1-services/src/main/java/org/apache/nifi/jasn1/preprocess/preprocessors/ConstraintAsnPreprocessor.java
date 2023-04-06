@@ -61,7 +61,7 @@ public class ConstraintAsnPreprocessor implements AsnPreprocessor {
 
                         final Matcher supportedMatcher = ALLOWED.matcher(contentAfterOpenBracket);
                         if (supportedMatcher.matches()) {
-                            preprocessedLine.append("(" + supportedMatcher.group(1));
+                            preprocessedLine.append(OPEN_BRACKET + supportedMatcher.group(1));
                             contentToProcess = supportedMatcher.group(2);
                             continue;
                         }

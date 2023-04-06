@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -135,26 +136,36 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .required(false)
         .build();
 
-    private static final PropertyDescriptor DO_ADDITIONAL_PREPROCESSING = new PropertyDescriptor.Builder()
-        .name("do-additional-preprocessing")
-        .displayName("Do Additional Preprocessing")
+    private static final AllowableValue DEFAULT = new AllowableValue(
+            "DEFAULT",
+            "Default",
+            "No additional preprocessing should occur, use original schema."
+    );
+
+    private static final AllowableValue ADDITIONAL_PREPROCESSING = new AllowableValue(
+            "ADDITIONAL_PREPROCESSING",
+            "Additional pre-processing",
+            "Do additional preprocessing, resulting in potentially modified schema. (See additional details for more information.)"
+    );
+
+    private static final PropertyDescriptor SCHEMA_PREPARATION_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Schema Preparation Strategy")
         .description("When set, NiFi will do additional preprocessing steps that creates modified versions of the provided ASN files," +
                 " removing unsupported features in a way that makes them less strict but otherwise should still be compatible with incoming data." +
                 " The original files will remain intact and new ones will be created with the same names in the directory defined in the 'Additional Preprocessing Output Directory' property." +
                 " For more information about these additional preprocessing steps please see Additional Details - Additional Preprocessing.")
-        .allowableValues("true", "false")
+        .allowableValues(DEFAULT, ADDITIONAL_PREPROCESSING)
         .required(true)
-        .defaultValue("false")
+        .defaultValue(DEFAULT.getValue())
         .build();
 
-    private static final PropertyDescriptor ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY = new PropertyDescriptor.Builder()
-        .name("additional-preprocessing-output-directory")
-        .displayName("Additional Preprocessing Output Directory")
+    private static final PropertyDescriptor SCHEMA_PREPARATION_DIRECTORY = new PropertyDescriptor.Builder()
+        .name("Schema Preparation Directory")
         .description("When the processor is configured to do additional preprocessing, new modified schema files will be created in this directory." +
                 " For more information about additional preprocessing please see description of the 'Do Additional Preprocessing' property or Additional Details - Additional Preprocessing.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-        .dependsOn(DO_ADDITIONAL_PREPROCESSING, "true")
+        .dependsOn(SCHEMA_PREPARATION_STRATEGY, ADDITIONAL_PREPROCESSING)
         .required(true)
         .build();
 
@@ -162,8 +173,8 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         ROOT_MODEL_NAME,
         ROOT_CLASS_NAME,
         ASN_FILES,
-        DO_ADDITIONAL_PREPROCESSING,
-        ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY
+        SCHEMA_PREPARATION_STRATEGY,
+        SCHEMA_PREPARATION_DIRECTORY
     );
 
     private String identifier;
@@ -221,10 +232,10 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         if (context.getProperty(ASN_FILES) != null && context.getProperty(ASN_FILES).isSet()) {
             String asnFilesString = context.getProperty(ASN_FILES).evaluateAttributeExpressions().getValue();
 
-            if (context.getProperty(DO_ADDITIONAL_PREPROCESSING).asBoolean()) {
+            if (ADDITIONAL_PREPROCESSING.getValue().equals(context.getProperty(SCHEMA_PREPARATION_STRATEGY).getValue())) {
                 final AsnPreprocessorEngine asnPreprocessorEngine = new AsnPreprocessorEngine();
 
-                final String preprocessOutputDirectory = context.getProperty(ADDITIONAL_PREPROCESSING_OUTPUT_DIRECTORY).evaluateAttributeExpressions().getValue();
+                final String preprocessOutputDirectory = context.getProperty(SCHEMA_PREPARATION_DIRECTORY).evaluateAttributeExpressions().getValue();
 
                 asnFilesString = asnPreprocessorEngine.preprocess(
                         logger,
@@ -280,7 +291,7 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
                 logger.error("ASN.1 file not found [{}]", asn1File, e);
                 parseException = e;
             } catch (TokenStreamException | RecognitionException e) {
-                logger.error("ASN.1 stream parsing failed [{}] due to {}", asn1File, e.toString(), e);
+                logger.error("ASN.1 stream parsing failed [{}]", asn1File, e);
                 parseException = e;
             } catch (Exception e) {
                 logger.error("ASN.1 parsing failed [{}]", asn1File, e);
