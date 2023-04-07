@@ -114,8 +114,8 @@
         <org.apache.commons.net.version>3.9.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.11.0</org.apache.commons.io.version>
         <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
-        <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
-        <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
+        <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
+        <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.71</org.bouncycastle.version>
         <testcontainers.version>1.18.0</testcontainers.version>
         <org.slf4j.version>2.0.7</org.slf4j.version>
