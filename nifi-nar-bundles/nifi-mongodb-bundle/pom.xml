@@ -26,16 +26,16 @@
     <packaging>pom</packaging>
 
     <modules>
-	    <module>nifi-mongodb-client-service-api</module>
+        <module>nifi-mongodb-client-service-api</module>
         <module>nifi-mongodb-client-service-api-nar</module>
         <module>nifi-mongodb-services</module>
         <module>nifi-mongodb-services-nar</module>
-	    <module>nifi-mongodb-processors</module>
+        <module>nifi-mongodb-processors</module>
         <module>nifi-mongodb-nar</module>
     </modules>
 
     <properties>
-        <mongo.driver.version>4.8.0</mongo.driver.version>
+        <mongo.driver.version>4.8.2</mongo.driver.version>
     </properties>
 
     <dependencyManagement>

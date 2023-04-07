@@ -310,8 +310,8 @@
             <dependency>
                 <groupId>com.networknt</groupId>
                 <artifactId>json-schema-validator</artifactId>
-            <version>1.0.76</version>
-        </dependency>
+                <version>1.0.79</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
