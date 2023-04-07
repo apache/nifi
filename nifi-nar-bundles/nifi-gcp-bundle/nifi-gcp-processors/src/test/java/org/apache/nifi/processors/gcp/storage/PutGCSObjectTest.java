@@ -180,7 +180,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         runner.setProperty(PutGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
         runner.setProperty(PutGCSObject.OVERWRITE, String.valueOf(OVERWRITE));
         runner.setProperty(PutGCSObject.CONTENT_DISPOSITION_TYPE, CONTENT_DISPOSITION_TYPE);
-
+        runner.setProperty(PutGCSObject.GZIPCONTENT, "False");
         runner.assertValid();
 
         when(storage.createFrom(blobInfoArgumentCaptor.capture(),

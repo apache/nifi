@@ -194,6 +194,16 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor GZIPCONTENT = new PropertyDescriptor
+            .Builder().name("gzip.content")
+            .displayName("Allow GZIP Compression")
+            .description("Signals to the GCS Blob Writer whether GZIP compression during transfer is desired. " +
+                    "False means dont gzip and can boost performance in many cases.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("False")
+            .allowableValues("True", "False")
+            .defaultValue("True")
+            .build();
     public static final AllowableValue ACL_ALL_AUTHENTICATED_USERS = new AllowableValue(
             ALL_AUTHENTICATED_USERS.name(), "All Authenticated Users", "Gives the bucket or object owner OWNER " +
             "permission, and gives all authenticated Google account holders READER and WRITER permissions. " +
@@ -299,6 +309,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
         descriptors.add(ENCRYPTION_KEY);
         descriptors.add(OVERWRITE);
         descriptors.add(CONTENT_DISPOSITION_TYPE);
+        descriptors.add(GZIPCONTENT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -388,6 +399,11 @@ public class PutGCSObject extends AbstractGCSProcessor {
                                 .evaluateAttributeExpressions(ff).getValue();
                         if (encryptionKey != null) {
                             blobWriteOptions.add(Storage.BlobWriteOption.encryptionKey(encryptionKey));
+                        }
+
+                        final boolean gzipCompress = context.getProperty(GZIPCONTENT).asBoolean();
+                        if (!gzipCompress){
+                            blobWriteOptions.add(Storage.BlobWriteOption.disableGzipContent());
                         }
 
                         final HashMap<String, String> userMetadata = new HashMap<>();
