@@ -102,7 +102,7 @@
             <dependency>
                 <groupId>org.apache.ant</groupId>
                 <artifactId>ant</artifactId>
-                <version>1.10.12</version>
+                <version>1.10.13</version>
             </dependency>
             <!-- Override Xerces 2.9.1 in Hive 1.1 and 1.2 -->
             <dependency>
