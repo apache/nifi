@@ -564,7 +564,7 @@ limitations under the License.
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>9.6.0-5</version>
+                <version>12.1</version>
             </dependency>
             <dependency>
                 <groupId>stax</groupId>
