@@ -385,6 +385,28 @@ public class PutBigQueryTest extends AbstractBQTest {
         runner.assertTransferCount(PutBigQuery.REL_SUCCESS, 0);
     }
 
+    @Test
+    void testNextFlowFileProcessedWhenIntermittentErrorResolved() {
+        when(writeClient.createWriteStream(isA(CreateWriteStreamRequest.class))).thenReturn(writeStream);
+        TableSchema myTableSchema = mockTableSchema(FIELD_1_NAME, TableFieldSchema.Type.STRING, FIELD_2_NAME, TableFieldSchema.Type.STRING);
+        when(writeStream.getTableSchema()).thenReturn(myTableSchema);
+        when(streamWriter.append(isA(ProtoRows.class), isA(Long.class)))
+            .thenReturn(ApiFutures.immediateFailedFuture(new StatusRuntimeException(Status.INTERNAL)))
+            .thenReturn(ApiFutures.immediateFuture(AppendRowsResponse.newBuilder().setAppendResult(mock(AppendRowsResponse.AppendResult.class)).build()));
+
+        runner.setProperty(PutBigQuery.RETRY_COUNT, "0");
+
+        runner.enqueue(csvContentWithLines(1));
+        runner.enqueue(csvContentWithLines(1));
+        runner.run(2);
+
+        verify(streamWriter, times(2)).append(any(ProtoRows.class), anyLong());
+
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(PutBigQuery.REL_FAILURE, 1);
+        runner.assertTransferCount(PutBigQuery.REL_SUCCESS, 1);
+    }
+
     private void decorateWithRecordReader(TestRunner runner) throws InitializationException {
         CSVReader csvReader = new CSVReader();
         runner.addControllerService("csvReader", csvReader);

@@ -218,18 +218,16 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             return;
         }
 
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+
         int recordNumWritten;
         try {
-            try (InputStream in = session.read(flowFile)) {
-                RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-                try (RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
-                    recordNumWritten = writeRecordsToStream(reader, protoDescriptor);
-                }
+            try (InputStream in = session.read(flowFile);
+                    RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
+                recordNumWritten = writeRecordsToStream(reader, protoDescriptor);
             }
-
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
         } catch (Exception e) {
-            getLogger().error("Writing Records failed", e);
             error.set(e);
         } finally {
             finishProcessing(session, flowFile, streamWriter, writeStream.getName(), tableName.toString());
@@ -303,6 +301,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, isBatch() ? "0" : String.valueOf(appendSuccessCount.get() * recordBatchCount));
             session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
+            error.set(null); // set error to null for next execution
         } else {
             if (isBatch()) {
                 writeClient.finalizeWriteStream(streamName);
@@ -434,6 +433,9 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         Map<String, Object> result = new HashMap<>();
         for (String key : map.keySet()) {
             Object obj = map.get(key);
+            // BigQuery is not case sensitive on the column names but the protobuf message
+            // expect all column names to be lower case
+            key = key.toLowerCase();
             if (obj instanceof MapRecord) {
                 result.put(key, convertMapRecord(((MapRecord) obj).toMap()));
             } else if (obj instanceof Object[]
