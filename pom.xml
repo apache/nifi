@@ -148,6 +148,7 @@
         <swagger.annotations.version>1.6.6</swagger.annotations.version>
         <h2.version>2.1.214</h2.version>
         <zookeeper.version>3.8.1</zookeeper.version>
+        <caffeine.version>2.9.3</caffeine.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -692,6 +693,11 @@
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
                 <version>1.15.3</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
