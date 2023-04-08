@@ -103,7 +103,7 @@
             <dependency>
                 <groupId>org.apache.parquet</groupId>
                 <artifactId>parquet-hadoop-bundle</artifactId>
-                <version>1.12.3</version>
+                <version>1.13.0</version>
             </dependency>
             <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
             <dependency>
