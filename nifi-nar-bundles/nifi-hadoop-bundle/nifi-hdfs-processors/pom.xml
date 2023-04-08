@@ -117,7 +117,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>2.9.2</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
