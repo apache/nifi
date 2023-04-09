@@ -332,11 +332,11 @@ processor will be triggered again. This process will continue until either the M
 OR until some threshold has been reached. These thresholds can be configured using the following properties:
 
 
-/ Property Name / Description / Example Value /
-/---------------/-------------/---------------/
-/ nifi.stateless.transaction.thresholds.flowfiles / The maximum number of FlowFiles that a source processors should bring into the flow each time the dataflow is triggered. / 1000 /
-/ nifi.stateless.transaction.thresholds.bytes / The maximum amount of data for all FlowFiles' contents. / 100 MB /
-/ nifi.stateless.transaction.thresholds.time / The amount of time between when the dataflow was triggered and when the source processors should stop being triggered. / 1 sec /
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.transaction.thresholds.flowfiles | The maximum number of FlowFiles that a source processors should bring into the flow each time the dataflow is triggered. | 1000 |
+| nifi.stateless.transaction.thresholds.bytes | The maximum amount of data for all FlowFiles' contents. | 100 MB |
+| nifi.stateless.transaction.thresholds.time | The amount of time between when the dataflow was triggered and when the source processors should stop being triggered. | 1 sec |
 
 For example, to ensure that the source processors are not triggered to bring in more than 1 MB of data and not more than 10 FlowFiles, we can use:
 ```
