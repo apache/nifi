@@ -108,6 +108,7 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
         logger.info("Will perform flow update from {} for operation #{}. Previous flow id was {}, replacing with new id {}",
             callbackUrl, operationId, ofNullable(flowIdHolder.getFlowId()).orElse("not set"), flowId);
+        flowIdHolder.setFlowId(flowId);
         return operationAck(operationId, updateFlow(operationId, callbackUrl.get()));
     }
 

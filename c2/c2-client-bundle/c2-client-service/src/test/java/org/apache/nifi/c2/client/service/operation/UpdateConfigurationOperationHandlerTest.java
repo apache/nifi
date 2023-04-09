@@ -22,6 +22,8 @@ import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOpe
 import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -100,7 +102,7 @@ public class UpdateConfigurationOperationHandlerTest {
     }
 
     @Test
-    void testHandleReturnsNotAppliedWithNoContent() {
+    void testHandleReturnsNoOperationWithNoContent() {
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null, operandPropertiesProvider);
@@ -143,6 +145,7 @@ public class UpdateConfigurationOperationHandlerTest {
 
         C2OperationAck response = handler.handle(operation);
 
+        verify(flowIdHolder, times(1)).setFlowId(FLOW_ID);
         assertEquals(OPERATION_ID, response.getOperationId());
         assertEquals(C2OperationState.OperationState.FULLY_APPLIED, response.getOperationState().getState());
     }
