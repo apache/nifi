@@ -14,30 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.adx;
+package org.apache.nifi.processors.adx.enums;
 
-public enum AzureAdxConnectionServiceParamsEnum {
+public enum AzureAdxSourceProcessorParameter {
+    DB_NAME("Database name", "The name of the database where the query will be executed."),
 
-    AUTH_STRATEGY("Kusto Authentication Method", "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
-    APP_ID("Application ID", "Azure application ID for accessing the ADX-Cluster"),
-    APP_KEY("Application KEY", "Azure application Key for accessing the ADX-Cluster"),
-    APP_TENANT("Application Tenant", "Azure application tenant for accessing the ADX-Cluster"),
-    CLUSTER_URL("Cluster URL", "Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled.");
+    ADX_QUERY("ADX query", "The query which needs to be executed in Azure Data Explorer."),
+
+    ADX_SOURCE_SERVICE("Azure ADX Source Connection Service", "Service that provides the Azure Data Explorer(ADX) Connections.");
 
     private final String paramDisplayName;
-    private final String description;
 
+    private final String paramDescription;
 
-    AzureAdxConnectionServiceParamsEnum(String paramDisplayName, String description) {
+    AzureAdxSourceProcessorParameter(String paramDisplayName, String paramDescription) {
         this.paramDisplayName = paramDisplayName;
-        this.description = description;
+        this.paramDescription = paramDescription;
     }
 
     public String getParamDisplayName() {
         return paramDisplayName;
     }
 
-    public String getDescription() {
-        return description;
+    public String getParamDescription() {
+        return paramDescription;
     }
 }

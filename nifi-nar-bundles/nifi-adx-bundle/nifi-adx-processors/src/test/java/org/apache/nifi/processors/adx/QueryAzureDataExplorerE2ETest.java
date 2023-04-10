@@ -23,6 +23,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.HashMap;
 
@@ -36,18 +37,19 @@ import java.util.HashMap;
  * -DclusterUrl=(clusterUrl)
  * -DdatabaseName=(databaseName)
  * -DadxQuery=(query-to-be-executed-in-source-ADX)
- * -DadxQueryWhichExceedsLimit=(query-who-execution-will-exceed-the-kusto-query-limits)
+ * -DadxQueryWhichExceedsLimit=(query-whose-execution-will-exceed-the-kusto-query-limits)
  **/
-class AzureAdxSourceProcessorE2ETest {
+
+@EnabledIfSystemProperty(named = "executeE2ETests", matches = "true")
+class QueryAzureDataExplorerE2ETest {
 
     private TestRunner testRunner;
 
     @BeforeEach
     public void init() throws InitializationException {
-        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        AzureAdxSourceProcessor azureAdxSourceProcessor = new AzureAdxSourceProcessor();
-        testRunner = TestRunners.newTestRunner(azureAdxSourceProcessor);
+        QueryAzureDataExplorer queryAzureDataExplorer = new QueryAzureDataExplorer();
+        testRunner = TestRunners.newTestRunner(queryAzureDataExplorer);
         testRunner.setValidateExpressionUsage(false);
         AzureAdxSourceConnectionService azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
         testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
@@ -74,13 +76,13 @@ class AzureAdxSourceProcessorE2ETest {
     void testAzureAdxSourceProcessorSuccessE2E() {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQuery"));
-        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
+        testRunner.setProperty(QueryAzureDataExplorer.ADX_QUERY,System.getProperty("adxQuery"));
+        testRunner.setProperty(QueryAzureDataExplorer.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(QueryAzureDataExplorer.ADX_SOURCE_SERVICE,"adx-connection-service");
         testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(org.apache.nifi.processors.adx.AzureAdxSourceProcessor.RL_SUCCEEDED);
+        testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.SUCCESS);
     }
 
     /**
@@ -98,13 +100,13 @@ class AzureAdxSourceProcessorE2ETest {
     void testAzureAdxSourceProcessorFailureQueryLimitExceededE2E() {
         Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
 
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_QUERY,System.getProperty("adxQueryWhichExceedsLimit"));
-        testRunner.setProperty(AzureAdxSourceProcessor.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(AzureAdxSourceProcessor.ADX_SOURCE_SERVICE,"adx-connection-service");
+        testRunner.setProperty(QueryAzureDataExplorer.ADX_QUERY,System.getProperty("adxQueryWhichExceedsLimit"));
+        testRunner.setProperty(QueryAzureDataExplorer.DB_NAME,System.getProperty("databaseName"));
+        testRunner.setProperty(QueryAzureDataExplorer.ADX_SOURCE_SERVICE,"adx-connection-service");
         testRunner.setIncomingConnection(false);
         testRunner.run(1);
         testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(AzureAdxSourceProcessor.RL_FAILED);
+        testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.FAILED);
     }
 
 }

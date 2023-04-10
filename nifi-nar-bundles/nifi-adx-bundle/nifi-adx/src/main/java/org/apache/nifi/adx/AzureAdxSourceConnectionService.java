@@ -53,42 +53,42 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     private static final String KUSTO_STRATEGY_MANAGED_IDENTITY = "managed_identity";
 
     public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.AUTH_STRATEGY.getDescription())
+            .Builder().name(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.name())
+            .displayName(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.getDescription())
             .required(false)
             .defaultValue(KUSTO_STRATEGY_APPLICATION)
             .allowableValues(KUSTO_STRATEGY_APPLICATION, KUSTO_STRATEGY_MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_ID.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.APP_ID.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.APP_ID.getDescription())
+            .Builder().name(AzureAdxConnectionServiceParameter.APP_ID.name())
+            .displayName(AzureAdxConnectionServiceParameter.APP_ID.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParameter.APP_ID.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_KEY = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_KEY.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.APP_KEY.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.APP_KEY.getDescription())
+            .Builder().name(AzureAdxConnectionServiceParameter.APP_KEY.name())
+            .displayName(AzureAdxConnectionServiceParameter.APP_KEY.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParameter.APP_KEY.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_TENANT = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.APP_TENANT.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.APP_TENANT.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.APP_TENANT.getDescription())
+            .Builder().name(AzureAdxConnectionServiceParameter.APP_TENANT.name())
+            .displayName(AzureAdxConnectionServiceParameter.APP_TENANT.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParameter.APP_TENANT.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CLUSTER_URL = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.name())
-            .displayName(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParamsEnum.CLUSTER_URL.getDescription())
+            .Builder().name(AzureAdxConnectionServiceParameter.CLUSTER_URL.name())
+            .displayName(AzureAdxConnectionServiceParameter.CLUSTER_URL.getParamDisplayName())
+            .description(AzureAdxConnectionServiceParameter.CLUSTER_URL.getDescription())
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();

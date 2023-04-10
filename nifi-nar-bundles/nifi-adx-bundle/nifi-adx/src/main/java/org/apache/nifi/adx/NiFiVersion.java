@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.adx;
 
-import org.apache.commons.lang3.tuple.Pair;import org.slf4j.Logger;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.InputStream;
-import java.util.Properties;
 
 public class NiFiVersion {
     public static final String CLIENT_NAME = "Kusto.Nifi";
 
     public static final Pair<String,String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
     private static final Logger log = LoggerFactory.getLogger(NiFiVersion.class);
-    private static final String VERSION_FILE = "/azure-kusto-nifi-version.properties";
     private static String version = "unknown";
 
     private NiFiVersion() {
@@ -35,11 +32,8 @@ public class NiFiVersion {
 
     static {
         try {
-            Properties props = new Properties();
-            try (InputStream versionFileStream = NiFiVersion.class.getResourceAsStream(VERSION_FILE)) {
-                props.load(versionFileStream);
-                version = props.getProperty("version", version).trim();
-            }
+            version = NiFiVersion.class.getPackage().getImplementationVersion();
+            log.info("Loaded version: {}", version);
         } catch (Exception e) {
             log.warn("Error while loading version:", e);
         }

@@ -20,7 +20,7 @@ import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processors.adx.AzureAdxSourceProcessor;
+import org.apache.nifi.processors.adx.QueryAzureDataExplorer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +29,7 @@ import java.util.Objects;
 /**
  * these are mock implementation classes of adx source processor required for junit classes to work properly
  */
-public class MockAzureAdxSourceProcessor extends AzureAdxSourceProcessor {
+public class MockQueryAzureDataExplorer extends QueryAzureDataExplorer {
     @Override
     protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataClientException {
         try {
