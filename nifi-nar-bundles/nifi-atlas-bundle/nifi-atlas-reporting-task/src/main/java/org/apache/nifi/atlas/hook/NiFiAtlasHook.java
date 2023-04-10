@@ -31,6 +31,7 @@ import java.util.List;
 public class NiFiAtlasHook extends AtlasHook implements LineageContext {
 
     public static final String NIFI_USER = "nifi";
+    public static final String NIFI_SOURCE = "nifi";
 
     private NiFiAtlasClient atlasClient;
 
@@ -43,6 +44,11 @@ public class NiFiAtlasHook extends AtlasHook implements LineageContext {
     @Override
     public void addMessage(HookNotification message) {
         messages.add(message);
+    }
+
+    @Override
+    public String getMessageSource() {
+        return NIFI_SOURCE;
     }
 
     public void commitMessages() {
