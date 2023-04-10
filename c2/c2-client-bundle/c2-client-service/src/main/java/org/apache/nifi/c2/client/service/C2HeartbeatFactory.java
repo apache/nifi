@@ -36,6 +36,7 @@ import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.AgentInfo;
 import org.apache.nifi.c2.protocol.api.AgentManifest;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
+import org.apache.nifi.c2.protocol.api.AgentResourceConsumption;
 import org.apache.nifi.c2.protocol.api.AgentStatus;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.DeviceInfo;
@@ -95,7 +96,9 @@ public class C2HeartbeatFactory {
         AgentStatus agentStatus = new AgentStatus();
         agentStatus.setUptime(ManagementFactory.getRuntimeMXBean().getUptime());
         agentStatus.setRepositories(repos);
-
+        AgentResourceConsumption agentResourceConsumption = new AgentResourceConsumption();
+        agentResourceConsumption.setMemoryUsage(Runtime.getRuntime().maxMemory() - Runtime.getRuntime().freeMemory());
+        agentStatus.setResourceConsumption(agentResourceConsumption);
         agentInfo.setStatus(agentStatus);
         agentInfo.setAgentManifestHash(manifestHashProvider.calculateManifestHash(manifest.getBundles(), getSupportedOperations(manifest)));
 
@@ -215,15 +218,14 @@ public class C2HeartbeatFactory {
 
     private SystemInfo generateSystemInfo() {
         SystemInfo systemInfo = new SystemInfo();
-        systemInfo.setPhysicalMem(Runtime.getRuntime().maxMemory());
-        systemInfo.setMemoryUsage(Runtime.getRuntime().maxMemory() - Runtime.getRuntime().freeMemory());
-        systemInfo.setvCores(Runtime.getRuntime().availableProcessors());
 
         OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
         systemInfo.setMachineArch(osMXBean.getArch());
         systemInfo.setOperatingSystem(osMXBean.getName());
 
         double systemLoadAverage = osMXBean.getSystemLoadAverage();
+        systemInfo.setvCores(osMXBean.getAvailableProcessors());
+
         // getSystemLoadAverage is not available in Windows, so we need to prevent to send invalid data
         if (systemLoadAverage >= 0) {
             systemInfo.setCpuUtilization(systemLoadAverage / (double) osMXBean.getAvailableProcessors());
