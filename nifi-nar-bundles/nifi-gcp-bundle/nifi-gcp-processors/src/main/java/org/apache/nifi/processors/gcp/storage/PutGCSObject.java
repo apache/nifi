@@ -195,14 +195,13 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor GZIPCONTENT = new PropertyDescriptor
-            .Builder().name("gzip.content")
-            .displayName("Allow GZIP Compression")
+            .Builder().name("gzip.content.enabled")
+            .displayName("GZIP Compression Enabled")
             .description("Signals to the GCS Blob Writer whether GZIP compression during transfer is desired. " +
-                    "False means dont gzip and can boost performance in many cases.")
+                    "False means do not gzip and can boost performance in many cases.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .defaultValue("False")
-            .allowableValues("True", "False")
-            .defaultValue("True")
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .defaultValue(Boolean.TRUE.toString())
             .build();
     public static final AllowableValue ACL_ALL_AUTHENTICATED_USERS = new AllowableValue(
             ALL_AUTHENTICATED_USERS.name(), "All Authenticated Users", "Gives the bucket or object owner OWNER " +
