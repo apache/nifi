@@ -28,7 +28,7 @@ public enum HashAlgorithm {
 
     SHA512(HashAlgorithmTags.SHA512);
 
-    private int id;
+    private final int id;
 
     HashAlgorithm(final int id) {
         this.id = id;
