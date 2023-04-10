@@ -120,6 +120,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Woodstox provides optimized XML processing over standard JRE capabilities -->
+        <dependency>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
+            <version>6.5.0</version>
+        </dependency>
         <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
