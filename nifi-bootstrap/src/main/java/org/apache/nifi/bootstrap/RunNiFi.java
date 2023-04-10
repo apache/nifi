@@ -18,6 +18,7 @@ package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.process.RuntimeValidatorChecker;
 import org.apache.nifi.bootstrap.util.DumpFileValidator;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
 import org.apache.nifi.util.file.FileUtils;
@@ -1112,6 +1113,9 @@ public class RunNiFi {
         if (prevLockFile.exists() && !prevLockFile.delete()) {
             cmdLogger.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
+
+        final RuntimeValidatorChecker configChecker = new RuntimeValidatorChecker();
+        configChecker.check();
 
         final ProcessBuilder builder = new ProcessBuilder();
 
