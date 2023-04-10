@@ -130,8 +130,8 @@
             buttons: [{
                 buttonText: 'Filter',
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
+                    base: '#000080',
+                    hover: '#333399',
                     text: '#ffffff'
                 },
                 handler: {
@@ -222,8 +222,8 @@
             buttons: [{
                 buttonText: 'Purge',
                 color: {
-                    base: '#728E9B',
-                    hover: '#004849',
+                    base: '#000080',
+                    hover: '#333399',
                     text: '#ffffff'
                 },
                 handler: {
