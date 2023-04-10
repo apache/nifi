@@ -40,7 +40,7 @@
         <flyway.version>8.5.13</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
+        <groovy.eclipse.compiler.version>3.7.0</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>5.13.1.202206130422-r</jgit.version>
         <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
@@ -192,7 +192,7 @@
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>2.1-M2-groovy-3.0</version>
+                <version>2.3-groovy-3.0</version>
                 <scope>test</scope>
                 <exclusions>
                     <exclusion>
