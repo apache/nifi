@@ -18,6 +18,7 @@ package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.process.RuntimeValidatorExecutor;
 import org.apache.nifi.bootstrap.util.DumpFileValidator;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
 import org.apache.nifi.util.file.FileUtils;
@@ -146,6 +147,7 @@ public class RunNiFi {
     private final Logger defaultLogger = LoggerFactory.getLogger(RunNiFi.class);
 
     private final ExecutorService loggingExecutor;
+    private final RuntimeValidatorExecutor runtimeValidatorExecutor;
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
     private final NotificationServiceManager serviceManager;
 
@@ -163,6 +165,8 @@ public class RunNiFi {
         });
 
         serviceManager = loadServices();
+
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor();
     }
 
     private static void printUsage() {
@@ -1112,6 +1116,8 @@ public class RunNiFi {
         if (prevLockFile.exists() && !prevLockFile.delete()) {
             cmdLogger.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
+
+        runtimeValidatorExecutor.execute();
 
         final ProcessBuilder builder = new ProcessBuilder();
 
