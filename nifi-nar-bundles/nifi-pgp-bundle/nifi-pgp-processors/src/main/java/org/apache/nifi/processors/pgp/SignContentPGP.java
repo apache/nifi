@@ -91,15 +91,6 @@ public class SignContentPGP extends AbstractProcessor {
             .description("Content signing failed")
             .build();
 
-    public static final PropertyDescriptor COMPRESSION_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("compression-algorithm")
-            .displayName("Compression Algorithm")
-            .description("Compression Algorithm for signing")
-            .required(true)
-            .defaultValue(CompressionAlgorithm.ZIP.name())
-            .allowableValues(CompressionAlgorithm.values())
-            .build();
-
     public static final PropertyDescriptor FILE_ENCODING = new PropertyDescriptor.Builder()
             .name("file-encoding")
             .displayName("File Encoding")
@@ -151,7 +142,6 @@ public class SignContentPGP extends AbstractProcessor {
     private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
-            COMPRESSION_ALGORITHM,
             FILE_ENCODING,
             HASH_ALGORITHM,
             SIGNING_STRATEGY,
@@ -160,6 +150,9 @@ public class SignContentPGP extends AbstractProcessor {
     );
 
     private static final boolean NESTED_SIGNATURE_DISABLED = false;
+
+    /** Disable Compression as recommended in OpenPGP refreshed specification */
+    private static final CompressionAlgorithm COMPRESSION_DISABLED = CompressionAlgorithm.UNCOMPRESSED;
 
     /**
      * Get Relationships
@@ -207,14 +200,13 @@ public class SignContentPGP extends AbstractProcessor {
 
     private SignatureStreamCallback getStreamCallback(final ProcessContext context, final FlowFile flowFile) {
         final FileEncoding fileEncoding = getFileEncoding(context);
-        final CompressionAlgorithm compressionAlgorithm = getCompressionAlgorithm(context);
         final HashAlgorithm hashAlgorithm = getHashAlgorithm(context);
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         final SigningStrategy signingStrategy = getSigningStrategy(context);
         final PGPPrivateKey privateKey = getPrivateKey(context, flowFile);
         return SigningStrategy.SIGNED.equals(signingStrategy)
-                ? new SignedStreamCallback(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey)
-                : new DetachedStreamCallback(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
+                ? new SignedStreamCallback(fileEncoding, filename, hashAlgorithm, privateKey)
+                : new DetachedStreamCallback(fileEncoding, filename, hashAlgorithm, privateKey);
     }
 
     private PGPPrivateKey getPrivateKey(final ProcessContext context, final FlowFile flowFile) {
@@ -235,11 +227,6 @@ public class SignContentPGP extends AbstractProcessor {
         } catch (final NumberFormatException e) {
             throw new PGPProcessException(String.format("Private Key ID [%s] Hexadecimal Parsing Failed", privateKeyId), e);
         }
-    }
-
-    private CompressionAlgorithm getCompressionAlgorithm(final ProcessContext context) {
-        final String algorithm = context.getProperty(COMPRESSION_ALGORITHM).getValue();
-        return CompressionAlgorithm.valueOf(algorithm);
     }
 
     private FileEncoding getFileEncoding(final ProcessContext context) {
@@ -265,17 +252,16 @@ public class SignContentPGP extends AbstractProcessor {
         private final Map<String, String> attributes = new HashMap<>();
 
         protected SignatureStreamCallback(final FileEncoding fileEncoding,
-                                   final CompressionAlgorithm compressionAlgorithm,
                                    final String filename,
                                    final HashAlgorithm hashAlgorithm,
                                    final PGPPrivateKey privateKey
         ) {
-            super(fileEncoding, compressionAlgorithm, filename);
+            super(fileEncoding, COMPRESSION_DISABLED, filename);
             this.hashAlgorithm = hashAlgorithm;
             this.privateKey = privateKey;
 
-            attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM, compressionAlgorithm.toString());
-            attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM_ID, Integer.toString(compressionAlgorithm.getId()));
+            attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM, COMPRESSION_DISABLED.toString());
+            attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM_ID, Integer.toString(COMPRESSION_DISABLED.getId()));
             attributes.put(PGPAttributeKey.FILE_ENCODING, fileEncoding.toString());
         }
 
@@ -329,12 +315,11 @@ public class SignContentPGP extends AbstractProcessor {
 
     private class DetachedStreamCallback extends SignatureStreamCallback {
         private DetachedStreamCallback(final FileEncoding fileEncoding,
-                                        final CompressionAlgorithm compressionAlgorithm,
                                         final String filename,
                                         final HashAlgorithm hashAlgorithm,
                                         final PGPPrivateKey privateKey
         ) {
-            super(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
+            super(fileEncoding, filename, hashAlgorithm, privateKey);
         }
 
         /**
@@ -364,12 +349,11 @@ public class SignContentPGP extends AbstractProcessor {
     private class SignedStreamCallback extends SignatureStreamCallback {
 
         private SignedStreamCallback(final FileEncoding fileEncoding,
-                                   final CompressionAlgorithm compressionAlgorithm,
                                    final String filename,
                                    final HashAlgorithm hashAlgorithm,
                                    final PGPPrivateKey privateKey
         ) {
-            super(fileEncoding, compressionAlgorithm, filename, hashAlgorithm, privateKey);
+            super(fileEncoding, filename, hashAlgorithm, privateKey);
         }
 
         /**

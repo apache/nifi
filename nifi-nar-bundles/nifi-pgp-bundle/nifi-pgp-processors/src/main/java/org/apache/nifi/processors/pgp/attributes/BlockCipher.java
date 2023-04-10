@@ -20,7 +20,5 @@ package org.apache.nifi.processors.pgp.attributes;
  * Block Cipher Definitions
  */
 public enum BlockCipher {
-    AES,
-
-    CAMELLIA
+    AES
 }

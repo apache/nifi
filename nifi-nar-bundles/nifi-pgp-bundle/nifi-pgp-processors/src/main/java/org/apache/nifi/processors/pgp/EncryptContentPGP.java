@@ -110,15 +110,6 @@ public class EncryptContentPGP extends AbstractProcessor {
             .allowableValues(SymmetricKeyAlgorithm.values())
             .build();
 
-    public static final PropertyDescriptor COMPRESSION_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("compression-algorithm")
-            .displayName("Compression Algorithm")
-            .description("Compression Algorithm for encryption")
-            .required(true)
-            .defaultValue(CompressionAlgorithm.ZIP.toString())
-            .allowableValues(CompressionAlgorithm.values())
-            .build();
-
     public static final PropertyDescriptor FILE_ENCODING = new PropertyDescriptor.Builder()
             .name("file-encoding")
             .displayName("File Encoding")
@@ -155,11 +146,13 @@ public class EncryptContentPGP extends AbstractProcessor {
     /** Enable Integrity Protection as described in RFC 4880 Section 5.13 */
     private static final boolean ENCRYPTION_INTEGRITY_PACKET_ENABLED = true;
 
+    /** Disable Compression as recommended in OpenPGP refreshed specification */
+    private static final CompressionAlgorithm COMPRESSION_DISABLED = CompressionAlgorithm.UNCOMPRESSED;
+
     private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
             SYMMETRIC_KEY_ALGORITHM,
-            COMPRESSION_ALGORITHM,
             FILE_ENCODING,
             PASSPHRASE,
             PUBLIC_KEY_SERVICE,
@@ -202,11 +195,10 @@ public class EncryptContentPGP extends AbstractProcessor {
         try {
             final SymmetricKeyAlgorithm symmetricKeyAlgorithm = getSymmetricKeyAlgorithm(context);
             final FileEncoding fileEncoding = getFileEncoding(context);
-            final CompressionAlgorithm compressionAlgorithm = getCompressionAlgorithm(context);
-            final StreamCallback callback = getEncryptStreamCallback(context, flowFile, symmetricKeyAlgorithm, compressionAlgorithm, fileEncoding);
+            final StreamCallback callback = getEncryptStreamCallback(context, flowFile, symmetricKeyAlgorithm, fileEncoding);
             flowFile = session.write(flowFile, callback);
 
-            final Map<String, String> attributes = getAttributes(symmetricKeyAlgorithm, fileEncoding, compressionAlgorithm);
+            final Map<String, String> attributes = getAttributes(symmetricKeyAlgorithm, fileEncoding);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, SUCCESS);
@@ -264,7 +256,6 @@ public class EncryptContentPGP extends AbstractProcessor {
     private StreamCallback getEncryptStreamCallback(final ProcessContext context,
                                                     final FlowFile flowFile,
                                                     final SymmetricKeyAlgorithm symmetricKeyAlgorithm,
-                                                    final CompressionAlgorithm compressionAlgorithm,
                                                     final FileEncoding fileEncoding) {
         final SecureRandom secureRandom = new SecureRandom();
         final PGPDataEncryptorBuilder dataEncryptorBuilder = new BcPGPDataEncryptorBuilder(symmetricKeyAlgorithm.getId())
@@ -275,7 +266,7 @@ public class EncryptContentPGP extends AbstractProcessor {
         methodGenerators.forEach(encryptedDataGenerator::addMethod);
 
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-        return new EncryptStreamCallback(fileEncoding, compressionAlgorithm, filename, getLogger(), encryptedDataGenerator);
+        return new EncryptStreamCallback(fileEncoding, filename, getLogger(), encryptedDataGenerator);
     }
 
     private List<PGPKeyEncryptionMethodGenerator> getEncryptionMethodGenerators(final ProcessContext context,
@@ -311,27 +302,21 @@ public class EncryptContentPGP extends AbstractProcessor {
         return SymmetricKeyAlgorithm.valueOf(algorithm);
     }
 
-    private CompressionAlgorithm getCompressionAlgorithm(final ProcessContext context) {
-        final String algorithm = context.getProperty(COMPRESSION_ALGORITHM).getValue();
-        return CompressionAlgorithm.valueOf(algorithm);
-    }
-
     private FileEncoding getFileEncoding(final ProcessContext context) {
         final String encoding = context.getProperty(FILE_ENCODING).getValue();
         return FileEncoding.valueOf(encoding);
     }
 
     private Map<String, String> getAttributes(final SymmetricKeyAlgorithm symmetricKeyAlgorithm,
-                                              final FileEncoding fileEncoding,
-                                              final CompressionAlgorithm compressionAlgorithm) {
+                                              final FileEncoding fileEncoding) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM, symmetricKeyAlgorithm.toString());
         attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, symmetricKeyAlgorithm.getBlockCipher().toString());
         attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_KEY_SIZE, Integer.toString(symmetricKeyAlgorithm.getKeySize()));
         attributes.put(PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_ID, Integer.toString(symmetricKeyAlgorithm.getId()));
         attributes.put(PGPAttributeKey.FILE_ENCODING, fileEncoding.toString());
-        attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM, compressionAlgorithm.toString());
-        attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM_ID, Integer.toString(compressionAlgorithm.getId()));
+        attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM, COMPRESSION_DISABLED.toString());
+        attributes.put(PGPAttributeKey.COMPRESS_ALGORITHM_ID, Integer.toString(COMPRESSION_DISABLED.getId()));
         return attributes;
     }
 
@@ -341,11 +326,10 @@ public class EncryptContentPGP extends AbstractProcessor {
         private final ComponentLog logger;
 
         public EncryptStreamCallback(final FileEncoding fileEncoding,
-                                     final CompressionAlgorithm compressionAlgorithm,
                                      final String filename,
                                      final ComponentLog logger,
                                      final PGPEncryptedDataGenerator encryptedDataGenerator) {
-            super(fileEncoding, compressionAlgorithm, filename);
+            super(fileEncoding, COMPRESSION_DISABLED, filename);
             this.logger = logger;
             this.encryptedDataGenerator = encryptedDataGenerator;
         }
