@@ -78,6 +78,9 @@ public class StandardOauth2AccessTokenProviderTest {
     private static final String PASSWORD = "password";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
+    private static final String SCOPE = "scope";
+    private static final String RESOURCE = "resource";
+    private static final String AUDIENCE = "audience";
     private static final long FIVE_MINUTES = 300;
 
     private static final int HTTP_OK = 200;
@@ -120,6 +123,9 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.SCOPE).getValue()).thenReturn(SCOPE);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.RESOURCE).getValue()).thenReturn(RESOURCE);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.AUDIENCE).getValue()).thenReturn(AUDIENCE);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.BASIC_AUTHENTICATION.getValue());
 
@@ -362,6 +368,57 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     @Test
+    public void testKeepPreviousRefreshTokenWhenNewOneIsNotProvided() throws Exception {
+        // GIVEN
+        String refreshTokenBeforeRefresh = "refresh_token";
+
+        Response response1 = buildResponse(
+                HTTP_OK,
+                "{ \"access_token\":\"not_checking_in_this_test\", \"expires_in\":\"0\", \"refresh_token\":\"" + refreshTokenBeforeRefresh + "\" }"
+        );
+
+        Response response2 = buildResponse(
+                HTTP_OK,
+            "{ \"access_token\":\"not_checking_in_this_test_either\" }"
+        );
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1, response2);
+
+        // WHEN
+        testSubject.getAccessDetails();
+        String refreshTokenAfterRefresh = testSubject.getAccessDetails().getRefreshToken();
+
+        // THEN
+        assertEquals(refreshTokenBeforeRefresh, refreshTokenAfterRefresh);
+    }
+
+    @Test
+    public void testOverwritePreviousRefreshTokenWhenNewOneIsProvided() throws Exception {
+        // GIVEN
+        String refreshTokenBeforeRefresh = "refresh_token_before_refresh";
+        String expectedRefreshTokenAfterRefresh = "refresh_token_after_refresh";
+
+        Response response1 = buildResponse(
+                HTTP_OK,
+                "{ \"access_token\":\"not_checking_in_this_test\", \"expires_in\":\"0\", \"refresh_token\":\"" + refreshTokenBeforeRefresh + "\" }"
+        );
+
+        Response response2 = buildResponse(
+                HTTP_OK,
+            "{ \"access_token\":\"not_checking_in_this_test_either\", \"refresh_token\":\"" + expectedRefreshTokenAfterRefresh + "\" }"
+        );
+
+        when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response1, response2);
+
+        // WHEN
+        testSubject.getAccessDetails();
+        String actualRefreshTokenAfterRefresh = testSubject.getAccessDetails().getRefreshToken();
+
+        // THEN
+        assertEquals(expectedRefreshTokenAfterRefresh, actualRefreshTokenAfterRefresh);
+    }
+
+    @Test
     public void testBasicAuthentication() throws Exception {
         // GIVEN
         Response response = buildResponse(HTTP_OK, "{\"access_token\":\"foobar\"}");
@@ -377,7 +434,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     @Test
-    public void testRequestBodyAuthentication() throws Exception {
+    public void testRequestBodyFormData() throws Exception {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.GRANT_TYPE).getValue()).thenReturn(StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE.getValue());
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.REQUEST_BODY.getValue());
         testSubject.onEnabled(mockContext);
@@ -385,7 +442,11 @@ public class StandardOauth2AccessTokenProviderTest {
         // GIVEN
         Response response = buildResponse(HTTP_OK, "{\"access_token\":\"foobar\"}");
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
-        String expected = "grant_type=client_credentials&client_id=" + CLIENT_ID + "&client_secret=" + CLIENT_SECRET;
+        String expected = "grant_type=client_credentials&client_id=" + CLIENT_ID
+                + "&client_secret=" + CLIENT_SECRET
+                + "&scope=" + SCOPE
+                + "&resource=" + RESOURCE
+                + "&audience=" + AUDIENCE;
 
         // WHEN
         testSubject.getAccessDetails();

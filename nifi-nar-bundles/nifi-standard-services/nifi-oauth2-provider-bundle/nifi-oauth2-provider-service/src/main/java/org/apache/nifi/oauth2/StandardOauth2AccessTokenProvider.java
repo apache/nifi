@@ -163,6 +163,22 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor RESOURCE = new PropertyDescriptor.Builder()
+        .name("resource")
+        .displayName("Resource")
+        .description("Resource URI for the access token request defined in RFC 8707 Section 2")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor AUDIENCE = new PropertyDescriptor.Builder()
+        .name("audience")
+        .displayName("Audience")
+        .description("Audience for the access token request defined in RFC 8693 Section 2.1")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
         .name("refresh-window")
         .displayName("Refresh Window")
@@ -199,6 +215,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         CLIENT_ID,
         CLIENT_SECRET,
         SCOPE,
+        RESOURCE,
+        AUDIENCE,
         REFRESH_WINDOW,
         SSL_CONTEXT,
         HTTP_PROTOCOL_STRATEGY
@@ -220,6 +238,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String clientId;
     private volatile String clientSecret;
     private volatile String scope;
+    private volatile String resource;
+    private volatile String audience;
     private volatile long refreshWindowSeconds;
 
     private volatile AccessToken accessDetails;
@@ -242,6 +262,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
         scope = context.getProperty(SCOPE).getValue();
+        resource = context.getProperty(RESOURCE).getValue();
+        audience = context.getProperty(AUDIENCE).getValue();
 
         if (context.getProperty(REFRESH_TOKEN).isSet()) {
             String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
@@ -319,6 +341,14 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         return accessDetails;
     }
 
+    private boolean isRefreshRequired() {
+        final Instant expirationRefreshTime = accessDetails.getFetchTime()
+                .plusSeconds(accessDetails.getExpiresIn())
+                .minusSeconds(refreshWindowSeconds);
+
+        return Instant.now().isAfter(expirationRefreshTime);
+    }
+
     private void acquireAccessDetails() {
         getLogger().debug("New Access Token request started [{}]", authorizationServerUrl);
 
@@ -332,58 +362,59 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             acquireTokenBuilder.add("grant_type", "client_credentials");
         }
 
-        if (ClientAuthenticationStrategy.REQUEST_BODY == clientAuthenticationStrategy && clientId != null) {
-            acquireTokenBuilder.add("client_id", clientId);
-            acquireTokenBuilder.add("client_secret", clientSecret);
-        }
+        addFormData(acquireTokenBuilder);
 
-        if (scope != null) {
-            acquireTokenBuilder.add("scope", scope);
-        }
-
-        RequestBody acquireTokenRequestBody = acquireTokenBuilder.build();
-        Request.Builder acquireTokenRequestBuilder = new Request.Builder()
-            .url(authorizationServerUrl)
-            .post(acquireTokenRequestBody);
-
-        if (ClientAuthenticationStrategy.BASIC_AUTHENTICATION == clientAuthenticationStrategy && clientId != null) {
-            acquireTokenRequestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
-        }
-
-        Request acquireTokenRequest = acquireTokenRequestBuilder.build();
-
-        this.accessDetails = getAccessDetails(acquireTokenRequest);
+        this.accessDetails = requestToken(acquireTokenBuilder);
     }
 
     private void refreshAccessDetails() {
         getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
 
         FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
-            .add("grant_type", "refresh_token")
-            .add("refresh_token", this.accessDetails.getRefreshToken());
+                .add("grant_type", "refresh_token")
+                .add("refresh_token", this.accessDetails.getRefreshToken());
 
-        if (ClientAuthenticationStrategy.REQUEST_BODY == clientAuthenticationStrategy && clientId != null) {
-            refreshTokenBuilder.add("client_id", clientId);
-            refreshTokenBuilder.add("client_secret", clientSecret);
+        addFormData(refreshTokenBuilder);
+
+        AccessToken newAccessDetails = requestToken(refreshTokenBuilder);
+
+        if (newAccessDetails.getRefreshToken() == null) {
+            newAccessDetails.setRefreshToken(this.accessDetails.getRefreshToken());
         }
 
+        this.accessDetails = newAccessDetails;
+    }
+
+    private void addFormData(FormBody.Builder formBuilder) {
+        if (clientAuthenticationStrategy == ClientAuthenticationStrategy.REQUEST_BODY && clientId != null) {
+            formBuilder.add("client_id", clientId);
+            formBuilder.add("client_secret", clientSecret);
+        }
         if (scope != null) {
-            refreshTokenBuilder.add("scope", scope);
+            formBuilder.add("scope", scope);
         }
+        if (resource != null) {
+            formBuilder.add("resource", resource);
+        }
+        if (audience != null) {
+            formBuilder.add("audience", audience);
+        }
+    }
 
-        RequestBody refreshTokenRequestBody = refreshTokenBuilder.build();
+    private AccessToken requestToken(FormBody.Builder formBuilder) {
+        RequestBody requestBody = formBuilder.build();
 
-        Request.Builder refreshRequestBuilder = new Request.Builder()
-            .url(authorizationServerUrl)
-            .post(refreshTokenRequestBody);
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(authorizationServerUrl)
+                .post(requestBody);
 
         if (ClientAuthenticationStrategy.BASIC_AUTHENTICATION == clientAuthenticationStrategy && clientId != null) {
-            refreshRequestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
+            requestBuilder.addHeader(AUTHORIZATION_HEADER, Credentials.basic(clientId, clientSecret));
         }
 
-        Request refreshRequest = refreshRequestBuilder.build();
+        Request request = requestBuilder.build();
 
-        this.accessDetails = getAccessDetails(refreshRequest);
+        return getAccessDetails(request);
     }
 
     private AccessToken getAccessDetails(final Request newRequest) {
@@ -400,14 +431,6 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         } catch (final IOException e) {
             throw new UncheckedIOException("OAuth2 access token request failed", e);
         }
-    }
-
-    private boolean isRefreshRequired() {
-        final Instant expirationRefreshTime = accessDetails.getFetchTime()
-                .plusSeconds(accessDetails.getExpiresIn())
-                .minusSeconds(refreshWindowSeconds);
-
-        return Instant.now().isAfter(expirationRefreshTime);
     }
 
     @Override
