@@ -160,8 +160,7 @@ public class AsnPreprocessorEngineTest {
         String expected = new String(Files.readAllBytes(Paths.get(getClass().getClassLoader().getResource("preprocessed_" + input).toURI())), StandardCharsets.UTF_8)
                 .replace("\n", System.lineSeparator());
 
-        String actual = new String(Files.readAllBytes(Paths.get(preprocessedFile)), StandardCharsets.UTF_8)
-                .replace("\n", System.lineSeparator());
+        String actual = new String(Files.readAllBytes(Paths.get(preprocessedFile)), StandardCharsets.UTF_8);
 
         assertEquals(expected, actual);
     }
