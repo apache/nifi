@@ -579,7 +579,7 @@ OpenID Connect integration supports the following settings in _nifi.properties_.
 by the OpenID Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL
-|`nifi.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`
+|`nifi.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`. Authorization Servers require the `offline_access` scope to return a Refresh Token.
 |`nifi.security.user.oidc.claim.identifying.user`           | Claim that identifies the authenticated user. The default value is `email`. Claim names may need to be requested using the `nifi.security.user.oidc.additional.scopes` property
 |`nifi.security.user.oidc.fallback.claims.identifying.user` | Comma-separated list of possible fallback claims used to identify the user when the `nifi.security.user.oidc.claim.identifying.user` claim is not found.
 |`nifi.security.user.oidc.claim.groups`                     | Name of the ID token claim that contains an array of group names of which the
