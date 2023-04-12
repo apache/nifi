@@ -215,6 +215,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         CLIENT_ID,
         CLIENT_SECRET,
         SCOPE,
+        RESOURCE,
+        AUDIENCE,
         REFRESH_WINDOW,
         SSL_CONTEXT,
         HTTP_PROTOCOL_STRATEGY
