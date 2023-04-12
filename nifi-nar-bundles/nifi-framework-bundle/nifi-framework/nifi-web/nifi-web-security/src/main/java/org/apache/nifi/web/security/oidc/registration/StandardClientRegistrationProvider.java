@@ -21,7 +21,6 @@ import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.CLIENT_SEC
 import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.NONE;
 
 import com.nimbusds.oauth2.sdk.ParseException;
-import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.oidc.OidcConfigurationException;
@@ -30,8 +29,11 @@ import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.web.client.RestOperations;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -45,6 +47,8 @@ import java.util.Set;
 public class StandardClientRegistrationProvider implements ClientRegistrationProvider {
 
     private static final String REGISTRATION_REDIRECT_URI = String.format("{baseUrl}%s", OidcUrlPath.CALLBACK.getPath());
+
+    private static final Set<String> STANDARD_SCOPES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(OidcScopes.OPENID, OidcScopes.EMAIL)));
 
     private final NiFiProperties properties;
 
@@ -77,8 +81,7 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
         final String jwkSetUri = providerMetadata.getJWKSetURI().toASCIIString();
         final String userInfoUri = providerMetadata.getUserInfoEndpointURI().toASCIIString();
 
-        final Scope metadataScope = providerMetadata.getScopes();
-        final Set<String> scope = new LinkedHashSet<>(metadataScope.toStringList());
+        final Set<String> scope = new LinkedHashSet<>(STANDARD_SCOPES);
         final List<String> additionalScopes = properties.getOidcAdditionalScopes();
         scope.addAll(additionalScopes);
 

@@ -28,12 +28,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.web.client.RestOperations;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,6 +64,8 @@ class StandardClientRegistrationProviderTest {
     private static final String CLIENT_SECRET = "client-secret";
 
     private static final String USER_NAME_ATTRIBUTE_NAME = "email";
+
+    private static final Set<String> EXPECTED_SCOPES = new LinkedHashSet<>(Arrays.asList(OidcScopes.OPENID, OidcScopes.EMAIL, OidcScopes.PROFILE));
 
     private static final String INVALID_CONFIGURATION = "{}";
 
@@ -92,6 +98,9 @@ class StandardClientRegistrationProviderTest {
         assertEquals(USER_INFO_URI.toString(), userInfoEndpoint.getUri());
         assertEquals(USER_NAME_ATTRIBUTE_NAME, userInfoEndpoint.getUserNameAttributeName());
         assertEquals(AuthenticationMethod.HEADER, userInfoEndpoint.getAuthenticationMethod());
+
+        final Set<String> scopes = clientRegistration.getScopes();
+        assertEquals(EXPECTED_SCOPES, scopes);
     }
 
     @Test
@@ -120,6 +129,7 @@ class StandardClientRegistrationProviderTest {
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLIENT_ID, CLIENT_ID);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLIENT_SECRET, CLIENT_SECRET);
         properties.put(NiFiProperties.SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER, USER_NAME_ATTRIBUTE_NAME);
+        properties.put(NiFiProperties.SECURITY_USER_OIDC_ADDITIONAL_SCOPES, OidcScopes.PROFILE);
         return NiFiProperties.createBasicNiFiProperties(null, properties);
     }
 
@@ -131,6 +141,10 @@ class StandardClientRegistrationProviderTest {
         providerMetadata.setUserInfoEndpointURI(USER_INFO_URI);
         providerMetadata.setAuthorizationEndpointURI(AUTHORIZATION_ENDPOINT_URI);
         final Scope scopes = new Scope();
+        scopes.add(OidcScopes.OPENID);
+        scopes.add(OidcScopes.EMAIL);
+        scopes.add(OidcScopes.PROFILE);
+        scopes.add(OidcScopes.ADDRESS);
         providerMetadata.setScopes(scopes);
         return providerMetadata;
     }
