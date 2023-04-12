@@ -168,7 +168,8 @@
         <nifi.security.user.oidc.client.id />
         <nifi.security.user.oidc.client.secret />
         <nifi.security.user.oidc.preferred.jwsalgorithm />
-        <nifi.security.user.oidc.additional.scopes />
+        <!-- Set additional scopes to support Refresh Token retrieval -->
+        <nifi.security.user.oidc.additional.scopes>offline_access</nifi.security.user.oidc.additional.scopes>
         <nifi.security.user.oidc.claim.identifying.user />
         <nifi.security.user.oidc.fallback.claims.identifying.user />
         <nifi.security.user.oidc.claim.groups>groups</nifi.security.user.oidc.claim.groups>
