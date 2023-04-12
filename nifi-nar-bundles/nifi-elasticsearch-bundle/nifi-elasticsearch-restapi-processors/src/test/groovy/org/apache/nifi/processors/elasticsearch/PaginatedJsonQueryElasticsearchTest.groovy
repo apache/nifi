@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.elasticsearch
 
-
 import org.apache.nifi.processors.elasticsearch.api.PaginationType
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
 import org.apache.nifi.util.TestRunner
@@ -40,54 +39,65 @@ class PaginatedJsonQueryElasticsearchTest extends AbstractPaginatedJsonQueryElas
         return true
     }
 
+    static void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy) {
+        switch (resultOutputStrategy) {
+            case ResultOutputStrategy.PER_RESPONSE:
+                testCounts(runner, 1, 2, 0, 0)
+                int page = 1
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
+                        { hit ->
+                            hit.assertAttributeEquals("hit.count", "10")
+                            hit.assertAttributeEquals("page.number", Integer.toString(page++))
+                        }
+                )
+                break
+            case ResultOutputStrategy.PER_QUERY:
+                testCounts(runner, 1, 1, 0, 0)
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20")
+                // the "last" page.number is used, so 2 here because there were 2 pages of hits
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2")
+                assertThat(
+                        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length,
+                        is(20)
+                )
+                break
+            case ResultOutputStrategy.PER_HIT:
+                testCounts(runner, 1, 20, 0, 0)
+                int count = 0
+                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
+                        { hit ->
+                            hit.assertAttributeEquals("hit.count", "1")
+                            // 10 hits per page, so first 10 flow files should be page.number 1, the rest page.number 2
+                            hit.assertAttributeEquals("page.number", Integer.toString(Math.ceil(++count / 10) as int))
+                        }
+                )
+                break
+            default:
+                throw new IllegalArgumentException("Unknown ResultOutputStrategy value: " + resultOutputStrategy)
+        }
+    }
+
     void testPagination(final PaginationType paginationType) {
-        // test flowfile per page
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(2)
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [ msg: "desc"], query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([size: 10, sort: [msg: "desc"], query: [match_all: [:]]])))
 
-        runOnce(runner)
-        testCounts(runner, 1, 2, 0, 0)
-        int page = 1
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
-                { hit ->
-                    hit.assertAttributeEquals("hit.count", "10")
-                    hit.assertAttributeEquals("page.number", Integer.toString(page++))
-                }
-        )
-        runner.getStateManager().assertStateNotSet()
-        reset(runner)
+        for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
+            runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue())
 
+            runOnce(runner)
+            validatePagination(runner, resultOutputStrategy)
+            runner.getStateManager().assertStateNotSet()
+            reset(runner)
 
-        // test hits splitting
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue())
-        runOnce(runner)
-        testCounts(runner, 1, 20, 0, 0)
-        int count = 0
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
-                { hit ->
-                    hit.assertAttributeEquals("hit.count", "1")
-                    // 10 hits per page, so first 10 flowfiles should be page.number 1, the rest page.number 2
-                    hit.assertAttributeEquals("page.number", Integer.toString(Math.ceil(++count / 10) as int))
-                }
-        )
-        runner.getStateManager().assertStateNotSet()
-        reset(runner)
-
-
-        // test hits combined
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue())
-        runOnce(runner)
-        testCounts(runner, 1, 1, 0, 0)
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20")
-        // the "last" page.number is used, so 2 here because there were 2 pages of hits
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2")
-        assertThat(
-                runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length,
-                is(20)
-        )
-        runner.getStateManager().assertStateNotSet()
+            // Check that OUTPUT_NO_HITS true doesn't have any adverse effects on pagination
+            runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "true")
+            runOnce(runner)
+            validatePagination(runner, resultOutputStrategy)
+            // Unset OUTPUT_NO_HITS
+            runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "false")
+            reset(runner)
+        }
     }
 }
