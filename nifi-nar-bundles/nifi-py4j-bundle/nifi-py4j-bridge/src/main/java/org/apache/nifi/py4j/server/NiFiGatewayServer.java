@@ -37,6 +37,10 @@ import java.util.List;
  */
 public class NiFiGatewayServer extends GatewayServer {
     private volatile boolean shutdown = false;
+    private volatile boolean startProcessForked = false;
+    private final String componentType;
+    private final String componentId;
+    private final String authToken;
 
     public NiFiGatewayServer(final Gateway gateway,
                              final int port,
@@ -44,8 +48,14 @@ public class NiFiGatewayServer extends GatewayServer {
                              final int connectTimeout,
                              final int readTimeout,
                              final List<Class<? extends Command>> customCommands,
-                             final ServerSocketFactory sSocketFactory) {
+                             final ServerSocketFactory sSocketFactory,
+                             final String authToken,
+                             final String componentType,
+                             final String componentId) {
         super(gateway, port, address, connectTimeout, readTimeout, customCommands, sSocketFactory);
+        this.componentType = componentType;
+        this.componentId = componentId;
+        this.authToken = authToken;
     }
 
     protected Py4JServerConnection createConnection(final Gateway gateway, final Socket socket) throws IOException {
@@ -62,5 +72,40 @@ public class NiFiGatewayServer extends GatewayServer {
 
     public boolean isShutdown() {
         return shutdown;
+    }
+
+    // If the server is started with forked == true, we want to set the name of the thread to something more meaningful.
+    // But we don't want to repeat the logic in the super class, so we'll just set a flag here and then set the name in the run() method.
+    @Override
+    public void start(final boolean fork) {
+        this.startProcessForked = fork;
+        super.start(fork);
+    }
+
+    @Override
+    public void run() {
+        if (startProcessForked) {
+            Thread.currentThread().setName("NiFiGatewayServer Thread for " + componentType + " " + componentId);
+        }
+
+        super.run();
+    }
+
+    @Override
+    public String toString() {
+        return "NiFiGatewayServer[" +
+            "shutdown=" + shutdown +
+            ", forked=" + startProcessForked +
+            ", componentType=" + componentType +
+            ", componentId=" + componentId +
+            "]";
+    }
+
+    public String getComponentId() {
+        return componentId;
+    }
+
+    public String getComponentType() {
+        return componentType;
     }
 }

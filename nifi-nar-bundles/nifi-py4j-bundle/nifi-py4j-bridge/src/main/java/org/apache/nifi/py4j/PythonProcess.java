@@ -34,6 +34,8 @@ import javax.net.SocketFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,28 +44,14 @@ import java.util.concurrent.TimeUnit;
 // TODO / Figure Out for MVP:
 //      MUST DO:
 //      - Documentation
-//          - Admin Guide
-//          - JavaDocs
 //          - Developer Guide
-//              - Explain how communication between Java & Python work.
-//              - Java is preferred, Python is slower and more expensive b/c of network
-//              - Different Extension Points (FlowFileTransform, RecordTransform)
-//                  - What the API Looks like, Links to JavaDocs for ProcessContext, etc.
-//                  - Example Code
-//              - Exposing properties
-//              - Relationships
 //              - Controller Services
 //                  - Need to update docs to show the interfaces that are exposed, explain how to get these...
-//          - Design Doc
 //      - Setup proper logging on the Python side: https://docs.python.org/2/howto/logging-cookbook.html#using-file-rotation
 //      - For FlowFileTransform, allow the result to contain either a byte array or a String. If a String, just convert in the parent class.
 //      - Figure out how to deal with Python Packaging
 //              - Need to figure out how to deal with additionalDetails.html, docs directory in python project typically?
 //              - Understand how to deal with versioning
-//      - Look at performance improvements for Py4J - socket comms appear to be INCREDIBLY slow.
-//              - Create test that calls Python 1M times. Just returns 'hello'. See how long it takes
-//              - Create test that calls Python 1M times. Returns <java object>.toString() and see how long it takes.
-//              - Will help to understand if it's the call from Java to Python that's slow, Python to Java, or both.
 //      - Performance concern for TransformRecord
 //              - Currently, triggering the transform() method is pretty fast. But then the Result object comes back and we have to call into the Python side to call the getters
 //                over and over. Need to look into instead serializing the entire response as JSON and sending that back.
@@ -72,7 +60,6 @@ import java.util.concurrent.TimeUnit;
 //      - When ran DetectObjectInImage with multiple threads, Python died. Need to figure out why.
 //      - If Python Process dies, need to create a new process and need to then create all of the Processors that were in that Process and initialize them.
 //            - Milestone 2 or 3, not Milestone 1.
-//      - Remove test-pypi usage from ExtensionManager.py
 //      - Additional Interfaces beyond just FlowFileTransform
 //          - FlowFileSource
 //      - Restructure Maven projects
@@ -82,16 +69,7 @@ import java.util.concurrent.TimeUnit;
 //      CONSIDER:
 //      - Clustering: Ensure component on all nodes?
 //          - Consider "pip freeze" type of thing to ensure that python dependencies are same across nodes when joining cluster.
-//      - Update python code to use python_style_method_names instead of javaStyleMethodNames
-//      - Also add 'failure' and 'original' relationships to FlowFileTransform
 //
-//
-//      Can punt for now:
-//      - We have an issue with objects created from Processor calling into Java. Is fine when we provide objects to Python but when
-//          it makes a callback, those objects are bound and never unbound!!!
-//              *** This appears to be fine as long as on the Python side we set manage_memory=True ***
-//                  But it does cut perf in half. May be room for improvement somehow? By implementing a 'bulk delete' custom command?
-//      - Appears to still be issues with timeout in nifi when set to 10 secs... initially will probably just leave default of 0sec.
 
 public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
@@ -100,6 +78,8 @@ public class PythonProcess {
     private final PythonProcessConfig processConfig;
     private final ControllerServiceTypeLookup controllerServiceTypeLookup;
     private final File virtualEnvHome;
+    private final String componentType;
+    private final String componentId;
     private GatewayServer server;
     private PythonController controller;
     private Process process;
@@ -107,10 +87,13 @@ public class PythonProcess {
     private final Map<String, Boolean> processorPrefersIsolation = new ConcurrentHashMap<>();
 
 
-    public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome) {
+    public PythonProcess(final PythonProcessConfig processConfig, final ControllerServiceTypeLookup controllerServiceTypeLookup, final File virtualEnvHome,
+                         final String componentType, final String componentId) {
         this.processConfig = processConfig;
         this.controllerServiceTypeLookup = controllerServiceTypeLookup;
         this.virtualEnvHome = virtualEnvHome;
+        this.componentType = componentType;
+        this.componentId = componentId;
     }
 
     public PythonController getController() {
@@ -118,12 +101,11 @@ public class PythonProcess {
     }
 
     public void start() throws IOException {
-        // TODO: Look into using configured TLS Certs to make this secure by default.
         final ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
         final SocketFactory socketFactory = SocketFactory.getDefault();
 
         final int timeoutMillis = (int) processConfig.getCommsTimeout().toMillis();
-        final String authToken = null;
+        final String authToken = generateAuthToken();
         final CallbackClient callbackClient = new CallbackClient(GatewayServer.DEFAULT_PYTHON_PORT, GatewayServer.defaultAddress(), authToken,
             50000L, TimeUnit.MILLISECONDS, socketFactory, false, timeoutMillis);
 
@@ -137,13 +119,16 @@ public class PythonProcess {
             timeoutMillis,
             timeoutMillis,
             Collections.emptyList(),
-            serverSocketFactory);
+            serverSocketFactory,
+            authToken,
+            componentType,
+            componentId);
         server.start();
 
         final int listeningPort = server.getListeningPort();
 
         setupEnvironment();
-        this.process = launchPythonProcess(listeningPort);
+        this.process = launchPythonProcess(listeningPort, authToken);
 
         final StandardPythonClient pythonClient = new StandardPythonClient(gateway);
         controller = pythonClient.getController();
@@ -181,7 +166,14 @@ public class PythonProcess {
         logger.info("Successfully started and pinged Python Server. Python Process = {}", process);
     }
 
-    private Process launchPythonProcess(final int listeningPort) throws IOException {
+    private String generateAuthToken() {
+        final SecureRandom random = new SecureRandom();
+        final byte[] bytes = new byte[20];
+        random.nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    private Process launchPythonProcess(final int listeningPort, final String authToken) throws IOException {
         final File pythonFrameworkDirectory = processConfig.getPythonFrameworkDirectory();
         final File pythonApiDirectory = new File(pythonFrameworkDirectory.getParentFile(), "api");
         final File pythonLogsDirectory = processConfig.getPythonLogsDirectory();
@@ -197,6 +189,7 @@ public class PythonProcess {
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
         processBuilder.environment().put("PYTHONPATH", pythonApiDirectory.getAbsolutePath());
         processBuilder.environment().put("PYTHON_CMD", pythonCommandFile.getAbsolutePath());
+        processBuilder.environment().put("AUTH_TOKEN", authToken);
         processBuilder.inheritIO();
 
         logger.info("Launching Python Process {} {} with working directory {} to communicate with Java on Port {}",
@@ -263,7 +256,7 @@ public class PythonProcess {
 
         if (process != null) {
             try {
-                process.destroy();
+                process.destroyForcibly();
             } catch (final Exception e) {
                 logger.error("Failed to cleanly shutdown Py4J process", e);
             }

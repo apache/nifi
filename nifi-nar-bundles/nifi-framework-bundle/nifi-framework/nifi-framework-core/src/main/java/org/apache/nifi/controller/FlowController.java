@@ -854,7 +854,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {
         final String pythonCommand = nifiProperties.getProperty(NiFiProperties.PYTHON_COMMAND);
         if (pythonCommand == null) {
-            LOG.warn("Will not enable Python Extensions because the nifi.python.command property has not been configured in nifi.properties");
+            LOG.info("Python Extensions disabled because the nifi.python.command property has not been configured in nifi.properties");
             return new DisabledPythonBridge();
         }
 
@@ -919,7 +919,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             bridge.initialize(initializationContext);
             return bridge;
         } catch (final Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Python Bridge initialization failed", e);
         }
     }
 

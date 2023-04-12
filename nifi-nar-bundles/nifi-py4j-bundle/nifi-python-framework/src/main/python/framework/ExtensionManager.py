@@ -143,7 +143,7 @@ class ExtensionManager:
             sys.path.insert(0, extension_working_dir)
 
         details = self.processor_details[id]
-        processor_class = self.__load_extension_module__(module_file, details.local_dependencies)
+        processor_class = self.__load_extension_module(module_file, details.local_dependencies)
         self.processor_class_by_name[id] = processor_class
         return processor_class
 
@@ -163,12 +163,18 @@ class ExtensionManager:
         # get the python module file that contains the specified processor
         module_file = self.get_module_file(processor_type, version)
 
+        # Delete the file that tells us that the dependencies have been downloaded. We do this only when reloading a processor
+        # because we want to ensure that download any new dependencies
+        completion_marker_file = self.__get_download_complete_marker_file(work_dir, processor_type, version)
+        if os.path.exists(completion_marker_file):
+            os.remove(completion_marker_file)
+
         # Call load_extension to ensure that we load all necessary dependencies, in case they have changed
-        self.__gather_extension_details__(module_file, work_dir)
+        self.__gather_extension_details(module_file, work_dir)
 
         # Reload the processor class itself
         details = self.processor_details[id]
-        processor_class = self.__load_extension_module__(module_file, details.local_dependencies)
+        processor_class = self.__load_extension_module(module_file, details.local_dependencies)
 
         # Update our cache so that when the processor is created again, the new class will be used
         self.processor_class_by_name[id] = processor_class
@@ -200,17 +206,17 @@ class ExtensionManager:
         :param dirs: the directories to check for any local extensions
         :param work_dir: the working directory
         """
-        self.__discover_local_extensions__(dirs, work_dir)
-        self.__discover_extensions_from_pypi__(work_dir)
+        self.__discover_local_extensions(dirs, work_dir)
+        self.__discover_extensions_from_pypi(work_dir)
 
-    def __discover_extensions_from_pypi__(self, work_dir):
-        self.__discover_extensions_from_paths__(None, work_dir, True)
+    def __discover_extensions_from_pypi(self, work_dir):
+        self.__discover_extensions_from_paths(None, work_dir, True)
 
-    def __discover_local_extensions__(self, dirs, work_dir):
-        self.__discover_extensions_from_paths__(dirs, work_dir, False)
+    def __discover_local_extensions(self, dirs, work_dir):
+        self.__discover_extensions_from_paths(dirs, work_dir, False)
 
 
-    def __discover_extensions_from_paths__(self, paths, work_dir, require_nifi_prefix):
+    def __discover_extensions_from_paths(self, paths, work_dir, require_nifi_prefix):
         for finder, name, ispkg in pkgutil.iter_modules(paths):
             if not require_nifi_prefix or name.startswith('nifi_'):
                 module_file = '<Unknown Module File>'
@@ -219,13 +225,13 @@ class ExtensionManager:
                     module_file = module.path
                     logger.info('Discovered extension %s' % module_file)
 
-                    self.__gather_extension_details__(module_file, work_dir)
+                    self.__gather_extension_details(module_file, work_dir)
                 except Exception:
                     logger.error("Failed to load Python extensions from module file {0}. This module will be ignored.".format(module_file), exc_info=True)
 
 
 
-    def __gather_extension_details__(self, module_file, work_dir, local_dependencies=None):
+    def __gather_extension_details(self, module_file, work_dir, local_dependencies=None):
         path = Path(module_file)
         basename = os.path.basename(module_file)
 
@@ -255,9 +261,9 @@ class ExtensionManager:
                     continue
 
                 child_module_file = os.path.join(dir, filename)
-                self.__gather_extension_details__(child_module_file, work_dir, local_dependencies=local_dependencies)
+                self.__gather_extension_details(child_module_file, work_dir, local_dependencies=local_dependencies)
 
-        classes_and_details = self.__get_processor_classes_and_details__(module_file)
+        classes_and_details = self.__get_processor_classes_and_details(module_file)
         for classname, details in classes_and_details.items():
             id = ExtensionId(classname, details.version)
             logger.info("Found local dependencies {0} for {1}".format(local_dependencies, classname))
@@ -271,15 +277,18 @@ class ExtensionManager:
             self.module_files_by_extension_type[id] = module_file
 
             # If there are any dependencies, use pip to install them
-            extension_working_dir = os.path.join(work_dir, 'extensions', classname, details.version)
-            self.__import_external_dependencies__(classname, details.dependencies, extension_working_dir)
+            self.__import_external_dependencies(classname, details.dependencies, work_dir, details.version)
 
 
-    def __get_dependencies_for_extension_type__(self, extension_type, version):
+    def __get_download_complete_marker_file(self, work_dir, extension_type, version):
+        return os.path.join(work_dir, 'extensions', extension_type, version, 'dependency-download.complete')
+
+
+    def __get_dependencies_for_extension_type(self, extension_type, version):
         id = ExtensionId(extension_type, version)
         return self.processor_details[id].dependencies
 
-    def __get_processor_classes_and_details__(self, module_file):
+    def __get_processor_classes_and_details(self, module_file):
         # Parse the python file
         with open(module_file) as file:
             root_node = ast.parse(file.read())
@@ -287,19 +296,19 @@ class ExtensionManager:
         details_by_class = {}
 
         # Get top-level class nodes (e.g., MyProcessor)
-        class_nodes = self.__get_class_nodes__(root_node)
+        class_nodes = self.__get_class_nodes(root_node)
 
         for class_node in class_nodes:
             logger.debug("Checking if class %s is a processor" % class_node.name)
-            if self.__is_processor_class_node__(class_node):
+            if self.__is_processor_class_node(class_node):
                 logger.info("Discovered Processor class {0} in module {1}".format(class_node.name, module_file))
-                details = self.__get_processor_details__(class_node, module_file)
+                details = self.__get_processor_details(class_node, module_file)
                 details_by_class[class_node.name] = details
 
         return details_by_class
 
 
-    def __is_processor_class_node__(self, class_node):
+    def __is_processor_class_node(self, class_node):
         """
         Checks if the Abstract Syntax Tree (AST) Node represents a Processor class.
         We are looking for any classes within the given module file that look like:
@@ -314,12 +323,12 @@ class ExtensionManager:
         """
 
         # Look for a 'Java' sub-class
-        child_class_nodes = self.__get_class_nodes__(class_node)
+        child_class_nodes = self.__get_class_nodes(class_node)
 
         for child_class_node in child_class_nodes:
             if child_class_node.name == 'Java':
                 # Look for an assignment that assigns values to the `implements` keyword
-                assignment_nodes = self.__get_assignment_nodes__(child_class_node)
+                assignment_nodes = self.__get_assignment_nodes(child_class_node)
                 for assignment_node in assignment_nodes:
                     if (len(assignment_node.targets) == 1 and assignment_node.targets[0].id == 'implements'):
                         assigned_values = assignment_node.value.elts
@@ -329,17 +338,17 @@ class ExtensionManager:
         return False
 
 
-    def __get_processor_details__(self, class_node, module_file):
+    def __get_processor_details(self, class_node, module_file):
         # Look for a 'ProcessorDetails' class
-        child_class_nodes = self.__get_class_nodes__(class_node)
+        child_class_nodes = self.__get_class_nodes(class_node)
 
         for child_class_node in child_class_nodes:
             if child_class_node.name == 'ProcessorDetails':
                 logger.debug('Found ProcessorDetails class in %s' % class_node.name)
-                version = self.__get_processor_version__(child_class_node, class_node.name)
-                dependencies = self.__get_processor_dependencies__(child_class_node, class_node.name)
-                description = self.__get_processor_description__(child_class_node, class_node.name)
-                tags = self.__get_processor_tags__(child_class_node, class_node.name)
+                version = self.__get_processor_version(child_class_node, class_node.name)
+                dependencies = self.__get_processor_dependencies(child_class_node, class_node.name)
+                description = self.__get_processor_description(child_class_node, class_node.name)
+                tags = self.__get_processor_tags(child_class_node, class_node.name)
 
                 return ExtensionDetails(gateway=self.gateway,
                                         type=class_node.name,
@@ -356,8 +365,8 @@ class ExtensionManager:
                                 source_location=module_file)
 
 
-    def __get_processor_version__(self, details_node, class_name):
-        assignment_nodes = self.__get_assignment_nodes__(details_node)
+    def __get_processor_version(self, details_node, class_name):
+        assignment_nodes = self.__get_assignment_nodes(details_node)
         for assignment_node in assignment_nodes:
             if (len(assignment_node.targets) == 1 and assignment_node.targets[0].id == 'version'):
                 assigned_values = assignment_node.value.value
@@ -369,8 +378,8 @@ class ExtensionManager:
         return 'Unknown'
 
 
-    def __get_processor_dependencies__(self, details_node, class_name):
-        deps = self.__get_assigned_list__(details_node, class_name, 'dependencies')
+    def __get_processor_dependencies(self, details_node, class_name):
+        deps = self.__get_assigned_list(details_node, class_name, 'dependencies')
         if len(deps) == 0:
             logger.info("Found no external dependencies that are required for class %s" % class_name)
         else:
@@ -379,12 +388,12 @@ class ExtensionManager:
         return deps
 
 
-    def __get_processor_tags__(self, details_node, class_name):
-        return self.__get_assigned_list__(details_node, class_name, 'tags')
+    def __get_processor_tags(self, details_node, class_name):
+        return self.__get_assigned_list(details_node, class_name, 'tags')
 
 
-    def __get_assigned_list__(self, details_node, class_name, element_name):
-        assignment_nodes = self.__get_assignment_nodes__(details_node)
+    def __get_assigned_list(self, details_node, class_name, element_name):
+        assignment_nodes = self.__get_assignment_nodes(details_node)
         for assignment_node in assignment_nodes:
             if (len(assignment_node.targets) == 1 and assignment_node.targets[0].id == element_name):
                 assigned_values = assignment_node.value.elts
@@ -398,8 +407,8 @@ class ExtensionManager:
         return []
 
 
-    def __get_processor_description__(self, details_node, class_name):
-        assignment_nodes = self.__get_assignment_nodes__(details_node)
+    def __get_processor_description(self, details_node, class_name):
+        assignment_nodes = self.__get_assignment_nodes(details_node)
         for assignment_node in assignment_nodes:
             if (len(assignment_node.targets) == 1 and assignment_node.targets[0].id == 'description'):
                 return assignment_node.value.value
@@ -410,21 +419,23 @@ class ExtensionManager:
 
 
 
-    def __get_class_nodes__(self, node):
+    def __get_class_nodes(self, node):
         class_nodes = [n for n in node.body if isinstance(n, ast.ClassDef)]
         return class_nodes
 
 
-    def __get_assignment_nodes__(self, node):
+    def __get_assignment_nodes(self, node):
         assignment_nodes = [n for n in node.body if isinstance(n, ast.Assign)]
         return assignment_nodes
 
 
-    def __import_external_dependencies__(self, class_name, dependencies, target_dir):
+    def __import_external_dependencies(self, class_name, dependencies, work_dir, extension_version):
+        completion_marker_file = self.__get_download_complete_marker_file(work_dir, class_name, extension_version)
+        target_dir = os.path.dirname(completion_marker_file)
+
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
-        completion_marker_file = os.path.join(target_dir, 'dependency-download.complete')
         if os.path.exists(completion_marker_file):
             logger.info("All dependencies have already been imported for {0}".format(class_name))
             return True
@@ -451,14 +462,13 @@ class ExtensionManager:
 
         if success:
             # Write a completion Marker File
-            file = open(completion_marker_file, "w")
-            file.write("True")
-            file.close()
+            with open(completion_marker_file, "w") as file:
+                file.write("True")
 
         return success
 
 
-    def __load_extension_module__(self, file, local_dependencies):
+    def __load_extension_module(self, file, local_dependencies):
         # If there are any local dependencies (i.e., other python files in the same directory), load those modules first
         if local_dependencies is not None:
             for local_dependency in local_dependencies:
@@ -466,7 +476,7 @@ class ExtensionManager:
                     continue
 
                 logger.debug("Loading local dependency {0} before loading {1}".format(local_dependency, file))
-                self.__load_extension_module__(local_dependency, None)
+                self.__load_extension_module(local_dependency, None)
 
 
         # Determine the module name
@@ -498,14 +508,14 @@ class ExtensionManager:
         for name, member in inspect.getmembers(module):
             if inspect.isclass(member):
                 logger.debug('Found class: %s' % member)
-                if self.__is_processor_class__(member):
+                if self.__is_processor_class(member):
                     logger.debug('Found Processor: %s' % member)
                     return member
 
         return None
 
 
-    def __is_processor_class__(self, potentialProcessorClass):
+    def __is_processor_class(self, potentialProcessorClass):
         # Go through all members of the given class and see if it has an inner class named Java
         for name, member in inspect.getmembers(potentialProcessorClass):
             if name == 'Java' and inspect.isclass(member):

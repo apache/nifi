@@ -14,7 +14,7 @@
 # limitations under the License.
 
 class Relationship:
-    def __init(self, name, description, auto_terminated=False):
+    def __init__(self, name, description, auto_terminated=False):
         self.name = name
         self.description = description
         self.auto_terminated = auto_terminated

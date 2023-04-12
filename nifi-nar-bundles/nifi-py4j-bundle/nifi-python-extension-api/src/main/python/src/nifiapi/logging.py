@@ -32,30 +32,30 @@ class Logger:
     def trace(self, msg, *args):
         if self.min_level < LogLevel.DEBUG:
             return
-        self.java_logger.trace(msg, self.__to_java_array__(args))
+        self.java_logger.trace(msg, self.__to_java_array(args))
 
     def debug(self, msg, *args):
         if self.min_level < LogLevel.DEBUG:
             return
-        self.java_logger.debug(msg, self.__to_java_array__(args))
+        self.java_logger.debug(msg, self.__to_java_array(args))
 
     def info(self, msg, *args):
         if self.min_level < LogLevel.DEBUG:
             return
-        self.java_logger.info(msg, self.__to_java_array__(args))
+        self.java_logger.info(msg, self.__to_java_array(args))
 
     def warn(self, msg, *args):
         if self.min_level < LogLevel.DEBUG:
             return
-        self.java_logger.warn(msg, self.__to_java_array__(args))
+        self.java_logger.warn(msg, self.__to_java_array(args))
 
     def error(self, msg, *args):
         if self.min_level < LogLevel.DEBUG:
             return
-        self.java_logger.error(msg, self.__to_java_array__(args))
+        self.java_logger.error(msg, self.__to_java_array(args))
 
 
-    def __to_java_array__(self, *args):
+    def __to_java_array(self, *args):
         arg_array = JvmHolder.gateway.new_array(JvmHolder.jvm.java.lang.Object, len(args))
         for i, arg in enumerate(args):
             arg_array[i] = arg

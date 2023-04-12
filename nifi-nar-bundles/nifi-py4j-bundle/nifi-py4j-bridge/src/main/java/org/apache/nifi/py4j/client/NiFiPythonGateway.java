@@ -26,7 +26,6 @@ import py4j.Gateway;
 import py4j.reflection.PythonProxyHandler;
 
 import java.lang.reflect.Method;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,8 +35,30 @@ import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-// TODO: Switch to thread-local instead of a ConcurrentHashMap<Long>...
-// TODO: Document what this is / why it exists
+/**
+ * <p>
+ * NiFiPythonGateway is a custom extension of the Py4J Gateway class.
+ * This implementation makes use of our own custom JavaObjectBindings in order to keep track of the objects
+ * that are being passed between Java and Python. The Py4J implementation depends on the Python side
+ * performing Garbage Collection in order to notify Java that the objects are no longer referencable and can
+ * therefore be removed from Java's heap. Unfortunately, in testing this has frequently resulted in Java throwing
+ * OutOfMemoryError because the Python side was not notifying Java to cleanup objects in a timely enough manner.
+ * </p>
+ *
+ * <p>
+ * We address this by employing a technique that immediately allows for garbage collection of any objects that are passed
+ * to the Python side as soon as the method invocation returns. This means that the Python side is not allowed to cache
+ * any objects passed to it. Given the design of the API, this is very reasonable.
+ * </p>
+ *
+ * <p>
+ * There are, however, some exceptions. For example, initialization objects are passed to the Python side and are expected
+ * to be cached. In order to allow for this, we have introduced the {@link PreserveJavaBinding} annotation. If a method
+ * is annotated with this annotation, then the object will not be unbound from Java's heap when the method returns.
+ * Instead, it will remain bound until the Python has notified the Java side that the object has been garbage collection, in
+ * the same way that the default Py4J implementation handles it.
+ * </p>
+ */
 public class NiFiPythonGateway extends Gateway {
     private static final Logger logger = LoggerFactory.getLogger(NiFiPythonGateway.class);
     private final JavaObjectBindings objectBindings;
@@ -48,10 +69,6 @@ public class NiFiPythonGateway extends Gateway {
         this.objectBindings = bindings;
     }
 
-    @Override
-    public void resetCallbackClient(final InetAddress pythonAddress, final int pythonPort) {
-        super.resetCallbackClient(pythonAddress, pythonPort);
-    }
 
     public JavaObjectBindings getObjectBindings() {
         return objectBindings;

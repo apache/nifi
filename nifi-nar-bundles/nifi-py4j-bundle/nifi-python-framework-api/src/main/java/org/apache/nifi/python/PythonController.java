@@ -26,7 +26,8 @@ import java.util.List;
  */
 public interface PythonController {
     /**
-     * A simple test method. If the method is invoked within throwing an Exception, it implies a successful roundtrip invocation
+     * A simple test method. The return value of this method should be the literal string value <code>pong</code>. Anything else
+     * indicates that the Python side is not functioning properly.
      */
     String ping();
 

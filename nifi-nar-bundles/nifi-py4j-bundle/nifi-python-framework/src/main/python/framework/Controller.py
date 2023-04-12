@@ -27,7 +27,7 @@ logger.setLevel(logging.INFO)
 logging.getLogger("py4j").setLevel(logging.WARN)
 
 logsDir = os.getenv('LOGS_DIR')
-logging.basicConfig(filename=logsDir + '/python.log',
+logging.basicConfig(filename=logsDir + '/nifi-python.log',
                     format='%(asctime)s %(levelname)s %(name)s %(message)s',
                     encoding='utf-8',
                     level=logging.INFO)
@@ -62,7 +62,7 @@ class Controller:
         return module_file
 
     def getProcessorDependencies(self, processorType, version):
-        deps = self.extensionManager.__get_dependencies_for_extension_type__(processorType, version)
+        deps = self.extensionManager.__get_dependencies_for_extension_type(processorType, version)
         dependencyList = self.gateway.jvm.java.util.ArrayList()
         for dep in deps:
             dependencyList.add(dep)
@@ -86,9 +86,12 @@ if __name__ == "__main__":
 
     # Create the Java Gateway for communicating with NiFi Java process
     java_port = int(os.getenv('JAVA_PORT'))
+    auth_token = os.getenv('AUTH_TOKEN')
+    logger.info("Using auth token {} to communicate with Java on port {}".format(auth_token, java_port))
+
     gateway = JavaGateway(
-       callback_server_parameters=CallbackServerParameters(port=0),
-       gateway_parameters=GatewayParameters(port=java_port, read_timeout=None, enable_memory_management=True),
+       callback_server_parameters=CallbackServerParameters(port=0, auth_token=auth_token),
+       gateway_parameters=GatewayParameters(port=java_port, read_timeout=None, enable_memory_management=True, auth_token=auth_token),
        auto_convert=True,
        python_server_entry_point=controller)
 

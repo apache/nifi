@@ -89,6 +89,7 @@ import java.util.stream.Collectors;
 public class StandardExtensionDiscoveringManager implements ExtensionDiscoveringManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardExtensionDiscoveringManager.class);
+    private static final String PYTHON_TYPE_PREFIX = "python.";
 
     // Maps a service definition (interface) to those classes that implement the interface
     private final Map<Class, Set<ExtensionDefinition>> definitionMap = new HashMap<>();
@@ -187,7 +188,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public void discoverPythonExtensions(final Bundle pythonBundle) {
-        logger.info("Scanning to discover which Python extensions are available and importing any necessary dependencies. This may take a few minutes. See python logs for more details.");
+        logger.debug("Scanning to discover which Python extensions are available and importing any necessary dependencies. If new components are discovered, this may take a few minutes. " +
+            "See python logs for more details.");
         final long start = System.currentTimeMillis();
         pythonBridge.discoverExtensions();
 
@@ -225,7 +227,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             }
         }
 
-        logger.info("Discovered {} new/updated Python Processors in {} millis", processorsFound, System.currentTimeMillis() - start);
+        if (processorsFound == 0) {
+            logger.debug("Discovered no new or updated Python Processors. Process took in {} millis", System.currentTimeMillis() - start);
+        } else {
+            logger.info("Discovered or updated {} Python Processors in {} millis", processorsFound, System.currentTimeMillis() - start);
+        }
     }
 
     private BundleDetails createBundleDetailsWithOverriddenVersion(final BundleDetails details, final String version) {
@@ -706,7 +712,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             final ConfigurableComponent tempComponent;
             if (PythonBundle.isPythonCoordinate(bundle.getBundleDetails().getCoordinate())) {
                 // TODO: This is a workaround due to bug in UI. Fix bug in UI.
-                final String type = classType.startsWith("python.") ? classType.substring("python.".length()) : classType;
+                final String type = classType.startsWith(PYTHON_TYPE_PREFIX) ? classType.substring(PYTHON_TYPE_PREFIX.length()) : classType;
 
                 final String procId = "temp-component-" + type;
                 final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(procId, type, bundleCoordinate.getVersion(), false);

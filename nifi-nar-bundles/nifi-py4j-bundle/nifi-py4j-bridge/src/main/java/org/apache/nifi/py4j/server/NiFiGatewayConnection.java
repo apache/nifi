@@ -87,6 +87,7 @@ public class NiFiGatewayConnection extends GatewayConnection {
 
     @Override
     public void run() {
+        Thread.currentThread().setName(String.format("NiFiGatewayConnection Thread for %s %s", gatewayServer.getComponentType(), gatewayServer.getComponentId()));
         while (isContinue()) {
             super.run();
         }

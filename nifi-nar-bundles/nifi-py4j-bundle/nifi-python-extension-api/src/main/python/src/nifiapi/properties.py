@@ -209,14 +209,14 @@ class PropertyDescriptor:
             .dynamic(self.dynamic)
 
         if self.resourceDefinition is not None:
-            self.__add_resource_definition__(gateway, self.resourceDefinition, builder)
+            self.__add_resource_definition(gateway, self.resourceDefinition, builder)
 
         if self.controllerServiceDefinition is not None:
             cs_type = cs_type_lookup.lookup(self.controllerServiceDefinition)
             builder.identifiesControllerService(cs_type)
 
         if self.allowableValues is not None:
-            builder.allowableValues(self.__get_allowable_values__(gateway))
+            builder.allowableValues(self.__get_allowable_values(gateway))
 
         for validator in self.validators:
             builder.addValidator(validator)
@@ -224,7 +224,7 @@ class PropertyDescriptor:
         return builder.build()
 
 
-    def __get_allowable_values__(self, gateway):
+    def __get_allowable_values(self, gateway):
         if self.allowableValues is None:
             return None
         values = gateway.jvm.java.util.ArrayList()
@@ -233,7 +233,7 @@ class PropertyDescriptor:
 
         return values
 
-    def __add_resource_definition__(self, gateway, resouce_definition, builder):
+    def __add_resource_definition(self, gateway, resouce_definition, builder):
         allowed_types = 0
         if resouce_definition.allow_file:
             allowed_types += 1
@@ -282,14 +282,14 @@ class ProcessContext:
             property_value = java_context.getProperty(descriptor.getName())
             string_value = property_value.getValue()
 
-            property_value = self.__create_python_property_value__(descriptor.isExpressionLanguageSupported(), property_value, string_value)
+            property_value = self.__create_python_property_value(descriptor.isExpressionLanguageSupported(), property_value, string_value)
             self.property_values[descriptor.getName()] = property_value
 
             python_descriptor = PropertyDescriptor.from_java_descriptor(descriptor)
             self.descriptor_value_map[python_descriptor] = string_value
 
 
-    def __create_python_property_value__(self, el_supported, java_property_value, string_value):
+    def __create_python_property_value(self, el_supported, java_property_value, string_value):
         el_present = java_property_value.isExpressionLanguagePresent()
         referenced_attribute = None
         if el_present:
@@ -313,7 +313,7 @@ class ProcessContext:
 
     def newPropertyValue(self, value):
         java_property_value = self.java_context.newPropertyValue(value)
-        return self.__create_python_property_value__(True, java_property_value, value)
+        return self.__create_python_property_value(True, java_property_value, value)
 
     def getName(self):
         return self.name

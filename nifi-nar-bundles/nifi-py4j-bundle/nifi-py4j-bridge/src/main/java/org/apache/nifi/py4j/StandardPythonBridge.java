@@ -69,7 +69,7 @@ public class StandardPythonBridge implements PythonBridge {
 
         try {
             final File envHome = new File(processConfig.getPythonWorkingDirectory(), "controller");
-            controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome);
+            controllerProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, "Controller", "Controller");
             controllerProcess.start();
             running = true;
         } catch (final Exception e) {
@@ -95,7 +95,7 @@ public class StandardPythonBridge implements PythonBridge {
 
         logger.debug("Creating Python Processor of type {}", type);
 
-        final PythonProcess pythonProcess = getProcessForNextComponent(type, version, preferIsolatedProcess);
+        final PythonProcess pythonProcess = getProcessForNextComponent(type, identifier, version, preferIsolatedProcess);
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
         final PythonController controller = pythonProcess.getController();
@@ -147,7 +147,7 @@ public class StandardPythonBridge implements PythonBridge {
         return count;
     }
 
-    private synchronized PythonProcess getProcessForNextComponent(final String type, final String version, final boolean preferIsolatedProcess) {
+    private synchronized PythonProcess getProcessForNextComponent(final String type, final String componentId, final String version, final boolean preferIsolatedProcess) {
         final ExtensionId extensionId = new ExtensionId(type, version);
         final int processorsOfThisType = processorCountByType.getOrDefault(extensionId, 0);
         final int processIndex = processorsOfThisType % processConfig.getMaxPythonProcessesPerType();
@@ -180,7 +180,7 @@ public class StandardPythonBridge implements PythonBridge {
                 final File extensionsWorkDir = new File(processConfig.getPythonWorkingDirectory(), "extensions");
                 final File componentTypeHome = new File(extensionsWorkDir, type);
                 final File envHome = new File(componentTypeHome, version);
-                final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome);
+                final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, type, componentId);
                 pythonProcess.start();
 
                 final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
