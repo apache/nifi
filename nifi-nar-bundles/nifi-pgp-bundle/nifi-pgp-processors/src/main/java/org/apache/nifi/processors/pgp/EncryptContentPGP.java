@@ -378,7 +378,7 @@ public class EncryptContentPGP extends AbstractProcessor {
             boolean packetFound = false;
 
             final byte[] buffer = new byte[OUTPUT_BUFFER_SIZE];
-            final int bytesRead = pushbackInputStream.read(buffer);
+            final int bytesRead = StreamUtils.fillBuffer(pushbackInputStream, buffer, false);
             logger.debug("PGP Packet search read buffer bytes [{}]", bytesRead);
             try (
                     final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(buffer);
