@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.nifi.components.state.Scope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processors.elasticsearch.api.AggregationResultsFormat
-import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
+import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
@@ -40,9 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf
 import static org.junit.jupiter.api.Assertions.assertNotNull
 import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
-
 abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
 
     static final String INDEX_NAME = "messages"
 
@@ -96,8 +95,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "not-boolean")
 
         final String expectedAllowedSplitHits = processor instanceof AbstractPaginatedJsonQueryElasticsearch
-            ? ResultOutputStrategy.values().collect {r -> r.getValue()}.join(", ")
-            : [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", ")
+                ? ResultOutputStrategy.values().collect { r -> r.getValue() }.join(", ")
+                : [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", ")
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 8 validation failures:\n" +
@@ -125,7 +124,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     void testBasicQuery() throws Exception {
         // test hits (no splitting) - full hit format
         final TestRunner runner = createRunner(false)
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]]])))
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL.getValue())
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
@@ -134,7 +133,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         assertOutputContent(hits.getContent(), 10, false)
         final List<Map<String, Object>> result = OBJECT_MAPPER.readValue(hits.getContent(), List.class)
         result.forEach({ hit ->
-            final Map<String, Object> h = ((Map<String, Object>)hit)
+            final Map<String, Object> h = ((Map<String, Object>) hit)
             assertFalse(h.isEmpty())
             assertTrue(h.containsKey("_source"))
             assertTrue(h.containsKey("_index"))
@@ -206,7 +205,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         final TestRunner runner = createRunner(false)
         final TestElasticsearchClientService service = getService(runner)
         service.setMaxPages(0)
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]]])))
         runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "false")
         runOnce(runner)
         testCounts(runner, isInput() ? 1 : 0, 0, 0, 0)
@@ -242,8 +241,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     @Test
     void testAggregations() throws Exception {
         String query = prettyPrint(toJson([
-                query: [ match_all: [:] ],
-                aggs: [ term_agg: [ terms: [ field: "msg" ] ], term_agg2: [ terms: [ field: "msg" ] ] ]
+                query: [match_all: [:]],
+                aggs : [term_agg: [terms: [field: "msg"]], term_agg2: [terms: [field: "msg"]]]
         ]))
 
         // test aggregations (no splitting) - full aggregation format
@@ -284,7 +283,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         agg.keySet().forEach({ aggName ->
             final List<Map<String, Object>> termAgg = agg.get(aggName) as List<Map<String, Object>>
             assertThat(termAgg.size(), is(5))
-            termAgg.forEach({a ->
+            termAgg.forEach({ a ->
                 assertTrue(a.containsKey("key"))
                 assertTrue(a.containsKey("doc_count"))
             })
@@ -316,8 +315,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
 
         // test using Expression Language (index, type, query)
         query = prettyPrint(toJson([
-                query: [ match_all: [:] ],
-                aggs: [ term_agg: [ terms: [ field: "\${fieldValue}" ] ], term_agg2: [ terms: [ field: "\${fieldValue}" ] ] ]
+                query: [match_all: [:]],
+                aggs : [term_agg: [terms: [field: "\${fieldValue}"]], term_agg2: [terms: [field: "\${fieldValue}"]]]
         ]))
         runner.setVariable("fieldValue", "msg")
         runner.setVariable("es.index", INDEX_NAME)
@@ -342,8 +341,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     @Test
     void testErrorDuringSearch() throws Exception {
         String query = prettyPrint(toJson([
-                query: [ match_all: [:] ],
-                aggs: [ term_agg: [ terms: [ field: "msg" ] ], term_agg2: [ terms: [ field: "msg" ] ] ]
+                query: [match_all: [:]],
+                aggs : [term_agg: [terms: [field: "msg"]], term_agg2: [terms: [field: "msg"]]]
         ]))
 
         final TestRunner runner = createRunner(true)
@@ -356,8 +355,8 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     @Test
     void testQueryAttribute() throws Exception {
         String query = prettyPrint(toJson([
-                query: [ match_all: [:] ],
-                aggs: [ term_agg: [ terms: [ field: "msg" ] ], term_agg2: [ terms: [ field: "msg" ] ] ]
+                query: [match_all: [:]],
+                aggs : [term_agg: [terms: [field: "msg"]], term_agg2: [terms: [field: "msg"]]]
         ]))
         final String queryAttr = "es.query"
 
@@ -379,7 +378,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     @Test
     void testInputHandling() {
         final TestRunner runner = createRunner(false)
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]]])))
 
         runner.setIncomingConnection(true)
         runner.run()
@@ -394,7 +393,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
     @Test
     void testRequestParameters() {
         final TestRunner runner = createRunner(false)
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]]])))
         runner.setProperty("refresh", "true")
         runner.setProperty("slices", '${slices}')
         runner.setVariable("slices", "auto")

@@ -75,6 +75,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
             .build();
 
     static final List<PropertyDescriptor> paginatedPropertyDescriptors;
+
     static {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(QUERY_ATTRIBUTE);
@@ -239,7 +240,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
     private void combineHits(final List<Map<String, Object>> hits, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
                              final ProcessSession session, final FlowFile parent,
-                             final Map<String, String> attributes, final List<FlowFile> hitsFlowFiles) {
+                             final Map<String, String> attributes, final List<FlowFile> hitsFlowFiles, final boolean newQuery) {
         if (hits != null && !hits.isEmpty()) {
             final FlowFile hitFlowFile;
             final boolean append = !hitsFlowFiles.isEmpty();
@@ -251,7 +252,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
 
             hitsFlowFiles.add(writeCombinedHitFlowFile(paginatedJsonQueryParameters.getHitCount() + hits.size(),
                     hits, session, hitFlowFile, attributes, append));
-        } else if (isOutputNoHits()) {
+        } else if (isOutputNoHits() && newQuery) {
             final FlowFile hitFlowFile = createChildFlowFile(session, parent);
             hitsFlowFiles.add(writeHitFlowFile(0, "", session, hitFlowFile, attributes));
         }
@@ -264,14 +265,16 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
      * SearchResponse is processed, i.e. this approach allows recursion for paginated queries, but is unnecessary for single-response queries.
      */
     @Override
-    List<FlowFile> handleHits(final List<Map<String, Object>> hits, final boolean newQuery, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
+    List<FlowFile> handleHits(List<Map<String, Object>> hits, final boolean newQuery, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
                               final ProcessSession session, final FlowFile parent, final Map<String, String> attributes,
                               final List<FlowFile> hitsFlowFiles, final String transitUri, final StopWatch stopWatch) throws IOException {
         paginatedJsonQueryParameters.incrementPageCount();
         attributes.put("page.number", Integer.toString(paginatedJsonQueryParameters.getPageCount()));
 
         if (hitStrategy == ResultOutputStrategy.PER_QUERY) {
-            combineHits(hits, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles);
+
+            hits = formatHits(hits);
+            combineHits(hits, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles, newQuery);
 
             // output results if it seems we've combined all available results (i.e. no hits in this page and therefore no more expected)
             if (!hitsFlowFiles.isEmpty() && (hits == null || hits.isEmpty())) {

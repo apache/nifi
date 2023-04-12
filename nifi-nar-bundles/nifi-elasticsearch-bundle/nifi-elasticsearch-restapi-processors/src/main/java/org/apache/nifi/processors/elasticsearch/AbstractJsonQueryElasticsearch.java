@@ -367,7 +367,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> formatHits(final List<Map<String, Object>> hits) {
+    List<Map<String, Object>> formatHits(final List<Map<String, Object>> hits) {
         final List<Map<String, Object>> formattedHits;
 
         if (hitFormat == SearchResultsFormat.METADATA_ONLY) {
