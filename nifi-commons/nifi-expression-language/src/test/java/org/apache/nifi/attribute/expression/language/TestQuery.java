@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -949,7 +950,9 @@ public class TestQuery {
 
             final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US).format(Instant.ofEpochMilli(timestamp).atZone(defaultTimeZone.toZoneId()));
             assertEquals("startDateTime=\"" + expectedTime + "\"", result);
-
+        } finally {
+            TimeZone.setDefault(current);
+        }
         final List<Range> ranges = Query.extractExpressionRanges(query);
         assertEquals(1, ranges.size());
     }
@@ -970,11 +973,8 @@ public class TestQuery {
                 .format(Instant.ofEpochMilli(timestamp));
         assertEquals("startDateTime=\"" + expectedTime + "\"", result);
 
-            final List<Range> ranges = Query.extractExpressionRanges(query);
-            assertEquals(1, ranges.size());
-        } finally {
-            TimeZone.setDefault(current);
-        }
+        final List<Range> ranges = Query.extractExpressionRanges(query);
+        assertEquals(1, ranges.size());
     }
 
     @Test
