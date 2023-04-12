@@ -17,11 +17,12 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.io.IOException;
@@ -56,5 +57,9 @@ public interface ControllerClient {
     ReportingTaskEntity createReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
 
     ParameterProviderEntity createParamProvider(ParameterProviderEntity paramProvider) throws NiFiClientException, IOException;
+
+    ControllerConfigurationEntity getControllerConfiguration() throws NiFiClientException, IOException;
+
+    ControllerConfigurationEntity updateControllerConfiguration(ControllerConfigurationEntity controllerConfiguration) throws NiFiClientException, IOException;
 
 }
