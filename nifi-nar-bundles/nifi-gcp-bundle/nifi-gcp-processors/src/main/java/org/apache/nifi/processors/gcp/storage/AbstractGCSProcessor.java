@@ -73,7 +73,8 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     public static final PropertyDescriptor STORAGE_API_URL = new PropertyDescriptor
             .Builder().name("storage-api-url")
             .displayName("Storage API URL")
-            .description("Overrides the default storage URL. Configuring an alternative Storage API URL also overrides the HTTP Host header on requests as described in the Google documentation for Private Service Connections.")
+            .description("Overrides the default storage URL. Configuring an alternative Storage API URL also overrides the "
+                    + "HTTP Host header on requests as described in the Google documentation for Private Service Connections.")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
