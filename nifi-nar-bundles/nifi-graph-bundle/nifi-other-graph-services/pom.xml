@@ -75,11 +75,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.opencypher.gremlin</groupId>
-            <artifactId>cypher-gremlin-neo4j-driver</artifactId>
-            <version>1.0.4</version>
-        </dependency>
-        <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
             <classifier>indy</classifier>
