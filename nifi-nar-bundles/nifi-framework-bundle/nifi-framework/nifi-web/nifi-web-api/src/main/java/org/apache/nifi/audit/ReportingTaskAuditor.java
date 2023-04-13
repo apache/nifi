@@ -145,6 +145,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
                     final PropertyDescriptor propertyDescriptor = reportingTask.getPropertyDescriptor(property);
                     // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
                     if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
+                        // Delete previous property history
+                        deletePreviousValues(propertyDescriptor.getName(), reportingTask.getIdentifier(), logger);
+
                         if (newValue != null) {
                             newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
