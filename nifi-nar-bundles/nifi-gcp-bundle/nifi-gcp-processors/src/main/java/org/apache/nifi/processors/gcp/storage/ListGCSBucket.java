@@ -254,7 +254,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         descriptors.add(TRACKING_STATE_CACHE);
         descriptors.add(INITIAL_LISTING_TARGET);
         descriptors.add(TRACKING_TIME_WINDOW);
-        descriptors.add(STORAGE_API_HOST);
         descriptors.add(BUCKET);
         descriptors.add(RECORD_WRITER);
         descriptors.addAll(super.getSupportedPropertyDescriptors());

@@ -299,7 +299,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        descriptors.add(STORAGE_API_HOST);
         descriptors.add(BUCKET);
         descriptors.add(KEY);
         descriptors.add(CONTENT_TYPE);

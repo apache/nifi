@@ -106,16 +106,6 @@ public abstract class AbstractGCPProcessor<
             .sensitive(true)
             .build();
 
-    // https://cloud.google.com/storage/docs/request-endpoints#storage-set-client-endpoint-java
-    public static final PropertyDescriptor STORAGE_API_HOST = new PropertyDescriptor
-            .Builder().name("storage-api-host")
-            .displayName("Storage API Host")
-            .description("Cloud Storage client libraries manage request endpoints automatically. Optionally, you can set the request endpoint manually.")
-            .addValidator(StandardValidators.URL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(false)
-            .build();
-
     /**
      * Deprecated - Use {@link GoogleUtils#GCP_CREDENTIALS_PROVIDER_SERVICE} instead
      */
