@@ -273,7 +273,9 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
-        session.getProvenanceReporter().fetch(flowFile, "https://" + bucketName + ".storage.googleapis.com/" + key, millis);
+
+        final String transitUri = getTransitUri(storage.getOptions().getHost(), bucketName, key);
+        session.getProvenanceReporter().fetch(flowFile, transitUri, millis);
     }
 
     private FetchedBlob fetchBlob(final ProcessContext context, final Storage storage, final Map<String, String> attributes) throws IOException {
