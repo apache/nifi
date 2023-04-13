@@ -45,6 +45,7 @@ import static org.mockito.Mockito.reset;
 @ExtendWith(MockitoExtension.class)
 public abstract class AbstractGCSTest {
     private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
+    private static final String DEFAULT_STORAGE_HOST = "https://storage.googleapis.com";
     private static final Integer RETRIES = 9;
 
     static final String BUCKET = RemoteStorageHelper.generateBucketName();
@@ -89,9 +90,27 @@ public abstract class AbstractGCSTest {
                 mockCredentials);
 
         assertEquals(PROJECT_ID, options.getProjectId(), "Project IDs should match");
+        assertEquals(DEFAULT_STORAGE_HOST, options.getHost(), "Hosts should match");
 
         assertEquals(RETRIES.intValue(), options.getRetrySettings().getMaxAttempts(), "Retry counts should match");
 
         assertSame(mockCredentials, options.getCredentials(), "Credentials should be configured correctly");
+    }
+
+    @Test
+    public void testStorageOptionsConfigurationHostOverride() throws Exception {
+        reset(storage);
+        final TestRunner runner = buildNewRunner(getProcessor());
+
+        final String overrideStorageApiHost = "https://localhost";
+        runner.setProperty(AbstractGCSProcessor.STORAGE_API_HOST, overrideStorageApiHost);
+
+        final AbstractGCSProcessor processor = getProcessor();
+        final GoogleCredentials mockCredentials = mock(GoogleCredentials.class);
+
+        final StorageOptions options = processor.getServiceOptions(runner.getProcessContext(),
+                mockCredentials);
+
+        assertEquals(overrideStorageApiHost, options.getHost(), "Hosts should match");
     }
 }

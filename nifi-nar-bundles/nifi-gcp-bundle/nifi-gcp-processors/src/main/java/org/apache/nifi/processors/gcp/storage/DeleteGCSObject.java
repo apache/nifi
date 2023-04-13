@@ -81,6 +81,7 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(STORAGE_API_HOST);
         descriptors.add(BUCKET);
         descriptors.add(KEY);
         descriptors.add(GENERATION);

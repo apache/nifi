@@ -129,6 +129,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     @Override
     protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+        final String storageApiHost = context.getProperty(STORAGE_API_HOST).evaluateAttributeExpressions().getValue();
         final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
@@ -139,6 +140,10 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
         if (projectId != null && !projectId.isEmpty()) {
             storageOptionsBuilder.setProjectId(projectId);
+        }
+
+        if (storageApiHost != null && !storageApiHost.isEmpty()) {
+            storageOptionsBuilder.setHost(storageApiHost);
         }
 
         return  storageOptionsBuilder.setTransportOptions(getTransportOptions(context)).build();
