@@ -148,13 +148,13 @@ public class PutSalesforceObject extends AbstractProcessor {
             session.getProvenanceReporter().send(flowFile, salesforceRestClient.getVersionedBaseUrl() + "/put/" + objectType, transferMillis);
         } catch (MalformedRecordException e) {
             getLogger().error("Couldn't read records from input", e);
-            transferToFailure(session, flowFile, e);
+            transferToFailure(session, flowFile, e.getMessage());
         } catch (SchemaNotFoundException e) {
             getLogger().error("Couldn't create record writer", e);
-            transferToFailure(session, flowFile, e);
+            transferToFailure(session, flowFile, e.getMessage());
         } catch (Exception e) {
             getLogger().error("Failed to put records to Salesforce.", e);
-            transferToFailure(session, flowFile, e);
+            transferToFailure(session, flowFile, e.getMessage());
         }
     }
 
@@ -200,13 +200,13 @@ public class PutSalesforceObject extends AbstractProcessor {
     }
 
     private void handleInvalidFlowFile(ProcessSession session, FlowFile flowFile) {
-        getLogger().error("Salesforce object type not found among the incoming FlowFile attributes");
-        flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, "Salesforce object type not found among FlowFile attributes");
-        session.transfer(session.penalize(flowFile), REL_FAILURE);
+        String errorMessage = "Salesforce object type not found among the incoming FlowFile attributes";
+        getLogger().error(errorMessage);
+        transferToFailure(session, flowFile, errorMessage);
     }
 
-    private void transferToFailure(ProcessSession session, FlowFile flowFile, Exception e) {
-        flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, e.getMessage());
+    private void transferToFailure(ProcessSession session, FlowFile flowFile, String message) {
+        flowFile = session.putAttribute(flowFile, ATTR_ERROR_MESSAGE, message);
         session.transfer(session.penalize(flowFile), REL_FAILURE);
     }
 

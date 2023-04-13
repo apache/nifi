@@ -31,13 +31,13 @@ import org.apache.nifi.util.TestRunner;
  */
 public interface SalesforceConfigAware {
     String VERSION = "54.0";
-    String INSTANCE_URL = "https://cloudera-2f-dev-ed.my.salesforce.com";
+    String INSTANCE_URL = "https://MyDomainName.my.salesforce.com";
 
     String AUTHORIZATION_SERVER_URL = INSTANCE_URL + "/services/oauth2/token";
-    String USERNAME = "lehelb@cloudera.com";
-    String PASSWORD = "MyPassword123w11tcedVpUYauRkkfeIZK8Ao";
-    String CLIENT_ID = "3MVG9t0sl2P.pByqLVMOBOSVtlABv703CqwomrR82hCI5.VNGRM9giiq1l5BTUmeOSJrPijvhlhVbY7R.A7Ee";
-    String CLIENT_SECRET = "7DD31D130AC58462C49FBD70BAB2751640FE611FE49B5A9FD33C2E71689D3C7B";
+    String USERNAME = "???";
+    String PASSWORD = "???";
+    String CLIENT_ID = "???";
+    String CLIENT_SECRET = "???";
 
     default StandardOauth2AccessTokenProvider initOAuth2AccessTokenProvider(TestRunner runner) throws InitializationException {
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = new StandardOauth2AccessTokenProvider();

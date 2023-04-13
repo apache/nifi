@@ -111,14 +111,15 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
         + " It's also possible to define an initial cutoff value for the age, filtering out all older records"
         + " even for the first run. In case of 'Property Based Query' this processor should run on the Primary Node only."
         + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output."
-        + " The processor can accept an optional input flowfile and reference the flowfile attributes in the query.")
+        + " The processor can accept an optional input FlowFile and reference the FlowFile attributes in the query.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
         + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
         + " the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
-        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
+        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile."),
+        @WritesAttribute(attribute = "total.record.count", description = "Sets the total number of records in the FlowFile.")
 })
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @SeeAlso(PutSalesforceObject.class)
@@ -493,7 +494,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
                 attributes.put(TOTAL_RECORD_COUNT_ATTRIBUTE, String.valueOf(recordCount));
                 session.adjustCounter("Salesforce records processed", recordCount, false);
-                session.putAllAttributes(outgoingFlowFile, attributes);
+                outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
             } catch (IOException e) {
                 throw new ProcessException("Couldn't get Salesforce records", e);
             } catch (Exception e) {
@@ -512,7 +513,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
 
             outgoingFlowFiles.forEach(ff ->
-                    session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + urlDetail, transferMillis)
+                    session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + "/" + urlDetail, transferMillis)
             );
         }
         if (originalFlowFile != null && !isOriginalTransferred.get()) {
