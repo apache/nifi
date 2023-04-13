@@ -45,6 +45,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -542,9 +544,15 @@ public class PutGCSObject extends AbstractGCSProcessor {
             }
             session.transfer(flowFile, REL_SUCCESS);
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            final String url = "https://" + bucket + ".storage.googleapis.com/" + key;
 
-            session.getProvenanceReporter().send(flowFile, url, millis);
+            String transitUri;
+            try {
+                final URL url = new URL(storage.getOptions().getHost());
+                transitUri = String.format("%s://%s.%s/%s", url.getProtocol(), bucket, url.getHost(), key);
+            } catch (MalformedURLException e) {
+                transitUri = e.getClass().getSimpleName();
+            }
+            session.getProvenanceReporter().send(flowFile, transitUri, millis);
             getLogger().info("Successfully put {} to Google Cloud Storage in {} milliseconds",
                     new Object[]{ff, millis});
 
