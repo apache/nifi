@@ -41,36 +41,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-// TODO / Figure Out for MVP:
-//      MUST DO:
-//      - Documentation
-//          - Developer Guide
-//              - Controller Services
-//                  - Need to update docs to show the interfaces that are exposed, explain how to get these...
-//      - Setup proper logging on the Python side: https://docs.python.org/2/howto/logging-cookbook.html#using-file-rotation
-//      - For FlowFileTransform, allow the result to contain either a byte array or a String. If a String, just convert in the parent class.
-//      - Figure out how to deal with Python Packaging
-//              - Need to figure out how to deal with additionalDetails.html, docs directory in python project typically?
-//              - Understand how to deal with versioning
-//      - Performance concern for TransformRecord
-//              - Currently, triggering the transform() method is pretty fast. But then the Result object comes back and we have to call into the Python side to call the getters
-//                over and over. Need to look into instead serializing the entire response as JSON and sending that back.
-//              - Also, since this is heavy JSON processing, might want to consider ORJSON or something like that instead of inbuilt JSON parser/generator
-//      - Test pip install nifi-my-proc, does nifi pick it up?
-//      - When ran DetectObjectInImage with multiple threads, Python died. Need to figure out why.
-//      - If Python Process dies, need to create a new process and need to then create all of the Processors that were in that Process and initialize them.
-//            - Milestone 2 or 3, not Milestone 1.
-//      - Additional Interfaces beyond just FlowFileTransform
-//          - FlowFileSource
-//      - Restructure Maven projects
-//          - Should this all go under Framework?
-//
-//
-//      CONSIDER:
-//      - Clustering: Ensure component on all nodes?
-//          - Consider "pip freeze" type of thing to ensure that python dependencies are same across nodes when joining cluster.
-//
-
 public class PythonProcess {
     private static final Logger logger = LoggerFactory.getLogger(PythonProcess.class);
     private static final String PYTHON_CONTROLLER_FILENAME = "Controller.py";

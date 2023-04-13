@@ -64,8 +64,6 @@ public class PythonProxyInvocationHandler implements InvocationHandler {
         final Object output = Protocol.getReturnValue(response, gateway);
         final Object convertedOutput = convertOutput(method, output);
 
-        // TODO: While we're waiting for this call to return, the Python side may call back into the Java side and create objects.
-        //       When that happens we need to throw those onto the stack also!
         if (gateway.isUnbind(method)) {
             commandBuilder.getBoundIds().forEach(bindings::unbind);
             commandBuilder.getBoundIds().forEach(i -> logger.debug("For method invocation {} unbound {} (from command builder)", method.getName(), i));
