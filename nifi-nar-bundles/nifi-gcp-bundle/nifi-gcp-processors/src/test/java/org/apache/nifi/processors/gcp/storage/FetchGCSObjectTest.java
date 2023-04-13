@@ -24,6 +24,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -102,9 +103,13 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
     private static final String OWNER_DOMAIN = "test-owner-domain";
     private static final String OWNER_PROJECT_ID = "test-owner-project-id";
     private static final String URI = "test-uri";
+    private static final String STORAGE_API_URL = "https://localhost";
     private static final String CONTENT_DISPOSITION = "attachment; filename=\"test-content-disposition.txt\"";
     private static final Long CREATE_TIME = 1234L;
     private static final Long UPDATE_TIME = 4567L;
+
+    @Mock
+    StorageOptions storageOptions;
 
     @Mock
     Storage storage;
@@ -192,7 +197,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testSuccessfulFetch() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
@@ -347,7 +354,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testAclOwnerUser() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
@@ -387,7 +396,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testAclOwnerGroup() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
@@ -429,7 +440,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testAclOwnerDomain() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
@@ -471,7 +484,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testAclOwnerProject() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
@@ -510,7 +525,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testBlobIdWithGeneration() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
         addRequiredPropertiesToRunner(runner);
 
@@ -568,7 +585,9 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Test
     public void testBlobIdWithEncryption() throws Exception {
-        reset(storage);
+        reset(storageOptions, storage);
+        when(storageOptions.getHost()).thenReturn(STORAGE_API_URL);
+        when(storage.getOptions()).thenReturn(storageOptions);
         final TestRunner runner = buildNewRunner(getProcessor());
 
         runner.setProperty(FetchGCSObject.ENCRYPTION_KEY, ENCRYPTION_SHA256);
