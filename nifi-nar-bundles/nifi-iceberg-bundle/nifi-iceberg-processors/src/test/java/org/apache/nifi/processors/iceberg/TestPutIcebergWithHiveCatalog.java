@@ -60,6 +60,7 @@ import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateN
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
+@DisabledOnOs(WINDOWS)
 public class TestPutIcebergWithHiveCatalog {
 
     private TestRunner runner;
@@ -133,7 +134,6 @@ public class TestPutIcebergWithHiveCatalog {
         runner.setProperty(PutIceberg.CATALOG, "catalog-service");
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro"})
     public void onTriggerPartitioned(String fileFormat) throws Exception {
@@ -171,7 +171,6 @@ public class TestPutIcebergWithHiveCatalog {
                 "department_bucket=0", "department_bucket=1", "department_bucket=2"));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"orc"})
     public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
@@ -209,7 +208,6 @@ public class TestPutIcebergWithHiveCatalog {
                 "department=Finance", "department=Marketing", "department=Sales"));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"parquet"})
     public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
@@ -252,7 +250,6 @@ public class TestPutIcebergWithHiveCatalog {
         ));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro"})
     public void onTriggerUnPartitioned(String fileFormat) throws Exception {

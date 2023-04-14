@@ -58,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
+@DisabledOnOs(WINDOWS)
 public class TestTriggerHiveMetaStoreEvent {
 
     private TestRunner runner;
@@ -98,7 +99,6 @@ public class TestTriggerHiveMetaStoreEvent {
         createPartition(table, Lists.newArrayList("2018", "march"));
     }
 
-    @DisabledOnOs(WINDOWS)
     @Test
     public void testInsertOnUnPartitionedTable() throws Exception {
         initUnPartitionedTable();
@@ -133,7 +133,6 @@ public class TestTriggerHiveMetaStoreEvent {
         assertEquals(insertMessage.getTable(), TEST_TABLE_NAME);
     }
 
-    @DisabledOnOs(WINDOWS)
     @Test
     public void testInsertOnPartitionedTable() throws Exception {
         initPartitionedTable();
@@ -169,7 +168,6 @@ public class TestTriggerHiveMetaStoreEvent {
         assertEquals(insertMessage.getTable(), TEST_TABLE_NAME);
     }
 
-    @DisabledOnOs(WINDOWS)
     @Test
     public void testAddPartition() throws Exception {
         initPartitionedTable();
@@ -211,7 +209,6 @@ public class TestTriggerHiveMetaStoreEvent {
         assertDoesNotThrow(() -> metaStoreClient.getPartition(TEST_DATABASE_NAME, TEST_TABLE_NAME, Arrays.asList("2017", "june")));
     }
 
-    @DisabledOnOs(WINDOWS)
     @Test
     public void testDropPartition() throws Exception {
         initPartitionedTable();
@@ -253,7 +250,6 @@ public class TestTriggerHiveMetaStoreEvent {
         assertThrows(NoSuchObjectException.class, () -> metaStoreClient.getPartition(TEST_DATABASE_NAME, TEST_TABLE_NAME, Arrays.asList("2017", "june")));
     }
 
-    @DisabledOnOs(WINDOWS)
     @Test
     public void testUnknownEventType() throws Exception {
         initUnPartitionedTable();
