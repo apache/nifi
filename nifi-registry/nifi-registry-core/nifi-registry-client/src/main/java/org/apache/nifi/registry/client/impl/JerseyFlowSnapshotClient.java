@@ -56,7 +56,7 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
     }
 
     @Override
-    public VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean migration) throws NiFiRegistryException, IOException {
+    public VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean preserveSourceProperties) throws NiFiRegistryException, IOException {
         if (snapshot.getSnapshotMetadata() == null) {
             throw new IllegalArgumentException("Snapshot Metadata cannot be null");
         }
@@ -73,9 +73,9 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
 
         return executeAction("Error creating snapshot", () -> {
             final WebTarget target;
-            if (migration) {
+            if (preserveSourceProperties) {
                 target = bucketFlowSnapshotTarget
-                        .path("/migrate")
+                        .path("/preserveSourceProperties")
                         .resolveTemplate("bucketId", bucketId)
                         .resolveTemplate("flowId", flowId);
             } else {

@@ -48,12 +48,12 @@ public interface FlowSnapshotClient {
      * not the next one-up version.
      *
      * @param snapshot the new snapshot
-     * @param migration whether the operation is migration related
+     * @param preserveSourceProperties whether the operation is migration related
      * @return the created snapshot
      * @throws NiFiRegistryException if an error is encountered other than IOException
      * @throws IOException if an I/O error is encountered
      */
-    VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean migration) throws NiFiRegistryException, IOException;
+    VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean preserveSourceProperties) throws NiFiRegistryException, IOException;
 
     /**
      * Gets the snapshot for the given bucket, flow, and version.

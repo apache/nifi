@@ -165,8 +165,7 @@ public enum CommandOption {
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
     RECURSIVE("r", "recursive", "Indicates the command should perform the action recursively", false),
     HELP("h", "help", "Help", false),
-    SKIP("skip", "skip", "Indicates to skip an operation if target object exists", true),
-    KEEP("keep", "keep", "Indicates to keep the original format or type of an object", true)
+    SKIP_EXISTING("se", "skipExisting", "Indicates to skip an operation if target object exists", true),
     ;
 
     private final String shortName;

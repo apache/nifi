@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.registry.flow;
 
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
@@ -25,6 +26,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
+import org.apache.nifi.toolkit.cli.impl.client.NiFiRegistryClientFactory;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.ListBuckets;
@@ -32,6 +34,7 @@ import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowSnapshotsRe
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -42,18 +45,15 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
     private static final String ALL_BUCKETS_COLLECTED = "All buckets collected...";
     private static final String ALL_FLOWS_COLLECTED = "All flows collected...";
     private static final String ALL_FLOW_VERSIONS_COLLECTED = "All flow versions collected...";
-    private static final String EXPORTING_FLOW_VERSIONS = "Exporting flow versions...";
     private final ListBuckets listBuckets;
     private final ListFlows listFlows;
     private final ListFlowVersions listFlowVersions;
-    private final ExportFlowVersion exportFlowVersion;
 
     public ExportAllFlows() {
         super("export-all-flows", VersionedFlowSnapshotsResult.class);
         this.listBuckets = new ListBuckets();
         this.listFlows = new ListFlows();
         this.listFlowVersions = new ListFlowVersions();
-        this.exportFlowVersion = new ExportFlowVersion();
     }
 
     @Override
@@ -63,7 +63,6 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
         listBuckets.initialize(context);
         listFlows.initialize(context);
         listFlowVersions.initialize(context);
-        exportFlowVersion.initialize(context);
     }
 
     @Override
@@ -87,10 +86,11 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
         final List<VersionedFlowSnapshotMetadata> versionedFlowSnapshotMetadataList = getVersionedFlowSnapshotMetadataList(client, flowMap, isInteractive);
 
         // Prepare flow version exports
-        final List<VersionedFlowSnapshot> versionedFlowSnapshotList = getVersionedFlowSnapshotResults(client, outputDirectory, bucketMap, flowMap, versionedFlowSnapshotMetadataList, isInteractive);
+        final Iterator<VersionedFlowSnapshot> versionedFlowSnapshotIterator = new ExportAllFlowSnapshotIterator(properties, outputDirectory, bucketMap,
+                flowMap, versionedFlowSnapshotMetadataList.iterator());
 
         // Export all flow versions
-        return new VersionedFlowSnapshotsResult(versionedFlowSnapshotList, outputDirectory);
+        return new VersionedFlowSnapshotsResult(versionedFlowSnapshotIterator, outputDirectory);
     }
 
     private Map<String, Bucket> getBucketMap(final NiFiRegistryClient client, final boolean isInteractive) throws IOException, NiFiRegistryException {
@@ -139,12 +139,47 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
         return versionedFlowSnapshotMetadataList;
     }
 
-    private List<VersionedFlowSnapshot> getVersionedFlowSnapshotResults(final NiFiRegistryClient client, final String outputDirectory, final Map<String, Bucket> bucketMap,
-                                        final Map<String, VersionedFlow> flowMap, final List<VersionedFlowSnapshotMetadata> versionedFlowSnapshotMetadataList,
-                                                                        final boolean isInteractive) throws ParseException, IOException, NiFiRegistryException {
-        final List<VersionedFlowSnapshot> versionedFlowSnapshotList =  new ArrayList<>();
+    private void printMessage(final boolean isInteractive, final String message) {
+        if (isInteractive) {
+            println();
+            println(message);
+            println();
+        }
+    }
 
-        for (final VersionedFlowSnapshotMetadata metaData : versionedFlowSnapshotMetadataList) {
+    public static class ExportAllFlowSnapshotIterator implements Iterator<VersionedFlowSnapshot> {
+        private final NiFiRegistryClient client;
+        private final String outputDirectory;
+        private final Map<String, Bucket> bucketMap;
+        private final Map<String, VersionedFlow> flowMap;
+        private final Iterator<VersionedFlowSnapshotMetadata> metadataIterator;
+        private final ExportFlowVersion exportFlowVersion = new ExportFlowVersion();
+
+        public ExportAllFlowSnapshotIterator(final Properties properties, final String outputDirectory, final Map<String, Bucket> bucketMap,
+                                             final Map<String, VersionedFlow> flowMap, final Iterator<VersionedFlowSnapshotMetadata> metaDataIterator) throws MissingOptionException {
+            this.client = new NiFiRegistryClientFactory().createClient(properties);
+            this.outputDirectory = outputDirectory;
+            this.bucketMap = bucketMap;
+            this.flowMap = flowMap;
+            this.metadataIterator = metaDataIterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return metadataIterator.hasNext();
+        }
+
+        @Override
+        public VersionedFlowSnapshot next() {
+            try {
+                return setNextElement();
+            } catch (ParseException | IOException | NiFiRegistryException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private VersionedFlowSnapshot setNextElement() throws ParseException, IOException, NiFiRegistryException {
+            final VersionedFlowSnapshotMetadata metaData = metadataIterator.next();
             final Properties exportFlowVersionProperties = new Properties();
             exportFlowVersionProperties.setProperty(CommandOption.FLOW_ID.getLongName(), metaData.getFlowIdentifier());
             exportFlowVersionProperties.setProperty(CommandOption.FLOW_VERSION.getLongName(), Integer.toString(metaData.getVersion()));
@@ -164,19 +199,7 @@ public class ExportAllFlows extends AbstractNiFiRegistryCommand<VersionedFlowSna
             bucket.setDescription(bucketMap.get(metaData.getBucketIdentifier()).getDescription());
             exportedSnapshot.setBucket(bucket);
 
-            versionedFlowSnapshotList.add(exportedSnapshot);
-        }
-
-        printMessage(isInteractive, EXPORTING_FLOW_VERSIONS);
-
-        return versionedFlowSnapshotList;
-    }
-
-    private void printMessage(final boolean isInteractive, final String message) {
-        if (isInteractive) {
-            println();
-            println(message);
-            println();
+            return exportedSnapshot;
         }
     }
 }

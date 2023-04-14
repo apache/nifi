@@ -296,7 +296,7 @@ public class BucketFlowResource extends ApplicationResource {
     }
 
     @POST
-    @Path("{flowId}/versions/migrate")
+    @Path("{flowId}/versions/preserveSourceProperties")
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(

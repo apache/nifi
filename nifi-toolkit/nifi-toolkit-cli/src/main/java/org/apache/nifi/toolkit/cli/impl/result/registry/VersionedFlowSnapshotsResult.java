@@ -26,7 +26,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Iterator;
 
 /**
  * Result for a list of VersionedFlowSnapshots.
@@ -38,35 +38,39 @@ import java.util.List;
  * If this result was created with a null exportDirectoryName, then the write method will write the
  * serialized snapshots to the given PrintStream.
  */
-public class VersionedFlowSnapshotsResult implements WritableResult<List<VersionedFlowSnapshot>> {
-    private static final String FILE_NAME_PREFIX = "toolkit_registry_export_all_";
-    private static final String EXPORT_FILE_NAME = "%s/%s_%s_%d";
-    private final List<VersionedFlowSnapshot> versionedFlowSnapshots;
+public class VersionedFlowSnapshotsResult implements WritableResult<Iterator<VersionedFlowSnapshot>> {
+    private static final String FILE_NAME_PREFIX = "toolkit_registry_export_all";
+    private static final String EXPORT_FILE_NAME = "%s/%s_%s_%s_%d";
+    private static final String SEPARATOR = "_";
+    private static final String REPLACEMENT = "-";
+    private final Iterator<VersionedFlowSnapshot> versionedFlowSnapshots;
     private final String exportDirectoryName;
 
-    public VersionedFlowSnapshotsResult(final List<VersionedFlowSnapshot> versionedFlowSnapshots, final String exportDirectoryName) {
+    public VersionedFlowSnapshotsResult(final Iterator<VersionedFlowSnapshot> versionedFlowSnapshots, final String exportDirectoryName) {
         this.versionedFlowSnapshots = versionedFlowSnapshots;
         this.exportDirectoryName = exportDirectoryName;
         Validate.notNull(this.versionedFlowSnapshots);
     }
 
     @Override
-    public List<VersionedFlowSnapshot> getResult() {
+    public Iterator<VersionedFlowSnapshot> getResult() {
         return versionedFlowSnapshots;
     }
 
     @Override
     public void write(final PrintStream output) throws IOException {
-        for (final VersionedFlowSnapshot versionedFlowSnapshot : versionedFlowSnapshots) {
+        while (versionedFlowSnapshots.hasNext()) {
+            final VersionedFlowSnapshot versionedFlowSnapshot = versionedFlowSnapshots.next();
             if (exportDirectoryName != null) {
-                final String flowId = versionedFlowSnapshot.getFlow().getIdentifier();
+                final String bucketName = versionedFlowSnapshot.getBucket().getName().replaceAll(SEPARATOR, REPLACEMENT);
+                final String flowName = versionedFlowSnapshot.getFlow().getName().replaceAll(SEPARATOR, REPLACEMENT);
                 final int version = versionedFlowSnapshot.getSnapshotMetadata().getVersion();
-                final String exportFileName = String.format(EXPORT_FILE_NAME, exportDirectoryName, FILE_NAME_PREFIX, flowId, version);
+                final String exportFileName = String.format(EXPORT_FILE_NAME, exportDirectoryName, FILE_NAME_PREFIX, bucketName, flowName, version);
                 try (final OutputStream resultOut = Files.newOutputStream(Paths.get(exportFileName))) {
                     JacksonUtils.write(versionedFlowSnapshot, resultOut);
                 }
             } else {
-                JacksonUtils.write(versionedFlowSnapshots, output);
+                JacksonUtils.write(versionedFlowSnapshot, output);
             }
         }
     }

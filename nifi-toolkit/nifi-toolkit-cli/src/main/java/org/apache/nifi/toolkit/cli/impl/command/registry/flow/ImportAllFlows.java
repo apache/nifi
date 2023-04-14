@@ -22,9 +22,12 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.curator.shaded.com.google.common.collect.ComparisonChain;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.BucketClient;
 import org.apache.nifi.registry.client.FlowClient;
+import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -60,28 +63,28 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
     private static final String ALL_BUCKETS_COLLECTED = "All buckets collected...";
     private static final String ALL_FLOWS_COLLECTED = "All flows collected...";
     private static final String ALL_FLOW_VERSIONS_COLLECTED = "All flow versions collected...";
+    private static final String FILE_NAME_SEPARATOR = "_";
+    private static final String STORAGE_LOCATION_URL = "%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s";
+    private static final ObjectMapper MAPPER = JacksonUtils.getObjectMapper();
     private final ListBuckets listBuckets;
     private final ListFlows listFlows;
     private final ListFlowVersions listFlowVersions;
-    private final ImportFlowVersion importFlowVersion;
 
     public ImportAllFlows() {
         super("import-all-flows", StringResult.class);
         this.listBuckets = new ListBuckets();
         this.listFlows = new ListFlows();
         this.listFlowVersions = new ListFlowVersions();
-        this.importFlowVersion = new ImportFlowVersion();
     }
 
     @Override
     protected void doInitialize(Context context) {
         addOption(CommandOption.INPUT_SOURCE.createOption());
-        addOption(CommandOption.SKIP.createOption());
+        addOption(CommandOption.SKIP_EXISTING.createOption());
 
         listBuckets.initialize(context);
         listFlows.initialize(context);
         listFlowVersions.initialize(context);
-        importFlowVersion.initialize(context);
     }
 
     @Override
@@ -93,7 +96,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
 
     @Override
     public StringResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException, CommandException {
-        final boolean skip = Boolean.parseBoolean(getRequiredArg(properties, CommandOption.SKIP));
+        final boolean skip = Boolean.parseBoolean(getRequiredArg(properties, CommandOption.SKIP_EXISTING));
         final boolean isInteractive = getContext().isInteractive();
 
         //Gather all buckets and create a map for easier search by bucket name
@@ -108,34 +111,34 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         final Map<String, List<Integer>> versionMap = getVersionMap(client, flowMap, isInteractive);
 
         // Create file path list
-        final List<String> files = getFilePathList(properties);
+        final List<VersionFileMetaData> files = getFilePathList(properties);
 
-        // Deserialize file content
-        final List<ImportedSnapshot> importedSnapshots = deserializeSnapshots(files);
-
-        // As we need to keep the version order the snapshot list needs to be sorted
-        importedSnapshots.sort((o1, o2) -> ComparisonChain.start()
-                .compare(o1.getSnapshot().getBucket().getName(), o2.getSnapshot().getBucket().getName())
-                .compare(o1.getSnapshot().getFlow().getName(), o2.getSnapshot().getFlow().getName())
-                .compare(o1.getSnapshot().getSnapshotMetadata().getVersion(), o2.getSnapshot().getSnapshotMetadata().getVersion())
+        // As we need to keep the version order the list needs to be sorted
+        files.sort((o1, o2) -> ComparisonChain.start()
+                .compare(o1.getBucketName(), o2.getBucketName())
+                .compare(o1.getFlowName(), o2.getFlowName())
+                .compare(o1.getVersion(), o2.getVersion())
                 .result());
 
-        for (final ImportedSnapshot snapshot : importedSnapshots) {
+        for (VersionFileMetaData file : files) {
+            final String inputSource = file.getInputSource();
+            final String fileContent = getInputSourceContent(inputSource);
+            final VersionedFlowSnapshot snapshot = MAPPER.readValue(fileContent, VersionedFlowSnapshot.class);
 
-            final String inputSource = snapshot.getInputSource();
-            final String bucketName = snapshot.getSnapshot().getBucket().getName();
-            final String bucketDescription = snapshot.getSnapshot().getBucket().getDescription();
-            final String flowName = snapshot.getSnapshot().getFlow().getName();
-            final String flowDescription = snapshot.getSnapshot().getFlow().getDescription();
-            final int flowVersion = snapshot.getSnapshot().getSnapshotMetadata().getVersion();
+            final String bucketName = snapshot.getBucket().getName();
+            final String bucketDescription = snapshot.getBucket().getDescription();
+            final String flowName = snapshot.getFlow().getName();
+            final String flowDescription = snapshot.getFlow().getDescription();
+            final int flowVersion = snapshot.getSnapshotMetadata().getVersion();
             // The original bucket and flow ids must be kept otherwise NiFi won't be able to synchronize with the NiFi Registry
-            final String bucketId = snapshot.getSnapshot().getBucket().getIdentifier();
-            final String flowId = snapshot.getSnapshot().getFlow().getIdentifier();
+            final String flowId = snapshot.getFlow().getIdentifier();
+            final String bucketId = snapshot.getBucket().getIdentifier();
 
             // Create bucket if missing
             if (bucketMap.containsKey(bucketName)) {
                 printMessage(isInteractive, bucketName + SKIPPING_BUCKET_CREATION);
             } else {
+                //The original bucket id must be kept otherwise NiFi won't be able to synchronize with the NiFi Registry
                 createBucket(client, bucketMap, bucketName, bucketDescription, bucketId);
             }
 
@@ -145,6 +148,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
                     printMessage(isInteractive, flowName + SKIPPING_IMPORT);
                     continue;
                 } else {
+                    //flowId
                     printMessage(isInteractive, flowName + SKIPPING_FLOW_CREATION);
                 }
             } else if (!flowCreated.containsKey(new ImmutablePair<>(bucketId, flowName))) {
@@ -153,7 +157,15 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
 
             // Create missing flow versions
             if (!versionMap.getOrDefault(flowId, Collections.emptyList()).contains(flowVersion)) {
-                createFlowVersion(client, inputSource, flowId);
+                //update storage location
+                final String registryUrl = getRequiredArg(properties, CommandOption.URL);
+
+                updateStorageLocation(snapshot.getFlowContents().getVersionedFlowCoordinates(), registryUrl);
+                for (VersionedProcessGroup processGroup : snapshot.getFlowContents().getProcessGroups()) {
+                    updateStorageLocation(processGroup.getVersionedFlowCoordinates(), registryUrl);
+                }
+
+                createFlowVersion(client, snapshot, bucketId, flowId);
             }
         }
         return new StringResult(IMPORT_COMPLETED, getContext().isInteractive());
@@ -209,31 +221,20 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         return versions;
     }
 
-    private List<String> getFilePathList(final Properties properties) throws MissingOptionException, NiFiRegistryException {
+    private List<VersionFileMetaData> getFilePathList(final Properties properties) throws MissingOptionException, NiFiRegistryException {
         final String directory = getRequiredArg(properties, CommandOption.INPUT_SOURCE);
-        final List<String> files;
+        final List<VersionFileMetaData> files;
 
         try (final Stream<Path> paths = Files.list(Paths.get(directory))) {
             files = paths
                     .filter(Files::isRegularFile)
                     .filter(path -> path.getFileName().toString().startsWith(FILE_NAME_PREFIX))
-                    .map(Path::toString)
+                    .map(VersionFileMetaData::new)
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new NiFiRegistryException("File listing not possible due to ", e);
+            throw new NiFiRegistryException("File listing failed", e);
         }
         return files;
-    }
-
-    private List<ImportedSnapshot> deserializeSnapshots(final List<String> files) throws IOException {
-        final List<ImportedSnapshot> importedSnapshots = new ArrayList<>();
-        final ObjectMapper mapper = JacksonUtils.getObjectMapper();
-
-        for (final String file : files) {
-            final String fileContent = getInputSourceContent(file);
-            importedSnapshots.add(new ImportedSnapshot(file, mapper.readValue(fileContent, VersionedFlowSnapshot.class)));
-        }
-        return importedSnapshots;
     }
 
     private void createBucket(final NiFiRegistryClient client, final Map<String, String> bucketMap, final String bucketName,
@@ -261,13 +262,31 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         flowCreated.put(new ImmutablePair<>(bucketId, flowName), flowId);
     }
 
-    private void createFlowVersion(final NiFiRegistryClient client, final String inputSource, final String flowId) throws ParseException, IOException, NiFiRegistryException {
-        final Properties flowVersionProperties = new Properties();
-        flowVersionProperties.setProperty(CommandOption.FLOW_ID.getLongName(), flowId);
-        flowVersionProperties.setProperty(CommandOption.INPUT_SOURCE.getLongName(), inputSource);
-        flowVersionProperties.setProperty(CommandOption.KEEP.getLongName(), Boolean.TRUE.toString());
+    private void updateStorageLocation(final VersionedFlowCoordinates versionedFlowCoordinates, final String registryUrl) {
+        if (versionedFlowCoordinates != null && !versionedFlowCoordinates.getStorageLocation().startsWith(registryUrl)) {
+            final String updatedStorageLocation = String.format(STORAGE_LOCATION_URL, registryUrl, versionedFlowCoordinates.getBucketId(),
+                    versionedFlowCoordinates.getFlowId(), versionedFlowCoordinates.getVersion());
 
-        importFlowVersion.doExecute(client, flowVersionProperties);
+            versionedFlowCoordinates.setStorageLocation(updatedStorageLocation);
+            versionedFlowCoordinates.setRegistryUrl(registryUrl);
+        }
+    }
+
+    private void createFlowVersion(final NiFiRegistryClient client, final VersionedFlowSnapshot snapshot, final String bucketId, final String flowId) throws IOException, NiFiRegistryException {
+        final FlowSnapshotClient snapshotClient = client.getFlowSnapshotClient();
+
+        int version;
+        try {
+            final VersionedFlowSnapshotMetadata latestMetadata = snapshotClient.getLatestMetadata(bucketId, flowId);
+            version = latestMetadata.getVersion() + 1;
+        } catch (NiFiRegistryException e) {
+            // when there are no versions it produces a 404 not found
+            version = 1;
+        }
+        snapshot.getSnapshotMetadata().setFlowIdentifier(flowId);
+        snapshot.getSnapshotMetadata().setBucketIdentifier(bucketId);
+        snapshot.getSnapshotMetadata().setVersion(version);
+        snapshotClient.create(snapshot, true);
     }
 
     private void printMessage(final boolean isInteractive, final String message) {
@@ -278,21 +297,34 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         }
     }
 
-    public static class ImportedSnapshot {
+    public static class VersionFileMetaData {
         private final String inputSource;
-        private final VersionedFlowSnapshot snapshot;
+        private final String bucketName;
+        private final String flowName;
+        private final int version;
 
-        public ImportedSnapshot(String inputSource, VersionedFlowSnapshot snapshot) {
-            this.inputSource = inputSource;
-            this.snapshot = snapshot;
+        public VersionFileMetaData(final Path path) {
+            final String[] fileNameElements = path.getFileName().toString().split(FILE_NAME_SEPARATOR);
+            this.inputSource = path.toString();
+            this.bucketName = fileNameElements[4];
+            this.flowName = fileNameElements[5];
+            this.version = Integer.parseInt(fileNameElements[6]);
         }
 
         public String getInputSource() {
             return inputSource;
         }
 
-        public VersionedFlowSnapshot getSnapshot() {
-            return snapshot;
+        public String getBucketName() {
+            return bucketName;
+        }
+
+        public String getFlowName() {
+            return flowName;
+        }
+
+        public int getVersion() {
+            return version;
         }
     }
 }
