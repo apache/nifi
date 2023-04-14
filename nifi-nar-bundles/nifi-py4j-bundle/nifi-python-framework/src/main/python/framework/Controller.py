@@ -87,7 +87,6 @@ if __name__ == "__main__":
     # Create the Java Gateway for communicating with NiFi Java process
     java_port = int(os.getenv('JAVA_PORT'))
     auth_token = os.getenv('AUTH_TOKEN')
-    logger.info("Using auth token {} to communicate with Java on port {}".format(auth_token, java_port))
 
     gateway = JavaGateway(
        callback_server_parameters=CallbackServerParameters(port=0, auth_token=auth_token),
