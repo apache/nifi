@@ -165,7 +165,6 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
     private volatile long maxAckWaitMillis;
     private volatile String topic;
     private volatile Producer<byte[], byte[]> producer;
-    private final Queue<Future<RecordMetadata>> ackQ = new LinkedList<>();
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
@@ -235,6 +234,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
             final RecordSchema writeSchema = getWriterFactory().getSchema(null, recordSet.getSchema());
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final ByteCountingOutputStream out = new ByteCountingOutputStream(baos);
+            final Queue<Future<RecordMetadata>> ackQ = new LinkedList<>();
             int recordCount = 0;
             try (final RecordSetWriter writer = getWriterFactory().createWriter(getLogger(), writeSchema, out, attributes)) {
                 Record record;
@@ -247,7 +247,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
                     if (out.getBytesWritten() > maxMessageSize) {
                         throw new TokenTooLargeException("A record's size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
                     }
-                    sendMessage(topic, baos.toByteArray());
+                    sendMessage(topic, baos.toByteArray(), ackQ);
                 }
                 if (out.getBytesWritten() > maxMessageSize) {
                     throw new TokenTooLargeException("A record's size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
@@ -259,13 +259,13 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
 
             if (recordCount == 0) {
                 if (sendZeroResults) {
-                    sendMessage(topic, new byte[0]);
+                    sendMessage(topic, new byte[0], ackQ);
                 } else {
                     return WriteResult.EMPTY;
                 }
             }
 
-            acknowledgeTransmission();
+            acknowledgeTransmission(ackQ);
 
             return WriteResult.of(recordCount, attributes);
         } catch (IOException ioe) {
@@ -275,7 +275,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         }
     }
 
-    public void sendMessage(String topic, byte[] payload) throws IOException, ExecutionException {
+    private void sendMessage(String topic, byte[] payload, final Queue<Future<RecordMetadata>> ackQ) throws IOException {
         final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, null, payload);
         // Add the Future to the queue
         ackQ.add(producer.send(record, (metadata, exception) -> {
@@ -285,7 +285,7 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
         }));
     }
 
-    public void acknowledgeTransmission() throws IOException, ExecutionException {
+    private void acknowledgeTransmission(final Queue<Future<RecordMetadata>> ackQ) throws IOException, ExecutionException {
         try {
             Future<RecordMetadata> ack;
             while ((ack = ackQ.poll()) != null) {
