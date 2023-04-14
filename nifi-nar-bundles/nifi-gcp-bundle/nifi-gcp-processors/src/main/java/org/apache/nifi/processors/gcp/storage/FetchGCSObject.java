@@ -47,8 +47,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -276,13 +274,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved GCS Object for {} in {} millis; routing to success", new Object[]{flowFile, millis});
 
-        String transitUri;
-        try {
-            final URL url = new URL(storage.getOptions().getHost());
-            transitUri = String.format("%s://%s.%s/%s", url.getProtocol(), bucketName, url.getHost(), key);
-        } catch (MalformedURLException e) {
-            transitUri = e.getClass().getSimpleName();
-        }
+        final String transitUri = getTransitUri(storage.getOptions().getHost(), bucketName, key);
         session.getProvenanceReporter().fetch(flowFile, transitUri, millis);
     }
 

@@ -37,6 +37,7 @@ import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -166,5 +167,10 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
         }
 
         return  storageOptionsBuilder.setTransportOptions(getTransportOptions(context)).build();
+    }
+
+    protected String getTransitUri(final String storageApiUrl, final String bucketName, final String key) {
+        final URI apiUri = URI.create(storageApiUrl);
+        return String.format("%s://%s.%s/%s", apiUri.getScheme(), bucketName, apiUri.getHost(), key);
     }
 }
