@@ -960,9 +960,9 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
-            var groups = d3.set();
-            var restrictedUsage = d3.map();
-            var requiredPermissions = d3.map();
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
 
             // begin the update
             reportingTaskTypesData.beginUpdate();
@@ -1056,7 +1056,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.each(function (group) {
+            groups.forEach(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -1362,9 +1362,9 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
-            var groups = d3.set();
-            var restrictedUsage = d3.map();
-            var requiredPermissions = d3.map();
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
 
             // begin the update
             parameterProviderTypesData.beginUpdate();
@@ -1458,7 +1458,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.each(function (group) {
+            groups.forEach(function (group) {
                 options.push({
                     text: group,
                     value: group

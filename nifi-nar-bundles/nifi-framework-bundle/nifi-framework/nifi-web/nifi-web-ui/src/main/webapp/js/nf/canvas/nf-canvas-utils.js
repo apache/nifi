@@ -57,8 +57,8 @@
     var nfGraph;
     var trimLengthCaches = {};
 
-    var restrictedUsage = d3.map();
-    var requiredPermissions = d3.map();
+    var restrictedUsage = new Map();
+    var requiredPermissions = new Map();
 
     var config = {
         storage: {
@@ -103,7 +103,7 @@
             nfSnippet.create(snippet).done(function (response) {
                 // move the snippet into the target
                 nfSnippet.move(response.snippet.id, groupId).done(function () {
-                    var componentMap = d3.map();
+                    var componentMap = new Map();
 
                     // add the id to the type's array
                     var addComponent = function (type, id) {
@@ -119,7 +119,7 @@
                     });
 
                     // refresh all component types as necessary (handle components that have been removed)
-                    componentMap.each(function (ids, type) {
+                    componentMap.forEach(function (ids, type) {
                         nfCanvasUtils.getComponentByType(type).remove(ids);
                     });
 
@@ -808,11 +808,9 @@
 
             var line = [];
             var tspan = selection.append('tspan')
-                .attrs({
-                    'x': x,
-                    'y': y,
-                    'width': width
-                });
+                .attr('x', x)
+                .attr('y', y)
+                .attr('width', width);
 
             // go through each word
             var word = words.pop();
@@ -833,11 +831,9 @@
 
                     // create the tspan for the next line
                     tspan = selection.append('tspan')
-                        .attrs({
-                            'x': x,
-                            'dy': '1.2em',
-                            'width': width
-                        });
+                        .attr('x', x)
+                        .attr('dy', '1.2em')
+                        .attr('width', width);
 
                     // if we've reached the last line, use single line ellipsis
                     if (++i >= lineCount) {
@@ -952,9 +948,9 @@
          * @param {selection} selection                 The image
          */
         disableImageHref: function (selection) {
-            selection.on('click.disableImageHref', function () {
-                if (d3.event.ctrlKey || d3.event.shiftKey) {
-                    d3.event.preventDefault();
+            selection.on('click.disableImageHref', function (event) {
+                if (event.ctrlKey || event.shiftKey) {
+                    event.preventDefault();
                 }
             });
         },
@@ -1029,11 +1025,11 @@
          * @param {selection} target        The target of the tooltip
          */
         canvasTooltip: function (tip, target) {
-            target.on('mouseenter', function () {
-                tip.style('top', (d3.event.pageY + 15) + 'px').style('left', (d3.event.pageX + 15) + 'px').style('display', 'block');
+            target.on('mouseenter', function (event) {
+                tip.style('top', (event.pageY + 15) + 'px').style('left', (event.pageX + 15) + 'px').style('display', 'block');
             })
                 .on('mousemove', function () {
-                    tip.style('top', (d3.event.pageY + 15) + 'px').style('left', (d3.event.pageX + 15) + 'px');
+                    tip.style('top', (event.pageY + 15) + 'px').style('left', (event.pageX + 15) + 'px');
                 })
                 .on('mouseleave', function () {
                     tip.style('display', 'none');
@@ -2089,7 +2085,7 @@
          * @param additionalRequiredPermissions
          */
         addComponentRestrictions: function (additionalRestrictedUsages, additionalRequiredPermissions) {
-            additionalRestrictedUsages.each(function (componentRestrictions, requiredPermissionId) {
+            additionalRestrictedUsages.forEach(function (componentRestrictions, requiredPermissionId) {
                 if (!restrictedUsage.has(requiredPermissionId)) {
                     restrictedUsage.set(requiredPermissionId, []);
                 }
@@ -2098,7 +2094,7 @@
                     restrictedUsage.get(requiredPermissionId).push(componentRestriction);
                 });
             });
-            additionalRequiredPermissions.each(function (requiredPermissionLabel, requiredPermissionId) {
+            additionalRequiredPermissions.forEach(function (requiredPermissionLabel, requiredPermissionId) {
                 if (!requiredPermissions.has(requiredPermissionId)) {
                     requiredPermissions.set(requiredPermissionId, requiredPermissionLabel);
                 }

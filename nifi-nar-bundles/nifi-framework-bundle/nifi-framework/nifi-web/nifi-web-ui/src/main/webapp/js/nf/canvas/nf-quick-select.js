@@ -51,7 +51,7 @@
         /**
          * Attempts to show configuration or details dialog for the specified slection.
          */
-        quickSelect: function () {
+        quickSelect: function (event) {
             var selection = nfCanvasUtils.getSelection();
 
             if (nfCanvasUtils.isConfigurable(selection)) {
@@ -61,8 +61,8 @@
             }
 
             // stop propagation and prevent default
-            d3.event.preventDefault();
-            d3.event.stopPropagation();
+            event.preventDefault();
+            event.stopPropagation();
         },
 
         /**
@@ -71,9 +71,9 @@
          * @param {selection} components
          */
         activate: function (components) {
-            components.on('dblclick', function () {
+            components.on('dblclick', function (event) {
                 // get the clicked component to update selection
-                nfQuickSelect.quickSelect();
+                nfQuickSelect.quickSelect(event);
             });
         }
     };

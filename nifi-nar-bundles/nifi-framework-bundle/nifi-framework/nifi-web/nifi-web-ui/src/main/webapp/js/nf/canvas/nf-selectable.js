@@ -43,14 +43,14 @@
 
     var nfSelectable = {
 
-        select: function (g) {
+        select: function (event, g) {
             // hide any context menus as necessary
             nfContextMenu.hide();
 
             // only need to update selection if necessary
             if (!g.classed('selected')) {
                 // since we're not appending, deselect everything else
-                if (!d3.event.shiftKey) {
+                if (!event.shiftKey) {
                     d3.selectAll('g.selected').classed('selected', false);
                 }
 
@@ -58,7 +58,7 @@
                 g.classed('selected', true);
             } else {
                 // we are currently selected, if shift key the deselect
-                if (d3.event.shiftKey) {
+                if (event.shiftKey) {
                     g.classed('selected', false);
                 }
             }
@@ -68,7 +68,7 @@
             nfNgBridge.digest();
 
             // stop propagation
-            d3.event.stopPropagation();
+            event.stopPropagation();
         },
 
         /**
@@ -77,9 +77,9 @@
          * @param {selection} components
          */
         activate: function (components) {
-            components.on('mousedown.selection', function () {
+            components.on('mousedown.selection', function (event) {
                 // get the clicked component to update selection
-                nfSelectable.select(d3.select(this));
+                nfSelectable.select(event, d3.select(this));
 
                 // update URL deep linking params
                 nfCanvasUtils.setURLParameters();

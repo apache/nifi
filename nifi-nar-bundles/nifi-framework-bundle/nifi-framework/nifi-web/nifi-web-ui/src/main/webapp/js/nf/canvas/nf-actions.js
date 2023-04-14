@@ -1286,7 +1286,7 @@
                     nfSnippet.create(snippet).done(function (response) {
                         // remove the snippet, effectively removing the components
                         nfSnippet.remove(response.snippet.id).done(function () {
-                            var components = d3.map();
+                            var components = new Map();
 
                             // add the id to the type's array
                             var addComponent = function (type, id) {
@@ -1313,7 +1313,7 @@
                             });
 
                             // remove all the non connections in the snippet first
-                            components.each(function (ids, type) {
+                            components.forEach(function (ids, type) {
                                 if (type !== 'Connection') {
                                     nfCanvasUtils.getComponentByType(type).remove(ids);
                                 }
@@ -1919,7 +1919,7 @@
          * @param {array} selection      The selection
          */
         alignVertical: function (selection) {
-            var updates = d3.map();
+            var updates = new Map();
             // ensure every component is writable
             if (nfCanvasUtils.canModify(selection) === false) {
                 nfDialog.showOkDialog({
@@ -1987,7 +1987,7 @@
          * @param {array} selection      The selection
          */
         alignHorizontal: function (selection) {
-            var updates = d3.map();
+            var updates = new Map();
             // ensure every component is writable
             if (nfCanvasUtils.canModify(selection) === false) {
                 nfDialog.showOkDialog({

@@ -356,8 +356,8 @@
 
             // add status history details
             var detailsContainer = buildDetailsContainer('Status History');
-            d3.map(statusHistory.details).each(function (value, label) {
-                addDetailItem(detailsContainer, label, value);
+            Object.keys(statusHistory.details).forEach(function(key) {
+                addDetailItem(detailsContainer, key, statusHistory.details[key]);
             });
 
             var margin = {
