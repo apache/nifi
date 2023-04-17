@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.security.keyvault.keys.cryptography.models.KeyWrapAlgorithm;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
+import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -51,6 +54,19 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
         runProcessor();
 
         assertSuccess(BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testFetchBlobWithCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_128B_VALUE);
+        uploadBlobWithCSE(BLOB_NAME, BLOB_DATA, KEY_128B_VALUE, KEY_ID_VALUE, KeyWrapAlgorithm.A128KW.toString());
+
+        runProcessor();
+        //cannot validate blob size as azure api does not expose unencrypted data length
+        assertFlowFile(BLOB_NAME, BLOB_DATA, null);
+        assertProvenanceEvents();
     }
 
     @Test
@@ -186,14 +202,15 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
         assertProvenanceEvents();
     }
 
-    private void assertFlowFile(String blobName, byte[] blobData, int originalLength) throws Exception {
+    private void assertFlowFile(String blobName, byte[] blobData, Integer originalLength) throws Exception {
         runner.assertAllFlowFilesTransferred(FetchAzureBlobStorage_v12.REL_SUCCESS, 1);
 
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureBlobStorage_v12.REL_SUCCESS).get(0);
 
         assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), blobName);
-        assertFlowFileResultBlobAttributes(flowFile, originalLength);
-
+        if(originalLength != null) {
+            assertFlowFileResultBlobAttributes(flowFile, originalLength);
+        }
         flowFile.assertContentEquals(blobData);
     }
 

@@ -20,7 +20,9 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobErrorCode;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
@@ -40,8 +42,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
+
     public static class ITProcessor extends PutAzureBlobStorage_v12 {
         public boolean blobMetadataApplied = false;
+
         @Override
         protected void applyBlobMetadata(Map<String, String> attributes, BlobClient blobClient) {
             super.applyBlobMetadata(attributes, blobClient);
@@ -190,6 +194,60 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
+    @Test
+    public void testPutBlob64BLocalCSE() {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_64B_VALUE);
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPutBlob128BLocalCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_128B_VALUE);
+        runProcessor(BLOB_DATA);
+        assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlob192BLocalCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_192B_VALUE);
+        runProcessor(BLOB_DATA);
+        assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlob256BLocalCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_256B_VALUE);
+        runProcessor(BLOB_DATA);
+        assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlob384BLocalCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_384B_VALUE);
+        runProcessor(BLOB_DATA);
+        assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlob512BLocalCSE() throws Exception {
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_512B_VALUE);
+        runProcessor(BLOB_DATA);
+        assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+
     private void runProcessor(byte[] data) {
         runProcessor(data, Collections.emptyMap());
     }
@@ -203,6 +261,13 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     private MockFlowFile assertSuccess(String containerName, String blobName, byte[] blobData) throws Exception {
         MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
         assertAzureBlob(containerName, blobName, blobData);
+        assertProvenanceEvents();
+        return flowFile;
+    }
+
+    private MockFlowFile assertSuccessForCSE(String containerName, String blobName, byte[] blobData) throws Exception {
+        MockFlowFile flowFile = assertFlowFile(containerName, blobName, blobData);
+        assertAzureBlobExists(containerName, blobName);
         assertProvenanceEvents();
         return flowFile;
     }
@@ -222,16 +287,21 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         if (blobData != null) {
             assertFlowFileResultBlobAttributes(flowFile, blobData.length);
             flowFile.assertContentEquals(blobData);
+            flowFile.assertAttributeEquals("azure.length", String.valueOf(blobData.length));
         }
         return flowFile;
     }
 
     private void assertAzureBlob(String containerName, String blobName, byte[] blobData) {
+        BlobClient blobClient = assertAzureBlobExists(containerName, blobName);
+        assertEquals(blobData.length, blobClient.getProperties().getBlobSize());
+    }
+
+    private BlobClient assertAzureBlobExists(String containerName, String blobName) {
         BlobContainerClient containerClient = getStorageClient().getBlobContainerClient(containerName);
         BlobClient blobClient = containerClient.getBlobClient(blobName);
-
         assertTrue(blobClient.exists());
-        assertEquals(blobData.length, blobClient.getProperties().getBlobSize());
+        return blobClient;
     }
 
     private void assertProvenanceEvents() {
