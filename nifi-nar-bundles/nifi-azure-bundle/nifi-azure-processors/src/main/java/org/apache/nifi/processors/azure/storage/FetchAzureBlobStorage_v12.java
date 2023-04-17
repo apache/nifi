@@ -28,6 +28,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -36,9 +38,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -114,8 +119,18 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             BLOB_NAME,
             RANGE_START,
             RANGE_LENGTH,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX
     ));
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        results.addAll(AzureBlobClientSideEncryptionUtils_v12.validateClientSideEncryptionProperties(validationContext));
+        return results;
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -139,9 +154,9 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         try {
             BlobServiceClient storageClient = getStorageClient();
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
-            BlobClient blobClient = containerClient.getBlobClient(blobName);
+            BlobClient blobClient = getBlobClient(context, containerClient, blobName);
 
-            flowFile = session.write(flowFile, os -> blobClient.downloadWithResponse(os, new BlobRange(rangeStart, rangeLength), null, null, false, null, null));
+            flowFile = session.write(flowFile, os -> blobClient.downloadStreamWithResponse(os, new BlobRange(rangeStart, rangeLength), null, null, false, null, null));
 
             Map<String, String> attributes = createBlobAttributesMap(blobClient);
             flowFile = session.putAllAttributes(flowFile, attributes);

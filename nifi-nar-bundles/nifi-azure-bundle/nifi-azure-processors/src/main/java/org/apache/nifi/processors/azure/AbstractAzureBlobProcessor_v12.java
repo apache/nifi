@@ -18,15 +18,25 @@ package org.apache.nifi.processors.azure;
 
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.cryptography.AsyncKeyEncryptionKey;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.security.keyvault.keys.cryptography.KeyEncryptionKeyClientBuilder;
+import com.azure.security.keyvault.keys.cryptography.models.KeyWrapAlgorithm;
+import com.azure.security.keyvault.keys.models.JsonWebKey;
+import com.azure.security.keyvault.keys.models.KeyOperation;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.cryptography.EncryptedBlobClientBuilder;
+import com.azure.storage.blob.specialized.cryptography.EncryptionVersion;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -36,10 +46,13 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionMethod_v12;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import reactor.core.publisher.Mono;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,6 +61,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12.KeySize128;
+import static org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12.KeySize192;
+import static org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12.KeySize256;
+import static org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12.KeySize384;
+import static org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12.KeySize512;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBTYPE;
@@ -111,6 +129,59 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
 
     protected BlobServiceClient getStorageClient() {
         return storageClient;
+    }
+
+    protected BlobClient getBlobClient(PropertyContext context, BlobContainerClient containerClient, String blobName) throws DecoderException {
+        final String cseKeyTypeValue = context.getProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE).getValue();
+        final AzureBlobClientSideEncryptionMethod_v12 cseKeyType = AzureBlobClientSideEncryptionMethod_v12.valueOf(cseKeyTypeValue);
+
+        final String cseKeyId = context.getProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID).getValue();
+
+        final String cseLocalKeyHex = context.getProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX).getValue();
+
+        BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+        if (cseKeyType == AzureBlobClientSideEncryptionMethod_v12.LOCAL) {
+            byte[] keyBytes = Hex.decodeHex(cseLocalKeyHex.toCharArray());
+            JsonWebKey localKey = JsonWebKey.fromAes(new SecretKeySpec(keyBytes, "AES"),
+                    Arrays.asList(KeyOperation.WRAP_KEY, KeyOperation.UNWRAP_KEY))
+                    .setId(cseKeyId);
+            AsyncKeyEncryptionKey akek = new KeyEncryptionKeyClientBuilder()
+                    .buildAsyncKeyEncryptionKey(localKey).block();
+            return new EncryptedBlobClientBuilder(EncryptionVersion.V2)
+                    .key(akek, getKeyWrapAlgorithm(keyBytes))
+                    .blobClient(blobClient)
+                    .buildEncryptedBlobClient();
+        } else {
+            return blobClient;
+        }
+
+
+    }
+
+    private String getKeyWrapAlgorithm(byte[] keyBytes) {
+
+        switch (keyBytes.length) {
+            case KeySize128:
+                return KeyWrapAlgorithm.A128KW.toString();
+
+            case KeySize192:
+                return KeyWrapAlgorithm.A192KW.toString();
+
+            case KeySize256:
+                return KeyWrapAlgorithm.A256KW.toString();
+
+            case KeySize384:
+                // Default to longest allowed key length for wrap
+                return KeyWrapAlgorithm.A256KW.toString();
+
+            case KeySize512:
+                // Default to longest allowed key length for wrap
+                return KeyWrapAlgorithm.A256KW.toString();
+
+            default:
+                return null;
+        }
     }
 
     public static BlobServiceClient createStorageClient(PropertyContext context) {

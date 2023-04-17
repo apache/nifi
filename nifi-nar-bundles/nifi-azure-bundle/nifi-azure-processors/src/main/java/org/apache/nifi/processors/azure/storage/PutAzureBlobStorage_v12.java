@@ -35,6 +35,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -42,11 +44,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -124,8 +129,18 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             CREATE_CONTAINER,
             CONFLICT_RESOLUTION,
             BLOB_NAME,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE,
+            AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX
     ));
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        results.addAll(AzureBlobClientSideEncryptionUtils_v12.validateClientSideEncryptionProperties(validationContext));
+        return results;
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -151,7 +166,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
                 containerClient.create();
             }
 
-            BlobClient blobClient = containerClient.getBlobClient(blobName);
+            BlobClient blobClient = getBlobClient(context, containerClient, blobName);
             final BlobRequestConditions blobRequestConditions = new BlobRequestConditions();
             Map<String, String> attributes = new HashMap<>();
             applyStandardBlobAttributes(attributes, blobClient);
@@ -207,4 +222,5 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         attributes.put(ATTR_NAME_LANG, null);
         attributes.put(ATTR_NAME_MIME_TYPE, APPLICATION_OCTET_STREAM);
     }
+
 }
