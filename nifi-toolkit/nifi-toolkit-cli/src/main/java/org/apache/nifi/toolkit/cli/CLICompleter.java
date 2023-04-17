@@ -21,7 +21,7 @@ import org.apache.nifi.toolkit.cli.api.CommandGroup;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.session.SessionCommandGroup;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
-import org.apache.nifi.toolkit.cli.impl.util.StandardFileNameCompleter;
+import org.jline.builtins.Completers;
 import org.jline.reader.Candidate;
 import org.jline.reader.Completer;
 import org.jline.reader.LineReader;
@@ -77,7 +77,7 @@ public class CLICompleter implements Completer {
      */
     private final Map<String, List<String>> commandOptionsMap;
 
-    private final Completer fileNameCompleter = new StandardFileNameCompleter();
+    private final Completer fileNameCompleter = new Completers.FileNameCompleter();
 
     /**
      * Initializes the completer based on the top-level commands and command groups.
