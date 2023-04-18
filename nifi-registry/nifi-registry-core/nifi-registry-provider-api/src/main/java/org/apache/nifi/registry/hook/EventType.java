@@ -40,8 +40,7 @@ public enum EventType {
             EventFieldName.FLOW_ID,
             EventFieldName.VERSION,
             EventFieldName.USER,
-            EventFieldName.COMMENT
-    ),
+            EventFieldName.COMMENT),
     CREATE_EXTENSION_BUNDLE(
             EventFieldName.BUCKET_ID,
             EventFieldName.EXTENSION_BUNDLE_ID,
