@@ -72,7 +72,7 @@
 
     // -----------------------------------------------------------
     // cache for components that are added/removed from the canvas
-    // ------------------------r-----------------------------------
+    // -----------------------------------------------------------
 
     var removedCache;
     var addedCache;
@@ -1190,7 +1190,7 @@
             if (nfCommon.isUndefined(id)) {
                 return Array.from(processorMap.values());
             } else {
-                return processoMap.get(id);
+                return processorMap.get(id);
             }
         },
 
