@@ -42,7 +42,6 @@ public class TestEventFactory {
     private Bucket bucket;
     private VersionedFlow versionedFlow;
     private VersionedFlowSnapshot versionedFlowSnapshot;
-    private VersionedFlowSnapshot migratedVersionedFlowSnapshot;
     private Bundle bundle;
     private BundleVersion bundleVersion;
     private User user;
@@ -71,17 +70,6 @@ public class TestEventFactory {
         versionedFlowSnapshot = new VersionedFlowSnapshot();
         versionedFlowSnapshot.setSnapshotMetadata(metadata);
         versionedFlowSnapshot.setFlowContents(new VersionedProcessGroup());
-
-        VersionedFlowSnapshotMetadata migratedMetadata = new VersionedFlowSnapshotMetadata();
-        migratedMetadata.setAuthor("user1");
-        migratedMetadata.setComments("This is flow 1");
-        migratedMetadata.setVersion(2);
-        migratedMetadata.setBucketIdentifier(bucket.getIdentifier());
-        migratedMetadata.setFlowIdentifier(versionedFlow.getIdentifier());
-
-        migratedVersionedFlowSnapshot = new VersionedFlowSnapshot();
-        migratedVersionedFlowSnapshot.setSnapshotMetadata(migratedMetadata);
-        migratedVersionedFlowSnapshot.setFlowContents(new VersionedProcessGroup());
 
         bundle = new Bundle();
         bundle.setIdentifier(UUID.randomUUID().toString());
@@ -213,30 +201,6 @@ public class TestEventFactory {
         final Event event = EventFactory.flowVersionCreated(versionedFlowSnapshot);
         event.validate();
         assertEquals("", event.getField(EventFieldName.COMMENT).getValue());
-    }
-
-    @Test
-    public void testFlowVersionedMigrated() {
-        final Event event = EventFactory.flowVersionMigrated(migratedVersionedFlowSnapshot);
-        event.validate();
-
-        assertEquals(EventType.MIGRATE_FLOW_VERSION, event.getEventType());
-        assertEquals(6, event.getFields().size());
-
-        assertEquals(bucket.getIdentifier(), event.getField(EventFieldName.BUCKET_ID).getValue());
-        assertEquals(versionedFlow.getIdentifier(), event.getField(EventFieldName.FLOW_ID).getValue());
-
-        assertEquals(String.valueOf(migratedVersionedFlowSnapshot.getSnapshotMetadata().getVersion()),
-                event.getField(EventFieldName.VERSION).getValue());
-
-        assertEquals(migratedVersionedFlowSnapshot.getSnapshotMetadata().getAuthor(),
-                event.getField(EventFieldName.USER_IDENTITY).getValue());
-
-        assertEquals("unknown",
-                event.getField(EventFieldName.USER).getValue());
-
-        assertEquals(migratedVersionedFlowSnapshot.getSnapshotMetadata().getComments(),
-                event.getField(EventFieldName.COMMENT).getValue());
     }
 
     @Test

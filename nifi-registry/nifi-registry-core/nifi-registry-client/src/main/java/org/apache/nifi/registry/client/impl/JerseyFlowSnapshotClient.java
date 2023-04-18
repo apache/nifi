@@ -72,17 +72,10 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
         }
 
         return executeAction("Error creating snapshot", () -> {
-            final WebTarget target;
-            if (preserveSourceProperties) {
-                target = bucketFlowSnapshotTarget
-                        .path("/preserveSourceProperties")
+            final WebTarget target = bucketFlowSnapshotTarget
                         .resolveTemplate("bucketId", bucketId)
-                        .resolveTemplate("flowId", flowId);
-            } else {
-                target = bucketFlowSnapshotTarget
-                        .resolveTemplate("bucketId", bucketId)
-                        .resolveTemplate("flowId", flowId);
-            }
+                        .resolveTemplate("flowId", flowId)
+                        .queryParam("preserveSourceProperties", preserveSourceProperties);
 
             return  getRequestBuilder(target)
                     .post(

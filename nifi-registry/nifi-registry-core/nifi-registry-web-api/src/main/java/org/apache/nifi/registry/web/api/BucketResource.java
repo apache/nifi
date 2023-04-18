@@ -85,35 +85,13 @@ public class BucketResource extends ApplicationResource {
             @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403) })
     public Response createBucket(
             @ApiParam(value = "The bucket to create", required = true)
-            final Bucket bucket) {
+            final Bucket bucket,
+            @ApiParam(
+                    value = "Whether source properties like identifier should be kept")
+            @QueryParam("preserveSourceProperties")
+            final boolean preserveSourceProperties) {
 
-        final Bucket createdBucket = serviceFacade.createBucket(bucket);
-        publish(EventFactory.bucketCreated(createdBucket));
-        return Response.status(Response.Status.OK).entity(createdBucket).build();
-    }
-
-    @POST
-    @Path("migrate")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(
-            value = "Create bucket with provided identifier",
-            response = Bucket.class,
-            extensions = {
-                    @Extension(name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets") })
-            }
-    )
-    @ApiResponses({
-            @ApiResponse(code = 400, message = HttpStatusMessages.MESSAGE_400),
-            @ApiResponse(code = 401, message = HttpStatusMessages.MESSAGE_401),
-            @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403) })
-    public Response migrateBucket(
-            @ApiParam(value = "The bucket to create", required = true)
-            final Bucket bucket) {
-
-        final Bucket createdBucket = serviceFacade.migrateBucket(bucket);
+        final Bucket createdBucket = serviceFacade.createBucket(bucket, preserveSourceProperties);
         publish(EventFactory.bucketCreated(createdBucket));
         return Response.status(Response.Status.OK).entity(createdBucket).build();
     }

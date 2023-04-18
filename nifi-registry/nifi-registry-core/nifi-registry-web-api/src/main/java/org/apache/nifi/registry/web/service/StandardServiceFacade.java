@@ -138,17 +138,7 @@ public class StandardServiceFacade implements ServiceFacade {
 
     @Override
     public Bucket createBucket(final Bucket bucket) {
-        authorizeBucketsAccess(RequestAction.WRITE);
-        validateCreationOfRevisableEntity(bucket, BUCKET_ENTITY_TYPE);
-        validateIdentifierNotPresent(bucket, BUCKET_ENTITY_TYPE);
-
-        bucket.setIdentifier(UUID.randomUUID().toString());
-
-        final Bucket createdBucket = createRevisableEntity(bucket, BUCKET_ENTITY_TYPE, currentUserIdentity(),
-                () -> registryService.createBucket(bucket));
-        permissionsService.populateBucketPermissions(createdBucket);
-        linkService.populateLinks(createdBucket);
-        return createdBucket;
+        return createBucket(bucket, Boolean.FALSE);
     }
 
     @Override
@@ -203,12 +193,15 @@ public class StandardServiceFacade implements ServiceFacade {
     }
 
     @Override
-    public Bucket migrateBucket(final Bucket bucket) {
+    public Bucket createBucket(final Bucket bucket, final boolean preserveSourceProperties) {
         authorizeBucketsAccess(RequestAction.WRITE);
         validateCreationOfRevisableEntity(bucket, BUCKET_ENTITY_TYPE);
 
-        if (bucket.getIdentifier() == null) {
-            throw new IllegalArgumentException("Identifier cannot be null");
+        if (preserveSourceProperties) {
+            validateIdentifierPresent(bucket, BUCKET_ENTITY_TYPE);
+        } else {
+            validateIdentifierNotPresent(bucket, BUCKET_ENTITY_TYPE);
+            bucket.setIdentifier(UUID.randomUUID().toString());
         }
 
         final Bucket createdBucket = createRevisableEntity(bucket, BUCKET_ENTITY_TYPE, currentUserIdentity(),
@@ -1213,6 +1206,12 @@ public class StandardServiceFacade implements ServiceFacade {
         if (entity.getIdentifier() != null) {
             throw new IllegalArgumentException(entityTypeName + " identifier cannot be specified when creating a new "
                     + entityTypeName.toLowerCase() + ".");
+        }
+    }
+
+    private void validateIdentifierPresent(final RevisableEntity entity, final String entityTypeName) {
+        if (entity.getIdentifier() == null) {
+            throw new IllegalArgumentException(entityTypeName + " identifier must be specified.");
         }
     }
 

@@ -41,10 +41,10 @@ public interface BucketClient {
      * False will set a generated identifier.
      *
      * @param bucket the bucket to create
-     * @param migration whether the operation is migration related
+     * @param preserveSourceProperties whether the operation is migration related
      * @return the created bucket with the populated identifier
      */
-    Bucket create(Bucket bucket, boolean migration) throws NiFiRegistryException, IOException;
+    Bucket create(Bucket bucket, boolean preserveSourceProperties) throws NiFiRegistryException, IOException;
 
     /**
      * Gets the bucket with the given id.

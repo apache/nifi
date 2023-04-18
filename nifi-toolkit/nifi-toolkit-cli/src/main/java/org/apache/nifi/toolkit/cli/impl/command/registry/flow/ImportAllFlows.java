@@ -160,10 +160,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
                 //update storage location
                 final String registryUrl = getRequiredArg(properties, CommandOption.URL);
 
-                updateStorageLocation(snapshot.getFlowContents().getVersionedFlowCoordinates(), registryUrl);
-                for (VersionedProcessGroup processGroup : snapshot.getFlowContents().getProcessGroups()) {
-                    updateStorageLocation(processGroup.getVersionedFlowCoordinates(), registryUrl);
-                }
+                updateStorageLocation(snapshot.getFlowContents(), registryUrl);
 
                 createFlowVersion(client, snapshot, bucketId, flowId);
             }
@@ -262,13 +259,17 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
         flowCreated.put(new ImmutablePair<>(bucketId, flowName), flowId);
     }
 
-    private void updateStorageLocation(final VersionedFlowCoordinates versionedFlowCoordinates, final String registryUrl) {
-        if (versionedFlowCoordinates != null && !versionedFlowCoordinates.getStorageLocation().startsWith(registryUrl)) {
-            final String updatedStorageLocation = String.format(STORAGE_LOCATION_URL, registryUrl, versionedFlowCoordinates.getBucketId(),
-                    versionedFlowCoordinates.getFlowId(), versionedFlowCoordinates.getVersion());
+    private void updateStorageLocation(final VersionedProcessGroup group, final String registryUrl) {
+        final  VersionedFlowCoordinates flowCoordinates = group.getVersionedFlowCoordinates();
+        if (flowCoordinates != null && !flowCoordinates.getStorageLocation().startsWith(registryUrl)) {
+            final String updatedStorageLocation = String.format(STORAGE_LOCATION_URL, registryUrl, flowCoordinates.getBucketId(),
+                    flowCoordinates.getFlowId(), flowCoordinates.getVersion());
 
-            versionedFlowCoordinates.setStorageLocation(updatedStorageLocation);
-            versionedFlowCoordinates.setRegistryUrl(registryUrl);
+            flowCoordinates.setStorageLocation(updatedStorageLocation);
+            flowCoordinates.setRegistryUrl(registryUrl);
+        }
+        for (VersionedProcessGroup processGroup : group.getProcessGroups()) {
+            updateStorageLocation(processGroup, registryUrl);
         }
     }
 

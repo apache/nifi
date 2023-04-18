@@ -98,21 +98,6 @@ public class EventFactory {
                 .build();
     }
 
-    public static Event flowVersionMigrated(final VersionedFlowSnapshot versionedFlowSnapshot) {
-        final String versionComments = versionedFlowSnapshot.getSnapshotMetadata().getComments() == null
-                ? "" : versionedFlowSnapshot.getSnapshotMetadata().getComments();
-
-        return new StandardEvent.Builder()
-                .eventType(EventType.MIGRATE_FLOW_VERSION)
-                .addField(EventFieldName.BUCKET_ID, versionedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier())
-                .addField(EventFieldName.FLOW_ID, versionedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier())
-                .addField(EventFieldName.VERSION, String.valueOf(versionedFlowSnapshot.getSnapshotMetadata().getVersion()))
-                .addField(EventFieldName.USER_IDENTITY, versionedFlowSnapshot.getSnapshotMetadata().getAuthor())
-                .addField(EventFieldName.USER, NiFiUserUtils.getNiFiUserIdentity())
-                .addField(EventFieldName.COMMENT, versionComments)
-                .build();
-    }
-
     public static Event extensionBundleCreated(final Bundle bundle) {
         return new StandardEvent.Builder()
                 .eventType(EventType.CREATE_EXTENSION_BUNDLE)

@@ -55,19 +55,13 @@ public class JerseyBucketClient extends AbstractJerseyClient implements BucketCl
     }
 
     @Override
-    public Bucket create(final Bucket bucket, final boolean migration) throws NiFiRegistryException, IOException {
+    public Bucket create(final Bucket bucket, final boolean preserveSourceProperties) throws NiFiRegistryException, IOException {
         if (bucket == null) {
             throw new IllegalArgumentException("Bucket cannot be null");
         }
 
-        final WebTarget target;
-
-        if (migration) {
-            target = bucketsTarget
-                    .path("/migrate");
-        } else {
-            target = bucketsTarget;
-        }
+        final WebTarget target = bucketsTarget
+                                    .queryParam("preserveSourceProperties", preserveSourceProperties);
 
         return executeAction("Error creating bucket", () -> getRequestBuilder(target)
                 .post(
