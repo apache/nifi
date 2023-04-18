@@ -4478,13 +4478,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<TenantEntity> usersFound = userDAO.getUsers()
                 .stream()
                 .filter(user -> isMatched(user.getIdentity(), query))
-                .map(user -> createTenantEntity(user, permissions))
+                .map(user -> {
+                    final TenantDTO tenant = dtoFactory.createTenantDTO(user);
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(tenant.getId()));
+                    return entityFactory.createTenantEntity(tenant, revision, permissions);
+                })
                 .collect(Collectors.toSet());
 
         final Set<TenantEntity> userGroupsFound = userGroupDAO.getUserGroups()
                 .stream()
                 .filter(userGroup -> isMatched(userGroup.getName(), query))
-                .map(userGroup -> createTenantEntity(userGroup, permissions))
+                .map(userGroup -> {
+                    final TenantDTO tenant = dtoFactory.createTenantDTO(userGroup);
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(tenant.getId()));
+                    return entityFactory.createTenantEntity(tenant, revision, permissions);
+                })
                 .collect(Collectors.toSet());
 
         final TenantsEntity tenantsEntity = new TenantsEntity();
@@ -4495,30 +4503,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private boolean isMatched(final String label, final String query) {
         return StringUtils.isEmpty(query) || containsIgnoreCase(label, query);
-    }
-
-    private TenantEntity createTenantEntity(final User user, final PermissionsDTO permissions) {
-        final TenantDTO tenant = dtoFactory.createTenantDTO(user);
-        return createTenantEntity(tenant, permissions);
-    }
-
-    private TenantEntity createTenantEntity(final Group userGroup, final PermissionsDTO permissions) {
-        final TenantDTO tenant = dtoFactory.createTenantDTO(userGroup);
-        return createTenantEntity(tenant, permissions);
-    }
-
-    private TenantEntity createTenantEntity(final TenantDTO tenant, final PermissionsDTO permissions) {
-        final TenantEntity entity = new TenantEntity();
-        final String id = tenant.getId();
-
-        entity.setId(id);
-        entity.setPermissions(permissions);
-
-        final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(id));
-        entity.setRevision(revision);
-
-        entity.setComponent(tenant);
-        return entity;
     }
 
     private UserEntity createUserEntity(final User user, final boolean enforceUserExistence) {
