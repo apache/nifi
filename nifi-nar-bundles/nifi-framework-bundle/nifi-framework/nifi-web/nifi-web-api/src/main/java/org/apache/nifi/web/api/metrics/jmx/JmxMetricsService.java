@@ -16,31 +16,10 @@
  */
 package org.apache.nifi.web.api.metrics.jmx;
 
-public class JmxMetricsResult {
-    private String beanName;
-    private String attributeName;
-    private Object attributeValue;
+import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 
-    public JmxMetricsResult() {
-    }
+import java.util.Collection;
 
-    public JmxMetricsResult(final String beanName, final String attributeName, final Object attributeValue) {
-        this.beanName = beanName;
-        this.attributeName = attributeName;
-        this.attributeValue = attributeValue;
-    }
-
-    public String getBeanName() {
-        return beanName;
-    }
-
-    public String getAttributeName() {
-        return attributeName;
-    }
-
-    public Object getAttributeValue() {
-        return attributeValue;
-    }
-
-
+public interface JmxMetricsService {
+    Collection<JmxMetricsResultDTO> getFilteredMBeanMetrics(final String beanNameFilter);
 }

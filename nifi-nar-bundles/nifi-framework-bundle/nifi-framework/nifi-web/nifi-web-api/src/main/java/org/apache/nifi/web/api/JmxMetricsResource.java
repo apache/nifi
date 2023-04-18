@@ -27,11 +27,9 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsCollector;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsFilter;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsResult;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsResultConverter;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsWriter;
+import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
+import org.apache.nifi.web.api.entity.JmxMetricsResultsEntity;
+import org.apache.nifi.web.api.metrics.jmx.JmxMetricsService;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -40,7 +38,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import java.util.Collection;
 
 /**
@@ -52,9 +49,9 @@ import java.util.Collection;
         description = "Endpoint for accessing the JMX metrics."
 )
 public class JmxMetricsResource extends ApplicationResource {
-    private static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blacklisting.filter";
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
+    private JmxMetricsService jmxMetricsService;
 
     /**
      * Retrieves the JMX metrics.
@@ -62,14 +59,14 @@ public class JmxMetricsResource extends ApplicationResource {
      * @return A jmxMetricsResult list.
      */
     @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(
-            value = "Gets all allowed JMX metrics",
-            response = StreamingOutput.class,
+            value = "Gets all available JMX metrics",
+            response = JmxMetricsResultsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Read - /system-diagnostics")
+                    @Authorization(value = "Read - /system")
             }
     )
     @ApiResponses(
@@ -89,19 +86,11 @@ public class JmxMetricsResource extends ApplicationResource {
     ) {
         authorizeJmxMetrics();
 
-        final String blackListingFilter = getProperties().getProperty(JMX_METRICS_NIFI_PROPERTY);
-        final JmxMetricsResultConverter metricsResultConverter = new JmxMetricsResultConverter();
-        final JmxMetricsCollector jmxMetricsCollector = new JmxMetricsCollector(metricsResultConverter);
+        final Collection<JmxMetricsResultDTO> results = jmxMetricsService.getFilteredMBeanMetrics(beanNameFilter);
+        final JmxMetricsResultsEntity entity = new JmxMetricsResultsEntity();
+        entity.setJmxMetricsResults(results);
 
-        final Collection<JmxMetricsResult> results = jmxMetricsCollector.getBeanMetrics();
-
-        final StreamingOutput response = outputStream -> {
-            final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(blackListingFilter, beanNameFilter);
-            final JmxMetricsWriter metricsWriter = new JmxMetricsWriter(metricsFilter);
-            metricsWriter.write(outputStream, results);
-        };
-
-        return generateOkResponse(response)
+        return generateOkResponse(entity)
                 .type(MediaType.APPLICATION_JSON_TYPE)
                 .build();
     }
@@ -125,5 +114,9 @@ public class JmxMetricsResource extends ApplicationResource {
 
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
+    }
+
+    public void setJmxMetricsService(final JmxMetricsService jmxMetricsService) {
+        this.jmxMetricsService = jmxMetricsService;
     }
 }

@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.metrics.jmx.JmxMetricsResult;
+import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
+import org.apache.nifi.web.api.entity.JmxMetricsResultsEntity;
+import org.apache.nifi.web.api.metrics.jmx.JmxMetricsCollector;
+import org.apache.nifi.web.api.metrics.jmx.JmxMetricsResultConverter;
+import org.apache.nifi.web.api.metrics.jmx.StandardJmxMetricsService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -45,15 +47,12 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
-import javax.ws.rs.core.StreamingOutput;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class TestJmxMetricsResource {
-    private static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blacklisting.filter";
+    private static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blocked.filter.pattern";
     private static final String TEST_BEAN_NAME_ONE = "testBean1";
     private static final String TEST_BEAN_NAME_TWO = "testBean2";
     private static final String OBJECT_NAME_PREFIX = "org.apache.nifi.web.api:type=test,name=%s";
@@ -77,29 +76,34 @@ public class TestJmxMetricsResource {
     private static final String ATTRIBUTE_NAME_BOOLEAN = "boolean";
     private static final String TEST_TABULAR_STRING_VALUE = "Test tabular string";
     private static final String STRING_VALUE = "Test string";
-    private static final String BEAN_NAME_FILTER = "%s; %s";
+    private static final String BEAN_NAME_FILTER = "%s|%s";
     private static final String STRING_ATTRIBUTE_VALUE = "%s%s";
     private static final String COMPOSITE_DATA_KEY = "CompositeData%s";
     private static final String TABULAR_DATA_KEY = "[%s%s]";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @InjectMocks
     private final static JmxMetricsResource resource = new JmxMetricsResource();
 
     @Mock
     private NiFiServiceFacade serviceFacade;
+    private static StandardJmxMetricsService jmxMetricsService;
 
     private static MBeanServer mBeanServer;
     private static ObjectName objectNameForTestBeanOne;
     private static ObjectName objectNameForTestBeanTwo;
 
     @BeforeAll
-    public static void init() throws MalformedObjectNameException, OpenDataException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException, IOException {
+    public static void init() throws MalformedObjectNameException, OpenDataException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
             objectNameForTestBeanOne = new ObjectName(String.format(OBJECT_NAME_PREFIX, TEST_BEAN_NAME_ONE));
             objectNameForTestBeanTwo = new ObjectName(String.format(OBJECT_NAME_PREFIX, TEST_BEAN_NAME_TWO));
             mBeanServer = ManagementFactory.getPlatformMBeanServer();
             mBeanServer.registerMBean(new Metric(TEST_BEAN_NAME_ONE), objectNameForTestBeanOne);
             mBeanServer.registerMBean(new Metric(TEST_BEAN_NAME_TWO), objectNameForTestBeanTwo);
+
+            jmxMetricsService = new StandardJmxMetricsService();
+            final JmxMetricsResultConverter metricsResultConverter = new JmxMetricsResultConverter();
+            jmxMetricsService.setMetricsCollector(new JmxMetricsCollector(metricsResultConverter));
+            resource.setJmxMetricsService(jmxMetricsService);
     }
 
     @AfterAll
@@ -109,14 +113,14 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testNotProvidingFiltersReturnsAllMBeans() throws IOException {
+    public void testNotProvidingFiltersReturnsAllMBeans() {
         Set<String> names = getFilteringResult("", "");
         assertTrue(names.size() > 2);
         assertTrue(names.containsAll(Arrays.asList(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO)));
     }
 
     @Test
-    public void testBlackListingFiltersRemovesMBeanFromResult() throws IOException {
+    public void testBlockedNameFiltersRemovesMBeanFromResult() {
         Set<String> names = getFilteringResult(TEST_BEAN_NAME_ONE, "");
         assertTrue(names.size() > 2);
         assertFalse(names.contains(TEST_BEAN_NAME_ONE));
@@ -124,41 +128,41 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testBeanNameFiltersReturnsTheSpecifiedMBeansOnly() throws IOException {
+    public void testBeanNameFiltersReturnsTheSpecifiedMBeansOnly() {
         Set<String> names = getFilteringResult("", String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
         assertEquals(names.size(), 2);
         assertTrue(names.containsAll(Arrays.asList(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO)));
     }
 
     @Test
-    public void testInvalidBlackListFilteringRevertingBackToDefaultFiltering() throws IOException {
+    public void testInvalidBlockedNameFilterRevertingBackToDefaultFiltering() {
         Set<String> names = getFilteringResult(INVALID_REGEX, "");
         assertTrue(names.size() > 2);
         assertTrue(names.containsAll(Arrays.asList(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO)));
     }
 
     @Test
-    public void testInvalidBeanNameFilteringRevertingBackToDefaultFiltering() throws IOException {
+    public void testInvalidBeanNameFilteringRevertingBackToDefaultFiltering() {
         Set<String> names = getFilteringResult("", INVALID_REGEX);
         assertTrue(names.size() > 2);
         assertTrue(names.containsAll(Arrays.asList(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO)));
     }
 
     @Test
-    public void testInvalidFiltersRevertingBackToDefaultFiltering() throws IOException {
+    public void testInvalidFiltersRevertingBackToDefaultFiltering() {
         Set<String> names = getFilteringResult(INVALID_REGEX, INVALID_REGEX);
         assertTrue(names.size() > 2);
         assertTrue(names.containsAll(Arrays.asList(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO)));
     }
 
     @Test
-    public void testBlackListingFilterHasPriority() throws IOException {
+    public void testBlockedNameFilterHasPriority() {
         Set<String> names = getFilteringResult(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_ONE);
         assertTrue(names.isEmpty());
     }
 
     @Test
-    public void testBlackListingFilterHasPriorityWhenTheSameFiltersApplied() throws IOException {
+    public void testBlockedNameFilterHasPriorityWhenTheSameFiltersApplied() {
         Set<String> names = getFilteringResult(TEST_BEAN_NAME_ONE, String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
 
         assertEquals(names.size(), 1);
@@ -167,7 +171,7 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testSimpleTypeKeptOriginalType() throws IOException {
+    public void testSimpleTypeKeptOriginalType() {
         final Map<String, Object> resultMap = getDataResult();
 
         assertEquals(TEST_BEAN_NAME_ONE, resultMap.get(NAME_KEY));
@@ -175,7 +179,7 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testCompositeDataConvertedToMap() throws IOException {
+    public void testCompositeDataConvertedToMap() {
         final Map<String, Object> expectedResult = createCompositeDataResult();
 
         final Map<String, Object> resultMap = getDataResult();
@@ -187,7 +191,7 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testCompositeDataListConvertedToListOfMaps() throws IOException {
+    public void testCompositeDataListConvertedToMaps() {
         final Map<String, Object> expectedResult = createCompositeDataListResult();
 
         final Map<String, Object> resultMap = getDataResult();
@@ -197,7 +201,7 @@ public class TestJmxMetricsResource {
     }
 
     @Test
-    public void testTabularDataConvertedToListOfMaps() throws IOException {
+    public void testTabularDataConvertedToMaps() {
         final Map<String, Object> expectedResult = createTabularDataResult();
 
         final Map<String, Object> resultMap = getDataResult();
@@ -206,10 +210,10 @@ public class TestJmxMetricsResource {
         assertEquals(expectedResult.values().size(), castToMap(resultMap.get(TABLE_KEY)).values().size());
     }
 
-    private Set<String> getFilteringResult(final String blackListingFilter, final String beanNameFilter) throws IOException {
-        final List<JmxMetricsResult> resultList = getResult(blackListingFilter, beanNameFilter);
+    private Set<String> getFilteringResult(final String blockedNameFilter, final String beanNameFilter) {
+        final Collection<JmxMetricsResultDTO> resultList = getResult(blockedNameFilter, beanNameFilter).getJmxMetricsResults();
         final Set<String> names = new HashSet<>();
-        for (JmxMetricsResult result : resultList) {
+        for (JmxMetricsResultDTO result : resultList) {
             if (result.getAttributeName().equals(NAME_KEY)) {
                 names.add(result.getAttributeValue().toString());
             }
@@ -221,21 +225,18 @@ public class TestJmxMetricsResource {
         return (Map<String, Object>) object;
     }
 
-    private Map<String, Object> getDataResult() throws IOException {
-        final List<JmxMetricsResult> resultList = getResult("", TEST_BEAN_NAME_ONE);
+    private Map<String, Object> getDataResult() {
+        final Collection<JmxMetricsResultDTO> resultList = getResult("", TEST_BEAN_NAME_ONE).getJmxMetricsResults();
         final Map<String, Object> resultMap = new HashMap<>();
-        for (JmxMetricsResult result : resultList) {
+        for (JmxMetricsResultDTO result : resultList) {
             resultMap.put(result.getAttributeName(), result.getAttributeValue());
         }
         return resultMap;
     }
 
-    private List<JmxMetricsResult> getResult(final String blackListingFilter, final String beanNameFilter) throws IOException {
-        resource.setProperties(new NiFiProperties(Collections.singletonMap(JMX_METRICS_NIFI_PROPERTY, blackListingFilter)));
-        final ByteArrayOutputStream o = new ByteArrayOutputStream();
-        ((StreamingOutput) resource.getJmxMetrics(beanNameFilter).getEntity()).write(o);
-
-        return MAPPER.readValue(o.toByteArray(), new TypeReference<List<JmxMetricsResult>>() {});
+    private JmxMetricsResultsEntity getResult(final String blockedNameFilter, final String beanNameFilter) {
+        jmxMetricsService.setProperties(new NiFiProperties(Collections.singletonMap(JMX_METRICS_NIFI_PROPERTY, blockedNameFilter)));
+        return (JmxMetricsResultsEntity) resource.getJmxMetrics(beanNameFilter).getEntity();
     }
 
     private Map<String, Object> createCompositeDataResult() {
@@ -269,7 +270,7 @@ public class TestJmxMetricsResource {
     }
 
     private static class Metric implements MetricMBean {
-        private static final String TABLE_DESCRIPTION = "Table for all test";
+        private static final String TABLE_DESCRIPTION = "Table for all tests";
         private static final String TABLE_NAME = "Test table";
         private static final String METRIC_TYPE_DESCRIPTION = "Metric type for testing";
         private static final String METRIC_TYPE_NAME = "Metric type";

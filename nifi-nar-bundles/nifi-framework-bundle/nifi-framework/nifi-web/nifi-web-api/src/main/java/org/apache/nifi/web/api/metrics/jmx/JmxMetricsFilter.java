@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.metrics.jmx;
 
+import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,32 +29,30 @@ public class JmxMetricsFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(JmxMetricsFilter.class);
     private final static String MATCH_NOTHING = "~^";
     private final static String MATCH_ALL = "";
-    private final static String SEPARATOR = ";\\s?";
-    private final static String REPLACEMENT = "|";
-    private final Pattern blackListingFilter;
+    private final Pattern blockedNameFilter;
     private final Pattern beanNameFilter;
 
-    public JmxMetricsFilter(final String blackListingFilter, final String beanNameFilter) {
-        this.blackListingFilter = createPattern(blackListingFilter, MATCH_NOTHING);
+    public JmxMetricsFilter(final String blockedNameFilter, final String beanNameFilter) {
+        this.blockedNameFilter = createPattern(blockedNameFilter, MATCH_NOTHING);
         this.beanNameFilter = createPattern(beanNameFilter, MATCH_ALL);
     }
 
-    private Pattern createPattern(final String filters, final String defaultValue) {
+    private Pattern createPattern(final String filter, final String defaultValue) {
         try {
-            if (filters == null || filters.isEmpty()) {
+            if (filter == null || filter.isEmpty()) {
                 return Pattern.compile(defaultValue);
             } else {
-                return Pattern.compile(filters.replaceAll(SEPARATOR, REPLACEMENT));
+                return Pattern.compile(filter);
             }
         } catch (PatternSyntaxException e) {
-            LOGGER.warn("Invalid filter {} , will use default filtering.", filters);
+            LOGGER.warn("Invalid filter {} , will use default filtering.", filter);
             return Pattern.compile(defaultValue);
         }
     }
 
-    public Collection<JmxMetricsResult> filter(final Collection<JmxMetricsResult> results) {
+    public Collection<JmxMetricsResultDTO> filter(final Collection<JmxMetricsResultDTO> results) {
         return results.stream()
-                .filter(result -> blackListingFilter.asPredicate().negate().test(result.getBeanName()))
+                .filter(result -> blockedNameFilter.asPredicate().negate().test(result.getBeanName()))
                 .filter(result -> beanNameFilter.asPredicate().test(result.getBeanName()))
                 .collect(Collectors.toList());
     }

@@ -18,7 +18,7 @@ package org.apache.nifi.web.api.metrics.jmx;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,23 +28,26 @@ public class JmxMetricsResultConverter {
 
     public Object convert(final Object attributeValue) {
             if (attributeValue instanceof CompositeData[]) {
-                final Map<String, Object> values = new HashMap<>();
-                for (int i = 0; i < ((CompositeData[]) attributeValue).length; i++) {
-                    final Map<String, Object> subValues = new HashMap<>();
-                    convertCompositeData(((CompositeData[]) attributeValue)[i], subValues);
+                final CompositeData[] valueArray = (CompositeData[]) attributeValue;
+                final Map<String, Object> values = new LinkedHashMap<>();
+
+                for (int i = 0; i < valueArray.length; i++) {
+                    final Map<String, Object> subValues = new LinkedHashMap<>();
+                    convertCompositeData(valueArray[i], subValues);
                     values.put(String.format(COMPOSITE_DATA_KEY, i), subValues);
                 }
                 return values;
             } else if (attributeValue instanceof CompositeData) {
-                final Map<String, Object> values = new HashMap<>();
+                final Map<String, Object> values = new LinkedHashMap<>();
                 convertCompositeData(((CompositeData) attributeValue), values);
                 return values;
             } else if (attributeValue instanceof TabularData) {
-                final Map<String, Object> values = new HashMap<>();
+                final Map<String, Object> values = new LinkedHashMap<>();
                 convertTabularData((TabularData) attributeValue, values);
                 return values;
+            } else {
+                return attributeValue;
             }
-        return attributeValue;
     }
 
     private void convertCompositeData(CompositeData attributeValue, Map<String, Object> values) {

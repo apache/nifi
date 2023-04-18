@@ -4832,14 +4832,14 @@ It is possible to get JMX metrics data calling  `<your_nifi_url>/nifi-api/jmx-me
 
 The information available depends on the registered MBeans and usually related to performance indicators such as request/response rate, latency, request size, request counts or tool specific ones like commit rate or sync/join time for Kafka.
 
-Listing of certain MBeans can be prohibited by a list of regex expressions, separated by a `;` and can be configured by a NiFi application property. Leaving the property empty means all the MBeans may appear in the result list. Default value is to display all MBeans.
+Listing of certain MBeans can be prohibited by a regex expression and can be configured by a NiFi application property. Leaving the property empty means all the MBeans may appear in the result list. Default value is to display all MBeans.
 
- nifi.jmx.metrics.blacklisting.filter=prohibited.bean1;prohibited.bean2
+ nifi.jmx.metrics.blocked.filter.pattern=prohibited.bean1|prohibited.bean2
 
 
-An optionally provided query parameter using a `;` separated list of regex expressions, will display only MBeans with matching names. Leaving this parameter empty means listing all MBeans except the ones filtered out by the security filter.
+An optionally provided query parameter using a regex expression, will display only MBeans with matching names. Leaving this parameter empty means listing all MBeans except the ones filtered out by the security filter.
 
- https://nifihost.com:8443/nifi-api/jmx-metrics?beanNameFilter=bean.name.1;bbean.name.2
+ https://nifihost.com:8443/nifi-api/jmx-metrics?beanNameFilter=bean.name.1|bean.name.2
 
 An example output would look like this:
 

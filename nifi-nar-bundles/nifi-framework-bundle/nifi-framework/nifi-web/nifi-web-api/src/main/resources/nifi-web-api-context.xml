@@ -657,11 +657,18 @@
     </bean>
     <bean id="jmxMetricsResource" class="org.apache.nifi.web.api.JmxMetricsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterCoordinator" ref="clusterCoordinator"/>
-        <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
-        <property name="flowController" ref="flowController" />
+        <property name="jmxMetricsService" ref="jmxMetricsService"/>
+    </bean>
+    <bean id="jmxMetricsService" class="org.apache.nifi.web.api.metrics.jmx.StandardJmxMetricsService">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="metricsResultConverter" ref="metricsResultConverter"/>
+        <property name="metricsCollector" ref="metricsCollector"/>
+    </bean>
+    <bean id="metricsResultConverter" class="org.apache.nifi.web.api.metrics.jmx.JmxMetricsResultConverter">
+    </bean>
+    <bean id="metricsCollector" class="org.apache.nifi.web.api.metrics.jmx.JmxMetricsCollector">
+        <constructor-arg ref="metricsResultConverter"/>
     </bean>
 
     <!-- enable aop -->
