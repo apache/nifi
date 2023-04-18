@@ -21,11 +21,12 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
-import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import javax.ws.rs.client.Entity;
@@ -237,6 +238,35 @@ public class JerseyControllerClient extends AbstractJerseyClient implements Cont
             return getRequestBuilder(target).post(
                     Entity.entity(paramProvider, MediaType.APPLICATION_JSON),
                     ParameterProviderEntity.class
+            );
+        });
+    }
+
+    @Override
+    public ControllerConfigurationEntity getControllerConfiguration() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving controller configuration", () -> {
+            final WebTarget target = controllerTarget.path("config");
+            return getRequestBuilder(target).get(ControllerConfigurationEntity.class);
+        });
+    }
+
+    @Override
+    public ControllerConfigurationEntity updateControllerConfiguration(ControllerConfigurationEntity controllerConfiguration) throws NiFiClientException, IOException {
+        if (controllerConfiguration == null || controllerConfiguration.getComponent() == null) {
+            throw new IllegalArgumentException("Controller configuration must be specified");
+        }
+
+        if (controllerConfiguration.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        return executeAction("Error updating controller configuration", () -> {
+            final WebTarget target = controllerTarget
+                    .path("config");
+
+            return getRequestBuilder(target).put(
+                    Entity.entity(controllerConfiguration, MediaType.APPLICATION_JSON),
+                    ControllerConfigurationEntity.class
             );
         });
     }

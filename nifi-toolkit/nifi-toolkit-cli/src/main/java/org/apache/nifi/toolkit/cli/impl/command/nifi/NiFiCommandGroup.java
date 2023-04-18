@@ -29,11 +29,13 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.GetControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.ClusterSummary;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.CreateReportingTask;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.CurrentUser;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetControllerConfiguration;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetReportingTask;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.GetRootId;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.StartReportingTasks;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.StopReportingTasks;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.UpdateControllerConfiguration;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.ConnectNode;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.DeleteNode;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.nodes.DisconnectNode;
@@ -180,6 +182,8 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new GetAccessToken());
         commands.add(new GetAccessTokenSpnego());
         commands.add(new LogoutAccessToken());
+        commands.add(new GetControllerConfiguration());
+        commands.add(new UpdateControllerConfiguration());
         return new ArrayList<>(commands);
     }
 }
