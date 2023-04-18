@@ -34,6 +34,7 @@ public class AwsClientCache<ClientType extends AmazonWebServiceClient> {
     }
 
     public void clearCache() {
+        clientCache.invalidateAll();
         clientCache.cleanUp();
     }
 

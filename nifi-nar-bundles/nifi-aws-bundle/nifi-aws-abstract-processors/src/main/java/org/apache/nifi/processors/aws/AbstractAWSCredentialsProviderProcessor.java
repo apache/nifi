@@ -76,12 +76,13 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
         }
     }
 
+
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            getConfiguration(context);
+            createClient(context);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client and Configure Region")

@@ -237,7 +237,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            getS3Client(context, attributes);
+            createClient(context, attributes);
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create S3 Client")
@@ -256,22 +256,32 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     }
 
     /**
-     * Creates and configures the client from the context and given region or returns an existing client from cache
+     * Creates and configures the client from the context and FlowFile attributes or returns an existing client from cache
      * @param context the process context
      * @param attributes FlowFile attributes
      * @return The created S3 client
      */
     protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveRegion(context, attributes);
-        final AwsClientDetails clientDetails = new AwsClientDetails(region);
+        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
         return getClient(context, clientDetails);
+    }
+
+    /**
+     * Creates the client from the context and FlowFile attributes
+     * @param context the process context
+     * @param attributes FlowFile attributes
+     * @return The newly created S3 client
+     */
+    protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
+        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
+        return createClient(context, clientDetails);
     }
 
     @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         if (!isAttributeDefinedRegion(context)) {
-            getConfiguration(context);
+            getClient(context);
         }
     }
 
@@ -472,5 +482,10 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     private static AllowableValue[] getAvailableS3Regions() {
         final AllowableValue[] availableRegions = getAvailableRegions();
         return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
+    }
+
+    private AwsClientDetails getAwsClientDetails(final ProcessContext context, final Map<String, String> attributes) {
+        final Region region = resolveRegion(context, attributes);
+        return new AwsClientDetails(region);
     }
 }

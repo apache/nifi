@@ -285,7 +285,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        getConfiguration(context);
+        getClient(context);
     }
 
     /*
@@ -318,6 +318,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         setRegionAndInitializeEndpoint(awsClientDetails.getRegion(), context, createdClient);
         return createdClient;
     }
+
+    protected ClientType createClient(ProcessContext context) {
+        return createClient(context, new AwsClientDetails(getRegion(context)));
+    }
+
 
     protected void setRegionAndInitializeEndpoint(final Region region, final ProcessContext context, final AmazonWebServiceClient client) {
         if (region!= null && client != null) {
@@ -410,7 +415,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnStopped
     public void onStopped() {
-        getAwsClientCache().clearCache();
+        this.awsClientCache.clearCache();
     }
 
     /**
@@ -420,25 +425,12 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      * @return The created client
      */
     protected ClientType getClient(final ProcessContext context, AwsClientDetails awsClientDetails) {
-        return getAwsClientCache().getOrCreateClient(context, awsClientDetails, this);
+        return this.awsClientCache.getOrCreateClient(context, awsClientDetails, this);
     }
 
     protected ClientType getClient(final ProcessContext context) {
         final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context));
         return getClient(context, awsClientDetails);
-    }
-
-    protected AwsClientCache<ClientType> getAwsClientCache() {
-        return awsClientCache;
-    }
-
-    /**
-     * Creates an AWS service client from the context.
-     * @param context The process context
-     * @return The created client
-     */
-    protected ClientType createClient(final ProcessContext context) {
-        return createClient(context, getCredentials(context), createConfiguration(context));
     }
 
     /**
@@ -452,33 +444,4 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      */
     @Deprecated
     protected abstract ClientType createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config);
-
-    /**
-     * Parses and configures the client from the context.
-     * @param context The process context
-     * @return The parsed configuration
-     */
-    protected AWSConfiguration getConfiguration(final ProcessContext context) {
-        final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context));
-        final ClientType createdClient = getClient(context, awsClientDetails);
-        return new AWSConfiguration(createdClient, awsClientDetails.getRegion());
-    }
-
-    public class AWSConfiguration {
-        final ClientType client;
-        final Region region;
-
-        public AWSConfiguration(final ClientType client, final Region region) {
-            this.client = client;
-            this.region = region;
-        }
-
-        public ClientType getClient() {
-            return client;
-        }
-
-        public Region getRegion() {
-            return region;
-        }
-    }
 }

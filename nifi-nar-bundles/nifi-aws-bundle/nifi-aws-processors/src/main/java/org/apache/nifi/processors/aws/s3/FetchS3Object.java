@@ -185,7 +185,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
-        final AmazonS3Client client = getS3Client(context, attributes);
+        final AmazonS3Client client = createClient(context, attributes);
         final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
 
         try {

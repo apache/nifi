@@ -370,7 +370,7 @@ public class InvokeAWSGatewayApi extends AbstractAWSGatewayApiProcessor {
         final String endpoint = context.getProperty(PROP_AWS_GATEWAY_API_ENDPOINT).getValue();
         final String resource = context.getProperty(PROP_RESOURCE_NAME).getValue();
         try {
-            final GenericApiGatewayClient client = getConfiguration(context).getClient();
+            final GenericApiGatewayClient client = getClient(context);
 
             final GatewayResponse gatewayResponse = invokeGateway(client, context, null, null, attributes, verificationLogger);
 

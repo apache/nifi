@@ -18,8 +18,8 @@ package org.apache.nifi.processors.aws;
 
 import static com.amazonaws.regions.Regions.US_EAST_1;
 import static com.amazonaws.regions.Regions.US_WEST_2;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -55,7 +55,7 @@ public class TestAwsClientCache {
     }
 
     @Test
-    public void testClientCreationNotNeededGetAwsTranslateJobStatusTest() {
+    public void testSameRegionUseExistingClientFromCache() {
         final AwsClientDetails clientDetails = getClientDetails(US_WEST_2);
         when(awsClientProviderMock.createClient(contextMock, clientDetails)).thenReturn(awsClientMock1);
         final AmazonWebServiceClient client1 = clientCache.getOrCreateClient(contextMock, clientDetails, awsClientProviderMock);
@@ -63,17 +63,32 @@ public class TestAwsClientCache {
         final AwsClientDetails newClientDetails = getClientDetails(US_WEST_2);
         final AmazonWebServiceClient client2 = clientCache.getOrCreateClient(contextMock, newClientDetails, awsClientProviderMock);
         verify(awsClientProviderMock, times(1)).createClient(eq(contextMock), any(AwsClientDetails.class));
-        assertEquals(client1, client2);
+        assertSame(client1, client2);
     }
 
     @Test
-    public void testRegionChangeClientCreationNeeded() {
+    public void testRegionChangeNewClientIsCreated() {
         final AwsClientDetails clientDetails = getClientDetails(US_WEST_2);
         when(awsClientProviderMock.createClient(contextMock, clientDetails)).thenReturn(awsClientMock1);
         final AmazonWebServiceClient client1 = clientCache.getOrCreateClient(contextMock, clientDetails, awsClientProviderMock);
 
         final AwsClientDetails newClientDetails = getClientDetails(US_EAST_1);
         when(awsClientProviderMock.createClient(contextMock, newClientDetails)).thenReturn(awsClientMock2);
+        final AmazonWebServiceClient client2 = clientCache.getOrCreateClient(contextMock, newClientDetails, awsClientProviderMock);
+        verify(awsClientProviderMock, times(2)).createClient(eq(contextMock), any(AwsClientDetails.class));
+        assertNotEquals(client1, client2);
+    }
+
+    @Test
+    public void testSameRegionClientCacheIsClearedNewClientIsCreated() {
+        final AwsClientDetails clientDetails = getClientDetails(US_WEST_2);
+        when(awsClientProviderMock.createClient(contextMock, clientDetails)).thenReturn(awsClientMock1);
+        final AmazonWebServiceClient client1 = clientCache.getOrCreateClient(contextMock, clientDetails, awsClientProviderMock);
+
+        clientCache.clearCache();
+
+        final AwsClientDetails newClientDetails = getClientDetails(US_WEST_2);
+        when(awsClientProviderMock.createClient(contextMock, clientDetails)).thenReturn(awsClientMock2);
         final AmazonWebServiceClient client2 = clientCache.getOrCreateClient(contextMock, newClientDetails, awsClientProviderMock);
         verify(awsClientProviderMock, times(2)).createClient(eq(contextMock), any(AwsClientDetails.class));
         assertNotEquals(client1, client2);
