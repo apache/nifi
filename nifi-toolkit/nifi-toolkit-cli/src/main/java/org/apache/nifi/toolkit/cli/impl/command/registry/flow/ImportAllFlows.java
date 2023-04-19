@@ -65,6 +65,8 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
     private static final String ALL_FLOW_VERSIONS_COLLECTED = "All flow versions collected...";
     private static final String FILE_NAME_SEPARATOR = "_";
     private static final String STORAGE_LOCATION_URL = "%s/nifi-registry-api/buckets/%s/flows/%s/versions/%s";
+    private static final String VERSION_IMPORTING_STARTED = "Importing %s - %s to %s";
+    private static final String VERSION_IMPORTING_FINISHED = "Successfully imported %s - %s to %s";
     private static final ObjectMapper MAPPER = JacksonUtils.getObjectMapper();
     private final ListBuckets listBuckets;
     private final ListFlows listFlows;
@@ -96,7 +98,7 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
 
     @Override
     public StringResult doExecute(final NiFiRegistryClient client, final Properties properties) throws IOException, NiFiRegistryException, ParseException, CommandException {
-        final boolean skip = Boolean.parseBoolean(getRequiredArg(properties, CommandOption.SKIP_EXISTING));
+        final boolean skip = getArg(properties, CommandOption.SKIP_EXISTING) == null ? Boolean.FALSE : Boolean.TRUE;
         final boolean isInteractive = getContext().isInteractive();
 
         //Gather all buckets and create a map for easier search by bucket name
@@ -134,6 +136,8 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
             final String flowId = snapshot.getFlow().getIdentifier();
             final String bucketId = snapshot.getBucket().getIdentifier();
 
+            printMessage(isInteractive, String.format(VERSION_IMPORTING_STARTED, flowName, flowVersion, bucketName));
+
             // Create bucket if missing
             if (bucketMap.containsKey(bucketName)) {
                 printMessage(isInteractive, bucketName + SKIPPING_BUCKET_CREATION);
@@ -164,6 +168,8 @@ public class ImportAllFlows extends AbstractNiFiRegistryCommand<StringResult> {
 
                 createFlowVersion(client, snapshot, bucketId, flowId);
             }
+
+            printMessage(isInteractive, String.format(VERSION_IMPORTING_FINISHED, flowName, flowVersion, bucketName));
         }
         return new StringResult(IMPORT_COMPLETED, getContext().isInteractive());
     }

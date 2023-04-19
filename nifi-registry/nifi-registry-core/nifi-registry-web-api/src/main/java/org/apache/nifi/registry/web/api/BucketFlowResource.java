@@ -290,7 +290,11 @@ public class BucketFlowResource extends ApplicationResource {
         // bucketId and flowId fields are optional in the body parameter, but required before calling the service layer
         setSnaphotMetadataIfMissing(bucketId, flowId, snapshot);
 
-        if (!preserveSourceProperties) {
+        if (preserveSourceProperties) {
+            if (StringUtils.isBlank(snapshot.getSnapshotMetadata().getAuthor())) {
+                throw new BadRequestException("Author must not be blank");
+            }
+        } else {
             final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
             snapshot.getSnapshotMetadata().setAuthor(userIdentity);
         }
