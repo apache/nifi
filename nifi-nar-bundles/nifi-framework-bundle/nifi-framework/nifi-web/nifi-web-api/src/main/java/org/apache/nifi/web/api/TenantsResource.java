@@ -35,10 +35,8 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -64,9 +62,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 
 @Path("tenants")
@@ -941,53 +937,7 @@ public class TenantsResource extends ApplicationResource {
             tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        final List<TenantEntity> userMatches = new ArrayList<>();
-        final List<TenantEntity> userGroupMatches = new ArrayList<>();
-
-        // get the users
-        for (final UserEntity userEntity : serviceFacade.getUsers()) {
-            final UserDTO user = userEntity.getComponent();
-            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(user.getIdentity(), value)) {
-                final TenantDTO tenant = new TenantDTO();
-                tenant.setId(user.getId());
-                tenant.setIdentity(user.getIdentity());
-                tenant.setConfigurable(user.getConfigurable());
-
-                final TenantEntity entity = new TenantEntity();
-                entity.setPermissions(userEntity.getPermissions());
-                entity.setRevision(userEntity.getRevision());
-                entity.setId(userEntity.getId());
-                entity.setComponent(tenant);
-
-                userMatches.add(entity);
-            }
-        }
-
-        // get the user groups
-        for (final UserGroupEntity userGroupEntity : serviceFacade.getUserGroups()) {
-            final UserGroupDTO userGroup = userGroupEntity.getComponent();
-            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(userGroup.getIdentity(), value)) {
-                final TenantDTO tenant = new TenantDTO();
-                tenant.setId(userGroup.getId());
-                tenant.setIdentity(userGroup.getIdentity());
-                tenant.setConfigurable(userGroup.getConfigurable());
-
-                final TenantEntity entity = new TenantEntity();
-                entity.setPermissions(userGroupEntity.getPermissions());
-                entity.setRevision(userGroupEntity.getRevision());
-                entity.setId(userGroupEntity.getId());
-                entity.setComponent(tenant);
-
-                userGroupMatches.add(entity);
-            }
-        }
-
-        // build the response
-        final TenantsEntity results = new TenantsEntity();
-        results.setUsers(userMatches);
-        results.setUserGroups(userGroupMatches);
-
-        // generate an 200 - OK response
+        final TenantsEntity results = serviceFacade.searchTenants(value);
         return noCache(Response.ok(results)).build();
     }
 }
