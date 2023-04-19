@@ -41,6 +41,21 @@ public interface FlowSnapshotClient {
     VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot) throws NiFiRegistryException, IOException;
 
     /**
+     * Creates a new snapshot/version for the given flow. If migration parameter is true the version will be created
+     * with the author can be found in the snapshot. False will set the author to the caller's identity.
+     *
+     * The snapshot object must have the version populated, and will receive an error if the submitted version is
+     * not the next one-up version.
+     *
+     * @param snapshot the new snapshot
+     * @param preserveSourceProperties whether the operation is migration related
+     * @return the created snapshot
+     * @throws NiFiRegistryException if an error is encountered other than IOException
+     * @throws IOException if an I/O error is encountered
+     */
+    VersionedFlowSnapshot create(VersionedFlowSnapshot snapshot, boolean preserveSourceProperties) throws NiFiRegistryException, IOException;
+
+    /**
      * Gets the snapshot for the given bucket, flow, and version.
      *
      * @param bucketId the bucket id

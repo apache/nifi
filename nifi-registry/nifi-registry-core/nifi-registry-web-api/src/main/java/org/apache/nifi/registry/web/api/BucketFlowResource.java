@@ -279,15 +279,25 @@ public class BucketFlowResource extends ApplicationResource {
             @ApiParam(value = "The flow identifier")
                 final String flowId,
             @ApiParam(value = "The new versioned flow snapshot.", required = true)
-                final VersionedFlowSnapshot snapshot) {
+                final VersionedFlowSnapshot snapshot,
+            @ApiParam(
+                value = "Whether source properties like author should be kept")
+            @QueryParam("preserveSourceProperties")
+            final boolean preserveSourceProperties) {
 
         verifyPathParamsMatchBody(bucketId, flowId, snapshot);
 
         // bucketId and flowId fields are optional in the body parameter, but required before calling the service layer
         setSnaphotMetadataIfMissing(bucketId, flowId, snapshot);
 
-        final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
-        snapshot.getSnapshotMetadata().setAuthor(userIdentity);
+        if (preserveSourceProperties) {
+            if (StringUtils.isBlank(snapshot.getSnapshotMetadata().getAuthor())) {
+                throw new BadRequestException("Author must not be blank");
+            }
+        } else {
+            final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+            snapshot.getSnapshotMetadata().setAuthor(userIdentity);
+        }
 
         final VersionedFlowSnapshot createdSnapshot = serviceFacade.createFlowSnapshot(snapshot);
         publish(EventFactory.flowVersionCreated(createdSnapshot));

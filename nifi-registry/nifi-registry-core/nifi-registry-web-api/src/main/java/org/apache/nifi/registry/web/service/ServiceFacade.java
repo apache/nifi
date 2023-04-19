@@ -70,6 +70,8 @@ public interface ServiceFacade {
 
     Bucket deleteBucket(String bucketIdentifier, RevisionInfo revisionInfo);
 
+    Bucket createBucket(Bucket bucket, boolean preserveSourceProperties);
+
     // ---------------------- BucketItem methods ----------------------------------------------
 
     List<BucketItem> getBucketItems(String bucketIdentifier);

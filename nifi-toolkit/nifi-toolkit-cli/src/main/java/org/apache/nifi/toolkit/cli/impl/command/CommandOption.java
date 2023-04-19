@@ -27,7 +27,7 @@ public enum CommandOption {
     CONNECTION_TIMEOUT("cto", "connectionTimeout", "Timeout parameter for creating a connection to NiFi/Registry, specified in milliseconds", true),
     READ_TIMEOUT("rto", "readTimeout", "Timeout parameter for reading from NiFi/Registry, specified in milliseconds", true),
     URL("u", "baseUrl", "The URL to execute the command against", true),
-    INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true, true),
+    INPUT_SOURCE("i", "input", "A local file to read as input contents, a directory to read files from or a public URL to fetch", true, true),
     OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true, true),
     OUTPUT_DIR("od", "outputDirectory", "A directory to write output to", true, true),
     PROPERTIES("p", "properties", "A properties file to load arguments from, " +
@@ -164,7 +164,8 @@ public enum CommandOption {
     OUTPUT_TYPE("ot", "outputType", "The type of output to produce (json or simple)", true),
     VERBOSE("verbose", "verbose", "Indicates that verbose output should be provided", false),
     RECURSIVE("r", "recursive", "Indicates the command should perform the action recursively", false),
-    HELP("h", "help", "Help", false)
+    HELP("h", "help", "Help", false),
+    SKIP_EXISTING("se", "skipExisting", "Indicates to skip an operation if target object exists", false),
     ;
 
     private final String shortName;

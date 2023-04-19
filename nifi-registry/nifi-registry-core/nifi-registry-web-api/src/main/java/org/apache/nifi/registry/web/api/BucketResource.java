@@ -85,9 +85,13 @@ public class BucketResource extends ApplicationResource {
             @ApiResponse(code = 403, message = HttpStatusMessages.MESSAGE_403) })
     public Response createBucket(
             @ApiParam(value = "The bucket to create", required = true)
-            final Bucket bucket) {
+            final Bucket bucket,
+            @ApiParam(
+                    value = "Whether source properties like identifier should be kept")
+            @QueryParam("preserveSourceProperties")
+            final boolean preserveSourceProperties) {
 
-        final Bucket createdBucket = serviceFacade.createBucket(bucket);
+        final Bucket createdBucket = serviceFacade.createBucket(bucket, preserveSourceProperties);
         publish(EventFactory.bucketCreated(createdBucket));
         return Response.status(Response.Status.OK).entity(createdBucket).build();
     }
