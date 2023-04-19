@@ -171,6 +171,8 @@ The following are available commands:
  registry get-access-token
  registry get-access-token-spnego
  registry logout-access-token
+ registry export-all-flows
+ registry import-all-flows
  session keys
  session show
  session get
@@ -767,6 +769,84 @@ This command migrates nifi.properties back from AWS_KMS to AES_GCM protection sc
 -m \
 -v
 ----
+
+[export_import_all_flows]
+=== Export All Flows
+You can use the `export-all-flows` to perform the following tasks:
+
+* List all the buckets
+* For each bucket, list all flows
+* For each flow, list all versions
+* Export each version into a provided directory
+
+Running the command requires an `--outputDirectory` parameter. The directory must exist and permissions correctly set.
+
+=== Import All Flows
+You can use the `import-all-flows` to perform the following tasks:
+
+* List all files, representing a flow version, from a directory created by export-all-flows
+* Create all the corresponding buckets
+* Create all the corresponding flows
+* Import all the corresponding flow versions
+
+Running the command requires 2 parameters:
+
+* `--input` parameter represents a directory to read files from
+* `--skipExisting` optional parameter, configuring how to handle existing flow and flow version creation.
+If provided the flow and flow version creation will be skipped regardless of there are missing flow versions.
+If not provided the missing flow versions will be created.
+
+=== Usage
+The input source for an import-all-flows command must be created by an export-all-flows command.
+To avoid migration conflicts, no modification should be performed in the NiFi Registry during this activity.
+Buckets and flows with the same name are considered equal.
+
+* Export all flow versions:
+
+ ./bin/cli.sh registry export-all-flows -u http://localhost:18080 --outputDirectory "/my_dir/flow_exports"
+
+* Import all flow versions:
+
+ ./bin/cli.sh registry import-all-flows -u http://localhost:18080 --input "/my_dir/flow_exports" --skipExisting
+
+=== Expected behaviour
+=== Use case 1: reconfiguring an existing NiFi Registry
+
+NiFi is connecting to NiFi Registry, the NiFi Registry does not change, only its configuration.
+All the data will be created.
+
+1. Export versions:
+
+ ./bin/cli.sh registry export-all-flows -u http://localhost:18080 --outputDirectory "/my_dir/flow_exports"
+
+2. Stop registry
+
+3. Switch provider
+
+4. Start registry
+
+5. Import versions
+
+ ./bin/cli.sh registry import-all-flows -u http://localhost:18080 --input "/my_dir/flow_exports" --skipExisting
+
+
+=== Use case 2: data replication
+
+NiFi_1 is connecting to NiFi Registry_1 and NiFi_2 is connecting to NiFi Registry_2.
+
+For disaster recovery purposes the data from NiFi Registry_1 needs to be periodically replicated to NiFi Registry_2 via a scheduled job.
+
+The initial version of Nifi Registry_2 needs to be created by this tool.
+
+The missing buckets, flows and versions will be created. If bucket and flow exist the missing versions will be created.
+
+1. Export versions:
+
+ ./bin/cli.sh registry export-all-flows -u http://nifi-registry-1:18080 --outputDirectory "/my_dir/flow_exports"
+
+2. Import versions:
+
+ ./bin/cli.sh registry import-all-flows -u http://nifi-registry-2:18080 --input "/my_dir/flow_exports"
 
 [[tls_toolkit]]
 == TLS Toolkit
