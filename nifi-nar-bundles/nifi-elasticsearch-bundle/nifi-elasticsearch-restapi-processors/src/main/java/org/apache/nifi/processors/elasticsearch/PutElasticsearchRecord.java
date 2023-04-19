@@ -81,7 +81,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the documents."),
+        @WritesAttribute(attribute = "elasticsearch.put.error",
+                description = "The error message if there is an issue parsing the FlowFile records, sending the parsed documents to Elasticsearch or parsing the Elasticsearch response."),
         @WritesAttribute(attribute = "elasticsearch.put.error.count", description = "The number of records that generated errors in the Elasticsearch _bulk API."),
         @WritesAttribute(attribute = "elasticsearch.put.success.count", description = "The number of records that were successfully processed by the Elasticsearch _bulk API.")
 })
@@ -206,7 +207,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .displayName("Result Record Writer")
         .description("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
                 "and the failed records will be written to a record set with this record writer service and sent to the \"" +
-                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set" +
+                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set " +
                 "with this record writer service and sent to the \"" + REL_SUCCESSFUL_RECORDS.getName() + "\" relationship.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .addValidator(Validator.VALID)
@@ -463,12 +464,12 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.get().bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
 
-        final List<Integer> errorIndices = findElasticsearchResponseErrorIndices(response);
-        if (!errorIndices.isEmpty()) {
-            handleElasticsearchDocumentErrors(response, errorIndices, session, input);
+        final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);
+        if (!errors.isEmpty()) {
+            handleElasticsearchDocumentErrors(errors, session, input);
         }
 
-        final int numErrors = errorIndices.size();
+        final int numErrors = errors.size();
         final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
         FlowFile errorFF = null;
         FlowFile successFF = null;
@@ -486,7 +487,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                     errorWriter.beginRecordSet();
                     successWriter.beginRecordSet();
                     for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
-                        if (errorIndices.contains(o)) {
+                        if (errors.containsKey(o)) {
                             errorWriter.write(bundle.getOriginalRecords().get(o));
                         } else {
                             successWriter.write(bundle.getOriginalRecords().get(o));

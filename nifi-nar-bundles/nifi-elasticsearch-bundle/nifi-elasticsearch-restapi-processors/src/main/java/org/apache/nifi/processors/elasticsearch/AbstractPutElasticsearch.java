@@ -43,12 +43,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -200,14 +200,12 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         }
     }
 
-    void handleElasticsearchDocumentErrors(final IndexOperationResponse response, final List<Integer> errorIndices, final ProcessSession session, final FlowFile parent) throws IOException {
-        if (!errorIndices.isEmpty() && (outputErrorResponses || logErrors || getLogger().isDebugEnabled())) {
-            final List<Map<String, Object>> errorResponses = errorIndices.stream().map(index -> response.getItems().get(index)).collect(Collectors.toList());
-
+    void handleElasticsearchDocumentErrors(final Map<Integer, Map<String, Object>> errors, final ProcessSession session, final FlowFile parent) throws IOException {
+        if (!errors.isEmpty() && (outputErrorResponses || logErrors || getLogger().isDebugEnabled())) {
             if (logErrors || getLogger().isDebugEnabled()) {
                 final String output = String.format(
                         "An error was encountered while processing bulk operations. Server response below:%n%n%s",
-                        errorMapper.writeValueAsString(errorResponses)
+                        errorMapper.writeValueAsString(errors.values())
                 );
 
                 if (logErrors) {
@@ -222,9 +220,9 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                 try {
                     errorResponsesFF = session.create(parent);
                     try (final OutputStream errorsOutputStream = session.write(errorResponsesFF)) {
-                        errorMapper.writeValue(errorsOutputStream, errorResponses);
+                        errorMapper.writeValue(errorsOutputStream, errors.values());
                     }
-                    errorResponsesFF = session.putAttribute(errorResponsesFF, "elasticsearch.put.error.count", String.valueOf(errorResponses.size()));
+                    errorResponsesFF = session.putAttribute(errorResponsesFF, "elasticsearch.put.error.count", String.valueOf(errors.size()));
                     session.transfer(errorResponsesFF, REL_ERROR_RESPONSES);
                 } catch (final IOException ex) {
                     getLogger().error("Unable to write error responses", ex);
@@ -243,8 +241,8 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         return inner -> inner.containsKey("result") && "not_found".equals(inner.get("result"));
     }
 
-    final List<Integer> findElasticsearchResponseErrorIndices(final IndexOperationResponse response) {
-        final List<Integer> indices = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
+    final Map<Integer, Map<String, Object>> findElasticsearchResponseErrors(final IndexOperationResponse response) {
+        final Map<Integer, Map<String, Object>> errors = new LinkedHashMap<>(response.getItems() == null ? 0 : response.getItems().size(), 1);
 
         final List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
         if (response.hasErrors()) {
@@ -261,11 +259,11 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                     final String key = current.keySet().stream().findFirst().orElse(null);
                     @SuppressWarnings("unchecked") final Map<String, Object> inner = (Map<String, Object>) current.get(key);
                     if (inner != null && errorItemFilters.stream().anyMatch(p -> p.test(inner))) {
-                        indices.add(index);
+                        errors.put(index, inner);
                     }
                 }
             }
         }
-        return indices;
+        return errors;
     }
 }
