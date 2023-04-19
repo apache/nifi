@@ -152,6 +152,7 @@
 
         // configure the user auto complete
         $.widget('nf.userSearchAutocomplete', $.ui.autocomplete, {
+            delay: 500,
             reset: function () {
                 this.term = null;
             },

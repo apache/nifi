@@ -27,7 +27,9 @@ import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
+import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
@@ -66,9 +68,13 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
+import org.apache.nifi.web.dao.UserDAO;
+import org.apache.nifi.web.dao.UserGroupDAO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionUpdate;
 import org.apache.nifi.web.revision.StandardRevisionUpdate;
@@ -81,8 +87,10 @@ import org.mockito.Mockito;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,6 +113,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.same;
@@ -113,11 +122,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 public class StandardNiFiServiceFacadeTest {
 
-    private static final String USER_1 = "user-1";
-    private static final String USER_2 = "user-2";
+    private static final String USER_PREFIX = "user";
+    private static final String USER_1 = String.format("%s-1", USER_PREFIX);
+    private static final String USER_1_ID = UUID.nameUUIDFromBytes(USER_1.getBytes(StandardCharsets.UTF_8)).toString();
+    private static final String USER_2 = String.format("%s-2", USER_PREFIX);
+    private static final String USER_GROUP_1 = String.format("%s-group-1", USER_PREFIX);
+    private static final String USER_GROUP_1_ID = UUID.nameUUIDFromBytes(USER_GROUP_1.getBytes(StandardCharsets.UTF_8)).toString();
 
     private static final Integer UNKNOWN_ACTION_ID = 0;
 
@@ -727,6 +739,99 @@ public class StandardNiFiServiceFacadeTest {
         assertEquals(groupId, result.getBulletins().get(0).getGroupId());
     }
 
+    @Test
+    public void testSearchTenantsNullQuery() {
+        setupSearchTenants();
+
+        final TenantsEntity tenantsEntity = serviceFacade.searchTenants(null);
+
+        assertUserFound(tenantsEntity);
+        assertUserGroupFound(tenantsEntity);
+    }
+
+    @Test
+    public void testSearchTenantsMatchedQuery() {
+        setupSearchTenants();
+
+        final TenantsEntity tenantsEntity = serviceFacade.searchTenants(USER_PREFIX);
+
+        assertUserFound(tenantsEntity);
+        assertUserGroupFound(tenantsEntity);
+    }
+
+    @Test
+    public void testSearchTenantsGroupMatchedQuery() {
+        setupSearchTenants();
+
+        final TenantsEntity tenantsEntity = serviceFacade.searchTenants(USER_GROUP_1);
+
+        assertUserGroupFound(tenantsEntity);
+
+        final Collection<TenantEntity> usersFound = tenantsEntity.getUsers();
+        assertTrue(usersFound.isEmpty());
+    }
+
+    @Test
+    public void testSearchTenantsNotMatchedQuery() {
+        setupSearchTenants();
+
+        final TenantsEntity tenantsEntity = serviceFacade.searchTenants(String.class.getSimpleName());
+
+        assertNotNull(tenantsEntity);
+
+        final Collection<TenantEntity> usersFound = tenantsEntity.getUsers();
+        assertTrue(usersFound.isEmpty());
+
+        final Collection<TenantEntity> userGroupsFound = tenantsEntity.getUserGroups();
+        assertTrue(userGroupsFound.isEmpty());
+    }
+
+    private void setupSearchTenants() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        authorizer = mock(Authorizer.class);
+        serviceFacade.setAuthorizer(authorizer);
+        final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
+        serviceFacade.setAuthorizableLookup(authorizableLookup);
+
+        final Authorizable authorizable = mock(Authorizable.class);
+        when(authorizableLookup.getTenant()).thenReturn(authorizable);
+
+        final RevisionManager revisionManager = mock(RevisionManager.class);
+        serviceFacade.setRevisionManager(revisionManager);
+        final Revision revision = new Revision(1L, USER_1_ID, USER_1_ID);
+        when(revisionManager.getRevision(anyString())).thenReturn(revision);
+
+        final UserDAO userDAO = mock(UserDAO.class);
+        serviceFacade.setUserDAO(userDAO);
+        final UserGroupDAO userGroupDAO = mock(UserGroupDAO.class);
+        serviceFacade.setUserGroupDAO(userGroupDAO);
+
+        final User user = new User.Builder().identity(USER_1).identifier(USER_1_ID).build();
+        final Set<User> users = Collections.singleton(user);
+        when(userDAO.getUsers()).thenReturn(users);
+
+        final Group group = new Group.Builder().name(USER_GROUP_1).identifier(USER_GROUP_1_ID).build();
+        final Set<Group> groups = Collections.singleton(group);
+        when(userGroupDAO.getUserGroups()).thenReturn(groups);
+    }
+
+    private void assertUserFound(final TenantsEntity tenantsEntity) {
+        assertNotNull(tenantsEntity);
+        final Collection<TenantEntity> usersFound = tenantsEntity.getUsers();
+        assertFalse(usersFound.isEmpty());
+        final TenantEntity firstUserFound = usersFound.iterator().next();
+        assertEquals(USER_1_ID, firstUserFound.getId());
+    }
+
+    private void assertUserGroupFound(final TenantsEntity tenantsEntity) {
+        assertNotNull(tenantsEntity);
+        final Collection<TenantEntity> userGroupsFound = tenantsEntity.getUserGroups();
+        assertFalse(userGroupsFound.isEmpty());
+        final TenantEntity firstUserGroup = userGroupsFound.iterator().next();
+        assertEquals(USER_GROUP_1_ID, firstUserGroup.getId());
+    }
 
     private static class MockTestBulletinRepository extends MockBulletinRepository {
 
