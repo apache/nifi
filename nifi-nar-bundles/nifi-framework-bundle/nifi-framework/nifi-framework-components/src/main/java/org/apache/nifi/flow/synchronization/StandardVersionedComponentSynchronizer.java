@@ -217,6 +217,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             }
 
+            if (diff.getDifferenceType() == DifferenceType.POSITION_CHANGED) {
+                continue;
+            }
+
             final VersionedComponent component = diff.getComponentA() == null ? diff.getComponentB() : diff.getComponentA();
             updatedVersionedComponentIds.add(component.getIdentifier());
 
