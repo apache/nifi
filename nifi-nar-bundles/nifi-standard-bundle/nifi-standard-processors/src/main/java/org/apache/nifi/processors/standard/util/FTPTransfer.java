@@ -395,7 +395,7 @@ public class FTPTransfer implements FileTransfer {
         if (!cdSuccessful) {
             if (client.makeDirectory(remoteDirectory)) {
                 logger.debug("Remote Directory not found: created directory [{}]", remoteDirectory);
-            } else {
+            } else if (!setWorkingDirectory(remoteDirectory)) { // Double check that the dir exists as it might have been created in another thread
                 throw new IOException("Failed to create remote directory " + remoteDirectory);
             }
         }
