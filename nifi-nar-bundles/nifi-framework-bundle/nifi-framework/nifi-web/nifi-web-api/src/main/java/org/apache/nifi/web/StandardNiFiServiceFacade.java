@@ -5505,6 +5505,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
             .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
             .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
+            .filter(difference -> difference.getDifferenceType() != DifferenceType.POSITION_CHANGED)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 
