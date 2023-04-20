@@ -33,6 +33,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
+import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
@@ -164,7 +165,8 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         });
 
         // get the versioned flow
-        final RegisteredFlowSnapshot versionedFlowSnapshot = serviceFacade.getVersionedFlowSnapshotByGroupId(groupId);
+        final FlowSnapshotContainer snapshotContainer = serviceFacade.getVersionedFlowSnapshotByGroupId(groupId);
+        final RegisteredFlowSnapshot versionedFlowSnapshot = snapshotContainer.getFlowSnapshot();
 
         final VersionedProcessGroup versionedProcessGroup = versionedFlowSnapshot.getFlowContents();
         final String flowName = versionedProcessGroup.getName();
@@ -1129,14 +1131,15 @@ public class VersionsResource extends FlowUpdateResource<VersionControlInformati
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // Step 0: Get the Versioned Flow Snapshot from the Flow Registry
-        final RegisteredFlowSnapshot flowSnapshot = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
+        final FlowSnapshotContainer flowSnapshotContainer = serviceFacade.getVersionedFlowSnapshot(requestEntity.getVersionControlInformation(), true);
+        final RegisteredFlowSnapshot flowSnapshot = flowSnapshotContainer.getFlowSnapshot();
 
         // The flow in the registry may not contain the same versions of components that we have in our flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+        serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser());
 
         // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
         serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());

@@ -1,0 +1,230 @@
+{
+  "externalControllerServices": {
+    "e314fb24-91a4-38c5-af94-520483cf0579": {
+      "identifier": "e314fb24-91a4-38c5-af94-520483cf0579",
+      "name": "MyAvroRecordSetWriter"
+    },
+    "9a674922-376f-367c-9dc3-095f8014223e": {
+      "identifier": "9a674922-376f-367c-9dc3-095f8014223e",
+      "name": "MyAvroReader"
+    }
+  },
+  "flowContents": {
+    "comments": "",
+    "componentType": "PROCESS_GROUP",
+    "connections": [
+      {
+        "backPressureDataSizeThreshold": "1 GB",
+        "backPressureObjectThreshold": 10000,
+        "bends": [],
+        "componentType": "CONNECTION",
+        "destination": {
+          "comments": "",
+          "groupId": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+          "id": "afe169ce-aada-3055-9489-cd40bde6789d",
+          "instanceIdentifier": "1117d8ab-8613-3675-83ef-fb6f30b891cb",
+          "name": "ConvertRecord",
+          "type": "PROCESSOR"
+        },
+        "flowFileExpiration": "0 sec",
+        "groupIdentifier": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+        "identifier": "bab085dc-1e3d-3ff4-8c98-61e2ac2da897",
+        "instanceIdentifier": "b13d9099-7f12-373c-8900-c653d9a5acf0",
+        "labelIndex": 1,
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "name": "",
+        "partitioningAttribute": "",
+        "prioritizers": [],
+        "selectedRelationships": [
+          "success"
+        ],
+        "source": {
+          "comments": "",
+          "groupId": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+          "id": "c84ea0f1-31d6-3c66-a431-526a13ecd953",
+          "instanceIdentifier": "0c16178a-f864-3b60-11e4-9b5f6d8af199",
+          "name": "GenerateFlowFile",
+          "type": "PROCESSOR"
+        },
+        "zIndex": 0
+      }
+    ],
+    "controllerServices": [],
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultFlowFileExpiration": "0 sec",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "funnels": [],
+    "identifier": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+    "inputPorts": [],
+    "instanceIdentifier": "a44c6370-0187-1000-d0cf-e5bc93fd74d3",
+    "labels": [],
+    "name": "Child",
+    "outputPorts": [],
+    "position": {
+      "x": 502.0,
+      "y": 283.0
+    },
+    "processGroups": [],
+    "processors": [
+      {
+        "autoTerminatedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-standard-nar",
+          "group": "org.apache.nifi",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "PROCESSOR",
+        "concurrentlySchedulableTaskCount": 1,
+        "executionNode": "ALL",
+        "groupIdentifier": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+        "identifier": "c84ea0f1-31d6-3c66-a431-526a13ecd953",
+        "instanceIdentifier": "0c16178a-f864-3b60-11e4-9b5f6d8af199",
+        "maxBackoffPeriod": "10 mins",
+        "name": "GenerateFlowFile",
+        "penaltyDuration": "30 sec",
+        "position": {
+          "x": 432.0,
+          "y": 64.0
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "File Size": "0B",
+          "Batch Size": "1",
+          "Unique FlowFiles": "false",
+          "Data Format": "Text"
+        },
+        "propertyDescriptors": {
+          "character-set": {
+            "displayName": "Character Set",
+            "identifiesControllerService": false,
+            "name": "character-set",
+            "sensitive": false
+          },
+          "File Size": {
+            "displayName": "File Size",
+            "identifiesControllerService": false,
+            "name": "File Size",
+            "sensitive": false
+          },
+          "mime-type": {
+            "displayName": "Mime Type",
+            "identifiesControllerService": false,
+            "name": "mime-type",
+            "sensitive": false
+          },
+          "generate-ff-custom-text": {
+            "displayName": "Custom Text",
+            "identifiesControllerService": false,
+            "name": "generate-ff-custom-text",
+            "sensitive": false
+          },
+          "Batch Size": {
+            "displayName": "Batch Size",
+            "identifiesControllerService": false,
+            "name": "Batch Size",
+            "sensitive": false
+          },
+          "Unique FlowFiles": {
+            "displayName": "Unique FlowFiles",
+            "identifiesControllerService": false,
+            "name": "Unique FlowFiles",
+            "sensitive": false
+          },
+          "Data Format": {
+            "displayName": "Data Format",
+            "identifiesControllerService": false,
+            "name": "Data Format",
+            "sensitive": false
+          }
+        },
+        "retriedRelationships": [],
+        "retryCount": 10,
+        "runDurationMillis": 0,
+        "scheduledState": "ENABLED",
+        "schedulingPeriod": "1 min",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "style": {},
+        "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
+        "yieldDuration": "1 sec"
+      },
+      {
+        "autoTerminatedRelationships": [
+          "success",
+          "failure"
+        ],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-standard-nar",
+          "group": "org.apache.nifi",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "PROCESSOR",
+        "concurrentlySchedulableTaskCount": 1,
+        "executionNode": "ALL",
+        "groupIdentifier": "d2cb33fe-d25b-3945-89f2-6283dd46bf9c",
+        "identifier": "afe169ce-aada-3055-9489-cd40bde6789d",
+        "instanceIdentifier": "1117d8ab-8613-3675-83ef-fb6f30b891cb",
+        "maxBackoffPeriod": "10 mins",
+        "name": "ConvertRecord",
+        "penaltyDuration": "30 sec",
+        "position": {
+          "x": 416.0,
+          "y": 312.0
+        },
+        "properties": {
+          "record-writer": "e314fb24-91a4-38c5-af94-520483cf0579",
+          "record-reader": "9a674922-376f-367c-9dc3-095f8014223e",
+          "include-zero-record-flowfiles": "true"
+        },
+        "propertyDescriptors": {
+          "record-writer": {
+            "displayName": "Record Writer",
+            "identifiesControllerService": true,
+            "name": "record-writer",
+            "sensitive": false
+          },
+          "record-reader": {
+            "displayName": "Record Reader",
+            "identifiesControllerService": true,
+            "name": "record-reader",
+            "sensitive": false
+          },
+          "include-zero-record-flowfiles": {
+            "displayName": "Include Zero Record FlowFiles",
+            "identifiesControllerService": false,
+            "name": "include-zero-record-flowfiles",
+            "sensitive": false
+          }
+        },
+        "retriedRelationships": [],
+        "retryCount": 10,
+        "runDurationMillis": 0,
+        "scheduledState": "ENABLED",
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "style": {},
+        "type": "org.apache.nifi.processors.standard.ConvertRecord",
+        "yieldDuration": "1 sec"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "variables": {}
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterContexts": {},
+  "parameterProviders": {},
+  "snapshotMetadata": {
+    "author": "anonymous",
+    "comments": "",
+    "timestamp": 1682088715936,
+    "version": 2
+  }
+}

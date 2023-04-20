@@ -93,6 +93,7 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -512,33 +513,20 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void synchronizeChildGroups(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                        final Map<String, ProcessGroup> childGroupsByVersionedId,
-                                        final Map<String, ParameterProviderReference> parameterProviderReferences, final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
+                                        final Map<String, ProcessGroup> childGroupsByVersionedId, final Map<String, ParameterProviderReference> parameterProviderReferences,
+                                        final ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
 
         for (final VersionedProcessGroup proposedChildGroup : proposed.getProcessGroups()) {
             final ProcessGroup childGroup = childGroupsByVersionedId.get(proposedChildGroup.getIdentifier());
             final VersionedFlowCoordinates childCoordinates = proposedChildGroup.getVersionedFlowCoordinates();
 
-            // if there is a nested process group that is version controlled, make sure get the param contexts that go with that snapshot
-            // instead of the ones from the parent which would have been passed in to this method
-            Map<String, VersionedParameterContext> childParameterContexts = versionedParameterContexts;
-            if (childCoordinates != null && syncOptions.isUpdateDescendantVersionedFlows()) {
-                final String childParameterContextName = proposedChildGroup.getParameterContextName();
-                if (childParameterContextName != null && !versionedParameterContexts.containsKey(childParameterContextName)) {
-                    childParameterContexts = getVersionedParameterContexts(childCoordinates);
-                } else {
-                    childParameterContexts = versionedParameterContexts;
-                }
-            }
-
             if (childGroup == null) {
                 final ProcessGroup added = addProcessGroup(group, proposedChildGroup, context.getComponentIdGenerator(), preExistingVariables,
-                        childParameterContexts, parameterProviderReferences, topLevelGroup);
+                        versionedParameterContexts, parameterProviderReferences, topLevelGroup);
                 context.getFlowManager().onProcessGroupAdded(added);
                 added.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
                 LOG.info("Added {} to {}", added, group);
             } else if (childCoordinates == null || syncOptions.isUpdateDescendantVersionedFlows()) {
-
                 final StandardVersionedComponentSynchronizer sync = new StandardVersionedComponentSynchronizer(context);
                 sync.setPreExistingVariables(preExistingVariables);
                 sync.setUpdatedVersionedComponentIds(updatedVersionedComponentIds);
@@ -547,7 +535,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     .build();
 
                 sync.setSynchronizationOptions(options);
-                sync.synchronize(childGroup, proposedChildGroup, childParameterContexts, parameterProviderReferences, topLevelGroup);
+                sync.synchronize(childGroup, proposedChildGroup, versionedParameterContexts, parameterProviderReferences, topLevelGroup);
 
                 LOG.info("Updated {}", childGroup);
             }
@@ -2228,7 +2216,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final int flowVersion = versionedFlowCoordinates.getVersion();
 
         try {
-            final RegisteredFlowSnapshot childSnapshot = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getAnonymousContext(), bucketId, flowId, flowVersion, false);
+            final FlowSnapshotContainer snapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getAnonymousContext(), bucketId, flowId, flowVersion, false);
+            final RegisteredFlowSnapshot childSnapshot = snapshotContainer.getFlowSnapshot();
             return childSnapshot.getParameterContexts();
         } catch (final FlowRegistryException e) {
             throw new IllegalArgumentException("The Flow Registry with ID " + registryId + " reports that no Flow exists with Bucket "

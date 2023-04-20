@@ -114,8 +114,11 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceResolver;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardControllerServiceResolver;
+import org.apache.nifi.controller.service.StandardControllerServiceApiLookup;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.server.ZooKeeperStateServer;
 import org.apache.nifi.controller.status.NodeStatus;
@@ -175,6 +178,7 @@ import org.apache.nifi.python.PythonBridge;
 import org.apache.nifi.python.PythonBridgeInitializationContext;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -288,6 +292,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean flowSynchronized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
+    private final StandardControllerServiceResolver controllerServiceResolver;
     private final Authorizer authorizer;
     private final AuditService auditService;
     private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
@@ -556,6 +561,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         flowManager = new StandardFlowManager(nifiProperties, sslContext, this, flowFileEventRepository, parameterContextManager);
 
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
+        controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new NiFiRegistryFlowMapper(extensionManager),
+                controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
         final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
@@ -2208,6 +2215,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return controllerServiceProvider;
     }
 
+    public ControllerServiceResolver getControllerServiceResolver() {
+        return controllerServiceResolver;
+    }
 
     public VariableRegistry getVariableRegistry() {
         return variableRegistry;

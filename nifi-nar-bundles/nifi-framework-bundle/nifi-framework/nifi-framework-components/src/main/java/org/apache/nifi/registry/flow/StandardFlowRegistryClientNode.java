@@ -216,19 +216,20 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
     }
 
     @Override
-    public RegisteredFlowSnapshot getFlowContents(
+    public FlowSnapshotContainer getFlowContents(
             final FlowRegistryClientUserContext context, final String bucketId, final String flowId, final int version, final boolean fetchRemoteFlows
     ) throws FlowRegistryException, IOException {
-        final RegisteredFlowSnapshot flowSnapshot = execute(() ->client.get().getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
+        final RegisteredFlowSnapshot flowSnapshot = execute(() -> client.get().getComponent().getFlowContents(getConfigurationContext(context), bucketId, flowId, version));
 
+        final FlowSnapshotContainer snapshotContainer = new FlowSnapshotContainer(flowSnapshot);
         if (fetchRemoteFlows) {
             final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
             for (final VersionedProcessGroup child : contents.getProcessGroups()) {
-                populateVersionedContentsRecursively(context, child);
+                populateVersionedContentsRecursively(context, child, snapshotContainer);
             }
         }
 
-        return flowSnapshot;
+        return snapshotContainer;
     }
 
     @Override
@@ -296,7 +297,8 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         return context.getNiFiUserIdentity().orElse(null);
     }
 
-    private void populateVersionedContentsRecursively(final FlowRegistryClientUserContext context, final VersionedProcessGroup group) throws IOException, FlowRegistryException {
+    private void populateVersionedContentsRecursively(final FlowRegistryClientUserContext context, final VersionedProcessGroup group,
+                                                      final FlowSnapshotContainer snapshotContainer) throws FlowRegistryException {
         if (group == null) {
             return;
         }
@@ -326,10 +328,12 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             group.setDefaultBackPressureObjectThreshold(contents.getDefaultBackPressureObjectThreshold());
             group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
             coordinates.setLatest(snapshot.isLatest());
+
+            snapshotContainer.addChildSnapshot(snapshot, group);
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedContentsRecursively(context, child);
+            populateVersionedContentsRecursively(context, child, snapshotContainer);
         }
     }
 
@@ -345,7 +349,8 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         for (final FlowRegistryClientNode clientNode : clientNodes) {
             try {
                 logger.debug("Attempting to fetch flow for Bucket [{}] Flow [{}] Version [{}] using {}", bucketId, flowId, version, clientNode);
-                final RegisteredFlowSnapshot snapshot = clientNode.getFlowContents(context, bucketId, flowId, version, fetchRemoteFlows);
+                final FlowSnapshotContainer snapshotContainer = clientNode.getFlowContents(context, bucketId, flowId, version, fetchRemoteFlows);
+                final RegisteredFlowSnapshot snapshot = snapshotContainer.getFlowSnapshot();
                 coordinates.setRegistryId(clientNode.getIdentifier());
 
                 logger.debug("Successfully fetched flow for Bucket [{}] Flow [{}] Version [{}] using {}", bucketId, flowId, version, clientNode);
