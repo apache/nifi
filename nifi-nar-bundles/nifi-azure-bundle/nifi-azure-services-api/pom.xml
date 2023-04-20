@@ -40,5 +40,13 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
+        <!-- azure-core does not bring jackson-dataformat-xml dependency from version 1.37.0 on -->
+        <!-- but some libraries in the processor nar module depend on jackson-dataformat-xml -->
+        <!-- and check its existence and version via JacksonVersion in azure-core -->
+        <!-- that's why it needs to be present in the services api nar module beside azure-core -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
     </dependencies>
 </project>
