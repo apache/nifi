@@ -344,7 +344,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
 
-        StateMap state = getState(context);
+        StateMap state = getState(session);
         IncrementalContext incrementalContext = new IncrementalContext(context, state);
         SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields);
 
@@ -373,7 +373,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
             AtomicInteger recordCountHolder = new AtomicInteger();
             try {
-                outgoingFlowFile = session.write(outgoingFlowFile, processRecordsCallback(context, nextRecordsUrl, writerFactory, state, incrementalContext,
+                outgoingFlowFile = session.write(outgoingFlowFile, processRecordsCallback(session, nextRecordsUrl, writerFactory, state, incrementalContext,
                         salesForceSchemaHolder, querySObject, originalAttributes, attributes, recordCountHolder));
                 int recordCount = recordCountHolder.get();
 
@@ -403,7 +403,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         transferFlowFiles(session, outgoingFlowFiles, originalFlowFile, isOriginalTransferred, startNanos, sObject);
     }
 
-    private OutputStreamCallback processRecordsCallback(ProcessContext context, AtomicReference<String> nextRecordsUrl, RecordSetWriterFactory writerFactory,
+    private OutputStreamCallback processRecordsCallback(ProcessSession session, AtomicReference<String> nextRecordsUrl, RecordSetWriterFactory writerFactory,
                                                         StateMap state, IncrementalContext incrementalContext, SalesforceSchemaHolder salesForceSchemaHolder,
                                                         String querySObject, Map<String, String> originalAttributes, Map<String, String> attributes,
                                                         AtomicInteger recordCountHolder) {
@@ -414,7 +414,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 if (incrementalContext.getAgeFilterUpper() != null) {
                     Map<String, String> newState = new HashMap<>(state.toMap());
                     newState.put(LAST_AGE_FILTER, incrementalContext.getAgeFilterUpper());
-                    updateState(context, newState);
+                    updateState(session, newState);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -578,19 +578,19 @@ public class QuerySalesforceObject extends AbstractProcessor {
         outgoingFlowFiles.clear();
     }
 
-    private StateMap getState(ProcessContext context) {
+    private StateMap getState(ProcessSession session) {
         StateMap state;
         try {
-            state = context.getStateManager().getState(Scope.CLUSTER);
+            state = session.getState(Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("State retrieval failed", e);
         }
         return state;
     }
 
-    private void updateState(ProcessContext context, Map<String, String> newState) {
+    private void updateState(ProcessSession session, Map<String, String> newState) {
         try {
-            context.getStateManager().setState(newState, Scope.CLUSTER);
+            session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Last Age Filter state update failed", e);
         }
