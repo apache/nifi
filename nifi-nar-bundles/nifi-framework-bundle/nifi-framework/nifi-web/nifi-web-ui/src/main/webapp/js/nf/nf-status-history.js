@@ -356,7 +356,7 @@
 
             // add status history details
             var detailsContainer = buildDetailsContainer('Status History');
-            Object.keys(statusHistory.details).forEach(function(key, value) {
+            Object.entries(statusHistory.details).forEach(function(key, value) {
                 addDetailItem(detailsContainer, key, value);
             });
 
