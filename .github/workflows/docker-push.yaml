@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "fix/satish/change-java-version"
 
   workflow_dispatch:
 

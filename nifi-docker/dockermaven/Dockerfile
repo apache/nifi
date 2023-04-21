@@ -17,10 +17,12 @@
 #
 # FROM maven:eclipse-temurin AS builder
 
-ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
 
-FROM maven:${IMAGE_NAME} AS builder
+ARG MVN_IMAGE_TAG=3.9.1-eclipse-temurin-11-focal
+ARG IMAGE_NAME=eclipse-temurin
+ARG IMAGE_TAG=11-jdk
+
+FROM maven:${MVN_IMAGE_TAG} AS builder
 
 WORKDIR /home/nifi
 COPY . .
