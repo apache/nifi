@@ -26,6 +26,8 @@
     <packaging>jar</packaging>
     <properties>
         <gremlin.version>3.6.2</gremlin.version>
+        <janusgraph.version>0.6.3</janusgraph.version>
+        <guava.version>31.1-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -50,6 +52,12 @@
                 <groupId>org.apache.tinkerpop</groupId>
                 <artifactId>gremlin-groovy</artifactId>
                 <version>${gremlin.version}</version>
+            </dependency>
+            <!-- Override Guava 29.0 from JanusGraph 0.6.3 -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -79,7 +87,7 @@
         <dependency>
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-core</artifactId>
-            <version>0.5.3</version>
+            <version>${janusgraph.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
@@ -94,7 +102,7 @@
         <dependency>
             <groupId>org.janusgraph</groupId>
             <artifactId>janusgraph-inmemory</artifactId>
-            <version>0.5.3</version>
+            <version>${janusgraph.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
