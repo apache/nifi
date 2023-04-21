@@ -122,6 +122,7 @@
         <module>nifi-iotdb-bundle</module>
         <module>nifi-cipher-bundle</module>
         <module>nifi-py4j-bundle</module>
+        <module>nifi-compress-bundle</module>
     </modules>
 
     <build>

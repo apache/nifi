@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processors.compress;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.compress.util.CompressionInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -27,15 +29,13 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class TestModifyCompression {
 
     @Test
     public void testSnappyCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -50,7 +50,7 @@ class TestModifyCompression {
     @Test
     public void testSnappyDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.snappy"));
@@ -66,7 +66,7 @@ class TestModifyCompression {
     public void testSnappyHadoopCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY_HADOOP);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY_HADOOP.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -81,7 +81,7 @@ class TestModifyCompression {
     @Test
     public void testSnappyHadoopDecompress() {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY_HADOOP);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY_HADOOP.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.assertNotValid();
@@ -91,7 +91,7 @@ class TestModifyCompression {
     public void testSnappyFramedCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY_FRAMED);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY_FRAMED.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -106,7 +106,7 @@ class TestModifyCompression {
     @Test
     public void testSnappyFramedDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_SNAPPY_FRAMED);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_SNAPPY_FRAMED.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.sz"));
@@ -121,7 +121,7 @@ class TestModifyCompression {
     @Test
     public void testBzip2DecompressConcatenated() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, "bzip2");
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, "bzip2");
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "false");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFileConcat.txt.bz2"));
@@ -136,8 +136,8 @@ class TestModifyCompression {
     @Test
     public void testBzip2DecompressLz4FramedCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, "bzip2");
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_LZ4_FRAMED);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, "bzip2");
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_LZ4_FRAMED.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.bz2"));
@@ -160,7 +160,7 @@ class TestModifyCompression {
     public void testProperMimeTypeFromBzip2() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, "bzip2");
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, "bzip2");
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "false");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -174,7 +174,7 @@ class TestModifyCompression {
     @Test
     public void testBzip2DecompressWithBothMimeTypes() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_ATTRIBUTE);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_ATTRIBUTE.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         // ensure that we can decompress with a mime type of application/x-bzip2
@@ -206,8 +206,8 @@ class TestModifyCompression {
     @Test
     public void testGzipDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, "gzip");
-        assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, "gzip");
+        Assertions.assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.gz"));
         runner.run();
@@ -227,7 +227,7 @@ class TestModifyCompression {
         flowFile.assertAttributeEquals("filename", "SampleFile1.txt");
 
         runner.clearTransferState();
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_ATTRIBUTE);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_ATTRIBUTE.getValue());
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/x-gzip");
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.gz"), attributes);
@@ -243,8 +243,8 @@ class TestModifyCompression {
     @Test
     public void testDeflateDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, "deflate");
-        assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, "deflate");
+        Assertions.assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.zlib"));
         runner.run();
@@ -262,8 +262,8 @@ class TestModifyCompression {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
         runner.setProperty(ModifyCompression.COMPRESSION_LEVEL, "6");
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, "deflate");
-        assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, "deflate");
+        Assertions.assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         runner.run();
@@ -278,8 +278,8 @@ class TestModifyCompression {
     public void testFilenameUpdatedOnCompress() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, "gzip");
-        assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, "gzip");
+        Assertions.assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         runner.run();
@@ -293,12 +293,12 @@ class TestModifyCompression {
     @Test
     public void testDecompressFailure() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, "gzip");
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, "gzip");
 
         byte[] data = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         runner.enqueue(data);
 
-        assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
+        Assertions.assertTrue(runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true").isValid());
         runner.run();
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_FAILURE, 1);
@@ -310,7 +310,7 @@ class TestModifyCompression {
     public void testLz4FramedCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_LZ4_FRAMED);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_LZ4_FRAMED.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -325,7 +325,7 @@ class TestModifyCompression {
     @Test
     public void testLz4FramedDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_LZ4_FRAMED);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_LZ4_FRAMED.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.lz4"));
@@ -341,7 +341,7 @@ class TestModifyCompression {
     public void testZstdCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_ZSTD);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_ZSTD.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -356,7 +356,7 @@ class TestModifyCompression {
     @Test
     public void testZstdDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_ZSTD);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_ZSTD.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.zst"));
         runner.run();
@@ -370,7 +370,7 @@ class TestModifyCompression {
     public void testBrotliCompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
 
-        runner.setProperty(ModifyCompression.COMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_BROTLI);
+        runner.setProperty(ModifyCompression.OUTPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_BROTLI.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
 
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
@@ -385,7 +385,7 @@ class TestModifyCompression {
     @Test
     public void testBrotliDecompress() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(ModifyCompression.class);
-        runner.setProperty(ModifyCompression.DECOMPRESSION_FORMAT, ModifyCompression.COMPRESSION_FORMAT_BROTLI);
+        runner.setProperty(ModifyCompression.INPUT_COMPRESSION, CompressionInfo.COMPRESSION_FORMAT_BROTLI.getValue());
         runner.setProperty(ModifyCompression.UPDATE_FILENAME, "true");
         runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.br"));
         runner.run();
