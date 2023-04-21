@@ -1726,7 +1726,7 @@
 
                                                 // check if the property references a parameter
                                                 if (!_.isEmpty(currentParameterContext)) {
-                                                    const paramReference = getExistingParametersReferenced(propertyValue, currentParameterContext, false);
+                                                    const paramReference = getExistingParametersReferenced(propertyValue);
                                                     if (paramReference.length > 0) {
                                                         referencingParameter = paramReference[0].parameter.value;
                                                     }
@@ -1946,7 +1946,7 @@
 
                                     // check if the property references a parameter
                                     if (!_.isEmpty(currentParameterContext)) {
-                                        const paramReference = getExistingParametersReferenced(propertyValue, currentParameterContext, false);
+                                        const paramReference = getExistingParametersReferenced(propertyValue);
                                         if (paramReference.length > 0) {
                                             referencingParameter = paramReference[0].parameter.value;
                                         }
@@ -2021,15 +2021,16 @@
     };
 
     /**
-     * Gets all the referenced parameters from the {parameterContext} based on the value of {parameterReference} with matching {sensitive} property
+     * Gets all the referenced parameters from the {parameterContext} based on the value of {parameterReference}
      *
      * @param {string} parameterReference
-     * @param {ParameterContextEntity} parameterContext
-     * @param {boolean} sensitive
      * @returns {ParameterEntity[]}
      */
-    var getExistingParametersReferenced = function (parameterReference, parameterContext, sensitive) {
-        var parameters = _.get(parameterContext.component, 'parameters', []);
+    var getExistingParametersReferenced = function (parameterReference) {
+        if (_.isEmpty(currentParameterContext)) {
+            return [];
+        }
+        var parameters = _.get(currentParameterContext.component, 'parameters', []);
         var existingParametersReferenced = [];
 
         if (!_.isNil(parameterReference) && !_.isEmpty(parameters)) {
@@ -2037,7 +2038,6 @@
             var paramRefsRegex = /#{'?([a-zA-Z0-9-_. ]+)'?}/gm;
             var possibleMatch;
 
-            // eslint-disable-next-line no-cond-assign
             while ((possibleMatch = paramRefsRegex.exec(parameterReference)) !== null) {
                 // This is necessary to avoid infinite loops with zero-width matches
                 if (possibleMatch.index === paramRefsRegex.lastIndex) {
@@ -2046,9 +2046,8 @@
 
                 if (!_.isEmpty(possibleMatch) && possibleMatch.length === 2) {
                     const parameterName = possibleMatch[1];
-                    // only parameters with the matching name and sensitive values are considered real matches
                     var found = parameters.find(function (param) {
-                        return _.get(param.parameter, 'name') === parameterName && _.get(param.parameter, 'sensitive', false) === sensitive;
+                        return _.get(param.parameter, 'name') === parameterName;
                     });
                     if (!_.isNil(found)) {
                         existingParametersReferenced.push(found);
@@ -2319,7 +2318,7 @@
          * @argument {object} properties        The properties
          * @argument {map} descriptors          The property descriptors (property name -> property descriptor)
          * @argument {map} history
-         * @argument {object} options
+         * @argument {object} options           The options to load properties for processor configurations
          */
         loadProperties: function (properties, descriptors, history, options) {
             var self = this;
