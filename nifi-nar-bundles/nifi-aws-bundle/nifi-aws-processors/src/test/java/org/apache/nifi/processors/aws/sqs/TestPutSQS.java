@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.AmazonSQSException;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -27,6 +23,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,14 +38,14 @@ public class TestPutSQS {
 
     private TestRunner runner = null;
     private PutSQS mockPutSQS = null;
-    private AmazonSQSClient mockSQSClient = null;
+    private SqsClient mockSQSClient = null;
 
     @BeforeEach
     public void setUp() {
-        mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+        mockSQSClient = Mockito.mock(SqsClient.class);
         mockPutSQS = new PutSQS() {
             @Override
-            protected AmazonSQSClient getClient(ProcessContext context) {
+            protected SqsClient getClient(ProcessContext context) {
                 return mockSQSClient;
             }
         };
@@ -62,7 +61,7 @@ public class TestPutSQS {
         attrs.put("filename", "1.txt");
         runner.enqueue("TestMessageBody", attrs);
 
-        SendMessageBatchResult batchResult = new SendMessageBatchResult();
+        SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder().build();
         Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
 
         runner.run(1);
@@ -70,9 +69,9 @@ public class TestPutSQS {
         ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
-        assertEquals("hello", request.getEntries().get(0).getMessageAttributes().get("x-custom-prop").getStringValue());
-        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
+        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
@@ -85,15 +84,15 @@ public class TestPutSQS {
         attrs.put("filename", "1.txt");
         runner.enqueue("TestMessageBody", attrs);
 
-        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenThrow(new AmazonSQSException("TestFail"));
+        Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenThrow(new RuntimeException());
 
         runner.run(1);
 
         ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
-        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
+        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
     }
@@ -110,7 +109,7 @@ public class TestPutSQS {
         attrs.put("myuuid", "fb0dfed8-092e-40ee-83ce-5b576cd26236");
         runner.enqueue("TestMessageBody", attrs);
 
-        SendMessageBatchResult batchResult = new SendMessageBatchResult();
+        final SendMessageBatchResponse batchResult = SendMessageBatchResponse.builder().build();
         Mockito.when(mockSQSClient.sendMessageBatch(Mockito.any(SendMessageBatchRequest.class))).thenReturn(batchResult);
 
         runner.run(1);
@@ -118,11 +117,11 @@ public class TestPutSQS {
         ArgumentCaptor<SendMessageBatchRequest> captureRequest = ArgumentCaptor.forClass(SendMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.getQueueUrl());
-        assertEquals("hello", request.getEntries().get(0).getMessageAttributes().get("x-custom-prop").getStringValue());
-        assertEquals("TestMessageBody", request.getEntries().get(0).getMessageBody());
-        assertEquals("test1234", request.getEntries().get(0).getMessageGroupId());
-        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.getEntries().get(0).getMessageDeduplicationId());
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
+        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
+        assertEquals("test1234", request.entries().get(0).messageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().get(0).messageDeduplicationId());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }

@@ -20,14 +20,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sqs.AmazonSQSClient;
-
-public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonSQSClient> {
+public abstract class AbstractSQSProcessor extends AbstractAwsProcessor<SqsClient, SqsClientBuilder> {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
@@ -45,26 +42,9 @@ public abstract class AbstractSQSProcessor extends AbstractAWSCredentialsProvide
             .required(true)
             .build();
 
-    /**
-     * Create client using credentials provider. This is the preferred way for creating clients
-     */
     @Override
-    protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials provider ");
-
-        return new AmazonSQSClient(credentialsProvider, config);
-    }
-
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Override
-    protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials ");
-
-        return new AmazonSQSClient(credentials, config);
+    protected SqsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SqsClient.builder();
     }
 
 }

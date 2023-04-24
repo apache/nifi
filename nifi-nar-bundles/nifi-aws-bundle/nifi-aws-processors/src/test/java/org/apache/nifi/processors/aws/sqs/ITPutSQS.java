@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import com.amazonaws.regions.Regions;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.regions.Region;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -34,7 +34,7 @@ public class ITPutSQS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     private final String QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/100515378163/test-queue-000000000";
-    private final String REGION = Regions.US_WEST_2.getName();
+    private final String REGION = Region.US_WEST_2.id();
 
     private final String VPCE_QUEUE_URL = "https://vpce-1234567890abcdefg-12345678.sqs.us-west-2.vpce.amazonaws.com/123456789012/test-queue";
     private final String VPCE_ENDPOINT_OVERRIDE = "https://vpce-1234567890abcdefg-12345678.sqs.us-west-2.vpce.amazonaws.com";
@@ -91,7 +91,7 @@ public class ITPutSQS {
 
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
         runner.setProperty(PutSQS.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
-        runner.setProperty(PutSQS.REGION, Regions.US_WEST_2.getName());
+        runner.setProperty(PutSQS.REGION, Region.US_WEST_2.id());
         runner.setProperty(PutSQS.QUEUE_URL, VPCE_QUEUE_URL);
         runner.setProperty(PutSQS.ENDPOINT_OVERRIDE, VPCE_ENDPOINT_OVERRIDE);
 

@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -35,11 +30,14 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchResponse;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
@@ -75,25 +73,26 @@ public class DeleteSQS extends AbstractSQSProcessor {
 
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonSQSClient client = getClient(context);
-        final DeleteMessageBatchRequest request = new DeleteMessageBatchRequest();
-        request.setQueueUrl(queueUrl);
+        final SqsClient client = getClient(context);
 
-        final List<DeleteMessageBatchRequestEntry> entries = new ArrayList<>();
-        final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
-        String receiptHandle = context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFile).getValue();
-        entry.setReceiptHandle(receiptHandle);
-        String entryId = flowFile.getAttribute(CoreAttributes.UUID.key());
-        entry.setId(entryId);
-        entries.add(entry);
-        request.setEntries(entries);
+        final String receiptHandle = context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFile).getValue();
+        final String entryId = flowFile.getAttribute(CoreAttributes.UUID.key());
+        final DeleteMessageBatchRequestEntry entry = DeleteMessageBatchRequestEntry.builder()
+                .receiptHandle(receiptHandle)
+                .id(entryId)
+                .build();
+
+        final DeleteMessageBatchRequest request = DeleteMessageBatchRequest.builder()
+                .queueUrl(queueUrl)
+                .entries(entry)
+                .build();
 
         try {
-            DeleteMessageBatchResult response = client.deleteMessageBatch(request);
+            DeleteMessageBatchResponse response = client.deleteMessageBatch(request);
 
             // check for errors
-            if (!response.getFailed().isEmpty()) {
-                throw new ProcessException(response.getFailed().get(0).toString());
+            if (!response.failed().isEmpty()) {
+                throw new ProcessException(response.failed().get(0).toString());
             }
 
             getLogger().info("Successfully deleted message from SQS for {}", new Object[] { flowFile });

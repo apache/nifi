@@ -16,13 +16,7 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -38,11 +32,17 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.MessageSystemAttributeName;
+import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -136,28 +136,29 @@ public class GetSQS extends AbstractSQSProcessor {
         final String queueUrl = context.getProperty(DYNAMIC_QUEUE_URL).evaluateAttributeExpressions()
                 .getValue();
 
-        final AmazonSQSClient client = getClient(context);
+        final SqsClient client = getClient(context);
 
-        final ReceiveMessageRequest request = new ReceiveMessageRequest();
-        request.setAttributeNames(Collections.singleton("All"));
-        request.setMessageAttributeNames(Collections.singleton("All"));
-        request.setMaxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger());
-        request.setVisibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue());
-        request.setQueueUrl(queueUrl);
-        request.setWaitTimeSeconds(context.getProperty(RECEIVE_MSG_WAIT_TIME).asTimePeriod(TimeUnit.SECONDS).intValue());
+        final ReceiveMessageRequest request = ReceiveMessageRequest.builder()
+                .attributeNames(QueueAttributeName.ALL)
+                .messageAttributeNames("All")
+                .maxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger())
+                .visibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue())
+                .queueUrl(queueUrl)
+                .waitTimeSeconds(context.getProperty(RECEIVE_MSG_WAIT_TIME).asTimePeriod(TimeUnit.SECONDS).intValue())
+                .build();
 
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
-        final ReceiveMessageResult result;
+        final ReceiveMessageResponse response;
         try {
-            result = client.receiveMessage(request);
+            response = client.receiveMessage(request);
         } catch (final Exception e) {
             getLogger().error("Failed to receive messages from Amazon SQS due to {}", new Object[]{e});
             context.yield();
             return;
         }
 
-        final List<Message> messages = result.getMessages();
+        final List<Message> messages = response.messages();
         if (messages.isEmpty()) {
             context.yield();
             return;
@@ -169,26 +170,21 @@ public class GetSQS extends AbstractSQSProcessor {
             FlowFile flowFile = session.create();
 
             final Map<String, String> attributes = new HashMap<>();
-            for (final Map.Entry<String, String> entry : message.getAttributes().entrySet()) {
+            for (final Map.Entry<MessageSystemAttributeName, String> entry : message.attributes().entrySet()) {
                 attributes.put("sqs." + entry.getKey(), entry.getValue());
             }
 
-            for (final Map.Entry<String, MessageAttributeValue> entry : message.getMessageAttributes().entrySet()) {
-                attributes.put("sqs." + entry.getKey(), entry.getValue().getStringValue());
+            for (final Map.Entry<String, MessageAttributeValue> entry : message.messageAttributes().entrySet()) {
+                attributes.put("sqs." + entry.getKey(), entry.getValue().stringValue());
             }
 
-            attributes.put("hash.value", message.getMD5OfBody());
+            attributes.put("hash.value", message.md5OfBody());
             attributes.put("hash.algorithm", "md5");
-            attributes.put("sqs.message.id", message.getMessageId());
-            attributes.put("sqs.receipt.handle", message.getReceiptHandle());
+            attributes.put("sqs.message.id", message.messageId());
+            attributes.put("sqs.receipt.handle", message.receiptHandle());
 
             flowFile = session.putAllAttributes(flowFile, attributes);
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    out.write(message.getBody().getBytes(charset));
-                }
-            });
+            flowFile = session.write(flowFile, out -> out.write(message.body().getBytes(charset)));
 
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().receive(flowFile, queueUrl);
@@ -203,18 +199,19 @@ public class GetSQS extends AbstractSQSProcessor {
         }
     }
 
-    private void deleteMessages(final AmazonSQSClient client, final String queueUrl, final List<Message> messages) {
-        final DeleteMessageBatchRequest deleteRequest = new DeleteMessageBatchRequest();
-        deleteRequest.setQueueUrl(queueUrl);
+    private void deleteMessages(final SqsClient client, final String queueUrl, final List<Message> messages) {
         final List<DeleteMessageBatchRequestEntry> deleteRequestEntries = new ArrayList<>();
         for (final Message message : messages) {
-            final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
-            entry.setId(message.getMessageId());
-            entry.setReceiptHandle(message.getReceiptHandle());
+            final DeleteMessageBatchRequestEntry entry = DeleteMessageBatchRequestEntry.builder()
+                    .id(message.messageId())
+                    .receiptHandle(message.receiptHandle())
+                    .build();
             deleteRequestEntries.add(entry);
         }
-
-        deleteRequest.setEntries(deleteRequestEntries);
+        final DeleteMessageBatchRequest deleteRequest = DeleteMessageBatchRequest.builder()
+                .queueUrl(queueUrl)
+                .entries(deleteRequestEntries)
+                .build();
 
         try {
             client.deleteMessageBatch(deleteRequest);
