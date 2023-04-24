@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -38,16 +27,25 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry;
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
-import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
-import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @SeeAlso({ GetSQS.class, DeleteSQS.class })
@@ -58,6 +56,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResult;
         description = "Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
         + "the Message Attribute and value will become the value of the Message Attribute", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class PutSQS extends AbstractSQSProcessor {
+    private static final String STRING_DATA_TYPE = "String";
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
             .name("Delay")
@@ -127,53 +126,43 @@ public class PutSQS extends AbstractSQSProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final AmazonSQSClient client = getClient(context);
-        final SendMessageBatchRequest request = new SendMessageBatchRequest();
+        final SqsClient client = getClient(context);
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
-        request.setQueueUrl(queueUrl);
 
-        final Set<SendMessageBatchRequestEntry> entries = new HashSet<>();
-
-        final SendMessageBatchRequestEntry entry = new SendMessageBatchRequestEntry();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         session.exportTo(flowFile, baos);
         final String flowFileContent = baos.toString();
-        entry.setMessageBody(flowFileContent);
-        entry.setId(flowFile.getAttribute("uuid"));
-
-        if (context.getProperty(MESSAGEGROUPID).isSet()) {
-            entry.setMessageGroupId(context.getProperty(MESSAGEGROUPID)
-                    .evaluateAttributeExpressions(flowFile)
-                    .getValue());
-        }
-
-        if (context.getProperty(MESSAGEDEDUPLICATIONID).isSet()) {
-            entry.setMessageDeduplicationId(context.getProperty(MESSAGEDEDUPLICATIONID)
-                    .evaluateAttributeExpressions(flowFile)
-                    .getValue());
-        }
 
         final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
 
         for (final PropertyDescriptor descriptor : userDefinedProperties) {
-            final MessageAttributeValue mav = new MessageAttributeValue();
-            mav.setDataType("String");
-            mav.setStringValue(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
+            final MessageAttributeValue mav = MessageAttributeValue.builder()
+                    .dataType(STRING_DATA_TYPE)
+                    .stringValue(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue())
+                    .build();
             messageAttributes.put(descriptor.getName(), mav);
         }
 
-        entry.setMessageAttributes(messageAttributes);
-        entry.setDelaySeconds(context.getProperty(DELAY).asTimePeriod(TimeUnit.SECONDS).intValue());
-        entries.add(entry);
+        final SendMessageBatchRequestEntry entry = SendMessageBatchRequestEntry.builder()
+                .messageBody(flowFileContent)
+                .messageGroupId(context.getProperty(MESSAGEGROUPID).evaluateAttributeExpressions(flowFile).getValue())
+                .messageDeduplicationId(context.getProperty(MESSAGEDEDUPLICATIONID).evaluateAttributeExpressions(flowFile).getValue())
+                .id(flowFile.getAttribute(CoreAttributes.UUID.key()))
+                .messageAttributes(messageAttributes)
+                .delaySeconds(context.getProperty(DELAY).asTimePeriod(TimeUnit.SECONDS).intValue())
+                .build();
 
-        request.setEntries(entries);
+        final SendMessageBatchRequest request = SendMessageBatchRequest.builder()
+                .queueUrl(queueUrl)
+                .entries(entry)
+                .build();
 
         try {
-            SendMessageBatchResult response = client.sendMessageBatch(request);
+            SendMessageBatchResponse response = client.sendMessageBatch(request);
 
             // check for errors
-            if (!response.getFailed().isEmpty()) {
-                throw new ProcessException(response.getFailed().get(0).toString());
+            if (!response.failed().isEmpty()) {
+                throw new ProcessException(response.failed().get(0).toString());
             }
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
