@@ -70,7 +70,7 @@
      * @param {selection} dragSelection The current drag selection
      */
     var updateComponentsPosition = function (dragSelection) {
-        var updates = d3.map();
+        var updates = new Map();
 
         // determine the drag delta
         var dragData = dragSelection.datum();
@@ -158,11 +158,11 @@
 
             // handle component drag events
             drag = d3.drag()
-                .on('start', function () {
+                .on('start', function (event) {
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
                 })
-                .on('drag', function () {
+                .on('drag', function (event) {
                     var dragSelection = d3.select('rect.drag-selection');
 
                     // lazily create the drag selection box
@@ -216,19 +216,19 @@
                     } else {
                         // update the position of the drag selection
                         // snap align the position unless the user is holding shift
-                        snapEnabled = !d3.event.sourceEvent.shiftKey;
+                        snapEnabled = !event.sourceEvent.shiftKey;
                         dragSelection.attr('x', function (d) {
-                            d.x += d3.event.dx;
+                            d.x += event.dx;
                             return snapEnabled ? (Math.round(d.x/snapAlignmentPixels) * snapAlignmentPixels) : d.x;
                         }).attr('y', function (d) {
-                                d.y += d3.event.dy;
+                                d.y += event.dy;
                                 return snapEnabled ? (Math.round(d.y/snapAlignmentPixels) * snapAlignmentPixels) : d.y;
                         });
                      }
                 })
-                .on('end', function () {
+                .on('end', function (event) {
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
 
                     // get the drag selection
                     var dragSelection = d3.select('rect.drag-selection');
@@ -362,11 +362,11 @@
          * @param updates
          */
         refreshConnections: function (updates) {
-            if (updates.size() > 0) {
+            if (updates.size > 0) {
                 // wait for all updates to complete
-                $.when.apply(window, updates.values()).done(function () {
+                $.when.apply(window, Array.from(updates.values())).done(function () {
                     var dragged = $.makeArray(arguments);
-                    var connections = d3.set();
+                    var connections = new Set();
 
                     // refresh this component
                     $.each(dragged, function (_, component) {
@@ -383,7 +383,7 @@
                     });
 
                     // refresh the connections
-                    connections.each(function (connectionId) {
+                    connections.forEach(function (connectionId) {
                         nfConnection.refresh(connectionId);
                     });
                 }).always(function () {

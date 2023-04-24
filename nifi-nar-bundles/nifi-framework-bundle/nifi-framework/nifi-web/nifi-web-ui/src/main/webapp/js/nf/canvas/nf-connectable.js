@@ -22,23 +22,26 @@
         define(['d3',
                 'nf.Connection',
                 'nf.ConnectionConfiguration',
-                'nf.CanvasUtils'],
-            function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils) {
-                return (nf.Connectable = factory(d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils, d3Helpers) {
+                return (nf.Connectable = factory(d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Connectable =
             factory(require('d3'),
                 require('nf.Connection'),
                 require('nf.ConnectionConfiguration'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Connectable = factory(root.d3,
             root.nf.Connection,
             root.nf.ConnectionConfiguration,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils) {
+}(this, function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var connect;
@@ -62,8 +65,8 @@
      *
      * @returns {boolean}
      */
-    var allowConnection = function () {
-        return !d3.event.shiftKey && d3.select('rect.drag-selection').empty() && d3.select('rect.component-selection').empty();
+    var allowConnection = function (event) {
+        return !event.shiftKey && d3.select('rect.drag-selection').empty() && d3.select('rect.component-selection').empty();
     };
 
     return {
@@ -72,16 +75,16 @@
 
             // dragging behavior for the connector
             connect = d3.drag()
-                .subject(function (d) {
-                    origin = d3.mouse(canvas.node());
+                .subject(function (event, d) {
+                    origin = d3.pointer(event, canvas.node());
                     return {
                         x: origin[0],
                         y: origin[1]
                     };
                 })
-                .on('start', function (d) {
+                .on('start', function (event) {
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
 
                     // unselect the previous components
                     nfCanvasUtils.getSelection().classed('selected', false);
@@ -96,20 +99,22 @@
                     var sourceData = source.datum();
 
                     // start the drag line and insert it first to keep it on the bottom
-                    var position = d3.mouse(canvas.node());
-                    canvas.insert('path', ':first-child')
-                        .datum({
-                            'sourceId': sourceData.id,
-                            'sourceWidth': sourceData.dimensions.width,
-                            'x': position[0],
-                            'y': position[1]
-                        })
-                        .attrs({
+                    const position = d3.pointer(event, canvas.node());
+                    d3Helpers.multiAttr(
+                        canvas.insert('path', ':first-child')
+                            .datum({
+                                sourceId: sourceData.id,
+                                sourceWidth: sourceData.dimensions.width / 2,
+                                x: sourceData.position.x + (sourceData.dimensions.width / 2),
+                                y: sourceData.position.y + (sourceData.dimensions.height / 2)
+                            }),
+                        {
                             'class': 'connector',
                             'd': function (pathDatum) {
                                 return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + pathDatum.x + ' ' + pathDatum.y;
                             }
-                        });
+                        }
+                    );
 
                     // updates the location of the connection img
                     d3.select(this).attr('transform', function () {
@@ -119,10 +124,10 @@
                     // re-append the image to keep it on top
                     canvas.node().appendChild(this);
                 })
-                .on('drag', function (d) {
+                .on('drag', function (event) {
                     // updates the location of the connection img
                     d3.select(this).attr('transform', function () {
-                        return 'translate(' + d3.event.x + ', ' + (d3.event.y + 50) + ')';
+                        return 'translate(' + event.x + ', ' + (event.y + 50) + ')';
                     });
 
                     // mark node's connectable if supported
@@ -133,7 +138,7 @@
                         // click and contextmenu events to appear like an attempt to connection the
                         // component to itself. requiring the mouse to have actually moved before
                         // checking the eligiblity of the destination addresses the issue
-                        return (Math.abs(origin[0] - d3.event.x) > 10 || Math.abs(origin[1] - d3.event.y) > 10) &&
+                        return (Math.abs(origin[0] - event.x) > 10 || Math.abs(origin[1] - event.y) > 10) &&
                             nfCanvasUtils.isValidConnectionDestination(d3.select(this));
                     });
 
@@ -170,13 +175,13 @@
                                 return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + end.x + ' ' + end.y;
                             }
                         } else {
-                            return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + d3.event.x + ' ' + d3.event.y;
+                            return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + event.x + ' ' + event.y;
                         }
                     });
                 })
-                .on('end', function (d) {
+                .on('end', function (event, d) {
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
 
                     // get the add connect img
                     var addConnect = d3.select(this);
@@ -197,7 +202,7 @@
                         var sourceData = source.datum();
 
                         // get the mouse position relative to the source
-                        var position = d3.mouse(source.node());
+                        var position = d3.pointer(event, source.node());
 
                         // if the position is outside the component, remove the add connect img
                         if (position[0] < 0 || position[0] > sourceData.dimensions.width || position[1] < 0 || position[1] > sourceData.dimensions.height) {
@@ -243,8 +248,8 @@
         activate: function (components) {
             components
                 .classed('connectable', true)
-                .on('mouseenter.connectable', function (d) {
-                    if (allowConnection()) {
+                .on('mouseenter.connectable', function (event, d) {
+                    if (allowConnection(event)) {
                         var selection = d3.select(this);
 
                         // ensure the current component supports connection source
@@ -255,17 +260,16 @@
                                 var x = (d.dimensions.width / 2) - 14;
                                 var y = (d.dimensions.height / 2) + 14;
 
-                                selection.append('text')
+                                selection
+                                    .append('text')
+                                    .attr('class', 'add-connect')
+                                    .attr('transform', 'translate(' + x + ', ' + y + ')')
+                                    .text('\ue834')
                                     .datum({
                                         origX: x,
                                         origY: y
                                     })
                                     .call(connect)
-                                    .attrs({
-                                        'class': 'add-connect',
-                                        'transform': 'translate(' + x + ', ' + y + ')'
-                                    })
-                                    .text('\ue834');
                             }
                         }
                     }
@@ -280,8 +284,8 @@
                 // Using mouseover/out to workaround chrome issue #122746
                 .on('mouseover.connectable', function () {
                     // mark that we are hovering when appropriate
-                    d3.select(this).classed('hover', function () {
-                        return allowConnection();
+                    d3.select(this).classed('hover', function (event) {
+                        return allowConnection(event);
                     });
                 })
                 .on('mouseout.connection', function () {

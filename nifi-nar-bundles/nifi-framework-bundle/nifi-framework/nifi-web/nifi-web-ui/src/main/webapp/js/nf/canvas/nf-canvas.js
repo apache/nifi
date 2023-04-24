@@ -35,9 +35,10 @@
                 'nf.ContextMenu',
                 'nf.Actions',
                 'nf.ProcessGroup',
-                'nf.ParameterContexts'],
-            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
-                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts));
+                'nf.ParameterContexts',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts, d3Helpers) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
@@ -57,7 +58,8 @@
                 require('nf.ContextMenu'),
                 require('nf.Actions'),
                 require('nf.ProcessGroup'),
-                require('nf.ParameterContexts')));
+                require('nf.ParameterContexts'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Canvas = factory(root.$,
             root.d3,
@@ -75,9 +77,10 @@
             root.nf.ContextMenu,
             root.nf.Actions,
             root.nf.ProcessGroup,
-            root.nf.ParameterContexts);
+            root.nf.ParameterContexts,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts) {
+}(this, function ($, d3, nfCommon, nfDialog, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfAuthorizationStorage, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup, nfParameterContexts, d3Helpers) {
     'use strict';
 
     var SCALE = 1;
@@ -366,7 +369,7 @@
 
             // create the canvas
             svg = d3.select('#canvas-container').append('svg')
-                .on('contextmenu', function () {
+                .on('contextmenu', function (event) {
                     // reset the canvas click flag
                     canvasClicked = false;
 
@@ -377,20 +380,21 @@
                     nfCanvasUtils.setURLParameters();
 
                     // show the context menu on the canvas
-                    nfContextMenu.show();
+                    nfContextMenu.show(event);
 
                     // prevent default browser behavior
-                    d3.event.preventDefault();
+                    event.preventDefault();
                 });
 
             // create the definitions element
             var defs = svg.append('defs');
 
             // create arrow definitions for the various line types
-            defs.selectAll('marker')
+            d3Helpers.multiAttr(
+                defs.selectAll('marker')
                 .data(['normal', 'ghost', 'unauthorized', 'full'])
-                .enter().append('marker')
-                .attrs({
+                .enter().append('marker'),
+                {
                     'id': function (d) {
                         return d;
                     },
@@ -416,46 +420,56 @@
                 .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
 
             // filter for drop shadow
-            var componentDropShadowFilter = defs.append('filter')
-                .attrs({
-                    'id': 'component-drop-shadow',
-                    'height': '140%',
-                    'y': '-20%'
-                });
+            var componentDropShadowFilter = d3Helpers.multiAttr(
+                defs.append('filter'),
+                {
+                    id: 'component-drop-shadow',
+                    height: '140%',
+                    y: '-20%'
+                }
+            );
 
             // blur
-            componentDropShadowFilter.append('feGaussianBlur')
-                .attrs({
+            d3Helpers.multiAttr(
+                componentDropShadowFilter.append('feGaussianBlur'),
+                {
                     'in': 'SourceAlpha',
                     'stdDeviation': 3,
                     'result': 'blur'
-                });
+                }
+            );
 
             // offset
-            componentDropShadowFilter.append('feOffset')
-                .attrs({
+            d3Helpers.multiAttr(
+                componentDropShadowFilter.append('feOffset'),
+                {
                     'in': 'blur',
                     'dx': 0,
                     'dy': 1,
                     'result': 'offsetBlur'
-                });
+                }
+            );
 
             // color/opacity
-            componentDropShadowFilter.append('feFlood')
-                .attrs({
+            d3Helpers.multiAttr(
+                componentDropShadowFilter.append('feFlood'),
+                {
                     'flood-color': '#000000',
                     'flood-opacity': 0.4,
                     'result': 'offsetColor'
-                });
+                }
+            );
 
             // combine
-            componentDropShadowFilter.append('feComposite')
-                .attrs({
+            d3Helpers.multiAttr(
+                componentDropShadowFilter.append('feComposite'),
+                {
                     'in': 'offsetColor',
                     'in2': 'offsetBlur',
                     'operator': 'in',
                     'result': 'offsetColorBlur'
-                });
+                }
+            );
 
             // stack the effect under the source graph
             var componentDropShadowFeMerge = componentDropShadowFilter.append('feMerge');
@@ -465,46 +479,56 @@
                 .attr('in', 'SourceGraphic');
 
             // filter for drop shadow
-            var connectionFullDropShadowFilter = defs.append('filter')
-                .attrs({
-                    'id': 'connection-full-drop-shadow',
-                    'height': '140%',
-                    'y': '-20%'
-                });
+            var connectionFullDropShadowFilter = d3Helpers.multiAttr(
+                defs.append('filter'),
+                {
+                    id: 'connection-full-drop-shadow',
+                    height: '140%',
+                    y: '-20%'
+                }
+            );
 
             // blur
-            connectionFullDropShadowFilter.append('feGaussianBlur')
-                .attrs({
+            d3Helpers.multiAttr(
+                connectionFullDropShadowFilter.append('feGaussianBlur'),
+                {
                     'in': 'SourceAlpha',
                     'stdDeviation': 3,
                     'result': 'blur'
-                });
+                }
+            );
 
             // offset
-            connectionFullDropShadowFilter.append('feOffset')
-                .attrs({
+            d3Helpers.multiAttr(
+                connectionFullDropShadowFilter.append('feOffset'),
+                {
                     'in': 'blur',
                     'dx': 0,
                     'dy': 1,
                     'result': 'offsetBlur'
-                });
+                }
+            );
 
             // color/opacity
-            connectionFullDropShadowFilter.append('feFlood')
-                .attrs({
+            d3Helpers.multiAttr(
+                connectionFullDropShadowFilter.append('feFlood'),
+                {
                     'flood-color': '#ba554a',
                     'flood-opacity': 1,
                     'result': 'offsetColor'
-                });
+                }
+            );
 
             // combine
-            connectionFullDropShadowFilter.append('feComposite')
-                .attrs({
+            d3Helpers.multiAttr(
+                connectionFullDropShadowFilter.append('feComposite'),
+                {
                     'in': 'offsetColor',
                     'in2': 'offsetBlur',
                     'operator': 'in',
                     'result': 'offsetColorBlur'
-                });
+                }
+            );
 
             // stack the effect under the source graph
             var connectionFullFeMerge = connectionFullDropShadowFilter.append('feMerge');
@@ -514,27 +538,29 @@
                 .attr('in', 'SourceGraphic');
 
             // create the canvas element
-            canvas = svg.append('g')
-                .attrs({
+            canvas = d3Helpers.multiAttr(
+                svg.append('g'),
+                {
                     'transform': 'translate(' + TRANSLATE + ') scale(' + SCALE + ')',
                     'pointer-events': 'all',
                     'id': 'canvas'
-                });
+                }
+            );
 
             // handle canvas events
-            svg.on('mousedown.selection', function () {
+            svg.on('mousedown.selection', function (event) {
                 canvasClicked = true;
 
-                if (d3.event.button !== 0) {
+                if (event.button !== 0) {
                     // prevent further propagation (to parents and others handlers
                     // on the same element to prevent zoom behavior)
-                    d3.event.stopImmediatePropagation();
+                    event.stopImmediatePropagation();
                     return;
                 }
 
                 // show selection box if shift is held down
-                if (d3.event.shiftKey) {
-                    var position = d3.mouse(canvas.node());
+                if (event.shiftKey) {
+                    var position = d3.pointer(event, canvas.node());
                     canvas.append('rect')
                         .attr('rx', 6)
                         .attr('ry', 6)
@@ -553,21 +579,21 @@
 
                     // prevent further propagation (to parents and others handlers
                     // on the same element to prevent zoom behavior)
-                    d3.event.stopImmediatePropagation();
+                    event.stopImmediatePropagation();
 
                     // prevents the browser from changing to a text selection cursor
-                    d3.event.preventDefault();
+                    event.preventDefault();
                 }
             })
-            .on('mousemove.selection', function () {
+            .on('mousemove.selection', function (event) {
                 // update selection box if shift is held down
-                if (d3.event.shiftKey) {
+                if (event.shiftKey) {
                     // get the selection box
                     var selectionBox = d3.select('rect.component-selection');
                     if (!selectionBox.empty()) {
                         // get the original position
                         var originalPosition = selectionBox.datum();
-                        var position = d3.mouse(canvas.node());
+                        var position = d3.pointer(event, canvas.node());
 
                         var d = {};
                         if (originalPosition[0] < position[0]) {
@@ -587,10 +613,14 @@
                         }
 
                         // update the selection box
-                        selectionBox.attrs(d);
+                        selectionBox
+                            .attr('width', d.width)
+                            .attr('height', d.height)
+                            .attr('x', d.x)
+                            .attr('y', d.y);
 
                         // prevent further propagation (to parents)
-                        d3.event.stopPropagation();
+                        event.stopPropagation();
                     }
                 }
             })
@@ -673,10 +703,12 @@
                     'height': canvasHeight + 'px',
                     'bottom': bottom + 'px'
                 });
-                svg.attrs({
-                    'height': canvasContainer.height(),
-                    'width': $(window).width()
-                });
+                d3Helpers.multiAttr(
+                    svg,
+                    {
+                        'height': canvasContainer.height(),
+                        'width': $(window).width()
+                    });
 
                 //breadcrumbs
                 nfNgBridge.injector.get('breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
@@ -1166,16 +1198,16 @@
                             // hide the context menu
                             nfContextMenu.hide();
                         })
-                        .on('zoom', function () {
+                        .on('zoom', function (event) {
                             // update the current translation and scale
-                            if (!isNaN(d3.event.transform.x)) {
-                                x = d3.event.transform.x;
+                            if (!isNaN(event.transform.x)) {
+                                x = event.transform.x;
                             }
-                            if (!isNaN(d3.event.transform.y)) {
-                                y = d3.event.transform.y;
+                            if (!isNaN(event.transform.y)) {
+                                y = event.transform.y;
                             }
-                            if (!isNaN(d3.event.transform.k)) {
-                                k = d3.event.transform.k;
+                            if (!isNaN(event.transform.k)) {
+                                k = event.transform.k;
                             }
 
                             // indicate that we are panning to prevent deselection in zoom.end below
@@ -1184,13 +1216,13 @@
                             // refresh the canvas
                             refreshed = nfCanvas.View.refresh({
                                 persist: false,
-                                transition: shouldTransition(d3.event.sourceEvent),
+                                transition: shouldTransition(event.sourceEvent),
                                 refreshComponents: false,
                                 refreshBirdseye: false
                             });
                         })
-                        .on('end', function () {
-                            if (!isBirdseyeEvent(d3.event.sourceEvent)) {
+                        .on('end', function (event) {
+                            if (!isBirdseyeEvent(event.sourceEvent)) {
                                 // ensure the canvas was actually refreshed
                                 if (nfCommon.isDefinedAndNotNull(refreshed)) {
                                     nfGraph.updateVisibility();

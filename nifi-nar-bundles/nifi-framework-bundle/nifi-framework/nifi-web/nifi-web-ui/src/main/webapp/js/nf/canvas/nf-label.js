@@ -24,9 +24,10 @@
                 'nf.Storage',
                 'nf.Common',
                 'nf.Client',
-                'nf.CanvasUtils'],
-            function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Label = factory($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
+                return (nf.Label = factory($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Label =
@@ -35,16 +36,18 @@
                 require('nf.Storage'),
                 require('nf.Common'),
                 require('nf.Client'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Label = factory(root.$,
             root.d3,
             root.nf.Storage,
             root.nf.Common,
             root.nf.Client,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfStorage, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var nfConnectable;
@@ -100,7 +103,7 @@
      * Selects the labels elements against the current label map.
      */
     var select = function () {
-        return labelContainer.selectAll('g.label').data(labelMap.values(), function (d) {
+        return labelContainer.selectAll('g.label').data(Array.from(labelMap.values()), function (d) {
             return d.id;
         });
     };
@@ -128,8 +131,9 @@
             return entered;
         }
 
-        var label = entered.append('g')
-            .attrs({
+        var label = d3Helpers.multiAttr(
+            entered.append('g'),
+            {
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -139,24 +143,27 @@
             .call(nfCanvasUtils.position);
 
         // label border
-        label.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            label.append('rect'),
+            {
                 'class': 'border',
                 'fill': 'transparent',
                 'stroke': 'transparent'
             });
 
         // label
-        label.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            label.append('rect'),
+            {
                 'class': 'body',
                 'filter': 'url(#component-drop-shadow)',
                 'stroke-width': 0
             });
 
         // label value
-        label.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            label.append('text'),
+            {
                 'xml:space': 'preserve',
                 'font-weight': 'bold',
                 'fill': 'black',
@@ -180,8 +187,9 @@
         }
 
         // update the border using the configured color
-        updated.select('rect.border')
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('rect.border'),
+            {
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -194,8 +202,9 @@
             });
 
         // update the body fill using the configured color
-        updated.select('rect.body')
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('rect.body'),
+            {
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -289,8 +298,9 @@
                     var points = labelPoint.data(pointData);
 
                     // create a point for the end
-                    var pointsEntered = points.enter().append('rect')
-                        .attrs({
+                    var pointsEntered = d3Helpers.multiAttr(
+                        points.enter().append('rect'),
+                        {
                             'class': 'labelpoint',
                             'width': 10,
                             'height': 10
@@ -346,37 +356,38 @@
             nfContextMenu = nfContextMenuRef;
             nfQuickSelect = nfQuickSelectRef;
 
-            labelMap = d3.map();
-            removedCache = d3.map();
-            addedCache = d3.map();
+            labelMap = new Map();
+            removedCache = new Map();
+            addedCache = new Map();
 
             // create the label container
-            labelContainer = d3.select('#canvas').append('g')
-                .attrs({
+            labelContainer = d3Helpers.multiAttr(
+                d3.select('#canvas').append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'labels'
                 });
 
             // handle bend point drag events
             labelPointDrag = d3.drag()
-                .on('start', function () {
+                .on('start', function (event) {
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
                 })
-                .on('drag', function () {
+                .on('drag', function (event) {
                     var label = d3.select(this.parentNode);
                     var labelData = label.datum();
 
                     // update the dimensions and ensure they are still within bounds
                     // snap between aligned sizes unless the user is holding shift
-                    snapEnabled = !d3.event.sourceEvent.shiftKey;
-                    labelData.dimensions.width = Math.max(MIN_WIDTH, snapEnabled ? (Math.round(d3.event.x/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.x);
-                    labelData.dimensions.height = Math.max(MIN_HEIGHT, snapEnabled ? (Math.round(d3.event.y/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.y);
+                    snapEnabled = !event.sourceEvent.shiftKey;
+                    labelData.dimensions.width = Math.max(MIN_WIDTH, snapEnabled ? (Math.round(event.x/snapAlignmentPixels) * snapAlignmentPixels) : event.x);
+                    labelData.dimensions.height = Math.max(MIN_HEIGHT, snapEnabled ? (Math.round(event.y/snapAlignmentPixels) * snapAlignmentPixels) : event.y);
 
                     // redraw this connection
                     updateLabels(label);
                 })
-                .on('end', function () {
+                .on('end', function (event) {
                     var label = d3.select(this.parentNode);
                     var labelData = label.datum();
 
@@ -437,7 +448,7 @@
                     }
 
                     // stop further propagation
-                    d3.event.sourceEvent.stopPropagation();
+                    event.sourceEvent.stopPropagation();
                 });
         },
 
@@ -513,7 +524,7 @@
             };
 
             if ($.isArray(labelEntities)) {
-                $.each(labelMap.keys(), function (_, key) {
+                $.each(Array.from(labelMap.keys()), function (_, key) {
                     var currentLabelEntity = labelMap.get(key);
                     var isPresent = $.grep(labelEntities, function (proposedLabelEntity) {
                         return proposedLabelEntity.id === currentLabelEntity.id;
@@ -521,7 +532,7 @@
 
                     // if the current label is not present and was not recently added, remove it
                     if (isPresent.length === 0 && !addedCache.has(key)) {
-                        labelMap.remove(key);
+                        labelMap['delete'](key);
                     }
                 });
                 $.each(labelEntities, function (_, labelEntity) {
@@ -553,7 +564,7 @@
          */
         get: function (id) {
             if (nfCommon.isUndefined(id)) {
-                return labelMap.values();
+                return Array.from(labelMap.values());
             } else {
                 return labelMap.get(id);
             }
@@ -612,11 +623,11 @@
             if ($.isArray(labelIds)) {
                 $.each(labelIds, function (_, labelId) {
                     removedCache.set(labelId, now);
-                    labelMap.remove(labelId);
+                    labelMap['delete'](labelId);
                 });
             } else {
                 removedCache.set(labelIds, now);
-                labelMap.remove(labelIds);
+                labelMap['delete'](labelIds);
             }
 
             // apply the selection and handle all removed labels
@@ -627,7 +638,7 @@
          * Removes all label.
          */
         removeAll: function () {
-            nfLabel.remove(labelMap.keys());
+            nfLabel.remove(Array.from(labelMap.keys()));
         },
 
         /**
@@ -637,9 +648,9 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.each(function (entryTimestamp, id) {
+                cache.forEach(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
-                        cache.remove(id);
+                        cache['delete'](id);
                     }
                 });
             };

@@ -24,9 +24,10 @@
                 'nf.Common',
                 'nf.CanvasUtils',
                 'nf.ContextMenu',
-                'nf.Label'],
-            function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel) {
-                return (nf.Birdseye = factory($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel));
+                'nf.Label',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel, d3Helpers) {
+                return (nf.Birdseye = factory($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Birdseye =
@@ -35,16 +36,18 @@
                 require('nf.Common'),
                 require('nf.CanvasUtils'),
                 require('nf.ContextMenu'),
-                require('nf.Label')));
+                require('nf.Label'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Birdseye = factory(root.$,
             root.d3,
             root.nf.Common,
             root.nf.CanvasUtils,
             root.nf.ContextMenu,
-            root.nf.Label);
+            root.nf.Label,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel) {
+}(this, function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel, d3Helpers) {
     'use strict';
 
     var nfGraph;
@@ -147,8 +150,9 @@
         componentGroup.attr('transform', 'translate(' + birdseyeTranslate + ')');
 
         // update the brush
-        d3.select('rect.birdseye-brush')
-            .attrs({
+        d3Helpers.multiAttr(
+            d3.select('rect.birdseye-brush'),
+            {
                 'width': screenWidth,
                 'height': screenHeight,
                 'stroke-width': (2 / birdseyeScale),
@@ -280,9 +284,9 @@
                         source: 'birdseye'
                     };
                 })
-                .on('drag', function (d) {
-                    d.x += d3.event.dx;
-                    d.y += d3.event.dy;
+                .on('drag', function (event, d) {
+                    d.x += event.dx;
+                    d.y += event.dy;
 
                     // update the location of the brush
                     d3.select(this).attr('transform', function () {
@@ -290,7 +294,7 @@
                     });
 
                     // transform the canvas
-                    nfCanvasUtils.translateCanvas([-d3.event.dx, -d3.event.dy]);
+                    nfCanvasUtils.translateCanvas([-event.dx, -event.dy]);
                 })
                 .on('end', function () {
                     // update component visibility
@@ -304,8 +308,9 @@
                 });
 
             // context area
-            birdseyeGroup.append('g')
-                .attrs({
+            d3Helpers.multiAttr(
+                birdseyeGroup.append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'birdseye-brush-container'
                 })

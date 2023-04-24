@@ -24,9 +24,10 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.ClusterSummary',
-                'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
-                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils, d3Helpers) {
+                return (nf.Processor = factory($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Processor =
@@ -35,16 +36,18 @@
                 require('nf.Common'),
                 require('nf.Client'),
                 require('nf.ClusterSummary'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Processor = factory(root.$,
             root.d3,
             root.nf.Common,
             root.nf.Client,
             root.nf.ClusterSummary,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfClusterSummary, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var nfConnectable;
@@ -88,7 +91,7 @@
      * Selects the processor elements against the current processor map.
      */
     var select = function () {
-        return processorContainer.selectAll('g.processor').data(processorMap.values(), function (d) {
+        return processorContainer.selectAll('g.processor').data(Array.from(processorMap.values()), function (d) {
             return d.id;
         });
     };
@@ -105,8 +108,9 @@
             return entered;
         }
 
-        var processor = entered.append('g')
-            .attrs({
+        var processor = d3Helpers.multiAttr(
+            entered.append('g'),
+            {
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -116,8 +120,9 @@
             .call(nfCanvasUtils.position);
 
         // processor border
-        processor.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('rect'),
+            {
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -130,8 +135,9 @@
             });
 
         // processor body
-        processor.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('rect'),
+            {
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -144,8 +150,9 @@
             });
 
         // processor name
-        processor.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('text'),
+            {
                 'x': 75,
                 'y': 18,
                 'width': 230,
@@ -154,8 +161,9 @@
             });
 
         // processor icon container
-        processor.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('rect'),
+            {
                 'x': 0,
                 'y': 0,
                 'width': 50,
@@ -164,8 +172,9 @@
             });
 
         // processor icon
-        processor.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('text'),
+            {
                 'x': 9,
                 'y': 35,
                 'class': 'processor-icon'
@@ -173,8 +182,9 @@
             .text('\ue807');
 
         // restricted icon background
-        processor.append('circle')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('circle'),
+            {
                 'r': 9,
                 'cx': 12,
                 'cy': 12,
@@ -182,8 +192,9 @@
             });
 
         // restricted icon
-        processor.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('text'),
+            {
                 'x': 7.75,
                 'y': 17,
                 'class': 'restricted'
@@ -191,8 +202,9 @@
             .text('\uf132');
 
         // is primary icon background
-        processor.append('circle')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('circle'),
+            {
                 'r': 9,
                 'cx': 38,
                 'cy': 36,
@@ -200,16 +212,17 @@
             });
 
         // is primary icon
-        processor.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            processor.append('text'),
+            {
                 'x': 34.75,
                 'y': 40,
                 'class': 'is-primary'
             })
             .text('P')
             .append('title').text(function (d) {
-                return 'This component is only scheduled to execute on the Primary Node';
-            });
+            return 'This component is only scheduled to execute on the Primary Node';
+        });
 
         // make processors selectable
         processor.call(nfSelectable.activate).call(nfContextMenu.activate).call(nfQuickSelect.activate);
@@ -255,8 +268,9 @@
                     details = processor.append('g').attr('class', 'processor-canvas-details');
 
                     // run status icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'run-status-icon',
                             'x': 55,
                             'y': 23,
@@ -265,8 +279,9 @@
                         });
 
                     // processor type
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'processor-type',
                             'x': 75,
                             'y': 32,
@@ -275,8 +290,9 @@
                         });
 
                     // processor type
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'processor-bundle',
                             'x': 75,
                             'y': 45,
@@ -291,8 +307,9 @@
                     // draw the processor statistics table
 
                     // in
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -303,8 +320,9 @@
                         });
 
                     // border
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -315,8 +333,9 @@
                         });
 
                     // read/write
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -327,8 +346,9 @@
                         });
 
                     // border
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -339,8 +359,9 @@
                         });
 
                     // out
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -351,8 +372,9 @@
                         });
 
                     // border
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -363,8 +385,9 @@
                         });
 
                     // tasks/time
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return processorData.dimensions.width;
                             },
@@ -375,14 +398,16 @@
                         });
 
                     // stats label container
-                    var processorStatsLabel = details.append('g')
-                        .attrs({
+                    var processorStatsLabel = d3Helpers.multiAttr(
+                        details.append('g'),
+                        {
                             'transform': 'translate(10, 55)'
                         });
 
                     // in label
-                    processorStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'y': 9,
@@ -391,8 +416,9 @@
                         .text('In');
 
                     // read/write label
-                    processorStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'y': 27,
@@ -401,8 +427,9 @@
                         .text('Read/Write');
 
                     // out label
-                    processorStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'y': 46,
@@ -411,8 +438,9 @@
                         .text('Out');
 
                     // tasks/time label
-                    processorStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'y': 65,
@@ -421,14 +449,16 @@
                         .text('Tasks/Time');
 
                     // stats value container
-                    var processorStatsValue = details.append('g')
-                        .attrs({
+                    var processorStatsValue = d3Helpers.multiAttr(
+                        details.append('g'),
+                        {
                             'transform': 'translate(85, 55)'
                         });
 
                     // in value
-                    var inText = processorStatsValue.append('text')
-                        .attrs({
+                    var inText = d3Helpers.multiAttr(
+                        processorStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 9,
                             'y': 9,
@@ -436,20 +466,23 @@
                         });
 
                     // in count
-                    inText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        inText.append('tspan'),
+                        {
                             'class': 'count'
                         });
 
                     // in size
-                    inText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        inText.append('tspan'),
+                        {
                             'class': 'size'
                         });
 
                     // read/write value
-                    processorStatsValue.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 10,
                             'y': 27,
@@ -457,8 +490,9 @@
                         });
 
                     // out value
-                    var outText = processorStatsValue.append('text')
-                        .attrs({
+                    var outText = d3Helpers.multiAttr(
+                        processorStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 10,
                             'y': 46,
@@ -466,20 +500,23 @@
                         });
 
                     // out count
-                    outText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        outText.append('tspan'),
+                        {
                             'class': 'count'
                         });
 
                     // out size
-                    outText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        outText.append('tspan'),
+                        {
                             'class': 'size'
                         });
 
                     // tasks/time value
-                    processorStatsValue.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 10,
                             'y': 65,
@@ -491,8 +528,9 @@
                         .attr('transform', 'translate(305, 55)');
 
                     // in info
-                    processorStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'y': 9,
@@ -501,8 +539,9 @@
                         .text('5 min');
 
                     // read/write info
-                    processorStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'y': 27,
@@ -511,8 +550,9 @@
                         .text('5 min');
 
                     // out info
-                    processorStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'y': 46,
@@ -521,8 +561,9 @@
                         .text('5 min');
 
                     // tasks/time info
-                    processorStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processorStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'y': 65,
@@ -534,8 +575,9 @@
                     // comments
                     // --------
 
-                    details.append('path')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('path'),
+                        {
                             'class': 'component-comments',
                             'transform': 'translate(' + (processorData.dimensions.width - 2) + ', ' + (processorData.dimensions.height - 10) + ')',
                             'd': 'm0,0 l0,8 l-8,0 z'
@@ -546,16 +588,18 @@
                     // -------------------
 
                     // active thread count
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count-icon',
                             'y': 46
                         })
                         .text('\ue83f');
 
                     // active thread background
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count',
                             'y': 46
                         });
@@ -565,8 +609,9 @@
                     // ---------
 
                     // bulletin background
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'class': 'bulletin-background',
                             'x': function (d) {
                                 return processorData.dimensions.width - 24;
@@ -576,8 +621,9 @@
                         });
 
                     // bulletin icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'bulletin-icon',
                             'x': function (d) {
                                 return processorData.dimensions.width - 17;
@@ -599,8 +645,8 @@
                             // apply ellipsis to the processor name as necessary
                             nfCanvasUtils.ellipsis(processorName, d.component.name, 'processor-name');
                         }).append('title').text(function (d) {
-                            return d.component.name;
-                        });
+                        return d.component.name;
+                    });
 
                     // update the processor type
                     processor.select('text.processor-type')
@@ -613,8 +659,8 @@
                             // apply ellipsis to the processor type as necessary
                             nfCanvasUtils.ellipsis(processorType, nfCommon.formatType(d.component), 'processor-type');
                         }).append('title').text(function (d) {
-                            return nfCommon.formatType(d.component);
-                        });
+                        return nfCommon.formatType(d.component);
+                    });
 
                     // update the processor bundle
                     processor.select('text.processor-bundle')
@@ -627,8 +673,8 @@
                             // apply ellipsis to the processor type as necessary
                             nfCanvasUtils.ellipsis(processorBundle, nfCommon.formatBundle(d.component.bundle), 'processor-bundle');
                         }).append('title').text(function (d) {
-                            return nfCommon.formatBundle(d.component.bundle);
-                        });
+                        return nfCommon.formatBundle(d.component.bundle);
+                    });
 
                     // update the processor comments
                     processor.select('path.component-comments')
@@ -837,8 +883,9 @@
         }
 
         // update the run status
-        updated.select('text.run-status-icon')
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('text.run-status-icon'),
+            {
                 'fill': function (d) {
                     var fill = '#728e9b';
 
@@ -1013,13 +1060,14 @@
             nfContextMenu = nfContextMenuRef;
             nfQuickSelect = nfQuickSelectRef;
 
-            processorMap = d3.map();
-            removedCache = d3.map();
-            addedCache = d3.map();
+            processorMap = new Map();
+            removedCache = new Map();
+            addedCache = new Map();
 
             // create the processor container
-            processorContainer = d3.select('#canvas').append('g')
-                .attrs({
+            processorContainer = d3Helpers.multiAttr(
+                d3.select('#canvas').append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'processors'
                 });
@@ -1099,7 +1147,7 @@
 
             // determine how to handle the specified processor
             if ($.isArray(processorEntities)) {
-                $.each(processorMap.keys(), function (_, key) {
+                $.each(Array.from(processorMap.keys()), function (_, key) {
                     var currentProcessorEntity = processorMap.get(key);
                     var isPresent = $.grep(processorEntities, function (proposedProcessorEntity) {
                         return proposedProcessorEntity.id === currentProcessorEntity.id;
@@ -1107,7 +1155,7 @@
 
                     // if the current processor is not present and was not recently added, remove it
                     if (isPresent.length === 0 && !addedCache.has(key)) {
-                        processorMap.remove(key);
+                        processorMap['delete'](key);
                     }
                 });
                 $.each(processorEntities, function (_, processorEntity) {
@@ -1140,7 +1188,7 @@
          */
         get: function (id) {
             if (nfCommon.isUndefined(id)) {
-                return processorMap.values();
+                return Array.from(processorMap.values());
             } else {
                 return processorMap.get(id);
             }
@@ -1206,11 +1254,11 @@
             if ($.isArray(processorIds)) {
                 $.each(processorIds, function (_, processorId) {
                     removedCache.set(processorId, now);
-                    processorMap.remove(processorId);
+                    processorMap['delete'](processorId);
                 });
             } else {
                 removedCache.set(processorIds, now);
-                processorMap.remove(processorIds);
+                processorMap['delete'](processorIds);
             }
 
             // apply the selection and handle all removed processors
@@ -1221,7 +1269,7 @@
          * Removes all processors.
          */
         removeAll: function () {
-            nfProcessor.remove(processorMap.keys());
+            nfProcessor.remove(Array.from(processorMap.keys()));
         },
 
         /**
@@ -1231,9 +1279,9 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.each(function (entryTimestamp, id) {
+                cache.forEach(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
-                        cache.remove(id);
+                        cache['delete'](id);
                     }
                 });
             };

@@ -24,9 +24,10 @@
                 'nf.Connection',
                 'nf.Common',
                 'nf.Client',
-                'nf.CanvasUtils'],
-            function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.RemoteProcessGroup = factory($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
+                return (nf.RemoteProcessGroup = factory($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.RemoteProcessGroup =
@@ -35,16 +36,18 @@
                 require('nf.Connection'),
                 require('nf.Common'),
                 require('nf.Client'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.RemoteProcessGroup = factory(root.$,
             root.d3,
             root.nf.Connection,
             root.nf.Common,
             root.nf.Client,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var nfConnectable;
@@ -87,7 +90,7 @@
      * Selects the remote process group elements against the current remote process group map.
      */
     var select = function () {
-        return remoteProcessGroupContainer.selectAll('g.remote-process-group').data(remoteProcessGroupMap.values(), function (d) {
+        return remoteProcessGroupContainer.selectAll('g.remote-process-group').data(Array.from(remoteProcessGroupMap.values()), function (d) {
             return d.id;
         });
     };
@@ -104,8 +107,9 @@
             return entered;
         }
 
-        var remoteProcessGroup = entered.append('g')
-            .attrs({
+        var remoteProcessGroup = d3Helpers.multiAttr(
+            entered.append('g'),
+            {
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -119,8 +123,9 @@
         // ----
 
         // remote process group border
-        remoteProcessGroup.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            remoteProcessGroup.append('rect'),
+            {
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -133,8 +138,9 @@
             });
 
         // remote process group body
-        remoteProcessGroup.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            remoteProcessGroup.append('rect'),
+            {
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -147,8 +153,9 @@
             });
 
         // remote process group name background
-        remoteProcessGroup.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            remoteProcessGroup.append('rect'),
+            {
                 'width': function (d) {
                     return d.dimensions.width;
                 },
@@ -157,8 +164,9 @@
             });
 
         // remote process group name
-        remoteProcessGroup.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            remoteProcessGroup.append('text'),
+            {
                 'x': 30,
                 'y': 20,
                 'width': 305,
@@ -207,8 +215,9 @@
                     details = remoteProcessGroup.append('g').attr('class', 'remote-process-group-details');
 
                     // remote process group transmission status
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'remote-process-group-transmission-status',
                             'x': 10,
                             'y': 20
@@ -218,8 +227,9 @@
                     // details background
                     // ------------------
 
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'x': 0,
                             'y': 32,
                             'width': function () {
@@ -234,16 +244,18 @@
                     // -------
 
                     // remote process group secure transfer
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'remote-process-group-transmission-secure',
                             'x': 10,
                             'y': 48
                         });
 
                     // remote process group uri
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'x': 30,
                             'y': 48,
                             'width': 305,
@@ -256,8 +268,9 @@
                     // ----------------
 
                     // sent
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -268,8 +281,9 @@
                         });
 
                     // border
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -280,8 +294,9 @@
                         });
 
                     // received
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'width': function () {
                                 return remoteProcessGroupData.dimensions.width;
                             },
@@ -296,14 +311,16 @@
                     // -----
 
                     // stats label container
-                    var remoteProcessGroupStatsLabel = details.append('g')
-                        .attrs({
+                    var remoteProcessGroupStatsLabel = d3Helpers.multiAttr(
+                        details.append('g'),
+                        {
                             'transform': 'translate(6, 75)'
                         });
 
                     // sent label
-                    remoteProcessGroupStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        remoteProcessGroupStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -313,8 +330,9 @@
                         .text('Sent');
 
                     // received label
-                    remoteProcessGroupStatsLabel.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        remoteProcessGroupStatsLabel.append('text'),
+                        {
                             'width': 73,
                             'height': 10,
                             'x': 4,
@@ -324,14 +342,16 @@
                         .text('Received');
 
                     // stats value container
-                    var remoteProcessGroupStatsValue = details.append('g')
-                        .attrs({
+                    var remoteProcessGroupStatsValue = d3Helpers.multiAttr(
+                        details.append('g'),
+                        {
                             'transform': 'translate(95, 75)'
                         });
 
                     // sent value
-                    var sentText = remoteProcessGroupStatsValue.append('text')
-                        .attrs({
+                    var sentText = d3Helpers.multiAttr(
+                        remoteProcessGroupStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -340,26 +360,30 @@
                         });
 
                     // sent count
-                    sentText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        sentText.append('tspan'),
+                        {
                             'class': 'count'
                         });
 
                     // sent size
-                    sentText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        sentText.append('tspan'),
+                        {
                             'class': 'size'
                         });
 
                     // sent ports
-                    sentText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        sentText.append('tspan'),
+                        {
                             'class': 'ports'
                         });
 
                     // received value
-                    var receivedText = remoteProcessGroupStatsValue.append('text')
-                        .attrs({
+                    var receivedText = d3Helpers.multiAttr(
+                        remoteProcessGroupStatsValue.append('text'),
+                        {
                             'width': 180,
                             'height': 10,
                             'x': 4,
@@ -368,32 +392,37 @@
                         });
 
                     // received ports
-                    receivedText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        receivedText.append('tspan'),
+                        {
                             'class': 'ports'
                         });
 
                     // received count
-                    receivedText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        receivedText.append('tspan'),
+                        {
                             'class': 'count'
                         });
 
                     // received size
-                    receivedText.append('tspan')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        receivedText.append('tspan'),
+                        {
                             'class': 'size'
                         });
 
                     // stats value container
-                    var processGroupStatsInfo = details.append('g')
-                        .attrs({
+                    var processGroupStatsInfo = d3Helpers.multiAttr(
+                        details.append('g'),
+                        {
                             'transform': 'translate(335, 75)'
                         });
 
                     // sent info
-                    processGroupStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processGroupStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -403,8 +432,9 @@
                         .text('5 min');
 
                     // received info
-                    processGroupStatsInfo.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        processGroupStatsInfo.append('text'),
+                        {
                             'width': 25,
                             'height': 10,
                             'x': 4,
@@ -417,8 +447,9 @@
                     // last refreshed time
                     // -------------------
 
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'x': 0,
                             'y': function () {
                                 return remoteProcessGroupData.dimensions.height - 24;
@@ -430,8 +461,9 @@
                             'fill': '#e3e8eb'
                         });
 
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'x': 10,
                             'y': 168,
                             'class': 'remote-process-group-last-refresh'
@@ -441,8 +473,9 @@
                     // comments
                     // --------
 
-                    details.append('path')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('path'),
+                        {
                             'class': 'component-comments',
                             'transform': 'translate(' + (remoteProcessGroupData.dimensions.width - 2) + ', ' + (remoteProcessGroupData.dimensions.height - 10) + ')',
                             'd': 'm0,0 l0,8 l-8,0 z'
@@ -453,16 +486,18 @@
                     // -------------------
 
                     // active thread count
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count-icon',
                             'y': 20
                         })
                         .text('\ue83f');
 
                     // active thread icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count',
                             'y': 20
                         });
@@ -472,8 +507,9 @@
                     // ---------
 
                     // bulletin background
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'class': 'bulletin-background',
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 24;
@@ -484,8 +520,9 @@
                         });
 
                     // bulletin icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'bulletin-icon',
                             'x': function () {
                                 return remoteProcessGroupData.dimensions.width - 17;
@@ -859,13 +896,14 @@
             nfContextMenu = nfContextMenuRef;
             nfQuickSelect = nfQuickSelectRef;
 
-            remoteProcessGroupMap = d3.map();
-            removedCache = d3.map();
-            addedCache = d3.map();
+            remoteProcessGroupMap = new Map();
+            removedCache = new Map();
+            addedCache = new Map();
 
             // create the process group container
-            remoteProcessGroupContainer = d3.select('#canvas').append('g')
-                .attrs({
+            remoteProcessGroupContainer = d3Helpers.multiAttr(
+                d3.select('#canvas').append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'remote-process-groups'
                 });
@@ -945,7 +983,7 @@
 
             // determine how to handle the specified remote process groups
             if ($.isArray(remoteProcessGroupEntities)) {
-                $.each(remoteProcessGroupMap.keys(), function (_, key) {
+                $.each(Array.from(remoteProcessGroupMap.keys()), function (_, key) {
                     var currentRemoteProcessGroupEntity = remoteProcessGroupMap.get(key);
                     var isPresent = $.grep(remoteProcessGroupEntities, function (proposedRemoteProcessGroupEntity) {
                         return proposedRemoteProcessGroupEntity.id === currentRemoteProcessGroupEntity.id;
@@ -953,7 +991,7 @@
 
                     // if the current remote process group is not present and was not recently added, remove it
                     if (isPresent.length === 0 && !addedCache.has(key)) {
-                        remoteProcessGroupMap.remove(key);
+                        remoteProcessGroupMap['delete'](key);
                     }
                 });
                 $.each(remoteProcessGroupEntities, function (_, remoteProcessGroupEntity) {
@@ -985,7 +1023,7 @@
          */
         get: function (id) {
             if (nfCommon.isUndefined(id)) {
-                return remoteProcessGroupMap.values();
+                return Array.from(remoteProcessGroupMap.values());
             } else {
                 return remoteProcessGroupMap.get(id);
             }
@@ -1059,11 +1097,11 @@
             if ($.isArray(remoteProcessGroupIds)) {
                 $.each(remoteProcessGroupIds, function (_, remoteProcessGroupId) {
                     removedCache.set(remoteProcessGroupId, now);
-                    remoteProcessGroupMap.remove(remoteProcessGroupId);
+                    remoteProcessGroupMap['delete'](remoteProcessGroupId);
                 });
             } else {
                 removedCache.set(remoteProcessGroupIds, now);
-                remoteProcessGroupMap.remove(remoteProcessGroupIds);
+                remoteProcessGroupMap['delete'](remoteProcessGroupIds);
             }
 
             // apply the selection and handle all removed remote process groups
@@ -1074,7 +1112,7 @@
          * Removes all remote process groups.
          */
         removeAll: function () {
-            nfRemoteProcessGroup.remove(remoteProcessGroupMap.keys());
+            nfRemoteProcessGroup.remove(Array.from(remoteProcessGroupMap.keys()));
         },
 
         /**
@@ -1084,9 +1122,9 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.each(function (entryTimestamp, id) {
+                cache.forEach(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
-                        cache.remove(id);
+                        cache['delete'](id);
                     }
                 });
             };
