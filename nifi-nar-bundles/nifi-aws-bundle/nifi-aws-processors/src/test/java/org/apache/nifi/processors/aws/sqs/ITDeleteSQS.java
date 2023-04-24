@@ -16,16 +16,18 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import com.amazonaws.auth.PropertiesCredentials;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.amazonaws.services.sqs.model.SendMessageResult;
+import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,26 +41,34 @@ public class ITDeleteSQS {
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     private final String TEST_QUEUE_URL = "https://sqs.us-west-2.amazonaws.com/123456789012/nifi-test-queue";
     private final String TEST_REGION = "us-west-2";
-    AmazonSQSClient sqsClient = null;
+    SqsClient sqsClient = null;
 
     @BeforeEach
     public void setUp() throws IOException {
-        PropertiesCredentials credentials = new PropertiesCredentials(new File(CREDENTIALS_FILE));
-        sqsClient = new AmazonSQSClient(credentials);
-        sqsClient.withRegion(Regions.fromName(TEST_REGION));
+        sqsClient = SqsClient.builder()
+                .region(Region.of(TEST_REGION))
+                .credentialsProvider(() -> new PropertiesCredentialsProvider(new File(CREDENTIALS_FILE)).resolveCredentials())
+                .build();
     }
 
     @Test
     public void testSimpleDelete() {
         // Setup - put one message in queue
-        SendMessageResult sendMessageResult = sqsClient.sendMessage(TEST_QUEUE_URL, "Test message");
-        assertEquals(200, sendMessageResult.getSdkHttpMetadata().getHttpStatusCode());
+        final SendMessageRequest sendMessageRequest = SendMessageRequest.builder()
+                .queueUrl(TEST_QUEUE_URL)
+                .messageBody("Test message")
+                .build();
+        SendMessageResponse sendMessageResult = sqsClient.sendMessage(sendMessageRequest);
+        assertEquals(200, sendMessageResult.sdkHttpResponse().statusCode());
 
         // Setup - receive message to get receipt handle
-        ReceiveMessageResult receiveMessageResult = sqsClient.receiveMessage(TEST_QUEUE_URL);
-        assertEquals(200, receiveMessageResult.getSdkHttpMetadata().getHttpStatusCode());
-        Message deleteMessage = receiveMessageResult.getMessages().get(0);
-        String receiptHandle = deleteMessage.getReceiptHandle();
+        final ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.builder()
+                .queueUrl(TEST_QUEUE_URL)
+                .build();
+        ReceiveMessageResponse receiveMessageResult = sqsClient.receiveMessage(receiveMessageRequest);
+        assertEquals(200, receiveMessageResult.sdkHttpResponse().statusCode());
+        Message deleteMessage = receiveMessageResult.messages().get(0);
+        String receiptHandle = deleteMessage.receiptHandle();
 
         // Test - delete message with DeleteSQS
         final TestRunner runner = TestRunners.newTestRunner(new DeleteSQS());

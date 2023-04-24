@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -27,8 +24,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchResponse;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,18 +39,19 @@ public class TestDeleteSQS {
 
     private TestRunner runner = null;
     private DeleteSQS mockDeleteSQS = null;
-    private AmazonSQSClient mockSQSClient = null;
+    private SqsClient mockSQSClient = null;
 
     @BeforeEach
     public void setUp() {
-        mockSQSClient = Mockito.mock(AmazonSQSClient.class);
-        DeleteMessageBatchResult mockResponse = Mockito.mock(DeleteMessageBatchResult.class);
-        Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any())).thenReturn(mockResponse);
-        Mockito.when(mockResponse.getFailed()).thenReturn(new ArrayList<>());
+        mockSQSClient = Mockito.mock(SqsClient.class);
+        DeleteMessageBatchResponse mockResponse = DeleteMessageBatchResponse.builder()
+                .failed(Collections.emptyList())
+                .build();
+        Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class))).thenReturn(mockResponse);
         mockDeleteSQS = new DeleteSQS() {
 
             @Override
-            protected AmazonSQSClient getClient(ProcessContext context) {
+            protected SqsClient getClient(ProcessContext context) {
                 return mockSQSClient;
             }
         };
@@ -71,8 +72,8 @@ public class TestDeleteSQS {
         ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
-        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.getQueueUrl());
-        assertEquals("test-receipt-handle-1", deleteRequest.getEntries().get(0).getReceiptHandle());
+        assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", deleteRequest.queueUrl());
+        assertEquals("test-receipt-handle-1", deleteRequest.entries().get(0).receiptHandle());
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
     }
@@ -92,7 +93,7 @@ public class TestDeleteSQS {
         ArgumentCaptor<DeleteMessageBatchRequest> captureDeleteRequest = ArgumentCaptor.forClass(DeleteMessageBatchRequest.class);
         Mockito.verify(mockSQSClient, Mockito.times(1)).deleteMessageBatch(captureDeleteRequest.capture());
         DeleteMessageBatchRequest deleteRequest = captureDeleteRequest.getValue();
-        assertEquals("test-receipt-handle-1", deleteRequest.getEntries().get(0).getReceiptHandle());
+        assertEquals("test-receipt-handle-1", deleteRequest.entries().get(0).receiptHandle());
 
         runner.assertAllFlowFilesTransferred(DeleteSQS.REL_SUCCESS, 1);
     }
