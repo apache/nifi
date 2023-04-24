@@ -57,7 +57,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>
-            <version>1.1.9.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

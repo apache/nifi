@@ -52,6 +52,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.compress.util.CompressionInfo;
 import org.apache.nifi.stream.io.GZIPOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.tukaani.xz.LZMA2Options;
@@ -297,15 +298,7 @@ public class ModifyCompression extends AbstractProcessor {
                     throw new IOException(e);
                 }
 
-                try (final InputStream in = compressionIn;
-                     final OutputStream out = compressionOut) {
-                    final byte[] buffer = new byte[8192];
-                    int len;
-                    while ((len = in.read(buffer)) > 0) {
-                        out.write(buffer, 0, len);
-                    }
-                    out.flush();
-                }
+                StreamUtils.copy(compressionIn, compressionOut);
             });
             stopWatch.stop();
 
