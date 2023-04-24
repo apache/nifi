@@ -203,8 +203,8 @@
             var maxMillis;
 
             // data lookups
-            var nodeLookup = d3.map();
-            var linkLookup = d3.map();
+            var nodeLookup = new Map();
+            var linkLookup = new Map();
 
             var locateDescendants = function (nodeIds, descendants, depth) {
                 $.each(nodeIds, function (_, nodeId) {
@@ -225,9 +225,9 @@
             };
 
             var positionNodes = function (nodeIds, depth, parents, levelDifference) {
-                var immediateSet = d3.set(nodeIds);
-                var childSet = d3.set();
-                var descendantSet = d3.set();
+                var immediateSet = new Set(nodeIds);
+                var childSet = new Set();
+                var descendantSet = new Set();
 
                 // locate children
                 locateDescendants(nodeIds, childSet, 1);
@@ -238,16 +238,16 @@
                 // push off processing a node until its deepest point
                 // by removing any descendants from the immediate nodes.
                 // in this case, a link is panning multiple levels
-                descendantSet.each(function (d) {
-                    immediateSet.remove(d);
+                descendantSet.forEach(function (d) {
+                    immediateSet['delete'](d);
                 });
 
                 // convert the children to an array to ensure consistent
                 // order when performing index of checks below
-                var children = childSet.values().sort(d3.descending);
+                var children = Array.from(childSet.values()).sort(d3.descending);
 
                 // convert the immediate to allow for sorting below
-                var immediate = immediateSet.values();
+                var immediate = Array.from(immediateSet.values());
 
                 // attempt to identify fan in/out cases
                 var nodesWithTwoParents = 0;
@@ -475,10 +475,10 @@
 
             var refresh = function (provenanceTableCtrl) {
                 // consider all nodes as starting points
-                var startNodes = d3.set(nodeLookup.keys());
+                var startNodes = new Set(Array.from(nodeLookup.keys()));
 
                 // go through the nodes to reset their outgoing links
-                nodeLookup.each(function (node, id) {
+                nodeLookup.forEach(function (node, id) {
                     node.outgoing = [];
                     node.incoming = [];
 
@@ -493,17 +493,17 @@
                 });
 
                 // go through the links in order to compute the new layout
-                linkLookup.each(function (link, id) {
+                linkLookup.forEach(function (link, id) {
                     // updating the nodes connections
                     link.source.outgoing.push(link);
                     link.target.incoming.push(link);
 
                     // remove the target from being a potential starting node
-                    startNodes.remove(link.target.id);
+                    startNodes['delete'](link.target.id);
                 });
 
                 // position the nodes
-                positionNodes(startNodes.values(), 1, [], 50);
+                positionNodes(Array.from(startNodes.values()), 1, [], 50);
 
                 // update the slider min/max/step values
                 var step = (maxMillis - minMillis) / config.sliderTickCount;
@@ -537,9 +537,9 @@
             // handle zoom behavior
             var lineageZoom = d3.zoom()
                 .scaleExtent([0.2, 8])
-                .on('zoom', function () {
+                .on('zoom', function (event) {
                     d3.select('g.lineage').attr('transform', function () {
-                        return 'translate(' + d3.event.transform.x + ', ' + d3.event.transform.y + ') scale(' + d3.event.transform.k + ')';
+                        return 'translate(' + event.transform.x + ', ' + event.transform.y + ') scale(' + event.transform.k + ')';
                     });
                 });
 
@@ -549,20 +549,20 @@
                 .attr('height', '100%')
                 .call(lineageZoom)
                 .on('dblclick.zoom', null)
-                .on('mousedown', function (d) {
+                .on('mousedown', function (event, d) {
                     // hide the context menu if necessary
                     d3.selectAll('circle.context').classed('context', false);
                     $('#provenance-lineage-context-menu').hide().empty();
 
                     // prevents browser from using text cursor
-                    d3.event.preventDefault();
+                    event.preventDefault();
                 })
-                .on('contextmenu', function () {
+                .on('contextmenu', function (event) {
                     var contextMenu = $('#provenance-lineage-context-menu');
 
                     // if there is something to show in the context menu
                     if (!contextMenu.is(':empty')) {
-                        var position = d3.mouse(this);
+                        var position = d3.pointer(event, this);
 
                         // show the context menu
                         contextMenu.css({
@@ -572,41 +572,37 @@
                     }
 
                     // prevent the native default context menu
-                    d3.event.preventDefault();
+                    event.preventDefault();
                 });
 
             svg.append('rect')
-                .attrs({
-                    'width': '100%',
-                    'height': '100%',
-                    'fill': '#f9fafb'
-                });
+                .attr('width', '100%')
+                .attr('height', '100%')
+                .attr('fill', '#f9fafb');
 
             svg.append('defs').selectAll('marker')
                 .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
                 .enter().append('marker')
-                .attrs({
-                    'id': function (d) {
-                        return d;
-                    },
-                    'viewBox': '0 -3 6 6',
-                    'refX': function (d) {
-                        if (d.indexOf('FLOWFILE') >= 0) {
-                            return 16;
-                        } else {
-                            return 11;
-                        }
-                    },
-                    'refY': 0,
-                    'markerWidth': 6,
-                    'markerHeight': 6,
-                    'orient': 'auto',
-                    'fill': function (d) {
-                        if (d.indexOf('SELECTED') >= 0) {
-                            return '#ba554a';
-                        } else {
-                            return '#000000';
-                        }
+                .attr('id', function (d) {
+                    return d;
+                })
+                .attr('viewBox', '0 -3 6 6')
+                .attr('refX', function (d) {
+                    if (d.indexOf('FLOWFILE') >= 0) {
+                        return 16;
+                    } else {
+                        return 11;
+                    }
+                })
+                .attr('refY', 0)
+                .attr('markerWidth', 6)
+                .attr('markerHeight', 6)
+                .attr('orient', 'auto')
+                .attr('fill', function (d) {
+                    if (d.indexOf('SELECTED') >= 0) {
+                        return '#ba554a';
+                    } else {
+                        return '#000000';
                     }
                 })
                 .append('path')
@@ -614,11 +610,9 @@
 
             // group everything together
             var lineageContainer = svg.append('g')
-                .attrs({
-                    'transform': 'translate(0, 0) scale(1)',
-                    'pointer-events': 'all',
-                    'class': 'lineage'
-                });
+                .attr('transform', 'translate(0, 0) scale(1)')
+                .attr('pointer-events', 'all')
+                .attr('class', 'lineage');
 
             // select the nodes and links
             var nodes = lineageContainer.selectAll('g.node');
@@ -673,19 +667,17 @@
             var renderFlowFile = function (flowfiles) {
                 flowfiles
                     .classed('flowfile', true)
-                    .on('mousedown', function (d) {
-                        d3.event.stopPropagation();
+                    .on('mousedown', function (event, d) {
+                        event.stopPropagation();
                     });
 
                 // node
                 flowfiles.append('circle')
-                    .attrs({
-                        'r': 16,
-                        'fill': '#fff',
-                        'stroke': '#000',
-                        'stroke-width': 1.0
-                    })
-                    .on('mouseover', function (d) {
+                    .attr('r', 16)
+                    .attr('fill', '#fff')
+                    .attr('stroke', '#000')
+                    .attr('stroke-width', 1.0)
+                    .on('mouseover', function (event, d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
                         })
@@ -694,7 +686,7 @@
                                 return 'url(#' + d.target.type + '-SELECTED)';
                             });
                     })
-                    .on('mouseout', function (d) {
+                    .on('mouseout', function (event, d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
                         }).classed('selected', false)
@@ -704,21 +696,17 @@
                     });
 
                 var icon = flowfiles.append('g')
-                    .attrs({
-                        'class': 'flowfile-icon',
-                        'transform': function (d) {
-                            return 'translate(-9,-9)';
-                        }
+                    .attr('class', 'flowfile-icon')
+                    .attr('transform', function (d) {
+                        return 'translate(-9,-9)';
                     }).append('text')
-                    .attrs({
-                        'font-family': 'flowfont',
-                        'font-size': '18px',
-                        'fill': '#ad9897',
-                        'transform': function (d) {
-                            return 'translate(0,15)';
-                        }
+                    .attr('font-family', 'flowfont')
+                    .attr('font-size', '18px')
+                    .attr('fill', '#ad9897')
+                    .attr('transform', function (d) {
+                        return 'translate(0,15)';
                     })
-                    .on('mouseover', function (d) {
+                    .on('mouseover', function (event, d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
                         })
@@ -727,7 +715,7 @@
                                 return 'url(#' + d.target.type + '-SELECTED)';
                             });
                     })
-                    .on('mouseout', function (d) {
+                    .on('mouseout', function (event, d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
                         }).classed('selected', false)
@@ -890,14 +878,14 @@
                         provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
                             var provenanceEvent = response.provenanceEvent;
                             var eventUuid = provenanceEvent.flowFileUuid;
-                            var eventUuids = d3.set(provenanceEvent.childUuids);
+                            var eventUuids = new Set(provenanceEvent.childUuids);
 
                             // determines if the specified event should be removable based on if the collapsing is fanning in/out
                             var allowEventRemoval = function (fanIn, node) {
                                 if (fanIn) {
                                     return node.id !== eventId;
                                 } else {
-                                    return node.flowFileUuid !== eventUuid && $.inArray(eventUuid, node.parentUuids) === -1;
+                                    return node.flowFileUuid !== eventUuid && $.inArray(Array.from(eventUuid), node.parentUuids) === -1;
                                 }
                             };
 
@@ -918,11 +906,11 @@
                                 var newUuids = false;
 
                                 // consider each node for being collapsed
-                                $.each(nodeLookup.values(), function (_, node) {
+                                $.each(Array.from(nodeLookup.values()), function (_, node) {
                                     // if this node is in the uuids remove it unless its the original event or is part of this and another lineage
                                     if (uuids.has(node.flowFileUuid) && allowEventRemoval(fanIn, node)) {
                                         // remove it from the look lookup
-                                        nodeLookup.remove(node.id);
+                                        nodeLookup['delete'](node.id);
 
                                         // include all related outgoing flow file uuids
                                         $.each(node.outgoing, function (_, outgoing) {
@@ -935,11 +923,11 @@
                                 });
 
                                 // update the link data
-                                $.each(linkLookup.values(), function (_, link) {
+                                $.each(Array.from(linkLookup.values()), function (_, link) {
                                     // if this link is in the uuids remove it
                                     if (uuids.has(link.flowFileUuid) && allowLinkRemoval(fanIn, link)) {
                                         // remove it from the link lookup
-                                        linkLookup.remove(link.id);
+                                        linkLookup['delete'](link.id);
 
                                         // add a related uuid that needs to be collapse
                                         var next = link.target;
@@ -1002,17 +990,17 @@
             // renders event nodes
             var renderEvent = function (events, provenanceTableCtrl) {
                 events
-                    .on('contextmenu', function (d) {
+                    .on('contextmenu', function (event, d) {
                         // select the current node for a visible cue
                         d3.select('#event-node-' + d.id).classed('context', true);
 
                         // show the context menu
                         showContextMenu(d, provenanceTableCtrl);
                     })
-                    .on('mousedown', function (d) {
-                        d3.event.stopPropagation();
+                    .on('mousedown', function (event, d) {
+                        event.stopPropagation();
                     })
-                    .on('dblclick', function (d) {
+                    .on('dblclick', function (event, d) {
                         // show the event details
                         provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
                     });
@@ -1021,15 +1009,13 @@
                     .classed('event', true)
                     // join node to its label
                     .append('rect')
-                    .attrs({
-                        'x': 0,
-                        'y': -8,
-                        'height': 16,
-                        'width': 14,
-                        'opacity': 0,
-                        'id': function (d) {
-                            return 'event-filler-' + d.id;
-                        }
+                    .attr('x', 0)
+                    .attr('y', -8)
+                    .attr('height', 16)
+                    .attr('width', 1)
+                    .attr('opacity', 0)
+                    .attr('id', function (d) {
+                        return 'event-filler-' + d.id;
                     });
 
                 events    
@@ -1037,24 +1023,20 @@
                     .classed('selected', function (d) {
                         return d.id === eventId;
                     })
-                    .attrs({
-                        'r': 8,
-                        'fill': '#aabbc3',
-                        'stroke': '#000',
-                        'stroke-width': 1.0,
-                        'id': function (d) {
-                            return 'event-node-' + d.id;
-                        }
+                    .attr('r', 8)
+                    .attr('fill', '#aabbc3')
+                    .attr('stroke', '#000')
+                    .attr('stroke-width', 1.0)
+                    .attr('id', function (d) {
+                        return 'event-node-' + d.id;
                     });
 
                 events
                     .append('text')
-                    .attrs({
-                        'id': function (d) {
-                            return 'event-text-' + d.id;
-                        },
-                        'class': 'event-type'
+                    .attr('id', function (d) {
+                        return 'event-text-' + d.id;
                     })
+                    .attr('class', 'event-type')
                     .classed('expand-parents', function (d) {
                         return d.eventType === 'SPAWN';
                     })
@@ -1083,10 +1065,9 @@
                             });
                             label.attr('transform', 'translate(10,-14)');
                         } else {
-                            label.text(d.eventType).attrs({
-                                'x': 10,
-                                'y': 4
-                            });
+                            label.text(d.eventType)
+                                .attr('x', 10)
+                                .attr('y', 4);
                         }
                     });
             };
@@ -1094,7 +1075,7 @@
             // updates the ui
             var update = function (provenanceTableCtrl) {
                 // update the node data
-                nodes = nodes.data(nodeLookup.values(), function (d) {
+                nodes = nodes.data(Array.from(nodeLookup.values()), function (d) {
                     return d.id;
                 });
 
@@ -1149,7 +1130,7 @@
                     .style('opacity', 1);
 
                 // update the link data
-                links = links.data(linkLookup.values(), function (d) {
+                links = links.data(Array.from(linkLookup.values()), function (d) {
                     return d.id;
                 });
 
@@ -1167,14 +1148,12 @@
                 // add new links
                 var linksEntered = links.enter()
                     .insert('path', '.node')
-                    .attrs({
-                        'class': 'link',
-                        'stroke-width': 1.5,
-                        'stroke': '#000',
-                        'fill': 'none',
-                        'd': function (d) {
-                            return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
-                        }
+                    .attr('class', 'link')
+                    .attr('stroke-width', 1.5)
+                    .attr('stroke', '#000')
+                    .attr('fill', 'none')
+                    .attr('d', function (d) {
+                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
                     })
                     .style('opacity', 0);
 
@@ -1186,13 +1165,11 @@
                 links.transition()
                     .delay(200)
                     .duration(400)
-                    .attrs({
-                        'marker-end': function (d) {
-                            return 'url(#' + d.target.type + ')';
-                        },
-                        'd': function (d) {
-                            return 'M' + d.source.x + ',' + d.source.y + 'L' + d.target.x + ',' + d.target.y;
-                        }
+                    .attr('marker-end', function (d) {
+                        return 'url(#' + d.target.type + ')';
+                    })
+                    .attr('d', function (d) {
+                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.target.x + ',' + d.target.y;
                     })
                     .style('opacity', 1);
             };

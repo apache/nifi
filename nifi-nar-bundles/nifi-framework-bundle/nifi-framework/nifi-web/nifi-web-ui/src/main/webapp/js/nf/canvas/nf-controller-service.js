@@ -829,15 +829,15 @@
      * @param {object} controllerService
      */
     var getReferencingControllerServiceIds = function (controllerService) {
-        var ids = d3.set();
-        ids.add(controllerService.id);
+        var ids = new Set();
+        ids.push(controllerService.id);
 
         var checkReferencingServices = function (referencingComponents) {
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
                 if (referencingComponent.referenceType === 'ControllerService') {
                     // add the id
-                    ids.add(referencingComponent.id);
+                    ids.push(referencingComponent.id);
 
                     // consider it's referencing components if appropriate
                     if (referencingComponent.referenceCycle === false) {

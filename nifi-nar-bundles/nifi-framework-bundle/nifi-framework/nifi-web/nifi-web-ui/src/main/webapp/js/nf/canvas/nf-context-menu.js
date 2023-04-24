@@ -917,7 +917,7 @@
         /**
          * Shows the context menu.
          */
-        show: function () {
+        show: function (event) {
             // hide the menu if currently visible
             nf.ContextMenu.hide();
 
@@ -930,7 +930,7 @@
             var selection = nfCanvasUtils.getSelection();
 
             // get the location for the context menu
-            var position = d3.mouse(canvasBody);
+            var position = d3.pointer(event, canvasBody);
 
             // determines if the specified menu positioned at x would overflow the available width
             var overflowRight = function (x, menu) {
@@ -1104,13 +1104,13 @@
          * @param {selection} components    The components to enable the context menu for
          */
         activate: function (components) {
-            components.on('contextmenu.selection', function () {
+            components.on('contextmenu.selection', function (event) {
                 // get the clicked component to update selection
-                nfContextMenu.show();
+                nfContextMenu.show(event);
 
                 // stop propagation and prevent default
-                d3.event.preventDefault();
-                d3.event.stopPropagation();
+                event.preventDefault();
+                event.stopPropagation();
             });
         }
     };

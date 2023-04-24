@@ -23,9 +23,10 @@
                 'd3',
                 'nf.Common',
                 'nf.Client',
-                'nf.CanvasUtils'],
-            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Funnel = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
+                return (nf.Funnel = factory($, d3, nfCommon, nfClient, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Funnel =
@@ -33,15 +34,17 @@
                 require('d3'),
                 require('nf.Common'),
                 require('nf.Client'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Funnel = factory(root.$,
             root.d3,
             root.nf.Common,
             root.nf.Client,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var nfConnectable;
@@ -81,7 +84,7 @@
      * Selects the funnel elements against the current funnel map.
      */
     var select = function () {
-        return funnelContainer.selectAll('g.funnel').data(funnelMap.values(), function (d) {
+        return funnelContainer.selectAll('g.funnel').data(Array.from(funnelMap.values()), function (d) {
             return d.id;
         });
     };
@@ -98,8 +101,9 @@
             return entered;
         }
 
-        var funnel = entered.append('g')
-            .attrs({
+        var funnel = d3Helpers.multiAttr(
+            entered.append('g'),
+            {
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -109,8 +113,9 @@
             .call(nfCanvasUtils.position);
 
         // funnel border
-        funnel.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            funnel.append('rect'),
+            {
                 'rx': 2,
                 'ry': 2,
                 'class': 'border',
@@ -125,8 +130,9 @@
             });
 
         // funnel body
-        funnel.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            funnel.append('rect'),
+            {
                 'rx': 2,
                 'ry': 2,
                 'class': 'body',
@@ -141,8 +147,9 @@
             });
 
         // funnel icon
-        funnel.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            funnel.append('text'),
+            {
                 'class': 'funnel-icon',
                 'x': 9,
                 'y': 34
@@ -209,13 +216,14 @@
             nfSelectable = nfSelectableRef;
             nfContextMenu = nfContextMenuRef;
 
-            funnelMap = d3.map();
-            removedCache = d3.map();
-            addedCache = d3.map();
+            funnelMap = new Map();
+            removedCache = new Map();
+            addedCache = new Map();
 
             // create the funnel container
-            funnelContainer = d3.select('#canvas').append('g')
-                .attrs({
+            funnelContainer = d3Helpers.multiAttr(
+                d3.select('#canvas').append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'funnels'
                 });
@@ -294,7 +302,7 @@
             };
 
             if ($.isArray(funnelEntities)) {
-                $.each(funnelMap.keys(), function (_, key) {
+                $.each(Array.from(funnelMap.keys()), function (_, key) {
                     var currentFunnelEntity = funnelMap.get(key);
                     var isPresent = $.grep(funnelEntities, function (proposedFunnelEntity) {
                         return proposedFunnelEntity.id === currentFunnelEntity.id;
@@ -302,7 +310,7 @@
 
                     // if the current funnel is not present and was not recently added, remove it
                     if (isPresent.length === 0 && !addedCache.has(key)) {
-                        funnelMap.remove(key);
+                        funnelMap['delete'](key);
                     }
                 });
                 $.each(funnelEntities, function (_, funnelEntity) {
@@ -334,7 +342,7 @@
          */
         get: function (id) {
             if (nfCommon.isUndefined(id)) {
-                return funnelMap.values();
+                return Array.from(funnelMap.values());
             } else {
                 return funnelMap.get(id);
             }
@@ -393,11 +401,11 @@
             if ($.isArray(funnelIds)) {
                 $.each(funnelIds, function (_, funnelId) {
                     removedCache.set(funnelId, now);
-                    funnelMap.remove(funnelId);
+                    funnelMap['delete'](funnelId);
                 });
             } else {
                 removedCache.set(funnelIds, now);
-                funnelMap.remove(funnelIds);
+                funnelMap['delete'](funnelIds);
             }
 
             // apply the selection and handle all removed funnels
@@ -408,7 +416,7 @@
          * Removes all processors.
          */
         removeAll: function () {
-            nfFunnel.remove(funnelMap.keys());
+            nfFunnel.remove(Array.from(funnelMap.keys()));
         },
 
         /**
@@ -418,9 +426,9 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.each(function (entryTimestamp, id) {
+                cache.forEach(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
-                        cache.remove(id);
+                        cache['delete'](id);
                     }
                 });
             };

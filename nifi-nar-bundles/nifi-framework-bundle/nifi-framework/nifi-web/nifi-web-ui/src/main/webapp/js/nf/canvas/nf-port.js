@@ -24,9 +24,10 @@
                 'nf.Connection',
                 'nf.Common',
                 'nf.Client',
-                'nf.CanvasUtils'],
-            function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils) {
-                return (nf.Port = factory($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils));
+                'nf.CanvasUtils',
+                'nf.ng.D3Helpers'],
+            function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
+                return (nf.Port = factory($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Port =
@@ -35,16 +36,18 @@
                 require('nf.Connection'),
                 require('nf.Common'),
                 require('nf.Client'),
-                require('nf.CanvasUtils')));
+                require('nf.CanvasUtils'),
+                require('nf.ng.D3Helpers')));
     } else {
         nf.Port = factory(root.$,
             root.d3,
             root.nf.Connection,
             root.nf.Common,
             root.nf.Client,
-            root.nf.CanvasUtils);
+            root.nf.CanvasUtils,
+            root.nf.ng.D3Helpers);
     }
-}(this, function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils) {
+}(this, function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, d3Helpers) {
     'use strict';
 
     var nfConnectable;
@@ -96,7 +99,7 @@
      * Selects the port elements against the current port map.
      */
     var select = function () {
-        return portContainer.selectAll('g.input-port, g.output-port').data(portMap.values(), function (d) {
+        return portContainer.selectAll('g.input-port, g.output-port').data(Array.from(portMap.values()), function (d) {
             return d.id;
         });
     };
@@ -129,8 +132,9 @@
             return entered;
         }
 
-        var port = entered.append('g')
-            .attrs({
+        var port = d3Helpers.multiAttr(
+            entered.append('g'),
+            {
                 'id': function (d) {
                     return 'id-' + d.id;
                 },
@@ -146,8 +150,9 @@
             .call(nfCanvasUtils.position);
 
         // port border
-        port.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            port.append('rect'),
+            {
                 'class': 'border',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -160,8 +165,9 @@
             });
 
         // port body
-        port.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            port.append('rect'),
+            {
                 'class': 'body',
                 'width': function (d) {
                     return d.dimensions.width;
@@ -174,8 +180,9 @@
             });
 
         // port remote banner
-        port.append('rect')
-            .attrs({
+        d3Helpers.multiAttr(
+            port.append('rect'),
+            {
                 'class': 'remote-banner',
                 'width': remotePortDimensions.width,
                 'height': OFFSET_VALUE,
@@ -184,8 +191,9 @@
             .classed('hidden', isLocalPort);
 
         // port icon
-        port.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            port.append('text'),
+            {
                 'class': 'port-icon',
                 'x': 10,
                 'y': offsetY(38)
@@ -199,8 +207,9 @@
             });
 
         // port name
-        port.append('text')
-            .attrs({
+        d3Helpers.multiAttr(
+            port.append('text'),
+            {
                 'x': 70,
                 'y': offsetY(25),
                 'width': 95,
@@ -230,25 +239,27 @@
         }
 
         // port border authorization
-        updated.select('rect.border')
-            .classed('unauthorized', function (d) {
-                return d.permissions.canRead === false;
-            })
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('rect.border'),
+            {
                 'height': function(d) {
                     return d.dimensions.height;
                 }
+            })
+            .classed('unauthorized', function (d) {
+                return d.permissions.canRead === false;
             });
 
         // port body authorization
-        updated.select('rect.body')
-            .classed('unauthorized', function (d) {
-                return d.permissions.canRead === false;
-            })
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('rect.body'),
+            {
                 'height': function(d) {
                     return d.dimensions.height;
                 }
+            })
+            .classed('unauthorized', function (d) {
+                return d.permissions.canRead === false;
             });
 
         updated.each(function (portData) {
@@ -265,8 +276,9 @@
                     details = port.append('g').attr('class', 'port-details');
 
                     // port transmitting icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'port-transmission-icon',
                             'x': 10,
                             'y': 18
@@ -274,8 +286,9 @@
                         .classed('hidden', isLocalPort);
 
                     // bulletin background
-                    details.append('rect')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('rect'),
+                        {
                             'class': 'bulletin-background',
                             'x': remotePortDimensions.width - OFFSET_VALUE,
                             'width': OFFSET_VALUE,
@@ -284,8 +297,9 @@
                         .classed('hidden', isLocalPort);
 
                     // bulletin icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'bulletin-icon',
                             'x': remotePortDimensions.width - 18,
                             'y': 18
@@ -294,8 +308,9 @@
                         .classed('hidden', isLocalPort);
 
                     // run status icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'run-status-icon',
                             'x': 50,
                             'y': offsetY(25)
@@ -305,8 +320,9 @@
                     // comments
                     // --------
 
-                    details.append('path')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('path'),
+                        {
                             'class': 'component-comments',
                             'transform': 'translate(' + (portData.dimensions.width - 2) + ', ' + (portData.dimensions.height - 10) + ')',
                             'd': 'm0,0 l0,8 l-8,0 z'
@@ -317,16 +333,18 @@
                     // -------------------
 
                     // active thread count
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count-icon',
                             'y': offsetY(43)
                         })
                         .text('\ue83f');
 
                     // active thread icon
-                    details.append('text')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        details.append('text'),
+                        {
                             'class': 'active-thread-count',
                             'y': offsetY(43)
                         });
@@ -338,8 +356,9 @@
                     port.select('rect.remote-banner')
                         .classed('hidden', isLocalPort);
 
-                    port.select('text.port-icon')
-                        .attrs({
+                    d3Helpers.multiAttr(
+                        port.select('text.port-icon'),
+                        {
                             'y': offsetY(38)
                         });
 
@@ -353,7 +372,8 @@
                         .classed('hidden', isLocalPort);
 
                     // update the port name
-                    port.select('text.port-name')
+                    d3Helpers.multiAttr(
+                        port.select('text.port-name')
                         .each(function (d) {
                             var portName = d3.select(this);
                             var name = d.component.name;
@@ -369,7 +389,7 @@
                             } else {
                                 nfCanvasUtils.multilineEllipsis(portName, 2, name, 'port-name');
                             }
-                        }).attrs({
+                        }), {
                             'y': offsetY(25)
                         }).append('title').text(function (d) {
                             return d.component.name;
@@ -464,8 +484,9 @@
         }
 
         // update the run status
-        updated.select('text.run-status-icon')
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('text.run-status-icon'),
+            {
                 'fill': function (d) {
                     var fill = '#728e9b';
 
@@ -536,8 +557,9 @@
                 }
             });
 
-        updated.select('text.port-transmission-icon')
-            .attrs({
+        d3Helpers.multiAttr(
+            updated.select('text.port-transmission-icon'),
+            {
                 'font-family': function (d) {
                     if (d.status.transmitting === true) {
                         return 'FontAwesome';
@@ -641,13 +663,14 @@
             nfContextMenu = nfContextMenuRef;
             nfQuickSelect = nfQuickSelectRef;
 
-            portMap = d3.map();
-            removedCache = d3.map();
-            addedCache = d3.map();
+            portMap = new Map();
+            removedCache = new Map();
+            addedCache = new Map();
 
             // create the port container
-            portContainer = d3.select('#canvas').append('g')
-                .attrs({
+            portContainer = d3Helpers.multiAttr(
+                d3.select('#canvas').append('g'),
+                {
                     'pointer-events': 'all',
                     'class': 'ports'
                 });
@@ -734,7 +757,7 @@
 
             // determine how to handle the specified port status
             if ($.isArray(portEntities)) {
-                $.each(portMap.keys(), function (_, key) {
+                $.each(Array.from(portMap.keys()), function (_, key) {
                     var currentPortEntity = portMap.get(key);
                     var isPresent = $.grep(portEntities, function (proposedPortEntity) {
                         return proposedPortEntity.id === currentPortEntity.id;
@@ -742,7 +765,7 @@
 
                     // if the current port is not present and was not recently added, remove it
                     if (isPresent.length === 0 && !addedCache.has(key)) {
-                        portMap.remove(key);
+                        portMap['delete'](key);
                     }
                 });
                 $.each(portEntities, function (_, portNode) {
@@ -774,7 +797,7 @@
          */
         get: function (id) {
             if (nfCommon.isUndefined(id)) {
-                return portMap.values();
+                return Array.from(portMap.values());
             } else {
                 return portMap.get(id);
             }
@@ -840,11 +863,11 @@
             if ($.isArray(portIds)) {
                 $.each(portIds, function (_, portId) {
                     removedCache.set(portId, now);
-                    portMap.remove(portId);
+                    portMap['delete'](portId);
                 });
             } else {
                 removedCache.set(portIds, now);
-                portMap.remove(portIds);
+                portMap['delete'](portIds);
             }
 
             // apply the selection and handle all removed ports
@@ -855,7 +878,7 @@
          * Removes all ports..
          */
         removeAll: function () {
-            nfPort.remove(portMap.keys());
+            nfPort.remove(Array.from(portMap.keys()));
         },
 
         /**
@@ -865,9 +888,9 @@
          */
         expireCaches: function (timestamp) {
             var expire = function (cache) {
-                cache.each(function (entryTimestamp, id) {
+                cache.forEach(function (entryTimestamp, id) {
                     if (timestamp > entryTimestamp) {
-                        cache.remove(id);
+                        cache['delete'](id);
                     }
                 });
             };

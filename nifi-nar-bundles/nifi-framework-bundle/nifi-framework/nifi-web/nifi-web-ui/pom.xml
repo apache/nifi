@@ -148,7 +148,7 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <!-- D3 -->
-                                        <include>d3/build/d3.min.js*</include>
+                                        <include>d3/dist/d3.min.js*</include>
                                         <include>d3/LICENSE</include>
                                         <!-- D3 selection multi -->
                                         <include>d3-selection-multi/build/d3-selection-multi.min.js*</include>
@@ -496,6 +496,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
                                                 <include>${staging.dir}/js/nf/nf-shell.js</include>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/helpers/d3-helpers.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
