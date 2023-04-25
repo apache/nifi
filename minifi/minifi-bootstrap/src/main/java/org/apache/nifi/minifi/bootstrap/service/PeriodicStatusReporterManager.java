@@ -14,9 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.STATUS_REPORTER_COMPONENTS_KEY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_COMPONENTS;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,7 +45,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
     private Set<PeriodicStatusReporter> periodicStatusReporters = Collections.emptySet();
 
     public PeriodicStatusReporterManager(Properties bootstrapProperties, MiNiFiStatusProvider miNiFiStatusProvider, MiNiFiCommandSender miNiFiCommandSender,
-        MiNiFiParameters miNiFiParameters) {
+                                         MiNiFiParameters miNiFiParameters) {
         this.bootstrapProperties = bootstrapProperties;
         this.miNiFiStatusProvider = miNiFiStatusProvider;
         this.miNiFiCommandSender = miNiFiCommandSender;
@@ -54,7 +55,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
     public void startPeriodicNotifiers() {
         periodicStatusReporters = initializePeriodicNotifiers();
 
-        for (PeriodicStatusReporter periodicStatusReporter: periodicStatusReporters) {
+        for (PeriodicStatusReporter periodicStatusReporter : periodicStatusReporters) {
             periodicStatusReporter.start();
             LOGGER.debug("Started {} notifier", periodicStatusReporter.getClass().getCanonicalName());
         }
@@ -96,7 +97,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
         LOGGER.debug("Initiating bootstrap periodic status reporters...");
         Set<PeriodicStatusReporter> statusReporters = new HashSet<>();
 
-        String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
+        String reportersCsv = bootstrapProperties.getProperty(NIFI_MINIFI_STATUS_REPORTER_COMPONENTS.getKey());
 
         if (reportersCsv != null && !reportersCsv.isEmpty()) {
             for (String reporterClassname : reportersCsv.split(",")) {

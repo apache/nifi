@@ -17,6 +17,12 @@
 
 package org.apache.nifi.minifi.bootstrap.status.reporters;
 
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY;
+
+import java.io.IOException;
+import java.util.Properties;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
@@ -24,13 +30,7 @@ import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Properties;
-
-import static org.apache.nifi.minifi.commons.schema.common.BootstrapPropertyKeys.STATUS_REPORTER_PROPERTY_PREFIX;
-
 public class StatusLogger extends PeriodicStatusReporter {
-
 
     private volatile QueryableStatusAggregator queryableStatusAggregator;
     private volatile LogLevel logLevel;
@@ -38,47 +38,41 @@ public class StatusLogger extends PeriodicStatusReporter {
 
     protected static Logger logger = LoggerFactory.getLogger(StatusLogger.class);
 
-
-    public static final String LOGGER_STATUS_REPORTER_PROPERTY_PREFIX = STATUS_REPORTER_PROPERTY_PREFIX + ".log";
-    public static final String REPORT_PERIOD_KEY = LOGGER_STATUS_REPORTER_PROPERTY_PREFIX + ".period";
-    public static final String LOGGING_LEVEL_KEY = LOGGER_STATUS_REPORTER_PROPERTY_PREFIX + ".level";
-    public static final String QUERY_KEY = LOGGER_STATUS_REPORTER_PROPERTY_PREFIX + ".query";
-
     static final String ENCOUNTERED_IO_EXCEPTION = "Encountered an IO Exception while attempting to query the flow status.";
 
     @Override
-    public void initialize(Properties properties,  QueryableStatusAggregator queryableStatusAggregator) {
+    public void initialize(Properties properties, QueryableStatusAggregator queryableStatusAggregator) {
         this.queryableStatusAggregator = queryableStatusAggregator;
 
-        String periodString = properties.getProperty(REPORT_PERIOD_KEY);
+        String periodString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey());
         if (periodString == null) {
-            throw new IllegalStateException(REPORT_PERIOD_KEY + " is null but it is required. Please configure it.");
+            throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey() + " is null but it is required. Please configure it.");
         }
         try {
             setPeriod(Integer.parseInt(periodString));
         } catch (NumberFormatException e) {
-            throw new IllegalStateException(REPORT_PERIOD_KEY + " is not a valid number.", e);
+            throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_PERIOD.getKey() + " is not a valid number.", e);
         }
 
 
-        String loglevelString = properties.getProperty(LOGGING_LEVEL_KEY);
+        String loglevelString = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey());
         if (loglevelString == null) {
-            throw new IllegalStateException(LOGGING_LEVEL_KEY + " is null but it is required. Please configure it.");
+            throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " is null but it is required. Please configure it.");
         }
 
         try {
             logLevel = LogLevel.valueOf(loglevelString.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalStateException("Value set for " + LOGGING_LEVEL_KEY + " is not a valid log level.");
+            throw new IllegalStateException("Value set for " + NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " is not a valid log level.");
         }
 
-        if (LogLevel.FATAL.equals(logLevel)){
-            throw new IllegalStateException("Cannot log status at the FATAL level. Please configure " + LOGGING_LEVEL_KEY + " to another value.");
+        if (LogLevel.FATAL.equals(logLevel)) {
+            throw new IllegalStateException("Cannot log status at the FATAL level. Please configure " + NIFI_MINIFI_STATUS_REPORTER_LOG_LEVEL.getKey() + " to another value.");
         }
 
-        statusQuery = properties.getProperty(QUERY_KEY);
+        statusQuery = properties.getProperty(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey());
         if (statusQuery == null) {
-            throw new IllegalStateException(QUERY_KEY + " is null but it is required. Please configure it.");
+            throw new IllegalStateException(NIFI_MINIFI_STATUS_REPORTER_LOG_QUERY.getKey() + " is null but it is required. Please configure it.");
         }
 
         reportRunner = new ReportStatusRunner();

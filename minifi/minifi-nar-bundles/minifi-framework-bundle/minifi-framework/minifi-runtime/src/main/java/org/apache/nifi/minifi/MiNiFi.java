@@ -181,18 +181,15 @@ public class MiNiFi {
 
         final AtomicInteger occurrencesOutOfRange = new AtomicInteger(0);
         final AtomicInteger occurrences = new AtomicInteger(0);
-        final Runnable command = new Runnable() {
-            @Override
-            public void run() {
-                final long curMillis = System.currentTimeMillis();
-                final long difference = curMillis - lastTriggerMillis.get();
-                final long millisOff = Math.abs(difference - 2000L);
-                occurrences.incrementAndGet();
-                if (millisOff > 500L) {
-                    occurrencesOutOfRange.incrementAndGet();
-                }
-                lastTriggerMillis.set(curMillis);
+        final Runnable command = () -> {
+            final long curMillis = System.currentTimeMillis();
+            final long difference = curMillis - lastTriggerMillis.get();
+            final long millisOff = Math.abs(difference - 2000L);
+            occurrences.incrementAndGet();
+            if (millisOff > 500L) {
+                occurrencesOutOfRange.incrementAndGet();
             }
+            lastTriggerMillis.set(curMillis);
         };
 
         final ScheduledFuture<?> future = service.scheduleWithFixedDelay(command, 2000L, 2000L, TimeUnit.MILLISECONDS);

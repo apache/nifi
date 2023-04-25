@@ -68,9 +68,9 @@ public class HierarchicalC2IntegrationTest {
                 .getResource("docker-compose-c2-hierarchical.yml").getFile()).getParent();
         certificatesDirectory = resourceDirectory.toAbsolutePath().resolve("certificates-c2-hierarchical");
         authoritativeFiles = resourceDirectory.resolve("c2").resolve("hierarchical").resolve("c2-authoritative").resolve("files");
-        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve("raspi3").resolve("config.text.yml.v2");
-        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve("raspi2").resolve("config.text.yml.v2");
-        minifiEdge3Version2 = authoritativeFiles.resolve("edge3").resolve("raspi3").resolve("config.text.yml.v2");
+        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve("raspi3").resolve("config.application.json.v2");
+        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve("raspi2").resolve("config.application.json.v2");
+        minifiEdge3Version2 = authoritativeFiles.resolve("edge3").resolve("raspi3").resolve("config.application.json.v2");
 
         if (Files.exists(minifiEdge1Version2)) {
             Files.delete(minifiEdge1Version2);
@@ -111,24 +111,24 @@ public class HierarchicalC2IntegrationTest {
     @Test
     public void testMiNiFiEdge1() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge1/expected.json", docker.containers().container("minifi-edge1"));
-        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
-        Files.copy(csvToJsonDir.resolve("CsvToJson.yml"), minifiEdge1Version2);
-        LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge1"));
+        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("CsvToJson");
+        Files.copy(csvToJsonDir.resolve("CsvToJson.json"), minifiEdge1Version2);
+        LogUtil.verifyLogEntries("standalone/CsvToJson/expected.json", docker.containers().container("minifi-edge1"));
     }
 
     @Test
     public void testMiNiFiEdge2() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge2/expected.json", docker.containers().container("minifi-edge2"));
-        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
-        Files.copy(csvToJsonDir.resolve("CsvToJson.yml"), minifiEdge2Version2);
-        LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge2"));
+        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("CsvToJson");
+        Files.copy(csvToJsonDir.resolve("CsvToJson.json"), minifiEdge2Version2);
+        LogUtil.verifyLogEntries("standalone/CsvToJson/expected.json", docker.containers().container("minifi-edge2"));
     }
 
     @Test
     public void testMiNiFiEdge3() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge3/expected.json", docker.containers().container("minifi-edge3"));
-        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
-        Files.copy(csvToJsonDir.resolve("CsvToJson.yml"), minifiEdge3Version2);
-        LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge3"));
+        Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("CsvToJson");
+        Files.copy(csvToJsonDir.resolve("CsvToJson.json"), minifiEdge3Version2);
+        LogUtil.verifyLogEntries("standalone/CsvToJson/expected.json", docker.containers().container("minifi-edge3"));
     }
 }

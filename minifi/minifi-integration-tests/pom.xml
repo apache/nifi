@@ -33,7 +33,7 @@ limitations under the License.
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-commons-schema</artifactId>
+            <artifactId>minifi-toolkit-schema</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -117,6 +117,7 @@ limitations under the License.
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>**/expected.json</exclude>
+                        <exclude>**/config.application.json.*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

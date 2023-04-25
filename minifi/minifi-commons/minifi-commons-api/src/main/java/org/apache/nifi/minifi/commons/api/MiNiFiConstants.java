@@ -19,5 +19,7 @@ package org.apache.nifi.minifi.commons.api;
 
 public interface MiNiFiConstants {
     String BOOTSTRAP_UPDATED_FILE_NAME = "bootstrap-updated.conf";
-    String CONFIG_UPDATED_FILE_NAME = "config-updated.yml";
+
+    String BACKUP_EXTENSION = ".backup";
+    String RAW_EXTENSION = ".raw";
 }

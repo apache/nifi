@@ -33,8 +33,9 @@ import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,9 +46,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipUtils;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -124,11 +127,11 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
             return operationAck(operation, operationState(NOT_APPLIED, C2_CALLBACK_URL_NOT_FOUND));
         }
 
-        List<Path> contentFilteredFilePaths = null;
+        List<Path> preparedFiles = null;
         C2OperationState operationState;
         try {
-            contentFilteredFilePaths = filterContent(operation.getIdentifier(), bundleFilePaths);
-            operationState = createDebugBundle(contentFilteredFilePaths)
+            preparedFiles = prepareFiles(operation.getIdentifier(), bundleFilePaths);
+            operationState = createDebugBundle(preparedFiles)
                 .map(bundle -> c2Client.uploadBundle(callbackUrl.get(), bundle)
                     .map(errorMessage -> operationState(NOT_APPLIED, errorMessage))
                     .orElseGet(() -> operationState(FULLY_APPLIED, SUCCESSFUL_UPLOAD)))
@@ -137,7 +140,7 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
             LOG.error("Unexpected error happened", e);
             operationState = operationState(NOT_APPLIED, UNABLE_TO_CREATE_BUNDLE);
         } finally {
-            ofNullable(contentFilteredFilePaths).ifPresent(this::cleanup);
+            ofNullable(preparedFiles).ifPresent(this::cleanup);
         }
 
         LOG.debug("Returning operation ack for operation {} with state {} and details {}", operation.getIdentifier(), operationState.getState(), operationState.getDetails());
@@ -158,21 +161,40 @@ public class TransferDebugOperationHandler implements C2OperationHandler {
         return state;
     }
 
-    private List<Path> filterContent(String operationId, List<Path> bundleFilePaths) {
-        List<Path> contentFilteredFilePaths = new ArrayList<>();
-        for (Path path : bundleFilePaths) {
-            String fileName = path.getFileName().toString();
-            try (Stream<String> fileStream = lines(path, Charset.defaultCharset())) {
-                Path tempDirectory = createTempDirectory(operationId);
-                Path tempFile = Paths.get(tempDirectory.toAbsolutePath().toString(), fileName);
-                Files.write(tempFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
-                contentFilteredFilePaths.add(tempFile);
-            } catch (IOException e) {
-                LOG.error("Error during filtering file content: " + path.toAbsolutePath(), e);
-                throw new UncheckedIOException(e);
-            }
+    private List<Path> prepareFiles(String operationId, List<Path> bundleFilePaths) throws IOException {
+        List<Path> preparedFiles = new ArrayList<>();
+        for (Path bundleFile : bundleFilePaths) {
+            Path tempDirectory = createTempDirectory(operationId);
+            String fileName = bundleFile.getFileName().toString();
+
+            Path preparedFile = GzipUtils.isCompressedFilename(fileName)
+                ? handleGzipFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), GzipUtils.getUncompressedFilename(fileName)))
+                : handleUncompressedFile(bundleFile, Paths.get(tempDirectory.toAbsolutePath().toString(), fileName));
+            preparedFiles.add(preparedFile);
         }
-        return contentFilteredFilePaths;
+        return preparedFiles;
+    }
+
+    private Path handleGzipFile(Path sourceFile, Path targetFile) throws IOException {
+        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new FileInputStream(sourceFile.toFile()));
+             FileOutputStream fileOutputStream = new FileOutputStream(targetFile.toFile())) {
+            // no content filter is applied here as flow.json.gz has encoded properties
+            gzipInputStream.transferTo(fileOutputStream);
+            return targetFile;
+        } catch (IOException e) {
+            LOG.error("Error during filtering gzip file content: " + sourceFile.toAbsolutePath(), e);
+            throw e;
+        }
+    }
+
+    private Path handleUncompressedFile(Path sourceFile, Path targetFile) throws IOException {
+        try (Stream<String> fileStream = lines(sourceFile, Charset.defaultCharset())) {
+            Files.write(targetFile, (Iterable<String>) fileStream.filter(contentFilter)::iterator);
+            return targetFile;
+        } catch (IOException e) {
+            LOG.error("Error during filtering uncompressed file content: " + sourceFile.toAbsolutePath(), e);
+            throw e;
+        }
     }
 
     private Optional<byte[]> createDebugBundle(List<Path> filePaths) {

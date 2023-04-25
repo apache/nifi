@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -82,9 +81,9 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleFlowIdInArg() {
-        Function<byte[], Boolean> successUpdate = x -> true;
+        UpdateConfigurationStrategy successUpdate = flow -> true;
         when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
-        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
+        when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(INCORRECT_LOCATION));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
@@ -117,9 +116,9 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsNotAppliedWithContentApplyIssues() {
-        Function<byte[], Boolean> failedToUpdate = x -> false;
+        UpdateConfigurationStrategy failedToUpdate = flow -> false;
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
-        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
+        when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
@@ -134,10 +133,10 @@ public class UpdateConfigurationOperationHandlerTest {
 
     @Test
     void testHandleReturnsFullyApplied() {
-        Function<byte[], Boolean> successUpdate = x -> true;
+        UpdateConfigurationStrategy successUpdate = flow -> true;
         when(flowIdHolder.getFlowId()).thenReturn("previous_flow_id");
         when(client.getCallbackUrl(any(), any())).thenReturn(Optional.of(CORRECT_LOCATION));
-        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
+        when(client.retrieveUpdateConfigurationContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate, operandPropertiesProvider);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);

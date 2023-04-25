@@ -17,10 +17,8 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.differentiators;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import static java.util.Optional.ofNullable;
+
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
@@ -29,59 +27,30 @@ import org.slf4j.LoggerFactory;
 
 public abstract class WholeConfigDifferentiator {
 
+    public static final String WHOLE_CONFIG_KEY = "Whole Config";
 
     private final static Logger logger = LoggerFactory.getLogger(WholeConfigDifferentiator.class);
 
-    public static final String WHOLE_CONFIG_KEY = "Whole Config";
-
-    volatile ConfigurationFileHolder configurationFileHolder;
-
-    boolean compareInputStreamToConfigFile(InputStream inputStream) throws IOException {
-        logger.debug("Checking if change is different");
-        AtomicReference<ByteBuffer> currentConfigFileReference = configurationFileHolder.getConfigFileReference();
-        ByteBuffer currentConfigFile = currentConfigFileReference.get();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(currentConfigFile.limit());
-        DataInputStream dataInputStream = new DataInputStream(inputStream);
-        try {
-            dataInputStream.readFully(byteBuffer.array());
-        } catch (EOFException e) {
-            logger.debug("New config is shorter than the current. Must be different.");
-            return true;
-        }
-        logger.debug("Read the input");
-
-        if (dataInputStream.available() != 0) {
-            return true;
-        } else {
-            return byteBuffer.compareTo(currentConfigFile) != 0;
-        }
-    }
+    protected volatile ConfigurationFileHolder configurationFileHolder;
 
     public void initialize(ConfigurationFileHolder configurationFileHolder) {
         this.configurationFileHolder = configurationFileHolder;
     }
 
-
-    public static class InputStreamInput extends WholeConfigDifferentiator implements Differentiator<InputStream> {
-        public boolean isNew(InputStream inputStream) throws IOException {
-            return compareInputStreamToConfigFile(inputStream);
+    public static class ByteBufferInputDifferentiator extends WholeConfigDifferentiator implements Differentiator<ByteBuffer> {
+        public boolean isNew(ByteBuffer newFlowConfig) {
+            AtomicReference<ByteBuffer> currentFlowConfigReference = configurationFileHolder.getConfigFileReference();
+            ByteBuffer currentFlowConfig = currentFlowConfigReference.get();
+            boolean compareResult = ofNullable(currentFlowConfig)
+                .map(newFlowConfig::compareTo)
+                .map(result -> result != 0)
+                .orElse(Boolean.TRUE);
+            logger.debug("New flow is different from existing flow: {}", compareResult);
+            return compareResult;
         }
-    }
-
-    public static class ByteBufferInput extends WholeConfigDifferentiator implements Differentiator<ByteBuffer> {
-        public boolean isNew(ByteBuffer inputBuffer) {
-            AtomicReference<ByteBuffer> currentConfigFileReference = configurationFileHolder.getConfigFileReference();
-            ByteBuffer currentConfigFile = currentConfigFileReference.get();
-            return inputBuffer.compareTo(currentConfigFile) != 0;
-        }
-    }
-
-
-    public static Differentiator<InputStream> getInputStreamDifferentiator() {
-        return new InputStreamInput();
     }
 
     public static Differentiator<ByteBuffer> getByteBufferDifferentiator() {
-        return new ByteBufferInput();
+        return new ByteBufferInputDifferentiator();
     }
 }

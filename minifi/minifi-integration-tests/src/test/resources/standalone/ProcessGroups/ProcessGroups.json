@@ -1,0 +1,375 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 1,
+  "maxEventDrivenThreadCount": 1,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "templates": [],
+  "rootGroup": {
+    "identifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+    "instanceIdentifier": "Root-Group",
+    "name": "pgtest",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [
+      {
+        "identifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+        "instanceIdentifier": "e25cbc20-0157-1000-0000-000000000000",
+        "name": "black box",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [
+          {
+            "identifier": "0d2d66fb-2b9b-320d-ba49-ae0603f6ff48",
+            "instanceIdentifier": "e25d2588-0157-1000-0000-000000000000",
+            "name": "LogAttribute",
+            "comments": "",
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "type": "org.apache.nifi.processors.standard.LogAttribute",
+            "bundle": {
+              "group": "org.apache.nifi.minifi",
+              "artifact": "minifi-standard-nar",
+              "version": "2.0.0-SNAPSHOT"
+            },
+            "properties": {
+              "Log prefix": "INSIDE",
+              "character-set": "UTF-8",
+              "Log FlowFile Properties": "true",
+              "Log Level": "info",
+              "attributes-to-log-regex": ".*",
+              "Output Format": "Line per Attribute",
+              "Log Payload": "false"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "RUNNING",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf"
+          }
+        ],
+        "inputPorts": [
+          {
+            "identifier": "e69c6857-2cee-3d4d-b786-48659a1b2978",
+            "instanceIdentifier": "e25d0cef-0157-1000-0000-000000000000",
+            "name": "input",
+            "comments": "",
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "type": "INPUT_PORT",
+            "concurrentlySchedulableTaskCount": 1,
+            "scheduledState": "RUNNING",
+            "allowRemoteAccess": false,
+            "componentType": "INPUT_PORT",
+            "groupIdentifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf"
+          }
+        ],
+        "outputPorts": [
+          {
+            "identifier": "f917854a-2f09-3056-9124-149a36699f74",
+            "instanceIdentifier": "e25d578c-0157-1000-0000-000000000000",
+            "name": "output",
+            "comments": "",
+            "position": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "type": "OUTPUT_PORT",
+            "concurrentlySchedulableTaskCount": 1,
+            "scheduledState": "RUNNING",
+            "allowRemoteAccess": false,
+            "componentType": "OUTPUT_PORT",
+            "groupIdentifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf"
+          }
+        ],
+        "connections": [
+          {
+            "identifier": "837f3cfd-b52a-3dda-a61a-a3c079b1ece8",
+            "instanceIdentifier": "e25d6bd6-0157-1000-0000-000000000000",
+            "name": "LogAttribute/success/output",
+            "source": {
+              "id": "0d2d66fb-2b9b-320d-ba49-ae0603f6ff48",
+              "type": "PROCESSOR",
+              "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+              "name": "LogAttribute",
+              "comments": "",
+              "instanceIdentifier": "e25d2588-0157-1000-0000-000000000000"
+            },
+            "destination": {
+              "id": "f917854a-2f09-3056-9124-149a36699f74",
+              "type": "OUTPUT_PORT",
+              "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+              "name": "output",
+              "comments": "",
+              "instanceIdentifier": "e25d578c-0157-1000-0000-000000000000"
+            },
+            "labelIndex": 1,
+            "zIndex": 0,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf"
+          },
+          {
+            "identifier": "ebeab073-928b-34bd-9e52-756ed0145973",
+            "instanceIdentifier": "e25d35dc-0157-1000-0000-000000000000",
+            "name": "input//LogAttribute",
+            "source": {
+              "id": "e69c6857-2cee-3d4d-b786-48659a1b2978",
+              "type": "INPUT_PORT",
+              "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+              "name": "input",
+              "comments": "",
+              "instanceIdentifier": "e25d0cef-0157-1000-0000-000000000000"
+            },
+            "destination": {
+              "id": "0d2d66fb-2b9b-320d-ba49-ae0603f6ff48",
+              "type": "PROCESSOR",
+              "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+              "name": "LogAttribute",
+              "comments": "",
+              "instanceIdentifier": "e25d2588-0157-1000-0000-000000000000"
+            },
+            "labelIndex": 1,
+            "zIndex": 0,
+            "selectedRelationships": [
+              ""
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "a1a9c843-c00d-3205-854f-55aa3a78d6cf"
+          }
+        ],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [],
+        "variables": {},
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "componentType": "PROCESS_GROUP",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "95b83270-c063-32ed-9cb7-e154dedfc5b2",
+        "instanceIdentifier": "e25cd92a-0157-1000-0000-000000000000",
+        "name": "GenerateFlowFile",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "File Size": "1 b",
+          "Batch Size": "1",
+          "Unique FlowFiles": "false",
+          "Data Format": "Binary"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "b2b62017-d96e-3804-a64c-e90473b7d748",
+        "instanceIdentifier": "e25e0e6e-0157-1000-0000-000000000000",
+        "name": "LogAttribute",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Log prefix": "OUTSIDE",
+          "character-set": "UTF-8",
+          "Log FlowFile Properties": "true",
+          "Log Level": "info",
+          "attributes-to-log-regex": ".*",
+          "Output Format": "Line per Attribute",
+          "Log Payload": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+      {
+        "identifier": "1680023b-c94e-3ce8-b6db-a61fc4726af2",
+        "instanceIdentifier": "e25dbff3-0157-1000-0000-000000000000",
+        "name": "GenerateFlowFile/success/input",
+        "source": {
+          "id": "95b83270-c063-32ed-9cb7-e154dedfc5b2",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GenerateFlowFile",
+          "comments": "",
+          "instanceIdentifier": "e25cd92a-0157-1000-0000-000000000000"
+        },
+        "destination": {
+          "id": "e69c6857-2cee-3d4d-b786-48659a1b2978",
+          "type": "INPUT_PORT",
+          "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+          "name": "input",
+          "comments": "",
+          "instanceIdentifier": "e25d0cef-0157-1000-0000-000000000000"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "780119d8-eb9d-3116-b2ba-0e0dacae123f",
+        "instanceIdentifier": "e25e22b1-0157-1000-0000-000000000000",
+        "name": "output//LogAttribute",
+        "source": {
+          "id": "f917854a-2f09-3056-9124-149a36699f74",
+          "type": "OUTPUT_PORT",
+          "groupId": "a1a9c843-c00d-3205-854f-55aa3a78d6cf",
+          "name": "output",
+          "comments": "",
+          "instanceIdentifier": "e25d578c-0157-1000-0000-000000000000"
+        },
+        "destination": {
+          "id": "b2b62017-d96e-3804-a64c-e90473b7d748",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "LogAttribute",
+          "comments": "",
+          "instanceIdentifier": "e25e0e6e-0157-1000-0000-000000000000"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          ""
+        ],
+        "backPressureObjectThreshold": 10000,
+        "backPressureDataSizeThreshold": "1 GB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "componentType": "PROCESS_GROUP",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  }
+}

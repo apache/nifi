@@ -1,0 +1,920 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 1,
+  "maxEventDrivenThreadCount": 1,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "templates": [],
+  "rootGroup": {
+    "identifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+    "instanceIdentifier": "Root-Group",
+    "name": "DecompressionCircularFlow2",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+        "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9",
+        "name": "Uncompress GZIP",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.CompressContent",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Compression Format": "gzip",
+          "Mode": "decompress",
+          "Compression Level": "1",
+          "Update Filename": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "3288c07e-9b07-3186-a980-88f98b987bb1",
+        "instanceIdentifier": "a0d668cb-5768-31e3-929f-f508706298f9",
+        "name": "IdentifyMimeType",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.IdentifyMimeType",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "use-filename-in-detection": "true"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "b2c7272c-b5dc-3f23-b956-7aa9ea5397d8",
+        "instanceIdentifier": "119d2969-17e4-34e5-a280-f851ea59cf90",
+        "name": "GZIP CompressContent2",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.CompressContent",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Compression Format": "gzip",
+          "Mode": "compress",
+          "Compression Level": "1",
+          "Update Filename": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "6a95ee4f-164f-31ba-84fb-7e53df2971bd",
+        "instanceIdentifier": "59198b81-12fc-374f-bead-7fcd1d5d4823",
+        "name": "LogAttribute",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.LogAttribute",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "Log FlowFile Properties": "true",
+          "Log Level": "info",
+          "attributes-to-log-regex": ".*",
+          "Output Format": "Line per Attribute",
+          "Log Payload": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [
+          "success"
+        ],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "7b18e7a8-2208-3922-a256-a6f3581e5928",
+        "instanceIdentifier": "8091b00c-5185-3b31-b096-82b8e301e0ab",
+        "name": "GenerateFlowFile",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "character-set": "UTF-8",
+          "File Size": "10kb",
+          "Batch Size": "1",
+          "Unique FlowFiles": "false",
+          "Data Format": "Text"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "1 min",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "4aac7713-3c10-30ea-a2ad-9caa4a1f0365",
+        "instanceIdentifier": "b44f06a7-ef15-36bc-817f-c127cfdcac39",
+        "name": "GZIP CompressContent3",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.CompressContent",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Compression Format": "gzip",
+          "Mode": "compress",
+          "Compression Level": "1",
+          "Update Filename": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "9cb6c6ae-d94e-31ac-8e68-4a0aecbcbbc2",
+        "instanceIdentifier": "0a6771cc-4527-31bb-8404-e776167bf1ed",
+        "name": "GZIP CompressContent",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.CompressContent",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Compression Format": "gzip",
+          "Mode": "compress",
+          "Compression Level": "1",
+          "Update Filename": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "0596dae5-c840-3ef7-8dda-f65fa558b7eb",
+        "instanceIdentifier": "96d681db-c086-38bf-8cb3-d57aa43f9e6e",
+        "name": "Compressed?",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Routing Strategy": "Route to Property name",
+          "gzip": "${mime.type:toUpper():contains(\"GZIP\")}"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "6be5b72f-148e-3187-a079-6538cfabbe76",
+        "instanceIdentifier": "0666040b-9f34-3a69-ac62-6d4e3c01ee3f",
+        "name": "GZIP CompressContent4",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.processors.standard.CompressContent",
+        "bundle": {
+          "group": "org.apache.nifi.minifi",
+          "artifact": "minifi-standard-nar",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "properties": {
+          "Compression Format": "gzip",
+          "Mode": "compress",
+          "Compression Level": "1",
+          "Update Filename": "false"
+        },
+        "propertyDescriptors": {},
+        "style": {},
+        "schedulingPeriod": "0 sec",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": [],
+        "scheduledState": "RUNNING",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [
+      {
+        "identifier": "4c1e5e72-cd01-3b59-8e3b-8c78f731a468",
+        "instanceIdentifier": "69b4106e-7e12-339a-947a-bf7ff19bae2f",
+        "name": "GZIP CompressContent4/success/Uncompress GZIP",
+        "source": {
+          "id": "6be5b72f-148e-3187-a079-6538cfabbe76",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent4",
+          "comments": "",
+          "instanceIdentifier": "0666040b-9f34-3a69-ac62-6d4e3c01ee3f"
+        },
+        "destination": {
+          "id": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Uncompress GZIP",
+          "comments": "",
+          "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "066e2e5d-610e-3d71-af68-08838840a3a2",
+        "instanceIdentifier": "5bad6b73-313d-32e9-9ac8-bc6550afbea2",
+        "name": "GZIP CompressContent3/success/GZIP CompressContent4",
+        "source": {
+          "id": "4aac7713-3c10-30ea-a2ad-9caa4a1f0365",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent3",
+          "comments": "",
+          "instanceIdentifier": "b44f06a7-ef15-36bc-817f-c127cfdcac39"
+        },
+        "destination": {
+          "id": "6be5b72f-148e-3187-a079-6538cfabbe76",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent4",
+          "comments": "",
+          "instanceIdentifier": "0666040b-9f34-3a69-ac62-6d4e3c01ee3f"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "f9315b47-d93e-3ab6-aec1-3be494746c6e",
+        "instanceIdentifier": "0965e6d0-573d-3ea2-bdaa-76a64690fe00",
+        "name": "GZIP CompressContent/success/GZIP CompressContent2",
+        "source": {
+          "id": "9cb6c6ae-d94e-31ac-8e68-4a0aecbcbbc2",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent",
+          "comments": "",
+          "instanceIdentifier": "0a6771cc-4527-31bb-8404-e776167bf1ed"
+        },
+        "destination": {
+          "id": "b2c7272c-b5dc-3f23-b956-7aa9ea5397d8",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent2",
+          "comments": "",
+          "instanceIdentifier": "119d2969-17e4-34e5-a280-f851ea59cf90"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "baa96fe3-5d32-3f0c-aa06-0c421da669e8",
+        "instanceIdentifier": "bdb25d97-7a33-38b2-8aef-eddd9fff4bb2",
+        "name": "GZIP CompressContent2/success/GZIP CompressContent3",
+        "source": {
+          "id": "b2c7272c-b5dc-3f23-b956-7aa9ea5397d8",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent2",
+          "comments": "",
+          "instanceIdentifier": "119d2969-17e4-34e5-a280-f851ea59cf90"
+        },
+        "destination": {
+          "id": "4aac7713-3c10-30ea-a2ad-9caa4a1f0365",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent3",
+          "comments": "",
+          "instanceIdentifier": "b44f06a7-ef15-36bc-817f-c127cfdcac39"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "802f7401-3eb9-3f08-87b2-42a6baf453e6",
+        "instanceIdentifier": "006766ee-6e19-3900-a7e2-10510b53fdbe",
+        "name": "Uncompress GZIP/failure/Uncompress GZIP",
+        "source": {
+          "id": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Uncompress GZIP",
+          "comments": "",
+          "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9"
+        },
+        "destination": {
+          "id": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Uncompress GZIP",
+          "comments": "",
+          "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "5 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "af0e236e-349e-3dc3-b469-4a7e36f802f0",
+        "instanceIdentifier": "64ab5f49-c799-377d-a62c-c29a29b969ca",
+        "name": "Compressed?/unmatched/LogAttribute",
+        "source": {
+          "id": "0596dae5-c840-3ef7-8dda-f65fa558b7eb",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Compressed?",
+          "comments": "",
+          "instanceIdentifier": "96d681db-c086-38bf-8cb3-d57aa43f9e6e"
+        },
+        "destination": {
+          "id": "6a95ee4f-164f-31ba-84fb-7e53df2971bd",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "LogAttribute",
+          "comments": "",
+          "instanceIdentifier": "59198b81-12fc-374f-bead-7fcd1d5d4823"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "unmatched"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "fa6697a0-61ef-37b9-be5f-d2ccfd204a35",
+        "instanceIdentifier": "0dd0a085-9201-329f-b3ae-002133e0a362",
+        "name": "GZIP CompressContent3/failure/GZIP CompressContent3",
+        "source": {
+          "id": "4aac7713-3c10-30ea-a2ad-9caa4a1f0365",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent3",
+          "comments": "",
+          "instanceIdentifier": "b44f06a7-ef15-36bc-817f-c127cfdcac39"
+        },
+        "destination": {
+          "id": "4aac7713-3c10-30ea-a2ad-9caa4a1f0365",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent3",
+          "comments": "",
+          "instanceIdentifier": "b44f06a7-ef15-36bc-817f-c127cfdcac39"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "4add8353-0eb7-33d1-abdf-ec01b0e97de2",
+        "instanceIdentifier": "2a9a3202-abba-3466-9371-049d28c0e0e0",
+        "name": "GZIP CompressContent2/failure/GZIP CompressContent2",
+        "source": {
+          "id": "b2c7272c-b5dc-3f23-b956-7aa9ea5397d8",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent2",
+          "comments": "",
+          "instanceIdentifier": "119d2969-17e4-34e5-a280-f851ea59cf90"
+        },
+        "destination": {
+          "id": "b2c7272c-b5dc-3f23-b956-7aa9ea5397d8",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent2",
+          "comments": "",
+          "instanceIdentifier": "119d2969-17e4-34e5-a280-f851ea59cf90"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "65b19815-61e5-344a-8fa0-c45d869f08b6",
+        "instanceIdentifier": "1acbf4fc-87b6-3479-8aa6-18b21df3ef66",
+        "name": "Uncompress GZIP/success/IdentifyMimeType",
+        "source": {
+          "id": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Uncompress GZIP",
+          "comments": "",
+          "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9"
+        },
+        "destination": {
+          "id": "3288c07e-9b07-3186-a980-88f98b987bb1",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "IdentifyMimeType",
+          "comments": "",
+          "instanceIdentifier": "a0d668cb-5768-31e3-929f-f508706298f9"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "b4693de6-71ee-3d01-a4cc-b13fa365dbd4",
+        "instanceIdentifier": "518df694-89e8-326a-8df7-7498e66aa0dd",
+        "name": "Compressed?/gzip/Uncompress GZIP",
+        "source": {
+          "id": "0596dae5-c840-3ef7-8dda-f65fa558b7eb",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Compressed?",
+          "comments": "",
+          "instanceIdentifier": "96d681db-c086-38bf-8cb3-d57aa43f9e6e"
+        },
+        "destination": {
+          "id": "53e6b983-8ed5-369e-8d1a-5b768286b396",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Uncompress GZIP",
+          "comments": "",
+          "instanceIdentifier": "87d03875-3fed-321a-8098-84ef62a7c1a9"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "gzip"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "eafabc7b-ab9e-3b8b-81f3-8a76ef572a2b",
+        "instanceIdentifier": "29ce834f-5e46-3a24-939d-dfa8fe59a907",
+        "name": "GZIP CompressContent/failure/GZIP CompressContent",
+        "source": {
+          "id": "9cb6c6ae-d94e-31ac-8e68-4a0aecbcbbc2",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent",
+          "comments": "",
+          "instanceIdentifier": "0a6771cc-4527-31bb-8404-e776167bf1ed"
+        },
+        "destination": {
+          "id": "9cb6c6ae-d94e-31ac-8e68-4a0aecbcbbc2",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent",
+          "comments": "",
+          "instanceIdentifier": "0a6771cc-4527-31bb-8404-e776167bf1ed"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "9e40e649-7184-3956-9361-81d9e32c4b36",
+        "instanceIdentifier": "d8d8f381-5d01-31e1-b41c-0352236ea273",
+        "name": "IdentifyMimeType/success/Compressed?",
+        "source": {
+          "id": "3288c07e-9b07-3186-a980-88f98b987bb1",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "IdentifyMimeType",
+          "comments": "",
+          "instanceIdentifier": "a0d668cb-5768-31e3-929f-f508706298f9"
+        },
+        "destination": {
+          "id": "0596dae5-c840-3ef7-8dda-f65fa558b7eb",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "Compressed?",
+          "comments": "",
+          "instanceIdentifier": "96d681db-c086-38bf-8cb3-d57aa43f9e6e"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "a6fa16bc-eeff-3d8c-88d8-455c024207a2",
+        "instanceIdentifier": "6047ab4f-f000-39b7-add9-b2a2e6879bbf",
+        "name": "GZIP CompressContent4/failure/GZIP CompressContent4",
+        "source": {
+          "id": "6be5b72f-148e-3187-a079-6538cfabbe76",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent4",
+          "comments": "",
+          "instanceIdentifier": "0666040b-9f34-3a69-ac62-6d4e3c01ee3f"
+        },
+        "destination": {
+          "id": "6be5b72f-148e-3187-a079-6538cfabbe76",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent4",
+          "comments": "",
+          "instanceIdentifier": "0666040b-9f34-3a69-ac62-6d4e3c01ee3f"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "failure"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      },
+      {
+        "identifier": "73ec2fef-9296-309c-9172-b73154996077",
+        "instanceIdentifier": "80138a3f-a53e-3288-93e3-5263a4a31bf2",
+        "name": "GenerateFlowFile/success/GZIP CompressContent",
+        "source": {
+          "id": "7b18e7a8-2208-3922-a256-a6f3581e5928",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GenerateFlowFile",
+          "comments": "",
+          "instanceIdentifier": "8091b00c-5185-3b31-b096-82b8e301e0ab"
+        },
+        "destination": {
+          "id": "9cb6c6ae-d94e-31ac-8e68-4a0aecbcbbc2",
+          "type": "PROCESSOR",
+          "groupId": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6",
+          "name": "GZIP CompressContent",
+          "comments": "",
+          "instanceIdentifier": "0a6771cc-4527-31bb-8404-e776167bf1ed"
+        },
+        "labelIndex": 1,
+        "zIndex": 0,
+        "selectedRelationships": [
+          "success"
+        ],
+        "backPressureObjectThreshold": 0,
+        "backPressureDataSizeThreshold": "0 MB",
+        "flowFileExpiration": "0 sec",
+        "prioritizers": [
+          "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer"
+        ],
+        "bends": [],
+        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+        "loadBalanceCompression": "DO_NOT_COMPRESS",
+        "componentType": "CONNECTION",
+        "groupIdentifier": "f4cd72f7-b235-394b-928a-ffb0e7cf2db6"
+      }
+    ],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "variables": {},
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "componentType": "PROCESS_GROUP",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  }
+}

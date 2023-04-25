@@ -94,14 +94,6 @@ public class BootstrapFileProvider {
         return reloadFile;
     }
 
-    public File getConfigYmlSwapFile() {
-        File confDir = bootstrapConfigFile.getParentFile();
-        File swapFile = new File(confDir, "swap.yml");
-
-        LOGGER.debug("Swap File: {}", swapFile);
-        return swapFile;
-    }
-
     public File getBootstrapConfSwapFile() {
         File confDir = bootstrapConfigFile.getParentFile();
         File swapFile = new File(confDir, "bootstrap-swap.conf");

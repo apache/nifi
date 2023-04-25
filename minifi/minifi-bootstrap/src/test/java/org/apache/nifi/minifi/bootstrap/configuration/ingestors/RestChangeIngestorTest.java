@@ -20,18 +20,16 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
-
-import java.net.MalformedURLException;
-import java.util.Properties;
 
 public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 

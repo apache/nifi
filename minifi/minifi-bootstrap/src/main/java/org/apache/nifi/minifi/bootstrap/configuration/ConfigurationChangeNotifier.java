@@ -19,11 +19,11 @@ package org.apache.nifi.minifi.bootstrap.configuration;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.Set;
 
 public interface ConfigurationChangeNotifier {
 
-    Set<ConfigurationChangeListener> getChangeListeners();
-
-    Collection<ListenerHandleResult> notifyListeners(ByteBuffer is);
+    /**
+     * Provides the mechanism by which listeners are notified
+     */
+    Collection<ListenerHandleResult> notifyListeners(ByteBuffer newFlowConfig);
 }

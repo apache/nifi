@@ -32,7 +32,7 @@
                 <bean class="org.apache.nifi.minifi.c2.provider.cache.CacheConfigurationProvider">
                     <constructor-arg>
                         <list>
-                            <value>text/yml</value>
+                            <value>application/json</value>
                         </list>
                     </constructor-arg>
                     <constructor-arg>
