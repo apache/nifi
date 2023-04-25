@@ -21,13 +21,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.nifi.components.state.Scope
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.processors.elasticsearch.api.AggregationResultsFormat
-import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy
+import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat
 import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.Test
+
+import java.util.stream.Collectors
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
@@ -95,9 +97,12 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, "not-enum2")
         runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "not-boolean")
 
+        final String nonPaginatedResultOutputStrategies = ResultOutputStrategy.getNonPaginatedResponseOutputStrategies()
+                .stream().map(r -> r.getValue())
+                .collect(Collectors.joining(", "))
         final String expectedAllowedSplitHits = processor instanceof AbstractPaginatedJsonQueryElasticsearch
             ? ResultOutputStrategy.values().collect {r -> r.getValue()}.join(", ")
-            : [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", ")
+            : nonPaginatedResultOutputStrategies
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 8 validation failures:\n" +
@@ -115,7 +120,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 AbstractJsonQueryElasticsearch.TYPE.getName(), AbstractJsonQueryElasticsearch.TYPE.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName(),
                 AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.getName(), expectedAllowedSplitHits,
-                AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), [ResultOutputStrategy.PER_RESPONSE.getValue(), ResultOutputStrategy.PER_HIT.getValue()].join(", "),
+                AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), nonPaginatedResultOutputStrategies,
                 AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName()
         )))

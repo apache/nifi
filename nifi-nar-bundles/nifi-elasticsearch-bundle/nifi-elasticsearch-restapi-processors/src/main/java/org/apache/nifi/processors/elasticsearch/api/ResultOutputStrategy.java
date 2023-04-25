@@ -20,6 +20,7 @@ package org.apache.nifi.processors.elasticsearch.api;
 import org.apache.nifi.components.DescribedValue;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 
 public enum ResultOutputStrategy implements DescribedValue {
     PER_HIT("splitUp-yes", "Flowfile per hit."),
@@ -50,6 +51,10 @@ public enum ResultOutputStrategy implements DescribedValue {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    public static EnumSet<ResultOutputStrategy> getNonPaginatedResponseOutputStrategies() {
+        return EnumSet.of(PER_RESPONSE, PER_HIT);
     }
 
     public static ResultOutputStrategy fromValue(final String value) {
