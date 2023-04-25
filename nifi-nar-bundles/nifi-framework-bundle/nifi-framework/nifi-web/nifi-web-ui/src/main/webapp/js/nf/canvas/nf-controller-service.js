@@ -450,7 +450,7 @@
      * @param {array} bulletins
      */
     var updateReferencingComponentBulletins = function (bulletins) {
-        var bulletinsBySource = new Map(bulletins.map((d) => [d.sourceId, d]));
+        var bulletinsBySource = new Map(bulletins.map(function(d) { return [d.sourceId, d]; }));
 
         bulletinsBySource.forEach(function (sourceBulletins, sourceId) {
             $('div.' + sourceId + '-bulletins').each(function () {

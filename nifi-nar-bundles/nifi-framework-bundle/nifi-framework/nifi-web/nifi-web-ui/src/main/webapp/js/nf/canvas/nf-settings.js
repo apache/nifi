@@ -3069,7 +3069,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
-                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map((d) => [d.sourceId, d]));
+                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
 
                 reportingTaskBulletinsBySource.each(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);

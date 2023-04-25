@@ -1452,7 +1452,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(controllerServiceBulletins)) {
-                var controllerServiceBulletinsBySource = new Map(controllerServiceBulletins.map((d) => [d.sourceId, d]));
+                var controllerServiceBulletinsBySource = new Map(controllerServiceBulletins.map(function(d) { return [d.sourceId, d]; }));
 
                 controllerServiceBulletinsBySource.forEach(function(sourceBulletins, sourceId) {
                     var controllerService = controllerServicesData.getItemById(sourceId);
