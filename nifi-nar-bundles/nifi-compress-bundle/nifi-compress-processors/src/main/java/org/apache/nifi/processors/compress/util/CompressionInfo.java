@@ -21,23 +21,21 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum CompressionInfo implements DescribedValue {
 
-    DECOMPRESSION_FORMAT_NONE("no decompression", "no decompression", "Do not decompress the input content", ""),
-    COMPRESSION_FORMAT_NONE("no compression", "no compression", "Do not compress the output content", ""),
-    COMPRESSION_FORMAT_ATTRIBUTE("use mime.type attribute", "use mime.type attribute", "TBD", ""),
-    COMPRESSION_FORMAT_GZIP("gzip", "gzip", "TBD", ".gz","application/gzip", "application/x-gzip"),
-    COMPRESSION_FORMAT_DEFLATE("deflate", "deflate", "TBD", ".zlib","application/deflate", "application/x-deflate"),
-    COMPRESSION_FORMAT_BZIP2("bzip2", "bzip2", "TBD", ".bz2","application/x-bzip2", "application/bzip2"),
-    COMPRESSION_FORMAT_XZ_LZMA2("xz-lzma2", "xz-lzma2", "TBD", ".xz","application/x-lzma"),
-    COMPRESSION_FORMAT_LZMA("lzma", "lzma", "TBD", ".lzma","application/x-lzma"),
-    COMPRESSION_FORMAT_SNAPPY("snappy", "snappy", "TBD", ".snappy","application/x-snappy"),
-    COMPRESSION_FORMAT_SNAPPY_HADOOP("snappy-hadoop", "snappy-hadoop", "TBD", ".snappy","application/x-snappy-hadoop"),
-    COMPRESSION_FORMAT_SNAPPY_FRAMED("snappy framed", "snappy framed", "TBD", ".sz","application/x-snappy-framed"),
-    COMPRESSION_FORMAT_LZ4_FRAMED("lz4-framed", "lz4-framed", "TBD", ".lz4","application/x-lz4-framed"),
-    COMPRESSION_FORMAT_ZSTD("zstd", "zstd", "TBD", ".zst","application/zstd"),
-    COMPRESSION_FORMAT_BROTLI("brotli", "brotli", "TBD", ".br","application/x-brotli");
+    DECOMPRESSION_FORMAT_NONE("no decompression", "Do not decompress the input content", ""),
+    COMPRESSION_FORMAT_NONE("no compression", "Do not compress the output content", ""),
+    COMPRESSION_FORMAT_ATTRIBUTE("use mime.type attribute", "Use the 'mime.type' attribute from the incoming FlowFile to determine the value", ""),
+    COMPRESSION_FORMAT_GZIP("gzip", "GZIP", ".gz","application/gzip", "application/x-gzip"),
+    COMPRESSION_FORMAT_DEFLATE("deflate", "Deflate", ".zlib","application/deflate", "application/x-deflate"),
+    COMPRESSION_FORMAT_BZIP2("bzip2", "BZIP2", ".bz2","application/x-bzip2", "application/bzip2"),
+    COMPRESSION_FORMAT_XZ_LZMA2("xz-lzma2", "XZ-LZMA2", ".xz","application/x-lzma"),
+    COMPRESSION_FORMAT_LZMA("lzma", "LZMA", ".lzma","application/x-lzma"),
+    COMPRESSION_FORMAT_SNAPPY("snappy", "Snappy", ".snappy","application/x-snappy"),
+    COMPRESSION_FORMAT_SNAPPY_HADOOP("snappy-hadoop", "Snappy-Hadoop", ".snappy","application/x-snappy-hadoop"),
+    COMPRESSION_FORMAT_SNAPPY_FRAMED("snappy framed", "Snappy-Framed", ".sz","application/x-snappy-framed"),
+    COMPRESSION_FORMAT_LZ4_FRAMED("lz4-framed", "LZ4", ".lz4","application/x-lz4-framed"),
+    COMPRESSION_FORMAT_ZSTD("zstd", "ZSTD", ".zst","application/zstd"),
+    COMPRESSION_FORMAT_BROTLI("brotli", "Brotli", ".br","application/x-brotli");
 
-
-    private final String displayName;
     private final String description;
     private final String value;
     private final String fileExtension;
@@ -52,8 +50,7 @@ public enum CompressionInfo implements DescribedValue {
         return null;
     }
 
-    CompressionInfo(final String displayName, final String value, final String description, final String fileExtension, final String... mimeTypes) {
-        this.displayName = displayName;
+    CompressionInfo(final String value, final String description, final String fileExtension, final String... mimeTypes) {
         this.value = value;
         this.description = description;
         this.fileExtension = fileExtension;
@@ -67,7 +64,7 @@ public enum CompressionInfo implements DescribedValue {
 
     @Override
     public String getDisplayName() {
-        return displayName;
+        return value;
     }
 
     @Override
@@ -84,6 +81,6 @@ public enum CompressionInfo implements DescribedValue {
     }
 
     public AllowableValue asAllowableValue() {
-        return new AllowableValue(value, displayName, description);
+        return new AllowableValue(value, value, description);
     }
 }

@@ -47,7 +47,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.compress.util.CompressionInfo;
@@ -55,6 +54,7 @@ import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.tukaani.xz.LZMA2Options;
 import org.tukaani.xz.XZInputStream;
 import org.tukaani.xz.XZOutputStream;
@@ -88,8 +88,7 @@ import java.util.zip.InflaterInputStream;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"content", "compress", "recompress", "gzip", "bzip2", "lzma", "xz-lzma2", "snappy", "snappy-hadoop", "snappy framed", "lz4-framed", "deflate", "zstd", "brotli"})
 @CapabilityDescription("Decompresses the contents of FlowFiles using a user-specified compression algorithm and recompresses the contents using the specified compression format properties. "
-        + "Also updates the mime.type attribute as appropriate. This processor operates in a very memory efficient way so very large objects well beyond the heap size "
-        + "are generally fine to process")
+        + "This processor operates in a very memory efficient way so very large objects well beyond the heap size are generally fine to process")
 @ReadsAttribute(attribute = "mime.type", description = "If the Decompression Format is set to 'use mime.type attribute', this attribute is used to "
         + "determine the decompression type. Otherwise, this attribute is ignored.")
 @WritesAttribute(attribute = "mime.type", description = "The appropriate MIME Type is set based on the value of the Compression Format property. If the Compression Format is 'no compression' this "
@@ -174,23 +173,22 @@ public class ModifyCompression extends AbstractProcessor {
             .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
             .build();
 
-    private List<PropertyDescriptor> properties;
-    private Set<Relationship> relationships;
-    private Map<String, String> compressionFormatMimeTypeMap;
+    private static final List<PropertyDescriptor> properties;
+    private static final Set<Relationship> relationships;
+    private static final Map<String, String> compressionFormatMimeTypeMap;
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(INPUT_COMPRESSION);
-        properties.add(OUTPUT_COMPRESSION);
-        properties.add(COMPRESSION_LEVEL);
-        properties.add(UPDATE_FILENAME);
-        this.properties = Collections.unmodifiableList(properties);
+    static {
+        final List<PropertyDescriptor> propertiesList = new ArrayList<>();
+        propertiesList.add(INPUT_COMPRESSION);
+        propertiesList.add(OUTPUT_COMPRESSION);
+        propertiesList.add(COMPRESSION_LEVEL);
+        propertiesList.add(UPDATE_FILENAME);
+        properties = Collections.unmodifiableList(propertiesList);
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final Set<Relationship> relationshipsSet = new HashSet<>();
+        relationshipsSet.add(REL_SUCCESS);
+        relationshipsSet.add(REL_FAILURE);
+        relationships = Collections.unmodifiableSet(relationshipsSet);
 
         final Map<String, String> mimeTypeMap = new HashMap<>();
         for(CompressionInfo compressionInfo : CompressionInfo.values()) {
@@ -203,7 +201,7 @@ public class ModifyCompression extends AbstractProcessor {
             }
         }
 
-        this.compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
+        compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
     }
 
     @Override
@@ -294,11 +292,13 @@ public class ModifyCompression extends AbstractProcessor {
                     compressionOut = getCompressionOutputStream(compressionFormat, compressionLevel, mimeTypeRef, bufferedOut);
 
                 } catch (final Exception e) {
-                    closeQuietly(bufferedOut);
-                    throw new IOException(e);
+                    FileUtils.closeQuietly(bufferedOut);
+                    throw new IOException("Error closing the compression stream(s)", e);
                 }
 
                 StreamUtils.copy(compressionIn, compressionOut);
+                compressionIn.close();
+                compressionOut.close();
             });
             stopWatch.stop();
 
