@@ -265,9 +265,15 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestClient salesforceRestService;
+    private volatile boolean resetState = false;
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
+        if (resetState) {
+            clearState(context);
+            resetState = false;
+        }
+
         salesForceToRecordSchemaConverter = new SalesforceToRecordSchemaConverter(
                 DATE_FORMAT,
                 DATE_TIME_FORMAT,
@@ -323,6 +329,22 @@ public class QuerySalesforceObject extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         return SalesforceAgeValidator.validate(validationContext, results);
+    }
+
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if ((oldValue != null && !oldValue.equals(newValue))
+                && (descriptor.equals(SALESFORCE_INSTANCE_URL)
+                || descriptor.equals(QUERY_TYPE)
+                || descriptor.equals(SOBJECT_NAME)
+                || descriptor.equals(AGE_FIELD)
+                || descriptor.equals(INITIAL_AGE_FILTER)
+                || descriptor.equals(CUSTOM_WHERE_CONDITION))
+        ) {
+            getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
+                    descriptor.getDisplayName(), oldValue, newValue);
+            resetState = true;
+        }
     }
 
     @Override
@@ -593,6 +615,15 @@ public class QuerySalesforceObject extends AbstractProcessor {
             session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Last Age Filter state update failed", e);
+        }
+    }
+
+    private void clearState(ProcessContext context) {
+        try {
+            getLogger().debug("Clearing state based on property modifications");
+            context.getStateManager().clear(Scope.CLUSTER);
+        } catch (final IOException e) {
+            getLogger().warn("Failed to clear state", e);
         }
     }
 
