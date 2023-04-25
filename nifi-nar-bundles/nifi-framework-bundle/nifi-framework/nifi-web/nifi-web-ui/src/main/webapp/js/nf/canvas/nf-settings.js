@@ -3069,11 +3069,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
-                var reportingTaskBulletinsBySource = d3.nest()
-                    .key(function (d) {
-                        return d.sourceId;
-                    })
-                    .map(reportingTaskBulletins, d3.map);
+                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
 
                 reportingTaskBulletinsBySource.each(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);
