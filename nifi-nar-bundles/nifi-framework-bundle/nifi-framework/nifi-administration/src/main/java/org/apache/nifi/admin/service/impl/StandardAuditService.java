@@ -47,8 +47,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class StandardAuditService implements AuditService {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardAuditService.class);
-
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final ReentrantReadWriteLock.ReadLock readLock = lock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = lock.writeLock();

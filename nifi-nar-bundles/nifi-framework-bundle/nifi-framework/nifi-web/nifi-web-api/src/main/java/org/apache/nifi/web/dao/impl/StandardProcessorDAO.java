@@ -55,8 +55,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.quartz.CronExpression;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URL;
 import java.text.ParseException;
@@ -73,7 +71,6 @@ import java.util.stream.Collectors;
 
 public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardProcessorDAO.class);
     private FlowController flowController;
     private ComponentStateDAO componentStateDAO;
 
