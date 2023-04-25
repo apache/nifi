@@ -47,10 +47,18 @@ After downloading the binary and extracting it, to run the MiNiFi Toolkit Conver
       java org.apache.nifi.minifi.toolkit.configuration.ConfigMain <command> options
 
       Valid commands include:
-      transform: Transform template xml into MiNiFi config YAML
-      validate: Validate config YAML
+      transform-yml: Transforms legacy MiNiFi flow config YAML into MiNiFi flow config JSON
 
-Note: Currently MiNiFi does not support external Input Ports or Output Ports. Any templates that contain these will fail transformation.
+## Example
+- You have an older version of MiNiFi located in <legacy_minifi_directory>.
+- You would like upgrade to the latest version of MiNiFi. You downloaded and extracted the latest MiNiFi into <latest_minifi_directory>.
+- Run the following command to migrate the flow and the bootstrap config
+```
+./config.sh transform-yml <legacy_minifi_directory>/conf/config.yml <legacy_minifi_directory>/conf/bootstrap.conf <latest_minifi_directory>/conf/flow.json.raw <latest_minifi_directory>/conf/bootstrap.conf
+```
+
+## Note
+It's not guaranteed in all circumstances that the migration will result in a correct flow. For example if a processor's configuration has changed between version, the conversion tool won't be aware of this, and will use the deprecated property names. You will need to fix such issues manually.
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

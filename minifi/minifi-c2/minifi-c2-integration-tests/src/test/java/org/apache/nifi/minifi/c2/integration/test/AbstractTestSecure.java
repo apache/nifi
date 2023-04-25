@@ -17,23 +17,11 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.DockerPort;
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.minifi.commons.schema.ConfigSchema;
-import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.KeystoreType;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
-import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
-import org.junit.jupiter.api.Test;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,9 +37,19 @@ import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
+import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractTestSecure extends AbstractTestUnsecure {
     public static final String C2_URL = "https://c2:10443/c2/config";
@@ -73,7 +71,7 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
 
     public static SSLContext initCertificates(Path certificatesDirectory, List<String> serverHostnames) throws Exception {
         List<String> toolkitCommandLine = new ArrayList<>(Arrays.asList("-O", "-o", certificatesDirectory.toFile().getAbsolutePath(),
-                "-C", "CN=user1", "-C", "CN=user2", "-C", "CN=user3", "-C", "CN=user4", "-S", "badKeystorePass", "-K", "badKeyPass", "-P", "badTrustPass"));
+            "-C", "CN=user1", "-C", "CN=user2", "-C", "CN=user3", "-C", "CN=user4", "-S", "badKeystorePass", "-K", "badKeyPass", "-P", "badTrustPass"));
         for (String serverHostname : serverHostnames) {
             toolkitCommandLine.add("-n");
             toolkitCommandLine.add(serverHostname);
@@ -95,8 +93,8 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
         trustManagerFactory.init(trustStore);
 
         TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(
-                null, null, null,
-                certificatesDirectory.resolve("c2").resolve("truststore.jks").toFile().getAbsolutePath(), "badTrustPass", KeystoreType.JKS);
+            null, null, null,
+            certificatesDirectory.resolve("c2").resolve("truststore.jks").toFile().getAbsolutePath(), "badTrustPass", KeystoreType.JKS);
 
 
         return SslContextFactory.createSslContext(tlsConfiguration);
@@ -115,8 +113,8 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
 
         assertReturnCode("", sslContext, 403);
 
-        ConfigSchema configSchema = assertReturnCode("?class=raspi2", sslContext, 200);
-        assertEquals("raspi2.v1", configSchema.getFlowControllerProperties().getName());
+        VersionedDataflow versionedDataflow = assertReturnCode("?class=raspi2", sslContext, 200);
+        assertEquals("raspi2.v1", versionedDataflow.getRootGroup().getName());
 
         assertReturnCode("?class=raspi3", sslContext, 403);
     }
@@ -128,8 +126,8 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
         assertReturnCode("", sslContext, 403);
         assertReturnCode("?class=raspi2", sslContext, 403);
 
-        ConfigSchema configSchema = assertReturnCode("?class=raspi3", sslContext, 200);
-        assertEquals("raspi3.v2", configSchema.getFlowControllerProperties().getName());
+        VersionedDataflow versionedDataflow = assertReturnCode("?class=raspi3", sslContext, 200);
+        assertEquals("raspi3.v2", versionedDataflow.getRootGroup().getName());
     }
 
     @Test
@@ -138,11 +136,11 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
 
         assertReturnCode("", sslContext, 400);
 
-        ConfigSchema configSchema = assertReturnCode("?class=raspi2", sslContext, 200);
-        assertEquals("raspi2.v1", configSchema.getFlowControllerProperties().getName());
+        VersionedDataflow dataflowRaspi2 = assertReturnCode("?class=raspi2", sslContext, 200);
+        assertEquals("raspi2.v1", dataflowRaspi2.getRootGroup().getName());
 
-        configSchema = assertReturnCode("?class=raspi3", sslContext, 200);
-        assertEquals("raspi3.v2", configSchema.getFlowControllerProperties().getName());
+        VersionedDataflow dataflowRaspi3 = assertReturnCode("?class=raspi3", sslContext, 200);
+        assertEquals("raspi3.v2", dataflowRaspi3.getRootGroup().getName());
     }
 
     @Test
@@ -169,22 +167,25 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
             keystorePasswd = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
         }
         TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(
-                directory.resolve("CN=" + username + ".p12").toFile().getAbsolutePath(),
-                keystorePasswd,
-                KeystoreType.PKCS12,
-                certificatesDirectory.resolve("c2").resolve("truststore.jks").toFile().getAbsolutePath(),
-                "badTrustPass",
-                KeystoreType.JKS);
+            directory.resolve("CN=" + username + ".p12").toFile().getAbsolutePath(),
+            keystorePasswd,
+            KeystoreType.PKCS12,
+            certificatesDirectory.resolve("c2").resolve("truststore.jks").toFile().getAbsolutePath(),
+            "badTrustPass",
+            KeystoreType.JKS);
 
         return SslContextFactory.createSslContext(tlsConfiguration);
     }
 
-    protected ConfigSchema assertReturnCode(String query, SSLContext sslContext, int expectedReturnCode) throws Exception {
+    protected VersionedDataflow assertReturnCode(String query, SSLContext sslContext, int expectedReturnCode) throws Exception {
         HttpsURLConnection httpsURLConnection = openUrlConnection(C2_URL + query, sslContext);
+        httpsURLConnection.setRequestProperty("Accept", "application/json");
         try {
             assertEquals(expectedReturnCode, httpsURLConnection.getResponseCode());
             if (expectedReturnCode == 200) {
-                return SchemaLoader.loadConfigSchemaFromYaml(httpsURLConnection.getInputStream());
+                try (InputStream inputStream = httpsURLConnection.getInputStream()) {
+                    return toVersionedDataFlow(inputStream);
+                }
             }
         } finally {
             httpsURLConnection.disconnect();
@@ -195,7 +196,7 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
     protected HttpsURLConnection openUrlConnection(String url, SSLContext sslContext) throws IOException {
         DockerPort dockerPort = docker.containers().container("squid").port(3128);
         HttpsURLConnection httpURLConnection = (HttpsURLConnection) new URL(url).openConnection(
-                new Proxy(Proxy.Type.HTTP, new InetSocketAddress(dockerPort.getIp(), dockerPort.getExternalPort())));
+            new Proxy(Proxy.Type.HTTP, new InetSocketAddress(dockerPort.getIp(), dockerPort.getExternalPort())));
         httpURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
         return httpURLConnection;
     }

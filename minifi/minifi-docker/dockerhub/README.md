@@ -36,17 +36,17 @@ To build an image for a prior released version, one can override the `MINIFI_VER
 ## Running a container
 
 ### Supplying configuration to a container
-The primary means by which a MiNiFi instance is configured is via the `config.yml` or the `bootstrap.conf`.
+The primary means by which a MiNiFi instance is configured is via the `flow.json.raw` or the `bootstrap.conf`.
 
 This can be accomplished through:
  * the use of volumes, and
   * overlaying the base image
 
 #### Using volumes to provide configuration
-The following example shows the usage of two volumes to provide both a `config.yml` and a `bootstrap.conf` to the container instance.  This makes use of configuration files on the host and maps them to be used by the MiNiFi instance.  This is helpful in scenarios where a single image is used for a variety of configurations.
+The following example shows the usage of two volumes to provide both a `flow.json.raw` and a `bootstrap.conf` to the container instance.  This makes use of configuration files on the host and maps them to be used by the MiNiFi instance.  This is helpful in scenarios where a single image is used for a variety of configurations.
 
     docker run -d \
-        -v ~/minifi-conf/config.yml:/opt/minifi/minifi-current/conf/config.yml \
+        -v ~/minifi-conf/flow.json.raw:/opt/minifi/minifi-current/conf/flow.json.raw \
         -v ~/minifi-conf/bootstrap.conf:/opt/minifi/minifi-current/conf/bootstrap.conf \
         apache/nifi-minifi:latest
         
@@ -55,7 +55,7 @@ Alternatively, it is possible to create a custom image inheriting from the publi
 
     FROM apache/nifi-minifi
     
-    ADD config.yml /opt/minifi/minifi-current/conf/config.yml
+    ADD flow.json.raw /opt/minifi/minifi-current/conf/flow.json.raw
     ADD bootstrap.conf /opt/minifi/minifi-current/conf/bootstrap.conf
     
 Building this `Dockerfile` will result in a custom image with the specified configuration files incorporated into the new image.  This is best for applications where configuration is well defined and relatively static.

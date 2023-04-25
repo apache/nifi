@@ -38,7 +38,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -51,10 +50,6 @@ public class DelegatingConfigurationProvider implements ConfigurationProvider {
     private final ConfigurationCache configurationCache;
     private final HttpConnector httpConnector;
     private final ObjectMapper objectMapper;
-
-    public DelegatingConfigurationProvider(ConfigurationCache configurationCache, String delegateUrl) throws InvalidParameterException, GeneralSecurityException, IOException {
-        this(configurationCache, new HttpConnector(delegateUrl));
-    }
 
     public DelegatingConfigurationProvider(ConfigurationCache configurationCache, HttpConnector httpConnector) {
         this.configurationCache = configurationCache;

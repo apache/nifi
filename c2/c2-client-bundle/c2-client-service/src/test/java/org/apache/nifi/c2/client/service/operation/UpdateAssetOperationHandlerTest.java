@@ -160,7 +160,7 @@ public class UpdateAssetOperationHandlerTest {
         // given
         C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
-        when(c2Client.retrieveUpdateContent(ASSET_URL)).thenReturn(empty());
+        when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(empty());
 
         // when
         C2OperationAck result = testHandler.handle(operation);
@@ -177,7 +177,7 @@ public class UpdateAssetOperationHandlerTest {
         C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
         byte[] mockUpdateContent = new byte[0];
-        when(c2Client.retrieveUpdateContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
+        when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
         when(assetPersistFunction.apply(ASSET_FILE_NAME, mockUpdateContent)).thenReturn(FALSE);
 
         // when
@@ -195,7 +195,7 @@ public class UpdateAssetOperationHandlerTest {
         C2Operation operation = operation(ASSET_URL, ASSET_FILE_NAME, FORCE_DOWNLOAD);
         when(assetUpdatePrecondition.test(ASSET_FILE_NAME, parseBoolean(FORCE_DOWNLOAD))).thenReturn(TRUE);
         byte[] mockUpdateContent = new byte[0];
-        when(c2Client.retrieveUpdateContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
+        when(c2Client.retrieveUpdateAssetContent(ASSET_URL)).thenReturn(Optional.of(mockUpdateContent));
         when(assetPersistFunction.apply(ASSET_FILE_NAME, mockUpdateContent)).thenReturn(TRUE);
 
         // when

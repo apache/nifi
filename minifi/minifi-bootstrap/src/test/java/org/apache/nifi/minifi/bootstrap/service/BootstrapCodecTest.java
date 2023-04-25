@@ -61,8 +61,6 @@ class BootstrapCodecTest {
     @Mock
     private ConfigurationChangeListener configurationChangeListener;
     @Mock
-    private UpdateConfigurationService updateConfigurationService;
-    @Mock
     private UpdatePropertiesService updatePropertiesService;
 
     @InjectMocks
@@ -70,7 +68,6 @@ class BootstrapCodecTest {
 
     @BeforeEach
     void setup() throws IllegalAccessException, NoSuchFieldException {
-        mockFinal("updateConfigurationService", updateConfigurationService);
         mockFinal("updatePropertiesService", updatePropertiesService);
     }
 
@@ -191,19 +188,6 @@ class BootstrapCodecTest {
         bootstrapCodec.communicate(inputStream, outputStream);
 
         assertEquals(OK, outputStream.toString().trim());
-    }
-
-    @Test
-    void testUpdateConfigurationCommandShouldHandleUpdateConfiguration() throws IOException {
-        InputStream inputStream = new ByteArrayInputStream("UPDATE_CONFIGURATION".getBytes(StandardCharsets.UTF_8));
-        C2Operation c2Operation = new C2Operation();
-        c2Operation.setIdentifier("id");
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        bootstrapCodec.communicate(inputStream, outputStream);
-
-        assertEquals(OK, outputStream.toString().trim());
-        verify(updateConfigurationService).handleUpdate();
     }
 
     @Test

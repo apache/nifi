@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap.configuration;
+
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
@@ -35,64 +39,72 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigurationChangeCoordinator implements Closeable, ConfigurationChangeNotifier {
 
-    public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
-    public static final String NOTIFIER_INGESTORS_KEY = NOTIFIER_PROPERTY_PREFIX + ".ingestors";
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationChangeCoordinator.class);
+    public static final String NOTIFIER_INGESTORS_KEY = "nifi.minifi.notifier.ingestors";
 
-    private final Set<ConfigurationChangeListener> configurationChangeListeners;
-    private final Set<ChangeIngestor> changeIngestors = new HashSet<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigurationChangeCoordinator.class);
+    private static final String COMMA = ",";
 
     private final BootstrapFileProvider bootstrapFileProvider;
     private final RunMiNiFi runMiNiFi;
+    private final Set<ConfigurationChangeListener> configurationChangeListeners;
+    private final Set<ChangeIngestor> changeIngestors;
 
     public ConfigurationChangeCoordinator(BootstrapFileProvider bootstrapFileProvider, RunMiNiFi runMiNiFi,
-        Set<ConfigurationChangeListener> miNiFiConfigurationChangeListeners) {
+                                          Set<ConfigurationChangeListener> miNiFiConfigurationChangeListeners) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.runMiNiFi = runMiNiFi;
-        this.configurationChangeListeners = Optional.ofNullable(miNiFiConfigurationChangeListeners).map(Collections::unmodifiableSet).orElse(Collections.emptySet());
+        this.configurationChangeListeners = ofNullable(miNiFiConfigurationChangeListeners).map(Collections::unmodifiableSet).orElse(Collections.emptySet());
+        this.changeIngestors = new HashSet<>();
+    }
+
+    @Override
+    public Collection<ListenerHandleResult> notifyListeners(ByteBuffer newFlowConfig) {
+        LOGGER.info("Notifying Listeners of a change");
+        return configurationChangeListeners.stream()
+            .map(listener -> notifyListener(newFlowConfig, listener))
+            .collect(toList());
+    }
+
+    @Override
+    public void close() {
+        closeIngestors();
     }
 
     /**
      * Begins the associated notification service provided by the given implementation.  In most implementations, no action will occur until this method is invoked.
      */
-    public void start() throws IOException{
+    public void start() throws IOException {
         initialize();
         changeIngestors.forEach(ChangeIngestor::start);
     }
 
-    /**
-     * Provides an immutable collection of listeners for the notifier instance
-     *
-     * @return a collection of those listeners registered for notifications
-     */
-    public Set<ConfigurationChangeListener> getChangeListeners() {
-        return Collections.unmodifiableSet(configurationChangeListeners);
-    }
-
-    /**
-     * Provide the mechanism by which listeners are notified
-     */
-    public Collection<ListenerHandleResult> notifyListeners(ByteBuffer newConfig) {
-        LOGGER.info("Notifying Listeners of a change");
-
-        Collection<ListenerHandleResult> listenerHandleResults = new ArrayList<>(configurationChangeListeners.size());
-        for (final ConfigurationChangeListener listener : getChangeListeners()) {
-            ListenerHandleResult result;
-            try {
-                listener.handleChange(new ByteBufferInputStream(newConfig.duplicate()));
-                result = new ListenerHandleResult(listener);
-            } catch (ConfigurationChangeException ex) {
-                result = new ListenerHandleResult(listener, ex);
-            }
-            listenerHandleResults.add(result);
-            LOGGER.info("Listener notification result: {}", result);
+    private ListenerHandleResult notifyListener(ByteBuffer newFlowConfig, ConfigurationChangeListener listener) {
+        try {
+            listener.handleChange(new ByteBufferInputStream(newFlowConfig.duplicate()));
+            ListenerHandleResult listenerHandleResult = new ListenerHandleResult(listener);
+            LOGGER.info("Listener notification result {}", listenerHandleResult);
+            return listenerHandleResult;
+        } catch (ConfigurationChangeException ex) {
+            ListenerHandleResult listenerHandleResult = new ListenerHandleResult(listener, ex);
+            LOGGER.error("Listener notification result {} with failure {}", listenerHandleResult, ex);
+            return listenerHandleResult;
         }
-        return listenerHandleResults;
     }
 
+    private void initialize() throws IOException {
+        closeIngestors();
 
-    @Override
-    public void close() {
+        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
+        ofNullable(bootstrapProperties.getProperty(NOTIFIER_INGESTORS_KEY))
+            .filter(not(String::isBlank))
+            .map(ingestors -> ingestors.split(COMMA))
+            .stream()
+            .flatMap(Stream::of)
+            .map(String::trim)
+            .forEach(ingestorClassname -> instantiateIngestor(bootstrapProperties, ingestorClassname));
+    }
+
+    private void closeIngestors() {
         try {
             for (ChangeIngestor changeIngestor : changeIngestors) {
                 changeIngestor.close();
@@ -103,25 +115,15 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
         }
     }
 
-    private void initialize() throws IOException {
-        close();
-        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
-        // cleanup previously initialized ingestors
-        String ingestorsCsv = bootstrapProperties.getProperty(NOTIFIER_INGESTORS_KEY);
-
-        if (ingestorsCsv != null && !ingestorsCsv.isEmpty()) {
-            for (String ingestorClassname : ingestorsCsv.split(",")) {
-                ingestorClassname = ingestorClassname.trim();
-                try {
-                    Class<?> ingestorClass = Class.forName(ingestorClassname);
-                    ChangeIngestor changeIngestor = (ChangeIngestor) ingestorClass.newInstance();
-                    changeIngestor.initialize(bootstrapProperties, runMiNiFi, this);
-                    changeIngestors.add(changeIngestor);
-                    LOGGER.info("Initialized ingestor: {}", ingestorClassname);
-                } catch (Exception e) {
-                    LOGGER.error("Instantiating [{}] ingestor failed", ingestorClassname, e);
-                }
-            }
+    private void instantiateIngestor(Properties bootstrapProperties, String ingestorClassname) {
+        try {
+            Class<?> ingestorClass = Class.forName(ingestorClassname);
+            ChangeIngestor changeIngestor = (ChangeIngestor) ingestorClass.newInstance();
+            changeIngestor.initialize(bootstrapProperties, runMiNiFi, this);
+            changeIngestors.add(changeIngestor);
+            LOGGER.info("Initialized ingestor: {}", ingestorClassname);
+        } catch (Exception e) {
+            LOGGER.error("Instantiating [{}] ingestor failed", ingestorClassname, e);
         }
     }
 }

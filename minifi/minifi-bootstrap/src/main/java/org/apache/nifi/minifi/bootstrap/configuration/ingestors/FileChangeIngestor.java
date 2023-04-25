@@ -14,24 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static java.nio.ByteBuffer.wrap;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.function.Predicate.not;
+import static org.apache.commons.io.FilenameUtils.getBaseName;
+import static org.apache.commons.io.IOUtils.toByteArray;
 import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
 import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -39,13 +44,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,165 +60,160 @@ import org.slf4j.LoggerFactory;
  */
 public class FileChangeIngestor implements Runnable, ChangeIngestor {
 
-    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP;
+    private static final Map<String, Supplier<Differentiator<ByteBuffer>>> DIFFERENTIATOR_CONSTRUCTOR_MAP = Map.of(
+        WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator
+    );
 
-    static {
-        HashMap<String, Supplier<Differentiator<ByteBuffer>>> tempMap = new HashMap<>();
-        tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getByteBufferDifferentiator);
-
-        DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
-    }
-
-
-    protected static final int DEFAULT_POLLING_PERIOD_INTERVAL = 15;
-    protected static final TimeUnit DEFAULT_POLLING_PERIOD_UNIT = TimeUnit.SECONDS;
+    static final String CONFIG_FILE_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".file";
+    static final String CONFIG_FILE_PATH_KEY = CONFIG_FILE_BASE_KEY + ".config.path";
+    static final String POLLING_PERIOD_INTERVAL_KEY = CONFIG_FILE_BASE_KEY + ".polling.period.seconds";
+    static final int DEFAULT_POLLING_PERIOD_INTERVAL = 15;
 
     private final static Logger logger = LoggerFactory.getLogger(FileChangeIngestor.class);
-    private static final String CONFIG_FILE_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".file";
 
-    protected static final String CONFIG_FILE_PATH_KEY = CONFIG_FILE_BASE_KEY + ".config.path";
-    protected static final String POLLING_PERIOD_INTERVAL_KEY = CONFIG_FILE_BASE_KEY + ".polling.period.seconds";
-    public static final String DIFFERENTIATOR_KEY = CONFIG_FILE_BASE_KEY + ".differentiator";
+    private static final TimeUnit DEFAULT_POLLING_PERIOD_UNIT = SECONDS;
+    private static final String DIFFERENTIATOR_KEY = CONFIG_FILE_BASE_KEY + ".differentiator";
+
+    private volatile Differentiator<ByteBuffer> differentiator;
+    private volatile ConfigurationChangeNotifier configurationChangeNotifier;
+
+    private ScheduledExecutorService executorService;
 
     private Path configFilePath;
     private WatchService watchService;
     private long pollingSeconds;
-    private volatile Differentiator<ByteBuffer> differentiator;
-    private volatile ConfigurationChangeNotifier configurationChangeNotifier;
-    private volatile ConfigurationFileHolder configurationFileHolder;
-    private volatile Properties properties;
-    private ScheduledExecutorService executorService;
 
-    protected static WatchService initializeWatcher(Path filePath) {
+    @Override
+    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
+        Path configFile = ofNullable(properties.getProperty(CONFIG_FILE_PATH_KEY))
+            .filter(not(String::isBlank))
+            .map(Path::of)
+            .map(Path::toAbsolutePath)
+            .orElseThrow(() -> new IllegalArgumentException("Property, " + CONFIG_FILE_PATH_KEY + ", for the path of the config file must be specified"));
         try {
-            final WatchService fsWatcher = FileSystems.getDefault().newWatchService();
-            final Path watchDirectory = filePath.getParent();
-            watchDirectory.register(fsWatcher, ENTRY_MODIFY);
+            this.configurationChangeNotifier = configurationChangeNotifier;
+            this.configFilePath = configFile;
+            this.pollingSeconds = ofNullable(properties.getProperty(POLLING_PERIOD_INTERVAL_KEY, Long.toString(DEFAULT_POLLING_PERIOD_INTERVAL)))
+                .map(Long::parseLong)
+                .filter(duration -> duration > 0)
+                .map(duration -> SECONDS.convert(duration, DEFAULT_POLLING_PERIOD_UNIT))
+                .orElseThrow(() -> new IllegalArgumentException("Cannot specify a polling period with duration <=0"));
+            this.watchService = initializeWatcher(configFile);
+            this.differentiator = ofNullable(properties.getProperty(DIFFERENTIATOR_KEY))
+                .filter(not(String::isBlank))
+                .map(differentiator -> ofNullable(DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiator))
+                    .map(Supplier::get)
+                    .orElseThrow(unableToFindDifferentiatorExceptionSupplier(differentiator)))
+                .orElseGet(WholeConfigDifferentiator::getByteBufferDifferentiator);
+            this.differentiator.initialize(configurationFileHolder);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not successfully initialize file change notifier", e);
+        }
 
-            return fsWatcher;
-        } catch (IOException ioe) {
-            throw new IllegalStateException("Unable to initialize a file system watcher for the path " + filePath, ioe);
+        checkConfigFileLocationCorrectness(properties, configFile);
+    }
+
+    @Override
+    public void start() {
+        executorService = Executors.newScheduledThreadPool(1, runnable -> {
+            Thread notifierThread = Executors.defaultThreadFactory().newThread(runnable);
+            notifierThread.setName("File Change Notifier Thread");
+            notifierThread.setDaemon(true);
+            return notifierThread;
+        });
+        executorService.scheduleWithFixedDelay(this, 0, pollingSeconds, DEFAULT_POLLING_PERIOD_UNIT);
+    }
+
+    @Override
+    public void run() {
+        logger.debug("Checking for a change in {}", configFilePath);
+        if (targetFileChanged()) {
+            logger.debug("Target file changed, checking if it's different than current flow");
+            try (FileInputStream flowCandidateInputStream = new FileInputStream(configFilePath.toFile())) {
+                ByteBuffer newFlowConfig = wrap(toByteArray(flowCandidateInputStream));
+                if (differentiator.isNew(newFlowConfig)) {
+                    logger.debug("Current flow and new flow is different, notifying listener");
+                    configurationChangeNotifier.notifyListeners(newFlowConfig);
+                    logger.debug("Listeners have been notified");
+                }
+            } catch (Exception e) {
+                logger.error("Could not successfully notify listeners.", e);
+            }
+        } else {
+            logger.debug("No change detected in {}", configFilePath);
         }
     }
 
-    protected boolean targetChanged() {
-        boolean targetChanged;
+    @Override
+    public void close() {
+        if (executorService != null) {
+            executorService.shutdownNow();
+        }
+    }
 
-        Optional<WatchKey> watchKey = Optional.ofNullable(watchService.poll());
-
-        targetChanged = watchKey
+    boolean targetFileChanged() {
+        logger.trace("Attempting to acquire watch key");
+        Optional<WatchKey> watchKey = ofNullable(watchService.poll());
+        logger.trace("Watch key acquire with value {}", watchKey);
+        boolean targetChanged = watchKey
             .map(WatchKey::pollEvents)
             .orElse(emptyList())
             .stream()
             .anyMatch(watchEvent -> ENTRY_MODIFY == watchEvent.kind()
                 && ((WatchEvent<Path>) watchEvent).context().equals(configFilePath.getName(configFilePath.getNameCount() - 1)));
-
+        logger.debug("Target file changed: {}", targetChanged);
         // After completing inspection, reset for detection of subsequent change events
         watchKey.map(WatchKey::reset)
             .filter(valid -> !valid)
             .ifPresent(valid -> {
+                logger.error("Unable to reinitialize file system watcher.");
                 throw new IllegalStateException("Unable to reinitialize file system watcher.");
             });
-
+        logger.trace("Watch key has been reset successfully");
         return targetChanged;
     }
 
-    @Override
-    public void run() {
-        logger.debug("Checking for a change");
-        if (targetChanged()) {
-            logger.debug("Target changed, checking if it's different than current flow.");
-            try (FileInputStream configFile = new FileInputStream(configFilePath.toFile())) {
-                ByteBuffer readOnlyNewConfig =
-                    ConfigTransformer.overrideNonFlowSectionsFromOriginalSchema(
-                        IOUtils.toByteArray(configFile), configurationFileHolder.getConfigFileReference().get().duplicate(), properties);
-
-                if (differentiator.isNew(readOnlyNewConfig)) {
-                    logger.debug("New change, notifying listener");
-                    configurationChangeNotifier.notifyListeners(readOnlyNewConfig);
-                    logger.debug("Listeners notified");
-                }
-            } catch (Exception e) {
-                logger.error("Could not successfully notify listeners.", e);
-            }
-        }
-    }
-
-    @Override
-    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
-        this.properties = properties;
-        this.configurationFileHolder = configurationFileHolder;
-        final String rawPath = properties.getProperty(CONFIG_FILE_PATH_KEY);
-        final String rawPollingDuration = properties.getProperty(POLLING_PERIOD_INTERVAL_KEY, Long.toString(DEFAULT_POLLING_PERIOD_INTERVAL));
-
-        if (rawPath == null || rawPath.isEmpty()) {
-            throw new IllegalArgumentException("Property, " + CONFIG_FILE_PATH_KEY + ", for the path of the config file must be specified.");
-        }
-
+    private WatchService initializeWatcher(Path filePath) {
         try {
-            setConfigFilePath(Paths.get(rawPath));
-            setPollingPeriod(Long.parseLong(rawPollingDuration), DEFAULT_POLLING_PERIOD_UNIT);
-            setWatchService(initializeWatcher(configFilePath));
-        } catch (Exception e) {
-            throw new IllegalStateException("Could not successfully initialize file change notifier.", e);
+            WatchService fileSystemWatcher = FileSystems.getDefault().newWatchService();
+            Path watchDirectory = filePath.getParent();
+            watchDirectory.register(fileSystemWatcher, ENTRY_MODIFY);
+            logger.trace("Watch service registered for {}", watchDirectory);
+            return fileSystemWatcher;
+        } catch (IOException ioe) {
+            throw new IllegalStateException("Unable to initialize a file system watcher for the path " + filePath, ioe);
         }
-
-        this.configurationChangeNotifier = configurationChangeNotifier;
-
-        final String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
-
-        if (differentiatorName != null && !differentiatorName.isEmpty()) {
-            Supplier<Differentiator<ByteBuffer>> differentiatorSupplier = DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiatorName);
-            if (differentiatorSupplier == null) {
-                throw new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiatorName + " which does not " +
-                        "correspond to any in the PullHttpChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
-            }
-            differentiator = differentiatorSupplier.get();
-        } else {
-            differentiator = WholeConfigDifferentiator.getByteBufferDifferentiator();
-        }
-        differentiator.initialize(configurationFileHolder);
     }
 
-    protected void setConfigFilePath(Path configFilePath) {
+    private Supplier<IllegalArgumentException> unableToFindDifferentiatorExceptionSupplier(String differentiator) {
+        return () -> new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiator
+            + " which does not correspond to any in the FileChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
+    }
+
+    private void checkConfigFileLocationCorrectness(Properties properties, Path configFile) {
+        Path flowConfigFile = Path.of(properties.getProperty(MiNiFiProperties.NIFI_MINIFI_FLOW_CONFIG.getKey())).toAbsolutePath();
+        Path rawFlowConfigFile = flowConfigFile.getParent().resolve(getBaseName(flowConfigFile.toString()) + RAW_EXTENSION);
+        if (flowConfigFile.equals(configFile) || rawFlowConfigFile.equals(configFile)) {
+            throw new IllegalStateException("File ingestor config file (" + CONFIG_FILE_PATH_KEY
+                + ") must point to a different file than MiNiFi flow config file and raw flow config file");
+        }
+    }
+
+    // Methods exposed only for enable testing
+    void setConfigFilePath(Path configFilePath) {
         this.configFilePath = configFilePath;
     }
 
-    protected void setWatchService(WatchService watchService) {
+    void setWatchService(WatchService watchService) {
         this.watchService = watchService;
     }
 
-    protected void setConfigurationChangeNotifier(ConfigurationChangeNotifier configurationChangeNotifier) {
+    void setConfigurationChangeNotifier(ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
     }
 
-    protected void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
+    void setDifferentiator(Differentiator<ByteBuffer> differentiator) {
         this.differentiator = differentiator;
-    }
-
-    protected void setPollingPeriod(long duration, TimeUnit unit) {
-        if (duration < 0) {
-            throw new IllegalArgumentException("Cannot specify a polling period with duration <=0");
-        }
-        this.pollingSeconds = TimeUnit.SECONDS.convert(duration, unit);
-    }
-
-    @Override
-    public void start() {
-        executorService = Executors.newScheduledThreadPool(1, r -> {
-            Thread t = Executors.defaultThreadFactory().newThread(r);
-            t.setName("File Change Notifier Thread");
-            t.setDaemon(true);
-            return t;
-        });
-        this.executorService.scheduleWithFixedDelay(this, 0, pollingSeconds, DEFAULT_POLLING_PERIOD_UNIT);
-    }
-
-    @Override
-    public void close() {
-        if (this.executorService != null) {
-            this.executorService.shutdownNow();
-        }
     }
 }
 

@@ -20,8 +20,10 @@ package org.apache.nifi.c2.client.http;
 import static okhttp3.MultipartBody.FORM;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -84,33 +86,13 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public Optional<byte[]> retrieveUpdateContent(String callbackUrl) {
-        Optional<byte[]> updateContent = Optional.empty();
+    public Optional<byte[]> retrieveUpdateConfigurationContent(String callbackUrl) {
+        return retrieveContent(callbackUrl, clientConfig.getHttpHeaders());
+    }
 
-        Request.Builder requestBuilder = new Request.Builder()
-            .get()
-            .url(callbackUrl);
-        Request request = requestBuilder.build();
-
-        try (Response response = httpClientReference.get().newCall(request).execute()) {
-            Optional<ResponseBody> body = Optional.ofNullable(response.body());
-
-            if (!response.isSuccessful()) {
-                StringBuilder messageBuilder = new StringBuilder(String.format("Configuration retrieval failed: HTTP %d", response.code()));
-                body.map(Object::toString).ifPresent(messageBuilder::append);
-                throw new C2ServerException(messageBuilder.toString());
-            }
-
-            if (body.isPresent()) {
-                updateContent = Optional.of(body.get().bytes());
-            } else {
-                logger.warn("No body returned when pulling a new configuration");
-            }
-        } catch (Exception e) {
-            logger.warn("Configuration retrieval failed", e);
-        }
-
-        return updateContent;
+    @Override
+    public Optional<byte[]> retrieveUpdateAssetContent(String callbackUrl) {
+        return retrieveContent(callbackUrl, Map.of());
     }
 
     @Override
@@ -180,5 +162,35 @@ public class C2HttpClient implements C2Client {
         } catch (IOException e) {
             logger.error("Could not transmit ack to C2 server {}", c2UrlProvider.getAcknowledgeUrl(), e);
         }
+    }
+
+    private Optional<byte[]> retrieveContent(String callbackUrl, Map<String, String> httpHeaders) {
+        Optional<byte[]> content = Optional.empty();
+
+        Request.Builder requestBuilder = new Request.Builder()
+            .get()
+            .headers(Headers.of(httpHeaders))
+            .url(callbackUrl);
+        Request request = requestBuilder.build();
+
+        try (Response response = httpClientReference.get().newCall(request).execute()) {
+            Optional<ResponseBody> body = Optional.ofNullable(response.body());
+
+            if (!response.isSuccessful()) {
+                StringBuilder messageBuilder = new StringBuilder(String.format("Update content retrieval failed: HTTP %d", response.code()));
+                body.map(Object::toString).ifPresent(messageBuilder::append);
+                throw new C2ServerException(messageBuilder.toString());
+            }
+
+            if (body.isPresent()) {
+                content = Optional.of(body.get().bytes());
+            } else {
+                logger.warn("No body returned when pulling new content");
+            }
+        } catch (Exception e) {
+            logger.warn("Update content retrieval failed", e);
+        }
+
+        return content;
     }
 }

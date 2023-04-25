@@ -17,7 +17,7 @@
 #
 
 ARG IMAGE_NAME=eclipse-temurin
-ARG IMAGE_TAG=11-jre
+ARG IMAGE_TAG=17-jre
 FROM ${IMAGE_NAME}:${IMAGE_TAG} as builder
 LABEL stage=builder
 

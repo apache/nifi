@@ -14,7 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.c2.client;
+
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toUnmodifiableMap;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+
+import java.util.Arrays;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Configuration for a C2 Client.
@@ -42,6 +51,7 @@ public class C2ClientConfig {
     private final String truststoreType;
     private final long callTimeout;
     private final long readTimeout;
+    private final Map<String, String> httpHeaders;
     private final long connectTimeout;
     private final int maxIdleConnections;
     private final long keepAliveDuration;
@@ -71,6 +81,7 @@ public class C2ClientConfig {
         this.truststoreType = builder.truststoreType;
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
+        this.httpHeaders = builder.httpHeaders;
         this.maxIdleConnections = builder.maxIdleConnections;
         this.keepAliveDuration = builder.keepAliveDuration;
         this.c2RequestCompression = builder.c2RequestCompression;
@@ -165,6 +176,10 @@ public class C2ClientConfig {
         return connectTimeout;
     }
 
+    public Map<String, String> getHttpHeaders() {
+        return httpHeaders;
+    }
+
     public String getC2RequestCompression() {
         return c2RequestCompression;
     }
@@ -185,6 +200,9 @@ public class C2ClientConfig {
      * Builder for client configuration.
      */
     public static class Builder {
+
+        private static final String HTTP_HEADERS_SEPARATOR = "#";
+        private static final String HTTP_HEADER_KEY_VALUE_SEPARATOR = ":";
 
         private String c2Url;
         private String c2AckUrl;
@@ -208,6 +226,7 @@ public class C2ClientConfig {
         private String truststoreType;
         private long readTimeout;
         private long connectTimeout;
+        private Map<String, String> httpHeaders;
         private int maxIdleConnections;
         private long keepAliveDuration;
         private String c2RequestCompression;
@@ -227,10 +246,12 @@ public class C2ClientConfig {
             this.c2RestPathBase = c2RestPathBase;
             return this;
         }
+
         public Builder c2RestPathHeartbeat(String c2RestPathHeartbeat) {
             this.c2RestPathHeartbeat = c2RestPathHeartbeat;
             return this;
         }
+
         public Builder c2RestPathAcknowledge(String c2RestPathAcknowledge) {
             this.c2RestPathAcknowledge = c2RestPathAcknowledge;
             return this;
@@ -318,6 +339,21 @@ public class C2ClientConfig {
 
         public Builder connectTimeout(long connectTimeout) {
             this.connectTimeout = connectTimeout;
+            return this;
+        }
+
+        public Builder httpHeaders(String httpHeaders) {
+            this.httpHeaders = ofNullable(httpHeaders)
+                .filter(StringUtils::isNotBlank)
+                .map(headers -> headers.split(HTTP_HEADERS_SEPARATOR))
+                .stream()
+                .flatMap(Arrays::stream)
+                .map(String::trim)
+                .map(header -> header.split(HTTP_HEADER_KEY_VALUE_SEPARATOR))
+                .filter(split -> split.length == 2)
+                .collect(toUnmodifiableMap(
+                    split -> ofNullable(split[0]).map(String::trim).orElse(EMPTY),
+                    split -> ofNullable(split[1]).map(String::trim).orElse(EMPTY)));
             return this;
         }
 

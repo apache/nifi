@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import static org.apache.nifi.minifi.MiNiFiProperties.C2_ENABLE;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.C2_ENABLE;
 import static org.apache.nifi.minifi.c2.command.UpdatePropertiesPropertyProvider.AVAILABLE_PROPERTIES;
 import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BOOTSTRAP_UPDATED_FILE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;

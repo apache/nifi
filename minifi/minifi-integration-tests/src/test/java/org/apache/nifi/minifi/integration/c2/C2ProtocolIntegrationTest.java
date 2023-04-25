@@ -48,7 +48,7 @@ public class C2ProtocolIntegrationTest {
     private static final String AGENT_CLASS_1 = "raspi3";
     private static final String AGENT_CLASS_2 = "raspi4";
     private static final String SERVICE = "c2-authoritative";
-    private static final String CONFIG_YAML = "config.text.yml.v2";
+    private static final String FLOW_JSON = "config.application.json.v2";
     private static Path certificatesDirectory;
     private static SSLContext trustSslContext;
     private static SSLSocketFactory healthCheckSocketFactory;
@@ -74,9 +74,9 @@ public class C2ProtocolIntegrationTest {
                 .getResource("docker-compose-c2-protocol.yml").getFile()).getParent();
         certificatesDirectory = resourceDirectory.toAbsolutePath().resolve("certificates-c2-protocol");
         authoritativeFiles = resourceDirectory.resolve("c2").resolve("protocol").resolve(SERVICE).resolve("files");
-        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve(AGENT_CLASS_1).resolve(CONFIG_YAML);
-        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve(AGENT_CLASS_1).resolve(CONFIG_YAML);
-        minifiEdge3Version2 = authoritativeFiles.resolve("edge3").resolve(AGENT_CLASS_2).resolve(CONFIG_YAML);
+        minifiEdge1Version2 = authoritativeFiles.resolve("edge1").resolve(AGENT_CLASS_1).resolve(FLOW_JSON);
+        minifiEdge2Version2 = authoritativeFiles.resolve("edge2").resolve(AGENT_CLASS_1).resolve(FLOW_JSON);
+        minifiEdge3Version2 = authoritativeFiles.resolve("edge3").resolve(AGENT_CLASS_2).resolve(FLOW_JSON);
 
         if (Files.exists(minifiEdge1Version2)) {
             Files.delete(minifiEdge1Version2);

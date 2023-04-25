@@ -39,7 +39,7 @@ Specific goals for MiNiFi are comprised of:
 Perspectives of the role of MiNiFi should be from the perspective of the agent acting immediately at, or directly adjacent to, source sensors, systems, or servers.
 
 ## Requirements
-* JRE 1.8
+* JRE 17
 
 ## Getting Started
 
@@ -55,7 +55,7 @@ To run MiNiFi:
 - View the logs located in the logs folder
         $ tail -F ~/example-minifi-deploy/logs/minifi-app.log
 
-- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit, which aids in adapting NiFi templates to MiNiFi YAML configuration file format.
+- For help building your first data flow and sending data to a NiFi instance see the System Admin Guide located in the docs folder or making use of the minifi-toolkit, which aids in converting legacy YAML templates to the new JSON configuration file format.
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

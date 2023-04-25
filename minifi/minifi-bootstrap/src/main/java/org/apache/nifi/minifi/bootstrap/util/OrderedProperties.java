@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public class OrderedProperties extends Properties {
     private final Map<String, String> textBeforeMap = new HashMap<>();
@@ -74,7 +75,7 @@ public class OrderedProperties extends Properties {
                 int equalsIndex = line.indexOf('=');
                 if (equalsIndex != -1) {
                     String textBefore = textBeforeMap.get(line.substring(0, equalsIndex));
-                    if (textBefore != null) {
+                    if (StringUtils.isNotBlank(textBefore)) {
                         bufferedWriter.write(textBefore);
                         bufferedWriter.newLine();
                     }
