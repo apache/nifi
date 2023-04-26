@@ -21,7 +21,6 @@ import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
 import org.apache.nifi.provenance.EncryptedSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordReader;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
-import org.apache.nifi.provenance.StandardRecordReader;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -125,14 +124,6 @@ public class RecordReaders {
             }
 
             switch (serializationName) {
-                case StandardRecordReader.SERIALIZATION_NAME: {
-                    if (tocFile.exists()) {
-                        final TocReader tocReader = new StandardTocReader(tocFile);
-                        return new StandardRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars);
-                    } else {
-                        return new StandardRecordReader(bufferedInStream, filename, maxAttributeChars);
-                    }
-                }
                 case ByteArraySchemaRecordWriter.SERIALIZATION_NAME: {
                     if (tocFile.exists()) {
                         final TocReader tocReader = new StandardTocReader(tocFile);
