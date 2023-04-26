@@ -3657,29 +3657,12 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
-Three additional repositories are available as well.
+|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is
+`org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
-A third and fourth option are available: `org.apache.nifi.provenance.PersistentProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
-The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
-Provenance Events as they are generated and providing the ability to iterate over those events sequentially. Later, it was desired to be able to compress the data so that
-more data could be stored. After that, the ability to index and query the data was added. As requirements evolved over time, the repository kept changing without any major
-redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the `PersistentProvenanceRepository` can quickly become a bottleneck.
-The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
-The `WriteAheadProvenanceRepository` was added in version 1.2.0 of NiFi. Since then, it has proven to be very stable and robust and as such was made the default implementation.
-The `PersistentProvenanceRepository` is now considered deprecated and should no longer be used. If administering an instance of NiFi that is currently using the
-`PersistentProvenanceRepository`, it is highly recommended to upgrade to the `WriteAheadProvenanceRepository`. Doing so is as simple as changing the implementation property value
-from `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository`. Because the Provenance Repository is backward
-compatible, there will be no loss of data or functionality.
-
-The `EncryptedWriteAheadProvenanceRepository` builds upon the `WriteAheadProvenanceRepository` and ensures that data is encrypted at rest.
-
-*NOTE:* The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
-`PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
-the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository.
 |`nifi.provenance.repository.rollover.events`| The maximum number of events that should be written to a single event file before the file is rolled over. The default value is `Integer.MAX_VALUE`
 |====
 
