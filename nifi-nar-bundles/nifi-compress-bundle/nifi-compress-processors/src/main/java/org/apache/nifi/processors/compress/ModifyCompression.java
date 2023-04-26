@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -99,6 +100,12 @@ public class ModifyCompression extends AbstractProcessor {
 
     private final static int STREAM_BUFFER_SIZE = 65536;
 
+    protected static final AllowableValue ORIGINAL_FILENAME = new AllowableValue("Original", "Original",
+            "Retains the filename attribute value from the incoming FlowFile");
+    protected static final AllowableValue UPDATE_FILENAME = new AllowableValue("Update", "Update",
+            "Remove the filename extension when decompressing data (only if the extension indicates the appropriate "
+                    + "compression format) and add the appropriate extension when compressing the data for output");
+
     public static final PropertyDescriptor INPUT_COMPRESSION = new PropertyDescriptor.Builder()
             .name("input-compression-format")
             .displayName("Input Compression Format")
@@ -139,7 +146,8 @@ public class ModifyCompression extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
-            .name("Compression Level")
+            .name("compression-level")
+            .displayName("Compression Level")
             .description("The compression level to use; this is valid only when using supported formats. A lower value results in faster processing "
                     + "but less compression; a value of 0 indicates no (that is, simple archiving) for gzip or minimal for xz-lzma2 compression."
                     + " Higher levels can mean much larger memory usage such as the case with levels 7-9 for xz-lzma/2 so be careful relative to heap size.")
@@ -155,13 +163,14 @@ public class ModifyCompression extends AbstractProcessor {
                     CompressionInfo.COMPRESSION_FORMAT_BROTLI)
             .build();
 
-    public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
-            .name("Update Filename")
-            .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
-                    + "compression format) and add the appropriate extension when compressing data")
+    public static final PropertyDescriptor OUTPUT_FILENAME_STRATEGY = new PropertyDescriptor.Builder()
+            .name("output-filename-strategy")
+            .displayName("Output Filename Strategy")
+            .description("If set to 'Updqte', the processor will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
+                    + "compression format) and add the appropriate extension when compressing the data for output")
             .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("true")
+            .allowableValues(ORIGINAL_FILENAME, UPDATE_FILENAME)
+            .defaultValue(UPDATE_FILENAME.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -182,7 +191,7 @@ public class ModifyCompression extends AbstractProcessor {
         propertiesList.add(INPUT_COMPRESSION);
         propertiesList.add(OUTPUT_COMPRESSION);
         propertiesList.add(COMPRESSION_LEVEL);
-        propertiesList.add(UPDATE_FILENAME);
+        propertiesList.add(OUTPUT_FILENAME_STRATEGY);
         properties = Collections.unmodifiableList(propertiesList);
 
         final Set<Relationship> relationshipsSet = new HashSet<>();
@@ -191,12 +200,12 @@ public class ModifyCompression extends AbstractProcessor {
         relationships = Collections.unmodifiableSet(relationshipsSet);
 
         final Map<String, String> mimeTypeMap = new HashMap<>();
-        for(CompressionInfo compressionInfo : CompressionInfo.values()) {
+        for (CompressionInfo compressionInfo : CompressionInfo.values()) {
             String[] mimeTypes = compressionInfo.getMimeTypes();
             if (mimeTypes == null) {
                 continue;
             }
-            for(String mimeType : mimeTypes) {
+            for (String mimeType : mimeTypes) {
                 mimeTypeMap.put(mimeType, compressionInfo.getValue());
             }
         }
@@ -310,7 +319,7 @@ public class ModifyCompression extends AbstractProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
             }
 
-            if (context.getProperty(UPDATE_FILENAME).asBoolean()) {
+            if (UPDATE_FILENAME.getValue().equals(context.getProperty(OUTPUT_FILENAME_STRATEGY).getValue())) {
                 String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
                 // Remove the input file extension if necessary
                 if (filename.toLowerCase().endsWith(inputFileExtension)) {
