@@ -32,9 +32,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-deprecation-log</artifactId>
-        </dependency>
     </dependencies>
 </project>
