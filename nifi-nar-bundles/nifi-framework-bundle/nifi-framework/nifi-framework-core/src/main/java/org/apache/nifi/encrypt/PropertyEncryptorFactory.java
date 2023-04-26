@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.util.Objects;
@@ -38,7 +37,7 @@ public class PropertyEncryptorFactory {
         final String algorithm = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
         String password = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
-        if (StringUtils.isBlank(password)) {
+        if (password == null || password.isEmpty()) {
             throw new IllegalArgumentException(KEY_REQUIRED);
         }
 

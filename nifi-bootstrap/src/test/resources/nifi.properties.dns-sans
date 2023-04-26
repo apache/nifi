@@ -28,10 +28,6 @@ nifi.web.http.port=
 nifi.web.https.host=test-host
 nifi.web.https.port=8443
 
-# security properties #
-nifi.sensitive.props.key=key
-nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
-
 nifi.security.keystore=./src/test/resources/keystore.p12
 nifi.security.keystoreType=PKCS12
 nifi.security.keystorePasswd=

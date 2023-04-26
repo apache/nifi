@@ -16,61 +16,40 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.KeyDerivationFunction;
-
 /**
- * Property Encryption Method enumerates supported values in addition to {@link org.apache.nifi.security.util.EncryptionMethod}
+ * Property Encryption Method enumerates supported values
  */
 public enum PropertyEncryptionMethod {
-    NIFI_ARGON2_AES_GCM_128(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM,128),
+    NIFI_ARGON2_AES_GCM_256(256),
 
-    NIFI_ARGON2_AES_GCM_256(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM, 256),
+    NIFI_PBKDF2_AES_GCM_256(256);
 
-    NIFI_BCRYPT_AES_GCM_128(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 128),
-
-    NIFI_BCRYPT_AES_GCM_256(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 256),
-
-    NIFI_PBKDF2_AES_GCM_128(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 128),
-
-    NIFI_PBKDF2_AES_GCM_256(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 256),
-
-    NIFI_SCRYPT_AES_GCM_128(KeyDerivationFunction.SCRYPT, EncryptionMethod.AES_GCM, 128),
-
-    NIFI_SCRYPT_AES_GCM_256(KeyDerivationFunction.SCRYPT, EncryptionMethod.AES_GCM, 256);
-
-    private static final int HASH_LENGTH_DIVISOR = 8;
-
-    private final KeyDerivationFunction keyDerivationFunction;
-
-    private final EncryptionMethod encryptionMethod;
+    private static final int BYTE_LENGTH_DIVISOR = 8;
 
     private final int keyLength;
 
-    private final int hashLength;
+    private final int derivedKeyLength;
 
-    PropertyEncryptionMethod(final KeyDerivationFunction keyDerivationFunction,
-                             final EncryptionMethod encryptionMethod,
-                             final int keyLength) {
-        this.keyDerivationFunction = keyDerivationFunction;
-        this.encryptionMethod = encryptionMethod;
+    PropertyEncryptionMethod(final int keyLength) {
         this.keyLength = keyLength;
-        this.hashLength = keyLength / HASH_LENGTH_DIVISOR;
+        this.derivedKeyLength = keyLength / BYTE_LENGTH_DIVISOR;
     }
 
-    public KeyDerivationFunction getKeyDerivationFunction() {
-        return keyDerivationFunction;
-    }
-
-    public EncryptionMethod getEncryptionMethod() {
-        return encryptionMethod;
-    }
-
+    /**
+     * Get key length in bits
+     *
+     * @return Key length in bites
+     */
     public int getKeyLength() {
         return keyLength;
     }
 
-    public int getHashLength() {
-        return hashLength;
+    /**
+     * Get derived key length in bytes
+     *
+     * @return Derived key length in bytes
+     */
+    public int getDerivedKeyLength() {
+        return derivedKeyLength;
     }
 }

@@ -26,44 +26,20 @@ public class SecureHasherFactoryTest {
 
     @Test
     public void testSecureHasherFactoryArgon2() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_ARGON2_AES_GCM_128");
+        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_ARGON2_AES_GCM_256");
         assertEquals(Argon2SecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryPBKDF2() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_PBKDF2_AES_GCM_128");
+        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_PBKDF2_AES_GCM_256");
         assertEquals(PBKDF2SecureHasher.class, hasher.getClass());
-    }
-
-    @Test
-    public void testSecureHasherFactoryBCrypt() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_BCRYPT_AES_GCM_128");
-        assertEquals(BcryptSecureHasher.class, hasher.getClass());
-    }
-
-    @Test
-    public void testSecureHasherFactorySCrypt() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_SCRYPT_AES_GCM_128");
-        assertEquals(ScryptSecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryArgon2ShortName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("ARGON2");
         assertEquals(Argon2SecureHasher.class, hasher.getClass());
-    }
-
-    @Test
-    public void testSecureHasherFactorySCryptShortName() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("SCRYPT");
-        assertEquals(ScryptSecureHasher.class, hasher.getClass());
-    }
-
-    @Test
-    public void testSecureHasherFactoryLowerCaseName() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("scrypt");
-        assertEquals(ScryptSecureHasher.class, hasher.getClass());
     }
 
     @Test

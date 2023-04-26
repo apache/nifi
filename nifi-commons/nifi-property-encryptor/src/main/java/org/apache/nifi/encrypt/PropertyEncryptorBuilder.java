@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.PBECipherProvider;
-
 import javax.crypto.SecretKey;
 import java.util.Objects;
 
@@ -61,24 +58,8 @@ public class PropertyEncryptorBuilder {
      */
     public PropertyEncryptor build() {
         final PropertyEncryptionMethod propertyEncryptionMethod = findPropertyEncryptionAlgorithm(algorithm);
-        if (propertyEncryptionMethod == null) {
-            return getPasswordBasedCipherPropertyEncryptor();
-        } else {
-            final SecretKey secretKey = SECRET_KEY_PROVIDER.getSecretKey(propertyEncryptionMethod, password);
-            return new KeyedCipherPropertyEncryptor(secretKey);
-        }
-    }
-
-    @SuppressWarnings("deprecation")
-    private PasswordBasedCipherPropertyEncryptor getPasswordBasedCipherPropertyEncryptor() {
-        final EncryptionMethod encryptionMethod = findEncryptionMethod(algorithm);
-        if (encryptionMethod.isPBECipher()) {
-            final PBECipherProvider cipherProvider = new org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider();
-            return new PasswordBasedCipherPropertyEncryptor(cipherProvider, encryptionMethod, password);
-        } else {
-            final String message = String.format("Algorithm [%s] not supported for Sensitive Properties", encryptionMethod.getAlgorithm());
-            throw new UnsupportedOperationException(message);
-        }
+        final SecretKey secretKey = SECRET_KEY_PROVIDER.getSecretKey(propertyEncryptionMethod, password);
+        return new KeyedCipherPropertyEncryptor(secretKey);
     }
 
     private PropertyEncryptionMethod findPropertyEncryptionAlgorithm(final String algorithm) {
@@ -91,15 +72,11 @@ public class PropertyEncryptorBuilder {
             }
         }
 
-        return foundPropertyEncryptionMethod;
-    }
-
-    private EncryptionMethod findEncryptionMethod(final String algorithm) {
-        final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
-        if (encryptionMethod == null) {
-            final String message = String.format("Encryption Method not found for Algorithm [%s]", algorithm);
-            throw new IllegalArgumentException(message);
+        if (foundPropertyEncryptionMethod == null) {
+            final String message = String.format("Algorithm [%s] not supported for Sensitive Properties", algorithm);
+            throw new EncryptionException(message);
         }
-        return encryptionMethod;
+
+        return foundPropertyEncryptionMethod;
     }
 }
