@@ -31,6 +31,11 @@ ENV NIFI_REGISTRY_BINARY nifi-registry-${NIFI_REGISTRY_VERSION}-bin.zip
 ENV NIFI_REGISTRY_BINARY_PATH nifi/${NIFI_REGISTRY_VERSION}/${NIFI_REGISTRY_BINARY}
 ENV NIFI_REGISTRY_BINARY_URL ${MIRROR}/${NIFI_REGISTRY_BINARY_PATH}
 
+ENV NIFI_TOOLKIT_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-current
+ENV NIFI_TOOLKIT_BINARY nifi-toolkit-${NIFI_REGISTRY_VERSION}-bin.zip
+ENV NIFI_TOOLKIT_BINARY_PATH nifi/${NIFI_REGISTRY_VERSION}/${NIFI_TOOLKIT_BINARY}
+ENV NIFI_TOOLKIT_BINARY_URL ${MIRROR}/${NIFI_TOOLKIT_BINARY_PATH}
+
 ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_REGISTRY_BASE_DIR}/scripts/*.sh
 
@@ -45,6 +50,14 @@ RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 USER nifi
+
+# Download, validate, and expand Apache NiFi Toolkit binary.
+RUN curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
+    && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha256) *${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY}" | sha256sum -c - \
+    && unzip ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY} -d ${NIFI_REGISTRY_BASE_DIR} \
+    && rm ${NIFI_REGISTRY_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
+    && mv ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION} ${NIFI_TOOLKIT_HOME} \
+    && ln -s ${NIFI_TOOLKIT_HOME} ${NIFI_REGISTRY_BASE_DIR}/nifi-toolkit-${NIFI_REGISTRY_VERSION}
 
 # Download, validate, and expand Apache NiFi-Registry binary.
 RUN curl -fSL ${NIFI_REGISTRY_BINARY_URL} -o ${NIFI_REGISTRY_BASE_DIR}/${NIFI_REGISTRY_BINARY} \

@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apache/nifi-registry:1.14.0
+apache/nifi-registry:2.0.0
