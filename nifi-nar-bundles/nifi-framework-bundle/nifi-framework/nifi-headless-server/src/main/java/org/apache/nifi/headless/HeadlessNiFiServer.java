@@ -43,7 +43,7 @@ import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -127,7 +127,9 @@ public class HeadlessNiFiServer implements NiFiServer {
                 }
             };
 
-            PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(props);
+            final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+            final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+            final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 

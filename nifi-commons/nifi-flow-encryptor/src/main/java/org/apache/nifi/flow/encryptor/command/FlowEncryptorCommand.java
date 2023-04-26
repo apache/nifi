@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.flow.encryptor.command;
 
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.flow.encryptor.FlowEncryptor;
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor;
-import org.apache.nifi.security.util.EncryptionMethod;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -61,7 +61,7 @@ class FlowEncryptorCommand implements Runnable {
 
     private static final String GZ_EXTENSION = ".gz";
 
-    private static final String DEFAULT_PROPERTIES_ALGORITHM = EncryptionMethod.MD5_256AES.getAlgorithm();
+    private static final String DEFAULT_PROPERTIES_ALGORITHM = PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.name();
 
     private static final String DEFAULT_PROPERTIES_KEY = "nififtw!";
 

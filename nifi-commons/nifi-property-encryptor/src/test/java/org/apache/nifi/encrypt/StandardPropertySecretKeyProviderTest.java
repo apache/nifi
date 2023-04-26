@@ -42,7 +42,7 @@ public class StandardPropertySecretKeyProviderTest {
             final SecretKey secretKey = provider.getSecretKey(propertyEncryptionMethod, SEED);
             final int secretKeyLength = secretKey.getEncoded().length;
             final String message = String.format("Method [%s] Key Length not matched", propertyEncryptionMethod);
-            assertEquals(propertyEncryptionMethod.getHashLength(), secretKeyLength, message);
+            assertEquals(propertyEncryptionMethod.getDerivedKeyLength(), secretKeyLength, message);
         }
     }
 

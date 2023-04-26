@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.flow.encryptor;
 
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
-import org.apache.nifi.security.util.EncryptionMethod;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -55,8 +55,8 @@ public class StandardFlowEncryptorTest {
 
     @BeforeEach
     public void setEncryptors() {
-        inputEncryptor = getPropertyEncryptor(INPUT_KEY, EncryptionMethod.MD5_256AES.getAlgorithm());
-        outputEncryptor = getPropertyEncryptor(OUTPUT_KEY, EncryptionMethod.SHA256_256AES.getAlgorithm());
+        inputEncryptor = getPropertyEncryptor(INPUT_KEY, PropertyEncryptionMethod.NIFI_PBKDF2_AES_GCM_256.name());
+        outputEncryptor = getPropertyEncryptor(OUTPUT_KEY, PropertyEncryptionMethod.NIFI_ARGON2_AES_GCM_256.name());
         flowEncryptor = new StandardFlowEncryptor();
     }
 

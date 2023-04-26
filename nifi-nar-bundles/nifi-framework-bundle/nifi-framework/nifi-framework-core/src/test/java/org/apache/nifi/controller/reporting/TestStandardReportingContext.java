@@ -33,7 +33,6 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
@@ -80,7 +79,7 @@ public class TestStandardReportingContext {
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        encryptor = PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties);
+        encryptor = Mockito.mock(PropertyEncryptor.class);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);

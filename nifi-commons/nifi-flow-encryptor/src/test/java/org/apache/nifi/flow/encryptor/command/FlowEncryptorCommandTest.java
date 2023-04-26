@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.flow.encryptor.command;
 
-import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,8 +56,6 @@ public class FlowEncryptorCommandTest {
 
     private static final String POPULATED_PROPERTIES = "/populated.nifi.properties";
 
-    private static final String LEGACY_BLANK_PROPERTIES = "/legacy-blank.nifi.properties";
-
     private static final String REQUESTED_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
 
     @AfterEach
@@ -74,20 +72,6 @@ public class FlowEncryptorCommandTest {
     @Test
     public void testRunPropertiesKeyBlankProperties() throws IOException, URISyntaxException {
         final Path propertiesPath = getBlankNiFiProperties();
-        System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
-
-        final FlowEncryptorCommand command = new FlowEncryptorCommand();
-
-        final String propertiesKey = UUID.randomUUID().toString();
-        command.setRequestedPropertiesKey(propertiesKey);
-        command.run();
-
-        assertPropertiesKeyUpdated(propertiesPath, propertiesKey);
-    }
-
-    @Test
-    public void testRunPropertiesKeyLegacyPropertiesWithoutFlowJson() throws IOException, URISyntaxException {
-        final Path propertiesPath = getLegacyNiFiPropertiesWithoutFlowJson();
         System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
         final FlowEncryptorCommand command = new FlowEncryptorCommand();
@@ -148,11 +132,6 @@ public class FlowEncryptorCommandTest {
         final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
         final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
         return getNiFiProperties(flowConfiguration, flowConfigurationJson, POPULATED_PROPERTIES);
-    }
-
-    protected static Path getLegacyNiFiPropertiesWithoutFlowJson() throws IOException, URISyntaxException {
-        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
-        return getNiFiProperties(flowConfiguration, null, LEGACY_BLANK_PROPERTIES);
     }
 
     private static Path getNiFiProperties(

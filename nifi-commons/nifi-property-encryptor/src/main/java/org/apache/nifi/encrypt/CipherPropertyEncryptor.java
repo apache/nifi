@@ -18,25 +18,18 @@ package org.apache.nifi.encrypt;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.Arrays;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.Security;
 
 /**
  * Cipher Property Encryptor provides hexadecimal encoding and decoding around cipher operations
  */
 abstract class CipherPropertyEncryptor implements PropertyEncryptor {
     private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
-
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
 
     /**
      * Encrypt property and encode as a hexadecimal string
@@ -52,7 +45,7 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
         final Cipher cipher = getEncryptionCipher(encodedParameters);
         try {
             final byte[] encrypted = cipher.doFinal(binary);
-            return Hex.encodeHexString(Arrays.concatenate(encodedParameters, encrypted));
+            return Hex.encodeHexString(getConcatenatedBinary(encodedParameters, encrypted));
         } catch (final BadPaddingException | IllegalBlockSizeException e) {
             final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
             throw new EncryptionException(message, e);
@@ -85,6 +78,17 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
         } catch (final DecoderException e) {
             throw new EncryptionException("Hexadecimal decoding failed", e);
         }
+    }
+
+    private byte[] getConcatenatedBinary(final byte[] encodedParameters, final byte[] encrypted) {
+        final int encodedParametersLength = encodedParameters.length;
+        final int encryptedLength = encrypted.length;
+        final int concatenatedLength = encodedParametersLength + encryptedLength;
+
+        final byte[] concatenated = new byte[concatenatedLength];
+        System.arraycopy(encodedParameters, 0, concatenated, 0, encodedParametersLength);
+        System.arraycopy(encrypted, 0, concatenated, encodedParametersLength, encryptedLength);
+        return concatenated;
     }
 
     /**
