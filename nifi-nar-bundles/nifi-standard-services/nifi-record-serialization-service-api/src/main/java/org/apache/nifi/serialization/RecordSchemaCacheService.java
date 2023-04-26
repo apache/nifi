@@ -22,7 +22,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.util.Optional;
 
 public interface RecordSchemaCacheService extends ControllerService {
-    public static final String CACHE_IDENTIFIER_ATTRIBUTE = "schema.cache.identifier";
+    String CACHE_IDENTIFIER_ATTRIBUTE = "schema.cache.identifier";
 
     /**
      * Updates the cache to include the given Record Schema and returns an identifier

@@ -38,7 +38,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -237,9 +237,9 @@ public class TestXMLRecordSetWriter {
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out)
+        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> attributes)
                 throws SchemaNotFoundException, IOException {
-            return super.createWriter(logger, this.recordSchema, out, Collections.emptyMap());
+            return super.createWriter(logger, this.recordSchema, out, attributes);
         }
     }
 

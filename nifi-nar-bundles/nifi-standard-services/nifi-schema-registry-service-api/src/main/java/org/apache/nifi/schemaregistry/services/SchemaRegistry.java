@@ -17,8 +17,6 @@
 package org.apache.nifi.schemaregistry.services;
 
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -32,123 +30,6 @@ import java.util.Set;
  * integrate with external Schema Registry
  */
 public interface SchemaRegistry extends ControllerService {
-
-    /**
-     * @deprecated Use {@link #retrieveSchema(SchemaIdentifier)} instead
-     *
-     * Retrieves and returns the textual representation of the schema based on
-     * the provided name of the schema available in Schema Registry.
-     *
-     * @return the text that corresponds to the latest version of the schema with the given name
-     *
-     * @throws IOException if unable to communicate with the backing store
-     * @throws SchemaNotFoundException if unable to find the schema with the given name
-     */
-    default String retrieveSchemaText(String schemaName) throws IOException, SchemaNotFoundException {
-        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
-        final String deprecatedMethod = "retrieveSchemaText(schemaName)";
-        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
-        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
-                getClass().getSimpleName(),
-                getIdentifier(),
-                deprecatedMethod,
-                replacementMethod
-        );
-
-        final RecordSchema recordSchema = retrieveSchema(SchemaIdentifier.builder().name(schemaName).build());
-        if (recordSchema == null) {
-            throw new SchemaNotFoundException("Could not find schema with name '" + schemaName + "'");
-        }
-        return recordSchema.getSchemaText().get();
-    }
-
-    /**
-     * @deprecated Use {@link #retrieveSchema(SchemaIdentifier)} instead
-     *
-     * Retrieves the textual representation of the schema with the given ID and version
-     *
-     * @param schemaId the unique identifier for the desired schema
-     * @param version the version of the desired schema
-     * @return the textual representation of the schema with the given ID and version
-     *
-     * @throws IOException if unable to communicate with the backing store
-     * @throws SchemaNotFoundException if unable to find the schema with the given id and version
-     */
-    default String retrieveSchemaText(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
-        final String deprecatedMethod = "retrieveSchemaText(schemaId, version)";
-        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
-        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
-                getClass().getSimpleName(),
-                getIdentifier(),
-                deprecatedMethod,
-                replacementMethod
-        );
-
-        final RecordSchema recordSchema = retrieveSchema(SchemaIdentifier.builder().id(schemaId).version(version).build());
-        if (recordSchema == null) {
-            throw new SchemaNotFoundException("Could not find schema with ID '" + schemaId + "' and version '" + version + "'");
-        }
-        return recordSchema.getSchemaText().get();
-    }
-
-    /**
-     * @deprecated Use {@link #retrieveSchema(SchemaIdentifier)} instead
-     *
-     * Retrieves and returns the RecordSchema based on the provided name of the schema available in Schema Registry. The RecordSchema
-     * that is returned must have the Schema's name populated in its SchemaIdentifier. I.e., a call to
-     * {@link RecordSchema}.{@link RecordSchema#getIdentifier() getIdentifier()}.{@link SchemaIdentifier#getName() getName()}
-     * will always return an {@link java.util.Optional} that is not empty.
-     *
-     * @return the latest version of the schema with the given name, or <code>null</code> if no schema can be found with the given name.
-     * @throws SchemaNotFoundException if unable to find the schema with the given name
-     */
-    default RecordSchema retrieveSchema(String schemaName) throws IOException, SchemaNotFoundException {
-        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
-        final String deprecatedMethod = "retrieveSchemaText(schemaName)";
-        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
-        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
-                getClass().getSimpleName(),
-                getIdentifier(),
-                deprecatedMethod,
-                replacementMethod
-        );
-
-        return retrieveSchema(SchemaIdentifier.builder().name(schemaName).build());
-    }
-
-
-    /**
-     * @deprecated Use {@link #retrieveSchema(SchemaIdentifier)} instead
-     *
-     * Retrieves the schema with the given ID and version. The RecordSchema that is returned must have the Schema's identifier and version
-     * populated in its SchemaIdentifier. I.e., a call to
-     * {@link RecordSchema}.{@link RecordSchema#getIdentifier() getIdentifier()}.{@link SchemaIdentifier#getIdentifier() getIdentifier()}
-     * will always return an {@link java.util.Optional} that is not empty, as will a call to
-     * {@link RecordSchema}.{@link RecordSchema#getIdentifier() getIdentifier()}.{@link SchemaIdentifier#getVersion() getVersion()}.
-     *
-     * @param schemaId the unique identifier for the desired schema
-     * @param version the version of the desired schema
-     * @return the schema with the given ID and version or <code>null</code> if no schema
-     *         can be found with the given ID and version
-     *
-     * @throws IOException if unable to communicate with the backing store
-     * @throws SchemaNotFoundException if unable to find the schema with the given id and version
-     */
-    default RecordSchema retrieveSchema(long schemaId, int version) throws IOException, SchemaNotFoundException {
-        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
-        final String deprecatedMethod = "retrieveSchemaText(schemaId, version)";
-        final String replacementMethod = "retrieveSchema(SchemaIdentifier)";
-        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
-                getClass().getSimpleName(),
-                getIdentifier(),
-                deprecatedMethod,
-                replacementMethod
-        );
-
-        return retrieveSchema(SchemaIdentifier.builder().id(schemaId).version(version).build());
-    }
-
     /**
      * Retrieves the schema based on the provided descriptor. The descriptor must contain and schemaIdentifier or name, but not both, along
      * with a version, and an optional branch name. For implementations that do not support branching, the branch name will be ignored.
