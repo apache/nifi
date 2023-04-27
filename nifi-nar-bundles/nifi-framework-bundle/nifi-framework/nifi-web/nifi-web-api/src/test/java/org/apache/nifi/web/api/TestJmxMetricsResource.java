@@ -62,7 +62,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
 public class TestJmxMetricsResource {
-    private static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blocked.filter.pattern";
     private static final String TEST_BEAN_NAME_ONE = "testBean1";
     private static final String TEST_BEAN_NAME_TWO = "testBean2";
     private static final String OBJECT_NAME_PREFIX = "org.apache.nifi.web.api:type=test,name=%s";
@@ -235,7 +234,8 @@ public class TestJmxMetricsResource {
     }
 
     private JmxMetricsResultsEntity getResult(final String blockedNameFilter, final String beanNameFilter) {
-        jmxMetricsService.setProperties(new NiFiProperties(Collections.singletonMap(JMX_METRICS_NIFI_PROPERTY, blockedNameFilter)));
+        jmxMetricsService.setProperties(new NiFiProperties(Collections.singletonMap(
+                NiFiProperties.JMX_METRICS_NIFI_PROPERTY, blockedNameFilter)));
         return (JmxMetricsResultsEntity) resource.getJmxMetrics(beanNameFilter).getEntity();
     }
 

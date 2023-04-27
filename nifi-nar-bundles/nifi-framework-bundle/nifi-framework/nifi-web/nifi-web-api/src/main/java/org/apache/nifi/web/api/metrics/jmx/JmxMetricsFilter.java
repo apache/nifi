@@ -45,7 +45,7 @@ public class JmxMetricsFilter {
                 return Pattern.compile(filter);
             }
         } catch (PatternSyntaxException e) {
-            LOGGER.warn("Invalid filter {} , will use default filtering.", filter);
+            LOGGER.warn("Invalid JMX MBean filter pattern ignored [{}]", filter);
             return Pattern.compile(defaultValue);
         }
     }

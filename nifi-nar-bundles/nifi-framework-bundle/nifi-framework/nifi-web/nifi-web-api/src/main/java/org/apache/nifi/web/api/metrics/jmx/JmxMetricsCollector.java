@@ -73,7 +73,7 @@ public class JmxMetricsCollector {
                         results.add(new JmxMetricsResultDTO(beanName, attributeName, attributeValue));
                     } catch (MBeanException | RuntimeMBeanException | ReflectionException | InstanceNotFoundException | AttributeNotFoundException e) {
                         //Empty or invalid attributes should not stop the loop.
-                        LOGGER.trace("Invalid attribute {}", attribute.getName());
+                        LOGGER.debug("MBean Object [{}] invalid attribute [{}] found", instance.getObjectName(), attribute.getName());
                     }
             }
         }

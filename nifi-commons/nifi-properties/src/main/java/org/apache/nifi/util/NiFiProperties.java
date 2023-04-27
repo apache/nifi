@@ -441,6 +441,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS = 3;
     public static final String DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION = "./status_repository";
 
+    // JMX metrics blocked filter
+    public static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blocked.filter.pattern";
+
     public NiFiProperties() {
         this(Collections.emptyMap());
     }

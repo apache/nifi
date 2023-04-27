@@ -22,15 +22,13 @@ import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 import java.util.Collection;
 
 public class StandardJmxMetricsService implements JmxMetricsService {
-    private static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blocked.filter.pattern";
-
     private NiFiProperties properties;
     private JmxMetricsResultConverter metricsResultConverter;
     private JmxMetricsCollector metricsCollector;
 
     @Override
     public Collection<JmxMetricsResultDTO> getFilteredMBeanMetrics(final String beanNameFilter) {
-        final String blockedFilterPattern = properties.getProperty(JMX_METRICS_NIFI_PROPERTY);
+        final String blockedFilterPattern = properties.getProperty(NiFiProperties.JMX_METRICS_NIFI_PROPERTY);
         final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(blockedFilterPattern, beanNameFilter);
 
         return metricsFilter.filter(metricsCollector.getBeanMetrics());

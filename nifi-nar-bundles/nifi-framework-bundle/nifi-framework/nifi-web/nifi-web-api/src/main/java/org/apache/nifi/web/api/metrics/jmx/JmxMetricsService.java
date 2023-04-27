@@ -21,5 +21,10 @@ import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 import java.util.Collection;
 
 public interface JmxMetricsService {
+    /**
+     * @return a filtered mBean metric collection
+     *
+     * @param beanNameFilter regular expression pattern for bean name filtering
+     */
     Collection<JmxMetricsResultDTO> getFilteredMBeanMetrics(final String beanNameFilter);
 }
