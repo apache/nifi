@@ -3657,7 +3657,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|`nifi.provenance.repository.implementation`|The Provenance Repository implementation.The default value is
+|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is
 `org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
