@@ -16,25 +16,31 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import org.apache.nifi.components.DescribedValue;
+
 /**
  * Enumeration capturing essential information about the various client-side
  * encryption methods supported by Azure
  */
-public enum AzureBlobClientSideEncryptionMethod_v12 {
+public enum ClientSideEncryptionMethod implements DescribedValue {
 
-    NONE("None", "The blobs sent to Azure are not encrypted."),
-    LOCAL("Local", "The blobs sent to Azure are encrypted using a local key.");
+    NONE("Client-Side Encryption disabled"),
+    LOCAL("Client-Side Encryption enabled using local key");
 
-    private final String cseName;
     private final String description;
 
-    AzureBlobClientSideEncryptionMethod_v12(String cseName, String description) {
-        this.cseName = cseName;
+    ClientSideEncryptionMethod(String description) {
         this.description = description;
     }
 
-    public String getCseName() {
-        return cseName;
+    @Override
+    public String getValue() {
+        return this.name();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return this.name();
     }
 
     public String getDescription() {

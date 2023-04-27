@@ -18,8 +18,8 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.security.keyvault.keys.cryptography.models.KeyWrapAlgorithm;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionMethod_v12;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
+import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
+import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -58,9 +58,9 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
 
     @Test
     public void testFetchBlobWithCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_128B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_128B_VALUE);
         uploadBlobWithCSE(BLOB_NAME, BLOB_DATA, KEY_128B_VALUE, KEY_ID_VALUE, KeyWrapAlgorithm.A128KW.toString());
 
         runProcessor();

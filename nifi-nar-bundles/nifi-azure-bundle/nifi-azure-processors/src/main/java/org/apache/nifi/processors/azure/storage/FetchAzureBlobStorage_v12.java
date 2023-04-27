@@ -38,7 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
+import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.ArrayList;
@@ -81,7 +81,7 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
         @WritesAttribute(attribute = ATTR_NAME_LANG, description = ATTR_DESCRIPTION_LANG),
         @WritesAttribute(attribute = ATTR_NAME_TIMESTAMP, description = ATTR_DESCRIPTION_TIMESTAMP),
         @WritesAttribute(attribute = ATTR_NAME_LENGTH, description = ATTR_DESCRIPTION_LENGTH)})
-public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
+public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 implements ClientSideEncryptionSupport {
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
@@ -120,15 +120,15 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             RANGE_START,
             RANGE_LENGTH,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
-            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID,
-            AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE,
-            AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX
+            CSE_KEY_ID,
+            CSE_KEY_TYPE,
+            CSE_LOCAL_KEY_HEX
     ));
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        results.addAll(AzureBlobClientSideEncryptionUtils_v12.validateClientSideEncryptionProperties(validationContext));
+        results.addAll(validateClientSideEncryptionProperties(validationContext));
         return results;
     }
 
@@ -154,7 +154,12 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         try {
             BlobServiceClient storageClient = getStorageClient();
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
-            BlobClient blobClient = getBlobClient(context, containerClient, blobName);
+            final BlobClient blobClient;
+            if (isClientSideEncryptionEnabled(context)) {
+                blobClient = getEncryptedBlobClient(context, containerClient, blobName);
+            } else{
+                blobClient = containerClient.getBlobClient(blobName);
+            }
 
             flowFile = session.write(flowFile, os -> blobClient.downloadStreamWithResponse(os, new BlobRange(rangeStart, rangeLength), null, null, false, null, null));
 

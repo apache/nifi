@@ -20,9 +20,9 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobErrorCode;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionMethod_v12;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils_v12;
+import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
@@ -196,53 +196,53 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
 
     @Test
     public void testPutBlob64BLocalCSE() {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_64B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_64B_VALUE);
         runner.assertNotValid();
     }
 
     @Test
     public void testPutBlob128BLocalCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_128B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_128B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
     @Test
     public void testPutBlob192BLocalCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_192B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_192B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
     @Test
     public void testPutBlob256BLocalCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_256B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_256B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
     @Test
     public void testPutBlob384BLocalCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_384B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_384B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
 
     @Test
     public void testPutBlob512BLocalCSE() throws Exception {
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod_v12.LOCAL.name());
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_KEY_ID, KEY_ID_VALUE);
-        runner.setProperty(AzureBlobClientSideEncryptionUtils_v12.CSE_LOCAL_KEY_HEX, KEY_512B_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_TYPE, ClientSideEncryptionMethod.LOCAL.name());
+        runner.setProperty(ClientSideEncryptionSupport.CSE_KEY_ID, KEY_ID_VALUE);
+        runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY_HEX, KEY_512B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
     }
