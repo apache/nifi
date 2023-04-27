@@ -47,6 +47,7 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(defaultedModifyClasspathProcessor.getId());
 
         // Create a FlowFile
+        getClientUtil().waitForValidProcessor(generateFlowFileProcessor.getId());
         getClientUtil().startProcessor(generateFlowFileProcessor);
         waitForQueueCount(defaultedModifyClasspathInputConnection.getId(), 1);
 
@@ -63,6 +64,7 @@ class DefaultedDynamicClassPathModificationIT extends NiFiSystemIT {
 
         // Feed another FlowFile through. Upon restart, in order to modify, we need to get the most up-to-date revision so will first fetch the Processor
         final ProcessorEntity generateAfterRestart = getNifiClient().getProcessorClient().getProcessor(generateFlowFileProcessor.getId());
+        getClientUtil().waitForValidProcessor(generateAfterRestart.getId());
         getClientUtil().startProcessor(generateAfterRestart);
 
         // Depending on whether or not the flow was written out with the processor running, the Modify processor may or may not be running. Ensure that it is running.
