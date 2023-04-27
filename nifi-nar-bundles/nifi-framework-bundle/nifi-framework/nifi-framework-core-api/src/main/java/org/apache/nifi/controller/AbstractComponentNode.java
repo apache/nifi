@@ -604,6 +604,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getProperty(property).getEffectiveValue(getParameterContext());
     }
 
+    private String getEffectivePropertyValueWithDefault(final PropertyDescriptor property) {
+        String value = getProperty(property).getEffectiveValue(getParameterContext());
+        if (value == null) {
+            value = property.getDefaultValue();
+        }
+        return value;
+    }
+
     @Override
     public String getRawPropertyValue(final PropertyDescriptor property) {
         return getProperty(property).getRawValue();
@@ -662,23 +670,23 @@ public abstract class AbstractComponentNode implements ComponentNode {
      */
     @Override
     public synchronized void reloadAdditionalResourcesIfNecessary() {
-        // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
-        // won't have the fingerprint i.e. will be null, in such cases do nothing
-        if (additionalResourcesFingerprint == null) {
-            return;
-        }
-
         final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
-        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
-        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
-        if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
-            setAdditionalResourcesFingerprint(newFingerprint);
-            try {
-                logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
-                reload(additionalUrls);
-            } catch (Exception e) {
-                logger.error("Error reloading component with id " + id + ": " + e.getMessage(), e);
+        final boolean dynamicallyModifiesClasspath = descriptors.stream()
+                .anyMatch(PropertyDescriptor::isDynamicClasspathModifier);
+
+        if (dynamicallyModifiesClasspath) {
+            final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors, this::getEffectivePropertyValueWithDefault);
+
+            final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
+            if (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
+                setAdditionalResourcesFingerprint(newFingerprint);
+                try {
+                    logger.info("Updating classpath for [{}] with the ID [{}]", this.componentType, this.getIdentifier());
+                    reload(additionalUrls);
+                } catch (Exception e) {
+                    logger.error("Error reloading component with id [{}]: {}", id, e.getMessage(), e);
+                }
             }
         }
     }
