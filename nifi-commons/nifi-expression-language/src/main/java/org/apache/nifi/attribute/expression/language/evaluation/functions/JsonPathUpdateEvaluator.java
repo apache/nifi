@@ -18,6 +18,8 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -52,6 +54,11 @@ public abstract class JsonPathUpdateEvaluator extends JsonPathBaseEvaluator {
         String result;
         try {
             result = updateAttribute(documentContext, compiledJsonPath, value).jsonString();
+        } catch (PathNotFoundException pnf) {
+            // it is valid for a path not to be found, keys may not be there
+            // do not spam the error log for this, instead we can log debug if enabled
+            LOGGER.debug("JSON Path not found: {}", compiledJsonPath.getPath(), pnf);
+            result = documentContext.jsonString();
         } catch (Exception e) {
             LOGGER.error("Failed to update attribute " + e.getLocalizedMessage(), e);
             // assume the path did not match anything in the document
