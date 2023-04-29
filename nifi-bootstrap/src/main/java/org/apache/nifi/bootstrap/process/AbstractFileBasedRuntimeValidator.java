@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValidator {
-    protected final File configurationFile;
+    private final File configurationFile;
 
     AbstractFileBasedRuntimeValidator(final File configurationFile) {
         this.configurationFile = configurationFile;
@@ -41,7 +41,7 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
         processResults(results);
         return results;
     }
-    
+
     protected File getConfigurationFile() {
         return configurationFile;
     }
@@ -57,7 +57,9 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
         }
     }
 
-    protected boolean canReadConfigurationFile(final List<RuntimeValidatorResult> results) {
+    protected abstract void performChecks(final List<RuntimeValidatorResult> results);
+
+    private boolean canReadConfigurationFile(final List<RuntimeValidatorResult> results) {
         final File configurationFile = getConfigurationFile();
         if (configurationFile == null) {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
@@ -80,9 +82,7 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
         return true;
     }
 
-    protected abstract void performChecks(final List<RuntimeValidatorResult> results);
-
-    protected void processResults(final List<RuntimeValidatorResult> results) {
+    private void processResults(final List<RuntimeValidatorResult> results) {
         if (results.isEmpty()) {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                     .subject(this.getClass().getName())

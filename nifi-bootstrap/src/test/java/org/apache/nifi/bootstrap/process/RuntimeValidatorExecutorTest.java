@@ -49,14 +49,8 @@ public class RuntimeValidatorExecutorTest {
 
     @Test
     public void testAllFailuresEmptyFiles() throws IOException {
-        final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         final File emptyFile = getTempFile("empty_file", "");
-        configurationClasses.add(new AvailablePorts(emptyFile));
-        configurationClasses.add(new FileHandles(emptyFile));
-        configurationClasses.add(new ForkedProcesses(emptyFile));
-        configurationClasses.add(new Swappiness(emptyFile));
-        configurationClasses.add(new TimedWaitDuration(emptyFile));
-        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(getConfigurationClassesWithFile(emptyFile));
 
         final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
@@ -69,14 +63,8 @@ public class RuntimeValidatorExecutorTest {
 
     @Test
     public void testAllFailuresUnparsable() throws IOException {
-        final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         final File unparsableFile = getTempFile("unparsable", "abcdefghijklmnopqrstuvwxyz");
-        configurationClasses.add(new AvailablePorts(unparsableFile));
-        configurationClasses.add(new FileHandles(unparsableFile));
-        configurationClasses.add(new ForkedProcesses(unparsableFile));
-        configurationClasses.add(new Swappiness(unparsableFile));
-        configurationClasses.add(new TimedWaitDuration(unparsableFile));
-        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(getConfigurationClassesWithFile(unparsableFile));
 
         final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
@@ -89,14 +77,8 @@ public class RuntimeValidatorExecutorTest {
 
     @Test
     public void testCannotFindFilesForConfiguration() {
-        final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         final File missingFile = new File("missing_file");
-        configurationClasses.add(new AvailablePorts(missingFile));
-        configurationClasses.add(new FileHandles(missingFile));
-        configurationClasses.add(new ForkedProcesses(missingFile));
-        configurationClasses.add(new Swappiness(missingFile));
-        configurationClasses.add(new TimedWaitDuration(missingFile));
-        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(getConfigurationClassesWithFile(missingFile));
 
         final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
@@ -202,6 +184,16 @@ public class RuntimeValidatorExecutorTest {
         configurationClasses.add(new ForkedProcesses(getTestFile("limits")));
         configurationClasses.add(new Swappiness(getTempFile("swappiness", "0")));
         configurationClasses.add(new TimedWaitDuration(getTempFile("tcp_tw_timeout", "1")));
+        return configurationClasses;
+    }
+
+    private List<RuntimeValidator> getConfigurationClassesWithFile(final File file) {
+        final List<RuntimeValidator> configurationClasses = new ArrayList<>();
+        configurationClasses.add(new AvailablePorts(file));
+        configurationClasses.add(new FileHandles(file));
+        configurationClasses.add(new ForkedProcesses(file));
+        configurationClasses.add(new Swappiness(file));
+        configurationClasses.add(new TimedWaitDuration(file));
         return configurationClasses;
     }
 }
