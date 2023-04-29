@@ -634,7 +634,8 @@
         }
 
         return !nfCanvasUtils.isLabel(selection) && !nfCanvasUtils.isConnection(selection) && !nfCanvasUtils.isProcessGroup(selection)
-            && !nfCanvasUtils.isRemoteProcessGroup(selection) && nfCommon.canAccessProvenance();
+            && !nfCanvasUtils.isRemoteProcessGroup(selection) && !nfCanvasUtils.isInputPort(selection) && !nfCanvasUtils.isOutputPort(selection)
+            && !nfCanvasUtils.isFunnel(selection) && nfCommon.canAccessProvenance();
     };
 
     /**
