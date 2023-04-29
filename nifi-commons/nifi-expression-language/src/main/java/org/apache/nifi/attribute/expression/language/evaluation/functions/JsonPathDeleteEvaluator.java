@@ -50,9 +50,7 @@ public class JsonPathDeleteEvaluator extends JsonPathBaseEvaluator {
         } catch (PathNotFoundException pnf) {
             // it is valid for a path not to be found, keys may not be there
             // do not spam the error log for this, instead we can log debug if enabled
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("PathNotFoundException for JsonPath " + compiledJsonPath.getPath(), pnf);
-            }
+            LOGGER.debug("JSON Path not found: {}", compiledJsonPath.getPath(), pnf);
             result = documentContext.jsonString();
         } catch (Exception e) {
             // assume the path did not match anything in the document
