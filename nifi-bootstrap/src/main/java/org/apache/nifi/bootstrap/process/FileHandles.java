@@ -42,7 +42,7 @@ public class FileHandles implements RuntimeValidator {
     }
 
     @Override
-    public List<RuntimeValidatorResult> check() {
+    public List<RuntimeValidatorResult> validate() {
         final List<RuntimeValidatorResult> results = new ArrayList<>();
         if (configurationFile == null) {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()

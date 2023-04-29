@@ -24,11 +24,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class RuntimeValidatorChecker {
+public class RuntimeValidatorExecutor {
     private final List<RuntimeValidator> configurationClasses;
-    private static final Logger logger = LoggerFactory.getLogger(RuntimeValidatorChecker.class);
+    private static final Logger logger = LoggerFactory.getLogger(RuntimeValidatorExecutor.class);
 
-    public RuntimeValidatorChecker() {
+    public RuntimeValidatorExecutor() {
         this.configurationClasses = Arrays.asList(
                 new AvailablePorts(),
                 new FileHandles(),
@@ -38,17 +38,17 @@ public class RuntimeValidatorChecker {
         );
     }
 
-    RuntimeValidatorChecker(final List<RuntimeValidator> configurationClasses) {
+    RuntimeValidatorExecutor(final List<RuntimeValidator> configurationClasses) {
         this.configurationClasses = configurationClasses;
     }
 
     /**
      * Checks all the system configuration settings that are supported to be checked
      */
-    public List<RuntimeValidatorResult> check() {
+    public List<RuntimeValidatorResult> execute() {
         final List<RuntimeValidatorResult> results = new ArrayList<>();
         for (final RuntimeValidator configuration: configurationClasses) {
-            results.addAll(configuration.check());
+            results.addAll(configuration.validate());
         }
         final List<RuntimeValidatorResult> failures = results
                 .stream()

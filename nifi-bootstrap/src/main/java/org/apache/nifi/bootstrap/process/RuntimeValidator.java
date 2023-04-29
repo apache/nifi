@@ -20,9 +20,9 @@ import java.util.List;
 
 public interface RuntimeValidator {
     /**
-     * Checks if the given runtime configuration is within NiFi's best practices
+     * Validates if the given runtime configuration is within NiFi's best practices
      *
      * @return a List of {@code RuntimeValidatorResult}
      */
-    public List<RuntimeValidatorResult> check();
+    public List<RuntimeValidatorResult> validate();
 }

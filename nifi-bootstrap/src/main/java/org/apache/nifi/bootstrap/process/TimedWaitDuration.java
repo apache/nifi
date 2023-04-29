@@ -44,7 +44,7 @@ public class TimedWaitDuration implements RuntimeValidator {
     }
 
     @Override
-    public List<RuntimeValidatorResult> check() {
+    public List<RuntimeValidatorResult> validate() {
         final List<RuntimeValidatorResult> results = new ArrayList<>();
         if (configurationFile == null) {
             determineConfigurationFile();

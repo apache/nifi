@@ -30,18 +30,18 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RuntimeValidatorCheckerTest {
+public class RuntimeValidatorExecutorTest {
     @TempDir
     private File tempDir;
 
-    private RuntimeValidatorChecker checker;
+    private RuntimeValidatorExecutor runtimeValidatorExecutor;
 
     @Test
     public void testAllSatisfactory() throws IOException {
         final List<RuntimeValidator> configurationClasses = getAllTestConfigurationClasses();
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(0, failures.size());
@@ -56,9 +56,9 @@ public class RuntimeValidatorCheckerTest {
         configurationClasses.add(new ForkedProcesses(emptyFile));
         configurationClasses.add(new Swappiness(emptyFile));
         configurationClasses.add(new TimedWaitDuration(emptyFile));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(5, failures.size());
@@ -76,9 +76,9 @@ public class RuntimeValidatorCheckerTest {
         configurationClasses.add(new ForkedProcesses(unparsableFile));
         configurationClasses.add(new Swappiness(unparsableFile));
         configurationClasses.add(new TimedWaitDuration(unparsableFile));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(5, failures.size());
@@ -96,9 +96,9 @@ public class RuntimeValidatorCheckerTest {
         configurationClasses.add(new ForkedProcesses(missingFile));
         configurationClasses.add(new Swappiness(missingFile));
         configurationClasses.add(new TimedWaitDuration(missingFile));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(5, results.size());
         final List<RuntimeValidatorResult> skipped = getSkipped(results);
         assertEquals(5, skipped.size());
@@ -111,9 +111,9 @@ public class RuntimeValidatorCheckerTest {
     public void testNotEnoughAvailablePorts() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         configurationClasses.add(new AvailablePorts(getTempFile("available_ports_not_enough", "0   1")));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(1, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(1, failures.size());
@@ -127,9 +127,9 @@ public class RuntimeValidatorCheckerTest {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         configurationClasses.add(new FileHandles(getTestFile("limits_not_enough")));
         configurationClasses.add(new ForkedProcesses(getTestFile("limits_not_enough")));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(4, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(4, failures.size());
@@ -142,9 +142,9 @@ public class RuntimeValidatorCheckerTest {
     public void testHighSwappiness() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         configurationClasses.add(new Swappiness(getTempFile("swappiness_high", "50")));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(1, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(1, failures.size());
@@ -157,9 +157,9 @@ public class RuntimeValidatorCheckerTest {
     public void testHighTimedWaitDuration() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
         configurationClasses.add(new TimedWaitDuration(getTempFile("tcp_tw_timeout_high", "50")));
-        checker = new RuntimeValidatorChecker(configurationClasses);
+        runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
-        final List<RuntimeValidatorResult> results = checker.check();
+        final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
         assertEquals(1, results.size());
         final List<RuntimeValidatorResult> failures = getFailures(results);
         assertEquals(1, failures.size());
