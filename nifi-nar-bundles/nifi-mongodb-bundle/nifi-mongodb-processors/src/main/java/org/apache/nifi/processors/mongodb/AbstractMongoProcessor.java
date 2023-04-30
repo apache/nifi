@@ -44,6 +44,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.mongodb.MongoDBClientService;
@@ -372,6 +373,11 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
         boolean clientIsSet = context.getProperty(CLIENT_SERVICE).isSet();
         boolean uriIsSet    = context.getProperty(URI).isSet();
+
+        if (uriIsSet) {
+            DeprecationLoggerFactory.getLogger(getClass()).warn("The MongoDB URI and other client " +
+                    "connection properties should be replaced with an implementation of the MongoClientService");
+        }
 
         if (clientIsSet && uriIsSet) {
             String msg = "The client service and URI fields cannot be set at the same time.";

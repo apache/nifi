@@ -159,6 +159,7 @@ public class PutMongo extends AbstractMongoProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         List<ValidationResult> problems = new ArrayList<>();
+        problems.addAll(super.customValidate(validationContext));
 
         if (validationContext.getProperty(MODE).getValue().equals(MODE_INSERT)) {
             return problems;
