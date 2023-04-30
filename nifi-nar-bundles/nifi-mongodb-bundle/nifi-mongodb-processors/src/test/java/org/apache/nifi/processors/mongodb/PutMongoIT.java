@@ -60,13 +60,15 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testValidators() {
-        TestRunner runner = TestRunners.newTestRunner(PutMongo.class);
+    public void testValidators() throws Exception {
+        TestRunner runner = init(PutMongo.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
         // missing uri, db, collection
         runner.enqueue(new byte[0]);
+        runner.removeProperty(PutMongo.DATABASE_NAME);
+        runner.removeProperty(PutMongo.COLLECTION_NAME);
         pc = runner.getProcessContext();
         results = new HashSet<>();
         if (pc instanceof MockProcessContext) {
@@ -77,23 +79,10 @@ public class PutMongoIT extends MongoWriteTestBase {
         assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
-        // invalid write concern
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
-        runner.setProperty(PutMongo.WRITE_CONCERN, "xyz");
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
-        runner.enqueue(new byte[0]);
-        pc = runner.getProcessContext();
-        results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
-        }
-        assertEquals(1, results.size());
-        assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
 
-        // valid write concern
-        runner.setProperty(PutMongo.WRITE_CONCERN, PutMongo.WRITE_CONCERN_UNACKNOWLEDGED);
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         results = new HashSet<>();
@@ -104,7 +93,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testQueryAndUpdateKey() {
+    public void testQueryAndUpdateKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
@@ -113,7 +102,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testNoQueryAndNoUpdateKey() {
+    public void testNoQueryAndNoUpdateKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
         runner.removeProperty(PutMongo.UPDATE_QUERY);
@@ -122,14 +111,14 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testBlankUpdateKey() {
+    public void testBlankUpdateKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "  ");
         runner.assertNotValid();
     }
 
     @Test
-    public void testUpdateQuery() {
+    public void testUpdateQuery() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
             .append("name", "John Smith")
@@ -155,7 +144,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testUpdateBySimpleKey() {
+    public void testUpdateBySimpleKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
             .append("name", "John Smith")
@@ -181,14 +170,14 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testUpdateWithFullDocByKeys() {
+    public void testUpdateWithFullDocByKeys() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "name,department");
         testUpdateFullDocument(runner);
     }
 
     @Test
-    public void testUpdateWithFullDocByQuery() {
+    public void testUpdateWithFullDocByQuery() throws Exception {
         TestRunner runner = init(PutMongo.class);
         String query = "{ \"name\": \"John Smith\"}";
         runner.setProperty(PutMongo.UPDATE_QUERY, query);
@@ -230,7 +219,7 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testUpdateByComplexKey() {
+    public void testUpdateByComplexKey() throws Exception {
         TestRunner runner = init(PutMongo.class);
         Document document = new Document()
                 .append("name", "John Smith")
@@ -489,7 +478,7 @@ public class PutMongoIT extends MongoWriteTestBase {
      *
      */
     @Test
-    public void testNiFi_4759_Regressions() {
+    public void testNiFi_4759_Regressions() throws Exception {
         TestRunner runner = init(PutMongo.class);
         String[] upserts = new String[]{
                 "{ \"_id\": \"12345\", \"$set\": { \"msg\": \"Hello, world\" } }",
@@ -524,22 +513,5 @@ public class PutMongoIT extends MongoWriteTestBase {
             runner.clearTransferState();
             index++;
         }
-    }
-
-    @Test
-    public void testClientService() throws Exception {
-        MongoDBClientService clientService = new MongoDBControllerService();
-        TestRunner runner = init(PutMongo.class);
-        runner.addControllerService("clientService", clientService);
-        runner.removeProperty(PutMongo.URI);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
-        runner.setProperty(PutMongo.CLIENT_SERVICE, "clientService");
-        runner.enableControllerService(clientService);
-        runner.assertValid();
-
-        runner.enqueue("{ \"msg\": \"Hello, world\" }");
-        runner.run();
-        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
     }
 }

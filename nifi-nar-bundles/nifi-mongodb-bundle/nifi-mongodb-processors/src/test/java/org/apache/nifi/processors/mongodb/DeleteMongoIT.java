@@ -55,7 +55,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testDeleteOne() {
+    public void testDeleteOne() throws Exception {
         TestRunner runner = init(DeleteMongo.class);
         String query = "{ \"_id\": \"doc_1\" }";
         runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_ONE);
@@ -79,7 +79,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testDeleteMany() {
+    public void testDeleteMany() throws Exception {
         TestRunner runner = init(DeleteMongo.class);
         String query = "{\n" +
                 "\t\"_id\": {\n" +
@@ -99,7 +99,7 @@ public class DeleteMongoIT extends MongoWriteTestBase {
     }
 
     @Test
-    public void testFailOnNoDeleteOptions() {
+    public void testFailOnNoDeleteOptions() throws Exception {
         TestRunner runner = init(DeleteMongo.class);
         String query = "{ \"_id\": \"doc_4\"} ";
         runner.enqueue(query);
@@ -119,25 +119,5 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
 
         assertEquals(3, collection.countDocuments(Document.parse("{}")), "A document was deleted");
-    }
-
-    @Test
-    public void testClientService() throws Exception {
-        MongoDBClientService clientService = new MongoDBControllerService();
-        TestRunner runner = init(DeleteMongo.class);
-        runner.addControllerService("clientService", clientService);
-        runner.removeProperty(DeleteMongo.URI);
-        runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_MANY);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
-        runner.setProperty(DeleteMongo.CLIENT_SERVICE, "clientService");
-        runner.enableControllerService(clientService);
-        runner.assertValid();
-
-        runner.enqueue("{}");
-        runner.run();
-        runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
-        runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
-
-        assertEquals(0, collection.countDocuments());
     }
 }
