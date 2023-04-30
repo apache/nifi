@@ -18,13 +18,10 @@ package org.apache.nifi.processors.mongodb;
 
 import com.mongodb.client.MongoCursor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.mongodb.MongoDBClientService;
-import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;

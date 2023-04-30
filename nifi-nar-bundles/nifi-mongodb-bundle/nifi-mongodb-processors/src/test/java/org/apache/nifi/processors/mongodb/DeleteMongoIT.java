@@ -19,8 +19,6 @@
 
 package org.apache.nifi.processors.mongodb;
 
-import org.apache.nifi.mongodb.MongoDBClientService;
-import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
