@@ -22,27 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
-import com.mongodb.WriteConcern;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import java.io.ByteArrayInputStream;
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -53,9 +39,18 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
+
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
@@ -81,15 +76,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .description("If configured, this property will use the assigned client service for connection pooling.")
         .required(false)
         .identifiesControllerService(MongoDBClientService.class)
-        .build();
-
-    static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
-        .name("Mongo URI")
-        .displayName("Mongo URI")
-        .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
@@ -119,36 +105,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                     " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("ssl-context-service")
-            .displayName("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                    + "connections.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("ssl-client-auth")
-            .displayName("Client Auth")
-            .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
-                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
-                    + "has been defined and enabled.")
-            .required(false)
-            .allowableValues(ClientAuth.values())
-            .defaultValue("REQUIRED")
-            .build();
-
-    public static final PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
-            .name("Write Concern")
-            .displayName("Write Concern")
-            .description("The write concern to use")
-            .required(true)
-            .allowableValues(WRITE_CONCERN_ACKNOWLEDGED, WRITE_CONCERN_UNACKNOWLEDGED, WRITE_CONCERN_FSYNCED, WRITE_CONCERN_JOURNALED,
-                    WRITE_CONCERN_REPLICA_ACKNOWLEDGED, WRITE_CONCERN_MAJORITY, WRITE_CONCERN_W1, WRITE_CONCERN_W2, WRITE_CONCERN_W3)
-            .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
             .build();
 
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -216,11 +172,8 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static {
         List<PropertyDescriptor> _temp = new ArrayList<>();
         _temp.add(CLIENT_SERVICE);
-        _temp.add(URI);
         _temp.add(DATABASE_NAME);
         _temp.add(COLLECTION_NAME);
-        _temp.add(SSL_CONTEXT_SERVICE);
-        _temp.add(CLIENT_AUTH);
         descriptors = Collections.unmodifiableList(_temp);
     }
 
@@ -230,36 +183,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
 
     @OnScheduled
     public final void createClient(ProcessContext context) {
-        if (context.getProperty(CLIENT_SERVICE).isSet()) {
-            clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
-            return;
-        }
-
-        if (mongoClient != null) {
-            closeClient();
-        }
-
-        getLogger().info("Creating MongoClient");
-
-        // Set up the client for secure (SSL/TLS communications) if configured to do so
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext;
-
-        if (sslService != null) {
-            sslContext = sslService.createContext();
-        } else {
-            sslContext = null;
-        }
-
-        try {
-            final String uri = getURI(context);
-            final MongoClientSettings.Builder builder = getClientSettings(uri, sslContext);
-            final MongoClientSettings clientSettings = builder.build();
-            mongoClient = MongoClients.create(clientSettings);
-        } catch (Exception e) {
-            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
-            throw e;
-        }
+        clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
     }
 
     protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
@@ -297,50 +221,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     protected String getURI(final ProcessContext context) {
-        if (clientService != null) {
-            return clientService.getURI();
-        } else {
-            return context.getProperty(URI).evaluateAttributeExpressions().getValue();
-        }
-    }
-
-    protected WriteConcern getWriteConcern(final ProcessContext context) {
-        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
-        WriteConcern writeConcern = null;
-        switch (writeConcernProperty) {
-            case WRITE_CONCERN_ACKNOWLEDGED:
-                writeConcern = WriteConcern.ACKNOWLEDGED;
-                break;
-            case WRITE_CONCERN_UNACKNOWLEDGED:
-                writeConcern = WriteConcern.UNACKNOWLEDGED;
-                break;
-            case WRITE_CONCERN_FSYNCED:
-                writeConcern = WriteConcern.JOURNALED;
-                getLogger().warn("Using deprecated write concern FSYNCED");
-                break;
-            case WRITE_CONCERN_JOURNALED:
-                writeConcern = WriteConcern.JOURNALED;
-                break;
-            case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-                writeConcern = WriteConcern.W2;
-                getLogger().warn("Using deprecated write concern REPLICA_ACKNOWLEDGED");
-                break;
-            case WRITE_CONCERN_MAJORITY:
-                writeConcern = WriteConcern.MAJORITY;
-                break;
-            case WRITE_CONCERN_W1:
-                writeConcern = WriteConcern.W1;
-                break;
-            case WRITE_CONCERN_W2:
-                writeConcern = WriteConcern.W2;
-                break;
-            case WRITE_CONCERN_W3:
-                writeConcern = WriteConcern.W3;
-                break;
-            default:
-                writeConcern = WriteConcern.ACKNOWLEDGED;
-        }
-        return writeConcern;
+        return clientService.getURI();
     }
 
     protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
@@ -364,23 +245,5 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             DateFormat df = new SimpleDateFormat(dateFormat);
             objectMapper.setDateFormat(df);
         }
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        List<ValidationResult> retVal = new ArrayList<>();
-
-        boolean clientIsSet = context.getProperty(CLIENT_SERVICE).isSet();
-        boolean uriIsSet    = context.getProperty(URI).isSet();
-
-        if (clientIsSet && uriIsSet) {
-            String msg = "The client service and URI fields cannot be set at the same time.";
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
-        } else if (!clientIsSet && !uriIsSet) {
-            String msg = "The client service or the URI field must be set.";
-            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
-        }
-
-        return retVal;
     }
 }

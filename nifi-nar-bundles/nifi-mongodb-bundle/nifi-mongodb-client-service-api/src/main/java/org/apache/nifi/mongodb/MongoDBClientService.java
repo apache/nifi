@@ -21,7 +21,6 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -123,14 +122,14 @@ public interface MongoDBClientService extends ControllerService, VerifiableContr
             .allowableValues(WRITE_CONCERN_ACKNOWLEDGED_VALUE, WRITE_CONCERN_UNACKNOWLEDGED_VALUE, WRITE_CONCERN_FSYNCED_VALUE,
                              WRITE_CONCERN_JOURNALED_VALUE, WRITE_CONCERN_REPLICA_ACKNOWLEDGED_VALUE, WRITE_CONCERN_MAJORITY_VALUE,
                              WRITE_CONCERN_W1_VALUE, WRITE_CONCERN_W2_VALUE, WRITE_CONCERN_W3_VALUE)
-            .defaultValue(WRITE_CONCERN_ACKNOWLEDGED)
+            .defaultValue(WRITE_CONCERN_ACKNOWLEDGED_VALUE.getValue())
             .build();
 
 
     default Document convertJson(String query) {
         return Document.parse(query);
     }
-    WriteConcern getWriteConcern(final ConfigurationContext context);
     MongoDatabase getDatabase(String name);
     String getURI();
+    WriteConcern getWriteConcern();
 }

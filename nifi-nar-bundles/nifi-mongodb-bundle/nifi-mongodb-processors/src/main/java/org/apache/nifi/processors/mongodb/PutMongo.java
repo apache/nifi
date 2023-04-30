@@ -19,13 +19,13 @@ package org.apache.nifi.processors.mongodb;
 import com.mongodb.BasicDBObject;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.UpdateOptions;
 import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -136,7 +136,6 @@ public class PutMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(UPDATE_QUERY_KEY);
         _propertyDescriptors.add(UPDATE_QUERY);
         _propertyDescriptors.add(UPDATE_MODE);
-        _propertyDescriptors.add(WRITE_CONCERN);
         _propertyDescriptors.add(CHARACTER_SET);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
@@ -196,7 +195,7 @@ public class PutMongo extends AbstractMongoProcessor {
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final String mode = context.getProperty(MODE).getValue();
         final String updateMode = context.getProperty(UPDATE_MODE).getValue();
-        final WriteConcern writeConcern = getWriteConcern(context);
+        final WriteConcern writeConcern = clientService.getWriteConcern();
 
         try {
             final MongoCollection<Document> collection = getCollection(context, flowFile).withWriteConcern(writeConcern);
@@ -274,43 +273,5 @@ public class PutMongo extends AbstractMongoProcessor {
         }
 
         return retVal;
-    }
-
-
-    protected WriteConcern getWriteConcern(final ProcessContext context) {
-        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
-        WriteConcern writeConcern = null;
-        switch (writeConcernProperty) {
-        case WRITE_CONCERN_ACKNOWLEDGED:
-            writeConcern = WriteConcern.ACKNOWLEDGED;
-            break;
-        case WRITE_CONCERN_UNACKNOWLEDGED:
-            writeConcern = WriteConcern.UNACKNOWLEDGED;
-            break;
-        case WRITE_CONCERN_FSYNCED:
-            writeConcern = WriteConcern.JOURNALED;
-            break;
-        case WRITE_CONCERN_JOURNALED:
-            writeConcern = WriteConcern.JOURNALED;
-            break;
-        case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-            writeConcern = WriteConcern.W2;
-            break;
-        case WRITE_CONCERN_MAJORITY:
-            writeConcern = WriteConcern.MAJORITY;
-            break;
-        case WRITE_CONCERN_W1:
-            writeConcern = WriteConcern.W1;
-            break;
-        case WRITE_CONCERN_W2:
-            writeConcern = WriteConcern.W2;
-            break;
-        case WRITE_CONCERN_W3:
-            writeConcern = WriteConcern.W3;
-            break;
-        default:
-            writeConcern = WriteConcern.ACKNOWLEDGED;
-        }
-        return writeConcern;
     }
 }

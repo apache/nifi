@@ -149,7 +149,6 @@ public class PutMongoRecord extends AbstractMongoProcessor {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(WRITE_CONCERN);
         _propertyDescriptors.add(RECORD_READER_FACTORY);
         _propertyDescriptors.add(INSERT_COUNT);
         _propertyDescriptors.add(ORDERED);
@@ -184,7 +183,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER_FACTORY)
                 .asControllerService(RecordReaderFactory.class);
 
-        final WriteConcern writeConcern = getWriteConcern(context);
+        final WriteConcern writeConcern = clientService.getWriteConcern();
 
         int ceiling = context.getProperty(INSERT_COUNT).asInteger();
         int written = 0;
@@ -266,10 +265,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             error = true;
         } finally {
             if (!error) {
-                String url = clientService != null
-                        ? clientService.getURI()
-                        : context.getProperty(URI).evaluateAttributeExpressions().getValue();
-                session.getProvenanceReporter().send(flowFile, url, String.format("Written %d documents to MongoDB.", written));
+                session.getProvenanceReporter().send(flowFile, clientService.getURI(), String.format("Written %d documents to MongoDB.", written));
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Written {} records into MongoDB", new Object[]{ written });
             }

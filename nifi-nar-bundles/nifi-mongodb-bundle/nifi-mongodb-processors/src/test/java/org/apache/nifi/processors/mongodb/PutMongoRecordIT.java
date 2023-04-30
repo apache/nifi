@@ -24,7 +24,6 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -36,7 +35,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +70,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         super.teardown();
     }
 
-    private TestRunner init() throws InitializationException {
+    private TestRunner init() throws Exception {
         TestRunner runner = init(PutMongoRecord.class);
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
@@ -82,11 +80,14 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
 
     @Test
     public void testValidators() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(PutMongoRecord.class);
+        TestRunner runner = init(PutMongoRecord.class);
         runner.addControllerService("reader", recordReader);
         runner.enableControllerService(recordReader);
         Collection<ValidationResult> results;
         ProcessContext pc;
+
+        runner.removeProperty(PutMongoRecord.DATABASE_NAME);
+        runner.removeProperty(PutMongoRecord.COLLECTION_NAME);
 
         // missing uri, db, collection, RecordReader
         runner.enqueue(new byte[0]);
@@ -100,31 +101,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
         assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
-
-        // invalid write concern
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
-        runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DATABASE_NAME);
-        runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
-        runner.setProperty(PutMongoRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(PutMongoRecord.WRITE_CONCERN, "xyz");
-        runner.enqueue(new byte[0]);
-        pc = runner.getProcessContext();
-        results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
-        }
-        assertEquals(1, results.size());
-        assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
-
-        // valid write concern
-        runner.setProperty(PutMongoRecord.WRITE_CONCERN, PutMongoRecord.WRITE_CONCERN_UNACKNOWLEDGED);
-        runner.enqueue(new byte[0]);
-        pc = runner.getProcessContext();
-        results = new HashSet<>();
-        if (pc instanceof MockProcessContext) {
-            results = ((MockProcessContext) pc).validate();
-        }
-        assertEquals(0, results.size());
     }
 
     @Test
@@ -157,7 +133,6 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
          */
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
-        runner.removeProperty(PutMongoRecord.URI);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(PutMongoRecord.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);

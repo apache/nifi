@@ -104,8 +104,6 @@ public class GetMongo extends AbstractMongoQueryProcessor {
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
         _propertyDescriptors.add(DATE_FORMAT);
-        _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
-        _propertyDescriptors.add(CLIENT_AUTH);
         _propertyDescriptors.add(SEND_EMPTY_RESULTS);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 

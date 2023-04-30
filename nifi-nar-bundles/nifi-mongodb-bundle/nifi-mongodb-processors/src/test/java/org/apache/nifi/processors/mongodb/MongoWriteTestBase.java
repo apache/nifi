@@ -20,6 +20,8 @@ package org.apache.nifi.processors.mongodb;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
@@ -41,19 +43,25 @@ public class MongoWriteTestBase extends AbstractMongoIT {
 
     protected MongoClient mongoClient;
     protected MongoCollection<Document> collection;
+    protected MongoDBClientService clientService;
 
     public void setup(Class processor) {
         DATABASE_NAME = processor.getSimpleName().toLowerCase();
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
         collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+
+        clientService = new MongoDBControllerService();
     }
 
-    public TestRunner init(Class processor) {
+    public TestRunner init(Class processor) throws Exception {
         TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("clientService", clientService);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
+        runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
         runner.setVariable("uri", MONGO_CONTAINER.getConnectionString());
         runner.setVariable("db", DATABASE_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
-        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         return runner;

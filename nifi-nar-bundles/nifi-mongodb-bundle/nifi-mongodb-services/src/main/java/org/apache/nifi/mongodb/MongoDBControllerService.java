@@ -66,9 +66,11 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         descriptors.add(DB_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
+        descriptors.add(WRITE_CONCERN);
     }
 
     protected MongoClient mongoClient;
+    private String writeConcernProperty;
 
     // TODO: Remove duplicate code by refactoring shared method to accept PropertyContext
     protected MongoClient createClient(ConfigurationContext context, MongoClient existing) {
@@ -77,6 +79,8 @@ public class MongoDBControllerService extends AbstractControllerService implemen
         }
 
         getLogger().info("Creating MongoClient");
+
+        writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
 
         // Set up the client for secure (SSL/TLS communications) if configured to do so
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -138,8 +142,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     @Override
-    public WriteConcern getWriteConcern(final ConfigurationContext context) {
-        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
+    public WriteConcern getWriteConcern() {
         WriteConcern writeConcern = null;
         switch (writeConcernProperty) {
             case WRITE_CONCERN_ACKNOWLEDGED:

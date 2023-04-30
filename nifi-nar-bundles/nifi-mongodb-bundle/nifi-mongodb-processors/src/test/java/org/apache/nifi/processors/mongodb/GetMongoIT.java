@@ -29,6 +29,7 @@ import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -73,14 +74,19 @@ public class GetMongoIT extends AbstractMongoIT {
 
     private TestRunner runner;
     private MongoClient mongoClient;
+    private MongoDBControllerService clientService;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws Exception {
         runner = TestRunners.newTestRunner(GetMongo.class);
         runner.setVariable("uri", MONGO_CONTAINER.getConnectionString());
         runner.setVariable("db", DB_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
-        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
+        runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(GetMongo.USE_PRETTY_PRINTING, GetMongo.YES_PP);
@@ -119,7 +125,6 @@ public class GetMongoIT extends AbstractMongoIT {
         assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
         // missing query - is ok
-        runner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DB_NAME);
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
         runner.enqueue(new byte[0]);
@@ -484,7 +489,7 @@ public class GetMongoIT extends AbstractMongoIT {
      * it can work against a flowfile.
      */
     @Test
-    public void testDatabaseEL() {
+    public void testDatabaseEL() throws InitializationException {
         runner.clearTransferState();
         runner.removeVariable("collection");
         runner.removeVariable("db");
@@ -529,7 +534,12 @@ public class GetMongoIT extends AbstractMongoIT {
         for (Map.Entry<String, Map<String, String>> entry : vals.entrySet()) {
             // Creating a new runner for each set of attributes map since every subsequent runs will attempt to take the top most enqueued FlowFile
             tmpRunner = TestRunners.newTestRunner(GetMongo.class);
-            tmpRunner.setProperty(AbstractMongoProcessor.URI, MONGO_CONTAINER.getConnectionString());
+            MongoDBControllerService tempService = new MongoDBControllerService();
+            tmpRunner.addControllerService("clientService", tempService);
+            tmpRunner.setProperty(tempService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
+            tmpRunner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
+            tmpRunner.enableControllerService(tempService);
+            tmpRunner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
             tmpRunner.setProperty(AbstractMongoProcessor.DATABASE_NAME, DB_NAME);
             tmpRunner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, COLLECTION_NAME);
             tmpRunner.setIncomingConnection(true);
@@ -590,7 +600,6 @@ public class GetMongoIT extends AbstractMongoIT {
     public void testClientService() throws Exception {
         MongoDBClientService clientService = new MongoDBControllerService();
         runner.addControllerService("clientService", clientService);
-        runner.removeProperty(GetMongo.URI);
         runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
         runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");
         runner.enableControllerService(clientService);

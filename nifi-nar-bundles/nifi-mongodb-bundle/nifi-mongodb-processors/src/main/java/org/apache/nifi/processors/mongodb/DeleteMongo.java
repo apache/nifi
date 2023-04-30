@@ -98,7 +98,6 @@ public class DeleteMongo extends AbstractMongoProcessor {
         _propertyDescriptors.addAll(descriptors);
         _propertyDescriptors.add(DELETE_MODE);
         _propertyDescriptors.add(FAIL_ON_NO_DELETE);
-        _propertyDescriptors.add(WRITE_CONCERN);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -127,7 +126,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-        final WriteConcern writeConcern = getWriteConcern(context);
+        final WriteConcern writeConcern = clientService.getWriteConcern();
         final String deleteMode = context.getProperty(DELETE_MODE).getValue();
         final String deleteAttr = flowFile.getAttribute("mongodb.delete.mode");
         final Boolean failMode  = context.getProperty(FAIL_ON_NO_DELETE).asBoolean();

@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -55,14 +54,19 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
     private MongoClient mongoClient;
     private Map<String, Integer> mappings;
     private Calendar now = Calendar.getInstance();
+    private MongoDBControllerService clientService;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws Exception {
         runner = TestRunners.newTestRunner(RunMongoAggregation.class);
         runner.setVariable("uri", MONGO_CONTAINER.getConnectionString());
         runner.setVariable("db", DB_NAME);
         runner.setVariable("collection", COLLECTION_NAME);
-        runner.setProperty(AbstractMongoProcessor.URI, "${uri}");
+        clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
+        runner.setProperty(AbstractMongoProcessor.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
         runner.setProperty(AbstractMongoProcessor.DATABASE_NAME, "${db}");
         runner.setProperty(AbstractMongoProcessor.COLLECTION_NAME, "${collection}");
         runner.setProperty(RunMongoAggregation.QUERY_ATTRIBUTE, AGG_ATTR);
@@ -216,28 +220,6 @@ public class RunMongoAggregationIT extends AbstractMongoIT {
             assertTrue(queryAttr.contains("$project"), "Missing $project");
             assertTrue(queryAttr.contains("$group"), "Missing $group");
         }
-    }
-
-    @Test
-    public void testClientService() throws Exception {
-        MongoDBClientService clientService = new MongoDBControllerService();
-        runner.addControllerService("clientService", clientService);
-        runner.removeProperty(RunMongoAggregation.URI);
-        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
-        runner.setProperty(RunMongoAggregation.CLIENT_SERVICE, "clientService");
-        runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
-                        "    {\n" +
-                        "        \"$project\": {\n" +
-                        "            \"_id\": 0,\n" +
-                        "            \"val\": 1\n" +
-                        "        }\n" +
-                        "    }]");
-        runner.enableControllerService(clientService);
-        runner.assertValid();
-
-        runner.enqueue("{}");
-        runner.run();
-        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
     }
 
     @Test

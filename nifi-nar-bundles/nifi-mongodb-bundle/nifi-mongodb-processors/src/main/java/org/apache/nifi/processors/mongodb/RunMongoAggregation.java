@@ -115,8 +115,6 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
         _propertyDescriptors.add(DATE_FORMAT);
-        _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
-        _propertyDescriptors.add(CLIENT_AUTH);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
