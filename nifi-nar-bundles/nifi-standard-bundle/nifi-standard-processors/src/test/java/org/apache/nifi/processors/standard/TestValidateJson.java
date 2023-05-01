@@ -161,6 +161,22 @@ class TestValidateJson {
         assertThrows(AssertionFailedError.class, () -> runner.run());
     }
 
+    @Test
+    void testJsonWithComments() {
+        final String schemaPath = getFilePath("schema-simple-example.json");
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
+
+        runner.enqueue(getFileContent("simple-example-with-comments.json"));
+
+        runner.run();
+
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
+
+        assertValidationErrors(ValidateJson.REL_VALID, false);
+    }
     private void assertValidationErrors(Relationship relationship, boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
 

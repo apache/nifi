@@ -1,0 +1,12 @@
+{
+    //First comment
+    "FieldOne": "stringValue",
+    /*Second comment*/
+    "FieldTwo": 1234,
+    //Third comment
+    "FieldThree": [
+        {
+            "arrayField": "arrayValue"
+        }
+    ]
+}
