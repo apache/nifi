@@ -41,10 +41,6 @@ limitations under the License.
             <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-util</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-toolkit-configuration</artifactId>
             <version>${project.version}</version>

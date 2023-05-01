@@ -56,7 +56,9 @@
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.c2.client.http.OkHttpClientProvider" level="DEBUG"/>
     <logger name="org.apache.nifi.c2.client.http.C2HttpClient" level="DEBUG"/>
+    <logger name="org.apache.nifi.minifi.c2.C2NifiClientService" level="DEBUG"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="DEBUG" />

@@ -37,10 +37,5 @@ limitations under the License.
             <version>1.1.1</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-util</artifactId>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>
