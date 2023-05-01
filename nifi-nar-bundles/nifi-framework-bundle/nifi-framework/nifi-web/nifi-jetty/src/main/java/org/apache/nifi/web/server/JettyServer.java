@@ -36,7 +36,6 @@ import org.apache.nifi.flow.resource.ExternalResourceProvider;
 import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationContext;
 import org.apache.nifi.flow.resource.ExternalResourceProviderService;
 import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
-import org.apache.nifi.flow.resource.NarProviderAdapter;
 import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionManager;
@@ -46,7 +45,6 @@ import org.apache.nifi.nar.ExtensionUiLoader;
 import org.apache.nifi.nar.NarAutoLoader;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
-import org.apache.nifi.nar.NarProvider;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
@@ -937,7 +935,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      * In case the provider class is not an implementation of {@code ExternalResourceProvider} the method tries to instantiate it as a {@code NarProvider}. {@code NarProvider} instances
      * are wrapped into an adapter in order to envelope the support.
      */
-    @SuppressWarnings("deprecation")
     private ExternalResourceProvider createProviderInstance(
             final ExtensionManager extensionManager,
             final String providerClass,
@@ -949,8 +946,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         try {
             provider = NarThreadContextClassLoader.createInstance(extensionManager, providerClass, ExternalResourceProvider.class, props, providerId);
         } catch (final ClassCastException e) {
-            logger.warn("Class {} does not implement ExternalResourceProvider falling back to NarProvider", providerClass);
-            provider = new NarProviderAdapter(NarThreadContextClassLoader.createInstance(extensionManager, providerClass, NarProvider.class, props, providerId));
+            throw new IllegalArgumentException(String.format("Class %s does not implement ExternalResourceProvider", providerClass), e);
         }
 
         provider.initialize(context);

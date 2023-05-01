@@ -4467,7 +4467,7 @@ The NiFi Registry NAR provider retrieves NARs from a NiFi Registry instance. In 
 
 |====
 |*Property*|*Description*
-|`nifi.nar.library.provider.nifi-registry.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.registry.extension.NiFiRegistryNarProvider`.
+|`nifi.nar.library.provider.nifi-registry.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider`.
 |`nifi.nar.library.provider.nifi-registry.url`| The URL of the NiFi Registry instance, such as `http://localhost:18080`. If the URL begins with `https`, then the NiFi keystore and truststore will be used to make the TLS connection.
 |====
 
@@ -4815,8 +4815,6 @@ Example configuration:
    nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider
    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
-
-NOTE: For backward compatibility reasons, `org.apache.nifi.nar.hadoop.HDFSNarProvider` is still an accepted implementation, but it is suggested to use 'org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider' instead.Features introduced with the External Resource Provider might not work with this implementation!
 
 [[nifi_diagnostics]]
 == NiFi diagnostics

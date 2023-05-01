@@ -47,7 +47,7 @@ public class NiFiRegistryExternalResourceProvider implements ExternalResourcePro
     public void initialize(final ExternalResourceProviderInitializationContext context) {
         final String url = context.getProperties().get(URL_PROPERTY);
         if (StringUtils.isBlank(url)) {
-            throw new IllegalArgumentException("NiFiRegistryNarProvider requires a `url` property");
+            throw new IllegalArgumentException("url property required");
         }
 
         final SSLContext sslContext = context.getSSLContext();

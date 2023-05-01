@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * A facade at front of {@code NiFiProperties} for auto loader extensions. Also limits the scope of the reachable properties.
  */
-public class PropertyBasedNarProviderInitializationContext implements NarProviderInitializationContext, ExternalResourceProviderInitializationContext {
+public class PropertyBasedNarProviderInitializationContext implements ExternalResourceProviderInitializationContext {
     private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
     static final String BASIC_PREFIX = "nifi.nar.library.provider.";
 
@@ -50,11 +50,6 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
     @Override
     public Map<String, String> getProperties() {
         return properties;
-    }
-
-    @Override
-    public SSLContext getNiFiSSLContext() {
-        return sslContext;
     }
 
     @Override

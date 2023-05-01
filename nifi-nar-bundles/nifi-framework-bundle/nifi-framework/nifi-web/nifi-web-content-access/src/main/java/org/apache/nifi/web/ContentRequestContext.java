@@ -41,16 +41,4 @@ public interface ContentRequestContext {
      * @return the client identifier
      */
     String getClientId();
-
-    /**
-     * The proxy chain for the current request, if applicable.
-     *
-     * Update:
-     * This method has been deprecated since the entire proxy
-     * chain is able to be rebuilt using the current user if necessary.
-     *
-     * @return the proxied entities chain
-     */
-    @Deprecated
-    String getProxiedEntitiesChain();
 }
