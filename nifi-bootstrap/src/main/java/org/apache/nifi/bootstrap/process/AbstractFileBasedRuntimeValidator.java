@@ -60,6 +60,8 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
     }
 
     protected String getContents() throws IOException {
+        // using Scanner to read file because reading whole lines for virtual files
+        // in Linux /proc/sys directory fail when using other implementations
         try (Scanner scanner = new Scanner(configurationFile)) {
             final StringBuilder builder = new StringBuilder();
             while (scanner.hasNextLine()) {

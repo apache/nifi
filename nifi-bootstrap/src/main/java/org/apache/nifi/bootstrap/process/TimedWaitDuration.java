@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TimedWaitDuration extends AbstractFileBasedRuntimeValidator {
+    // Different Linux Kernel versions have different file paths for TIMED_WAIT_DURATION
     private static final String[] POSSIBLE_FILE_PATHS = new String[] {
             "/proc/sys/net/ipv4/tcp_tw_timeout",
             "/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_time_wait",
