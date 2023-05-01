@@ -1116,7 +1116,7 @@ public class RunNiFi {
         if (prevLockFile.exists() && !prevLockFile.delete()) {
             cmdLogger.warn("Failed to delete previous lock file {}; this file should be cleaned up manually", prevLockFile);
         }
-        
+
         runtimeValidatorExecutor.execute();
 
         final ProcessBuilder builder = new ProcessBuilder();

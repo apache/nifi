@@ -17,7 +17,6 @@
 package org.apache.nifi.bootstrap.process;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,33 +35,27 @@ public class Swappiness extends AbstractFileBasedRuntimeValidator {
     }
 
     @Override
-    protected void performChecks(List<RuntimeValidatorResult> results) {
-        try {
-            final String swappinessString = getContents();
-            final Matcher matcher = PATTERN.matcher(swappinessString);
-            if (matcher.find()) {
-                final int swappiness = Integer.valueOf(matcher.group());
-                if (swappiness > RECOMMENDED_SWAPPINESS) {
-                    final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                            .subject(this.getClass().getName())
-                            .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                            .explanation(String.format("Swappiness [%d] is more than the recommended swappiness [%d]", swappiness, RECOMMENDED_SWAPPINESS))
-                            .build();
-                    results.add(result);
-                }
-            } else {
-                final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
+    protected Pattern getPattern() {
+        return PATTERN;
+    }
+
+    @Override
+    protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        if (matcher.find()) {
+            final int swappiness = Integer.valueOf(matcher.group());
+            if (swappiness > RECOMMENDED_SWAPPINESS) {
+                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
                         .subject(this.getClass().getName())
                         .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
+                        .explanation(String.format("Swappiness [%d] is more than the recommended swappiness [%d]", swappiness, RECOMMENDED_SWAPPINESS))
                         .build();
                 results.add(result);
             }
-        } catch (final IOException e) {
+        } else {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                     .subject(this.getClass().getName())
                     .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                    .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
+                    .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);
         }

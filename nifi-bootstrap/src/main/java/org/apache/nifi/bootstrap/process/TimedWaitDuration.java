@@ -17,7 +17,6 @@
 package org.apache.nifi.bootstrap.process;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,39 +39,33 @@ public class TimedWaitDuration extends AbstractFileBasedRuntimeValidator {
     }
 
     @Override
-    protected void performChecks(List<RuntimeValidatorResult> results) {
-        try {
-            final String timedWaitDurationString = getContents();
-            final Matcher matcher = PATTERN.matcher(timedWaitDurationString);
-            if (matcher.find()) {
-                final int timedWaitDuration = Integer.valueOf(matcher.group());
-                if (timedWaitDuration > DESIRED_TIMED_WAIT_DURATION) {
-                    final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                            .subject(this.getClass().getName())
-                            .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                            .explanation(
-                                    String.format(
-                                            "Timed wait duration [%ds] is more than the recommended timed wait duration [%ds]",
-                                            timedWaitDuration,
-                                            DESIRED_TIMED_WAIT_DURATION
-                                    )
-                            )
-                            .build();
-                    results.add(result);
-                }
-            } else {
-                final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
+    protected Pattern getPattern() {
+        return PATTERN;
+    }
+
+    @Override
+    protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        if (matcher.find()) {
+            final int timedWaitDuration = Integer.valueOf(matcher.group());
+            if (timedWaitDuration > DESIRED_TIMED_WAIT_DURATION) {
+                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
                         .subject(this.getClass().getName())
                         .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
+                        .explanation(
+                                String.format(
+                                        "Timed wait duration [%ds] is more than the recommended timed wait duration [%ds]",
+                                        timedWaitDuration,
+                                        DESIRED_TIMED_WAIT_DURATION
+                                )
+                        )
                         .build();
                 results.add(result);
             }
-        } catch (final IOException e) {
+        } else {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                     .subject(this.getClass().getName())
                     .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                    .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
+                    .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);
         }

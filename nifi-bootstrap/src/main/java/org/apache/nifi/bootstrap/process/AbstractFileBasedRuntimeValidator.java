@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValidator {
     private final File configurationFile;
@@ -36,7 +38,18 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
             return results;
         }
 
-        performChecks(results);
+        try {
+            final Pattern pattern = getPattern();
+            final Matcher matcher = pattern.matcher(getContents());
+            performChecks(matcher, results);
+        } catch (final IOException e) {
+            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
+                    .subject(this.getClass().getName())
+                    .outcome(RuntimeValidatorResult.Outcome.FAILED)
+                    .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
+                    .build();
+            results.add(result);
+        }
 
         processResults(results);
         return results;
@@ -57,7 +70,9 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
         }
     }
 
-    protected abstract void performChecks(final List<RuntimeValidatorResult> results);
+    protected abstract Pattern getPattern();
+
+    protected abstract void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results);
 
     private boolean canReadConfigurationFile(final List<RuntimeValidatorResult> results) {
         final File configurationFile = getConfigurationFile();

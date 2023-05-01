@@ -17,7 +17,6 @@
 package org.apache.nifi.bootstrap.process;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,35 +35,29 @@ public class AvailablePorts extends AbstractFileBasedRuntimeValidator {
     }
 
     @Override
-    protected void performChecks(final List<RuntimeValidatorResult> results) {
-        try {
-            final String portRangeString = getContents();
-            final Matcher matcher = PATTERN.matcher(portRangeString);
-            if (matcher.find()) {
-                final int lowerPort = Integer.valueOf(matcher.group(1));
-                final int higherPort = Integer.valueOf(matcher.group(2));
-                final int availablePorts = higherPort - lowerPort;
-                if (availablePorts < RECOMMENDED_AVAILABLE_PORTS) {
-                    final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                            .subject(this.getClass().getName())
-                            .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                            .explanation(String.format("Number of available ports [%d] is less than the recommended number of available ports [%d]", availablePorts, RECOMMENDED_AVAILABLE_PORTS))
-                            .build();
-                    results.add(result);
-                }
-            } else {
+    protected Pattern getPattern() {
+        return PATTERN;
+    }
+
+    @Override
+    protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        if (matcher.find()) {
+            final int lowerPort = Integer.valueOf(matcher.group(1));
+            final int higherPort = Integer.valueOf(matcher.group(2));
+            final int availablePorts = higherPort - lowerPort;
+            if (availablePorts < RECOMMENDED_AVAILABLE_PORTS) {
                 final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                         .subject(this.getClass().getName())
                         .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
+                        .explanation(String.format("Number of available ports [%d] is less than the recommended number of available ports [%d]", availablePorts, RECOMMENDED_AVAILABLE_PORTS))
                         .build();
                 results.add(result);
             }
-        } catch (final IOException e) {
+        } else {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                     .subject(this.getClass().getName())
                     .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                    .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
+                    .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);
         }

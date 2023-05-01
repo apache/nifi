@@ -17,7 +17,6 @@
 package org.apache.nifi.bootstrap.process;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,42 +36,36 @@ public class ForkedProcesses extends AbstractFileBasedRuntimeValidator {
     }
 
     @Override
-    protected void performChecks(List<RuntimeValidatorResult> results) {
-        try {
-            final String forkedProcessesString = getContents();
-            final Matcher matcher = PATTERN.matcher(forkedProcessesString);
-            if (matcher.find()) {
-                final int softLimit = Integer.valueOf(matcher.group(1));
-                final int hardLimit = Integer.valueOf(matcher.group(2));
-                if (softLimit < RECOMMENDED_SOFT_LIMIT) {
-                    final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                            .subject(this.getClass().getName())
-                            .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                            .explanation(String.format("Soft limit for forked processes [%d] is less than recommended soft limit [%d]", softLimit, RECOMMENDED_SOFT_LIMIT))
-                            .build();
-                    results.add(result);
-                }
-                if (hardLimit < RECOMMENDED_HARD_LIMIT) {
-                    final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                            .subject(this.getClass().getName())
-                            .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                            .explanation(String.format("Hard limit for forked processes [%d] is less than recommended hard limit [%d]", hardLimit, RECOMMENDED_HARD_LIMIT))
-                            .build();
-                    results.add(result);
-                }
-            } else {
-                final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
+    protected Pattern getPattern() {
+        return PATTERN;
+    }
+
+    @Override
+    protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        if (matcher.find()) {
+            final int softLimit = Integer.valueOf(matcher.group(1));
+            final int hardLimit = Integer.valueOf(matcher.group(2));
+            if (softLimit < RECOMMENDED_SOFT_LIMIT) {
+                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
                         .subject(this.getClass().getName())
                         .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
+                        .explanation(String.format("Soft limit for forked processes [%d] is less than recommended soft limit [%d]", softLimit, RECOMMENDED_SOFT_LIMIT))
                         .build();
                 results.add(result);
             }
-        } catch (final IOException e) {
+            if (hardLimit < RECOMMENDED_HARD_LIMIT) {
+                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
+                        .subject(this.getClass().getName())
+                        .outcome(RuntimeValidatorResult.Outcome.FAILED)
+                        .explanation(String.format("Hard limit for forked processes [%d] is less than recommended hard limit [%d]", hardLimit, RECOMMENDED_HARD_LIMIT))
+                        .build();
+                results.add(result);
+            }
+        } else {
             final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
                     .subject(this.getClass().getName())
                     .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                    .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
+                    .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);
         }
