@@ -375,7 +375,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         boolean uriIsSet    = context.getProperty(URI).isSet();
 
         if (uriIsSet) {
-            DeprecationLoggerFactory.getLogger(AbstractMongoProcessor.class).warn("The MongoDB URI and other client " +
+            DeprecationLoggerFactory.getLogger(getClass()).warn("The MongoDB URI and other client " +
                     "configuration properties on this proessor are deprecated and will be removed in NiFi 2.0");
         }
 
