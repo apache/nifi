@@ -722,6 +722,7 @@
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example-with-comments.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
