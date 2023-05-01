@@ -106,7 +106,7 @@
         <com.amazonaws.version>1.12.444</com.amazonaws.version>
         <software.amazon.awssdk.version>2.20.41</software.amazon.awssdk.version>
         <gson.version>2.10.1</gson.version>
-        <io.fabric8.kubernetes.client.version>6.3.1</io.fabric8.kubernetes.client.version>
+        <io.fabric8.kubernetes.client.version>6.5.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>1.8.20</kotlin.version>
         <okhttp.version>4.10.0</okhttp.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
