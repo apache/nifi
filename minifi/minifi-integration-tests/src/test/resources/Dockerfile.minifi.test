@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM apacheminifi:${minifi.version}
+FROM apache/nifi-minifi:${minifi.version}-maven
 
 USER root
 

@@ -17,7 +17,7 @@ version: "2"
 
 services:
   c2:
-    image: apacheminific2:${minifi.c2.version}
+    image: apache/nifi-minifi-c2:${minifi.c2.version}-maven
     ports:
       - "10443"
     hostname: c2

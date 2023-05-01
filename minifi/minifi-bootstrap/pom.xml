@@ -35,6 +35,7 @@ limitations under the License.
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
@@ -54,10 +55,6 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>c2-client-api</artifactId>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-expression-language</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
@@ -81,10 +78,6 @@ limitations under the License.
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-commons-schema</artifactId>
             <version>${project.version}</version>
@@ -97,13 +90,6 @@ limitations under the License.
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${jetty.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -114,6 +100,11 @@ limitations under the License.
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -134,7 +125,6 @@ limitations under the License.
             <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
     </dependencies>
-
 
     <build>
         <plugins>

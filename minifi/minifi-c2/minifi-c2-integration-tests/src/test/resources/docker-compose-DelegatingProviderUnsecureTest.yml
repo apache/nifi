@@ -17,14 +17,14 @@ version: "2"
 
 services:
   c2-upstream:
-    image: apacheminific2:${minifi.c2.version}
+    image: apache/nifi-minifi-c2:${minifi.c2.version}-maven
     ports:
       - "10090"
     hostname: c2-upstream
     volumes:
       - ./c2/files:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/files
   c2:
-    image: apacheminific2:${minifi.c2.version}
+    image: apache/nifi-minifi-c2:${minifi.c2.version}-maven
     ports:
       - "10090"
     hostname: c2

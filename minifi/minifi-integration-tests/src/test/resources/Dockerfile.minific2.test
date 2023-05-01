@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-FROM apacheminific2:${minifi.version}
+FROM apache/nifi-minifi-c2:${minifi.version}-maven
 
 USER root
 

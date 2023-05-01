@@ -31,11 +31,5 @@ limitations under the License.
             <artifactId>minifi-c2-api</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.github.stefanbirkner</groupId>
-            <artifactId>system-rules</artifactId>
-            <version>${system.rules.version}</version>
-            <scope>test</scope>
-       </dependency>
     </dependencies>
 </project>
