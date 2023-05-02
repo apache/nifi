@@ -56,7 +56,7 @@ limitations under the License.
         <dependency>
             <groupId>com.palantir.docker.compose</groupId>
             <artifactId>docker-compose-junit-jupiter</artifactId>
-            <version>1.8.0</version>
+            <version>2.0.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
