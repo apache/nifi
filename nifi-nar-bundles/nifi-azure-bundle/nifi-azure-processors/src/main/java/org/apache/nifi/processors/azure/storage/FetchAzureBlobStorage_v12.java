@@ -120,8 +120,8 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
             RANGE_START,
             RANGE_LENGTH,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
-            CSE_KEY_ID,
             CSE_KEY_TYPE,
+            CSE_KEY_ID,
             CSE_LOCAL_KEY_HEX
     ));
 

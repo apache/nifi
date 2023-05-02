@@ -130,8 +130,8 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             CONFLICT_RESOLUTION,
             BLOB_NAME,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
-            CSE_KEY_ID,
             CSE_KEY_TYPE,
+            CSE_KEY_ID,
             CSE_LOCAL_KEY_HEX
     ));
 

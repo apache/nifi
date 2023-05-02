@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.azure.storage;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testNoCesConfiguredOnProcessor() {
-        configureProcessorProperties("NONE", null, null);
+        configureProcessorProperties(ClientSideEncryptionMethod.NONE, null, null);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -58,7 +59,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCesNoKeyIdOnProcessor() {
-        configureProcessorProperties("LOCAL", null, KEY_128B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, null, KEY_128B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -67,7 +68,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCesNoKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, null);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, null);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -76,7 +77,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCesInvalidHexKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, "ZZ");
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, "ZZ");
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -85,17 +86,17 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCesInvalidKeyLengthOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_64B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_64B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertNotValid(result);
-        assertContains(result, "the local key must be 128, 192, 256, 384 or 512 bits of data.");
+        assertContains(result, "Key size in bits must be one of [128, 192, 256, 384, 512] instead of [64]");
     }
 
     @Test
     public void testLocalCes128BitKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_128B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_128B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -104,7 +105,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCes192BitKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_192B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_192B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -113,7 +114,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCes256BitKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_256B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_256B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -122,7 +123,7 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCes384BitKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_384B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_384B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
@@ -131,16 +132,16 @@ public class TestClientSideEncryptionSupport {
 
     @Test
     public void testLocalCes512BitKeyOnProcessor() {
-        configureProcessorProperties("LOCAL", KEY_ID_VALUE, KEY_512B_VALUE);
+        configureProcessorProperties(ClientSideEncryptionMethod.LOCAL, KEY_ID_VALUE, KEY_512B_VALUE);
 
         Collection<ValidationResult> result = putAzureBlobStorage_v12.validateClientSideEncryptionProperties(validationContext);
 
         assertValid(result);
     }
 
-    private void configureProcessorProperties(String keyType, String keyId, String localKeyHex) {
+    private void configureProcessorProperties(ClientSideEncryptionMethod keyType, String keyId, String localKeyHex) {
         if (keyType != null) {
-            processContext.setProperty(putAzureBlobStorage_v12.CSE_KEY_TYPE, keyType);
+            processContext.setProperty(putAzureBlobStorage_v12.CSE_KEY_TYPE, keyType.getValue());
         }
         if (keyId != null) {
             processContext.setProperty(putAzureBlobStorage_v12.CSE_KEY_ID, keyId);
