@@ -43,9 +43,7 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
             final Matcher matcher = pattern.matcher(getContents());
             performChecks(matcher, results);
         } catch (final IOException e) {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.FAILED)
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
                     .explanation(String.format("Configuration file [%s] cannot be read", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);
@@ -53,6 +51,10 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
 
         processResults(results);
         return results;
+    }
+
+    protected RuntimeValidatorResult.Builder getResultBuilder(final RuntimeValidatorResult.Outcome outcome) {
+        return new RuntimeValidatorResult.Builder().subject(getClass().getSimpleName()).outcome(outcome);
     }
 
     protected File getConfigurationFile() {
@@ -66,7 +68,7 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
             final StringBuilder builder = new StringBuilder();
             while (scanner.hasNextLine()) {
                 builder.append(scanner.nextLine());
-                builder.append("\n");
+                builder.append(System.lineSeparator());
             }
             return builder.toString();
         }
@@ -79,18 +81,14 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
     private boolean canReadConfigurationFile(final List<RuntimeValidatorResult> results) {
         final File configurationFile = getConfigurationFile();
         if (configurationFile == null) {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.SKIPPED)
-                    .explanation("Configuration file is null")
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.SKIPPED)
+                    .explanation("Configuration file not found")
                     .build();
             results.add(result);
             return false;
         }
         if (!configurationFile.canRead()) {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.SKIPPED)
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.SKIPPED)
                     .explanation(String.format("Configuration file [%s] cannot be read", configurationFile.getAbsolutePath()))
                     .build();
             results.add(result);
@@ -101,10 +99,7 @@ public abstract class AbstractFileBasedRuntimeValidator implements RuntimeValida
 
     private void processResults(final List<RuntimeValidatorResult> results) {
         if (results.isEmpty()) {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.SUCCESSFUL)
-                    .build();
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.SUCCESSFUL).build();
             results.add(result);
         }
     }

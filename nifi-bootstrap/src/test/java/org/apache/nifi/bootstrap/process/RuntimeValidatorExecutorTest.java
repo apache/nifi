@@ -92,7 +92,7 @@ public class RuntimeValidatorExecutorTest {
     @Test
     public void testNotEnoughAvailablePorts() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
-        configurationClasses.add(new AvailablePorts(getTempFile("available_ports_not_enough", "0   1")));
+        configurationClasses.add(new AvailableLocalPorts(getTempFile("available_ports_not_enough", "0   1")));
         runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
         final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
@@ -138,7 +138,7 @@ public class RuntimeValidatorExecutorTest {
     @Test
     public void testHighTimedWaitDuration() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
-        configurationClasses.add(new TimedWaitDuration(getTempFile("tcp_tw_timeout_high", "50")));
+        configurationClasses.add(new SocketTimedWaitDuration(getTempFile("tcp_tw_timeout_high", "50")));
         runtimeValidatorExecutor = new RuntimeValidatorExecutor(configurationClasses);
 
         final List<RuntimeValidatorResult> results = runtimeValidatorExecutor.execute();
@@ -167,8 +167,10 @@ public class RuntimeValidatorExecutorTest {
     private File getTestFile(final String filename) {
         final ClassLoader classLoader = this.getClass().getClassLoader();
         final URL url = classLoader.getResource(filename);
-        final File file = new File(url.getFile());
-        return file;
+        if (url == null) {
+            throw new IllegalStateException(String.format("File [%s] not found", filename));
+        }
+        return new File(url.getFile());
     }
 
     private File getTempFile(final String fileName, final String text) throws IOException {
@@ -179,21 +181,21 @@ public class RuntimeValidatorExecutorTest {
 
     private List<RuntimeValidator> getAllTestConfigurationClasses() throws IOException {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
-        configurationClasses.add(new AvailablePorts(getTempFile("available_ports", "1 550001")));
+        configurationClasses.add(new AvailableLocalPorts(getTempFile("available_ports", "1 550001")));
         configurationClasses.add(new FileHandles(getTestFile("limits")));
         configurationClasses.add(new ForkedProcesses(getTestFile("limits")));
         configurationClasses.add(new Swappiness(getTempFile("swappiness", "0")));
-        configurationClasses.add(new TimedWaitDuration(getTempFile("tcp_tw_timeout", "1")));
+        configurationClasses.add(new SocketTimedWaitDuration(getTempFile("tcp_tw_timeout", "1")));
         return configurationClasses;
     }
 
     private List<RuntimeValidator> getConfigurationClassesWithFile(final File file) {
         final List<RuntimeValidator> configurationClasses = new ArrayList<>();
-        configurationClasses.add(new AvailablePorts(file));
+        configurationClasses.add(new AvailableLocalPorts(file));
         configurationClasses.add(new FileHandles(file));
         configurationClasses.add(new ForkedProcesses(file));
         configurationClasses.add(new Swappiness(file));
-        configurationClasses.add(new TimedWaitDuration(file));
+        configurationClasses.add(new SocketTimedWaitDuration(file));
         return configurationClasses;
     }
 }

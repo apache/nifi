@@ -30,11 +30,11 @@ public class RuntimeValidatorExecutor {
 
     public RuntimeValidatorExecutor() {
         this.configurationClasses = Arrays.asList(
-                new AvailablePorts(),
+                new AvailableLocalPorts(),
                 new FileHandles(),
                 new ForkedProcesses(),
                 new Swappiness(),
-                new TimedWaitDuration()
+                new SocketTimedWaitDuration()
         );
     }
 
@@ -63,7 +63,7 @@ public class RuntimeValidatorExecutor {
 
     private void logWarnings(final List<RuntimeValidatorResult> results) {
         for (final RuntimeValidatorResult result : results) {
-            logger.warn("Configuration [{}] not satisfactory due to: {}", result.getSubject(), result.getExplanation());
+            logger.warn("Runtime Configuration [{}] validation failed: {}", result.getSubject(), result.getExplanation());
         }
     }
 }

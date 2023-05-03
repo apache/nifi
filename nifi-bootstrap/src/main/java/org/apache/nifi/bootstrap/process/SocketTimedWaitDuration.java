@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class TimedWaitDuration extends AbstractFileBasedRuntimeValidator {
+public class SocketTimedWaitDuration extends AbstractFileBasedRuntimeValidator {
     // Different Linux Kernel versions have different file paths for TIMED_WAIT_DURATION
     private static final String[] POSSIBLE_FILE_PATHS = new String[] {
             "/proc/sys/net/ipv4/tcp_tw_timeout",
@@ -31,11 +31,11 @@ public class TimedWaitDuration extends AbstractFileBasedRuntimeValidator {
     private static final Pattern PATTERN = Pattern.compile("\\d+");
     private static final int DESIRED_TIMED_WAIT_DURATION = 1;
 
-    public TimedWaitDuration() {
+    public SocketTimedWaitDuration() {
         super(determineConfigurationFile());
     }
 
-    TimedWaitDuration(final File configurationFile) {
+    SocketTimedWaitDuration(final File configurationFile) {
         super(configurationFile);
     }
 
@@ -46,26 +46,24 @@ public class TimedWaitDuration extends AbstractFileBasedRuntimeValidator {
 
     @Override
     protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        final String configurationPath = getConfigurationFile().getAbsolutePath();
         if (matcher.find()) {
-            final int timedWaitDuration = Integer.valueOf(matcher.group());
+            final int timedWaitDuration = Integer.parseInt(matcher.group());
             if (timedWaitDuration > DESIRED_TIMED_WAIT_DURATION) {
-                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                        .subject(this.getClass().getName())
-                        .outcome(RuntimeValidatorResult.Outcome.FAILED)
+                final RuntimeValidatorResult result =  getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
                         .explanation(
                                 String.format(
-                                        "Timed wait duration [%ds] is more than the recommended timed wait duration [%ds]",
+                                        "TCP Socket Wait [%d seconds] more than recommended [%d seconds] according to [%s]",
                                         timedWaitDuration,
-                                        DESIRED_TIMED_WAIT_DURATION
+                                        DESIRED_TIMED_WAIT_DURATION,
+                                        configurationPath
                                 )
                         )
                         .build();
                 results.add(result);
             }
         } else {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.FAILED)
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
                     .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
                     .build();
             results.add(result);

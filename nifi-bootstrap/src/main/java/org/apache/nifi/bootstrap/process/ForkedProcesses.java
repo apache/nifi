@@ -42,30 +42,25 @@ public class ForkedProcesses extends AbstractFileBasedRuntimeValidator {
 
     @Override
     protected void performChecks(final Matcher matcher, final List<RuntimeValidatorResult> results) {
+        final String configurationPath = getConfigurationFile().getPath();
         if (matcher.find()) {
-            final int softLimit = Integer.valueOf(matcher.group(1));
-            final int hardLimit = Integer.valueOf(matcher.group(2));
+            final int softLimit = Integer.parseInt(matcher.group(1));
+            final int hardLimit = Integer.parseInt(matcher.group(2));
             if (softLimit < RECOMMENDED_SOFT_LIMIT) {
-                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                        .subject(this.getClass().getName())
-                        .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Soft limit for forked processes [%d] is less than recommended soft limit [%d]", softLimit, RECOMMENDED_SOFT_LIMIT))
+                final RuntimeValidatorResult result =  getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
+                        .explanation(String.format("Soft limit [%d] less than recommended [%d] according to [%s]", softLimit, RECOMMENDED_SOFT_LIMIT, configurationPath))
                         .build();
                 results.add(result);
             }
             if (hardLimit < RECOMMENDED_HARD_LIMIT) {
-                final RuntimeValidatorResult result =  new RuntimeValidatorResult.Builder()
-                        .subject(this.getClass().getName())
-                        .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                        .explanation(String.format("Hard limit for forked processes [%d] is less than recommended hard limit [%d]", hardLimit, RECOMMENDED_HARD_LIMIT))
+                final RuntimeValidatorResult result =  getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
+                        .explanation(String.format("Hard limit [%d] less than recommended [%d] according to [%s]", hardLimit, RECOMMENDED_HARD_LIMIT, configurationPath))
                         .build();
                 results.add(result);
             }
         } else {
-            final RuntimeValidatorResult result = new RuntimeValidatorResult.Builder()
-                    .subject(this.getClass().getName())
-                    .outcome(RuntimeValidatorResult.Outcome.FAILED)
-                    .explanation(String.format("Configuration file [%s] cannot be parsed", getConfigurationFile().getAbsolutePath()))
+            final RuntimeValidatorResult result = getResultBuilder(RuntimeValidatorResult.Outcome.FAILED)
+                    .explanation(String.format("Configuration file [%s] cannot be parsed", configurationPath))
                     .build();
             results.add(result);
         }
