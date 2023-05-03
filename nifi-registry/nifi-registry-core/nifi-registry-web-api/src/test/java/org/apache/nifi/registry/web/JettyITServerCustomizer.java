@@ -81,7 +81,7 @@ public class JettyITServerCustomizer implements WebServerFactoryCustomizer<Jetty
         LOGGER.info("JettyServer is customized");
     }
 
-    private SslContextFactory createSslContextFactory(Ssl properties) {
+    private SslContextFactory.Server createSslContextFactory(Ssl properties) {
         // Calling SslContextFactory.Server() calls setEndpointIdentificationAlgorithm(null).
         // This ensures that Jetty server does not attempt to validate a hostname in the client certificate's SAN.
         final SslContextFactory.Server contextFactory = new SslContextFactory.Server();

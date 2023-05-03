@@ -103,7 +103,7 @@ public class PrometheusServer {
         this.handler = new ServletContextHandler(server, "/metrics");
         this.handler.addServlet(new ServletHolder(new MetricsServlet()), "/");
 
-        SslContextFactory sslFactory = createSslFactory(sslContextService, needClientAuth, wantClientAuth);
+        SslContextFactory.Server sslFactory = createSslFactory(sslContextService, needClientAuth, wantClientAuth);
         HttpConfiguration httpsConfiguration = new HttpConfiguration();
         httpsConfiguration.setSecureScheme("https");
         httpsConfiguration.setSecurePort(addr);
@@ -123,7 +123,7 @@ public class PrometheusServer {
         }
     }
 
-    private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
+    private SslContextFactory.Server createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
         final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);

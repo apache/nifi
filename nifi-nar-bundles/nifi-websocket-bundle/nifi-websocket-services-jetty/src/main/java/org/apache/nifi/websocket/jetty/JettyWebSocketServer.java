@@ -29,6 +29,8 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
@@ -41,25 +43,22 @@ import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.security.Constraint;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketPolicy;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
-import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
-import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
-import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
-import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
+import org.eclipse.jetty.websocket.server.JettyServerUpgradeRequest;
+import org.eclipse.jetty.websocket.server.JettyServerUpgradeResponse;
+import org.eclipse.jetty.websocket.server.JettyWebSocketCreator;
+import org.eclipse.jetty.websocket.server.JettyWebSocketServlet;
+import org.eclipse.jetty.websocket.server.JettyWebSocketServletFactory;
+import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 
+import javax.net.ssl.SSLContext;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -166,8 +165,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
     private static final List<PropertyDescriptor> properties;
 
     static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.addAll(getAbstractPropertyDescriptors());
+        final List<PropertyDescriptor> props = new ArrayList<>(getAbstractPropertyDescriptors());
         props.add(LISTEN_PORT);
         props.add(SSL_CONTEXT);
         props.add(CLIENT_AUTH);
@@ -177,14 +175,11 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         props.add(LOGIN_SERVICE);
         props.add(USERS_PROPERTIES_FILE);
 
-
         properties = Collections.unmodifiableList(props);
     }
 
-    private WebSocketPolicy configuredPolicy;
     private Server server;
     private Integer listenPort;
-    private ServletHandler servletHandler;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -198,7 +193,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         final List<ValidationResult> results = new ArrayList<>();
         if (validationContext.getProperty(BASIC_AUTH).asBoolean()) {
             final String loginServiceValue = validationContext.getProperty(LOGIN_SERVICE).getValue();
-            if (LOGIN_SERVICE_HASH.equals(loginServiceValue)) {
+            if (LOGIN_SERVICE_HASH.getValue().equals(loginServiceValue)) {
                 if (!validationContext.getProperty(USERS_PROPERTIES_FILE).isSet()) {
                     results.add(new ValidationResult.Builder().subject(USERS_PROPERTIES_FILE.getDisplayName())
                             .explanation("it is required by HashLoginService").valid(false).build());
@@ -209,16 +204,28 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         return results;
     }
 
-    public static class JettyWebSocketServlet extends WebSocketServlet implements WebSocketCreator {
+    public static class StandardJettyWebSocketServlet extends JettyWebSocketServlet implements JettyWebSocketCreator {
+        private final ConfigurationContext context;
+
+        public StandardJettyWebSocketServlet(final ConfigurationContext context) {
+            this.context = context;
+        }
+
         @Override
-        public void configure(WebSocketServletFactory webSocketServletFactory) {
+        public void configure(final JettyWebSocketServletFactory webSocketServletFactory) {
+            final int inputBufferSize = context.getProperty(INPUT_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+            final int maxTextMessageSize = context.getProperty(MAX_TEXT_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+            final int maxBinaryMessageSize = context.getProperty(MAX_BINARY_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+            webSocketServletFactory.setInputBufferSize(inputBufferSize);
+            webSocketServletFactory.setMaxTextMessageSize(maxTextMessageSize);
+            webSocketServletFactory.setMaxBinaryMessageSize(maxBinaryMessageSize);
             webSocketServletFactory.setCreator(this);
         }
 
         @Override
-        public Object createWebSocket(ServletUpgradeRequest servletUpgradeRequest, ServletUpgradeResponse servletUpgradeResponse) {
+        public Object createWebSocket(JettyServerUpgradeRequest servletUpgradeRequest, JettyServerUpgradeResponse servletUpgradeResponse) {
             final URI requestURI = servletUpgradeRequest.getRequestURI();
-            final int port = servletUpgradeRequest.getLocalPort();
+            final int port = ((InetSocketAddress) servletUpgradeRequest.getLocalSocketAddress()).getPort();
             final JettyWebSocketServer service = portToControllerService.get(port);
 
             if (service == null) {
@@ -233,32 +240,17 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
                 throw new IllegalStateException("Failed to get router due to: "  + e, e);
             }
 
-            final RoutingWebSocketListener listener = new RoutingWebSocketListener(router) {
-                @Override
-                public void onWebSocketConnect(Session session) {
-                    final WebSocketPolicy currentPolicy = session.getPolicy();
-                    currentPolicy.setInputBufferSize(service.configuredPolicy.getInputBufferSize());
-                    currentPolicy.setMaxTextMessageSize(service.configuredPolicy.getMaxTextMessageSize());
-                    currentPolicy.setMaxBinaryMessageSize(service.configuredPolicy.getMaxBinaryMessageSize());
-                    super.onWebSocketConnect(session);
-                }
-            };
-
-            return listener;
+            return new RoutingWebSocketListener(router);
         }
     }
 
     @OnEnabled
     @Override
     public void startServer(final ConfigurationContext context) throws Exception {
-
         if (server != null && server.isRunning()) {
-            getLogger().info("A WebSocket server is already running. {}", new Object[]{server});
+            getLogger().info("Jetty WebSocket Server running {}", server);
             return;
         }
-
-        configuredPolicy = WebSocketPolicy.newServerPolicy();
-        configurePolicy(context, configuredPolicy);
 
         server = new Server();
 
@@ -292,7 +284,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
             final LoginService loginService;
             final String loginServiceValue = context.getProperty(LOGIN_SERVICE).getValue();
-            if (LOGIN_SERVICE_HASH.equals(loginServiceValue)) {
+            if (LOGIN_SERVICE_HASH.getValue().equals(loginServiceValue)) {
                 final String usersFilePath = context.getProperty(USERS_PROPERTIES_FILE).evaluateAttributeExpressions().getValue();
                 loginService = new HashLoginService("HashLoginService", usersFilePath);
             } else {
@@ -303,23 +295,22 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             securityHandler.setLoginService(loginService);
         }
 
-        servletHandler = new ServletHandler();
+        ServletHandler servletHandler = new ServletHandler();
+        JettyWebSocketServletContainerInitializer.configure(contextHandler, null);
         contextHandler.insertHandler(servletHandler);
 
         handlerCollection.setHandlers(new Handler[]{contextHandler});
 
         server.setHandler(handlerCollection);
 
-
         listenPort = context.getProperty(LISTEN_PORT).evaluateAttributeExpressions().asInteger();
-        final SslContextFactory sslContextFactory = createSslFactory(context);
-
-        final ServerConnector serverConnector = createConnector(sslContextFactory, listenPort);
+        final ServerConnector serverConnector = getServerConnector(context);
         server.setConnectors(new Connector[] {serverConnector});
 
-        servletHandler.addServletWithMapping(JettyWebSocketServlet.class, "/*");
+        final StandardJettyWebSocketServlet webSocketServlet = new StandardJettyWebSocketServlet(context);
+        servletHandler.addServletWithMapping(new ServletHolder(webSocketServlet), "/*");
 
-        getLogger().info("Starting JettyWebSocketServer on port {}.", new Object[]{listenPort});
+        getLogger().info("Starting Jetty WebSocket Server on Port {}", listenPort);
         server.start();
         listenPort = serverConnector.getLocalPort();
 
@@ -330,42 +321,28 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         return listenPort;
     }
 
-    private ServerConnector createConnector(final SslContextFactory sslContextFactory, final Integer listenPort) {
-
+    private ServerConnector getServerConnector(final ConfigurationContext context) {
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, listenPort);
         final ServerConnector serverConnector;
-        if (sslContextFactory == null) {
-            serverConnector = new ServerConnector(server);
+
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        if (sslContextService == null) {
+            serverConnector = serverConnectorFactory.getServerConnector();
         } else {
-            final HttpConfiguration httpsConfiguration = new HttpConfiguration();
-            httpsConfiguration.setSecureScheme("https");
-            httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
-            serverConnector = new ServerConnector(server,
-                    new SslConnectionFactory(sslContextFactory, "http/1.1"),
-                    new HttpConnectionFactory(httpsConfiguration));
+            final SSLContext sslContext = sslContextService.createContext();
+            serverConnectorFactory.setSslContext(sslContext);
+
+            final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
+            if (CLIENT_NEED.getValue().equals(clientAuthValue)) {
+                serverConnectorFactory.setNeedClientAuth(true);
+            } else if (CLIENT_WANT.getValue().equals(clientAuthValue)) {
+                serverConnectorFactory.setWantClientAuth(true);
+            }
+
+            serverConnector = serverConnectorFactory.getServerConnector();
         }
-        serverConnector.setPort(listenPort);
+
         return serverConnector;
-    }
-
-    private SslContextFactory createSslFactory(final ConfigurationContext context) {
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-
-        final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-        final boolean need;
-        final boolean want;
-        if (CLIENT_NEED.equals(clientAuthValue)) {
-            need = true;
-            want = false;
-        } else if (CLIENT_WANT.equals(clientAuthValue)) {
-            need = false;
-            want = true;
-        } else {
-            need = false;
-            want = false;
-        }
-
-        final SslContextFactory sslFactory = (sslService == null) ? null : createSslFactory(sslService, need, want, null);
-        return sslFactory;
     }
 
     @OnDisabled
@@ -376,12 +353,11 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             return;
         }
 
-        getLogger().info("Stopping JettyWebSocketServer.");
+        getLogger().info("Stopping Jetty WebSocket Server");
         server.stop();
         if (portToControllerService.containsKey(listenPort)
                 && this.getIdentifier().equals(portToControllerService.get(listenPort).getIdentifier())) {
             portToControllerService.remove(listenPort);
         }
     }
-
 }

@@ -23,9 +23,11 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.NodeConfig;
+import org.apache.solr.logging.LogWatcherConfig;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
@@ -60,7 +62,8 @@ public class EmbeddedSolrServerFactory {
     public static SolrClient create(String solrHome, String coreName, String dataDir)
             throws IOException {
 
-        NodeConfig.NodeConfigBuilder nodeConfig = new NodeConfig.NodeConfigBuilder(coreName, Paths.get(solrHome));
+        final Path homePath = Paths.get(solrHome).toAbsolutePath();
+        NodeConfig.NodeConfigBuilder nodeConfig = new NodeConfig.NodeConfigBuilder(coreName, homePath);
 
         if (dataDir != null) {
             File coreDataDir = new File(dataDir + "/" + coreName);
@@ -70,7 +73,10 @@ public class EmbeddedSolrServerFactory {
             nodeConfig.setSolrDataHome(coreDataDir.getPath());
         }
 
-        final CoreContainer coreContainer = new CoreContainer(new NodeConfig.NodeConfigBuilder(coreName, Paths.get(solrHome)).build());
+        final LogWatcherConfig logWatcherConfig = new LogWatcherConfig(false, EmbeddedSolrServerFactory.class.getSimpleName(), "ERROR", 0);
+        final CoreContainer coreContainer = new CoreContainer(new NodeConfig.NodeConfigBuilder(coreName, homePath)
+                .setLogWatcherConfig(logWatcherConfig)
+                .build());
         coreContainer.load();
 
         return new EmbeddedSolrServer(coreContainer, coreName);
