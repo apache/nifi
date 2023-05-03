@@ -62,7 +62,7 @@ public class TlsCertificateAuthorityService {
     }
 
     private static ServerConnector createSSLConnector(Server server, int port, KeyStore keyStore, String keyPassword) {
-        SslContextFactory sslContextFactory = new SslContextFactory.Server();
+        SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setIncludeProtocols(TlsPlatform.getLatestProtocol());
         sslContextFactory.setKeyStore(keyStore);
         sslContextFactory.setKeyManagerPassword(keyPassword);

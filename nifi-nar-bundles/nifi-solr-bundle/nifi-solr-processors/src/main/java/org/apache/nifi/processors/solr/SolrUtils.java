@@ -50,9 +50,10 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.CloudLegacySolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.SolrHttpClientBuilder;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
@@ -238,9 +239,10 @@ public class SolrUtils {
     public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
     private static final String ROOT_PATH = "/";
 
+    @SuppressWarnings("deprecation")
     public static synchronized SolrClient createSolrClient(final PropertyContext context, final String solrLocation) {
-        final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
         final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -253,7 +255,7 @@ public class SolrUtils {
 
         // has to happen before the client is created below so that correct configurer would be set if needed
         if (kerberosCredentialsService != null || (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword))) {
-            HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(Optional.empty()));
+            HttpClientUtil.setHttpClientBuilder(new KerberosHttpClientBuilder().getHttpClientBuilder(SolrHttpClientBuilder.create()));
         }
 
         if (sslContextService != null) {
@@ -287,13 +289,15 @@ public class SolrUtils {
             String zkChrootPath = getZooKeeperChrootPathSuffix(solrLocation);
 
             final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
-            final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-            final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            final int zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+            final int zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-            CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder(zkList, Optional.of(zkChrootPath)).withHttpClient(httpClient).build();
+            final CloudLegacySolrClient cloudSolrClient = new CloudLegacySolrClient.Builder(zkList, Optional.of(zkChrootPath))
+                    .withConnectionTimeout(zkConnectionTimeout, TimeUnit.MILLISECONDS)
+                    .withSocketTimeout(zkClientTimeout, TimeUnit.MILLISECONDS)
+                    .withHttpClient(httpClient)
+                    .build();
             cloudSolrClient.setDefaultCollection(collection);
-            cloudSolrClient.setZkClientTimeout(zkClientTimeout);
-            cloudSolrClient.setZkConnectTimeout(zkConnectionTimeout);
             return cloudSolrClient;
         }
     }

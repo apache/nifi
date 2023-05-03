@@ -288,7 +288,7 @@ public class ListenHTTPServlet extends HttpServlet {
             throws IOException, IllegalStateException, ServletException {
         Set<FlowFile> flowFileSet = new HashSet<>();
         String tempDir = System.getProperty("java.io.tmpdir");
-        request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
+        request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
         int i = 0;
         final Collection<Part> requestParts = request.getParts();
         for (final Part part : requestParts) {

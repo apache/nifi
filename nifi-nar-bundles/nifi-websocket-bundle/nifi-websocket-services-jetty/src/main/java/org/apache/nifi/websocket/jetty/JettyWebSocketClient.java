@@ -28,6 +28,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -37,13 +38,17 @@ import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketMessageRouter;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpProxy;
+import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
 import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.apache.nifi.websocket.jetty.util.HeaderMapExtractor;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -223,25 +228,31 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     @Override
     public void startClient(final ConfigurationContext context) throws Exception {
         configurationContext = context;
-        final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        SslContextFactory sslContextFactory = null;
-        if (sslService != null) {
-            sslContextFactory = createSslFactory(sslService, false, false, null);
-        }
 
-        HttpClient httpClient = new HttpClient(sslContextFactory);
+        final HttpClient httpClient;
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        if (sslContextService == null) {
+            httpClient = new HttpClient();
+        } else {
+            final SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+            final SSLContext sslContext = sslContextService.createContext();
+            sslContextFactory.setSslContext(sslContext);
+            final ClientConnector clientConnector = new ClientConnector();
+            clientConnector.setSslContextFactory(sslContextFactory);
+            httpClient = new HttpClient(new HttpClientTransportDynamic(clientConnector));
+        }
 
         final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
         final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
 
         if (proxyHost != null && proxyPort != null) {
             HttpProxy httpProxy = new HttpProxy(proxyHost, proxyPort);
-            httpClient.getProxyConfiguration().getProxies().add(httpProxy);
+            httpClient.getProxyConfiguration().addProxy(httpProxy);
         }
 
         client = new WebSocketClient(httpClient);
 
-        configurePolicy(context, client.getPolicy());
+        configurePolicy(context, client);
         final String userName = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
         final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
         final String customAuth = context.getProperty(CUSTOM_AUTH).evaluateAttributeExpressions().getValue();
@@ -432,5 +443,14 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     @Override
     public String getTargetUri() {
         return webSocketUri.toString();
+    }
+
+    private void configurePolicy(final ConfigurationContext context, final WebSocketPolicy policy) {
+        final int inputBufferSize = context.getProperty(INPUT_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxTextMessageSize = context.getProperty(MAX_TEXT_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxBinaryMessageSize = context.getProperty(MAX_BINARY_MESSAGE_SIZE).asDataSize(DataUnit.B).intValue();
+        policy.setInputBufferSize(inputBufferSize);
+        policy.setMaxTextMessageSize(maxTextMessageSize);
+        policy.setMaxBinaryMessageSize(maxBinaryMessageSize);
     }
 }

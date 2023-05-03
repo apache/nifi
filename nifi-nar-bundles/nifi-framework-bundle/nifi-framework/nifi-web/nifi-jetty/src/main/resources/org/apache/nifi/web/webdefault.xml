@@ -42,14 +42,6 @@
         Default web.xml file.  
         This file is applied to a Web application before it's own WEB_INF/web.xml file
     </description>
-
-    <!-- ==================================================================== -->
-    <!-- Removes static references to beans from javax.el.BeanELResolver to   -->
-    <!-- ensure webapp classloader can be released on undeploy                -->
-    <!-- ==================================================================== -->
-    <listener>
-        <listener-class>org.eclipse.jetty.servlet.listener.ELContextCleaner</listener-class>
-    </listener>
   
     <!-- ==================================================================== -->
     <!-- Removes static cache of Methods from java.beans.Introspector to      -->

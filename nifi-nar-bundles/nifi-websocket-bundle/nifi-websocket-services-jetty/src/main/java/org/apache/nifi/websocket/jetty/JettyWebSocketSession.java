@@ -50,18 +50,18 @@ public class JettyWebSocketSession extends AbstractWebSocketSession {
     }
 
     @Override
-    public void close(final String reason) throws IOException {
+    public void close(final String reason) {
         session.close(StatusCode.NORMAL, reason);
     }
 
     @Override
     public InetSocketAddress getRemoteAddress() {
-        return session.getRemoteAddress();
+        return (InetSocketAddress) session.getRemoteAddress();
     }
 
     @Override
     public InetSocketAddress getLocalAddress() {
-        return session.getLocalAddress();
+        return (InetSocketAddress) session.getLocalAddress();
     }
 
     @Override

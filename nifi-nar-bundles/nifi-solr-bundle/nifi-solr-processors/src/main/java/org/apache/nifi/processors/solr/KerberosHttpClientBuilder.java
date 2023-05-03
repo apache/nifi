@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.solr;
 
-import java.lang.invoke.MethodHandles;
 import java.security.Principal;
-import java.util.Optional;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -38,8 +36,6 @@ import org.apache.solr.client.solrj.impl.HttpClientBuilderFactory;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.SolrHttpClientBuilder;
 import org.apache.solr.client.solrj.impl.SolrPortAwareCookieSpecFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class is a modified version of Krb5HttpClientBuilder that is part of SolrJ.
@@ -49,14 +45,8 @@ import org.slf4j.LoggerFactory;
  */
 public class KerberosHttpClientBuilder implements HttpClientBuilderFactory {
 
-    private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     public KerberosHttpClientBuilder() {
 
-    }
-
-    public SolrHttpClientBuilder getBuilder() {
-        return getBuilder(HttpClientUtil.getHttpClientBuilder());
     }
 
     public void close() {
@@ -64,8 +54,8 @@ public class KerberosHttpClientBuilder implements HttpClientBuilderFactory {
     }
 
     @Override
-    public SolrHttpClientBuilder getHttpClientBuilder(Optional<SolrHttpClientBuilder> builder) {
-        return builder.isPresent() ? getBuilder(builder.get()) : getBuilder();
+    public SolrHttpClientBuilder getHttpClientBuilder(SolrHttpClientBuilder builder) {
+        return getBuilder(builder);
     }
 
     public SolrHttpClientBuilder getBuilder(SolrHttpClientBuilder builder) {
