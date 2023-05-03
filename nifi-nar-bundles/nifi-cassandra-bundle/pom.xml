@@ -23,7 +23,7 @@
     </parent>
 
     <properties>
-        <cassandra.sdk.version>3.10.2</cassandra.sdk.version>
+        <cassandra.sdk.version>3.11.3</cassandra.sdk.version>
         <cassandra.guava.version>19.0</cassandra.guava.version>
     </properties>
 
