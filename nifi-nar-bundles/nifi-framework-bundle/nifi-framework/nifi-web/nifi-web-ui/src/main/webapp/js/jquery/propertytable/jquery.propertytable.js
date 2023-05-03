@@ -33,6 +33,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
+                'nf.CanvasUtils',
                 'lodash'],
             function ($,
                       Slick,
@@ -46,6 +47,7 @@
                       nfProcessGroupConfiguration,
                       nfSettings,
                       nfParameterContexts,
+                      nfCanvasUtils,
                       _) {
                 factory($,
                     Slick,
@@ -59,6 +61,7 @@
                     nfProcessGroupConfiguration,
                     nfSettings,
                     nfParameterContexts,
+                    nfCanvasUtils,
                     _);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -73,7 +76,8 @@
             require('nf.ProcessGroup'),
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
-            recuire('nf.ParameterContexts'),
+            require('nf.ParameterContexts'),
+            require('nf.CanvasUtils'),
             require('lodash'));
     } else {
         factory(root.$,
@@ -88,6 +92,7 @@
             root.nf.ProcessGroupConfiguration,
             root.nf.Settings,
             root.nf.ParameterContexts,
+            root.nf.CanvasUtils,
             root._);
     }
 }(this, function ($,
@@ -102,6 +107,7 @@
                   nfProcessGroupConfiguration,
                   nfSettings,
                   nfParameterContexts,
+                  nfCanvasUtils,
                   _) {
 
     var groupId = null;
@@ -2318,29 +2324,38 @@
          * @argument {object} properties        The properties
          * @argument {map} descriptors          The property descriptors (property name -> property descriptor)
          * @argument {map} history
-         * @argument {object} options           The options to load properties for processor configurations
+         * @argument {string} type              The type that is loading the properties
          */
-        loadProperties: function (properties, descriptors, history, options) {
+        loadProperties: function (properties, descriptors, history, type) {
             var self = this;
             var groupId = null;
 
-            var loadParameterContext = function (options) {
-                if (typeof options.getFullParameterContextDeferred === 'function') {
-                    options.getFullParameterContextDeferred(groupId).done(function (parameterContext) {
-                        currentParameterContext = parameterContext;
-                        return self.each(function () {
-                            var table = $(this).find('div.property-table');
-                            loadProperties(table, properties, descriptors, history);
-                        });
+            var loadParameterContext = function () {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/parameter-contexts/' + encodeURIComponent(groupId),
+                    data: {
+                        includeInheritedParameters: 'true'
+                    },
+                    dataType: 'json'
+                }).done(function (response) {
+                    if (!response.permissions.canRead) {
+                        return;
+                    }
+                    currentParameterContext = response;
+                    return self.each(function () {
+                        var table = $(this).find('div.property-table');
+                        loadProperties(table, properties, descriptors, history);
                     });
-                }
+                });
             };
 
-            if (!_.isEmpty(options) && typeof options.getParameterContext === 'function') {
-                var context = options.getParameterContext();
+            if (type === 'processor-configuration' || type === 'controller-service') {
+                var context = nfCanvasUtils.getParameterContext();
+
                 if (!_.isEmpty(context) && context.permissions.canRead) {
                     groupId = context.id;
-                    return loadParameterContext(options);
+                    return loadParameterContext();
                 }
             }
             return self.each(function () {
