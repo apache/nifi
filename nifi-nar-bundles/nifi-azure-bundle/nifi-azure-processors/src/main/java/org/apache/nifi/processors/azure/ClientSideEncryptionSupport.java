@@ -99,7 +99,7 @@ public interface ClientSideEncryptionSupport {
         } else {
             try {
                 final byte[] keyBytes = Hex.decodeHex(keyHex);
-                if (getKeyWrapAlgorithm(keyBytes).isEmpty()) {
+                if (!getKeyWrapAlgorithm(keyBytes).isPresent()) {
                     validationResults.add(new ValidationResult.Builder().subject(CSE_LOCAL_KEY.getDisplayName())
                             .explanation(String.format("Key size in bits must be one of [128, 192, 256, 384, 512] instead of [%d]", keyBytes.length * 8)).build());
                 }
