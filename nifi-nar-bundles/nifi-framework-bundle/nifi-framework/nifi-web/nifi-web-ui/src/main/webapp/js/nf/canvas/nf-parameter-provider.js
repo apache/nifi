@@ -3179,7 +3179,7 @@
                 // load the property table
                 $('#parameter-provider-properties')
                     .propertytable('setGroupId', null)
-                    .propertytable('loadProperties', parameterProvider.properties, parameterProvider.descriptors, parameterProviderHistory.propertyHistory)
+                    .propertytable('loadProperties', parameterProvider.properties, parameterProvider.descriptors, parameterProviderHistory.propertyHistory, 'parameter-provider')
                     .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                         nfVerify.verify(parameterProvider['id'], parameterProviderEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#parameter-provider-properties-verification-results-listing'));
                     });
@@ -3296,7 +3296,7 @@
                 // load the property table
                 $('#parameter-provider-properties')
                     .propertytable('setGroupId', null)
-                    .propertytable('loadProperties', parameterProvider.properties, parameterProvider.descriptors, parameterProviderHistory.propertyHistory);
+                    .propertytable('loadProperties', parameterProvider.properties, parameterProvider.descriptors, parameterProviderHistory.propertyHistory, 'parameter-provider');
 
                 // show the details
                 parameterProviderDialog.modal('show');
