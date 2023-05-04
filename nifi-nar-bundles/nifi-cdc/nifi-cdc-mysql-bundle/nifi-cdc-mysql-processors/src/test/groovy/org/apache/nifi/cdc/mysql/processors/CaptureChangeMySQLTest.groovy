@@ -23,6 +23,7 @@ import com.github.shyiko.mysql.binlog.event.EventData
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4
 import com.github.shyiko.mysql.binlog.event.EventType
 import com.github.shyiko.mysql.binlog.event.GtidEventData
+import com.github.shyiko.mysql.binlog.event.MySqlGtid
 import com.github.shyiko.mysql.binlog.event.QueryEventData
 import com.github.shyiko.mysql.binlog.event.RotateEventData
 import com.github.shyiko.mysql.binlog.event.TableMapEventData
@@ -1142,7 +1143,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1'] as GtidEventData
+                [gtid: MySqlGtid.fromString( 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')] as GtidEventData
         ))
 
         // BEGIN
@@ -1162,7 +1163,7 @@ class CaptureChangeMySQLTest {
         // Stop the processor and verify the state is set
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '6', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1-1', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-1', Scope.CLUSTER)
 
         ((CaptureChangeMySQL) testRunner.getProcessor()).clearState()
         testRunner.stateManager.clear(Scope.CLUSTER)
@@ -1174,7 +1175,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 8] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2'] as GtidEventData
         ))
 
         // BEGIN
@@ -1195,12 +1196,12 @@ class CaptureChangeMySQLTest {
 
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '12', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-2', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-2', Scope.CLUSTER)
 
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 14] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1219,7 +1220,7 @@ class CaptureChangeMySQLTest {
 
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_FILENAME_KEY, '', Scope.CLUSTER)
         testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_POSITION_KEY, '18', Scope.CLUSTER)
-        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-3', Scope.CLUSTER)
+        testRunner.stateManager.assertStateEquals(BinlogEventInfo.BINLOG_GTIDSET_KEY, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-3', Scope.CLUSTER)
     }
 
     @Test
@@ -1296,12 +1297,12 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, 'true')
-        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1')
+        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')
         testRunner.setProperty(CaptureChangeMySQL.INIT_SEQUENCE_ID, '10')
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, 'false')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
         testRunner.getStateManager().setState([
-                ("${BinlogEventInfo.BINLOG_GTIDSET_KEY}".toString()): 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2',
+                ("${BinlogEventInfo.BINLOG_GTIDSET_KEY}".toString()): 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2',
                 ("${EventWriter.SEQUENCE_ID_KEY}".toString()): '1'
         ], Scope.CLUSTER)
 
@@ -1310,7 +1311,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1331,7 +1332,7 @@ class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size())
         assertEquals(
-                'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:2-3',
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2-3',
                 resultFiles.last().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY)
         )
     }
@@ -1344,7 +1345,7 @@ class CaptureChangeMySQLTest {
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
         testRunner.setProperty(CaptureChangeMySQL.USE_BINLOG_GTID, 'true')
-        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1')
+        testRunner.setProperty(CaptureChangeMySQL.INIT_BINLOG_GTID, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1')
         testRunner.setProperty(CaptureChangeMySQL.RETRIEVE_ALL_RECORDS, 'false')
         testRunner.setProperty(CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT, 'true')
 
@@ -1353,7 +1354,7 @@ class CaptureChangeMySQLTest {
         // GTID
         client.sendEvent(new Event(
                 [timestamp: new Date().time, eventType: EventType.GTID, nextPosition: 2] as EventHeaderV4,
-                [gtid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:3'] as GtidEventData
+                [gtid: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:3'] as GtidEventData
         ))
 
         // BEGIN
@@ -1374,7 +1375,7 @@ class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size())
         assertEquals(
-                'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:1-1:3-3',
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:1-1:3-3',
                 resultFiles.last().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY)
         )
     }

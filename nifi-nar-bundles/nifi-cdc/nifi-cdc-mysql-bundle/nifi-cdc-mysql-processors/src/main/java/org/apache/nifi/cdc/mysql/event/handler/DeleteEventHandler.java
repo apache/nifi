@@ -20,22 +20,25 @@ import com.github.shyiko.mysql.binlog.event.DeleteRowsEventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;
 
 import static org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL.REL_SUCCESS;
 
 public class DeleteEventHandler implements BinlogEventHandler<DeleteRowsEventData, DeleteRowsEventInfo> {
+
+    private final DeleteRowsWriter eventWriter = new DeleteRowsWriter();
+
     @Override
-    public void handleEvent(final DeleteRowsEventData eventData, final boolean writeEvent, DataCaptureState dataCaptureState,
-                            CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, CaptureChangeMySQL.BinlogEventState binlogEventState,
-                            final String sql, AbstractBinlogEventWriter<DeleteRowsEventInfo> eventWriter,
-                            EventWriterConfiguration eventWriterConfiguration, ProcessSession session, final long timestamp) {
-        DeleteRowsEventInfo eventInfo = dataCaptureState.isUseGtid()
-                ? new DeleteRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getGtidSet(), eventData)
-                : new DeleteRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), eventData);
+    public void handleEvent(final DeleteRowsEventData eventData, final boolean writeEvent, final DataCaptureState dataCaptureState,
+                            final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, final CaptureChangeMySQL.BinlogEventState binlogEventState,
+                            final String sql, final EventWriterConfiguration eventWriterConfiguration, final ProcessSession session, final long timestamp) {
         if (writeEvent) {
+            final DeleteRowsEventInfo eventInfo = dataCaptureState.isUseGtid()
+                    ? new DeleteRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getGtidSet(), eventData)
+                    : new DeleteRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), eventData);
+
             binlogEventState.setCurrentEventInfo(eventInfo);
             binlogEventState.setCurrentEventWriter(eventWriter);
             dataCaptureState.setSequenceId(eventWriter.writeEvent(session, binlogResourceInfo.getTransitUri(), eventInfo, dataCaptureState.getSequenceId(),

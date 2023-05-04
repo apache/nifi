@@ -20,22 +20,25 @@ import com.github.shyiko.mysql.binlog.event.UpdateRowsEventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;
 
 import static org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL.REL_SUCCESS;
 
 public class UpdateEventHandler implements BinlogEventHandler<UpdateRowsEventData, UpdateRowsEventInfo> {
+
+    private final UpdateRowsWriter eventWriter = new UpdateRowsWriter();
+
     @Override
-    public void handleEvent(final UpdateRowsEventData eventData, final boolean writeEvent, DataCaptureState dataCaptureState,
-                            CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, CaptureChangeMySQL.BinlogEventState binlogEventState,
-                            final String sql, AbstractBinlogEventWriter<UpdateRowsEventInfo> eventWriter,
-                            EventWriterConfiguration eventWriterConfiguration, ProcessSession session, final long timestamp) {
-        UpdateRowsEventInfo eventInfo = dataCaptureState.isUseGtid()
-                ? new UpdateRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getGtidSet(), eventData)
-                : new UpdateRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), eventData);
+    public void handleEvent(final UpdateRowsEventData eventData, final boolean writeEvent, final DataCaptureState dataCaptureState,
+                            final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, final CaptureChangeMySQL.BinlogEventState binlogEventState,
+                            final String sql, final EventWriterConfiguration eventWriterConfiguration, final ProcessSession session, final long timestamp) {
         if (writeEvent) {
+            final UpdateRowsEventInfo eventInfo = dataCaptureState.isUseGtid()
+                    ? new UpdateRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getGtidSet(), eventData)
+                    : new UpdateRowsEventInfo(binlogResourceInfo.getCurrentTable(), timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), eventData);
+
             binlogEventState.setCurrentEventInfo(eventInfo);
             binlogEventState.setCurrentEventWriter(eventWriter);
             dataCaptureState.setSequenceId(eventWriter.writeEvent(session, binlogResourceInfo.getTransitUri(), eventInfo, dataCaptureState.getSequenceId(),

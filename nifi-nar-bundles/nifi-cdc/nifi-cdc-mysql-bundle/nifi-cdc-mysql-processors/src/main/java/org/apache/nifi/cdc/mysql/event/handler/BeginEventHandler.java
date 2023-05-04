@@ -20,24 +20,26 @@ import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.BeginTransactionEventInfo;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;
 
 import static org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL.REL_SUCCESS;
 
 public class BeginEventHandler implements BinlogEventHandler<QueryEventData, BeginTransactionEventInfo> {
-    @Override
-    public void handleEvent(final QueryEventData eventData, final boolean writeEvent, DataCaptureState dataCaptureState,
-                            CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, CaptureChangeMySQL.BinlogEventState binlogEventState,
-                            final String sql, AbstractBinlogEventWriter<BeginTransactionEventInfo> eventWriter,
-                            EventWriterConfiguration eventWriterConfiguration, ProcessSession session, final long timestamp) {
-        final String currentDatabase = eventData.getDatabase();
-        BeginTransactionEventInfo beginEvent = dataCaptureState.isUseGtid()
-                ? new BeginTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getGtidSet())
-                : new BeginTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition());
 
+    private final BeginTransactionEventWriter eventWriter = new BeginTransactionEventWriter();
+
+    @Override
+    public void handleEvent(final QueryEventData eventData, final boolean writeEvent, final DataCaptureState dataCaptureState,
+                            final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, final CaptureChangeMySQL.BinlogEventState binlogEventState,
+                            final String sql, final EventWriterConfiguration eventWriterConfiguration, final ProcessSession session, final long timestamp) {
         if (writeEvent) {
+            final String currentDatabase = eventData.getDatabase();
+            final BeginTransactionEventInfo beginEvent = dataCaptureState.isUseGtid()
+                    ? new BeginTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getGtidSet())
+                    : new BeginTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition());
+
             binlogEventState.setCurrentEventInfo(beginEvent);
             binlogEventState.setCurrentEventWriter(eventWriter);
             dataCaptureState.setSequenceId(eventWriter.writeEvent(session, binlogResourceInfo.getTransitUri(), beginEvent, dataCaptureState.getSequenceId(),

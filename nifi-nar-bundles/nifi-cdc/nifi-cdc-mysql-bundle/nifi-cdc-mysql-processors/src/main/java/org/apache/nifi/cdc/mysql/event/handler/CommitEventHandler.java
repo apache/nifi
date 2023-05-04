@@ -20,7 +20,7 @@ import com.github.shyiko.mysql.binlog.event.EventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
@@ -28,13 +28,15 @@ import org.apache.nifi.processor.ProcessSession;
 import static org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL.REL_SUCCESS;
 
 public class CommitEventHandler implements BinlogEventHandler<EventData, CommitTransactionEventInfo> {
+
+    private final CommitTransactionEventWriter eventWriter = new CommitTransactionEventWriter();
+
     @Override
-    public void handleEvent(final EventData eventData, final boolean writeEvent, DataCaptureState dataCaptureState,
-                            CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, CaptureChangeMySQL.BinlogEventState binlogEventState,
-                            final String sql, AbstractBinlogEventWriter<CommitTransactionEventInfo> eventWriter,
-                            EventWriterConfiguration eventWriterConfiguration, ProcessSession session, final long timestamp) {
+    public void handleEvent(final EventData eventData, final boolean writeEvent, final DataCaptureState dataCaptureState,
+                            final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, final CaptureChangeMySQL.BinlogEventState binlogEventState,
+                            final String sql, final EventWriterConfiguration eventWriterConfiguration, final ProcessSession session, final long timestamp) {
         final String currentDatabase = binlogResourceInfo.getCurrentDatabase();
-        CommitTransactionEventInfo commitEvent = dataCaptureState.isUseGtid()
+        final CommitTransactionEventInfo commitEvent = dataCaptureState.isUseGtid()
                 ? new CommitTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getGtidSet())
                 : new CommitTransactionEventInfo(currentDatabase, timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition());
 
@@ -47,7 +49,7 @@ public class CommitEventHandler implements BinlogEventHandler<EventData, CommitT
             // If the COMMIT event is not to be written, the FlowFile should still be finished and the session committed.
             if (session != null) {
                 FlowFile flowFile = eventWriterConfiguration.getCurrentFlowFile();
-                if (flowFile != null && eventWriter != null) {
+                if (flowFile != null) {
                     // Flush the events to the FlowFile when the processor is stopped
                     eventWriter.finishAndTransferFlowFile(session, eventWriterConfiguration, binlogResourceInfo.getTransitUri(), dataCaptureState.getSequenceId(), commitEvent, REL_SUCCESS);
                 }

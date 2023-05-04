@@ -35,17 +35,18 @@ public abstract class AbstractBinlogTableEventWriter<T extends BinlogTableEventI
                 return new String((byte[]) value);
             } else if (value instanceof Number) {
                 return value;
+            } else {
+                return null;
             }
-        } else if (value instanceof Number) {
-            return value;
         } else {
             if (value instanceof byte[]) {
                 return new String((byte[]) value);
+            } else if (value instanceof Number) {
+                return value;
             } else {
                 return value.toString();
             }
         }
-        return null;
     }
 
     protected void writeJson(T event) throws IOException {

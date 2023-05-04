@@ -21,26 +21,28 @@ import org.apache.nifi.cdc.event.TableInfo;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;
 
 import static org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL.REL_SUCCESS;
 
 public class DDLEventHandler implements BinlogEventHandler<QueryEventData, DDLEventInfo> {
-    @Override
-    public void handleEvent(final QueryEventData eventData, final boolean writeEvent, DataCaptureState dataCaptureState,
-                            CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, CaptureChangeMySQL.BinlogEventState binlogEventState,
-                            final String sql, AbstractBinlogEventWriter<DDLEventInfo> eventWriter,
-                            EventWriterConfiguration eventWriterConfiguration, ProcessSession session, final long timestamp) {
-        TableInfo ddlTableInfo = (binlogResourceInfo.getCurrentTable() != null)
-                ? binlogResourceInfo.getCurrentTable()
-                : new TableInfo(binlogResourceInfo.getCurrentDatabase(), null, null, null);
-        DDLEventInfo ddlEvent = dataCaptureState.isUseGtid()
-                ? new DDLEventInfo(ddlTableInfo, timestamp, dataCaptureState.getGtidSet(), sql)
-                : new DDLEventInfo(ddlTableInfo, timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), sql);
 
+    private final DDLEventWriter eventWriter = new DDLEventWriter();
+
+    @Override
+    public void handleEvent(final QueryEventData eventData, final boolean writeEvent, final DataCaptureState dataCaptureState,
+                            final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo, final CaptureChangeMySQL.BinlogEventState binlogEventState,
+                            final String sql, final EventWriterConfiguration eventWriterConfiguration, final ProcessSession session, final long timestamp) {
         if (writeEvent) {
+            final TableInfo ddlTableInfo = binlogResourceInfo.getCurrentTable() != null
+                    ? binlogResourceInfo.getCurrentTable()
+                    : new TableInfo(binlogResourceInfo.getCurrentDatabase(), null, null, null);
+            final DDLEventInfo ddlEvent = dataCaptureState.isUseGtid()
+                    ? new DDLEventInfo(ddlTableInfo, timestamp, dataCaptureState.getGtidSet(), sql)
+                    : new DDLEventInfo(ddlTableInfo, timestamp, dataCaptureState.getBinlogFile(), dataCaptureState.getBinlogPosition(), sql);
+
             binlogEventState.setCurrentEventInfo(ddlEvent);
             binlogEventState.setCurrentEventWriter(eventWriter);
             dataCaptureState.setSequenceId(eventWriter.writeEvent(session, binlogResourceInfo.getTransitUri(), ddlEvent, dataCaptureState.getSequenceId(),

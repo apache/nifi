@@ -26,14 +26,13 @@ import org.apache.nifi.processor.ProcessSession;
 
 public interface BinlogEventHandler<T extends EventData, S extends BinlogEventInfo> {
 
-    void handleEvent(T eventData,
+    void handleEvent(final T eventData,
                      final boolean writeEvent,
-                     DataCaptureState dataCaptureState,
-                     CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo,
-                     CaptureChangeMySQL.BinlogEventState binlogEventState,
+                     final DataCaptureState dataCaptureState,
+                     final CaptureChangeMySQL.BinlogResourceInfo binlogResourceInfo,
+                     final CaptureChangeMySQL.BinlogEventState binlogEventState,
                      final String sql,
-                     AbstractBinlogEventWriter<S> eventWriter,
-                     EventWriterConfiguration eventWriterConfiguration,
-                     ProcessSession session,
+                     final EventWriterConfiguration eventWriterConfiguration,
+                     final ProcessSession session,
                      final long timestamp);
 }

@@ -22,6 +22,7 @@ import com.github.shyiko.mysql.binlog.event.Event;
 import com.github.shyiko.mysql.binlog.event.EventHeaderV4;
 import com.github.shyiko.mysql.binlog.event.EventType;
 import com.github.shyiko.mysql.binlog.event.GtidEventData;
+import com.github.shyiko.mysql.binlog.event.MySqlGtid;
 import com.github.shyiko.mysql.binlog.event.QueryEventData;
 import com.github.shyiko.mysql.binlog.event.RotateEventData;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
@@ -53,17 +54,11 @@ import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.RawBinlogEvent;
 import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.event.handler.BeginEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.BeginTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.handler.CommitEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.CommitTransactionEventWriter;
 import org.apache.nifi.cdc.mysql.event.handler.DDLEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.DDLEventWriter;
 import org.apache.nifi.cdc.mysql.event.handler.DeleteEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.DeleteRowsWriter;
 import org.apache.nifi.cdc.mysql.event.handler.InsertEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
 import org.apache.nifi.cdc.mysql.event.handler.UpdateEventHandler;
-import org.apache.nifi.cdc.mysql.event.io.UpdateRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory;
 import org.apache.nifi.cdc.mysql.processors.ssl.ConnectionPropertiesProvider;
 import org.apache.nifi.cdc.mysql.processors.ssl.StandardConnectionPropertiesProvider;
@@ -483,17 +478,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     private final BinlogEventState binlogEventState = new BinlogEventState();
 
-    private final BeginTransactionEventWriter beginEventWriter = new BeginTransactionEventWriter();
     private final BeginEventHandler beginEventHandler = new BeginEventHandler();
-    private final CommitTransactionEventWriter commitEventWriter = new CommitTransactionEventWriter();
     private final CommitEventHandler commitEventHandler = new CommitEventHandler();
-    private final DDLEventWriter ddlEventWriter = new DDLEventWriter();
     private final DDLEventHandler ddlEventHandler = new DDLEventHandler();
-    private final InsertRowsWriter insertRowsWriter = new InsertRowsWriter();
     private final InsertEventHandler insertEventHandler = new InsertEventHandler();
-    private final DeleteRowsWriter deleteRowsWriter = new DeleteRowsWriter();
     private final DeleteEventHandler deleteEventHandler = new DeleteEventHandler();
-    private final UpdateRowsWriter updateRowsWriter = new UpdateRowsWriter();
     private final UpdateEventHandler updateEventHandler = new UpdateEventHandler();
 
     private volatile EventWriterConfiguration eventWriterConfiguration;
@@ -813,7 +802,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     " and MySQL Driver Class Name are configured correctly. " + e, e);
         }
 
-
         while (connectedHost == null && connectionAttempts < numHosts) {
             if (binlogClient == null) {
 
@@ -879,7 +867,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             binlogClient = null;
             throw new IOException("Could not connect binlog client to any of the specified hosts due to: " + lastConnectException.getMessage(), lastConnectException);
         }
-
 
         final TlsConfiguration tlsConfiguration = sslContextService == null ? null : sslContextService.createTlsConfiguration();
         final ConnectionPropertiesProvider connectionPropertiesProvider = new StandardConnectionPropertiesProvider(sslMode, tlsConfiguration);
@@ -968,9 +955,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     + "or the event stream is out of sync or there was an issue with the processor state.", dataCaptureState.getBinlogPosition(), dataCaptureState.getBinlogFile());
                         }
 
-                        if (!(databaseNamePattern != null && !databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches())) {
+                        if (databaseNamePattern == null || databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches()) {
                             beginEventHandler.handleEvent(queryEventData, includeBeginCommit, currentDataCaptureState, binlogResourceInfo,
-                                    binlogEventState, sql, beginEventWriter, eventWriterConfiguration, currentSession, timestamp);
+                                    binlogEventState, sql, eventWriterConfiguration, currentSession, timestamp);
                         }
                         // Whether we skip this event or not, it's still the beginning of a transaction
                         binlogResourceInfo.setInTransaction(true);
@@ -986,7 +973,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         }
                         if (!(databaseNamePattern != null && !databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches())) {
                             commitEventHandler.handleEvent(queryEventData, includeBeginCommit, currentDataCaptureState, binlogResourceInfo,
-                                    binlogEventState, sql, commitEventWriter, eventWriterConfiguration, currentSession, timestamp);
+                                    binlogEventState, sql, eventWriterConfiguration, currentSession, timestamp);
                         }
                         // Whether we skip this event or not, it's the end of a transaction
                         binlogResourceInfo.setInTransaction(false);
@@ -1008,7 +995,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     queryEventData.setDatabase(binlogResourceInfo.getCurrentDatabase());
                                 }
                                 ddlEventHandler.handleEvent(queryEventData, includeDDLEvents, currentDataCaptureState, binlogResourceInfo,
-                                        binlogEventState, sql, ddlEventWriter, eventWriterConfiguration, currentSession, timestamp);
+                                        binlogEventState, sql, eventWriterConfiguration, currentSession, timestamp);
 
                                 // The altered table may not be the "active" table, so clear the cache to pick up changes
                                 tableInfoCache.clear();
@@ -1042,9 +1029,9 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                         + "This could indicate that your binlog position is invalid or the event stream is out of sync or there was an issue with the processor state.",
                                 dataCaptureState.getBinlogPosition(), dataCaptureState.getBinlogFile());
                     }
-                    if (!(databaseNamePattern != null && !databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches())) {
+                    if (databaseNamePattern == null || databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches()) {
                         commitEventHandler.handleEvent(event.getData(), includeBeginCommit, currentDataCaptureState, binlogResourceInfo,
-                                binlogEventState, null, commitEventWriter, eventWriterConfiguration, currentSession, timestamp);
+                                binlogEventState, null, eventWriterConfiguration, currentSession, timestamp);
                     }
                     // Whether we skip this event or not, it's the end of a transaction
                     binlogResourceInfo.setInTransaction(false);
@@ -1086,18 +1073,18 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             || eventType == PRE_GA_WRITE_ROWS) {
 
                         insertEventHandler.handleEvent(event.getData(), true, currentDataCaptureState, binlogResourceInfo,
-                                binlogEventState, null, insertRowsWriter, eventWriterConfiguration, currentSession, timestamp);
+                                binlogEventState, null, eventWriterConfiguration, currentSession, timestamp);
 
                     } else if (eventType == DELETE_ROWS
                             || eventType == EXT_DELETE_ROWS
                             || eventType == PRE_GA_DELETE_ROWS) {
 
                         deleteEventHandler.handleEvent(event.getData(), true, currentDataCaptureState, binlogResourceInfo,
-                                binlogEventState, null, deleteRowsWriter, eventWriterConfiguration, currentSession, timestamp);
+                                binlogEventState, null, eventWriterConfiguration, currentSession, timestamp);
                     } else {
                         // Update event
                         updateEventHandler.handleEvent(event.getData(), true, currentDataCaptureState, binlogResourceInfo,
-                                binlogEventState, null, updateRowsWriter, eventWriterConfiguration, currentSession, timestamp);
+                                binlogEventState, null, eventWriterConfiguration, currentSession, timestamp);
                     }
                     break;
 
@@ -1115,9 +1102,12 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     if (currentDataCaptureState.isUseGtid()) {
                         // Update current binlog gtid
                         GtidEventData gtidEventData = event.getData();
-                        gtidSet.add(gtidEventData.getGtid());
-                        dataCaptureState.setGtidSet(gtidSet.toString());
-                        updateState(session, dataCaptureState);
+                        MySqlGtid mySqlGtid = gtidEventData.getMySqlGtid();
+                        if (mySqlGtid != null) {
+                            gtidSet.add(mySqlGtid.toString());
+                            dataCaptureState.setGtidSet(gtidSet.toString());
+                            updateState(session, dataCaptureState);
+                        }
                     }
                     break;
 
@@ -1298,10 +1288,11 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             connectionProps.putAll(customProperties);
             if (username != null) {
                 connectionProps.put("user", username);
+                if (password != null) {
+                    connectionProps.put("password", password);
+                }
             }
-            if (password != null) {
-                connectionProps.put("password", password);
-            }
+
             this.connectionTimeoutMillis = connectionTimeoutMillis;
         }
 
