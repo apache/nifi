@@ -442,7 +442,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION = "./status_repository";
 
     // JMX metrics blocked filter
-    public static final String JMX_METRICS_NIFI_PROPERTY = "nifi.jmx.metrics.blocked.filter.pattern";
+    public static final String JMX_METRICS_BLOCKED_FILTER_PATTERN = "nifi.jmx.metrics.blocked.filter.pattern";
 
     public NiFiProperties() {
         this(Collections.emptyMap());

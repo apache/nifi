@@ -23,23 +23,17 @@ import java.util.Collection;
 
 public class StandardJmxMetricsService implements JmxMetricsService {
     private NiFiProperties properties;
-    private JmxMetricsResultConverter metricsResultConverter;
     private JmxMetricsCollector metricsCollector;
 
     @Override
     public Collection<JmxMetricsResultDTO> getFilteredMBeanMetrics(final String beanNameFilter) {
-        final String blockedFilterPattern = properties.getProperty(NiFiProperties.JMX_METRICS_NIFI_PROPERTY);
+        final String blockedFilterPattern = properties.getProperty(NiFiProperties.JMX_METRICS_BLOCKED_FILTER_PATTERN);
         final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(blockedFilterPattern, beanNameFilter);
-
         return metricsFilter.filter(metricsCollector.getBeanMetrics());
     }
 
     public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
-    }
-
-    public void setMetricsResultConverter(final JmxMetricsResultConverter metricsResultConverter) {
-        this.metricsResultConverter = metricsResultConverter;
     }
 
     public void setMetricsCollector(final JmxMetricsCollector metricsCollector) {
