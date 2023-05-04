@@ -33,6 +33,8 @@ import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +71,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
         final Set<VersionedControllerService> ancestorServices = parentGroup.getControllerServices(true).stream()
                 .filter(serviceNode -> serviceNode.isAuthorized(authorizer, RequestAction.READ, user))
-                .map(serviceNode -> flowMapper.mapControllerService(serviceNode, controllerServiceProvider, Collections.emptySet(), Collections.emptyMap()))
+                .map(serviceNode -> flowMapper.mapControllerService(serviceNode, controllerServiceProvider, new HashSet<>(), new HashMap<>()))
                 .collect(Collectors.toSet());
 
         final Stack<Set<VersionedControllerService>> serviceHierarchyStack = new Stack<>();
