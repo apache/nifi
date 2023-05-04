@@ -274,42 +274,4 @@ public class PutMongo extends AbstractMongoProcessor {
 
         return retVal;
     }
-
-
-//    protected WriteConcern getWriteConcern(final ProcessContext context) {
-//        final String writeConcernProperty = context.getProperty(WRITE_CONCERN).getValue();
-//        WriteConcern writeConcern = null;
-//        switch (writeConcernProperty) {
-//        case WRITE_CONCERN_ACKNOWLEDGED:
-//            writeConcern = WriteConcern.ACKNOWLEDGED;
-//            break;
-//        case WRITE_CONCERN_UNACKNOWLEDGED:
-//            writeConcern = WriteConcern.UNACKNOWLEDGED;
-//            break;
-//        case WRITE_CONCERN_FSYNCED:
-//            writeConcern = WriteConcern.JOURNALED;
-//            break;
-//        case WRITE_CONCERN_JOURNALED:
-//            writeConcern = WriteConcern.JOURNALED;
-//            break;
-//        case WRITE_CONCERN_REPLICA_ACKNOWLEDGED:
-//            writeConcern = WriteConcern.W2;
-//            break;
-//        case WRITE_CONCERN_MAJORITY:
-//            writeConcern = WriteConcern.MAJORITY;
-//            break;
-//        case WRITE_CONCERN_W1:
-//            writeConcern = WriteConcern.W1;
-//            break;
-//        case WRITE_CONCERN_W2:
-//            writeConcern = WriteConcern.W2;
-//            break;
-//        case WRITE_CONCERN_W3:
-//            writeConcern = WriteConcern.W3;
-//            break;
-//        default:
-//            writeConcern = WriteConcern.ACKNOWLEDGED;
-//        }
-//        return writeConcern;
-//    }
 }

@@ -184,36 +184,6 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     @OnScheduled
     public final void createClient(ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
-//        if (context.getProperty(CLIENT_SERVICE).isSet()) {
-//            clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
-//            return;
-//        }
-//
-//        if (mongoClient != null) {
-//            closeClient();
-//        }
-//
-//        getLogger().info("Creating MongoClient");
-//
-//        // Set up the client for secure (SSL/TLS communications) if configured to do so
-//        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-//        final SSLContext sslContext;
-//
-//        if (sslService != null) {
-//            sslContext = sslService.createContext();
-//        } else {
-//            sslContext = null;
-//        }
-//
-//        try {
-//            final String uri = getURI(context);
-//            final MongoClientSettings.Builder builder = getClientSettings(uri, sslContext);
-//            final MongoClientSettings clientSettings = builder.build();
-//            mongoClient = MongoClients.create(clientSettings);
-//        } catch (Exception e) {
-//            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
-//            throw e;
-//        }
     }
 
     protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
