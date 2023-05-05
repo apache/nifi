@@ -21,9 +21,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,24 +33,24 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
 @EventDriven
@@ -122,6 +122,16 @@ public class AttributesToJSON extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor RETAIN_JSON_REGEX = new PropertyDescriptor.Builder()
+            .name("retain-json-regex")
+            .displayName("Retain Json Regular Expression")
+            .description("Regular expression that will be evaluated against the flow file attributes to select "
+                    + "the matching attributes whose value are already JSON and should remain as JSON and not be escaped.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("Successfully converted attributes to JSON").build();
@@ -136,6 +146,7 @@ public class AttributesToJSON extends AbstractProcessor {
     private volatile Boolean nullValueForEmptyString;
     private volatile boolean destinationContent;
     private volatile Pattern pattern;
+    private volatile Pattern retainJsonPattern;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -145,6 +156,7 @@ public class AttributesToJSON extends AbstractProcessor {
         properties.add(DESTINATION);
         properties.add(INCLUDE_CORE_ATTRIBUTES);
         properties.add(NULL_VALUE_FOR_EMPTY_STRING);
+        properties.add(RETAIN_JSON_REGEX);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -170,9 +182,9 @@ public class AttributesToJSON extends AbstractProcessor {
      * @return
      *  Map of values that are feed to a Jackson ObjectMapper
      */
-    protected Map<String, String> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove,
+    protected Map<String, Object> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove,
             boolean nullValForEmptyString, Pattern attPattern) {
-        Map<String, String> result;
+        Map<String, Object> result;
         //If list of attributes specified get only those attributes. Otherwise write them all
         if (attributes != null || attPattern != null) {
             result = new HashMap<>();
@@ -231,6 +243,11 @@ public class AttributesToJSON extends AbstractProcessor {
         if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
         }
+
+        if (context.getProperty(RETAIN_JSON_REGEX).isSet()) {
+            retainJsonPattern =
+                    Pattern.compile(context.getProperty(RETAIN_JSON_REGEX).evaluateAttributeExpressions().getValue());
+        }
     }
 
     @Override
@@ -240,24 +257,51 @@ public class AttributesToJSON extends AbstractProcessor {
             return;
         }
 
-        final Map<String, String> atrList = buildAttributesMapForFlowFile(original, attributes, attributesToRemove, nullValueForEmptyString, pattern);
+        final Map<String, Object> atrList = buildAttributesMapForFlowFile(original, attributes, attributesToRemove, nullValueForEmptyString, pattern);
 
         try {
+            Map<String, Object> asJson = getAsJson(atrList, retainJsonPattern);
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
                     try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                        outputStream.write(objectMapper.writeValueAsBytes(atrList));
+                        outputStream.write(objectMapper.writeValueAsBytes(asJson));
                     }
                 });
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
                 session.transfer(conFlowfile, REL_SUCCESS);
             } else {
-                FlowFile atFlowfile = session.putAttribute(original, JSON_ATTRIBUTE_NAME, objectMapper.writeValueAsString(atrList));
+                FlowFile atFlowfile = session.putAttribute(original, JSON_ATTRIBUTE_NAME, objectMapper.writeValueAsString(asJson));
                 session.transfer(atFlowfile, REL_SUCCESS);
             }
         } catch (JsonProcessingException e) {
             getLogger().error(e.getMessage());
             session.transfer(original, REL_FAILURE);
         }
+    }
+
+    private Map<String, Object> getAsJson(Map<String, Object> atrList, Pattern retainJsonPattern) throws JsonProcessingException {
+        if (retainJsonPattern == null) {
+            return atrList;
+        }
+
+        Map<String, Object> asJson = new HashMap<>();
+        for (Map.Entry<String, Object> entry : atrList.entrySet()) {
+            String value = (String) entry.getValue();
+            if (retainJsonPattern.matcher(entry.getKey()).matches() && StringUtils.isNotBlank(value) && (isPossibleJsonArray(value) || isPossibleJsonObject(value))) {
+                asJson.put(entry.getKey(), objectMapper.readTree(value));
+            } else {
+                asJson.put(entry.getKey(), value);
+            }
+        }
+
+        return asJson;
+    }
+
+    private boolean isPossibleJsonArray(String value) {
+        return value.startsWith("[") && value.endsWith("]");
+    }
+
+    private boolean isPossibleJsonObject(String value) {
+        return value.startsWith("{") && value.endsWith("}");
     }
 }
