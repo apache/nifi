@@ -21,20 +21,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -454,5 +463,105 @@ public class TestAttributesToJSON {
         assertTrue(!val.keySet().contains("delimited.footer.column.1"));
         assertTrue(val.keySet().contains("test"));
         assertTrue(val.keySet().contains("test1"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getNestedJson")
+    public void testAttributeWithNestedJsonOutputAsJsonInContent(String nestedJson, Class<?> expectedClass) throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, nestedJson);
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+
+        List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS);
+        MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        assertEquals(AttributesToJSON.APPLICATION_JSON, flowFile.getAttribute(CoreAttributes.MIME_TYPE.key()));
+        Map<String, Object> val = new ObjectMapper().readValue(flowFile.toByteArray(), Map.class);
+        assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
+    }
+
+    private static Stream<Arguments> getNestedJson() throws IOException {
+        return Stream.of(
+                Arguments.of(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJson/json-sample.json"))), List.class),
+                Arguments.of(new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/input.json"))), Map.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getNestedJson")
+    public void testAttributeWithNestedJsonOutputAsJsonInAttribute(String nestedJson, Class<?> expectedClass) throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, nestedJson);
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+                .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+
+        String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
+                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> val = mapper.readValue(json, Map.class);
+        assertInstanceOf(expectedClass, val.get(TEST_ATTRIBUTE_KEY));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[THIS IS NOT JSON]", "{THIS IS NOT JSON}"})
+    public void testAttributesWithLookALikeJson(String lookAlikeJson) {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, lookAlikeJson);
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 1);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 0);
+        MockComponentLog logger = testRunner.getLogger();
+        assertTrue(logger.getErrorMessages().get(0).getMsg().contains("expecting"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getNestedJson")
+    public void testAttributeWithNestedJsonOutputAsStringInAttribute(String nestedJson) throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
+        testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        ff = session.putAttribute(ff, TEST_ATTRIBUTE_KEY, nestedJson);
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(AttributesToJSON.REL_FAILURE, 0);
+        testRunner.assertTransferCount(AttributesToJSON.REL_SUCCESS, 1);
+        testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS).get(0)
+                .assertAttributeExists(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+
+        String json = testRunner.getFlowFilesForRelationship(AttributesToJSON.REL_SUCCESS)
+                .get(0).getAttribute(AttributesToJSON.JSON_ATTRIBUTE_NAME);
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> val = mapper.readValue(json, Map.class);
+        assertInstanceOf(String.class, val.get(TEST_ATTRIBUTE_KEY));
     }
 }
