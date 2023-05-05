@@ -20,7 +20,6 @@ import com.github.shyiko.mysql.binlog.event.EventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;
 

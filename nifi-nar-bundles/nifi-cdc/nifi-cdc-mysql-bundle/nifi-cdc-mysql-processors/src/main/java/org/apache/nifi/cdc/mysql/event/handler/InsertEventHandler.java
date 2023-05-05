@@ -19,7 +19,7 @@ package org.apache.nifi.cdc.mysql.event.handler;
 import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.DataCaptureState;
-import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;import org.apache.nifi.cdc.mysql.event.io.AbstractBinlogEventWriter;
+import org.apache.nifi.cdc.mysql.event.InsertRowsEventInfo;
 import org.apache.nifi.cdc.mysql.event.io.InsertRowsWriter;
 import org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL;
 import org.apache.nifi.processor.ProcessSession;

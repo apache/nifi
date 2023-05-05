@@ -971,7 +971,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                                     + "This could indicate that your binlog position is invalid or the event stream is out of sync or there was an issue with the processor state "
                                     + "or there was an issue with the processor state.", dataCaptureState.getBinlogPosition(), dataCaptureState.getBinlogFile());
                         }
-                        if (!(databaseNamePattern != null && !databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches())) {
+                        if (databaseNamePattern == null || databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches()) {
                             commitEventHandler.handleEvent(queryEventData, includeBeginCommit, currentDataCaptureState, binlogResourceInfo,
                                     binlogEventState, sql, eventWriterConfiguration, currentSession, timestamp);
                         }
@@ -990,7 +990,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         String normalizedQuery = normalizeQuery(sql);
 
                         if (isQueryDDL(normalizedQuery)) {
-                            if (!(databaseNamePattern != null && !databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches())) {
+                            if (databaseNamePattern == null || databaseNamePattern.matcher(binlogResourceInfo.getCurrentDatabase()).matches()) {
                                 if (queryEventData.getDatabase() == null) {
                                     queryEventData.setDatabase(binlogResourceInfo.getCurrentDatabase());
                                 }
