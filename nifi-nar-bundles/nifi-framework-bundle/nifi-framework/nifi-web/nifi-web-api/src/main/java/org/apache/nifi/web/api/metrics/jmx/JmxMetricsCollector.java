@@ -71,8 +71,7 @@ public class JmxMetricsCollector {
                     final Object attributeValue = resultConverter.convert(mBeanServer.getAttribute(instance.getObjectName(), attribute.getName()));
 
                     results.add(new JmxMetricsResultDTO(beanName, attributeName, attributeValue));
-                } catch (final MBeanException | RuntimeMBeanException | ReflectionException | InstanceNotFoundException |
-                         AttributeNotFoundException e) {
+                } catch (final MBeanException | RuntimeMBeanException | ReflectionException | InstanceNotFoundException | AttributeNotFoundException e) {
                     //Empty or invalid attributes should not stop the loop.
                     LOGGER.debug("MBean Object [{}] invalid attribute [{}] found", instance.getObjectName(), attribute.getName());
                 }
