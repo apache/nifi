@@ -4839,7 +4839,7 @@ Listing of certain MBeans can be prohibited using a regular expression pattern i
 
 An optionally provided query parameter using a regular expression pattern, will display only MBeans with matching names. Leaving this parameter empty means listing all MBeans except those filtered out by the blocked filter pattern.
 
- https://localhost:8443/nifi-api/jmx-metrics?beanNameFilter=bean.name.1|bean.name.2
+ https://localhost:8443/nifi-api/system-diagnostics/jmx-metrics?beanNameFilter=bean.name.1|bean.name.2
 
 An example output would look like this:
 
