@@ -17,7 +17,7 @@ version: "2"
 
 services:
   c2-upstream:
-    image: apacheminific2:${minifi.c2.version}
+    image: apache/nifi-minifi-c2:${minifi.c2.version}-maven
     ports:
       - "10443"
     hostname: c2-upstream
@@ -32,7 +32,7 @@ services:
       - ./certificates-DelegatingConfigurationProviderSecureTest/c2-upstream/truststore.jks:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/truststore.jks
 
   c2:
-    image: apacheminific2:${minifi.c2.version}
+    image: apache/nifi-minifi-c2:${minifi.c2.version}-maven
     ports:
       - "10443"
     hostname: c2
