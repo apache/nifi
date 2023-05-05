@@ -155,7 +155,6 @@ public class SystemDiagnosticsResource extends ApplicationResource {
             value = "Gets all available JMX metrics",
             response = JmxMetricsResultsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow"),
                     @Authorization(value = "Read - /system")
             }
     )
@@ -189,9 +188,6 @@ public class SystemDiagnosticsResource extends ApplicationResource {
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable system = lookup.getSystem();
             system.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-
-            final Authorizable flow = lookup.getFlow();
-            flow.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
     }
 

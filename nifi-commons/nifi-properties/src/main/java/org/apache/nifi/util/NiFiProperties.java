@@ -244,6 +244,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String WEB_REQUEST_IP_WHITELIST = "nifi.web.request.ip.whitelist";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.web.should.send.server.version";
     public static final String WEB_REQUEST_LOG_FORMAT = "nifi.web.request.log.format";
+    public static final String WEB_JMX_METRICS_ALLOWED_FILTER_PATTERN = "nifi.web.jmx.metrics.allowed.filter.pattern";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -440,9 +441,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_NODE_DAYS = 14;
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS = 3;
     public static final String DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION = "./status_repository";
-
-    // JMX metrics blocked filter
-    public static final String JMX_METRICS_BLOCKED_FILTER_PATTERN = "nifi.jmx.metrics.blocked.filter.pattern";
 
     public NiFiProperties() {
         this(Collections.emptyMap());

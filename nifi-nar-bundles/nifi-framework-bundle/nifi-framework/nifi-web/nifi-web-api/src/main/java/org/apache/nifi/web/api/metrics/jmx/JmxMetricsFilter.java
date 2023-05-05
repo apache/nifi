@@ -29,11 +29,11 @@ public class JmxMetricsFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(JmxMetricsFilter.class);
     private final static String MATCH_NOTHING = "~^";
     private final static String MATCH_ALL = "";
-    private final Pattern blockedNameFilter;
+    private final Pattern allowedNameFilter;
     private final Pattern beanNameFilter;
 
-    public JmxMetricsFilter(final String blockedNameFilter, final String beanNameFilter) {
-        this.blockedNameFilter = createPattern(blockedNameFilter, MATCH_NOTHING);
+    public JmxMetricsFilter(final String allowedNameFilter, final String beanNameFilter) {
+        this.allowedNameFilter = createPattern(allowedNameFilter, MATCH_NOTHING);
         this.beanNameFilter = createPattern(beanNameFilter, MATCH_ALL);
     }
 
@@ -52,7 +52,7 @@ public class JmxMetricsFilter {
 
     public Collection<JmxMetricsResultDTO> filter(final Collection<JmxMetricsResultDTO> results) {
         return results.stream()
-                .filter(result -> blockedNameFilter.asPredicate().negate().test(result.getBeanName()))
+                .filter(result -> allowedNameFilter.asPredicate().test(result.getBeanName()))
                 .filter(result -> beanNameFilter.asPredicate().test(result.getBeanName()))
                 .collect(Collectors.toList());
     }

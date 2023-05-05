@@ -29,6 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JmxMetricsFilterTest {
+    private static final String ALLOW_ALL_PATTERN = ".*";
+    private static final String EMPTY_STRING_PATTERN = "";
     private static final String BEAN_NAME_FILTER = "%s|%s";
     private static final String INVALID_REGEX = "(";
     private static final String TEST_BEAN_NAME_ONE = "testBean1";
@@ -46,7 +48,7 @@ class JmxMetricsFilterTest {
 
     @Test
     public void testNotProvidingFiltersReturnsAllMBeans() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter("", "");
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(ALLOW_ALL_PATTERN, EMPTY_STRING_PATTERN);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
@@ -55,19 +57,19 @@ class JmxMetricsFilterTest {
     }
 
     @Test
-    public void testBlockedNameFiltersRemovesMBeanFromResult() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_ONE, "");
+    public void testAllowedNameFiltersRemovesMBeanFromResult() {
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_ONE, EMPTY_STRING_PATTERN);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
         assertEquals(actual.size(), 1);
-        assertFalse(actual.contains(RESULT_ONE));
-        assertTrue(actual.contains(RESULT_TWO));
+        assertTrue(actual.contains(RESULT_ONE));
+        assertFalse(actual.contains(RESULT_TWO));
     }
 
     @Test
     public void testBeanNameFiltersReturnsTheSpecifiedMBeansOnly() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter("", String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(ALLOW_ALL_PATTERN, String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
@@ -76,18 +78,17 @@ class JmxMetricsFilterTest {
     }
 
     @Test
-    public void testInvalidBlockedNameFilterRevertingBackToDefaultFiltering() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(INVALID_REGEX, "");
+    public void testInvalidAllowedNameFilterRevertingBackToDefaultFiltering() {
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(INVALID_REGEX, EMPTY_STRING_PATTERN);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
-        assertTrue(actual.containsAll(results));
+        assertTrue(actual.isEmpty());
     }
 
     @Test
     public void testInvalidBeanNameFilteringRevertingBackToDefaultFiltering() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter("", INVALID_REGEX);
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(ALLOW_ALL_PATTERN, INVALID_REGEX);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
@@ -101,13 +102,12 @@ class JmxMetricsFilterTest {
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
-        assertEquals(actual.size(), 2);
-        assertTrue(actual.containsAll(results));
+        assertTrue(actual.isEmpty());
     }
 
     @Test
-    public void testBlockedNameFilterHasPriority() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_ONE);
+    public void testAllowedNameFilterHasPriority() {
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_TWO, TEST_BEAN_NAME_ONE);
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 
@@ -115,8 +115,8 @@ class JmxMetricsFilterTest {
     }
 
     @Test
-    public void testBlockedNameFilterHasPriorityWhenTheSameFiltersApplied() {
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_ONE, String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
+    public void testAllowedNameFilterHasPriorityWhenTheSameFiltersApplied() {
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(TEST_BEAN_NAME_TWO, String.format(BEAN_NAME_FILTER, TEST_BEAN_NAME_ONE, TEST_BEAN_NAME_TWO));
 
         final Collection<JmxMetricsResultDTO> actual = metricsFilter.filter(results);
 

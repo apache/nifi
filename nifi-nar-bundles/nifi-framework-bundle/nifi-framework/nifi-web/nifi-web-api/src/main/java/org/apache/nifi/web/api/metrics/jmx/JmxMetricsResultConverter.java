@@ -27,27 +27,27 @@ public class JmxMetricsResultConverter {
     private static final String COMPOSITE_DATA_KEY = "CompositeData%s";
 
     public Object convert(final Object attributeValue) {
-            if (attributeValue instanceof CompositeData[]) {
-                final CompositeData[] valueArray = (CompositeData[]) attributeValue;
-                final Map<String, Object> values = new LinkedHashMap<>();
+        if (attributeValue instanceof CompositeData[]) {
+            final CompositeData[] valueArray = (CompositeData[]) attributeValue;
+            final Map<String, Object> values = new LinkedHashMap<>();
 
-                for (int i = 0; i < valueArray.length; i++) {
-                    final Map<String, Object> subValues = new LinkedHashMap<>();
-                    convertCompositeData(valueArray[i], subValues);
-                    values.put(String.format(COMPOSITE_DATA_KEY, i), subValues);
-                }
-                return values;
-            } else if (attributeValue instanceof CompositeData) {
-                final Map<String, Object> values = new LinkedHashMap<>();
-                convertCompositeData(((CompositeData) attributeValue), values);
-                return values;
-            } else if (attributeValue instanceof TabularData) {
-                final Map<String, Object> values = new LinkedHashMap<>();
-                convertTabularData((TabularData) attributeValue, values);
-                return values;
-            } else {
-                return attributeValue;
+            for (int i = 0; i < valueArray.length; i++) {
+                final Map<String, Object> subValues = new LinkedHashMap<>();
+                convertCompositeData(valueArray[i], subValues);
+                values.put(String.format(COMPOSITE_DATA_KEY, i), subValues);
             }
+            return values;
+        } else if (attributeValue instanceof CompositeData) {
+            final Map<String, Object> values = new LinkedHashMap<>();
+            convertCompositeData(((CompositeData) attributeValue), values);
+            return values;
+        } else if (attributeValue instanceof TabularData) {
+            final Map<String, Object> values = new LinkedHashMap<>();
+            convertTabularData((TabularData) attributeValue, values);
+            return values;
+        } else {
+            return attributeValue;
+        }
     }
 
     private void convertCompositeData(CompositeData attributeValue, Map<String, Object> values) {

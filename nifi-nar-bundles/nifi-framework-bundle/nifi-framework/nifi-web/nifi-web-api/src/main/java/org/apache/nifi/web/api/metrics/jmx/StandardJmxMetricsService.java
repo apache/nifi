@@ -27,8 +27,8 @@ public class StandardJmxMetricsService implements JmxMetricsService {
 
     @Override
     public Collection<JmxMetricsResultDTO> getFilteredMBeanMetrics(final String beanNameFilter) {
-        final String blockedFilterPattern = properties.getProperty(NiFiProperties.JMX_METRICS_BLOCKED_FILTER_PATTERN);
-        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(blockedFilterPattern, beanNameFilter);
+        final String allowedFilterPattern = properties.getProperty(NiFiProperties.WEB_JMX_METRICS_ALLOWED_FILTER_PATTERN);
+        final JmxMetricsFilter metricsFilter = new JmxMetricsFilter(allowedFilterPattern, beanNameFilter);
         return metricsFilter.filter(metricsCollector.getBeanMetrics());
     }
 
