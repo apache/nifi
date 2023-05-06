@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.adx.AzureAdxSourceConnectionService;
+import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

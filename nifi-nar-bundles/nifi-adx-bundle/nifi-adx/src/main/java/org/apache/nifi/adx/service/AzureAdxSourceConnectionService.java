@@ -14,10 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.adx;
+package org.apache.nifi.adx.service;
 
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.adx.AdxSourceConnectionService;
+import org.apache.nifi.adx.AzureAdxConnectionServiceParameter;
+import org.apache.nifi.adx.NiFiVersion;
 import org.apache.nifi.adx.model.ADXConnectionParams;
+import org.apache.nifi.adx.model.KustoQueryResponse;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -30,12 +42,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
+import java.util.Arrays;
 import java.util.List;
-import static org.apache.nifi.adx.NiFiVersion.NIFI_SOURCE;
 
 @Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
 @CapabilityDescription("Sends batches of flow file content or stream flow file content to an Azure ADX cluster.")
@@ -51,6 +59,8 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     private static final String KUSTO_STRATEGY_APPLICATION = "application";
 
     private static final String KUSTO_STRATEGY_MANAGED_IDENTITY = "managed_identity";
+
+    public static final Pair<String,String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
 
     public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
             .Builder().name(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.name())
@@ -74,6 +84,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
             .displayName(AzureAdxConnectionServiceParameter.APP_KEY.getParamDisplayName())
             .description(AzureAdxConnectionServiceParameter.APP_KEY.getDescription())
             .required(true)
+            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -100,7 +111,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     private ADXConnectionParams adxConnectionParams;
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
     }
 
@@ -134,13 +145,44 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
         this.executionClient = null;
     }
 
-    @Override
+
     public Client getKustoQueryClient() {
         return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
                 adxConnectionParams.getAppId(),
                 adxConnectionParams.getAppKey(),
                 adxConnectionParams.getAppTenant(),
                 adxConnectionParams.getKustoAuthStrategy());
+    }
+
+    @Override
+    public KustoQueryResponse executeQuery(String databaseName, String query){
+        if (this.executionClient == null) {
+            this.executionClient = getKustoQueryClient();
+        }
+        List<List<Object>> tableData;
+        KustoQueryResponse kustoQueryResponse;
+        KustoOperationResult kustoOperationResult;
+        try {
+            kustoOperationResult = this.executionClient.execute(databaseName, query);
+        } catch (DataServiceException | DataClientException e) {
+            String errorMessage;
+            if(Arrays.stream(ExceptionUtils.getRootCauseStackTrace(e)).anyMatch(str -> str.contains("LimitsExceeded"))){
+                errorMessage = "Exception occurred while reading data from ADX : Query Limits exceeded : Please modify your query to fetch results below the kusto query limits";
+            }else {
+                errorMessage = "Exception occurred while reading data from ADX";
+            }
+            getLogger().error(errorMessage, e);
+            kustoQueryResponse = new KustoQueryResponse(true,errorMessage);
+            return kustoQueryResponse;
+        }
+        if(kustoOperationResult.getPrimaryResults() != null){
+            tableData = kustoOperationResult.getPrimaryResults().getData();
+            kustoQueryResponse = new KustoQueryResponse(tableData);
+        }else{
+            kustoQueryResponse = new KustoQueryResponse(true,"No results were returned for query : "+query);
+        }
+
+        return kustoQueryResponse;
     }
 
 
@@ -172,7 +214,7 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
                         "Kusto appId, appKey, and authority should be configured.");
         }
         kcsb.setConnectorDetails(NiFiVersion.CLIENT_NAME, NiFiVersion.getVersion(), null, null,
-                false, null,NIFI_SOURCE);
+                false, null, NIFI_SOURCE);
         return kcsb;
     }
 

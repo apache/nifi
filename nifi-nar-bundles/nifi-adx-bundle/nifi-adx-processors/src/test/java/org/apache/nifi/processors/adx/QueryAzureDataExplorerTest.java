@@ -17,9 +17,8 @@
 package org.apache.nifi.processors.adx;
 
 
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import org.apache.nifi.adx.AzureAdxSourceConnectionService;
+import org.apache.nifi.adx.model.KustoQueryResponse;
+import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.adx.mock.MockAzureAdxSourceConnectionService;
 import org.apache.nifi.processors.adx.mock.MockQueryAzureDataExplorer;
@@ -135,8 +134,8 @@ class QueryAzureDataExplorerTest {
     void testAzureAdxSourceProcessorFailureQueryLimitExceeded() throws InitializationException {
         QueryAzureDataExplorer mockQueryAzureDataExplorer = new QueryAzureDataExplorer(){
             @Override
-            protected KustoOperationResult executeQuery(String databaseName, String adxQuery) throws DataClientException {
-                throw new DataClientException("ingestionSource","Query execution has exceeded the allowed limits");
+            protected KustoQueryResponse executeQuery(String databaseName, String adxQuery) {
+                return new KustoQueryResponse(true, "Query limit exceeded");
             }
         };
 

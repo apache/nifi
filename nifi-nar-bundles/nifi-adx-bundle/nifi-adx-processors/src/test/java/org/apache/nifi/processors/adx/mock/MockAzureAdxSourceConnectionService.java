@@ -22,7 +22,7 @@ import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.adx.AzureAdxSourceConnectionService;
+import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

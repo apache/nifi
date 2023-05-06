@@ -17,7 +17,12 @@
 package org.apache.nifi.adx;
 
 import com.microsoft.azure.kusto.data.Client;
+import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.ControllerServiceConfiguration;
 import org.apache.nifi.util.StandardProcessorTestRunner;
@@ -28,6 +33,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -50,7 +56,23 @@ class TestAzureAdxSourceConnectionService {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(MockAzureAdxSourceProcessor.class);
+        runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+            }
+
+            @Override
+            protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+                List<PropertyDescriptor> propDescs = new ArrayList<>();
+                propDescs.add(new PropertyDescriptor.Builder()
+                        .name("AdxService")
+                        .description("AdxService")
+                        .identifiesControllerService(AdxSourceConnectionService.class)
+                        .required(true)
+                        .build());
+                return propDescs;
+            }
+        });
 
         service = new AzureAdxSourceConnectionService();
         runner.addControllerService("test-good", service);

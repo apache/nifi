@@ -14,19 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.adx.mock;
+package org.apache.nifi.adx.model;
 
-import org.apache.nifi.adx.model.KustoQueryResponse;
-import org.apache.nifi.processors.adx.QueryAzureDataExplorer;
+import java.util.List;
 
-import java.util.ArrayList;
+public class KustoQueryResponse {
 
-/**
- * these are mock implementation classes of adx source processor required for junit classes to work properly
- */
-public class MockQueryAzureDataExplorer extends QueryAzureDataExplorer {
-    @Override
-    protected KustoQueryResponse executeQuery(String databaseName, String adxQuery) {
-        return new KustoQueryResponse(new ArrayList<>());
+    private List<List<Object>> tableData;
+    private boolean isError;
+    private String errorMessage;
+
+    public KustoQueryResponse(boolean isError, String errorMessage) {
+        this.tableData = null;
+        this.isError = isError;
+        this.errorMessage = errorMessage;
+    }
+
+    public KustoQueryResponse(List<List<Object>> tableData) {
+        this.tableData = tableData;
+        this.isError = false;
+        this.errorMessage = null;
+    }
+
+    public List<List<Object>> getTableData() {
+        return tableData;
+    }
+
+    public boolean isError() {
+        return isError;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 }
