@@ -1887,14 +1887,18 @@
             'history': history
         });
 
-        if (_.isFunction(options.parameterDeferred)) {
-            options.parameterDeferred(false, groupId).done(function (parameters) {
-                currentParameters = parameters;
-                processProperties(table, properties, descriptors);
-            });
-        } else {
-            processProperties(table, properties, descriptors);
+        if (_.isFunction(options.parameterDeferred) && _.isFunction(options.getParameterContext)) {
+            var paramContext = options.getParameterContext(groupId);
+            var canReadParamContext = _.get(paramContext, 'permissions.canRead', false);
+            if (canReadParamContext) {
+                options.parameterDeferred(false, groupId).done(function (parameters) {
+                    currentParameters = parameters;
+                    processProperties(table, properties, descriptors);
+                });
+                return;
+            }
         }
+        processProperties(table, properties, descriptors);
     };
 
     var processProperties = function (table, properties, descriptors) {
