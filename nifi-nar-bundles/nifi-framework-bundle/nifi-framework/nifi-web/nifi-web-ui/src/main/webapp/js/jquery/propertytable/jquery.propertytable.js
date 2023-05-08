@@ -33,7 +33,6 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
-                'nf.CanvasUtils',
                 'lodash'],
             function ($,
                       Slick,
@@ -47,7 +46,6 @@
                       nfProcessGroupConfiguration,
                       nfSettings,
                       nfParameterContexts,
-                      nfCanvasUtils,
                       _) {
                 factory($,
                     Slick,
@@ -61,7 +59,6 @@
                     nfProcessGroupConfiguration,
                     nfSettings,
                     nfParameterContexts,
-                    nfCanvasUtils,
                     _);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
@@ -77,7 +74,6 @@
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
             require('nf.ParameterContexts'),
-            require('nf.CanvasUtils'),
             require('lodash'));
     } else {
         factory(root.$,
@@ -92,7 +88,6 @@
             root.nf.ProcessGroupConfiguration,
             root.nf.Settings,
             root.nf.ParameterContexts,
-            root.nf.CanvasUtils,
             root._);
     }
 }(this, function ($,
@@ -107,13 +102,12 @@
                   nfProcessGroupConfiguration,
                   nfSettings,
                   nfParameterContexts,
-                  nfCanvasUtils,
                   _) {
 
     var groupId = null;
     var supportsSensitiveDynamicProperties = false;
     var propertyVerificationCallback = null;
-    var currentParameterContext = null;
+    var currentParameters = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -1473,7 +1467,8 @@
 
             // sets the available parameters for the specified property descriptor
             var loadParameters = function (propertyDescriptor, parameterDeferred, setParameters) {
-                parameterDeferred(propertyDescriptor, groupId).done(function (parameters) {
+                parameterDeferred(nfCommon.isSensitiveProperty(propertyDescriptor), groupId).done(function (parameters) {
+                    currentParameters = parameters;
                     setParameters(parameters);
                 });
             };
@@ -1731,10 +1726,10 @@
                                                 referencingParameter = null;
 
                                                 // check if the property references a parameter
-                                                if (!_.isEmpty(currentParameterContext)) {
+                                                if (!_.isEmpty(currentParameters)) {
                                                     const paramReference = getExistingParametersReferenced(propertyValue);
                                                     if (paramReference.length > 0) {
-                                                        referencingParameter = paramReference[0].parameter.value;
+                                                        referencingParameter = paramReference[0].value;
                                                     }
                                                 }
 
@@ -1883,14 +1878,26 @@
      * @param {type} properties
      * @param {type} descriptors
      * @param {type} history
+     * @param {type} options
      */
-    var loadProperties = function (table, properties, descriptors, history) {
+    var loadProperties = function (table, properties, descriptors, history, options) {
         // save the original descriptors and history
         table.data({
             'descriptors': descriptors,
             'history': history
         });
 
+        if (_.isFunction(options.parameterDeferred)) {
+            options.parameterDeferred(false, groupId).done(function (parameters) {
+                currentParameters = parameters;
+                processProperties(table, properties, descriptors);
+            });
+        } else {
+            processProperties(table, properties, descriptors);
+        }
+    };
+
+    var processProperties = function (table, properties, descriptors) {
         // get the grid
         var propertyGrid = table.data('gridInstance');
         var propertyData = propertyGrid.getData();
@@ -1951,10 +1958,10 @@
                                     referencingParameter = null;
 
                                     // check if the property references a parameter
-                                    if (!_.isEmpty(currentParameterContext)) {
+                                    if (!_.isEmpty(currentParameters)) {
                                         const paramReference = getExistingParametersReferenced(propertyValue);
                                         if (paramReference.length > 0) {
-                                            referencingParameter = paramReference[0].parameter.value;
+                                            referencingParameter = paramReference[0].value;
                                         }
                                     }
 
@@ -2002,7 +2009,7 @@
      * @param {jQuery} propertyTableContainer
      */
     var clear = function (propertyTableContainer) {
-        currentParameterContext = null;
+        currentParameters = null;
         var options = propertyTableContainer.data('options');
         if (options.readOnly === true) {
             nfUniversalCapture.removeAllPropertyDetailDialogs();
@@ -2027,19 +2034,18 @@
     };
 
     /**
-     * Gets all the referenced parameters from the {parameterContext} based on the value of {parameterReference}
+     * Gets all the referenced parameters from the {currentParameters} based on the value of {parameterReference}
      *
      * @param {string} parameterReference
      * @returns {ParameterEntity[]}
      */
     var getExistingParametersReferenced = function (parameterReference) {
-        if (_.isEmpty(currentParameterContext)) {
+        if (_.isEmpty(currentParameters)) {
             return [];
         }
-        var parameters = _.get(currentParameterContext.component, 'parameters', []);
         var existingParametersReferenced = [];
 
-        if (!_.isNil(parameterReference) && !_.isEmpty(parameters)) {
+        if (!_.isNil(parameterReference)) {
             // can't use from common/constants because we are modifying the lastIndex below
             var paramRefsRegex = /#{'?([a-zA-Z0-9-_. ]+)'?}/gm;
             var possibleMatch;
@@ -2052,8 +2058,8 @@
 
                 if (!_.isEmpty(possibleMatch) && possibleMatch.length === 2) {
                     const parameterName = possibleMatch[1];
-                    var found = parameters.find(function (param) {
-                        return _.get(param.parameter, 'name') === parameterName;
+                    var found = currentParameters.find(function (param) {
+                        return param.name === parameterName;
                     });
                     if (!_.isNil(found)) {
                         existingParametersReferenced.push(found);
@@ -2324,43 +2330,16 @@
          * @argument {object} properties        The properties
          * @argument {map} descriptors          The property descriptors (property name -> property descriptor)
          * @argument {map} history
-         * @argument {string} type              The type that is loading the properties
          */
-        loadProperties: function (properties, descriptors, history, type) {
+        loadProperties: function (properties, descriptors, history) {
             var self = this;
-            var groupId = null;
 
-            var loadParameterContext = function () {
-                $.ajax({
-                    type: 'GET',
-                    url: '../nifi-api/parameter-contexts/' + encodeURIComponent(groupId),
-                    data: {
-                        includeInheritedParameters: 'true'
-                    },
-                    dataType: 'json'
-                }).done(function (response) {
-                    if (!response.permissions.canRead) {
-                        return;
-                    }
-                    currentParameterContext = response;
-                    return self.each(function () {
-                        var table = $(this).find('div.property-table');
-                        loadProperties(table, properties, descriptors, history);
-                    });
-                });
-            };
-
-            if (type === 'processor-configuration' || type === 'controller-service') {
-                var context = nfCanvasUtils.getParameterContext();
-
-                if (!_.isEmpty(context) && context.permissions.canRead) {
-                    groupId = context.id;
-                    return loadParameterContext();
-                }
-            }
             return self.each(function () {
-                var table = $(this).find('div.property-table');
-                loadProperties(table, properties, descriptors, history);
+                var propertyTableContainer = $(this);
+                var options = propertyTableContainer.data('options');
+
+                var table = propertyTableContainer.find('div.property-table');
+                loadProperties(table, properties, descriptors, history, options);
             });
         },
 

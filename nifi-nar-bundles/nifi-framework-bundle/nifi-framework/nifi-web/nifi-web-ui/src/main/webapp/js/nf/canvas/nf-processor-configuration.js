@@ -714,7 +714,7 @@
                         dataType: 'json'
                     }).fail(nfErrorHandler.handleAjaxError);
                 },
-                parameterDeferred: function (propertyDescriptor, groupId) {
+                parameterDeferred: function (sensitive, groupId) {
                     return $.Deferred(function (deferred) {
                         if (nfCommon.isDefinedAndNotNull(groupId)) {
                             // processors being configured must be in the current group
@@ -729,8 +729,6 @@
                                     },
                                     dataType: 'json'
                                 }).done(function (response) {
-                                    var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
                                     deferred.resolve(response.component.parameters.map(function (parameterEntity) {
                                         return parameterEntity.parameter;
                                     }).filter(function (parameter) {
@@ -1111,11 +1109,10 @@
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)
                         .propertytable('setSupportsSensitiveDynamicProperties', processor.supportsSensitiveDynamicProperties)
+                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory)
                         .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                             nfVerify.verify(processor['id'], processorResponse['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#processor-properties-verification-results-listing'));
                         });
-                    $('#processor-properties')
-                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory, 'processor-configuration')
 
                     // show the details
                     $('#processor-configuration').modal('show');

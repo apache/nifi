@@ -331,7 +331,7 @@
                 // load the properties
                 $('#read-only-processor-properties')
                     .propertytable('setGroupId', processor.parentGroupId)
-                    .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory, 'processor-details');
+                    .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
                     buttonText: 'Ok',

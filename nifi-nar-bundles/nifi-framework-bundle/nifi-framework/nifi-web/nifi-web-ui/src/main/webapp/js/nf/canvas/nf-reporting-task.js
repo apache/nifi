@@ -647,7 +647,7 @@
                 $('#reporting-task-properties')
                     .propertytable('setGroupId', null)
                     .propertytable('setSupportsSensitiveDynamicProperties', reportingTask.supportsSensitiveDynamicProperties)
-                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory, 'reporting-task')
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory)
                     .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                         nfVerify.verify(reportingTask['id'], reportingTaskEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#reporting-task-properties-verification-results-listing'));
                     });
@@ -772,7 +772,7 @@
                 $('#reporting-task-properties')
                     .propertytable('setGroupId', null)
                     .propertytable('setSupportsSensitiveDynamicProperties', reportingTask.supportsSensitiveDynamicProperties)
-                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory, 'reporting-task');
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
                 reportingTaskDialog.modal('show');

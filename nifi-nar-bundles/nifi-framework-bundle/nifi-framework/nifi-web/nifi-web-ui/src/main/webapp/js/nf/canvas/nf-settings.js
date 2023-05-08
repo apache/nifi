@@ -2433,7 +2433,7 @@
             }]).modal('show');
 
             $('#registry-properties').propertytable('clear');
-            $('#registry-properties').propertytable('loadProperties', properties, descriptors, 'nf-settings');
+            $('#registry-properties').propertytable('loadProperties', properties, descriptors);
             $('#registry-configuration-dialog').data('registryDetails', reloadResponse);
         });
     };

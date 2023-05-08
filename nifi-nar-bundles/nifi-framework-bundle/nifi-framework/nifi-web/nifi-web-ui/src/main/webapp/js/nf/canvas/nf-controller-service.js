@@ -2280,12 +2280,10 @@
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
                     .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
+                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory)
                     .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                         nfVerify.verify(controllerService['id'], controllerServiceEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#controller-service-properties-verification-results-listing'));
                     });
-                $('#controller-service-properties')
-                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory, 'controller-service');
-
 
                 // show the details
                 controllerServiceDialog.modal('show');
@@ -2428,7 +2426,7 @@
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
                     .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
-                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory, 'controller-service');
+                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details
                 controllerServiceDialog.modal('show');
