@@ -20,8 +20,9 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CurrentTestStandardProcessorTestRunner {
 
@@ -36,7 +37,7 @@ public class CurrentTestStandardProcessorTestRunner {
         runner.run(iterations);
         // if the counter is not equal to iterations, the the processor must have been unscheduled
         // before all the run calls were made, that would be bad.
-        Assert.assertEquals(iterations, processor.getCounter());
+        assertEquals(iterations, processor.getCounter());
     }
 
     /**

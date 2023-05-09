@@ -39,6 +39,10 @@ limitations under the License.
         <module>minifi-c2</module>
         <module>minifi-integration-tests</module>
     </modules>
+    <properties>
+        <system.rules.version>1.19.0</system.rules.version>
+        <yammer.metrics.version>2.2.0</yammer.metrics.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>

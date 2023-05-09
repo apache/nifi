@@ -88,12 +88,6 @@
             <artifactId>kudu-client</artifactId>
             <version>${kudu.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.kudu</groupId>
-            <artifactId>kudu-test-utils</artifactId>
-            <version>${kudu.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     <profiles>
         <profile>

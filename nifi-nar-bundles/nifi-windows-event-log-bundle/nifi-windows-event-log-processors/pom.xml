@@ -67,5 +67,10 @@ language governing permissions and limitations under the License. -->
             <version>${javassist.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
