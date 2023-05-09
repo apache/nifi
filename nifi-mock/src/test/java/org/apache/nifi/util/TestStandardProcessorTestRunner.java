@@ -40,13 +40,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestStandardProcessorTestRunner {
 
@@ -191,7 +191,7 @@ public class TestStandardProcessorTestRunner {
             fail(e.getMessage());
         }
 
-        assertFalse("onPropertyModified has been called", ((SimpleTestService) testService).isOpmCalled());
+        assertFalse(((SimpleTestService) testService).isOpmCalled(), "onPropertyModified has been called");
 
         // Act
         ValidationResult vr = runner.setProperty(testService, pdName, pdValue);
@@ -204,7 +204,7 @@ public class TestStandardProcessorTestRunner {
         String retrievedPDValue = csConf.getProperties().get(propertyDescriptor);
 
         assertEquals(pdValue, retrievedPDValue);
-        assertTrue("onPropertyModified has not been called", ((SimpleTestService) testService).isOpmCalled());
+        assertTrue(((SimpleTestService) testService).isOpmCalled(), "onPropertyModified has not been called");
     }
 
     @Test

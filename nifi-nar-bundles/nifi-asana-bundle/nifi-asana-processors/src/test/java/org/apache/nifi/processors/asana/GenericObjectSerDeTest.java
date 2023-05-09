@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import org.apache.groovy.util.Maps;
 import org.junit.jupiter.api.Test;
 
 public class GenericObjectSerDeTest {
@@ -51,14 +51,18 @@ public class GenericObjectSerDeTest {
 
     @Test
     public void testMap2() throws IOException {
-        Map<String, String> expected = Maps.of("Lorem", "Ipsum", "Foo", "Bar");
+        Map<String, String> expected = new LinkedHashMap<>();
+        expected.put("Lorem", "Ipsum");
+        expected.put("Foo", "Bar");
         Map<String, String> actual = serializeAndThenDeserialize(expected);
         assertEquals(expected, actual);
     }
 
     @Test
     public void testMap3() throws IOException {
-        Map<String, Map<String, Integer>> expected = Maps.of("Lorem", singletonMap("Ipsum", 1), "Foo", singletonMap("Bar", 2));
+        Map<String, Map<String, Integer>> expected = new LinkedHashMap<>();
+        expected.put("Lorem", singletonMap("Ipsum", 1));
+        expected.put("Foo", singletonMap("Bar", 2));
         Map<String, Map<String, Integer>> actual = serializeAndThenDeserialize(expected);
         assertEquals(expected, actual);
     }

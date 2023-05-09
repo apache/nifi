@@ -39,9 +39,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
+
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.groovy.util.Maps;
 import org.apache.nifi.controller.asana.AsanaClientProviderService;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
@@ -213,10 +214,9 @@ public class GetAsanaObjectLifecycleTest {
         withMockDistributedMapCacheClient();
         runner.setProperty(PROP_ASANA_OBJECT_TYPE, AV_COLLECT_PROJECTS.getValue());
 
-        final Map<String, String> validState = Maps.of(
-            "Key1", "Value1",
-            "Key2", "Value2"
-        );
+        final Map<String, String> validState = new LinkedHashMap<>();
+        validState.put("Key1", "Value1");
+        validState.put("Key2", "Value2");
 
         mockDistributedMapCacheClient.put(runner.getProcessor().getIdentifier(), validState);
 

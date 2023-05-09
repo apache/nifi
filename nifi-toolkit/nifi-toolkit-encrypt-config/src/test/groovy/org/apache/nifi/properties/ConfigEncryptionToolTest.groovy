@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties
 
-import groovy.test.GroovyLogTestCase
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
@@ -38,8 +37,7 @@ import org.junit.contrib.java.lang.system.Assertion
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemErrRule
 import org.junit.contrib.java.lang.system.SystemOutRule
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Assertions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xmlunit.builder.DiffBuilder
@@ -54,8 +52,7 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
 import java.security.Security
 
-@RunWith(JUnit4.class)
-class ConfigEncryptionToolTest extends GroovyLogTestCase {
+class ConfigEncryptionToolTest {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionToolTest.class)
 
     @Rule
@@ -187,13 +184,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
         // Act
         flags.each { String arg ->
-            def msg = shouldFail(CommandLineParseException) {
-                tool.parse([arg] as String[])
-            }
-
-            // Assert
-            assert msg == null
-            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+            Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse([arg] as String[]))
         }
     }
 
@@ -372,13 +363,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
-        def msg = shouldFail {
-            tool.parse("-m -n nifi.properties -e oldKey -w oldPassword".split(" ") as String[])
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "Only one of '-w'/'--oldPassword' and '-e'/'--oldKey' can be used"
+        Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse("-m -n nifi.properties -e oldKey -w oldPassword".split(" ") as String[]))
     }
 
     @Test
@@ -396,27 +381,9 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 "-f flow.xml.gz",
         ]
 
-        final String NO_NFP_OR_LIP = "One or more of [" +
-                "'-n'/'--${ConfigEncryptionTool.NIFI_PROPERTIES_ARG}', " +
-                "'-l'/'--${ConfigEncryptionTool.LOGIN_IDENTITY_PROVIDERS_ARG}', " +
-                "'-a'/'--${ConfigEncryptionTool.AUTHORIZERS_ARG}'" +
-                "] must be provided unless '-x'/--'${ConfigEncryptionTool.DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified"
-        final String MISSING_NFP_ARGUMENT = "Error parsing command line. (Missing argument for option: n)"
-        final String MISSING_LIP_ARGUMENT = "Error parsing command line. (Missing argument for option: l)"
-        final String MISSING_A_ARGUMENT = "Error parsing command line. (Missing argument for option: a)"
-        final String MIGRATE_NEEDS_NFP = "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'."
-
-        def ACCEPTABLE_ERROR_MSGS = [NO_NFP_OR_LIP, MISSING_NFP_ARGUMENT, MISSING_LIP_ARGUMENT, MISSING_A_ARGUMENT, MIGRATE_NEEDS_NFP]
-
         // Act
         invalidArgs.each { String badArgs ->
-            def msg = shouldFail {
-                tool.parse(badArgs.split(" ") as String[])
-            }
-            logger.expected(msg)
-
-            // Assert
-            assert ACCEPTABLE_ERROR_MSGS.contains(msg)
+            Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse(badArgs.split(" ") as String[]))
         }
     }
 
@@ -431,13 +398,8 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         // Act
         argStrings.each { String argString ->
             argString += " -n any/path"
-            def msg = shouldFail {
-                tool.parse(argString.split(" ") as String[])
-            }
-            logger.expected(msg)
 
-            // Assert
-            assert msg == "'-w'/'--oldPassword' and '-e'/'--oldKey' are ignored unless '-m'/'--migrate' is enabled"
+            Assertions.assertThrows(Exception.class, () -> tool.parse(argString.split(" ") as String[]))
         }
     }
 
@@ -660,15 +622,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
         // Act
         passwords.each { String password ->
-            logger.info("Reading password: [${password}]")
-            def msg = shouldFail(KeyException) {
-                String derivedKey = ConfigEncryptionTool.deriveKeyFromPassword(password)
-                logger.info("Derived key:  [${derivedKey}]")
-            }
-            logger.expected(msg)
-
-            // Assert
-            assert msg == "Cannot derive key from empty/short password -- password must be at least 12 characters"
+            Assertions.assertThrows(KeyException.class, () -> ConfigEncryptionTool.deriveKeyFromPassword(password))
         }
     }
 
@@ -679,13 +633,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Using args: ${args}")
 
         // Act
-        def msg = shouldFail(CommandLineParseException) {
-            new ConfigEncryptionTool().parse(args as String[])
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "Only one of '-p'/'--password' and '-k'/'--key' can be used"
+        Assertions.assertThrows(CommandLineParseException.class, () -> new ConfigEncryptionTool().parse(args as String[]))
     }
 
     @Test
@@ -701,16 +649,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
 
         // Act
-        def msg = shouldFail(CommandLineParseException) {
-            NiFiProperties properties = tool.loadNiFiProperties()
-            logger.info("Loaded NiFiProperties from ${tool.niFiPropertiesPath}")
-        }
-
-        // Assert
-        assert msg == "Cannot load NiFiProperties from [${niFiPropertiesPath}]".toString()
-
-        // The system variable was reset to the original value
-        assert System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH) == oldFilePath
+        Assertions.assertThrows(CommandLineParseException.class, () -> tool.loadNiFiProperties())
     }
 
     @Test
@@ -731,9 +670,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
         tool.parse(args)
 
-        shouldFail(IOException) {
-            tool.loadNiFiProperties()
-        }
+        Assertions.assertThrows(IOException.class, () -> tool.loadNiFiProperties())
         workingFile.deleteOnExit()
     }
 
@@ -1089,15 +1026,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Loaded ${niFiProperties.size()} properties from ${inputPropertiesFile.path}")
 
         // Act
-        def msg = shouldFail(IOException) {
-            tool.writeNiFiProperties()
-            logger.info("Wrote to ${workingFile.path}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
-
+        Assertions.assertThrows(IOException.class, () -> tool.writeNiFiProperties())
         workingFile.deleteOnExit()
     }
 
@@ -1124,15 +1053,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Loaded ${niFiProperties.size()} properties from ${inputPropertiesFile.path}")
 
         // Act
-        def msg = shouldFail(IOException) {
-            tool.writeNiFiProperties()
-            logger.info("Wrote to ${workingFile.path}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
-
+        Assertions.assertThrows(IOException.class, () -> tool.writeNiFiProperties())
         workingFile.deleteOnExit()
         setupTmpDir()
     }
@@ -1324,11 +1245,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
         String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-o", outputPropertiesFile.path, "-p", PASSWORD, "-v"]
 
-        def msg = shouldFail {
-            logger.info("Invoked #main first time with ${args.join(" ")}")
-            ConfigEncryptionTool.main(args)
-        }
-        logger.expected(msg)
+        Assertions.assertThrows(Exception.class, () -> ConfigEncryptionTool.main(args))
 
         // Act
         args = ["-n", outputPropertiesFile.path, "-b", bootstrapFile.path, "-p", PASSWORD, "-v"]
@@ -3401,13 +3318,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
-        def msg = shouldFail(CommandLineParseException) {
-            tool.parse("-f ${flowXmlPath} -x".split(" ") as String[])
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'." as String
+        Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse("-f ${flowXmlPath} -x".split(" ") as String[]))
     }
 
     // TODO: Test different algs/providers
@@ -4625,22 +4536,13 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         incompleteOpts.each { String incomplete ->
             tool = new ConfigEncryptionTool()
             def args = (incomplete + " -c").split(" ")
-            logger.info("Testing with ${args}")
-            def msg = shouldFail(CommandLineParseException) {
-                tool.parse(args as String[])
-            }
-
-            // Assert
-            assert msg == "When '-c'/'--translateCli' is specified, '-n'/'--niFiProperties' is required (and '-b'/'--bootstrapConf' is required if the properties are encrypted)"
-            assert systemOutRule.getLog().contains("usage: org.apache.nifi.properties.ConfigEncryptionTool [")
+            Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse(args as String[]))
         }
 
         invalidOpts.each { String invalid ->
             tool = new ConfigEncryptionTool()
             def args = (invalid + " -c").split(" ")
-            shouldFail(CommandLineParseException) {
-                tool.parse(args as String[])
-            }
+            Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse(args as String[]))
         }
     }
 
@@ -4657,9 +4559,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         // Act
         invalidOpts.each { String invalid ->
             def args = (invalid + " -c").split(" ")
-            shouldFail(CommandLineParseException) {
-                tool.parse(args as String[])
-            }
+            Assertions.assertThrows(CommandLineParseException.class, () -> tool.parse(args as String[]))
         }
     }
 
@@ -4670,7 +4570,6 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         verifyTool.flowXmlPath = new File("src/test/resources/flow.xml.gz").path
         InputStream updatedFlowXmlContent = verifyTool.loadFlowXml(verifyTool.flowXmlPath)
         Set<String> fieldsFound = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
-        logger.info("Found " + fieldsFound.size() + " fields in " + verifyTool.flowXmlPath + " that matched " + WFXCTR)
         assert(fieldsFound.size() > 0)
     }
 

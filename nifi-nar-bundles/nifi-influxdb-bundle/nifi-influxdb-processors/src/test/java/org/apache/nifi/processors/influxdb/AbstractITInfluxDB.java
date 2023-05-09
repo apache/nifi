@@ -22,7 +22,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -72,7 +72,7 @@ public class AbstractITInfluxDB {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
         if ( influxDB != null ) {
