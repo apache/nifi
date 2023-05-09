@@ -19,10 +19,12 @@ package org.apache.nifi.registry.service.extension.docs;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.junit.Assert;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class XmlValidator {
     private static final String DOCTYPE = "<!DOCTYPE html>";
@@ -35,11 +37,11 @@ public class XmlValidator {
             final DocumentProvider provider = new StandardDocumentProvider();
             provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
         } catch (final ProcessingException e) {
-            Assert.fail(e.getMessage());
+            fail(e.getMessage());
         }
     }
 
     public static void assertContains(String original, String subword) {
-        Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
+        assertTrue(original.contains(subword), original + " did not contain: " + subword);
     }
 }

@@ -65,9 +65,9 @@ language governing permissions and limitations under the License. -->
             <!-- testcontainers requires elements JUnit 4 (even when running in JUnit 5 mode), expected to be removed in 2.x
                 see https://github.com/testcontainers/testcontainers-java/issues/970
              -->
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>compile</scope>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
