@@ -141,7 +141,7 @@ public class Scrypt {
         return sb.toString();
     }
 
-    private static String encodeParams(int n, int r, int p) {
+    public static String encodeParams(int n, int r, int p) {
         return Long.toString(log2(n) << 16L | r << 8 | p, 16);
     }
 
@@ -305,7 +305,7 @@ public class Scrypt {
      * @return the derived key
      * @throws GeneralSecurityException when HMAC_SHA256 is not available
      */
-    protected static byte[] deriveScryptKey(byte[] password, byte[] salt, int n, int r, int p, int dkLen) throws GeneralSecurityException {
+    public static byte[] deriveScryptKey(byte[] password, byte[] salt, int n, int r, int p, int dkLen) throws GeneralSecurityException {
         if (n < 2 || (n & (n - 1)) != 0) {
             throw new IllegalArgumentException("N must be a power of 2 greater than 1");
         }
