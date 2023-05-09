@@ -18,7 +18,7 @@ package org.apache.nifi.processors.azure.storage.utils;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.azure.storage.ListAzureBlobStorage;
+import org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ public class TestAzureStorageUtilsValidateCredentialProperties {
 
     @BeforeEach
     public void setUp() {
-        Processor processor = new ListAzureBlobStorage();
+        Processor processor = new GetAzureQueueStorage();
         processContext = new MockProcessContext(processor);
         validationContext = new MockValidationContext(processContext);
     }

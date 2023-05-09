@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage.queue;
 
-import com.microsoft.azure.storage.StorageException;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -25,8 +24,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,7 +36,7 @@ public class TestPutAzureQueueStorage {
     private final TestRunner runner = TestRunners.newTestRunner(PutAzureQueueStorage.class);
 
     @Test
-    public void testInvalidTTLAndVisibilityDelay() throws StorageException, URISyntaxException, InvalidKeyException {
+    public void testInvalidTTLAndVisibilityDelay() {
 
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "dummy-storage");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "dummy-key");

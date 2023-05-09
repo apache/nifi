@@ -19,9 +19,6 @@
     </parent>
     <artifactId>nifi-azure-processors</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <azure-keyvault.version>1.2.6</azure-keyvault.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -98,11 +95,6 @@
         <!-- Legacy Microsoft Azure Libraries -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
-            <artifactId>azure-keyvault</artifactId>
-            <version>${azure-keyvault.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
         </dependency>
         <dependency>
@@ -112,6 +104,10 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
