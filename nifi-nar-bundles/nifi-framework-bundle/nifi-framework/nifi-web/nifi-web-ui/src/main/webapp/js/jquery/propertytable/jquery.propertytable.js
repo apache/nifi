@@ -1700,7 +1700,6 @@
                         // Get the property descriptor object
                         var descriptor = descriptors[item.property];
                         var dependent = false;
-                        var referencingParameter = null;
 
                         // Check if descriptor is a dynamic property
                         if (!descriptor.dynamic) {
@@ -1723,7 +1722,7 @@
                                                 // Get the current property value to compare with the dependent value
                                                 var propertyValue = property.value;
 
-                                                referencingParameter = null;
+                                                var referencingParameter = null;
 
                                                 // check if the property references a parameter
                                                 if (!_.isEmpty(currentParameters)) {
@@ -1938,7 +1937,6 @@
 
                 var hidden = false;
                 var dependent = false;
-                var referencingParameter = null;
 
                 // Check for dependencies
                 if (descriptor.dependencies.length > 0) {
@@ -1959,7 +1957,7 @@
                                 if (property.hidden === false) {
                                     // Get the property value by propertyName
                                     var propertyValue = properties[dependency.propertyName];
-                                    referencingParameter = null;
+                                    var referencingParameter = null;
 
                                     // check if the property references a parameter
                                     if (!_.isEmpty(currentParameters)) {
@@ -2051,7 +2049,7 @@
 
         if (!_.isNil(parameterReference)) {
             // can't use from common/constants because we are modifying the lastIndex below
-            var paramRefsRegex = /#{'?([a-zA-Z0-9-_. ]+)'?}/gm;
+            var paramRefsRegex = /#{(')?([a-zA-Z0-9-_. ]+)\1}/gm;
             var possibleMatch;
 
             while ((possibleMatch = paramRefsRegex.exec(parameterReference)) !== null) {
@@ -2060,8 +2058,8 @@
                     paramRefsRegex.lastIndex++;
                 }
 
-                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 2) {
-                    const parameterName = possibleMatch[1];
+                if (!_.isEmpty(possibleMatch) && possibleMatch.length === 3) {
+                    const parameterName = possibleMatch[2];
                     var found = currentParameters.find(function (param) {
                         return param.name === parameterName;
                     });
