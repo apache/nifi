@@ -32,7 +32,6 @@ import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,7 +40,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -204,18 +202,6 @@ public final class AzureStorageUtils {
 
     private AzureStorageUtils() {
         // do not instantiate
-    }
-
-    /**
-     * Create CloudBlobClient instance.
-     * @param flowFile An incoming FlowFile can be used for NiFi Expression Language evaluation to derive
-     *                 Account Name, Account Key or SAS Token. This can be null if not available.
-     */
-    public static CloudBlobClient createCloudBlobClient(ProcessContext context, ComponentLog logger, FlowFile flowFile) throws URISyntaxException {
-        final AzureStorageCredentialsDetails storageCredentialsDetails = getStorageCredentialsDetails(context, flowFile);
-        final CloudStorageAccount cloudStorageAccount = getCloudStorageAccount(storageCredentialsDetails);
-        final CloudBlobClient cloudBlobClient = cloudStorageAccount.createCloudBlobClient();
-        return cloudBlobClient;
     }
 
     public static CloudStorageAccount getCloudStorageAccount(final AzureStorageCredentialsDetails storageCredentialsDetails) throws URISyntaxException {

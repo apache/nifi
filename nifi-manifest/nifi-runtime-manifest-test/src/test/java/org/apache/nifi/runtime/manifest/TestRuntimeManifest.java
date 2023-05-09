@@ -271,15 +271,6 @@ class TestRuntimeManifest {
         assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getValue());
         assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getExpressionLanguageScope());
 
-        // Verify DeleteAzureBlobStorage is deprecated
-        final ProcessorDefinition deleteAzureBlobDef = getProcessorDefinition(bundles, "nifi-azure-nar",
-                "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage");
-        assertNotNull(deleteAzureBlobDef.getDeprecated());
-        assertTrue(deleteAzureBlobDef.getDeprecated().booleanValue());
-        assertNotNull(deleteAzureBlobDef.getDeprecationReason());
-        assertNotNull(deleteAzureBlobDef.getDeprecationAlternatives());
-        assertFalse(deleteAzureBlobDef.getDeprecationAlternatives().isEmpty());
-
         // Verify SplitJson has @SystemResourceConsiderations
         final ProcessorDefinition splitJsonDef = getProcessorDefinition(bundles, "nifi-standard-nar",
                 "org.apache.nifi.processors.standard.SplitJson");
