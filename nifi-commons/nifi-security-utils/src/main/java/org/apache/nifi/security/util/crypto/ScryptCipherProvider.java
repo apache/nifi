@@ -245,7 +245,7 @@ public class ScryptCipherProvider extends RandomIVPBECipherProvider {
         return matcher.find();
     }
 
-    private void parseSalt(String scryptSalt, byte[] rawSalt, List<Integer> params) {
+    void parseSalt(String scryptSalt, byte[] rawSalt, List<Integer> params) {
         if (StringUtils.isEmpty(scryptSalt)) {
             throw new IllegalArgumentException("Cannot parse empty salt");
         }
