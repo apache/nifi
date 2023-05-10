@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assertions.assertTrue
 
 abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryElasticsearch> {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+    static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
 
     static final String INDEX_NAME = "messages"
 
