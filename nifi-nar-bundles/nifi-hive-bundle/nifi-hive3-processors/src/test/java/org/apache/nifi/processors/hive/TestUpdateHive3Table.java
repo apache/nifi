@@ -256,6 +256,34 @@ public class TestUpdateHive3Table {
     }
 
     @Test
+    public void testCreateManagedIcebergTable() throws Exception {
+        configure(processor, 1);
+        runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");
+        runner.setProperty(UpdateHive3Table.CREATE_TABLE, UpdateHive3Table.CREATE_IF_NOT_EXISTS);
+        runner.setProperty(UpdateHive3Table.TABLE_STORAGE_FORMAT, UpdateHive3Table.ORC);
+        runner.setProperty(UpdateHive3Table.TABLE_STORAGE_HANDLER, UpdateHive3Table.ICEBERG_TABLE_STORAGE_HANDLER.getValue());
+        final MockHiveConnectionPool service = new MockHiveConnectionPool("_newTable");
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(UpdateHive3Table.HIVE_DBCP_SERVICE, "dbcp");
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("db.name", "default");
+        attrs.put("table.name", "_newTable");
+        runner.enqueue(new byte[0], attrs);
+        runner.run();
+
+        runner.assertTransferCount(UpdateHive3Table.REL_SUCCESS, 1);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateHive3Table.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_TABLE, "_newTable");
+        flowFile.assertAttributeEquals(UpdateHive3Table.ATTR_OUTPUT_PATH, "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable");
+        List<String> statements = service.getExecutedStatements();
+        assertEquals(1, statements.size());
+        assertEquals("CREATE TABLE IF NOT EXISTS `_newTable` (`name` STRING, `favorite_number` INT, `favorite_color` STRING, `scale` DOUBLE) "
+                + "STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler' STORED AS ORC TBLPROPERTIES ('engine.hive.enabled'='true')",
+                statements.get(0));
+    }
+
+    @Test
     public void testCreateManagedTableWithPartition() throws Exception {
         configure(processor, 1);
         runner.setProperty(UpdateHive3Table.TABLE_NAME, "${table.name}");

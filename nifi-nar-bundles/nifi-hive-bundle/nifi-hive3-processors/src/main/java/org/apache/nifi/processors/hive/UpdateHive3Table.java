@@ -56,6 +56,9 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.hive.DefaultHiveStorageHandlerConfig;
+import org.apache.nifi.util.hive.IcebergStorageHandlerConfig;
+import org.apache.nifi.util.hive.StorageHandlerConfig;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -125,6 +128,10 @@ public class UpdateHive3Table extends AbstractProcessor {
             "Use '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' Attribute",
             "Inspects the '" + TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE + "' FlowFile attribute to determine the table management strategy. The value "
                     + "of this attribute must be a case-insensitive match to one of the other allowable values (Managed, External, e.g.).");
+
+    static final AllowableValue DEFAULT_TABLE_STORAGE_HANDLER = new AllowableValue("Default", "Default", "Uses the default Hive table storage handler");
+    static final AllowableValue ICEBERG_TABLE_STORAGE_HANDLER = new AllowableValue("Iceberg", "Iceberg", "Uses the Iceberg table storage handler. "
+            + "Use this when creating Iceberg-backed Hive tables.");
 
     static final String ATTR_OUTPUT_TABLE = "output.table";
     static final String ATTR_OUTPUT_PATH = "output.path";
@@ -221,7 +228,18 @@ public class UpdateHive3Table extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(TEXTFILE_STORAGE, SEQUENCEFILE_STORAGE, ORC_STORAGE, PARQUET_STORAGE, AVRO_STORAGE, RCFILE_STORAGE)
-            .defaultValue(TEXTFILE)
+            .defaultValue(ORC_STORAGE.getValue())
+            .dependsOn(CREATE_TABLE, CREATE_IF_NOT_EXISTS)
+            .build();
+
+    static final PropertyDescriptor TABLE_STORAGE_HANDLER = new PropertyDescriptor.Builder()
+            .name("hive3-storage-handler")
+            .displayName("Create Table Storage Handler")
+            .description("If a table is to be created, the specified storage handler will be used (Iceberg, e.g.) ")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(DEFAULT_TABLE_STORAGE_HANDLER, ICEBERG_TABLE_STORAGE_HANDLER)
+            .defaultValue(DEFAULT_TABLE_STORAGE_HANDLER.getDisplayName())
             .dependsOn(CREATE_TABLE, CREATE_IF_NOT_EXISTS)
             .build();
 
@@ -278,6 +296,7 @@ public class UpdateHive3Table extends AbstractProcessor {
         props.add(TABLE_MANAGEMENT_STRATEGY);
         props.add(EXTERNAL_TABLE_LOCATION);
         props.add(TABLE_STORAGE_FORMAT);
+        props.add(TABLE_STORAGE_HANDLER);
         props.add(UPDATE_FIELD_NAMES);
         props.add(RECORD_WRITER_FACTORY);
         props.add(QUERY_TIMEOUT);
@@ -391,7 +410,7 @@ public class UpdateHive3Table extends AbstractProcessor {
                 } else {
                     log.error("The '{}' attribute either does not exist or has invalid value: {}. Must be one of (ignoring case): Managed, External. "
                                     + "Routing flowfile to failure",
-                            new Object[]{TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE, tableManagementStrategyAttribute});
+                            TABLE_MANAGEMENT_STRATEGY_ATTRIBUTE, tableManagementStrategyAttribute);
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -405,18 +424,19 @@ public class UpdateHive3Table extends AbstractProcessor {
             }
             final String externalTableLocation = managedTable ? null : context.getProperty(EXTERNAL_TABLE_LOCATION).evaluateAttributeExpressions(flowFile).getValue();
             if (!managedTable && StringUtils.isEmpty(externalTableLocation)) {
-                log.error("External Table Location has invalid value: {}. Routing flowfile to failure", new Object[]{externalTableLocation});
+                log.error("External Table Location has invalid value: {}. Routing flowfile to failure", externalTableLocation);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
             final String storageFormat = context.getProperty(TABLE_STORAGE_FORMAT).getValue();
+            final String storageHandler = context.getProperty(TABLE_STORAGE_HANDLER).getValue();
             final Hive3DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive3DBCPService.class);
             try (final Connection connection = dbcpService.getConnection()) {
 
-                final Map<String,String> attributes = new HashMap<>(flowFile.getAttributes());
+                final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
                 OutputMetadataHolder outputMetadataHolder = checkAndUpdateTableSchema(attributes, connection, recordSchema, tableName, partitionClauseElements,
-                        createIfNotExists, externalTableLocation, storageFormat, updateFieldNames);
+                        createIfNotExists, externalTableLocation, storageFormat, storageHandler, updateFieldNames);
                 if (outputMetadataHolder != null) {
                     // The output schema changed (i.e. field names were updated), so write out the corresponding FlowFile
                     try {
@@ -431,7 +451,7 @@ public class UpdateHive3Table extends AbstractProcessor {
                                 recordReader = recordReaderFactory.createRecordReader(inputFlowFile, in, getLogger());
                                 recordSetWriter = recordWriterFactory.createWriter(getLogger(), outputMetadataHolder.getOutputSchema(), out, attributes);
                             } catch (Exception e) {
-                                if(e instanceof IOException) {
+                                if (e instanceof IOException) {
                                     throw (IOException) e;
                                 }
                                 throw new IOException(new RecordReaderFactoryException("Unable to create RecordReader", e));
@@ -445,7 +465,7 @@ public class UpdateHive3Table extends AbstractProcessor {
                             attributes.putAll(writeResult.getAttributes());
                         });
                     } catch (final Exception e) {
-                        getLogger().error("Failed to process {}; will route to failure", new Object[]{flowFile, e});
+                        getLogger().error("Failed to process {}; will route to failure", flowFile, e);
                         // Since we are wrapping the exceptions above there should always be a cause
                         // but it's possible it might not have a message. This handles that by logging
                         // the name of the class thrown.
@@ -478,9 +498,10 @@ public class UpdateHive3Table extends AbstractProcessor {
         }
     }
 
-    private synchronized OutputMetadataHolder checkAndUpdateTableSchema(Map<String,String> attributes, final Connection conn, final RecordSchema schema,
-                                                                      final String tableName, List<String> partitionClause, final boolean createIfNotExists,
-                                                                      final String externalTableLocation, final String storageFormat, final boolean updateFieldNames) throws IOException {
+    private synchronized OutputMetadataHolder checkAndUpdateTableSchema(Map<String, String> attributes, final Connection conn, final RecordSchema schema,
+                                                                        final String tableName, List<String> partitionClause, final boolean createIfNotExists,
+                                                                        final String externalTableLocation, final String storageFormat,
+                                                                        final String storageHandler, final boolean updateFieldNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
         try (Statement s = conn.createStatement()) {
@@ -518,6 +539,25 @@ public class UpdateHive3Table extends AbstractProcessor {
                     }
                 }
 
+                final StorageHandlerConfig storageHandlerConfig;
+                if (ICEBERG_TABLE_STORAGE_HANDLER.getValue().equalsIgnoreCase(storageHandler)) {
+                    storageHandlerConfig = new IcebergStorageHandlerConfig();
+                } else {
+                    storageHandlerConfig = new DefaultHiveStorageHandlerConfig();
+                }
+
+                final Map<String, String> tablePropertiesMap = storageHandlerConfig.getTablePropertiesMap();
+                final List<String> tablePropertiesList = new ArrayList<>();
+                for (Map.Entry<String, String> entry : tablePropertiesMap.entrySet()) {
+                    tablePropertiesList.add("'" + entry.getKey() + "'='" + entry.getValue() + "'");
+                }
+                final String tablePropertiesClause;
+                if(tablePropertiesList.isEmpty()) {
+                    tablePropertiesClause = "";
+                } else {
+                    tablePropertiesClause = " TBLPROPERTIES (" + String.join(", ", tablePropertiesList) + ")";
+                }
+
                 createTableStatement.append("CREATE ")
                         .append(externalTableLocation == null ? "" : "EXTERNAL ")
                         .append("TABLE IF NOT EXISTS `")
@@ -526,9 +566,11 @@ public class UpdateHive3Table extends AbstractProcessor {
                         .append(String.join(", ", columnsToAdd))
                         .append(") ")
                         .append(validatedPartitionClause.isEmpty() ? "" : "PARTITIONED BY (" + String.join(", ", validatedPartitionClause) + ") ")
+                        .append(storageHandlerConfig.getStorageHandlerClassName() == null ? "" : "STORED BY '" + storageHandlerConfig.getStorageHandlerClassName() + "' ")
                         .append("STORED AS ")
                         .append(storageFormat)
-                        .append(externalTableLocation == null ? "" : " LOCATION '" + externalTableLocation + "'");
+                        .append(externalTableLocation == null ? "" : " LOCATION '" + externalTableLocation + "'")
+                        .append(tablePropertiesClause);
 
                 String createTableSql = createTableStatement.toString();
 
@@ -690,7 +732,7 @@ public class UpdateHive3Table extends AbstractProcessor {
             if (updateFieldNames) {
                 List<RecordField> inputRecordFields = schema.getFields();
                 List<RecordField> outputRecordFields = new ArrayList<>();
-                Map<String,String> fieldMap = new HashMap<>();
+                Map<String, String> fieldMap = new HashMap<>();
                 boolean needsUpdating = false;
 
                 for (RecordField inputRecordField : inputRecordFields) {
@@ -727,15 +769,15 @@ public class UpdateHive3Table extends AbstractProcessor {
     }
 
     private synchronized WriteResult updateRecords(final RecordSchema inputRecordSchema, final OutputMetadataHolder outputMetadataHolder,
-                                            final RecordReader reader, final RecordSetWriter writer) throws IOException {
+                                                   final RecordReader reader, final RecordSetWriter writer) throws IOException {
         try {
             writer.beginRecordSet();
             Record inputRecord;
-            while((inputRecord = reader.nextRecord()) != null) {
+            while ((inputRecord = reader.nextRecord()) != null) {
                 List<RecordField> inputRecordFields = inputRecordSchema.getFields();
-                Map<String,Object> outputRecordFields = new HashMap<>(inputRecordFields.size());
+                Map<String, Object> outputRecordFields = new HashMap<>(inputRecordFields.size());
                 // Copy values from input field name to output field name
-                for(Map.Entry<String,String> mapping : outputMetadataHolder.getFieldMap().entrySet()) {
+                for (Map.Entry<String, String> mapping : outputMetadataHolder.getFieldMap().entrySet()) {
                     outputRecordFields.put(mapping.getValue(), inputRecord.getValue(mapping.getKey()));
                 }
                 Record outputRecord = new MapRecord(outputMetadataHolder.getOutputSchema(), outputRecordFields);
@@ -744,13 +786,13 @@ public class UpdateHive3Table extends AbstractProcessor {
             return writer.finishRecordSet();
 
         } catch (MalformedRecordException mre) {
-            throw new IOException("Error reading records: "+mre.getMessage(), mre);
+            throw new IOException("Error reading records: " + mre.getMessage(), mre);
         }
     }
 
     private static class OutputMetadataHolder {
         private final RecordSchema outputSchema;
-        private final Map<String,String> fieldMap;
+        private final Map<String, String> fieldMap;
 
         public OutputMetadataHolder(RecordSchema outputSchema, Map<String, String> fieldMap) {
             this.outputSchema = outputSchema;
