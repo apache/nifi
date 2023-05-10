@@ -35,8 +35,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -69,7 +71,7 @@ public class ITRedisStateProvider {
     }
 
     @AfterEach
-    public void teardown() throws IOException {
+    public void teardown() {
         if (provider != null) {
             try {
                 provider.clear(componentId);
@@ -92,6 +94,19 @@ public class ITRedisStateProvider {
     public void testSetAndGet() throws IOException {
         getProvider().setState(Collections.singletonMap("testSetAndGet", "value"), componentId);
         assertEquals("value", getProvider().getState(componentId).get("testSetAndGet"));
+    }
+
+    @Test
+    public void testSetAndGetStoredComponentIds() throws IOException {
+        final Collection<String> initialStoredComponentIds = provider.getStoredComponentIds();
+        assertTrue(initialStoredComponentIds.isEmpty());
+
+        provider.setState(Collections.emptyMap(), componentId);
+        final Collection<String> storedComponentIds = provider.getStoredComponentIds();
+        final Iterator<String> componentIds = storedComponentIds.iterator();
+
+        assertTrue(componentIds.hasNext());
+        assertEquals(componentId, componentIds.next());
     }
 
     @Test
@@ -248,11 +263,11 @@ public class ITRedisStateProvider {
         final StateMap stateMapAfterRemoval = provider.getState(componentId);
 
         // version should be not present because the state has been removed entirely.
-        assertFalse(stateMap.getStateVersion().isPresent());
+        assertFalse(stateMapAfterRemoval.getStateVersion().isPresent());
     }
 
 
-    private void initializeProvider(final RedisStateProvider provider, final Map<PropertyDescriptor, String> properties) throws IOException {
+    private void initializeProvider(final RedisStateProvider provider, final Map<PropertyDescriptor, String> properties) {
         provider.initialize(new StateProviderInitializationContext() {
             @Override
             public String getIdentifier() {
@@ -300,7 +315,7 @@ public class ITRedisStateProvider {
         });
     }
 
-    private RedisStateProvider createProvider(final Map<PropertyDescriptor, String> properties) throws Exception {
+    private RedisStateProvider createProvider(final Map<PropertyDescriptor, String> properties) {
         final RedisStateProvider provider = new RedisStateProvider();
         initializeProvider(provider, properties);
         provider.enable();

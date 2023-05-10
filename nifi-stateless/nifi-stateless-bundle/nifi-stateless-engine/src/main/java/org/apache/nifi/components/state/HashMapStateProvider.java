@@ -153,6 +153,16 @@ public class HashMapStateProvider implements StateProvider {
         return "stateless-state-provider";
     }
 
+    @Override
+    public boolean isComponentEnumerationSupported() {
+        return true;
+    }
+
+    @Override
+    public Collection<String> getStoredComponentIds() {
+        return Collections.unmodifiableCollection(getAllComponentsState().keySet());
+    }
+
     private String getIncrementedVersion(final String currentVersion) {
         final long versionNumber = Long.parseLong(currentVersion);
         final long version = versionNumber + VERSION_INCREMENT;

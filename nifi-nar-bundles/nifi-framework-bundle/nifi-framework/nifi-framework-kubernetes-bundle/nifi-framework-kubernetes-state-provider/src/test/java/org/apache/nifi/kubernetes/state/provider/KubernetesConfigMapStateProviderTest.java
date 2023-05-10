@@ -35,7 +35,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 
@@ -220,6 +222,24 @@ class KubernetesConfigMapStateProviderTest {
 
         final RecordedRequest request = kubernetesMockServer.getLastRequest();
         assertEquals(HttpMethod.DELETE.name(), request.getMethod());
+    }
+
+    @Test
+    void testSetStateGetStoredComponentIds() throws IOException {
+        setContext();
+        provider.initialize(context);
+
+        final Collection<String> initialStoredComponentIds = provider.getStoredComponentIds();
+        assertTrue(initialStoredComponentIds.isEmpty());
+
+        final Map<String, String> state = Collections.singletonMap(STATE_PROPERTY, STATE_VALUE);
+        provider.setState(state, COMPONENT_ID);
+
+        final Collection<String> storedComponentIds = provider.getStoredComponentIds();
+        final Iterator<String> componentIds = storedComponentIds.iterator();
+
+        assertTrue(componentIds.hasNext());
+        assertEquals(COMPONENT_ID, componentIds.next());
     }
 
     private void setContext() {

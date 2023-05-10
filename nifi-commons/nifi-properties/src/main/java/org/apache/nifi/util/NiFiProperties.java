@@ -306,6 +306,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATE_MANAGEMENT_CONFIG_FILE = "nifi.state.management.configuration.file";
     public static final String STATE_MANAGEMENT_LOCAL_PROVIDER_ID = "nifi.state.management.provider.local";
     public static final String STATE_MANAGEMENT_CLUSTER_PROVIDER_ID = "nifi.state.management.provider.cluster";
+    public static final String STATE_MANAGEMENT_CLUSTER_PROVIDER_PREVIOUS_ID = "nifi.state.management.provider.cluster.previous";
     public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
 

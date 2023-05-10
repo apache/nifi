@@ -23,8 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.nifi.components.state.StateMap;
@@ -48,8 +50,16 @@ public abstract class AbstractTestStateProvider {
 
     @Test
     public void testSetAndGet() throws IOException {
+        final Collection<String> initialStoredComponentIds = getProvider().getStoredComponentIds();
+        assertTrue(initialStoredComponentIds.isEmpty());
+
         getProvider().setState(Collections.singletonMap("testSetAndGet", "value"), componentId);
         assertEquals("value", getProvider().getState(componentId).get("testSetAndGet"));
+
+        final Collection<String> storedComponentIds = getProvider().getStoredComponentIds();
+        final Iterator<String> componentIds = storedComponentIds.iterator();
+        assertTrue(componentIds.hasNext());
+        assertEquals(componentId, componentIds.next());
     }
 
     @Test

@@ -227,6 +227,16 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         return new Scope[]{Scope.LOCAL};
     }
 
+    @Override
+    public boolean isComponentEnumerationSupported() {
+        return true;
+    }
+
+    @Override
+    public Collection<String> getStoredComponentIds() {
+        return Collections.unmodifiableCollection(componentProviders.keySet());
+    }
+
     private static class ComponentProvider {
         private final AtomicLong versionGenerator;
         private final WriteAheadRepository<StateMapUpdate> wal;

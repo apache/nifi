@@ -2619,15 +2619,32 @@ in the cluster. This allows one node to pick up where another node left off, or 
 
 [[state_providers]]
 === Configuring State Providers
-When a component decides to store or retrieve state, it does so by providing a "Scope" - either Node-local or Cluster-wide. The
-mechanism that is used to store and retrieve this state is then determined based on this Scope, as well as the configured State
-Providers. The _nifi.properties_ file contains three different properties that are relevant to configuring these State Providers.
+When a component decides to store or retrieve state, it does so by providing a `Scope`, either `Local` to the node or
+applicable to the entire `Cluster`. Component implementation code and configuration properties determine the requested
+Scope, which the framework provides according to the State Management configuration. The `nifi.properties` configuration
+contains several properties for managing these State Providers.
 
 |====
 |*Property*|*Description*
-|`nifi.state.management.configuration.file`|The first is the property that specifies an external XML file that is used for configuring the local and/or cluster-wide State Providers. This XML file may contain configurations for multiple providers
-|`nifi.state.management.provider.local`|The property that provides the identifier of the local State Provider configured in this XML file
-|`nifi.state.management.provider.cluster`|Similarly, the property provides the identifier of the cluster-wide State Provider configured in this XML file.
+|`nifi.state.management.configuration.file`|The configuration file specifies the path to an external XML file that the
+framework uses to configure State Providers. This XML file may contain configurations for multiple providers.
+|`nifi.state.management.provider.local`|The Local Provider stores current Local State information. The property value
+identifies a Local Provider in the State Management configuration that the framework will use for storing and retrieving
+Local State for requesting components.
+|`nifi.state.management.provider.cluster`|The Cluster Provider stores current Cluster State information. The property
+value identifies a Cluster Provider in the State Management configuration that the framework will use for storing and
+retrieving Cluster State for requesting components.
+|`nifi.state.management.provider.cluster.previous`|The Previous Cluster State Provider enables population of the current
+Cluster State from an existing Provider. The property value identifies a Cluster Provider in the State Management
+configuration that the framework will use as the initial source of Cluster State when the current Cluster State Provider
+is has no information stored.
+
+The framework enumerates the Current Cluster Provider when a node becomes Primary, and proceeds to check the Previous
+Cluster Provider when the Current Cluster Provider does not contain any component information. The Previous Cluster
+Provider property value can be set to blank after cluster startup following a successful Cluster State restore from
+backup.
+
+The default value is blank.
 |====
 
 This XML file consists of a top-level `state-management` element, which has one or more `local-provider` and zero or more `cluster-provider`

@@ -53,6 +53,7 @@
         <nifi.state.management.embedded.zookeeper.properties>./conf/zookeeper.properties</nifi.state.management.embedded.zookeeper.properties>
         <nifi.state.management.provider.local>local-provider</nifi.state.management.provider.local>
         <nifi.state.management.provider.cluster>zk-provider</nifi.state.management.provider.cluster>
+        <nifi.state.management.provider.cluster.previous/>
 
         <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
         <nifi.flowfile.repository.wal.implementation>org.apache.nifi.wali.SequentialAccessWriteAheadLog</nifi.flowfile.repository.wal.implementation>
