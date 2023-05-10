@@ -163,6 +163,7 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
     }
 
     private void unschedule(final Object scheduled, final LifecycleState scheduleState) {
+        quartzFutures.remove(scheduled);
         scheduleState.getFutures().forEach(future -> {
             if (!future.isCancelled()) {
                 // stop scheduling to run but do not interrupt currently running tasks.
