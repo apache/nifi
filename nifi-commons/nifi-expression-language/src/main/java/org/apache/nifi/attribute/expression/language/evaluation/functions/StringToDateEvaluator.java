@@ -47,7 +47,8 @@ public class StringToDateEvaluator extends DateEvaluator {
         // if the search string is a literal, we don't need to prepare formatter each time; we can just
         // prepare it once. Otherwise, it must be prepared for each time.
         if (format instanceof StringLiteralEvaluator) {
-            DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue());
+            String evaluatedFormat = format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue();
+            DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(evaluatedFormat);
             if (timeZone == null) {
                 preparedFormatter = dtf;
                 preparedFormatterHasRequestedTimeZone = true;
