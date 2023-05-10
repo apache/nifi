@@ -24,7 +24,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
+import org.apache.nifi.processors.hadoop.util.io.SequenceFileReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockProcessContext;
 import org.junit.jupiter.api.BeforeEach;

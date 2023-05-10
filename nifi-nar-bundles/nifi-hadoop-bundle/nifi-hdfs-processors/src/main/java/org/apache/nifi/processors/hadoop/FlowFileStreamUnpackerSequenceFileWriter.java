@@ -27,7 +27,7 @@ import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
+import org.apache.nifi.processors.hadoop.util.io.InputStreamWritable;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.slf4j.LoggerFactory;
 

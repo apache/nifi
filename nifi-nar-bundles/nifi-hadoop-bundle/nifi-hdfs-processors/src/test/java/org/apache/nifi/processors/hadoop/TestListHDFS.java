@@ -50,9 +50,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_DIRECTORIES_AND_FILES_VALUE;
-import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FILES_ONLY_VALUE;
-import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_FULL_PATH_VALUE;
+import static org.apache.nifi.processors.hadoop.ListHDFS.LISTING_TIMESTAMP_KEY;
+import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
+import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FILES_ONLY;
+import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FULL_PATH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -65,7 +66,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TestListHDFS {
+class TestListHDFS {
 
     private TestRunner runner;
     private ListHDFSWithMockedFileSystem proc;
@@ -88,16 +89,11 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListingWithValidELFunction() throws InterruptedException {
+    void testListingWithValidELFunction() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -107,53 +103,38 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListingWithFilter() throws InterruptedException {
+    void testListingWithFilter() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
         runner.setProperty(ListHDFS.FILE_FILTER, "[^test].*");
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
     }
 
     @Test
-    public void testListingWithInvalidELFunction() throws InterruptedException {
+    void testListingWithInvalidELFunction() {
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):foo()}");
         runner.assertNotValid();
     }
 
     @Test
-    public void testListingWithUnrecognizedELFunction() throws InterruptedException {
+    void testListingWithUnrecognizedELFunction() throws InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.setProperty(ListHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
     }
 
     @Test
-    public void testListingHasCorrectAttributes() throws InterruptedException {
+    void testListingHasCorrectAttributes() throws InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -164,30 +145,25 @@ public class TestListHDFS {
 
 
     @Test
-    public void testRecursiveWithDefaultFilterAndFilterMode() throws InterruptedException {
+    void testRecursiveWithDefaultFilterAndFilterMode() throws InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/.testFile.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
-        for (int i=0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             final MockFlowFile ff = flowFiles.get(i);
             final String filename = ff.getAttribute("filename");
 
             if (filename.equals("testFile.txt")) {
                 ff.assertAttributeEquals("path", "/test");
-            } else if ( filename.equals("1.txt")) {
+            } else if (filename.equals("1.txt")) {
                 ff.assertAttributeEquals("path", "/test/testDir");
             } else {
                 fail("filename was " + filename);
@@ -196,10 +172,10 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testRecursiveWithCustomFilterDirectoriesAndFiles() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterDirectoriesAndFiles() throws InterruptedException, IOException {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, ".*txt.*");
-        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_DIRECTORIES_AND_FILES_VALUE.getValue());
+        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_DIRECTORIES_AND_FILES.getValue());
 
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.out")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
@@ -215,11 +191,6 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("/test/txtDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/txtDir/3.out")));
         proc.fileSystem.addFileStatus(new Path("/test/txtDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/txtDir/3.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
@@ -240,10 +211,10 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testRecursiveWithCustomFilterFilesOnly() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFilesOnly() throws InterruptedException, IOException {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "[^\\.].*\\.txt");
-        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_FILES_ONLY_VALUE.getValue());
+        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FILES_ONLY.getValue());
 
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.out")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
@@ -257,11 +228,6 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.out")));
         proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
@@ -271,23 +237,28 @@ public class TestListHDFS {
             final MockFlowFile ff = flowFiles.get(i);
             final String filename = ff.getAttribute("filename");
 
-            if (filename.equals("testFile.txt")) {
-                ff.assertAttributeEquals("path", "/test");
-            } else if (filename.equals("1.txt")) {
-                ff.assertAttributeEquals("path", "/test/testDir");
-            } else if (filename.equals("2.txt")) {
-                ff.assertAttributeEquals("path", "/test/testDir/anotherDir");
-            } else {
-                fail("filename was " + filename);
+            switch (filename) {
+                case "testFile.txt":
+                    ff.assertAttributeEquals("path", "/test");
+                    break;
+                case "1.txt":
+                    ff.assertAttributeEquals("path", "/test/testDir");
+                    break;
+                case "2.txt":
+                    ff.assertAttributeEquals("path", "/test/testDir/anotherDir");
+                    break;
+                default:
+                    fail("filename was " + filename);
+                    break;
             }
         }
     }
 
     @Test
-    public void testRecursiveWithCustomFilterFullPathWithoutSchemeAndAuthority() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFullPathWithoutSchemeAndAuthority() throws InterruptedException, IOException {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "(/.*/)*anotherDir/1\\..*");
-        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_FULL_PATH_VALUE.getValue());
+        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
 
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
@@ -315,11 +286,6 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
@@ -340,10 +306,10 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testRecursiveWithCustomFilterFullPathWithSchemeAndAuthority() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFullPathWithSchemeAndAuthority() throws InterruptedException, IOException {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "hdfs://hdfscluster:8020(/.*/)*anotherDir/1\\..*");
-        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_FULL_PATH_VALUE.getValue());
+        runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
 
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
@@ -371,11 +337,6 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
@@ -396,18 +357,13 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testNotRecursive() throws InterruptedException {
+    void testNotRecursive() {
         runner.setProperty(ListHDFS.RECURSE_SUBDIRS, "false");
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -419,14 +375,9 @@ public class TestListHDFS {
 
 
     @Test
-    public void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException, InterruptedException {
+    void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException, InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 1999L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -457,60 +408,38 @@ public class TestListHDFS {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
-        Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
-        assertEquals("2000", newState.get(ListHDFS.LISTING_TIMESTAMP_KEY));
-        assertEquals("1999", newState.get(ListHDFS.EMITTED_TIMESTAMP_KEY));
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run();
-
-        newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
-        assertEquals("2000", newState.get(ListHDFS.LISTING_TIMESTAMP_KEY));
-        assertEquals("2000", newState.get(ListHDFS.EMITTED_TIMESTAMP_KEY));
-
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
+        Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
+        assertEquals("2000", newState.get(LISTING_TIMESTAMP_KEY));
     }
 
     @Test
-    public void testOnlyNewestEntriesHeldBack() throws InterruptedException {
+    void testEntriesWithSameTimestampOnlyAddedOnce() throws InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 8L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
 
         // this is a directory, so it won't be counted toward the entries
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 8L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
+
+        // The first iteration should pick up 3 files with the smaller timestamps.
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
+
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/2.txt")));
-
-        // The first iteration should pick up 2 files with the smaller timestamps.
-        runner.run();
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run();
-
-        // Next iteration should pick up the other 2 files, since nothing else was added.
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
-
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 110L, 0L, create777(), "owner", "group", new Path("/test/testDir/3.txt")));
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 5);
     }
 
     @Test
-    public void testMinAgeMaxAge() throws IOException, InterruptedException {
+    void testMinAgeMaxAge() throws IOException, InterruptedException {
+
         long now = new Date().getTime();
         long oneHourAgo = now - 3600000;
-        long twoHoursAgo = now - 2*3600000;
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now, now, create777(), "owner", "group", new Path("/test/willBeIgnored.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now-5, now-5, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        long twoHoursAgo = now - 2 * 3600000;
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now - 5, now - 5, create777(), "owner", "group", new Path("/test/testFile.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, oneHourAgo, oneHourAgo, create777(), "owner", "group", new Path("/test/testFile1.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, twoHoursAgo, twoHoursAgo, create777(), "owner", "group", new Path("/test/testFile2.txt")));
 
@@ -530,14 +459,10 @@ public class TestListHDFS {
         runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
         runner.setProperty(ListHDFS.MAX_AGE, "90 min");
         runner.assertValid();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run(); // will ignore the file for this cycle
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
-        // Next iteration should pick up the file, since nothing else was added.
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0).assertAttributeEquals("filename", "testFile1.txt");
         runner.clearTransferState();
@@ -547,11 +472,6 @@ public class TestListHDFS {
         runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
         runner.removeProperty(ListHDFS.MAX_AGE);
         runner.assertValid();
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
@@ -572,24 +492,20 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListAfterDirectoryChange() throws InterruptedException {
-        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 100L,0L, create777(), "owner", "group", new Path("/test1/testFile-1_1.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test2"), new FileStatus(1L, false, 1, 1L, 150L,0L, create777(), "owner", "group", new Path("/test2/testFile-2_1.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 200L,0L, create777(), "owner", "group", new Path("/test1/testFile-1_2.txt")));
+    void testListAfterDirectoryChange() throws InterruptedException {
+        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_1.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 200L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_2.txt")));
+        proc.fileSystem.addFileStatus(new Path("/test2"), new FileStatus(1L, false, 1, 1L, 150L, 0L, create777(), "owner", "group", new Path("/test2/testFile-2_1.txt")));
 
         runner.setProperty(ListHDFS.DIRECTORY, "/test1");
 
         runner.run(); // Initial run, latest file from /test1 will be ignored
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run(); // Latest file i.e. testFile-1_2.txt from /test1 should also be picked up now
+//        runner.run(); // Latest file i.e. testFile-1_2.txt from /test1 should also be picked up now
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
 
         runner.setProperty(ListHDFS.DIRECTORY, "/test2"); // Changing directory should reset the state
-
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-        runner.run(); // Will ignore the files for this cycle
-        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
 
         Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run(); // Since state has been reset, testFile-2_1.txt from /test2 should be picked up
@@ -597,7 +513,7 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListingEmptyDir() throws InterruptedException, IOException {
+    void testListingEmptyDir() throws InterruptedException, IOException {
         runner.setProperty(ListHDFS.DIRECTORY, "/test/emptyDir");
 
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
@@ -654,7 +570,7 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListingNonExistingDir() throws InterruptedException, IOException {
+    void testListingNonExistingDir() throws InterruptedException, IOException {
         String nonExistingPath = "/test/nonExistingDir";
         runner.setProperty(ListHDFS.DIRECTORY, nonExistingPath);
 
@@ -687,11 +603,6 @@ public class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
 
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         // assert that no files were listed
@@ -723,7 +634,6 @@ public class TestListHDFS {
             return fileSystem;
         }
 
-        @Override
         protected File getPersistenceFile() {
             return new File("target/conf/state-file");
         }
@@ -738,11 +648,7 @@ public class TestListHDFS {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
 
         public void addFileStatus(final Path parent, final FileStatus child) {
-            Set<FileStatus> children = fileStatuses.get(parent);
-            if (children == null) {
-                children = new HashSet<>();
-                fileStatuses.put(parent, children);
-            }
+            Set<FileStatus> children = fileStatuses.computeIfAbsent(parent, k -> new HashSet<>());
 
             children.add(child);
 
@@ -833,6 +739,5 @@ public class TestListHDFS {
         public FileStatus getFileStatus(final Path f) throws IOException {
             return null;
         }
-
     }
 }

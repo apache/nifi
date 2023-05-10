@@ -30,7 +30,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
+import org.apache.nifi.processors.hadoop.util.io.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
 
 import java.security.PrivilegedExceptionAction;
