@@ -32,7 +32,9 @@ import static groovy.json.JsonOutput.toJson
 import static org.hamcrest.CoreMatchers.equalTo
 import static org.hamcrest.CoreMatchers.is
 import static org.hamcrest.MatcherAssert.assertThat
-import static org.junit.jupiter.api.Assertions.*
+import static org.junit.jupiter.api.Assertions.assertFalse
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractPaginatedJsonQueryElasticsearch> {
     abstract boolean isInput()
@@ -117,173 +119,93 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         assertSendEvent(runner, input)
     }
 
-    @Test
-    void testSourceExtraction() throws Exception {
-        for (ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
-            final TestRunner runner = createRunner(false)
-            runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]], "sort": [[message: [order: "asc"]]]])))
-
-            int flowFileCount
-            String hitsCount
-            boolean ndjson = false
-
-            switch (resultOutputStrategy) {
-                case ResultOutputStrategy.PER_QUERY:
-                    flowFileCount = 1
-                    hitsCount = "10"
-                    ndjson = true
-                    break
-                case ResultOutputStrategy.PER_HIT:
-                    flowFileCount = 10
-                    hitsCount = "1"
-                    break
-                case ResultOutputStrategy.PER_RESPONSE:
-                    flowFileCount = 1
-                    hitsCount = "10"
-                    break
-            }
-
-            // test _source only format
-            runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue())
-            runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.SOURCE_ONLY.getValue())
-
-
-            // Test against each pagination type
-            for (PaginationType paginationType : PaginationType.values()) {
-                runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
-
-                runOnce(runner)
-
-                // Test Relationship counts
-                testCounts(runner, isInput() ? 1 : 0, flowFileCount, 0, 0)
-
-                // Per response outputs an array of values
-                if (resultOutputStrategy.equals(ResultOutputStrategy.PER_RESPONSE)) {
-                    runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
-                        hit.assertAttributeEquals("hit.count", hitsCount)
-                        assertOutputContent(hit.getContent(), hitsCount as int, ndjson)
-                        OBJECT_MAPPER.readValue(hit.getContent(), ArrayList.class).forEach(h -> {
-                            assertFalse(h.isEmpty())
-                            assertFalse(h.containsKey("_source"))
-                            assertFalse(h.containsKey("_index"))
-                            // should be the _source content only
-                            assertTrue(h.containsKey("msg"))
-
-                        })
-                        assertThat(
-                                runner.getProvenanceEvents().stream().filter({ pe ->
-                                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
-                                            pe.getAttribute("uuid") == hit.getAttribute("uuid")
-                                }).count(),
-                                is(1L)
-                        )
-                    })
-                } else {
-                    runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
-                        hit.assertAttributeEquals("hit.count", hitsCount)
-                        assertOutputContent(hit.getContent(), hitsCount as int, ndjson)
-                        final Map<String, Object> h = OBJECT_MAPPER.readValue(hit.getContent(), Map.class)
-                        assertFalse(h.isEmpty())
-                        assertFalse(h.containsKey("_source"))
-                        assertFalse(h.containsKey("_index"))
-                        // should be the _source content only
-                        assertTrue(h.containsKey("msg"))
-
-                        assertThat(
-                                runner.getProvenanceEvents().stream().filter({ pe ->
-                                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
-                                            pe.getAttribute("uuid") == hit.getAttribute("uuid")
-                                }).count(),
-                                is(1L)
-                        )
-                    })
-                }
-
-                reset(runner)
-            }
+   static void assertFormattedResult(final SearchResultsFormat searchResultsFormat, final Map<String, Object> hit) {
+        assertFalse(hit.isEmpty())
+        switch(searchResultsFormat) {
+            case SearchResultsFormat.SOURCE_ONLY:
+                assertFalse(hit.containsKey("_source"))
+                assertFalse(hit.containsKey("_index"))
+                break
+            case SearchResultsFormat.METADATA_ONLY:
+                assertFalse(hit.containsKey("_source"))
+                assertTrue(hit.containsKey("_index"))
+                break
+            case SearchResultsFormat.FULL:
+                assertTrue(hit.containsKey("_source"))
+                assertTrue(hit.containsKey("_index"))
+                break
+            default:
+                throw new IllegalArgumentException("Unknown SearchResultsFormat value: " + searchResultsFormat.toString())
         }
     }
 
-    @Test
-    void testMetaExtraction() throws Exception {
+    private void assertResultsFormat(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final SearchResultsFormat searchResultsFormat) {
+        int flowFileCount
+        String hitsCount
+        boolean ndjson = false
 
-        // Test against each result strategy type
-        for (ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
+        switch (resultOutputStrategy) {
+            case ResultOutputStrategy.PER_QUERY:
+                flowFileCount = 1
+                hitsCount = "10"
+                ndjson = true
+                break
+            case ResultOutputStrategy.PER_HIT:
+                flowFileCount = 10
+                hitsCount = "1"
+                break
+            case ResultOutputStrategy.PER_RESPONSE:
+                flowFileCount = 1
+                hitsCount = "10"
+                break
+            default:
+                throw new IllegalArgumentException("Unknown ResultOutputStrategy value: " + resultOutputStrategy.toString())
+        }
+
+        // Test Relationship counts
+        testCounts(runner, isInput() ? 1 : 0, flowFileCount, 0, 0)
+
+        // Per response outputs an array of values
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
+            hit.assertAttributeEquals("hit.count", hitsCount)
+            assertOutputContent(hit.getContent(), hitsCount as int, ndjson)
+            if (ResultOutputStrategy.PER_RESPONSE == resultOutputStrategy) {
+                OBJECT_MAPPER.readValue(hit.getContent(), ArrayList.class).forEach(h -> {
+                    assertFormattedResult(searchResultsFormat, h as Map<String, Object>)
+                })
+            } else {
+                final Map<String, Object> h = OBJECT_MAPPER.readValue(hit.getContent(), Map.class)
+                assertFormattedResult(searchResultsFormat, h)
+            }
+            assertThat(
+                    runner.getProvenanceEvents().stream().filter({ pe ->
+                        pe.getEventType() == ProvenanceEventType.RECEIVE &&
+                                pe.getAttribute("uuid") == hit.getAttribute("uuid")
+                    }).count(),
+                    is(1L)
+            )
+        })
+    }
+
+    @Test
+    void testResultsFormat() throws Exception {
+        for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
             final TestRunner runner = createRunner(false)
             runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [match_all: [:]], "sort": [[message: [order: "asc"]]]])))
-
-            int flowFileCount
-            String hitsCount
-            boolean ndjson = false
-
-            switch (resultOutputStrategy) {
-                case ResultOutputStrategy.PER_QUERY:
-                    flowFileCount = 1
-                    hitsCount = "10"
-                    ndjson = true
-                    break
-                case ResultOutputStrategy.PER_HIT:
-                    flowFileCount = 10
-                    hitsCount = "1"
-                    break
-                case ResultOutputStrategy.PER_RESPONSE:
-                    flowFileCount = 1
-                    hitsCount = "10"
-                    break
-            }
-
-
             runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue())
-            runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.METADATA_ONLY.getValue())
 
-            // Test against each pagination type
-            for (PaginationType paginationType : PaginationType.values()) {
-                runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
+            // Test against each results format
+            for (final SearchResultsFormat searchResultsFormat : SearchResultsFormat.values()) {
+                runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, searchResultsFormat.getValue())
 
-                runOnce(runner)
+                // Test against each pagination type
+                for (final PaginationType paginationType : PaginationType.values()) {
+                    runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
 
-                // Test Relationship counts
-                testCounts(runner, isInput() ? 1 : 0, flowFileCount, 0, 0)
-
-                // Per response outputs an array of values
-                if (resultOutputStrategy.equals(ResultOutputStrategy.PER_RESPONSE)) {
-                    runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
-                        hit.assertAttributeEquals("hit.count", hitsCount)
-                        assertOutputContent(hit.getContent(), hitsCount as int, ndjson)
-                        OBJECT_MAPPER.readValue(hit.getContent(), ArrayList.class).forEach(h -> {
-                            assertFalse(h.isEmpty())
-                            assertFalse(h.containsKey("_source"))
-                            assertTrue(h.containsKey("_index"))
-
-                        })
-                        assertThat(
-                                runner.getProvenanceEvents().stream().filter({ pe ->
-                                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
-                                            pe.getAttribute("uuid") == hit.getAttribute("uuid")
-                                }).count(),
-                                is(1L)
-                        )
-                    })
-                } else {
-                    runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach({ hit ->
-                        hit.assertAttributeEquals("hit.count", hitsCount)
-                        assertOutputContent(hit.getContent(), hitsCount as int, ndjson)
-                        final Map<String, Object> h = OBJECT_MAPPER.readValue(hit.getContent(), Map.class)
-                        assertFalse(h.isEmpty())
-                        assertFalse(h.containsKey("_source"))
-                        assertTrue(h.containsKey("_index"))
-
-                        assertThat(
-                                runner.getProvenanceEvents().stream().filter({ pe ->
-                                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
-                                            pe.getAttribute("uuid") == hit.getAttribute("uuid")
-                                }).count(),
-                                is(1L)
-                        )
-                    })
+                    runOnce(runner)
+                    assertResultsFormat(runner, resultOutputStrategy, searchResultsFormat)
+                    reset(runner)
                 }
-
-                reset(runner)
             }
         }
     }
@@ -449,10 +371,10 @@ abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQ
         service.setMaxPages(0)
 
 
-        for (PaginationType paginationType : PaginationType.values()) {
+        for (final PaginationType paginationType : PaginationType.values()) {
             runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue())
 
-            for (ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
+            for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
                 // test that an empty flow file is produced for a per query setup
                 runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue())
                 runOnce(runner)
