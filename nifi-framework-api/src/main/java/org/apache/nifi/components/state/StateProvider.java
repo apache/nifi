@@ -18,6 +18,8 @@
 package org.apache.nifi.components.state;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.nifi.components.ConfigurableComponent;
@@ -130,4 +132,23 @@ public interface StateProvider extends ConfigurableComponent {
      * @return the {@link Scope}s supported by the configuration
      */
     Scope[] getSupportedScopes();
+
+    /**
+     * Indicates whether the State Provider supports enumerating component identifiers with stored state information
+     *
+     * @return Component enumeration supported status
+     */
+    default boolean isComponentEnumerationSupported() {
+        return false;
+    }
+
+    /**
+     * Get Component Identifiers with associated state stored in the Provider
+     *
+     * @return Collection of Component Identifiers with stored state defaults to empty
+     * @throws IOException Thrown on failures to retrieve component identifiers
+     */
+    default Collection<String> getStoredComponentIds() throws IOException {
+        return Collections.emptyList();
+    }
 }

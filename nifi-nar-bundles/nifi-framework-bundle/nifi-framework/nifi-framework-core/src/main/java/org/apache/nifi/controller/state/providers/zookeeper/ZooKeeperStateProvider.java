@@ -57,6 +57,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +75,10 @@ import java.util.stream.Collectors;
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
     private static final int EMPTY_VERSION = -1;
+
+    private static final String COMPONENTS_RELATIVE_PATH = "/components";
+
+    private static final String COMPONENTS_PATH_FORMAT = "%s%s/%s";
 
     private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
     private NiFiProperties nifiProperties;
@@ -259,7 +264,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     }
 
     private String getComponentPath(final String componentId) {
-        return rootNode + "/components/" + componentId;
+        return String.format(COMPONENTS_PATH_FORMAT, rootNode, COMPONENTS_RELATIVE_PATH, componentId);
     }
 
     private void verifyEnabled() throws IOException {
@@ -516,6 +521,30 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     public void clear(final String componentId) throws IOException {
         verifyEnabled();
         setState(Collections.emptyMap(), componentId);
+    }
+
+    @Override
+    public boolean isComponentEnumerationSupported() {
+        return true;
+    }
+
+    @Override
+    public Collection<String> getStoredComponentIds() throws IOException {
+        try {
+            final ZooKeeper zooKeeper = getZooKeeper();
+            final String componentsPath = String.format("%s%s", rootNode, COMPONENTS_RELATIVE_PATH);
+            final List<String> children = zooKeeper.getChildren(componentsPath, false);
+            return Collections.unmodifiableCollection(children);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("ZooKeeper communication interrupted", e);
+        } catch (final KeeperException e) {
+            final Code code = e.code();
+            if (Code.NONODE == code) {
+                return Collections.emptyList();
+            }
+            throw new IOException(String.format("ZooKeeper communication failed: %s", code), e);
+        }
     }
 
     private void validateDataSize(final ZKClientConfig clientConfig, final byte[] data, final String componentId, final int totalStateValues) throws StateTooLargeException {
