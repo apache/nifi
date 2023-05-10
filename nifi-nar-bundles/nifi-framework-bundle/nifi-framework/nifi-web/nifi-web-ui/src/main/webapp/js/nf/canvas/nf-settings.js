@@ -960,9 +960,9 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
-            var groups = d3.set();
-            var restrictedUsage = d3.map();
-            var requiredPermissions = d3.map();
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
 
             // begin the update
             reportingTaskTypesData.beginUpdate();
@@ -1056,7 +1056,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.each(function (group) {
+            groups.forEach(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -1362,9 +1362,9 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
-            var groups = d3.set();
-            var restrictedUsage = d3.map();
-            var requiredPermissions = d3.map();
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
 
             // begin the update
             parameterProviderTypesData.beginUpdate();
@@ -1458,7 +1458,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.each(function (group) {
+            groups.forEach(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -3069,11 +3069,7 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
-                var reportingTaskBulletinsBySource = d3.nest()
-                    .key(function (d) {
-                        return d.sourceId;
-                    })
-                    .map(reportingTaskBulletins, d3.map);
+                var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
 
                 reportingTaskBulletinsBySource.each(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);

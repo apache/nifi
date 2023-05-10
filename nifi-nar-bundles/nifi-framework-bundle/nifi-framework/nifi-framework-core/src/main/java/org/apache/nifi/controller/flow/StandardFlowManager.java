@@ -343,6 +343,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
             .classloaderIsolationKey(classloaderIsolationKey)
+            .pythonBridge(flowController.getPythonBridge())
             .buildProcessor();
 
         LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());

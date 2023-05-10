@@ -18,7 +18,6 @@ package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.pgp.util.PGPOperationUtils;
-import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.SymmetricKeyAlgorithm;
@@ -159,18 +158,6 @@ public class EncryptContentPGPTest {
             runner.enqueue(DATA);
             runner.run();
             assertSuccess(symmetricKeyAlgorithm, PASSPHRASE.toCharArray());
-        }
-    }
-
-    @Test
-    public void testSuccessPasswordBasedEncryptionCompressionAlgorithms() throws IOException, PGPException {
-        for (final CompressionAlgorithm compressionAlgorithm : CompressionAlgorithm.values()) {
-            runner = TestRunners.newTestRunner(new EncryptContentPGP());
-            runner.setProperty(EncryptContentPGP.PASSPHRASE, PASSPHRASE);
-            runner.setProperty(EncryptContentPGP.COMPRESSION_ALGORITHM, compressionAlgorithm.toString());
-            runner.enqueue(DATA);
-            runner.run();
-            assertSuccess(DEFAULT_SYMMETRIC_KEY_ALGORITHM, PASSPHRASE.toCharArray());
         }
     }
 

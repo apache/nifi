@@ -96,9 +96,9 @@
      */
     var resetDialog = function () {
         // clear the versions
-        var versions = versionMap.keys();
+        var versions = Array.from(versionMap.keys());
         $.each(versions, function (_, version) {
-            versionMap.remove(version);
+            versionMap['delete'](version);
         });
 
         // clear the service apis
@@ -149,7 +149,7 @@
 
     return {
         init: function (settings) {
-            versionMap = d3.map();
+            versionMap = new Map();
             nfSettings = settings;
 
             // initialize the component version dialog

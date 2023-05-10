@@ -17,6 +17,7 @@
 package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.python.PythonBridge;
 
 import java.util.Set;
 
@@ -56,4 +57,17 @@ public interface ExtensionDiscoveringManager extends ExtensionManager {
      */
     void discoverExtensions(Set<Bundle> narBundles, boolean logDetails);
 
+    /**
+     * Provides the Python Bridge that should be used for interacting with the Python Controller
+     * @param pythonBridge the python bridge
+     */
+    void setPythonBridge(PythonBridge pythonBridge);
+
+    /**
+     * Discovers any Python based extensions using the given Python Bridge
+     * @param pythonBundle the system bundle
+     */
+    void discoverPythonExtensions(Bundle pythonBundle);
+
+    void discoverNewPythonExtensions(Bundle pythonBundle);
 }

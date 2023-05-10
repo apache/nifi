@@ -30,7 +30,7 @@ import com.amazonaws.regions.Regions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -66,14 +66,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Abstract base class for aws processors.  This class uses aws credentials for creating aws clients
+ * Abstract base class for AWS processors.  This class uses AWS credentials for creating AWS clients
  *
- * @deprecated use {@link AbstractAWSCredentialsProviderProcessor} instead which uses credentials providers or creating aws clients
+ * @deprecated use {@link AbstractAWSCredentialsProviderProcessor} instead which uses credentials providers or creating AWS clients
  * @see AbstractAWSCredentialsProviderProcessor
  *
  */
 @Deprecated
-public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor {
+public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor implements AwsClientProvider<ClientType> {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -153,9 +153,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    protected volatile ClientType client;
-    protected volatile Region region;
-
     protected static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
     protected static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
 
@@ -165,6 +162,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
+    private final AwsClientCache<ClientType> awsClientCache = new AwsClientCache<>();
 
     public static AllowableValue createAllowableValue(final Regions region) {
         return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
@@ -226,7 +225,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         return validationResults;
     }
-
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
         return createConfiguration(context, context.getMaxConcurrentTasks());
     }
@@ -287,7 +285,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        setClientAndRegion(context);
+        getClient(context);
     }
 
     /*
@@ -312,21 +310,23 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      */
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
-    protected Region getRegionAndInitializeEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
-        final Region region;
-        // if the processor supports REGION, get the configured region.
-        if (getSupportedPropertyDescriptors().contains(REGION)) {
-            final String regionValue = context.getProperty(REGION).getValue();
-            if (regionValue != null) {
-                region = Region.getRegion(Regions.fromName(regionValue));
-                if (client != null) {
-                    client.setRegion(region);
-                }
-            } else {
-                region = null;
-            }
-        } else {
-            region = null;
+    public ClientType createClient(final ProcessContext context, AwsClientDetails awsClientDetails) {
+        final AWSCredentials credentials = getCredentials(context);
+        final ClientConfiguration configuration = createConfiguration(context);
+        final ClientType createdClient = createClient(context, credentials, configuration);
+
+        setRegionAndInitializeEndpoint(awsClientDetails.getRegion(), context, createdClient);
+        return createdClient;
+    }
+
+    protected ClientType createClient(ProcessContext context) {
+        return createClient(context, new AwsClientDetails(getRegion(context)));
+    }
+
+
+    protected void setRegionAndInitializeEndpoint(final Region region, final ProcessContext context, final AmazonWebServiceClient client) {
+        if (region!= null && client != null) {
+            client.setRegion(region);
         }
 
         // if the endpoint override has been configured, set the endpoint.
@@ -353,7 +353,17 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                 }
             }
         }
-        return region;
+    }
+
+    protected Region getRegion(final ProcessContext context) {
+        // if the processor supports REGION, get the configured region.
+        if (getSupportedPropertyDescriptors().contains(REGION)) {
+            final String regionValue = context.getProperty(REGION).getValue();
+            if (regionValue != null) {
+                return Region.getRegion(Regions.fromName(regionValue));
+            }
+        }
+        return null;
     }
 
     protected boolean isCustomSignerConfigured(final ProcessContext context) {
@@ -382,26 +392,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
     }
 
-    /**
-     * Create client from the arguments
-     * @param context process context
-     * @param credentials static aws credentials
-     * @param config aws client configuration
-     * @return ClientType aws client
-     *
-     * @deprecated use {@link AbstractAWSCredentialsProviderProcessor#createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)}
-     */
-    @Deprecated
-    protected abstract ClientType createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config);
-
-    protected ClientType getClient() {
-        return client;
-    }
-
-    protected Region getRegion() {
-        return region;
-    }
-
     protected AWSCredentials getCredentials(final PropertyContext context) {
         final String accessKey = context.getProperty(ACCESS_KEY).evaluateAttributeExpressions().getValue();
         final String secretKey = context.getProperty(SECRET_KEY).evaluateAttributeExpressions().getValue();
@@ -423,55 +413,35 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         return new AnonymousAWSCredentials();
     }
 
-    @OnShutdown
-    public void onShutdown() {
-        if ( getClient() != null ) {
-            getClient().shutdown();
-        }
-    }
-
-    protected void setClientAndRegion(final ProcessContext context) {
-        final AWSConfiguration awsConfiguration = getConfiguration(context);
-        this.client = awsConfiguration.getClient();
-        this.region = awsConfiguration.getRegion();
+    @OnStopped
+    public void onStopped() {
+        this.awsClientCache.clearCache();
     }
 
     /**
-     * Creates an AWS service client from the context.
+     * Creates an AWS service client from the context or returns an existing client from the cache
      * @param context The process context
+     * @param  awsClientDetails details of the AWS client
      * @return The created client
      */
-    protected ClientType createClient(final ProcessContext context) {
-        return createClient(context, getCredentials(context), createConfiguration(context));
+    protected ClientType getClient(final ProcessContext context, AwsClientDetails awsClientDetails) {
+        return this.awsClientCache.getOrCreateClient(context, awsClientDetails, this);
+    }
+
+    protected ClientType getClient(final ProcessContext context) {
+        final AwsClientDetails awsClientDetails = new AwsClientDetails(getRegion(context));
+        return getClient(context, awsClientDetails);
     }
 
     /**
-     * Parses and configures the client and region from the context.
-     * @param context The process context
-     * @return The parsed configuration
+     * Create client from the arguments
+     * @param context process context
+     * @param credentials static aws credentials
+     * @param config aws client configuration
+     * @return ClientType aws client
+     *
+     * @deprecated use {@link AbstractAWSCredentialsProviderProcessor#createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)}
      */
-    protected AWSConfiguration getConfiguration(final ProcessContext context) {
-        final ClientType client = createClient(context);
-        final Region region = getRegionAndInitializeEndpoint(context, client);
-
-        return new AWSConfiguration(client, region);
-    }
-
-    public class AWSConfiguration {
-        final ClientType client;
-        final Region region;
-
-        public AWSConfiguration(final ClientType client, final Region region) {
-            this.client = client;
-            this.region = region;
-        }
-
-        public ClientType getClient() {
-            return client;
-        }
-
-        public Region getRegion() {
-            return region;
-        }
-    }
+    @Deprecated
+    protected abstract ClientType createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config);
 }

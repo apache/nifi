@@ -42,6 +42,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * A StateProvider backed by Redis.
@@ -77,6 +81,12 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         props.add(ENABLE_TLS);
         STATE_PROVIDER_PROPERTIES = Collections.unmodifiableList(props);
     }
+
+    private static final String KEY_PATTERN_FORMAT = "%s*";
+
+    private static final String KEY_PREFIX_COMPONENT_ID_PATTERN = "^%s(.+)$";
+
+    private static final int COMPONENT_ID_GROUP = 1;
 
     private String identifier;
     private String keyPrefix;
@@ -287,6 +297,34 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     @Override
     public Scope[] getSupportedScopes() {
         return new Scope[] {Scope.CLUSTER};
+    }
+
+    @Override
+    public boolean isComponentEnumerationSupported() {
+        return true;
+    }
+
+    /**
+     * Get Component Identifiers with stored state based on Redis Keys matching key prefix pattern
+     *
+     * @return Component Identifiers with stored state or empty when none found
+     * @throws IOException Thrown on Redis communication failures
+     */
+    @Override
+    public Collection<String> getStoredComponentIds() throws IOException {
+        final byte[] keyPattern = String.format(KEY_PATTERN_FORMAT, keyPrefix).getBytes(StandardCharsets.UTF_8);
+        final Pattern keyPrefixComponentIdPattern = Pattern.compile(String.format(KEY_PREFIX_COMPONENT_ID_PATTERN, keyPrefix));
+
+        return withConnection(redisConnection -> {
+            final Set<byte[]> keys = redisConnection.keys(keyPattern);
+            final Set<byte[]> keysFound = keys == null ? Collections.emptySet() : keys;
+            return keysFound.stream()
+                    .map(key -> new String(key, StandardCharsets.UTF_8))
+                    .map(keyPrefixComponentIdPattern::matcher)
+                    .filter(Matcher::matches)
+                    .map(matcher -> matcher.group(COMPONENT_ID_GROUP))
+                    .collect(Collectors.toUnmodifiableList());
+        });
     }
 
     private String getComponentKey(final String componentId) {

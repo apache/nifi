@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -151,7 +152,11 @@ public class ValidateJson extends AbstractProcessor {
             ))
     );
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER;
+    static {
+        MAPPER = new ObjectMapper();
+        MAPPER.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+    }
 
     private JsonSchema schema;
 
@@ -187,15 +192,18 @@ public class ValidateJson extends AbstractProcessor {
 
             if (errors.isEmpty()) {
                 getLogger().debug("JSON {} valid", flowFile);
+                session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             } else {
                 final String validationMessages = errors.toString();
                 flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, validationMessages);
                 getLogger().warn("JSON {} invalid: Validation Errors {}", flowFile, validationMessages);
+                session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             }
         } catch (final Exception e) {
             getLogger().error("JSON processing failed {}", flowFile, e);
+            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

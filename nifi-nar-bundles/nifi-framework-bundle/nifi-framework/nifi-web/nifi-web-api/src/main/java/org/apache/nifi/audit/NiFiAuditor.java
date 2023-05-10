@@ -65,7 +65,18 @@ public abstract class NiFiAuditor {
         try {
             auditService.addActions(actions);
         } catch (Throwable t) {
-            logger.warn("Unable to record actions: " + t.getMessage());
+            logger.warn("Unable to record actions: ", t);
+            if (logger.isDebugEnabled()) {
+                logger.warn(StringUtils.EMPTY, t);
+            }
+        }
+    }
+
+    protected void deletePreviousValues(String propertyName, String componentId, Logger logger) {
+        try {
+            auditService.deletePreviousValues(propertyName, componentId);
+        } catch (Throwable t) {
+            logger.warn("Unable to delete property history", t);
             if (logger.isDebugEnabled()) {
                 logger.warn(StringUtils.EMPTY, t);
             }
@@ -88,7 +99,7 @@ public abstract class NiFiAuditor {
             moveDetails.setGroupId(newGroup.getIdentifier());
             moveDetails.setGroup(newGroup.getName());
         } else {
-            logger.warn(String.format("Unable to record move action because old (%s) and new (%s) groups could not be found.", previousGroupId, newGroupId));
+            logger.warn("Unable to record move action because old [{}] and new [{}] groups could not be found.", previousGroupId, newGroupId);
         }
 
         return moveDetails;

@@ -42,7 +42,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -65,7 +65,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -96,7 +96,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         runner.assertValid(serviceImpl);
 
         runner.setProperty(FetchS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -110,11 +110,11 @@ public class ITFetchS3Object extends AbstractS3IT {
     }
 
     @Test
-    public void testTryToFetchNotExistingFile() throws IOException {
+    public void testTryToFetchNotExistingFile() {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();
@@ -134,7 +134,7 @@ public class ITFetchS3Object extends AbstractS3IT {
         final TestRunner runner = TestRunners.newTestRunner(new FetchS3Object());
 
         runner.setProperty(FetchS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(FetchS3Object.REGION, REGION);
+        runner.setProperty(FetchS3Object.S3_REGION, REGION);
         runner.setProperty(FetchS3Object.BUCKET, BUCKET_NAME);
 
         final Map<String, String> attrs = new HashMap<>();

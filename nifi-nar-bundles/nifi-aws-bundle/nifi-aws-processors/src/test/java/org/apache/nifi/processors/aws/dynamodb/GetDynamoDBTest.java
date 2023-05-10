@@ -29,7 +29,6 @@ import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
-import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -525,7 +524,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
     private GetDynamoDB mockDynamoDB(final DynamoDB mockDynamoDB) {
         return new GetDynamoDB() {
             @Override
-            protected DynamoDB getDynamoDB() {
+            protected DynamoDB getDynamoDB(ProcessContext context) {
                 return mockDynamoDB;
             }
             @Override
@@ -534,9 +533,8 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
             }
 
             @Override
-            protected AbstractAWSProcessor<AmazonDynamoDBClient>.AWSConfiguration getConfiguration(final ProcessContext context) {
-                final AmazonDynamoDBClient client = Mockito.mock(AmazonDynamoDBClient.class);
-                return new AWSConfiguration(client, region);
+            protected AmazonDynamoDBClient getClient(final ProcessContext context) {
+                return Mockito.mock(AmazonDynamoDBClient.class);
             }
         };
     }

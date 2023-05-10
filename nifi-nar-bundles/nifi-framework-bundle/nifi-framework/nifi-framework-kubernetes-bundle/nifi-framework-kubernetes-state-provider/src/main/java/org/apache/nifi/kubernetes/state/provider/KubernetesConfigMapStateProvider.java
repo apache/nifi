@@ -18,6 +18,7 @@ package org.apache.nifi.kubernetes.state.provider;
 
 import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
+import io.fabric8.kubernetes.api.model.ConfigMapList;
 import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -37,12 +38,16 @@ import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints
@@ -53,6 +58,10 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     private static final Charset KEY_CHARACTER_SET = StandardCharsets.UTF_8;
 
     private static final String CONFIG_MAP_NAME_FORMAT = "nifi-component-%s";
+
+    private static final Pattern CONFIG_MAP_NAME_PATTERN = Pattern.compile("^nifi-component-(.+)$");
+
+    private static final int COMPONENT_ID_GROUP = 1;
 
     /** Encode ConfigMap keys using URL Encoder without padding characters for compliance with Kubernetes naming */
     private static final Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
@@ -245,6 +254,33 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     @Override
     public Scope[] getSupportedScopes() {
         return SUPPORTED_SCOPES;
+    }
+
+    /**
+     * Kubernetes ConfigMap Provider supported Component Enumeration
+     *
+     * @return Component Enumeration supported
+     */
+    @Override
+    public boolean isComponentEnumerationSupported() {
+        return true;
+    }
+
+    /**
+     * Get Component Identifiers with stored state based on ConfigMap names matching standard pattern
+     *
+     * @return Component Identifiers with stored state or empty when none found
+     */
+    @Override
+    public Collection<String> getStoredComponentIds() {
+        final ConfigMapList configMapList = kubernetesClient.configMaps().inNamespace(namespace).list();
+        return configMapList.getItems().stream()
+                .map(ConfigMap::getMetadata)
+                .map(ObjectMeta::getName)
+                .map(CONFIG_MAP_NAME_PATTERN::matcher)
+                .filter(Matcher::matches)
+                .map(matcher -> matcher.group(COMPONENT_ID_GROUP))
+                .collect(Collectors.toUnmodifiableList());
     }
 
     /**

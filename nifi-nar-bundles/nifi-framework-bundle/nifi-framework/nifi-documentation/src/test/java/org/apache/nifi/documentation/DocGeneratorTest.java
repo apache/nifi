@@ -77,7 +77,11 @@ public class DocGeneratorTest {
         final BundleCoordinate bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
         final BundleDetails bundleDetails = new BundleDetails.Builder().workingDir(workingDirectory).coordinate(bundleCoordinate).build();
         final Bundle bundle = new Bundle(bundleDetails, getClass().getClassLoader());
-        final ExtensionDefinition definition = new ExtensionDefinition(PROCESSOR_CLASS.getName(), bundle, Processor.class);
+        final ExtensionDefinition definition = new ExtensionDefinition.Builder()
+            .bundle(bundle)
+            .extensionType(Processor.class)
+            .implementationClassName(PROCESSOR_CLASS.getName())
+            .build();
         final Set<ExtensionDefinition> extensions = Collections.singleton(definition);
         when(extensionManager.getExtensions(eq(Processor.class))).thenReturn(extensions);
         doReturn(PROCESSOR_CLASS).when(extensionManager).getClass(eq(definition));

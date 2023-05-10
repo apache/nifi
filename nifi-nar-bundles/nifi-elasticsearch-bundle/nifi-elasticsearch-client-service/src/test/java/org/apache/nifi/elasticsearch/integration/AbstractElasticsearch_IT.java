@@ -31,7 +31,7 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
     static final List<String> TEST_INDICES =
             Arrays.asList("user_details", "complex", "nested", "bulk_a", "bulk_b", "bulk_c", "error_handler", "messages");
 
-    ElasticSearchClientServiceImpl service;
+    ElasticSearchClientService service;
 
     @BeforeEach
     void before() throws Exception {

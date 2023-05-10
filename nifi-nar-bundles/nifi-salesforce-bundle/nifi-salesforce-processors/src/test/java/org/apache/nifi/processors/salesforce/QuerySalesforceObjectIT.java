@@ -68,7 +68,7 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         runner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
         runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
         runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
-        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+        runner.setProperty(CommonSalesforceProperties.SALESFORCE_INSTANCE_URL, INSTANCE_URL);
         runner.setProperty(QuerySalesforceObject.RECORD_WRITER, writer.getIdentifier());
         runner.setProperty(QuerySalesforceObject.AGE_FIELD, "CreatedDate");
         runner.setProperty(QuerySalesforceObject.INITIAL_AGE_FILTER, "2022-01-06T08:43:24.000+0000");
@@ -83,12 +83,12 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
 
     @Test
     void runCustomQuery() {
-        String customQuery = "SELECT Id, Name, AccountId, Account.ShippingAddress FROM Contact";
+        String customQuery = "SELECT Id, Name FROM Account";
 
         runner.setProperty(QuerySalesforceObject.QUERY_TYPE, QuerySalesforceObject.CUSTOM_QUERY);
         runner.setProperty(QuerySalesforceObject.CUSTOM_SOQL_QUERY, customQuery);
         runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
-        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+        runner.setProperty(CommonSalesforceProperties.SALESFORCE_INSTANCE_URL, INSTANCE_URL);
 
         runner.run();
 

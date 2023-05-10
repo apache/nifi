@@ -1,0 +1,15 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+MyType ::= SEQUENCE {
+    field1   [0] INTEGER , --Comment
+ -- comment2
+	field2		INTEGER OPTIONAL,
+	field3		INTEGER OPTIONAL,
+	field4		INTEGER OPTIONAL 
+}
+
+END

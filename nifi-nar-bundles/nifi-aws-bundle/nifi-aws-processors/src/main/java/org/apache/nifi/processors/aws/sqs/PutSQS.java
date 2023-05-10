@@ -127,7 +127,7 @@ public class PutSQS extends AbstractSQSProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final AmazonSQSClient client = getClient();
+        final AmazonSQSClient client = getClient(context);
         final SendMessageBatchRequest request = new SendMessageBatchRequest();
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(flowFile).getValue();
         request.setQueueUrl(queueUrl);

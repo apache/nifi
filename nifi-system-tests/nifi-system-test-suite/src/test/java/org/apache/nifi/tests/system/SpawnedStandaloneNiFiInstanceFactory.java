@@ -122,6 +122,21 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             final File destinationLib = new File(instanceDirectory, "lib");
             copyContents(new File("target/nifi-lib-assembly/lib"), destinationLib);
 
+            final File destinationPythonDir = new File(instanceDirectory, "python");
+            final File destinationPythonFrameworkDir = new File(destinationPythonDir, "framework");
+            final File destinationPythonApiDir = new File(destinationPythonDir, "api");
+            destinationPythonFrameworkDir.mkdirs();
+            destinationPythonApiDir.mkdirs();
+
+            copyContents(new File("target/nifi-lib-assembly/python/framework"), destinationPythonFrameworkDir);
+            copyContents(new File("target/nifi-lib-assembly/python/api"), destinationPythonApiDir);
+
+            if (instanceConfiguration.isUnpackPythonExtensions()) {
+                final File destinationPythonExtensionsDir = new File(destinationPythonDir, "extensions");
+                destinationPythonExtensionsDir.mkdirs();
+                copyContents(new File("target/nifi-lib-assembly/python/extensions"), destinationPythonExtensionsDir);
+            }
+
             final File destinationNarProviderNars = new File(instanceDirectory, "nifi-nar-provider-nars");
             copyContents(new File("target/nifi-nar-provider-nars"), destinationNarProviderNars);
 

@@ -22,6 +22,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AccessControlList;
@@ -32,14 +33,24 @@ import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
+import java.util.Map;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AwsClientDetails;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
@@ -49,6 +60,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 
+import static java.lang.String.format;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
@@ -150,6 +162,16 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
             .build();
 
+    public static final String S3_REGION_ATTRIBUTE = "s3.region" ;
+    static final AllowableValue ATTRIBUTE_DEFINED_REGION = new AllowableValue("attribute-defined-region",
+            "Use '" + S3_REGION_ATTRIBUTE + "' Attribute",
+            "Uses '" + S3_REGION_ATTRIBUTE + "' FlowFile attribute as region.");
+
+    public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractAWSProcessor.REGION)
+            .allowableValues(getAvailableS3Regions())
+            .build();
+
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
             .name("encryption-service")
             .displayName("Encryption Service")
@@ -198,17 +220,82 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         return s3;
     }
 
+    /**
+     * Create client using AWSCredentials
+     *
+     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
+     */
+    @Deprecated
+    @Override
+    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
+        getLogger().info("Creating client with AWS credentials");
+        return createClient(context, new AWSStaticCredentialsProvider(credentials), config);
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            createClient(context, attributes);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.SUCCESSFUL)
+                    .verificationStepName("Create S3 Client")
+                    .explanation("Successfully created S3 Client")
+                    .build());
+        } catch (final Exception e) {
+            verificationLogger.error("Failed to create S3 Client", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .outcome(Outcome.FAILED)
+                    .verificationStepName("Create S3 Client")
+                    .explanation("Failed to crete S3 Client: " + e.getMessage())
+                    .build());
+        }
+
+        return results;
+    }
+
+    /**
+     * Creates and configures the client from the context and FlowFile attributes or returns an existing client from cache
+     * @param context the process context
+     * @param attributes FlowFile attributes
+     * @return The created S3 client
+     */
+    protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
+        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
+        return getClient(context, clientDetails);
+    }
+
+    /**
+     * Creates the client from the context and FlowFile attributes
+     * @param context the process context
+     * @param attributes FlowFile attributes
+     * @return The newly created S3 client
+     */
+    protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
+        final AwsClientDetails clientDetails = getAwsClientDetails(context, attributes);
+        return createClient(context, clientDetails);
+    }
+
+    @Override
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        if (!isAttributeDefinedRegion(context)) {
+            getClient(context);
+        }
+    }
+
     private void configureClientOptions(final ProcessContext context, final AmazonS3Client s3) {
-        S3ClientOptions.Builder builder = S3ClientOptions.builder();
+        final S3ClientOptions.Builder builder = S3ClientOptions.builder();
 
         // disable chunked encoding if "Use Chunked Encoding" has been set to false, otherwise use the default (not disabled)
-        Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
+        final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
         if (useChunkedEncoding != null && !useChunkedEncoding) {
             builder.disableChunkedEncoding();
         }
 
         // use PathStyleAccess if "Use Path Style Access" has been set to true, otherwise use the default (false)
-        Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
+        final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
         if (usePathStyleAccess != null && usePathStyleAccess) {
             builder.setPathStyleAccess(true);
         }
@@ -241,17 +328,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         return signerType == CUSTOM_SIGNER;
     }
 
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client with AWS credentials");
-        return createClient(context, new AWSStaticCredentialsProvider(credentials), config);
-    }
-
     protected Grantee createGrantee(final String value) {
         if (StringUtils.isEmpty(value)) {
             return null;
@@ -279,17 +355,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             }
         }
         return grantees;
-    }
-
-    protected String getUrlForObject(final String bucket, final String key) {
-        Region region = getRegion();
-
-        if (region == null) {
-            return  DEFAULT_PROTOCOL.toString() + "://s3.amazonaws.com/" + bucket + "/" + key;
-        } else {
-            final String endpoint = region.getServiceEndpoint("s3");
-            return DEFAULT_PROTOCOL.toString() + "://" + endpoint + "/" + bucket + "/" + key;
-        }
     }
 
     /**
@@ -385,5 +450,42 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         return cannedAcl;
+    }
+
+    private Region parseRegionValue(String regionValue) {
+        if (regionValue == null) {
+            throw new ProcessException(format("[%s] was selected as region source but [%s] attribute does not exist", ATTRIBUTE_DEFINED_REGION, S3_REGION_ATTRIBUTE));
+        }
+
+        try {
+            return Region.getRegion(Regions.fromName(regionValue));
+        } catch (Exception e) {
+            throw new ProcessException(format("The [%s] attribute contains an invalid region value [%s]", S3_REGION_ATTRIBUTE, regionValue), e);
+        }
+    }
+
+    private Region resolveRegion(final ProcessContext context, final Map<String, String> attributes) {
+        String regionValue = context.getProperty(S3_REGION).getValue();
+
+        if (ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue)) {
+            regionValue = attributes.get(S3_REGION_ATTRIBUTE);
+        }
+
+        return parseRegionValue(regionValue);
+    }
+
+    private boolean isAttributeDefinedRegion(final ProcessContext context) {
+        String regionValue = context.getProperty(S3_REGION).getValue();
+        return ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue);
+    }
+
+    private static AllowableValue[] getAvailableS3Regions() {
+        final AllowableValue[] availableRegions = getAvailableRegions();
+        return ArrayUtils.addAll(availableRegions, ATTRIBUTE_DEFINED_REGION);
+    }
+
+    private AwsClientDetails getAwsClientDetails(final ProcessContext context, final Map<String, String> attributes) {
+        final Region region = resolveRegion(context, attributes);
+        return new AwsClientDetails(region);
     }
 }

@@ -1,0 +1,15 @@
+ORG-APACHE-NIFI-JASN1-TEST
+
+DEFINITIONS IMPLICIT TAGS ::=
+
+BEGIN
+
+MyType ::= SEQUENCE {
+    field1   [0] INTEGER(1..8),--Comment
+[[ -- comment2
+	field2		INTEGER,
+	field3		INTEGER,
+	field4		INTEGER ]]
+}
+
+END

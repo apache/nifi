@@ -34,10 +34,8 @@ public class SecureHasherFactory {
 
     static {
         registeredSecureHashers = new HashMap<>();
-        registeredSecureHashers.put(KeyDerivationFunction.PBKDF2, PBKDF2SecureHasher.class);
-        registeredSecureHashers.put(KeyDerivationFunction.BCRYPT, BcryptSecureHasher.class);
-        registeredSecureHashers.put(KeyDerivationFunction.SCRYPT, ScryptSecureHasher.class);
         registeredSecureHashers.put(KeyDerivationFunction.ARGON2, Argon2SecureHasher.class);
+        registeredSecureHashers.put(KeyDerivationFunction.PBKDF2, PBKDF2SecureHasher.class);
     }
 
     public static SecureHasher getSecureHasher(final String algorithm) {

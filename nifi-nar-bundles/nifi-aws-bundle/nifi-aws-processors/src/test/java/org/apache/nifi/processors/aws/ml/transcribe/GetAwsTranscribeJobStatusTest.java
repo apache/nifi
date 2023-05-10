@@ -18,16 +18,16 @@
 package org.apache.nifi.processors.aws.ml.transcribe;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.FAILURE_REASON_ATTRIBUTE;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.transcribe.AmazonTranscribeClient;
 import com.amazonaws.services.transcribe.model.GetTranscriptionJobRequest;
 import com.amazonaws.services.transcribe.model.GetTranscriptionJobResult;
@@ -67,12 +67,8 @@ public class GetAwsTranscribeJobStatusTest {
     public void setUp() throws InitializationException {
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIAL_PROVIDER_NAME);
         final GetAwsTranscribeJobStatus mockPollyFetcher = new GetAwsTranscribeJobStatus() {
-            protected AmazonTranscribeClient getClient() {
-                return mockTranscribeClient;
-            }
-
             @Override
-            protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+            protected AmazonTranscribeClient createClient(ProcessContext context, AWSCredentialsProvider credentials, ClientConfiguration config) {
                 return mockTranscribeClient;
             }
         };
@@ -93,7 +89,7 @@ public class GetAwsTranscribeJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(requestCaptor.getValue().getTranscriptionJobName(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTranscriptionJobName());
     }
 
     @Test
@@ -108,7 +104,7 @@ public class GetAwsTranscribeJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
-        assertEquals(requestCaptor.getValue().getTranscriptionJobName(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTranscriptionJobName());
     }
 
 
@@ -125,7 +121,7 @@ public class GetAwsTranscribeJobStatusTest {
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
         runner.assertAllFlowFilesContainAttribute(FAILURE_REASON_ATTRIBUTE);
-        assertEquals(requestCaptor.getValue().getTranscriptionJobName(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getTranscriptionJobName());
 
     }
 }

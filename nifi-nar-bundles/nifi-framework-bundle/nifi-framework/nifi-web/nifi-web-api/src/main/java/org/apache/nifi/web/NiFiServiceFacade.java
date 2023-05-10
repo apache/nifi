@@ -128,6 +128,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
+import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
@@ -1959,6 +1960,14 @@ public interface NiFiServiceFacade {
      * @return The user transfer objects
      */
     Set<UserEntity> getUsers();
+
+    /**
+     * Search for User and Group Tenants based on provided query string
+     *
+     * @param query Search query where null or empty returns unfiltered results
+     * @return Tenants Entity with zero or more matched Users and User Groups
+     */
+    TenantsEntity searchTenants(String query);
 
     /**
      * Updates the specified user.

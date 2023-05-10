@@ -40,7 +40,7 @@
         <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
-        <script type="text/javascript" src="assets/d3/build/d3.min.js"></script>
+        <script type="text/javascript" src="assets/d3/dist/d3.min.js"></script>
         <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>

@@ -19,7 +19,7 @@ package org.apache.nifi.tests.system.clustering;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
@@ -246,7 +246,10 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
 
     private PropertyEncryptor createEncryptorFromProperties(Properties properties) {
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        return PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties);
+
+        final String propertiesKey = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        final String propertiesAlgorithm = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+        return new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
     }
 
     private String readFlow(final File file) throws IOException {

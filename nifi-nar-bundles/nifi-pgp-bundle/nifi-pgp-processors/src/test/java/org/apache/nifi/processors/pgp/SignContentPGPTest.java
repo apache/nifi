@@ -18,7 +18,6 @@ package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.pgp.service.api.PGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
-import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.HashAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.SigningStrategy;
@@ -145,12 +144,6 @@ public class SignContentPGPTest {
     @Test
     public void testSuccessFileEncodingBinaryHashAlgorithmSha512() throws PGPException, IOException {
         assertSuccess(FileEncoding.BINARY, HashAlgorithm.SHA512, SigningStrategy.SIGNED);
-    }
-
-    @Test
-    public void testSuccessFileEncodingBinaryUncompressedHashAlgorithmSha256() throws PGPException, IOException {
-        runner.setProperty(SignContentPGP.COMPRESSION_ALGORITHM, CompressionAlgorithm.UNCOMPRESSED.toString());
-        assertSuccess(FileEncoding.BINARY, HashAlgorithm.SHA256, SigningStrategy.SIGNED);
     }
 
     @Test

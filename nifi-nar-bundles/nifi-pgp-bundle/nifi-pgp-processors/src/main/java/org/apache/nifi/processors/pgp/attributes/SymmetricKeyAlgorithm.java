@@ -26,19 +26,13 @@ public enum SymmetricKeyAlgorithm {
 
     AES_192(BlockCipher.AES, 192, SymmetricKeyAlgorithmTags.AES_192),
 
-    AES_256(BlockCipher.AES, 256, SymmetricKeyAlgorithmTags.AES_256),
+    AES_256(BlockCipher.AES, 256, SymmetricKeyAlgorithmTags.AES_256);
 
-    CAMELLIA_128(BlockCipher.CAMELLIA, 128, SymmetricKeyAlgorithmTags.CAMELLIA_128),
+    private final BlockCipher blockCipher;
 
-    CAMELLIA_192(BlockCipher.CAMELLIA, 192, SymmetricKeyAlgorithmTags.CAMELLIA_192),
+    private final int keySize;
 
-    CAMELLIA_256(BlockCipher.CAMELLIA, 256, SymmetricKeyAlgorithmTags.CAMELLIA_256);
-
-    private BlockCipher blockCipher;
-
-    private int keySize;
-
-    private int id;
+    private final int id;
 
     SymmetricKeyAlgorithm(final BlockCipher blockCipher, final int keySize, final int id) {
         this.blockCipher = blockCipher;

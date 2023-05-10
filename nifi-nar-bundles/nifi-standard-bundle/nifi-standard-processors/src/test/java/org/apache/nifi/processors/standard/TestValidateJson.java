@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -62,6 +64,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -77,6 +81,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -93,6 +99,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 1);
 
         assertValidationErrors(ValidateJson.REL_VALID, false);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -109,6 +117,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 0);
 
         assertValidationErrors(ValidateJson.REL_INVALID, true);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -125,6 +135,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 0);
 
         assertValidationErrors(ValidateJson.REL_INVALID, true);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -141,6 +153,8 @@ class TestValidateJson {
         runner.assertTransferCount(ValidateJson.REL_VALID, 0);
 
         assertValidationErrors(ValidateJson.REL_FAILURE, false);
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.ROUTE, runner.getProvenanceEvents().get(0).getEventType());
     }
 
     @Test
@@ -161,6 +175,22 @@ class TestValidateJson {
         assertThrows(AssertionFailedError.class, () -> runner.run());
     }
 
+    @Test
+    void testJsonWithComments() {
+        final String schemaPath = getFilePath("schema-simple-example.json");
+        runner.setProperty(ValidateJson.SCHEMA_CONTENT, schemaPath);
+        runner.setProperty(ValidateJson.SCHEMA_VERSION, SCHEMA_VERSION);
+
+        runner.enqueue(getFileContent("simple-example-with-comments.json"));
+
+        runner.run();
+
+        runner.assertTransferCount(ValidateJson.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateJson.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateJson.REL_VALID, 1);
+
+        assertValidationErrors(ValidateJson.REL_VALID, false);
+    }
     private void assertValidationErrors(Relationship relationship, boolean expected) {
         final Map<String, String> attributes = runner.getFlowFilesForRelationship(relationship).get(0).getAttributes();
 

@@ -1033,7 +1033,7 @@
             var descriptors = gridContainer.data('descriptors');
             var propertyDescriptor = descriptors[item.property];
 
-            var controllerServiceLookup = d3.map();
+            var controllerServiceLookup = new Map();
             var options = [];
             $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
                 controllerServiceLookup.set(i, controllerServiceType);

@@ -48,18 +48,55 @@
             <excludes>
                 <exclude>*:nifi-bootstrap</exclude>
                 <exclude>*:nifi-toolkit-cli</exclude>
-                <exclude>*:bcprov-jdk15on</exclude>
                 <exclude>*:bcrypt</exclude>
-                <exclude>*:bcpkix-jdk15on</exclude>
-                <exclude>*:bcutil-jdk15on</exclude>
                 <exclude>*:commons-lang3</exclude>
                 <exclude>*:nifi-deprecation-log</exclude>
                 <exclude>*:nifi-security-utils</exclude>
                 <exclude>*:nifi-security-utils-api</exclude>
                 <exclude>*:nifi-xml-processing</exclude>
                 <exclude>*:nifi-nar-provider-assembly</exclude>
+                <exclude>*:nifi-python-framework</exclude>
+                <exclude>*:nifi-python-test-extensions</exclude>
             </excludes>
         </dependencySet>
+
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>python</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <unpack>true</unpack>
+            <includes>
+                <include>*:nifi-python-framework</include>
+                <include>*:nifi-python-test-extensions</include>
+            </includes>
+            <unpackOptions>
+                <excludes>
+                    <exclude>META-INF/</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>python/api</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <unpack>true</unpack>
+            <includes>
+                <include>*:nifi-python-extension-api</include>
+            </includes>
+            <unpackOptions>
+                <excludes>
+                    <exclude>META-INF/</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+
     </dependencySets>
 
 </assembly>

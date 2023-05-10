@@ -64,12 +64,15 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -82,10 +85,18 @@ public class StandardStateManagerProvider implements StateManagerProvider {
     private final ConcurrentMap<String, StateManager> stateManagers = new ConcurrentHashMap<>();
     private final StateProvider localStateProvider;
     private final StateProvider clusterStateProvider;
+    private final StateProvider previousClusterStateProvider;
 
     public StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider) {
         this.localStateProvider = localStateProvider;
         this.clusterStateProvider = clusterStateProvider;
+        this.previousClusterStateProvider = null;
+    }
+
+    private StandardStateManagerProvider(final StateProvider localStateProvider, final StateProvider clusterStateProvider, final StateProvider previousClusterStateProvider) {
+        this.localStateProvider = localStateProvider;
+        this.clusterStateProvider = clusterStateProvider;
+        this.previousClusterStateProvider = previousClusterStateProvider;
     }
 
     protected StateProvider getLocalStateProvider() {
@@ -104,16 +115,21 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             return provider;
         }
 
-        final StateProvider localProvider = createLocalStateProvider(properties,variableRegistry, extensionManager, parameterLookup);
+        final SSLContext sslContext = createSslContext(properties);
+
+        final StateProvider localProvider = createLocalStateProvider(properties, sslContext, variableRegistry, extensionManager, parameterLookup);
 
         final StateProvider clusterProvider;
+        final StateProvider previousClusterProvider;
         if (properties.isNode()) {
-            clusterProvider = createClusteredStateProvider(properties,variableRegistry, extensionManager, parameterLookup);
+            clusterProvider = createClusteredStateProvider(properties, sslContext, variableRegistry, extensionManager, parameterLookup);
+            previousClusterProvider = getPreviousClusteredStateProvider(properties, sslContext, variableRegistry, extensionManager, parameterLookup);
         } else {
             clusterProvider = null;
+            previousClusterProvider = null;
         }
 
-        provider = new StandardStateManagerProvider(localProvider, clusterProvider);
+        provider = new StandardStateManagerProvider(localProvider, clusterProvider, previousClusterProvider);
         return provider;
     }
 
@@ -121,105 +137,177 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         provider = null;
     }
 
-    private static StateProvider createLocalStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
-                                                          final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
-        final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.LOCAL, properties, variableRegistry, extensionManager, parameterLookup);
-    }
-
-    private static StateProvider createClusteredStateProvider(final NiFiProperties properties, final VariableRegistry variableRegistry, final ExtensionManager extensionManager,
-                                                              final ParameterLookup parameterLookup) throws IOException, ConfigParseException {
-        final File configFile = properties.getStateManagementConfigFile();
-        return createStateProvider(configFile, Scope.CLUSTER, properties, variableRegistry, extensionManager, parameterLookup);
-    }
-
-    private static StateProvider createStateProvider(final File configFile, final Scope scope, final NiFiProperties properties, final VariableRegistry variableRegistry,
-                                                     final ExtensionManager extensionManager, final ParameterLookup parameterLookup) throws ConfigParseException, IOException {
-        final String providerId;
-        final String providerIdPropertyName;
-        final String providerDescription;
-        final String providerXmlElementName;
-        final String oppositeScopeXmlElementName;
-
-        switch (scope) {
-            case CLUSTER:
-                providerId = properties.getClusterStateProviderId();
-                providerIdPropertyName = NiFiProperties.STATE_MANAGEMENT_CLUSTER_PROVIDER_ID;
-                providerDescription = "Cluster State Provider";
-                providerXmlElementName = "cluster-provider";
-                oppositeScopeXmlElementName = "local-provider";
-                break;
-            case LOCAL:
-                providerId = properties.getLocalStateProviderId();
-                providerIdPropertyName = NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID;
-                providerDescription = "Local State Provider";
-                providerXmlElementName = "local-provider";
-                oppositeScopeXmlElementName = "cluster-provider";
-                break;
-            default:
-                throw new AssertionError("Attempted to create State Provider for unknown Scope: " + scope);
+    private static SSLContext createSslContext(final NiFiProperties properties) {
+        final TlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            return SslContextFactory.createSslContext(standardTlsConfiguration);
+        } catch (final TlsException e) {
+            throw new IllegalStateException("TLS Security Properties not valid for State Manager configuration", e);
         }
+    }
 
+    private static StateProvider createLocalStateProvider(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final VariableRegistry variableRegistry,
+            final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup
+    ) throws IOException, ConfigParseException {
+        final File configFile = properties.getStateManagementConfigFile();
+        final StateProviderConfiguration config = getProviderConfiguration(Scope.LOCAL, properties.getLocalStateProviderId(), NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, configFile);
+        return createStateProvider(config, sslContext, variableRegistry, extensionManager, parameterLookup);
+    }
+
+    private static StateProvider createClusteredStateProvider(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final VariableRegistry variableRegistry,
+            final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup
+    ) throws IOException, ConfigParseException {
+        final File configFile = properties.getStateManagementConfigFile();
+        final StateProviderConfiguration config = getProviderConfiguration(Scope.CLUSTER, properties.getClusterStateProviderId(), NiFiProperties.STATE_MANAGEMENT_CLUSTER_PROVIDER_ID, configFile);
+        return createStateProvider(config, sslContext, variableRegistry, extensionManager, parameterLookup);
+    }
+
+    private static StateProvider getPreviousClusteredStateProvider(
+            final NiFiProperties properties,
+            final SSLContext sslContext,
+            final VariableRegistry variableRegistry,
+            final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup
+    ) throws IOException {
+        final String clusterProviderPreviousId = properties.getProperty(NiFiProperties.STATE_MANAGEMENT_CLUSTER_PROVIDER_PREVIOUS_ID);
+        if (clusterProviderPreviousId == null || clusterProviderPreviousId.isEmpty()) {
+            return null;
+        } else {
+            final File configFile = properties.getStateManagementConfigFile();
+            final StateProviderConfiguration config = getProviderConfiguration(Scope.CLUSTER, clusterProviderPreviousId, NiFiProperties.STATE_MANAGEMENT_CLUSTER_PROVIDER_PREVIOUS_ID, configFile);
+            final StateProvider previousClusterStateProvider = createStateProvider(config, sslContext, variableRegistry, extensionManager, parameterLookup);
+            if (previousClusterStateProvider.isComponentEnumerationSupported()) {
+                return previousClusterStateProvider;
+            } else {
+                throw new IllegalStateException(String.format("Previous Cluster State Provider [%s] does not support Component Enumeration", clusterProviderPreviousId));
+            }
+        }
+    }
+
+    private static void loadPreviousClusterState(final StateProvider previousProvider, final StateProvider currentProvider) {
+        final String previousProviderId = previousProvider.getIdentifier();
+        final String currentProviderId = currentProvider.getIdentifier();
+
+        try {
+            final Collection<String> currentStoredComponentIds = currentProvider.getStoredComponentIds();
+            if (currentStoredComponentIds.isEmpty()) {
+                final Collection<String> previousStoredComponentIds = previousProvider.getStoredComponentIds();
+                if (previousStoredComponentIds.isEmpty()) {
+                    logger.info("Cluster State not found in Previous Provider [{}]", previousProviderId);
+                } else {
+                    loadPreviousClusterStateComponents(previousProvider, currentProvider, previousStoredComponentIds);
+                }
+            } else {
+                logger.info("Previous Cluster State ignored: State found in Provider [{}] for Components [{}]", currentProviderId, currentStoredComponentIds.size());
+            }
+        } catch (final IOException e) {
+            final String message = String.format("Cluster State Component Enumeration failed from Provider [%s] to Provider [%s]", previousProviderId, currentProviderId);
+            throw new UncheckedIOException(message, e);
+        }
+    }
+
+    private static void loadPreviousClusterStateComponents(final StateProvider previousProvider, final StateProvider currentProvider, final Collection<String> previousStoredComponentIds) {
+        final String previousProviderId = previousProvider.getIdentifier();
+        final String currentProviderId = currentProvider.getIdentifier();
+        final Set<String> loadedComponentIds = new LinkedHashSet<>();
+
+        logger.info("Cluster State found in Previous Provider [{}] for Components [{}]", previousProviderId, previousStoredComponentIds.size());
+        try {
+            for (final String componentId : previousStoredComponentIds) {
+                final StateMap previousState = previousProvider.getState(componentId);
+                final Map<String, String> state = previousState.toMap();
+                currentProvider.setState(state, componentId);
+                logger.info("Cluster State loaded for Component [{}] to Provider [{}]", componentId, currentProviderId);
+                loadedComponentIds.add(componentId);
+            }
+
+            logger.info("Cluster State loaded from Provider [{}] to Provider [{}] for Components [{}]", previousProviderId, currentProviderId, previousStoredComponentIds.size());
+        } catch (final IOException e) {
+            final Set<String> failedComponentIds = new LinkedHashSet<>(previousStoredComponentIds);
+            failedComponentIds.removeAll(loadedComponentIds);
+
+            logger.warn("Cluster State loaded for Components {} but failed for Components [{}] from Provider [{}] to Provider [{}]",
+                    loadedComponentIds, failedComponentIds, previousProviderId, currentProviderId);
+
+            final String message = String.format("Cluster State load failed from Provider [%s] to Provider [%s]", previousProviderId, currentProviderId);
+            throw new UncheckedIOException(message, e);
+        }
+    }
+
+    private static StateProviderConfiguration getProviderConfiguration(
+            final Scope scope,
+            final String providerId,
+            final String providerIdPropertyName,
+            final File configFile
+    ) throws IOException {
         if (!configFile.exists()) {
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the State Management Configuration File " + configFile + " does not exist");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the State Management Configuration File " + configFile + " does not exist");
         }
         if (!configFile.canRead()) {
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the State Management Configuration File " + configFile + " cannot be read");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the State Management Configuration File " + configFile + " cannot be read");
         }
 
         if (providerId == null) {
             if (scope == Scope.CLUSTER) {
                 throw new IllegalStateException("Cannot create Cluster State Provider because the '" + providerIdPropertyName
-                    + "' property is missing from the NiFi Properties file. In order to run NiFi in a cluster, the " + providerIdPropertyName
-                    + " property must be configured in nifi.properties");
+                        + "' property is missing from the NiFi Properties file. In order to run NiFi in a cluster, the " + providerIdPropertyName
+                        + " property must be configured in nifi.properties");
             }
 
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the '" + providerIdPropertyName
-                + "' property is missing from the NiFi Properties file");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
+                    + "' property is missing from the NiFi Properties file");
         }
 
         if (providerId.trim().isEmpty()) {
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the '" + providerIdPropertyName
-                + "' property in the NiFi Properties file has no value set. This is a required property and must reference the identifier of one of the "
-                + providerXmlElementName + " elements in the State Management Configuration File (" + configFile + ")");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
+                    + "' property in the NiFi Properties file has no value set. This is a required property and must reference the identifier of one of the "
+                    + scope + " elements in the State Management Configuration File (" + configFile + ")");
         }
 
         final StateManagerConfiguration config = StateManagerConfiguration.parse(configFile);
         final StateProviderConfiguration providerConfig = config.getStateProviderConfiguration(providerId);
         if (providerConfig == null) {
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the '" + providerIdPropertyName
-                + "' property in the NiFi Properties file is set to '" + providerId + "', but there is no " + providerXmlElementName
-                + " entry in the State Management Configuration File (" + configFile + ") with this id");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
+                    + "' property in the NiFi Properties file is set to '" + providerId + "', but there is no " + scope
+                    + " entry in the State Management Configuration File (" + configFile + ") with this id");
         }
 
         if (providerConfig.getScope() != scope) {
-            throw new IllegalStateException("Cannot create " + providerDescription + " because the '" + providerIdPropertyName
-                + "' property in the NiFi Properties file is set to '" + providerId + "', but this id is assigned to a " + oppositeScopeXmlElementName
-                + " entry in the State Management Configuration File (" + configFile + "), rather than a " + providerXmlElementName + " entry");
+            throw new IllegalStateException("Cannot create " + scope + " Provider because the '" + providerIdPropertyName
+                    + "' property in the NiFi Properties file is set to '" + providerId + "', but this ID is assigned to another "
+                    + " entry in the State Management Configuration File (" + configFile + "), rather than a " + scope + " entry");
         }
 
+        return providerConfig;
+    }
+
+    private static StateProvider createStateProvider(
+            final StateProviderConfiguration providerConfig,
+            final SSLContext sslContext,
+            final VariableRegistry variableRegistry,
+            final ExtensionManager extensionManager,
+            final ParameterLookup parameterLookup
+    ) throws IOException {
         final String providerClassName = providerConfig.getClassName();
 
         final StateProvider provider;
         try {
             provider = instantiateStateProvider(extensionManager, providerClassName);
         } catch (final Exception e) {
-            throw new RuntimeException("Cannot create " + providerDescription + " of type " + providerClassName, e);
+            throw new RuntimeException("Cannot create " + providerConfig.getScope() + " Provider of type " + providerClassName, e);
         }
 
-        if (!ArrayUtils.contains(provider.getSupportedScopes(), scope)) {
-            throw new RuntimeException("Cannot use " + providerDescription + " ("+providerClassName+") as it only supports scope(s) " + ArrayUtils.toString(provider.getSupportedScopes()) + " but " +
-                "instance"
-                + " is configured to use scope " + scope);
-        }
-
-        final SSLContext sslContext;
-        TlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-        try {
-            sslContext = SslContextFactory.createSslContext(standardTlsConfiguration);
-        } catch (TlsException e) {
-            logger.error("Encountered an error configuring TLS for state manager: ", e);
-            throw new IllegalStateException("Error configuring TLS for state manager", e);
+        if (!ArrayUtils.contains(provider.getSupportedScopes(), providerConfig.getScope())) {
+            throw new RuntimeException("Cannot use " + providerConfig.getScope() + " (" + providerClassName + ") as it only supports scope(s) "
+                    + ArrayUtils.toString(provider.getSupportedScopes()) + " but instance is configured to use scope " + providerConfig.getScope());
         }
 
         //create variable registry
@@ -253,8 +341,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
-        final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
-        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
+        final ComponentLog logger = new SimpleProcessLogger(providerConfig.getId(), provider);
+        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerConfig.getId(), propertyMap, sslContext, logger);
 
         synchronized (provider) {
             provider.initialize(initContext);
@@ -267,22 +355,22 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         int invalidCount = 0;
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
-                validationFailures.append(result.toString()).append("\n");
+                validationFailures.append(result).append("\n");
                 invalidCount++;
             }
         }
 
         if (invalidCount > 0) {
-            throw new IllegalStateException("Could not initialize State Providers because the " + providerDescription + " is not valid. The following "
-                + invalidCount + " Validation Errors occurred:\n" + validationFailures.toString() + "\nPlease check the configuration of the " + providerDescription + " with ID ["
-                + providerId.trim() + "] in the file " + configFile.getAbsolutePath());
+            throw new IllegalStateException("Could not initialize State Providers because the " + providerConfig.getScope() + " Provider is not valid. The following "
+                + invalidCount + " Validation Errors occurred:\n" + validationFailures + "\nPlease check the configuration of the " + providerConfig.getScope() + " Provider with ID ["
+                + providerConfig.getId() + "]");
         }
 
         return provider;
     }
 
     // Inject NiFi Properties to state providers that use the StateProviderContext annotation
-    private static void performMethodInjection(final Object instance, final Class stateProviderClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    private static void performMethodInjection(final Object instance, final Class<?> stateProviderClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : stateProviderClass.getMethods()) {
             if (method.isAnnotationPresent(StateProviderContext.class)) {
                 // make the method accessible
@@ -308,13 +396,14 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             }
         }
 
-        final Class parentClass = stateProviderClass.getSuperclass();
+        final Class<?> parentClass = stateProviderClass.getSuperclass();
         if (parentClass != null && StateProvider.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }
     }
 
-    private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(type);
@@ -331,7 +420,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            StateProvider provider = mgrClass.newInstance();
+            StateProvider provider = mgrClass.getDeclaredConstructor().newInstance();
             try {
                 performMethodInjection(provider, mgrClass);
             } catch (InvocationTargetException e) {
@@ -465,6 +554,20 @@ public class StandardStateManagerProvider implements StateManagerProvider {
                     return stateProvider.getIdentifier();
                 }
             }
+
+            @Override
+            public boolean isComponentEnumerationSupported() {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.isComponentEnumerationSupported();
+                }
+            }
+
+            @Override
+            public Collection<String> getStoredComponentIds() throws IOException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return stateProvider.getStoredComponentIds();
+                }
+            }
         };
     }
 
@@ -491,11 +594,18 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         if (clusterStateProvider != null) {
             clusterStateProvider.shutdown();
         }
+        if (previousClusterStateProvider != null) {
+            previousClusterStateProvider.shutdown();
+        }
     }
 
     @Override
     public void enableClusterProvider() {
         clusterStateProvider.enable();
+        if (previousClusterStateProvider != null) {
+            previousClusterStateProvider.enable();
+            loadPreviousClusterState(previousClusterStateProvider, clusterStateProvider);
+        }
     }
 
     @Override

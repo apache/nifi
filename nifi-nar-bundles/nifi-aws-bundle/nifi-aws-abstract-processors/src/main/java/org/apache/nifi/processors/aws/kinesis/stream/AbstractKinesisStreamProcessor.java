@@ -55,6 +55,7 @@ public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesis
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
     @Override
+    @Deprecated
     protected AmazonKinesisClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials");
 

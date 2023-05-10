@@ -88,6 +88,11 @@ public class TestElasticSearchClientService extends AbstractControllerService im
     }
 
     @Override
+    public boolean documentExists(String index, String type, String id, Map<String, String> requestParameters) {
+        return true;
+    }
+
+    @Override
     public Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         return data;
     }

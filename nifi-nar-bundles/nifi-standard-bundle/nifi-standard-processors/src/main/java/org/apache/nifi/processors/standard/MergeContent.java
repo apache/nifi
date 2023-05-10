@@ -886,13 +886,6 @@ public class MergeContent extends BinFiles {
                                     public void process(final InputStream rawIn) throws IOException {
                                         try (final InputStream in = new BufferedInputStream(rawIn)) {
                                             final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
-
-                                            // for backward compatibility purposes, we add the "legacy" NiFi attributes
-                                            attributes.put("nf.file.name", attributes.get(CoreAttributes.FILENAME.key()));
-                                            attributes.put("nf.file.path", attributes.get(CoreAttributes.PATH.key()));
-                                            if (attributes.containsKey(CoreAttributes.MIME_TYPE.key())) {
-                                                attributes.put("content-type", attributes.get(CoreAttributes.MIME_TYPE.key()));
-                                            }
                                             packager.packageFlowFile(in, out, attributes, flowFile.getSize());
                                         }
                                     }

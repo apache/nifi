@@ -99,8 +99,8 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
         assertTrue(runner.getProvenanceEvents().isEmpty());
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeExists("error.message");
+        MockFlowFile ff = flowFiles.get(0);
+        ff.assertAttributeExists("error.message");
     }
 
     @Test
@@ -120,8 +120,8 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
         assertTrue(runner.getProvenanceEvents().isEmpty());
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSalesforceObject.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.get(0);
-        ff0.assertAttributeExists("error.message");
+        MockFlowFile ff = flowFiles.get(0);
+        ff.assertAttributeExists("error.message");
     }
 
     private void configureProcessor(final MockRecordParser reader) throws InitializationException {
@@ -129,7 +129,7 @@ class PutSalesforceObjectIT implements SalesforceConfigAware {
         runner.enableControllerService(reader);
 
         runner.setProperty(CommonSalesforceProperties.API_VERSION, VERSION);
-        runner.setProperty(CommonSalesforceProperties.API_URL, BASE_URL);
+        runner.setProperty(CommonSalesforceProperties.SALESFORCE_INSTANCE_URL, INSTANCE_URL);
         runner.setProperty(PutSalesforceObject.RECORD_READER_FACTORY, reader.getIdentifier());
     }
 }

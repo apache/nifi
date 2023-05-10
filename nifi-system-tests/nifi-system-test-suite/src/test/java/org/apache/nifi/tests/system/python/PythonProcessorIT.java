@@ -1,0 +1,174 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.nifi.tests.system.python;
+
+import org.apache.nifi.tests.system.NiFiSystemIT;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class PythonProcessorIT extends NiFiSystemIT {
+
+    @Override
+    protected boolean isUnpackPythonExtensions() {
+        return true;
+    }
+
+    @Test
+    public void testFlowFileTransformWithEL() throws NiFiClientException, IOException, InterruptedException {
+        final String messageContents = "Hello World";
+
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity writeProperty = getClientUtil().createPythonProcessor("WritePropertyToFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Config GenerateFlowFile to add a "greeting" attribute with a value of "Hello World"
+        final ProcessorConfigDTO generateConfig = generate.getComponent().getConfig();
+        generateConfig.setProperties(Collections.singletonMap("greeting", messageContents));
+        getClientUtil().updateProcessorConfig(generate, generateConfig);
+
+        // Configure the WritePropertyToFlowFile processor to write the "greeting" attribute's value to the FlowFile content
+        final ProcessorConfigDTO writePropertyConfig = writeProperty.getComponent().getConfig();
+        writePropertyConfig.setProperties(Collections.singletonMap("Message", "${greeting}"));
+        getClientUtil().updateProcessorConfig(writeProperty, writePropertyConfig);
+
+        // Connect flow
+        getClientUtil().createConnection(generate, writeProperty, "success");
+        getClientUtil().setAutoTerminatedRelationships(writeProperty, "failure");
+        final ConnectionEntity outputConnection = getClientUtil().createConnection(writeProperty, terminate, "success");
+
+        // Wait for processor validation to complete
+        getClientUtil().waitForValidProcessor(generate.getId());
+        getClientUtil().waitForValidProcessor(writeProperty.getId());
+
+        // Run the flow
+        getClientUtil().startProcessor(generate);
+        getClientUtil().startProcessor(writeProperty);
+
+        // Wait for output to be queued up
+        waitForQueueCount(outputConnection.getId(), 1);
+
+        // Validate the output
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(outputConnection.getId(), 0);
+        assertEquals(messageContents, contents);
+    }
+
+
+    @Test
+    public void testRecordTransform() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity setRecordField = getClientUtil().createPythonProcessor("SetRecordField");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sport", "Ball");
+        attributes.put("greeting", "hello");
+        getClientUtil().updateProcessorProperties(generate, attributes);
+
+        // Add Reader and Writer
+        final ControllerServiceEntity csvReader = getClientUtil().createControllerService("MockCSVReader");
+        final ControllerServiceEntity csvWriter = getClientUtil().createControllerService("MockCSVWriter");
+
+        getClientUtil().enableControllerService(csvReader);
+        getClientUtil().enableControllerService(csvWriter);
+
+        // Configure the SetRecordField property
+        final Map<String, String> fieldMap = new HashMap<>();
+        fieldMap.put("Record Reader", csvReader.getId());
+        fieldMap.put("Record Writer", csvWriter.getId());
+        fieldMap.put("age", "3");
+        fieldMap.put("color", "yellow");
+        fieldMap.put("sport", "${sport}");  // test EL for plain attribute
+        fieldMap.put("greeting", "${greeting:toUpper()}");      // test EL function
+        getClientUtil().updateProcessorProperties(setRecordField, fieldMap);
+        getClientUtil().setAutoTerminatedRelationships(setRecordField, new HashSet<>(Arrays.asList("original", "failure")));
+
+        // Set contents of GenerateFlowFile
+        getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("Text", "name, age, color, sport, greeting\nJane Doe, 7, red,,\nJake Doe, 14, blue,,"));
+
+        // Connect flow
+        getClientUtil().createConnection(generate, setRecordField, "success");
+        final ConnectionEntity outputConnection = getClientUtil().createConnection(setRecordField, terminate, "success");
+
+        // Wait for processor validation to complete
+        getClientUtil().waitForValidProcessor(generate.getId());
+        getClientUtil().waitForValidProcessor(setRecordField.getId());
+
+        // Run the flow
+        getClientUtil().startProcessor(generate);
+        getClientUtil().startProcessor(setRecordField);
+
+        // Wait for output data
+        waitForQueueCount(outputConnection.getId(), 1);
+
+        // Verify output contents. We don't know the order that the fields will be in, but we know that we should get back 3 fields per record: name, age, color.
+        final String contents = getClientUtil().getFlowFileContentAsUtf8(outputConnection.getId(), 0);
+        final String[] lines = contents.split("\n");
+        final String headerLine = lines[0];
+        final List<String> headers = Stream.of(headerLine.split(","))
+            .map(String::trim)
+            .collect(Collectors.toList());
+        assertTrue(headers.contains("name"));
+        assertTrue(headers.contains("age"));
+        assertTrue(headers.contains("color"));
+        assertTrue(headers.contains("sport"));
+        assertTrue(headers.contains("greeting"));
+
+        final Map<String, Integer> headerIndices = new HashMap<>();
+        int index = 0;
+        for (final String header : headers) {
+            headerIndices.put(header, index++);
+        }
+
+        final String firstRecordLine = lines[1];
+        final List<String> firstRecordValues = Stream.of(firstRecordLine.split(","))
+            .map(String::trim)
+            .collect(Collectors.toList());
+        assertEquals("Jane Doe", firstRecordValues.get( headerIndices.get("name") ));
+        assertEquals("yellow", firstRecordValues.get( headerIndices.get("color") ));
+        assertEquals("3", firstRecordValues.get( headerIndices.get("age") ));
+        assertEquals("Ball", firstRecordValues.get( headerIndices.get("sport") ));
+        assertEquals("HELLO", firstRecordValues.get( headerIndices.get("greeting") ));
+
+        final String secondRecordLine = lines[2];
+        final List<String> secondRecordValues = Stream.of(secondRecordLine.split(","))
+            .map(String::trim)
+            .collect(Collectors.toList());
+        assertEquals("Jake Doe", secondRecordValues.get( headerIndices.get("name") ));
+        assertEquals("yellow", secondRecordValues.get( headerIndices.get("color") ));
+        assertEquals("3", secondRecordValues.get( headerIndices.get("age") ));
+        assertEquals("Ball", secondRecordValues.get( headerIndices.get("sport") ));
+        assertEquals("HELLO", secondRecordValues.get( headerIndices.get("greeting") ));
+    }
+}

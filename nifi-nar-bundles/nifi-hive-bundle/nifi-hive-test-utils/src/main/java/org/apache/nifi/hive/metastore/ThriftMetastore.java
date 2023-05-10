@@ -19,15 +19,15 @@ package org.apache.nifi.hive.metastore;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /** A JUnit Extension that creates a Hive Metastore Thrift service backed by a Hive Metastore using an in-memory Derby database. */
-public class ThriftMetastore implements BeforeEachCallback, AfterEachCallback {
+public class ThriftMetastore implements BeforeAllCallback, AfterAllCallback {
 
     private final MetastoreCore metastoreCore;
 
@@ -43,12 +43,12 @@ public class ThriftMetastore implements BeforeEachCallback, AfterEachCallback {
     }
 
     @Override
-    public void beforeEach(ExtensionContext context) throws Exception {
+    public void beforeAll(ExtensionContext context) throws Exception {
         metastoreCore.initialize(configOverrides);
     }
 
     @Override
-    public void afterEach(ExtensionContext context) {
+    public void afterAll(ExtensionContext context) {
         metastoreCore.shutdown();
     }
 

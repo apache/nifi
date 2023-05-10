@@ -40,7 +40,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-
 /**
  * Unit tests for AWS Credential specification based on {@link AbstractAWSProcessor} and
  * [@link AbstractAWSCredentialsProviderProcessor},  without interaction with S3.
@@ -51,7 +50,6 @@ public class TestAWSCredentials {
     private AbstractAWSProcessor mockAwsProcessor = null;
     private AWSCredentials awsCredentials = null;
     private AWSCredentialsProvider awsCredentialsProvider = null;
-    private ClientConfiguration clientConfiguration = null;
 
     @BeforeEach
     public void setUp() {
@@ -70,7 +68,6 @@ public class TestAWSCredentials {
             @Override
             protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
                 awsCredentials = credentials;
-                clientConfiguration = config;
                 final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
                 return s3;
             }
@@ -78,7 +75,6 @@ public class TestAWSCredentials {
             @Override
             protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
                 awsCredentialsProvider = credentialsProvider;
-                clientConfiguration = config;
                 final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
                 return s3;
             }

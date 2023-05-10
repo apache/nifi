@@ -28,8 +28,11 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.JmxMetricsResultDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
+import org.apache.nifi.web.api.entity.JmxMetricsResultsEntity;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
+import org.apache.nifi.web.api.metrics.jmx.JmxMetricsService;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -40,6 +43,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Collection;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
@@ -50,7 +54,7 @@ import javax.ws.rs.core.Response;
         description = "Endpoint for accessing system diagnostics."
 )
 public class SystemDiagnosticsResource extends ApplicationResource {
-
+    private JmxMetricsService jmxMetricsService;
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
@@ -138,6 +142,56 @@ public class SystemDiagnosticsResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    /**
+     * Retrieves the JMX metrics.
+     *
+     * @return A jmxMetricsResult list.
+     */
+    @Path("jmx-metrics")
+    @GET
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @ApiOperation(
+            value = "Retrieve available JMX metrics",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = JmxMetricsResultsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /system")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getJmxMetrics(
+            @ApiParam(
+                    value = "Regular Expression Pattern to be applied against the ObjectName")
+            @QueryParam("beanNameFilter") final String beanNameFilter
+
+    ) {
+        authorizeJmxMetrics();
+
+        final Collection<JmxMetricsResultDTO> results = jmxMetricsService.getFilteredMBeanMetrics(beanNameFilter);
+        final JmxMetricsResultsEntity entity = new JmxMetricsResultsEntity();
+        entity.setJmxMetricsResults(results);
+
+        return generateOkResponse(entity)
+                .type(MediaType.APPLICATION_JSON_TYPE)
+                .build();
+    }
+
+    private void authorizeJmxMetrics() {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable system = lookup.getSystem();
+            system.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+    }
+
     // setters
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
@@ -146,5 +200,9 @@ public class SystemDiagnosticsResource extends ApplicationResource {
 
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
+    }
+
+    public void setJmxMetricsService(final JmxMetricsService jmxMetricsService) {
+        this.jmxMetricsService = jmxMetricsService;
     }
 }

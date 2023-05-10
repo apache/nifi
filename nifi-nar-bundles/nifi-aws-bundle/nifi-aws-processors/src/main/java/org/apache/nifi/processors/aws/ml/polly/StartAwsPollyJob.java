@@ -44,7 +44,7 @@ public class StartAwsPollyJob extends AwsMachineLearningJobStarter<AmazonPollyCl
 
     @Override
     protected StartSpeechSynthesisTaskResult sendRequest(StartSpeechSynthesisTaskRequest request, ProcessContext context, FlowFile flowFile) {
-        return getClient().startSpeechSynthesisTask(request);
+        return getClient(context).startSpeechSynthesisTask(request);
     }
 
     @Override

@@ -246,7 +246,7 @@
         <dependency>
             <groupId>com.aayushatharva.brotli4j</groupId>
             <artifactId>brotli4j</artifactId>
-            <version>1.8.0</version>
+            <version>1.11.0</version>
         </dependency>
         <dependency>
             <groupId>org.tukaani</groupId>
@@ -651,23 +651,29 @@
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/embedded-string.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person-stringified-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/embedded-string.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-name.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/embedded-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-stringified-name.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
@@ -716,6 +722,7 @@
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example-unmatched-pattern.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/schema-simple-example.json</exclude>
                         <exclude>src/test/resources/TestValidateJson/simple-example.json</exclude>
+                        <exclude>src/test/resources/TestValidateJson/simple-example-with-comments.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

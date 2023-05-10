@@ -30,7 +30,7 @@ public enum CompressionAlgorithm {
 
     BZIP2(CompressionAlgorithmTags.BZIP2);
 
-    private int id;
+    private final int id;
 
     CompressionAlgorithm(final int id) {
         this.id = id;

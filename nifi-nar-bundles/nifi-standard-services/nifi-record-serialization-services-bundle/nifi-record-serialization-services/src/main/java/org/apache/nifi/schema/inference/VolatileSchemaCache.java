@@ -25,6 +25,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordSchemaCacheService;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
@@ -41,9 +43,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
-import static org.apache.nifi.processor.util.StandardValidators.POSITIVE_INTEGER_VALIDATOR;
-
 @CapabilityDescription("Provides a Schema Cache that evicts elements based on a Least-Recently-Used algorithm. This cache is not persisted, so any restart of NiFi will result in " +
     "the cache being cleared. Additionally, the cache will be cleared any time that the Controller Service is stopped and restarted.")
 @Tags({"record", "schema", "cache"})
@@ -54,8 +53,8 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         .displayName("Maximum Cache Size")
         .description("The maximum number of Schemas to cache.")
         .required(true)
-        .addValidator(POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(VARIABLE_REGISTRY)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("100")
         .build();
 

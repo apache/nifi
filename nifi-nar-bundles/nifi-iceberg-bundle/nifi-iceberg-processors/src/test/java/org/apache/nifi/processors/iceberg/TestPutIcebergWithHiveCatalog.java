@@ -22,7 +22,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
-import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.Record;
@@ -38,6 +37,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -60,18 +60,23 @@ import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validateN
 import static org.apache.nifi.processors.iceberg.util.IcebergTestUtils.validatePartitionFolders;
 import static org.junit.jupiter.api.condition.OS.WINDOWS;
 
+@DisabledOnOs(WINDOWS)
 public class TestPutIcebergWithHiveCatalog {
 
     private TestRunner runner;
     private PutIceberg processor;
     private Schema inputSchema;
+    private TestHiveCatalogService catalogService;
 
     @RegisterExtension
-    public ThriftMetastore metastore = new ThriftMetastore();
+    public static ThriftMetastore metastore = new ThriftMetastore();
 
-    private static final Namespace NAMESPACE = Namespace.of("test_metastore");
+    private static final String CATALOG_NAME = "test_metastore";
+    private static final String TABLE_NAME = "users";
 
-    private static final TableIdentifier TABLE_IDENTIFIER = TableIdentifier.of(NAMESPACE, "users");
+    private static final Namespace NAMESPACE = Namespace.of(CATALOG_NAME);
+
+    private static final TableIdentifier TABLE_IDENTIFIER = TableIdentifier.of(NAMESPACE, TABLE_NAME);
 
     private static final org.apache.iceberg.Schema USER_SCHEMA = new org.apache.iceberg.Schema(
             Types.NestedField.required(1, "id", Types.IntegerType.get()),
@@ -85,6 +90,16 @@ public class TestPutIcebergWithHiveCatalog {
         inputSchema = new Schema.Parser().parse(avroSchema);
 
         processor = new PutIceberg();
+
+        catalogService = new TestHiveCatalogService.Builder()
+                .withMetastoreUri(metastore.getThriftConnectionUri())
+                .withWarehouseLocation(metastore.getWarehouseLocation())
+                .build();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        catalogService.getCatalog().dropTable(TABLE_IDENTIFIER);
     }
 
     private void initRecordReader() throws InitializationException {
@@ -106,28 +121,19 @@ public class TestPutIcebergWithHiveCatalog {
         runner.setProperty(PutIceberg.RECORD_READER, "mock-reader-factory");
     }
 
-    private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder()
-                .withMetastoreUri(metastore.getThriftConnectionUri())
-                .withWarehouseLocation(metastore.getWarehouseLocation())
-                .build();
-        Catalog catalog = catalogService.getCatalog();
-
+    private void initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException {
         Map<String, String> tableProperties = new HashMap<>();
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
         tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
 
-        catalog.createTable(TABLE_IDENTIFIER, USER_SCHEMA, spec, tableProperties);
+        catalogService.getCatalog().createTable(TABLE_IDENTIFIER, USER_SCHEMA, spec, tableProperties);
 
         runner.addControllerService("catalog-service", catalogService);
         runner.enableControllerService(catalogService);
 
         runner.setProperty(PutIceberg.CATALOG, "catalog-service");
-
-        return catalog;
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro"})
     public void onTriggerPartitioned(String fileFormat) throws Exception {
@@ -137,14 +143,14 @@ public class TestPutIcebergWithHiveCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
-        runner.setProperty(PutIceberg.TABLE_NAME, "users");
+        initCatalog(spec, fileFormat);
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(TABLE_IDENTIFIER);
+        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -165,7 +171,6 @@ public class TestPutIcebergWithHiveCatalog {
                 "department_bucket=0", "department_bucket=1", "department_bucket=2"));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"orc"})
     public void onTriggerIdentityPartitioned(String fileFormat) throws Exception {
@@ -175,14 +180,14 @@ public class TestPutIcebergWithHiveCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
-        runner.setProperty(PutIceberg.TABLE_NAME, "users");
+        initCatalog(spec, fileFormat);
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(TABLE_IDENTIFIER);
+        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -203,7 +208,6 @@ public class TestPutIcebergWithHiveCatalog {
                 "department=Finance", "department=Marketing", "department=Sales"));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"parquet"})
     public void onTriggerMultiLevelIdentityPartitioned(String fileFormat) throws Exception {
@@ -214,14 +218,14 @@ public class TestPutIcebergWithHiveCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
-        runner.setProperty(PutIceberg.TABLE_NAME, "users");
+        initCatalog(spec, fileFormat);
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(TABLE_IDENTIFIER);
+        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -246,20 +250,19 @@ public class TestPutIcebergWithHiveCatalog {
         ));
     }
 
-    @DisabledOnOs(WINDOWS)
     @ParameterizedTest
     @ValueSource(strings = {"avro"})
     public void onTriggerUnPartitioned(String fileFormat) throws Exception {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(PartitionSpec.unpartitioned(), fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "test_metastore");
-        runner.setProperty(PutIceberg.TABLE_NAME, "users");
+        initCatalog(PartitionSpec.unpartitioned(), fileFormat);
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
+        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
         runner.setValidateExpressionUsage(false);
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalog.loadTable(TABLE_IDENTIFIER);
+        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")

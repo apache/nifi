@@ -33,6 +33,7 @@
         <module>nifi-media-processors</module>
         <module>nifi-media-nar</module>
         <module>nifi-image-viewer</module>
+        <module>nifi-image-viewer-nar</module>
     </modules>
 
     <dependencyManagement>

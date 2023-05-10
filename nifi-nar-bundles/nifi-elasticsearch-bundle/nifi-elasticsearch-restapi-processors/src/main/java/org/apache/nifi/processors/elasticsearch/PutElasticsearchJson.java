@@ -20,6 +20,7 @@ package org.apache.nifi.processors.elasticsearch;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -30,6 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticsearchException;
 import org.apache.nifi.elasticsearch.IndexOperationRequest;
 import org.apache.nifi.elasticsearch.IndexOperationResponse;
@@ -38,6 +40,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
@@ -51,22 +54,32 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
 @CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the document.")
+        @WritesAttribute(attribute = "elasticsearch.put.error",
+                description = "The error message if there is an issue parsing the FlowFile, sending the parsed document to Elasticsearch or parsing the Elasticsearch response"),
+        @WritesAttribute(attribute = "elasticsearch.bulk.error", description = "The _bulk response if there was an error during processing the document within Elasticsearch.")
 })
-@DynamicProperty(
-        name = "The name of a URL query parameter to add",
-        value = "The value of the URL query parameter",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
-                "These parameters will override any matching parameters in the _bulk request body. " +
-                "If FlowFiles are batched, only the first FlowFile in the batch is used to evaluate property values.")
+@DynamicProperties({
+        @DynamicProperty(
+                name = "The name of the Bulk request header",
+                value = "The value of the Bulk request header",
+                expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description = "Prefix: " + AbstractPutElasticsearch.BULK_HEADER_PREFIX +
+                        " - adds the specified property name/value as a Bulk request header in the Elasticsearch Bulk API body used for processing. " +
+                        "These parameters will override any matching parameters in the _bulk request body."),
+        @DynamicProperty(
+                name = "The name of a URL query parameter to add",
+                value = "The value of the URL query parameter",
+                expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description = "Adds the specified property name/value as a query parameter in the Elasticsearch URL used for processing. " +
+                        "These parameters will override any matching parameters in the _bulk request body. " +
+                        "If FlowFiles are batched, only the first FlowFile in the batch is used to evaluate property values.")
+})
 @SystemResourceConsideration(
         resource = SystemResource.MEMORY,
         description = "The Batch of FlowFiles will be stored in memory until the bulk operation is performed.")
@@ -87,6 +100,40 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor SCRIPT = new PropertyDescriptor.Builder()
+            .name("put-es-json-script")
+            .displayName("Script")
+            .description("The script for the document update/upsert. Only applies to Update/Upsert operations. " +
+                    "Must be parsable as JSON Object. " +
+                    "If left blank, the FlowFile content will be used for document update/upsert")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor SCRIPTED_UPSERT = new PropertyDescriptor.Builder()
+            .name("put-es-json-scripted-upsert")
+            .displayName("Scripted Upsert")
+            .description("Whether to add the scripted_upsert flag to the Upsert Operation. " +
+                    "Forces Elasticsearch to execute the Script whether or not the document exists, defaults to false. " +
+                    "If the Upsert Document provided (from FlowFile content) will be empty, but sure to set the " +
+                    CLIENT_SERVICE.getDisplayName() + " controller service's " + ElasticSearchClientService.SUPPRESS_NULLS.getDisplayName() +
+                    " to " + ElasticSearchClientService.NEVER_SUPPRESS.getDisplayName() + " or no \"upsert\" doc will be, " +
+                    "included in the request to Elasticsearch and the operation will not create a new document for the script " +
+                    "to execute against, resulting in a \"not_found\" error")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+    static final PropertyDescriptor DYNAMIC_TEMPLATES = new PropertyDescriptor.Builder()
+            .name("put-es-json-dynamic_templates")
+            .displayName("Dynamic Templates")
+            .description("The dynamic_templates for the document. Must be parsable as a JSON Object. " +
+                    "Requires Elasticsearch 7+")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
         .name("put-es-json-charset")
         .displayName("Character Set")
@@ -101,7 +148,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .name("put-es-json-error-documents")
         .displayName("Output Error Documents")
         .description("If this configuration property is true, the response from Elasticsearch will be examined for failed documents " +
-                "and the FlowFile(s) associated with the failed document(s) will be sent to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
+                "and the FlowFile(s) associated with the failed document(s) will be sent to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship " +
+                "with \"elasticsearch.bulk.error\" attributes.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -110,9 +158,11 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-json-not_found-is-error")
-        .displayName("Treat \"Not Found\" as Error")
+        .displayName("Treat \"Not Found\" as Success")
         .description("If true, \"not_found\" Elasticsearch Document associated FlowFiles will be routed to the \"" + REL_SUCCESS.getName() +
-                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
+                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship. " +
+                "If " + OUTPUT_ERROR_RESPONSES.getDisplayName() + " is \"true\" then \"not_found\" responses from Elasticsearch " +
+                "will be sent to the " + REL_ERROR_RESPONSES.getName() + " relationship")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -121,19 +171,19 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE, LOG_ERROR_RESPONSES,
-        OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
+        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, SCRIPT, SCRIPTED_UPSERT, DYNAMIC_TEMPLATES, BATCH_SIZE, CHARSET, CLIENT_SERVICE,
+        LOG_ERROR_RESPONSES, OUTPUT_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
     ));
-    static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    static final Set<Relationship> BASE_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
     )));
 
     private boolean outputErrors;
-    private final ObjectMapper inputMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
+    Set<Relationship> getBaseRelationships() {
+        return BASE_RELATIONSHIPS;
     }
 
     @Override
@@ -141,6 +191,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         return DESCRIPTORS;
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
@@ -163,62 +214,14 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         final List<FlowFile> originals = new ArrayList<>(flowFiles.size());
         final List<IndexOperationRequest> operations = new ArrayList<>(flowFiles.size());
 
-        for (FlowFile input : flowFiles) {
-            final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
-            final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
-            final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
-            final String id = StringUtils.isNotBlank(idAttribute) && StringUtils.isNotBlank(input.getAttribute(idAttribute)) ? input.getAttribute(idAttribute) : null;
-
-            final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue();
-
-            try (final InputStream inStream = session.read(input)) {
-                final byte[] result = IOUtils.toByteArray(inStream);
-                @SuppressWarnings("unchecked")
-                final Map<String, Object> contentMap = inputMapper.readValue(new String(result, charset), Map.class);
-
-                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(indexOp);
-                operations.add(new IndexOperationRequest(index, type, id, contentMap, o));
-
-                originals.add(input);
-            } catch (final IOException ioe) {
-                getLogger().error("Could not read FlowFile content valid JSON.", ioe);
-                input = session.putAttribute(input, "elasticsearch.put.error", ioe.getMessage());
-                session.penalize(input);
-                session.transfer(input, REL_FAILURE);
-            } catch (final Exception ex) {
-                getLogger().error("Could not index documents.", ex);
-                input = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
-                session.penalize(input);
-                session.transfer(input, REL_FAILURE);
-            }
+        for (final FlowFile input : flowFiles) {
+            addOperation(operations, originals, idAttribute, context, session, input);
         }
 
         if (!originals.isEmpty()) {
             try {
-                final List<FlowFile> errorDocuments = indexDocuments(operations, originals, context);
-                session.transfer(errorDocuments, REL_FAILED_DOCUMENTS);
-                errorDocuments.forEach(e ->
-                        session.getProvenanceReporter().send(
-                                e,
-                                clientService.get().getTransitUrl(
-                                        context.getProperty(INDEX).evaluateAttributeExpressions(e).getValue(),
-                                        context.getProperty(TYPE).evaluateAttributeExpressions(e).getValue()
-                                ),
-                                "Elasticsearch _bulk operation error"
-                        )
-                );
-
-                final List<FlowFile> successfulDocuments = originals.stream().filter(f -> !errorDocuments.contains(f)).collect(Collectors.toList());
-                session.transfer(successfulDocuments, REL_SUCCESS);
-                successfulDocuments.forEach(s ->
-                        session.getProvenanceReporter().send(
-                                s,
-                                clientService.get().getTransitUrl(
-                                        context.getProperty(INDEX).evaluateAttributeExpressions(s).getValue(),
-                                        context.getProperty(TYPE).evaluateAttributeExpressions(s).getValue()
-                                )
-                        )
-                );
+                final List<FlowFile> errorDocuments = indexDocuments(operations, originals, context, session);
+                handleResponse(context, session, errorDocuments, originals);
             } catch (final ElasticsearchException ese) {
                 final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
                         ese.isElastic() ? "Routing to retry." : "Routing to failure");
@@ -239,28 +242,105 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         }
     }
 
+    private void addOperation(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final String idAttribute,
+                              final ProcessContext context, final ProcessSession session, FlowFile input) {
+        final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
+        final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
+        final String type = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
+        final String id = StringUtils.isNotBlank(idAttribute) && StringUtils.isNotBlank(input.getAttribute(idAttribute)) ? input.getAttribute(idAttribute) : null;
+
+        final Map<String, Object> scriptMap = getMapFromAttribute(SCRIPT, context, input);
+        final boolean scriptedUpsert = context.getProperty(SCRIPTED_UPSERT).evaluateAttributeExpressions(input).asBoolean();
+        final Map<String, Object> dynamicTemplatesMap = getMapFromAttribute(DYNAMIC_TEMPLATES, context, input);
+
+        final Map<String, String> dynamicProperties = getDynamicProperties(context, input);
+        final Map<String, String> bulkHeaderFields = getBulkHeaderParameters(dynamicProperties);
+
+        final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue();
+
+        try (final InputStream inStream = session.read(input)) {
+            final byte[] result = IOUtils.toByteArray(inStream);
+            @SuppressWarnings("unchecked")
+            final Map<String, Object> contentMap = objectMapper.readValue(new String(result, charset), Map.class);
+
+            final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(indexOp);
+            operations.add(new IndexOperationRequest(index, type, id, contentMap, o, scriptMap, scriptedUpsert, dynamicTemplatesMap, bulkHeaderFields));
+
+            originals.add(input);
+        } catch (final IOException ioe) {
+            getLogger().error("Could not read FlowFile content valid JSON.", ioe);
+            input = session.putAttribute(input, "elasticsearch.put.error", ioe.getMessage());
+            session.penalize(input);
+            session.transfer(input, REL_FAILURE);
+        } catch (final Exception ex) {
+            getLogger().error("Could not index documents.", ex);
+            input = session.putAttribute(input, "elasticsearch.put.error", ex.getMessage());
+            session.penalize(input);
+            session.transfer(input, REL_FAILURE);
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context) throws JsonProcessingException {
-        final IndexOperationResponse response = clientService.get().bulk(operations, getUrlQueryParameters(context, originals.get(0)));
-        final List<FlowFile> errorDocuments = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
+    private Map<String, Object> getMapFromAttribute(final PropertyDescriptor propertyDescriptor, final ProcessContext context, final FlowFile input) {
+        final String dynamicTemplates = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(input).getValue();
+        try {
+            return StringUtils.isNotBlank(dynamicTemplates) ? MAPPER.readValue(dynamicTemplates, Map.class) : Collections.emptyMap();
+        } catch (final JsonProcessingException jpe) {
+            throw new ProcessException(propertyDescriptor.getDisplayName() + " must be a String parsable into a JSON Object", jpe);
+        }
+    }
 
-        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
-        if (response.hasErrors()) {
-            logElasticsearchDocumentErrors(response);
+    private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context, final ProcessSession session) throws IOException {
+        final Map<String, String> dynamicProperties = getDynamicProperties(context, originals.get(0));
+        final IndexOperationResponse response = clientService.get().bulk(operations, getRequestURLParameters(dynamicProperties));
 
-            if (outputErrors) {
-                errorItemFilters.add(isElasticsearchError());
-            }
+        final Map<Integer, Map<String, Object>> errors = findElasticsearchResponseErrors(response);
+        final List<FlowFile> errorDocuments = outputErrors ? new ArrayList<>(errors.size()) : Collections.emptyList();
+        if (outputErrors) {
+            errors.forEach((index, error) -> {
+                String errorMessage;
+                try {
+                    errorMessage = objectMapper.writeValueAsString(error);
+                } catch (JsonProcessingException e) {
+                    errorMessage = String.format(
+                            "{\"error\": {\"type\": \"elasticsearch_response_parse_error\", \"reason\": \"%s\"}}",
+                            e.getMessage().replace("\"", "\\\"")
+                    );
+                }
+                errorDocuments.add(session.putAttribute(originals.get(index), "elasticsearch.bulk.error", errorMessage));
+            });
         }
 
-        if (!notFoundIsSuccessful) {
-            errorItemFilters.add(isElasticsearchNotFound());
-        }
-        if (!errorItemFilters.isEmpty()) {
-            findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]))
-                    .forEach(index -> errorDocuments.add(originals.get((Integer) index)));
+        if (!errors.isEmpty()) {
+            handleElasticsearchDocumentErrors(errors, session, null);
         }
 
         return errorDocuments;
+    }
+
+    private void handleResponse(final ProcessContext context, final ProcessSession session, final List<FlowFile> errorDocuments, final List<FlowFile> originals) {
+        session.transfer(errorDocuments, REL_FAILED_DOCUMENTS);
+        errorDocuments.forEach(e ->
+                session.getProvenanceReporter().send(
+                        e,
+                        clientService.get().getTransitUrl(
+                                context.getProperty(INDEX).evaluateAttributeExpressions(e).getValue(),
+                                context.getProperty(TYPE).evaluateAttributeExpressions(e).getValue()
+                        ),
+                        "Elasticsearch _bulk operation error"
+                )
+        );
+
+        final List<FlowFile> successfulDocuments = originals.stream().filter(f -> !errorDocuments.contains(f)).collect(Collectors.toList());
+        session.transfer(successfulDocuments, REL_SUCCESS);
+        successfulDocuments.forEach(s ->
+                session.getProvenanceReporter().send(
+                        s,
+                        clientService.get().getTransitUrl(
+                                context.getProperty(INDEX).evaluateAttributeExpressions(s).getValue(),
+                                context.getProperty(TYPE).evaluateAttributeExpressions(s).getValue()
+                        )
+                )
+        );
     }
 }

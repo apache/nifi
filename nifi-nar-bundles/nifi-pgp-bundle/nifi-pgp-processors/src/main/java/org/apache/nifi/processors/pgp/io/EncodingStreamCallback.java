@@ -37,7 +37,7 @@ import java.util.Objects;
  * Encoding Stream Callback handles writing PGP messages using configured properties
  */
 public class EncodingStreamCallback implements StreamCallback {
-    private static final int OUTPUT_BUFFER_SIZE = 8192;
+    protected static final int OUTPUT_BUFFER_SIZE = 8192;
 
     private final FileEncoding fileEncoding;
 

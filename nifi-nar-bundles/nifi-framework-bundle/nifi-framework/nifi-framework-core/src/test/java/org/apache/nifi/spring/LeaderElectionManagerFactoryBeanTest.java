@@ -75,7 +75,11 @@ class LeaderElectionManagerFactoryBeanTest {
 
         when(bundle.getClassLoader()).thenReturn(Thread.currentThread().getContextClassLoader());
         when(extensionManager.getBundles(eq(MockLeaderElectionManager.class.getName()))).thenReturn(Collections.singletonList(bundle));
-        final ExtensionDefinition extension = new ExtensionDefinition(MockLeaderElectionManager.class.getName(), bundle, LeaderElectionManager.class);
+        final ExtensionDefinition extension = new ExtensionDefinition.Builder()
+            .implementationClassName(MockLeaderElectionManager.class.getName())
+            .bundle(bundle)
+            .extensionType(LeaderElectionManager.class)
+            .build();
         when(extensionManager.getExtensions(eq(LeaderElectionManager.class))).thenReturn(Collections.singleton(extension));
 
         final LeaderElectionManager leaderElectionManager = bean.getObject();

@@ -30,7 +30,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.encrypt.PropertyEncryptor
-import org.apache.nifi.encrypt.PropertyEncryptorFactory
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder
 import org.apache.nifi.flow.encryptor.FlowEncryptor
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
 import org.apache.nifi.properties.scheme.ProtectionScheme
@@ -205,7 +205,7 @@ class ConfigEncryptionTool {
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
 
-    private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+    private static final String DEFAULT_FLOW_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256"
 
     private static final Map<String, String> PROPERTY_KEY_MAP = [
             "nifi.security.keystore"        : "keystore",
@@ -711,7 +711,7 @@ class ConfigEncryptionTool {
      * @param flowXmlContent the original flow.xml.gz as an input stream
      * @param existingFlowPassword the existing value of nifi.sensitive.props.key (not a raw key, but rather a password)
      * @param newFlowPassword the password to use to for encryption (not a raw key, but rather a password)
-     * @param existingAlgorithm the KDF algorithm to use (defaults to PBEWITHMD5AND256BITAES-CBC-OPENSSL)
+     * @param existingAlgorithm the KDF algorithm to use
      * @param existingProvider the {@link java.security.Provider} to use (defaults to BC)
      * @return the encrypted XML content as an InputStream
      */
@@ -719,18 +719,8 @@ class ConfigEncryptionTool {
         File tempFlowXmlFile = new File(getTemporaryFlowXmlFile(outputFlowXmlPath).toString())
         final OutputStream flowOutputStream = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
 
-        NiFiProperties inputProperties = NiFiProperties.createBasicNiFiProperties("", [
-                (NiFiProperties.SENSITIVE_PROPS_KEY): existingFlowPassword,
-                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM): existingAlgorithm
-        ])
-
-        NiFiProperties outputProperties = NiFiProperties.createBasicNiFiProperties("", [
-                (NiFiProperties.SENSITIVE_PROPS_KEY): newFlowPassword,
-                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM): newAlgorithm
-        ])
-
-        final PropertyEncryptor inputEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(inputProperties)
-        final PropertyEncryptor outputEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(outputProperties)
+        final PropertyEncryptor inputEncryptor = new PropertyEncryptorBuilder(existingFlowPassword).setAlgorithm(existingAlgorithm).build()
+        final PropertyEncryptor outputEncryptor = new PropertyEncryptorBuilder(newFlowPassword).setAlgorithm(newAlgorithm).build()
 
         final FlowEncryptor flowEncryptor = new StandardFlowEncryptor()
         flowEncryptor.processFlow(flowXmlContent, flowOutputStream, inputEncryptor, outputEncryptor)

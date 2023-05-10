@@ -24,6 +24,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 11 or Java 17
+* Use of Python-based Processors (beta feature) requires Python 3.9+
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -230,6 +231,42 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 ----
 <logger name="deprecation.org.apache.nifi.processors.ListenLegacyProtocol" level="OFF" />
 ----
+
+[[python_configuration]]
+== Python Configuration
+
+NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
+considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
+Python 3.9+ must be installed on the NiFi node.
+
+The following properties may be used to configure the Python 3 installation and process management. These properties are all located under the
+"Python Extensions" heading in the _nifi.properties_ file:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Default Value | Description
+| nifi.python.command | python3 | The command used to launch Python. By default, this property is set to "python3" but commented out. In order to enable Python-based Processors,
+uncomment this line and set it to the command that should be used to invoke Python 3.
+| nifi.python.framework.source.directory | ./python/framework | The directory that contains the Python framework for communicating between the Python and Java processes. The API is expected to be
+located as a sibling of this directory. For example, if the value of this property is `./python/framework`, then the API should be located at `./python/api`.
+| nifi.python.extensions.source.directory.default | ./python/extensions | The directory that NiFi should look in to find Python-based Processors. Note that this property is supplied
+by default, but multiple Python Extension directories can be added by adding additional properties with the prefix `nifi.python.extensions.source.directory.`.
+| nifi.python.working.directory | ./work/python | The working directory where NiFi should store artifacts, such as any third-party libraries that are downloaded as dependencies
+for the Python Processors.
+| nifi.python.logs.directory | ./logs | The directory where NiFi should store the logs for the Python processes. If Python Processors use the in-built logger, the messages will be logged to the
+app-log. However, if they create their own Python logger, the messages will be written to the Python-specific log file(s). Additionally, the Python framework will write to the Python-specific log
+file(s).
+| nifi.python.max.processes.per.extension.type | 10 | The maximum number of Python processes that should be spawned for any one type of Processor. Because Python does not scale vertically,
+adding many NiFi Processors within the same Python process would yield very poor performance. Instead, NiFi creates a Python process for every Python Processor that is added to the canvas,
+within limits. This property indicates the maximum number of Python processes that can be created for any particular type of Processor. For example, if there are 5 instances of the
+TransformFoo Processor on the canvas, and this value is set to 10, then adding another TransformFoo will spawn another Python process. However, after the tenth process, adding an eleventh
+instance of TransformFoo will result in adding a second TransformFoo processor to the first Python process. This may result in poorer performance, but limits the number of compute resources
+that can be allocated for each individual type of Processor.
+| nifi.python.max.processes | 100 | The maximum number of Python processes to spawn for all Processors combined. Once this limit is reached, if another Processor is added to the NiFi canvas,
+the newly added Processor will be added to one of the existing Python processes that was allocated for other Processors of the same type. If there are no other Python processes allocated for
+the same type, an Exception will be thrown and the Processor will not be added to the canvas.
+|==================================================================================================================================================
+
 
 [[security_configuration]]
 == Security Configuration
@@ -542,7 +579,7 @@ OpenID Connect integration supports the following settings in _nifi.properties_.
 by the OpenID Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL
-|`nifi.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`
+|`nifi.security.user.oidc.additional.scopes`                | Comma separated scopes that are sent to OpenID Connect Provider in addition to `openid` and `email`. Authorization Servers require the `offline_access` scope to return a Refresh Token.
 |`nifi.security.user.oidc.claim.identifying.user`           | Claim that identifies the authenticated user. The default value is `email`. Claim names may need to be requested using the `nifi.security.user.oidc.additional.scopes` property
 |`nifi.security.user.oidc.fallback.claims.identifying.user` | Comma-separated list of possible fallback claims used to identify the user when the `nifi.security.user.oidc.claim.identifying.user` claim is not found.
 |`nifi.security.user.oidc.claim.groups`                     | Name of the ID token claim that contains an array of group names of which the
@@ -2582,15 +2619,32 @@ in the cluster. This allows one node to pick up where another node left off, or 
 
 [[state_providers]]
 === Configuring State Providers
-When a component decides to store or retrieve state, it does so by providing a "Scope" - either Node-local or Cluster-wide. The
-mechanism that is used to store and retrieve this state is then determined based on this Scope, as well as the configured State
-Providers. The _nifi.properties_ file contains three different properties that are relevant to configuring these State Providers.
+When a component decides to store or retrieve state, it does so by providing a `Scope`, either `Local` to the node or
+applicable to the entire `Cluster`. Component implementation code and configuration properties determine the requested
+Scope, which the framework provides according to the State Management configuration. The `nifi.properties` configuration
+contains several properties for managing these State Providers.
 
 |====
 |*Property*|*Description*
-|`nifi.state.management.configuration.file`|The first is the property that specifies an external XML file that is used for configuring the local and/or cluster-wide State Providers. This XML file may contain configurations for multiple providers
-|`nifi.state.management.provider.local`|The property that provides the identifier of the local State Provider configured in this XML file
-|`nifi.state.management.provider.cluster`|Similarly, the property provides the identifier of the cluster-wide State Provider configured in this XML file.
+|`nifi.state.management.configuration.file`|The configuration file specifies the path to an external XML file that the
+framework uses to configure State Providers. This XML file may contain configurations for multiple providers.
+|`nifi.state.management.provider.local`|The Local Provider stores current Local State information. The property value
+identifies a Local Provider in the State Management configuration that the framework will use for storing and retrieving
+Local State for requesting components.
+|`nifi.state.management.provider.cluster`|The Cluster Provider stores current Cluster State information. The property
+value identifies a Cluster Provider in the State Management configuration that the framework will use for storing and
+retrieving Cluster State for requesting components.
+|`nifi.state.management.provider.cluster.previous`|The Previous Cluster State Provider enables population of the current
+Cluster State from an existing Provider. The property value identifies a Cluster Provider in the State Management
+configuration that the framework will use as the initial source of Cluster State when the current Cluster State Provider
+is has no information stored.
+
+The framework enumerates the Current Cluster Provider when a node becomes Primary, and proceeds to check the Previous
+Cluster Provider when the Current Cluster Provider does not contain any component information. The Previous Cluster
+Provider property value can be set to blank after cluster startup following a successful Cluster State restore from
+backup.
+
+The default value is blank.
 |====
 
 This XML file consists of a top-level `state-management` element, which has one or more `local-provider` and zero or more `cluster-provider`
@@ -3620,29 +3674,12 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is `org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
-Three additional repositories are available as well.
+|`nifi.provenance.repository.implementation`|The Provenance Repository implementation. The default value is
+`org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
 To store provenance events in memory instead of on disk (in which case all events will be lost on restart, and events will be evicted in a first-in-first-out order),
 set this property to `org.apache.nifi.provenance.VolatileProvenanceRepository`. This leaves a configurable number of Provenance Events in the Java heap, so the number
 of events that can be retained is very limited.
 
-A third and fourth option are available: `org.apache.nifi.provenance.PersistentProvenanceRepository` and `org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository`.
-The `PersistentProvenanceRepository` was originally written with the simple goal of persisting
-Provenance Events as they are generated and providing the ability to iterate over those events sequentially. Later, it was desired to be able to compress the data so that
-more data could be stored. After that, the ability to index and query the data was added. As requirements evolved over time, the repository kept changing without any major
-redesigns. When used in a NiFi instance that is responsible for processing large volumes of small FlowFiles, the `PersistentProvenanceRepository` can quickly become a bottleneck.
-The `WriteAheadProvenanceRepository` was then written to provide the same capabilities as the `PersistentProvenanceRepository` while providing far better performance.
-The `WriteAheadProvenanceRepository` was added in version 1.2.0 of NiFi. Since then, it has proven to be very stable and robust and as such was made the default implementation.
-The `PersistentProvenanceRepository` is now considered deprecated and should no longer be used. If administering an instance of NiFi that is currently using the
-`PersistentProvenanceRepository`, it is highly recommended to upgrade to the `WriteAheadProvenanceRepository`. Doing so is as simple as changing the implementation property value
-from `org.apache.nifi.provenance.PersistentProvenanceRepository` to `org.apache.nifi.provenance.WriteAheadProvenanceRepository`. Because the Provenance Repository is backward
-compatible, there will be no loss of data or functionality.
-
-The `EncryptedWriteAheadProvenanceRepository` builds upon the `WriteAheadProvenanceRepository` and ensures that data is encrypted at rest.
-
-*NOTE:* The `WriteAheadProvenanceRepository` will make use of the Provenance data stored by the `PersistentProvenanceRepository`. However, the
-`PersistentProvenanceRepository` may not be able to read the data written by the `WriteAheadProvenanceRepository`. Therefore, once the Provenance Repository is changed to use
-the `WriteAheadProvenanceRepository`, it cannot be changed back to the `PersistentProvenanceRepository` without deleting the data in the Provenance Repository.
 |`nifi.provenance.repository.rollover.events`| The maximum number of events that should be written to a single event file before the file is rolled over. The default value is `Integer.MAX_VALUE`
 |====
 
@@ -4154,6 +4191,8 @@ request headers. The default value is:
 The CustomRequestLog writes formatted messages using the following SLF4J logger:
 
 `org.apache.nifi.web.server.RequestLog`
+|`nifi.web.jmx.metrics.allowed.filter.pattern`|The regular expression controlling the JMX MBean names that the REST API
+is allowed to return. The default value is empty, blocking all MBeans. Configuring `.*` allows all registered MBeans.
 |====
 
 [[security_properties]]
@@ -4824,3 +4863,37 @@ nifi.diagnostics.on.shutdown.max.directory.size=10 MB
 ```
 
 In the case of a lengthy diagnostic, NiFi may terminate before the command execution ends. In this case, the `graceful.shutdown.seconds` property should be set to a higher value in the `bootstrap.conf` configuration file.
+
+[[jmx_metrics]]
+== JMX Metrics
+
+It is possible to get JMX metrics using the REST API with read permissions on system diagnostics resources.
+
+The information available depends on the registered MBeans. Metrics can contain data related to performance indicators.
+
+Listing of MBeans is controlled using a regular expression pattern in application properties. Leaving the
+property empty means no MBeans will be returned. The default value blocks all MBeans and must be changed to return
+information.
+
+ nifi.web.jmx.metrics.allowed.filter.pattern=.*
+
+An optionally provided query parameter using a regular expression pattern, will display only MBeans with matching names.
+Leaving this parameter empty means listing all MBeans except those filtered out by the blocked filter pattern.
+
+ https://localhost:8443/nifi-api/system-diagnostics/jmx-metrics?beanNameFilter=bean.name.1|bean.name.2
+
+An example output would look like this:
+
+ [
+   {
+     "beanName" : "bean.name.1,type=type1",
+     "attributeName" : “attribute-name",
+     "attributeValue" : “attribute-value”
+   },
+   {
+     "beanName" : "bean.name.2, type=type2",
+     "attributeName" : "attribute-name",
+     "attributeValue" : integer-value
+   }
+ ]
+

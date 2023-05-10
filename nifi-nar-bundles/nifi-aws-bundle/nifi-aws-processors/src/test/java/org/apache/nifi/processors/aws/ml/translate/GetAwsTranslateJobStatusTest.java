@@ -18,8 +18,8 @@
 package org.apache.nifi.processors.aws.ml.translate;
 
 import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_FAILURE;
-import static org.apache.nifi.processors.aws.AbstractAWSProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_FAILURE;
+import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.REL_RUNNING;
 import static org.apache.nifi.processors.aws.ml.AwsMachineLearningJobStatusProcessor.TASK_ID;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.translate.AmazonTranslateClient;
 import com.amazonaws.services.translate.model.DescribeTextTranslationJobRequest;
 import com.amazonaws.services.translate.model.DescribeTextTranslationJobResult;
@@ -67,12 +67,8 @@ public class GetAwsTranslateJobStatusTest {
     public void setUp() throws InitializationException {
         when(mockAwsCredentialsProvider.getIdentifier()).thenReturn(AWS_CREDENTIALS_PROVIDER_NAME);
         final GetAwsTranslateJobStatus mockPollyFetcher = new GetAwsTranslateJobStatus() {
-            protected AmazonTranslateClient getClient() {
-                return mockTranslateClient;
-            }
-
             @Override
-            protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentials credentials, ClientConfiguration config) {
+            protected AmazonTranslateClient createClient(ProcessContext context, AWSCredentialsProvider credentialsProvider, ClientConfiguration config) {
                 return mockTranslateClient;
             }
         };
@@ -93,7 +89,7 @@ public class GetAwsTranslateJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_RUNNING);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 
     @Test
@@ -109,7 +105,7 @@ public class GetAwsTranslateJobStatusTest {
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
         runner.assertAllFlowFilesContainAttribute(AWS_TASK_OUTPUT_LOCATION);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 
     @Test
@@ -123,7 +119,7 @@ public class GetAwsTranslateJobStatusTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
-        assertEquals(requestCaptor.getValue().getJobId(), TEST_TASK_ID);
+        assertEquals(TEST_TASK_ID, requestCaptor.getValue().getJobId());
     }
 
 }

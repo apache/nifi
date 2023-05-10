@@ -59,6 +59,7 @@ env:
     -pl -:nifi-stateless-system-test-suite
     -pl -:nifi-system-test-suite
     -pl -:nifi-nar-provider-assembly
+    -pl -:nifi-py4j-integration-tests
   MAVEN_VERIFY_COMMAND: >-
     mvn verify
     --show-version

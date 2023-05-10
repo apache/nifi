@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.azure.core.amqp.AmqpClientOptions;
+import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -68,6 +69,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
@@ -87,7 +89,7 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 @SeeAlso(ConsumeAzureEventHub.class)
-public class GetAzureEventHub extends AbstractProcessor {
+public class GetAzureEventHub extends AbstractProcessor implements AzureEventHubComponent {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s/%s/ConsumerGroups/%s/Partitions/%s";
     private static final Duration DEFAULT_FETCH_TIMEOUT = Duration.ofSeconds(60);
     private static final int DEFAULT_FETCH_SIZE = 100;
@@ -175,6 +177,7 @@ public class GetAzureEventHub extends AbstractProcessor {
                 NAMESPACE,
                 EVENT_HUB_NAME,
                 SERVICE_BUS_ENDPOINT,
+                TRANSPORT_TYPE,
                 ACCESS_POLICY,
                 POLICY_PRIMARY_KEY,
                 USE_MANAGED_IDENTITY,
@@ -372,8 +375,10 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
+        final AmqpTransportType transportType = AmqpTransportType.fromString(context.getProperty(TRANSPORT_TYPE).getValue());
 
         final EventHubClientBuilder eventHubClientBuilder = new EventHubClientBuilder();
+        eventHubClientBuilder.transportType(transportType);
 
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
         eventHubClientBuilder.consumerGroup(consumerGroup);

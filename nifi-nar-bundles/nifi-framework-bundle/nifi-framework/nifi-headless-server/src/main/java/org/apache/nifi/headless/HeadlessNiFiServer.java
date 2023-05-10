@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.headless;
 
-import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
-import java.util.List;
-import java.util.Set;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.impl.StandardAuditService;
@@ -47,9 +43,8 @@ import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.diagnostics.bootstrap.BootstrapDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorFactory;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
 import org.apache.nifi.events.VolatileBulletinRepository;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarAutoLoader;
@@ -68,19 +63,24 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.util.List;
+import java.util.Set;
+
 /**
  *
  */
 public class HeadlessNiFiServer implements NiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(HeadlessNiFiServer.class);
-    protected NiFiProperties props;
-    protected Bundle systemBundle;
-    protected Set<Bundle> bundles;
-    protected FlowController flowController;
-    protected FlowService flowService;
-    protected DiagnosticsFactory diagnosticsFactory;
-    protected NarAutoLoader narAutoLoader;
+    private NiFiProperties props;
+    private Bundle systemBundle;
+    private Set<Bundle> bundles;
+    private FlowController flowController;
+    private FlowService flowService;
+    private DiagnosticsFactory diagnosticsFactory;
+    private NarAutoLoader narAutoLoader;
 
     /**
      * Default constructor
@@ -92,7 +92,7 @@ public class HeadlessNiFiServer implements NiFiServer {
         try {
 
             // Create a standard extension manager and discover extensions
-            final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+            final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
             extensionManager.discoverExtensions(systemBundle, bundles);
             extensionManager.logClassLoaderMapping();
 
@@ -127,7 +127,9 @@ public class HeadlessNiFiServer implements NiFiServer {
                 }
             };
 
-            PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(props);
+            final String propertiesKey = props.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+            final String propertiesAlgorithm = props.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
+            final PropertyEncryptor encryptor = new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
             VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
             BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
@@ -245,6 +247,14 @@ public class HeadlessNiFiServer implements NiFiServer {
                 logger.warn(msg);
             }
         }
+    }
+
+    protected FlowController getFlowController() {
+        return flowController;
+    }
+
+    protected NiFiProperties getNiFiProperties() {
+        return props;
     }
 
     protected List<Bundle> getBundles(final String bundleClass) {

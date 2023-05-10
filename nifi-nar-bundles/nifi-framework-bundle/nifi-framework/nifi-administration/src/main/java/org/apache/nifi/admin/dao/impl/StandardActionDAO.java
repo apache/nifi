@@ -186,6 +186,18 @@ public class StandardActionDAO implements ActionDAO {
             + "ORDER BY A.ACTION_TIMESTAMP DESC "
             + "LIMIT 4";
 
+    private static final String DELETE_PREVIOUS_VALUES = "DELETE FROM CONFIGURE_DETAILS " +
+            "WHERE NAME = ? " +
+            "AND ACTION_ID IN " +
+            "(SELECT ID FROM ACTION WHERE SOURCE_ID = ?)";
+    private static final String ACTION_TIMESTAMP = "ACTION_TIMESTAMP";
+    private static final String SOURCE_NAME = "SOURCE_NAME";
+    private static final String SOURCE_TYPE = "SOURCE_TYPE";
+    private static final String OPERATION = "OPERATION";
+    private static final String IDENTITY = "IDENTITY";
+    private static final String ACTION_ID = "ACTION_ID";
+    private static final String SOURCE_ID = "SOURCE_ID";
+
     private final Connection connection;
     private final Map<String, String> columnMap;
 
@@ -194,11 +206,11 @@ public class StandardActionDAO implements ActionDAO {
 
         // initialize the column mappings
         this.columnMap = new HashMap<>();
-        this.columnMap.put("timestamp", "ACTION_TIMESTAMP");
-        this.columnMap.put("sourceName", "SOURCE_NAME");
-        this.columnMap.put("sourceType", "SOURCE_TYPE");
-        this.columnMap.put("operation", "OPERATION");
-        this.columnMap.put("userIdentity", "IDENTITY");
+        this.columnMap.put("timestamp", ACTION_TIMESTAMP);
+        this.columnMap.put("sourceName", SOURCE_NAME);
+        this.columnMap.put("sourceType", SOURCE_TYPE);
+        this.columnMap.put("operation", OPERATION);
+        this.columnMap.put("userIdentity", IDENTITY);
     }
 
     @Override
@@ -421,9 +433,8 @@ public class StandardActionDAO implements ActionDAO {
 
     @Override
     public History findActions(HistoryQuery historyQuery) throws DataAccessException {
-
         // get the sort column
-        String sortColumn = "ACTION_TIMESTAMP";
+        String sortColumn = ACTION_TIMESTAMP;
         if (StringUtils.isNotBlank(historyQuery.getSortColumn())) {
             String rawColumnName = historyQuery.getSortColumn();
             if (!columnMap.containsKey(rawColumnName)) {
@@ -433,10 +444,7 @@ public class StandardActionDAO implements ActionDAO {
         }
 
         // get the sort order
-        String sortOrder = "desc";
-        if (StringUtils.isNotBlank(historyQuery.getSortOrder())) {
-            sortOrder = historyQuery.getSortOrder();
-        }
+        String sortOrder = StringUtils.defaultIfBlank(historyQuery.getSortOrder(), "desc");
 
         History actionResult = new History();
         Collection<Action> actions = new ArrayList<>();
@@ -554,17 +562,17 @@ public class StandardActionDAO implements ActionDAO {
             // create each corresponding action
             while (rs.next()) {
                 final Integer actionId = rs.getInt("ID");
-                final Operation operation = Operation.valueOf(rs.getString("OPERATION"));
-                final Component component = Component.valueOf(rs.getString("SOURCE_TYPE"));
+                final Operation operation = Operation.valueOf(rs.getString(OPERATION));
+                final Component component = Component.valueOf(rs.getString(SOURCE_TYPE));
 
                 FlowChangeAction action = new FlowChangeAction();
                 action.setId(actionId);
-                action.setUserIdentity(rs.getString("IDENTITY"));
-                action.setOperation(Operation.valueOf(rs.getString("OPERATION")));
-                action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
-                action.setSourceId(rs.getString("SOURCE_ID"));
-                action.setSourceName(rs.getString("SOURCE_NAME"));
-                action.setSourceType(Component.valueOf(rs.getString("SOURCE_TYPE")));
+                action.setUserIdentity(rs.getString(IDENTITY));
+                action.setOperation(Operation.valueOf(rs.getString(OPERATION)));
+                action.setTimestamp(new Date(rs.getTimestamp(ACTION_TIMESTAMP).getTime()));
+                action.setSourceId(rs.getString(SOURCE_ID));
+                action.setSourceName(rs.getString(SOURCE_NAME));
+                action.setSourceType(Component.valueOf(rs.getString(SOURCE_TYPE)));
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
@@ -627,17 +635,17 @@ public class StandardActionDAO implements ActionDAO {
 
             // ensure results
             if (rs.next()) {
-                Operation operation = Operation.valueOf(rs.getString("OPERATION"));
-                Component component = Component.valueOf(rs.getString("SOURCE_TYPE"));
+                Operation operation = Operation.valueOf(rs.getString(OPERATION));
+                Component component = Component.valueOf(rs.getString(SOURCE_TYPE));
 
                 // populate the action
                 action = new FlowChangeAction();
                 action.setId(rs.getInt("ID"));
-                action.setUserIdentity(rs.getString("IDENTITY"));
+                action.setUserIdentity(rs.getString(IDENTITY));
                 action.setOperation(operation);
-                action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
-                action.setSourceId(rs.getString("SOURCE_ID"));
-                action.setSourceName(rs.getString("SOURCE_NAME"));
+                action.setTimestamp(new Date(rs.getTimestamp(ACTION_TIMESTAMP).getTime()));
+                action.setSourceId(rs.getString(SOURCE_ID));
+                action.setSourceName(rs.getString(SOURCE_NAME));
                 action.setSourceType(component);
 
                 // get the component details if appropriate
@@ -778,12 +786,12 @@ public class StandardActionDAO implements ActionDAO {
 
             // ensure results
             if (rs.next()) {
-                final Component sourceComponent = Component.valueOf(rs.getString("SOURCE_TYPE"));
+                final Component sourceComponent = Component.valueOf(rs.getString(SOURCE_TYPE));
                 final Component destinationComponent = Component.valueOf(rs.getString("DESTINATION_TYPE"));
 
                 connectionDetails = new FlowChangeConnectDetails();
-                connectionDetails.setSourceId(rs.getString("SOURCE_ID"));
-                connectionDetails.setSourceName(rs.getString("SOURCE_NAME"));
+                connectionDetails.setSourceId(rs.getString(SOURCE_ID));
+                connectionDetails.setSourceName(rs.getString(SOURCE_NAME));
                 connectionDetails.setSourceType(sourceComponent);
                 connectionDetails.setRelationship(rs.getString("RELATIONSHIP"));
                 connectionDetails.setDestinationId(rs.getString("DESTINATION_ID"));
@@ -904,8 +912,8 @@ public class StandardActionDAO implements ActionDAO {
                 // get the previous value
                 final PreviousValue previousValue = new PreviousValue();
                 previousValue.setPreviousValue(rs.getString("VALUE"));
-                previousValue.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
-                previousValue.setUserIdentity(rs.getString("IDENTITY"));
+                previousValue.setTimestamp(new Date(rs.getTimestamp(ACTION_TIMESTAMP).getTime()));
+                previousValue.setUserIdentity(rs.getString(IDENTITY));
                 previousValues.add(previousValue);
             }
         } catch (SQLException sqle) {
@@ -927,13 +935,13 @@ public class StandardActionDAO implements ActionDAO {
             // -----------------
 
             // create the move delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "PROCESSOR_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "PROCESSOR_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
 
             // create the move delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "REMOTE_PROCESS_GROUP_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "REMOTE_PROCESS_GROUP_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
@@ -942,25 +950,25 @@ public class StandardActionDAO implements ActionDAO {
             // action details
             // --------------
             // create the move delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "MOVE_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "MOVE_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
 
             // create the configure delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "CONFIGURE_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "CONFIGURE_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
 
             // create the connect delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "CONNECT_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "CONNECT_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
 
             // create the relationship delete statement
-            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "PURGE_DETAILS", "ACTION_ID"));
+            statement = connection.prepareStatement(String.format(DELETE_SPECIFIC_ACTIONS, "PURGE_DETAILS", ACTION_ID));
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
             statement.close();
@@ -972,6 +980,22 @@ public class StandardActionDAO implements ActionDAO {
             statement = connection.prepareStatement(DELETE_ACTIONS);
             statement.setTimestamp(1, new java.sql.Timestamp(endDate.getTime()));
             statement.executeUpdate();
+        } catch (SQLException sqle) {
+            throw new DataAccessException(sqle);
+        } finally {
+            RepositoryUtils.closeQuietly(statement);
+        }
+    }
+
+    @Override
+    public void deletePreviousValues(String propertyName, String componentId) {
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(DELETE_PREVIOUS_VALUES);
+            statement.setString(1, propertyName);
+            statement.setString(2, componentId);
+            statement.executeUpdate();
+            statement.close();
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
         } finally {

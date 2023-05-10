@@ -168,11 +168,6 @@ public class TestRecordSetWriterLookup {
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
-            return new MockRecordSetWriter(name);
-        }
-
-        @Override
         public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
             return new MockRecordSetWriter(name);
         }

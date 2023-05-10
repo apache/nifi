@@ -547,12 +547,6 @@ public class UnpackContent extends AbstractProcessor {
                             // and later unpack it -- in this case, we have two FlowFiles with the same UUID.
                             attributes.remove(CoreAttributes.UUID.key());
 
-                            // maintain backward compatibility with legacy NiFi attribute names
-                            mapAttributes(attributes, "nf.file.name", CoreAttributes.FILENAME.key());
-                            mapAttributes(attributes, "nf.file.path", CoreAttributes.PATH.key());
-                            mapAttributes(attributes, "content-encoding", CoreAttributes.MIME_TYPE.key());
-                            mapAttributes(attributes, "content-type", CoreAttributes.MIME_TYPE.key());
-
                             if (!attributes.containsKey(CoreAttributes.MIME_TYPE.key())) {
                                 attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
                             }

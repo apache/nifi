@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.cryptography.AsyncKeyEncryptionKey;
+import com.azure.security.keyvault.keys.cryptography.KeyEncryptionKeyClientBuilder;
+import com.azure.security.keyvault.keys.models.JsonWebKey;
+import com.azure.security.keyvault.keys.models.KeyOperation;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobType;
+import com.azure.storage.blob.specialized.cryptography.EncryptedBlobClientBuilder;
+import com.azure.storage.blob.specialized.cryptography.EncryptionVersion;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -33,10 +40,12 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +56,13 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
 
     protected static final String BLOB_NAME = "blob1";
     protected static final byte[] BLOB_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
+    protected static final String KEY_ID_VALUE = "key:id";
+    protected static final String KEY_64B_VALUE = "1234567890ABCDEF";
+    protected static final String KEY_128B_VALUE = KEY_64B_VALUE + KEY_64B_VALUE;
+    protected static final String KEY_192B_VALUE = KEY_128B_VALUE + KEY_64B_VALUE;
+    protected static final String KEY_256B_VALUE = KEY_128B_VALUE + KEY_128B_VALUE;
+    protected static final String KEY_384B_VALUE = KEY_256B_VALUE + KEY_128B_VALUE;
+    protected static final String KEY_512B_VALUE = KEY_256B_VALUE + KEY_256B_VALUE;
 
     protected static final String EL_CONTAINER_NAME = "az.containername";
     protected static final String EL_BLOB_NAME = "az.blobname";
@@ -126,6 +142,26 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
         Thread.sleep(1000);
 
         return blobClient;
+    }
+
+    protected BlobClient uploadBlobWithCSE(String blobName, byte[] blobData, String hexKey, String keyId, String keyWrapAlgorithm) throws Exception {
+        BlobClient blobClient = containerClient.getBlobClient(blobName);
+        byte[] keyBytes = Hex.decodeHex(hexKey.toCharArray());
+        JsonWebKey localKey = JsonWebKey.fromAes(new SecretKeySpec(keyBytes, "AES"),
+                Arrays.asList(KeyOperation.WRAP_KEY, KeyOperation.UNWRAP_KEY))
+                .setId(keyId);
+        AsyncKeyEncryptionKey akek = new KeyEncryptionKeyClientBuilder()
+                .buildAsyncKeyEncryptionKey(localKey).block();
+        BlobClient encryptedBlobClient  =  new EncryptedBlobClientBuilder(EncryptionVersion.V2)
+                .key(akek, keyWrapAlgorithm)
+                .blobClient(blobClient)
+                .buildEncryptedBlobClient();
+        encryptedBlobClient.upload(new ByteArrayInputStream(blobData), blobData.length);
+
+        // waiting for the blob to be available
+        Thread.sleep(1000);
+
+        return encryptedBlobClient;
     }
 
     protected Map<String, String> initCommonExpressionLanguageAttributes() {

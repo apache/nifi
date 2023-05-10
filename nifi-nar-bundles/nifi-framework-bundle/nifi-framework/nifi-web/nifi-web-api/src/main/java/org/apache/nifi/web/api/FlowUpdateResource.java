@@ -377,8 +377,9 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         asyncRequest.markStepComplete();
 
         // Get the Original Flow Snapshot in case we fail to update and need to rollback
+        // This only applies to flows that were under version control, update may be called without version control
         final VersionControlInformationEntity vciEntity = serviceFacade.getVersionControlInformation(groupId);
-        final RegisteredFlowSnapshot originalFlowSnapshot = serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
+        final RegisteredFlowSnapshot originalFlowSnapshot = vciEntity == null ? null : serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
 
         try {
             if (replicateRequest) {

@@ -450,13 +450,9 @@
      * @param {array} bulletins
      */
     var updateReferencingComponentBulletins = function (bulletins) {
-        var bulletinsBySource = d3.nest()
-            .key(function (d) {
-                return d.sourceId;
-            })
-            .map(bulletins, d3.map);
+        var bulletinsBySource = new Map(bulletins.map(function(d) { return [d.sourceId, d]; }));
 
-        bulletinsBySource.each(function (sourceBulletins, sourceId) {
+        bulletinsBySource.forEach(function (sourceBulletins, sourceId) {
             $('div.' + sourceId + '-bulletins').each(function () {
                 updateBulletins(sourceBulletins, $(this));
             });
@@ -829,7 +825,7 @@
      * @param {object} controllerService
      */
     var getReferencingControllerServiceIds = function (controllerService) {
-        var ids = d3.set();
+        var ids = new Set();
         ids.add(controllerService.id);
 
         var checkReferencingServices = function (referencingComponents) {
@@ -930,7 +926,7 @@
 
                     // start polling for each controller service
                     var polling = [];
-                    services.each(function (controllerServiceId) {
+                    services.forEach(function (controllerServiceId) {
                         getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                             polling.push(stopReferencingSchedulableComponents(controllerServiceEntity, pollCondition));
                         });
@@ -1229,7 +1225,7 @@
 
                 // start polling for each controller service
                 var polling = [];
-                services.each(function (controllerServiceId) {
+                services.forEach(function (controllerServiceId) {
                     getControllerService(controllerServiceId, controllerServiceData).done(function(controllerServiceEntity) {
                         if (enabled) {
                             polling.push(enableReferencingServices(controllerServiceEntity, pollCondition));

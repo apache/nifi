@@ -18,7 +18,6 @@ package org.apache.nifi.encrypt;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +39,7 @@ public class KeyedCipherPropertyEncryptorTest {
 
     private static final String KEY_ALGORITHM = "AES";
 
-    private static final byte[] STATIC_KEY = StringUtils.repeat("KEY", 8).getBytes(DEFAULT_CHARSET);
+    private static final byte[] STATIC_KEY = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6};
 
     private static final SecretKey SECRET_KEY = new SecretKeySpec(STATIC_KEY, KEY_ALGORITHM);
 

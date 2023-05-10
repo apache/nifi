@@ -23,6 +23,7 @@ import com.azure.messaging.eventhubs.models.PartitionEvent;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -77,6 +78,8 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_SIZE, "5");
         testRunner.assertValid();
         testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT, "10000");
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.TRANSPORT_TYPE, AzureEventHubTransportType.AMQP_WEB_SOCKETS.getValue());
         testRunner.assertValid();
     }
 

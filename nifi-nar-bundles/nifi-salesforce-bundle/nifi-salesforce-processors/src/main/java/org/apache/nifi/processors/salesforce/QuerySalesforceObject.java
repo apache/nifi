@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processors.salesforce;
 
-import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
-import org.apache.camel.component.salesforce.api.dto.SObjectField;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.camel.component.salesforce.api.dto.SObjectDescription;
+import org.apache.camel.component.salesforce.api.dto.SObjectField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -55,8 +55,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.salesforce.util.SalesforceRestService;
-import org.apache.nifi.processors.salesforce.util.SalesforceToRecordSchemaConverter;
+import org.apache.nifi.processors.salesforce.rest.SalesforceConfiguration;
+import org.apache.nifi.processors.salesforce.rest.SalesforceRestClient;
+import org.apache.nifi.processors.salesforce.schema.SalesforceSchemaHolder;
+import org.apache.nifi.processors.salesforce.schema.SalesforceToRecordSchemaConverter;
+import org.apache.nifi.processors.salesforce.util.IncrementalContext;
+import org.apache.nifi.processors.salesforce.util.SalesforceQueryBuilder;
+import org.apache.nifi.processors.salesforce.validator.SalesforceAgeValidator;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -72,10 +77,8 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -84,16 +87,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_URL;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.SALESFORCE_INSTANCE_URL;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
 
 @TriggerSerially
@@ -102,18 +107,19 @@ import static org.apache.nifi.processors.salesforce.util.CommonSalesforcePropert
 @CapabilityDescription("Retrieves records from a Salesforce sObject. Users can add arbitrary filter conditions by setting the 'Custom WHERE Condition' property."
         + " The processor can also run a custom query, although record processing is not supported in that case."
         + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
-        + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, filtering out all older records"
+        + " When this property is set the processor will retrieve new records. Incremental loading and record-based processing are only supported in property-based queries."
+        + " It's also possible to define an initial cutoff value for the age, filtering out all older records"
         + " even for the first run. In case of 'Property Based Query' this processor should run on the Primary Node only."
         + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output."
-        + " By using 'Custom Query', the processor can accept an optional input flowfile and reference the flowfile attributes in the query."
-        + " However, incremental loading and record-based processing are not supported in this scenario.")
+        + " The processor can accept an optional input FlowFile and reference the FlowFile attributes in the query.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
         + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
         + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
         + " the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
-        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
+        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile."),
+        @WritesAttribute(attribute = "total.record.count", description = "Sets the total number of records in the FlowFile.")
 })
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 @SeeAlso(PutSalesforceObject.class)
@@ -181,7 +187,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
-    static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
             .name("age-field")
             .displayName("Age Field")
             .description("The name of a TIMESTAMP field that will be used to filter records using a bounded time window."
@@ -193,7 +199,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
-    static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
             .name("age-delay")
             .displayName("Age Delay")
             .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
@@ -205,7 +211,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .dependsOn(QUERY_TYPE, PROPERTY_BASED_QUERY)
             .build();
 
-    static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
             .name("initial-age-filter")
             .displayName("Initial Age Start Time")
             .description("This property specifies the start time that the processor applies when running the first query.")
@@ -243,7 +249,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .autoTerminateDefault(true)
             .build();
 
-    private static final String LAST_AGE_FILTER = "last_age_filter";
+    public static final String LAST_AGE_FILTER = "last_age_filter";
     private static final String STARTING_FIELD_NAME = "records";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
     private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
@@ -254,13 +260,20 @@ public class QuerySalesforceObject extends AbstractProcessor {
     private static final BiPredicate<String, String> CAPTURE_PREDICATE = (fieldName, fieldValue) -> NEXT_RECORDS_URL.equals(fieldName);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final JsonFactory JSON_FACTORY = OBJECT_MAPPER.getFactory();
-    private static final String TOTAL_RECORD_COUNT = "total.record.count";
+    private static final String TOTAL_RECORD_COUNT_ATTRIBUTE = "total.record.count";
+    private static final int MAX_RECORD_COUNT = 2000;
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
-    private volatile SalesforceRestService salesforceRestService;
+    private volatile SalesforceRestClient salesforceRestService;
+    private volatile boolean resetState = false;
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
+        if (resetState) {
+            clearState(context);
+            resetState = false;
+        }
+
         salesForceToRecordSchemaConverter = new SalesforceToRecordSchemaConverter(
                 DATE_FORMAT,
                 DATE_TIME_FORMAT,
@@ -268,19 +281,21 @@ public class QuerySalesforceObject extends AbstractProcessor {
         );
 
         String salesforceVersion = context.getProperty(API_VERSION).getValue();
-        String baseUrl = context.getProperty(API_URL).getValue();
+        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).getValue();
         OAuth2AccessTokenProvider accessTokenProvider = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
-        salesforceRestService = new SalesforceRestService(
+        SalesforceConfiguration salesforceConfiguration = SalesforceConfiguration.create(
+                instanceUrl,
                 salesforceVersion,
-                baseUrl,
                 () -> accessTokenProvider.getAccessDetails().getAccessToken(),
                 context.getProperty(READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()
         );
+
+        salesforceRestService = new SalesforceRestClient(salesforceConfiguration);
     }
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            API_URL,
+            SALESFORCE_INSTANCE_URL,
             API_VERSION,
             QUERY_TYPE,
             CUSTOM_SOQL_QUERY,
@@ -313,69 +328,46 @@ public class QuerySalesforceObject extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        if (validationContext.getProperty(INITIAL_AGE_FILTER).isSet() && !validationContext.getProperty(AGE_FIELD).isSet()) {
-            results.add(
-                    new ValidationResult.Builder()
-                            .subject(INITIAL_AGE_FILTER.getDisplayName())
-                            .valid(false)
-                            .explanation("it requires " + AGE_FIELD.getDisplayName() + " also to be set.")
-                            .build()
-            );
+        return SalesforceAgeValidator.validate(validationContext, results);
+    }
+
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if ((oldValue != null && !oldValue.equals(newValue))
+                && (descriptor.equals(SALESFORCE_INSTANCE_URL)
+                || descriptor.equals(QUERY_TYPE)
+                || descriptor.equals(SOBJECT_NAME)
+                || descriptor.equals(AGE_FIELD)
+                || descriptor.equals(INITIAL_AGE_FILTER)
+                || descriptor.equals(CUSTOM_WHERE_CONDITION))
+        ) {
+            getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
+                    descriptor.getDisplayName(), oldValue, newValue);
+            resetState = true;
         }
-        return results;
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         boolean isCustomQuery = CUSTOM_QUERY.getValue().equals(context.getProperty(QUERY_TYPE).getValue());
-
-
+        FlowFile flowFile = session.get();
         if (isCustomQuery) {
-            FlowFile flowFile = session.get();
-            if (flowFile == null && context.hasIncomingConnection()) {
-                context.yield();
-                return;
-            }
             processCustomQuery(context, session, flowFile);
-            return;
+        } else {
+            processQuery(context, session, flowFile);
         }
-        processQuery(context, session);
     }
 
-    private void processQuery(ProcessContext context, ProcessSession session) {
+    private void processQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
-        String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
+        String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();
 
-        String ageField = context.getProperty(AGE_FIELD).getValue();
-        String initialAgeFilter = context.getProperty(INITIAL_AGE_FILTER).getValue();
-        Long ageDelayMs = context.getProperty(AGE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS);
-
-        String ageFilterLower;
-        StateMap state;
-        try {
-            state = context.getStateManager().getState(Scope.CLUSTER);
-            ageFilterLower = state.get(LAST_AGE_FILTER);
-        } catch (IOException e) {
-            throw new ProcessException("Last Age Filter state retrieval failed", e);
-        }
-
-        String ageFilterUpper;
-        if (ageField == null) {
-            ageFilterUpper = null;
-        } else {
-            OffsetDateTime ageFilterUpperTime;
-            if (ageDelayMs == null) {
-                ageFilterUpperTime = OffsetDateTime.now();
-            } else {
-                ageFilterUpperTime = OffsetDateTime.now().minus(ageDelayMs, ChronoUnit.MILLIS);
-            }
-            ageFilterUpper = ageFilterUpperTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-        }
-
+        StateMap state = getState(session);
+        IncrementalContext incrementalContext = new IncrementalContext(context, state);
         SalesforceSchemaHolder salesForceSchemaHolder = getConvertedSalesforceSchema(sObject, fields);
 
         if (StringUtils.isBlank(fields)) {
@@ -385,144 +377,181 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     .collect(Collectors.joining(","));
         }
 
-        String querySObject = buildQuery(
-                sObject,
-                fields,
-                customWhereClause,
-                ageField,
-                initialAgeFilter,
-                ageFilterLower,
-                ageFilterUpper
-        );
+        String querySObject = new SalesforceQueryBuilder(incrementalContext)
+                .buildQuery(sObject, fields, customWhereClause);
+
+        AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
+        List<FlowFile> outgoingFlowFiles = new ArrayList<>();
+        Map<String, String> originalAttributes = Optional.ofNullable(originalFlowFile)
+                .map(FlowFile::getAttributes)
+                .orElseGet(HashMap::new);
+
+        long startNanos = System.nanoTime();
 
         do {
-            FlowFile flowFile = session.create();
-            Map<String, String> originalAttributes = flowFile.getAttributes();
-            Map<String, String> attributes = new HashMap<>();
+            FlowFile outgoingFlowFile = createOutgoingFlowFile(session, originalFlowFile);
+            outgoingFlowFiles.add(outgoingFlowFile);
+            Map<String, String> attributes = new HashMap<>(originalAttributes);
 
             AtomicInteger recordCountHolder = new AtomicInteger();
-            long startNanos = System.nanoTime();
-            flowFile = session.write(flowFile, out -> {
-                try (
-                        InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl.get(), querySObject);
+            try {
+                outgoingFlowFile = session.write(outgoingFlowFile, processRecordsCallback(session, nextRecordsUrl, writerFactory, state, incrementalContext,
+                        salesForceSchemaHolder, querySObject, originalAttributes, attributes, recordCountHolder));
+                int recordCount = recordCountHolder.get();
 
-                        JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
-                                querySObjectResultInputStream,
-                                getLogger(),
-                                salesForceSchemaHolder.recordSchema,
-                                DATE_FORMAT,
-                                TIME_FORMAT,
-                                DATE_TIME_FORMAT,
-                                StartingFieldStrategy.NESTED_FIELD,
-                                STARTING_FIELD_NAME,
-                                SchemaApplicationStrategy.SELECTED_PART,
-                                CAPTURE_PREDICATE
-                        );
+                if (createZeroRecordFlowFiles || recordCount != 0) {
+                    outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
 
-                        RecordSetWriter writer = writerFactory.createWriter(
-                                getLogger(),
-                                writerFactory.getSchema(
-                                        originalAttributes,
-                                        salesForceSchemaHolder.recordSchema
-                                ),
-                                out,
-                                originalAttributes
-                        )
-                ) {
-                    writer.beginRecordSet();
-
-                    Record querySObjectRecord;
-                    while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
-                        writer.write(querySObjectRecord);
-                    }
-
-                    WriteResult writeResult = writer.finishRecordSet();
-
-                    Map<String, String> capturedFields = jsonReader.getCapturedFields();
-
-                    nextRecordsUrl.set(capturedFields.getOrDefault(NEXT_RECORDS_URL, null));
-
-                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                    attributes.putAll(writeResult.getAttributes());
-
-                    recordCountHolder.set(writeResult.getRecordCount());
-
-                    if (ageFilterUpper != null) {
-                        Map<String, String> newState = new HashMap<>(state.toMap());
-                        newState.put(LAST_AGE_FILTER, ageFilterUpper);
-                        updateState(context, newState);
-                    }
-                } catch (SchemaNotFoundException e) {
-                    throw new ProcessException("Couldn't create record writer", e);
-                } catch (MalformedRecordException e) {
-                    throw new ProcessException("Couldn't read records from input", e);
+                    session.adjustCounter("Records Processed", recordCount, false);
+                    getLogger().info("Successfully written {} records for {}", recordCount, outgoingFlowFile);
+                } else {
+                    outgoingFlowFiles.remove(outgoingFlowFile);
+                    session.remove(outgoingFlowFile);
                 }
-            });
-
-            int recordCount = recordCountHolder.get();
-
-            if (!createZeroRecordFlowFiles && recordCount == 0) {
-                session.remove(flowFile);
-            } else {
-                flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, REL_SUCCESS);
-
-                long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().receive(flowFile, salesforceRestService.getVersionedBaseUrl() + "/composite/tree/" + sObject,
-                        transferMillis);
-
-                session.adjustCounter("Records Processed", recordCount, false);
-                getLogger().info("Successfully written {} records for {}", recordCount, flowFile);
+            } catch (Exception e) {
+                if (e.getCause() instanceof IOException) {
+                    throw new ProcessException("Couldn't get Salesforce records", e);
+                } else if (e.getCause() instanceof SchemaNotFoundException) {
+                    handleError(session, originalFlowFile, isOriginalTransferred, outgoingFlowFiles, e, "Couldn't create record writer");
+                } else if (e.getCause() instanceof MalformedRecordException) {
+                    handleError(session, originalFlowFile, isOriginalTransferred, outgoingFlowFiles, e, "Couldn't read records from input");
+                } else {
+                    handleError(session, originalFlowFile, isOriginalTransferred, outgoingFlowFiles, e, "Couldn't get Salesforce records");
+                }
+                break;
             }
         } while (nextRecordsUrl.get() != null);
+
+        transferFlowFiles(session, outgoingFlowFiles, originalFlowFile, isOriginalTransferred, startNanos, sObject);
+    }
+
+    private OutputStreamCallback processRecordsCallback(ProcessSession session, AtomicReference<String> nextRecordsUrl, RecordSetWriterFactory writerFactory,
+                                                        StateMap state, IncrementalContext incrementalContext, SalesforceSchemaHolder salesForceSchemaHolder,
+                                                        String querySObject, Map<String, String> originalAttributes, Map<String, String> attributes,
+                                                        AtomicInteger recordCountHolder) {
+        return out -> {
+            try {
+                handleRecordSet(out, nextRecordsUrl, querySObject, writerFactory, salesForceSchemaHolder, originalAttributes, attributes, recordCountHolder);
+
+                if (incrementalContext.getAgeFilterUpper() != null) {
+                    Map<String, String> newState = new HashMap<>(state.toMap());
+                    newState.put(LAST_AGE_FILTER, incrementalContext.getAgeFilterUpper());
+                    updateState(session, newState);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
+    }
+
+    private void handleRecordSet(OutputStream out, AtomicReference<String> nextRecordsUrl, String querySObject, RecordSetWriterFactory writerFactory,
+                                 SalesforceSchemaHolder salesForceSchemaHolder, Map<String, String> originalAttributes, Map<String, String> attributes,
+                                 AtomicInteger recordCountHolder) throws Exception {
+        try (
+                InputStream querySObjectResultInputStream = getResultInputStream(nextRecordsUrl.get(), querySObject);
+                JsonTreeRowRecordReader jsonReader = createJsonReader(querySObjectResultInputStream, salesForceSchemaHolder.getRecordSchema());
+                RecordSetWriter writer = createRecordSetWriter(writerFactory, originalAttributes, out, salesForceSchemaHolder.getRecordSchema())
+        ) {
+            writer.beginRecordSet();
+
+            Record querySObjectRecord;
+            while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
+                writer.write(querySObjectRecord);
+            }
+
+            WriteResult writeResult = writer.finishRecordSet();
+
+            Map<String, String> capturedFields = jsonReader.getCapturedFields();
+            nextRecordsUrl.set(capturedFields.getOrDefault(NEXT_RECORDS_URL, null));
+
+            attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+            attributes.putAll(writeResult.getAttributes());
+            recordCountHolder.set(writeResult.getRecordCount());
+        }
+    }
+
+    private JsonTreeRowRecordReader createJsonReader(InputStream querySObjectResultInputStream, RecordSchema recordSchema) throws IOException, MalformedRecordException {
+        return new JsonTreeRowRecordReader(
+                querySObjectResultInputStream,
+                getLogger(),
+                recordSchema,
+                DATE_FORMAT,
+                TIME_FORMAT,
+                DATE_TIME_FORMAT,
+                StartingFieldStrategy.NESTED_FIELD,
+                STARTING_FIELD_NAME,
+                SchemaApplicationStrategy.SELECTED_PART,
+                CAPTURE_PREDICATE
+        );
+    }
+
+    private RecordSetWriter createRecordSetWriter(RecordSetWriterFactory writerFactory, Map<String, String> originalAttributes, OutputStream out,
+                                                  RecordSchema recordSchema) throws IOException, SchemaNotFoundException {
+        return writerFactory.createWriter(
+                getLogger(),
+                writerFactory.getSchema(
+                        originalAttributes,
+                        recordSchema
+                ),
+                out,
+                originalAttributes
+        );
     }
 
     private void processCustomQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
         String customQuery = context.getProperty(CUSTOM_SOQL_QUERY).evaluateAttributeExpressions(originalFlowFile).getValue();
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
         AtomicReference<String> totalSize = new AtomicReference<>();
-        boolean isOriginalTransferred = false;
+        AtomicBoolean isOriginalTransferred = new AtomicBoolean(false);
         List<FlowFile> outgoingFlowFiles = new ArrayList<>();
+        long startNanos = System.nanoTime();
         do {
-            FlowFile outgoingFlowFile;
             try (InputStream response = getResultInputStream(nextRecordsUrl.get(), customQuery)) {
-                if (originalFlowFile != null) {
-                    outgoingFlowFile = session.create(originalFlowFile);
-                } else {
-                    outgoingFlowFile = session.create();
-                }
+                FlowFile outgoingFlowFile = createOutgoingFlowFile(session, originalFlowFile);
                 outgoingFlowFiles.add(outgoingFlowFile);
-                outgoingFlowFile = session.write(outgoingFlowFile, parseHttpResponse(response, nextRecordsUrl, totalSize));
-                int recordCount = nextRecordsUrl.get() != null ? 2000 : Integer.parseInt(totalSize.get()) % 2000;
+                outgoingFlowFile = session.write(outgoingFlowFile, parseCustomQueryResponse(response, nextRecordsUrl, totalSize));
+                int recordCount = nextRecordsUrl.get() != null ? MAX_RECORD_COUNT : Integer.parseInt(totalSize.get()) % MAX_RECORD_COUNT;
                 Map<String, String> attributes = new HashMap<>();
                 attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-                attributes.put(TOTAL_RECORD_COUNT, String.valueOf(recordCount));
+                attributes.put(TOTAL_RECORD_COUNT_ATTRIBUTE, String.valueOf(recordCount));
                 session.adjustCounter("Salesforce records processed", recordCount, false);
-                session.putAllAttributes(outgoingFlowFile, attributes);
+                outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
             } catch (IOException e) {
                 throw new ProcessException("Couldn't get Salesforce records", e);
             } catch (Exception e) {
-                if (originalFlowFile != null) {
-                    session.transfer(originalFlowFile, REL_FAILURE);
-                    isOriginalTransferred = true;
-                }
-                getLogger().error("Couldn't get Salesforce records", e);
-                session.remove(outgoingFlowFiles);
-                outgoingFlowFiles.clear();
+                handleError(session, originalFlowFile, isOriginalTransferred, outgoingFlowFiles, e, "Couldn't get Salesforce records");
                 break;
             }
         } while (nextRecordsUrl.get() != null);
 
+        transferFlowFiles(session, outgoingFlowFiles, originalFlowFile, isOriginalTransferred, startNanos, "custom");
+    }
+
+    private void transferFlowFiles(ProcessSession session, List<FlowFile> outgoingFlowFiles, FlowFile originalFlowFile, AtomicBoolean isOriginalTransferred,
+                                   long startNanos, String urlDetail) {
         if (!outgoingFlowFiles.isEmpty()) {
             session.transfer(outgoingFlowFiles, REL_SUCCESS);
+            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+
+            outgoingFlowFiles.forEach(ff ->
+                    session.getProvenanceReporter().receive(ff, salesforceRestService.getVersionedBaseUrl() + "/" + urlDetail, transferMillis)
+            );
         }
-        if (originalFlowFile != null && !isOriginalTransferred) {
+        if (originalFlowFile != null && !isOriginalTransferred.get()) {
             session.transfer(originalFlowFile, REL_ORIGINAL);
         }
     }
 
-    private OutputStreamCallback parseHttpResponse(InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
+    private FlowFile createOutgoingFlowFile(ProcessSession session, FlowFile originalFlowFile) {
+        if (originalFlowFile != null) {
+            return session.create(originalFlowFile);
+        } else {
+            return session.create();
+        }
+    }
+
+    private OutputStreamCallback parseCustomQueryResponse(InputStream in, AtomicReference<String> nextRecordsUrl, AtomicReference<String> totalSize) {
         nextRecordsUrl.set(null);
         return out -> {
             try (JsonParser jsonParser = JSON_FACTORY.createParser(in);
@@ -560,11 +589,41 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    private void updateState(ProcessContext context, Map<String, String> newState) {
+    private void handleError(ProcessSession session, FlowFile originalFlowFile, AtomicBoolean isOriginalTransferred, List<FlowFile> outgoingFlowFiles,
+                             Exception e, String errorMessage) {
+        if (originalFlowFile != null) {
+            session.transfer(originalFlowFile, REL_FAILURE);
+            isOriginalTransferred.set(true);
+        }
+        getLogger().error(errorMessage, e);
+        session.remove(outgoingFlowFiles);
+        outgoingFlowFiles.clear();
+    }
+
+    private StateMap getState(ProcessSession session) {
+        StateMap state;
         try {
-            context.getStateManager().setState(newState, Scope.CLUSTER);
+            state = session.getState(Scope.CLUSTER);
+        } catch (IOException e) {
+            throw new ProcessException("State retrieval failed", e);
+        }
+        return state;
+    }
+
+    private void updateState(ProcessSession session, Map<String, String> newState) {
+        try {
+            session.setState(newState, Scope.CLUSTER);
         } catch (IOException e) {
             throw new ProcessException("Last Age Filter state update failed", e);
+        }
+    }
+
+    private void clearState(ProcessContext context) {
+        try {
+            getLogger().debug("Clearing state based on property modifications");
+            context.getStateManager().clear(Scope.CLUSTER);
+        } catch (final IOException e) {
+            getLogger().warn("Failed to clear state", e);
         }
     }
 
@@ -575,68 +634,13 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
             RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
                     new RecordField(STARTING_FIELD_NAME, RecordFieldType.ARRAY.getArrayDataType(
-                            RecordFieldType.RECORD.getRecordDataType(
-                                    recordSchema
-                            )
+                            RecordFieldType.RECORD.getRecordDataType(recordSchema)
                     ))
             ));
 
             return new SalesforceSchemaHolder(querySObjectResultSchema, recordSchema, salesforceObject);
         } catch (IOException e) {
             throw new ProcessException("SObject to Record schema conversion failed", e);
-        }
-    }
-
-    protected String buildQuery(
-            String sObject,
-            String fields,
-            String customWhereClause,
-            String ageField,
-            String initialAgeFilter,
-            String ageFilterLower,
-            String ageFilterUpper
-    ) {
-        StringBuilder queryBuilder = new StringBuilder("SELECT ")
-                .append(fields)
-                .append(" FROM ")
-                .append(sObject);
-
-        List<String> whereItems = new ArrayList<>();
-        if (customWhereClause != null) {
-            whereItems.add("( " + customWhereClause + " )");
-        }
-
-        if (ageField != null) {
-            if (ageFilterLower != null) {
-                whereItems.add(ageField + " >= " + ageFilterLower);
-            } else if (initialAgeFilter != null) {
-                whereItems.add(ageField + " >= " + initialAgeFilter);
-            }
-
-            whereItems.add(ageField + " < " + ageFilterUpper);
-        }
-
-        if (!whereItems.isEmpty()) {
-            String finalWhereClause = String.join(" AND ", whereItems);
-            queryBuilder.append(" WHERE ").append(finalWhereClause);
-        }
-
-        return queryBuilder.toString();
-    }
-
-    static class SalesforceSchemaHolder {
-        RecordSchema querySObjectResultSchema;
-        RecordSchema recordSchema;
-        SObjectDescription salesforceObject;
-
-        public SalesforceSchemaHolder(RecordSchema querySObjectResultSchema, RecordSchema recordSchema, SObjectDescription salesforceObject) {
-            this.querySObjectResultSchema = querySObjectResultSchema;
-            this.recordSchema = recordSchema;
-            this.salesforceObject = salesforceObject;
-        }
-
-        public SObjectDescription getSalesforceObject() {
-            return salesforceObject;
         }
     }
 }

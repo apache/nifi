@@ -541,9 +541,9 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
-            var groups = d3.set();
-            var restrictedUsage = d3.map();
-            var requiredPermissions = d3.map();
+            var groups = new Set();
+            var restrictedUsage = new Map();
+            var requiredPermissions = new Map();
 
             // begin the update
             controllerServiceTypesData.beginUpdate();
@@ -638,7 +638,7 @@
                 text: 'all groups',
                 value: ''
             }];
-            groups.each(function (group) {
+            groups.forEach(function (group) {
                 options.push({
                     text: group,
                     value: group
@@ -1452,11 +1452,9 @@
 
             // if there are some bulletins process them
             if (!nfCommon.isEmpty(controllerServiceBulletins)) {
-                var controllerServiceBulletinsBySource = d3.nest()
-                    .key(function(d) { return d.sourceId; })
-                    .map(controllerServiceBulletins, d3.map);
+                var controllerServiceBulletinsBySource = new Map(controllerServiceBulletins.map(function(d) { return [d.sourceId, d]; }));
 
-                controllerServiceBulletinsBySource.each(function(sourceBulletins, sourceId) {
+                controllerServiceBulletinsBySource.forEach(function(sourceBulletins, sourceId) {
                     var controllerService = controllerServicesData.getItemById(sourceId);
                     if (nfCommon.isDefinedAndNotNull(controllerService)) {
                         controllerServicesData.updateItem(sourceId, $.extend(controllerService, {

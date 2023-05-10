@@ -17,22 +17,27 @@
 package org.apache.nifi.processors.gcp.storage;
 
 import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.rpc.FixedHeaderProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,9 +70,22 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
         return relationships;
     }
 
+    // https://cloud.google.com/storage/docs/request-endpoints#storage-set-client-endpoint-java
+    public static final PropertyDescriptor STORAGE_API_URL = new PropertyDescriptor
+            .Builder().name("storage-api-url")
+            .displayName("Storage API URL")
+            .description("Overrides the default storage URL. Configuring an alternative Storage API URL also overrides the "
+                    + "HTTP Host header on requests as described in the Google documentation for Private Service Connections.")
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .build();
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(super.getSupportedPropertyDescriptors());
+        final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        propertyDescriptors.add(STORAGE_API_URL);
+        return Collections.unmodifiableList(propertyDescriptors);
     }
 
     @Override
@@ -129,6 +147,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     @Override
     protected StorageOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+        final String storageApiUrl = context.getProperty(STORAGE_API_URL).evaluateAttributeExpressions().getValue();
         final Integer retryCount = context.getProperty(RETRY_COUNT).asInteger();
 
         StorageOptions.Builder storageOptionsBuilder = StorageOptions.newBuilder()
@@ -141,6 +160,17 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
             storageOptionsBuilder.setProjectId(projectId);
         }
 
+        if (storageApiUrl != null && !storageApiUrl.isEmpty()) {
+            storageOptionsBuilder.setHost(storageApiUrl);
+            // https://codelabs.developers.google.com/cloudnet-psc#12
+            storageOptionsBuilder.setHeaderProvider(FixedHeaderProvider.create(ImmutableMap.of("Host", "www.googleapis.com")));
+        }
+
         return  storageOptionsBuilder.setTransportOptions(getTransportOptions(context)).build();
+    }
+
+    protected String getTransitUri(final String storageApiUrl, final String bucketName, final String key) {
+        final URI apiUri = URI.create(storageApiUrl);
+        return String.format("%s://%s.%s/%s", apiUri.getScheme(), bucketName, apiUri.getHost(), key);
     }
 }

@@ -237,6 +237,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
@@ -317,6 +318,7 @@ import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
@@ -383,6 +385,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.apache.commons.lang3.StringUtils.containsIgnoreCase;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -4461,6 +4465,46 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * Search for User and Group Tenants with optimized conversion from specific objects to Tenant objects
+     *
+     * @param query Search query where null or empty returns unfiltered results
+     * @return Tenants Entity containing zero or more matching Users and Groups
+     */
+    @Override
+    public TenantsEntity searchTenants(final String query) {
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getTenant());
+
+        final Set<TenantEntity> usersFound = userDAO.getUsers()
+                .stream()
+                .filter(user -> isMatched(user.getIdentity(), query))
+                .map(user -> {
+                    final TenantDTO tenant = dtoFactory.createTenantDTO(user);
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(tenant.getId()));
+                    return entityFactory.createTenantEntity(tenant, revision, permissions);
+                })
+                .collect(Collectors.toSet());
+
+        final Set<TenantEntity> userGroupsFound = userGroupDAO.getUserGroups()
+                .stream()
+                .filter(userGroup -> isMatched(userGroup.getName(), query))
+                .map(userGroup -> {
+                    final TenantDTO tenant = dtoFactory.createTenantDTO(userGroup);
+                    final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(tenant.getId()));
+                    return entityFactory.createTenantEntity(tenant, revision, permissions);
+                })
+                .collect(Collectors.toSet());
+
+        final TenantsEntity tenantsEntity = new TenantsEntity();
+        tenantsEntity.setUsers(usersFound);
+        tenantsEntity.setUserGroups(userGroupsFound);
+        return tenantsEntity;
+    }
+
+    private boolean isMatched(final String label, final String query) {
+        return StringUtils.isEmpty(query) || containsIgnoreCase(label, query);
+    }
+
     private UserEntity createUserEntity(final User user, final boolean enforceUserExistence) {
         final RevisionDTO userRevision = dtoFactory.createRevisionDTO(revisionManager.getRevision(user.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(authorizableLookup.getTenant());
@@ -5461,6 +5505,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
             .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
             .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
+            .filter(difference -> difference.getDifferenceType() != DifferenceType.POSITION_CHANGED)
             .map(difference -> {
                 final VersionedComponent localComponent = difference.getComponentA();
 

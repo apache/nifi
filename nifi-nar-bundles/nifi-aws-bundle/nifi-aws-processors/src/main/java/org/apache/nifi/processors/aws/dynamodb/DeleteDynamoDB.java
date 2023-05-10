@@ -125,7 +125,7 @@ public class DeleteDynamoDB extends AbstractWriteDynamoDBProcessor {
             return;
         }
 
-        final DynamoDB dynamoDB = getDynamoDB();
+        final DynamoDB dynamoDB = getDynamoDB(context);
 
         try {
             BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(tableWriteItems);

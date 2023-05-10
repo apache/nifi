@@ -19,12 +19,9 @@ package org.apache.nifi.serialization;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -45,11 +42,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
  * In this case, if a RecordSchema is known and already available when calling {@link #getSchema(Map, RecordSchema)} method,
  * the schema should be specified so that it can be reused.
  * </p>
- *
- * <p>
- * PLEASE NOTE: This interface is still considered 'unstable' and may change in a non-backward-compatible
- * manner between minor or incremental releases of NiFi.
- * </p>
  */
 public interface RecordSetWriterFactory extends ControllerService {
     /**
@@ -65,35 +57,6 @@ public interface RecordSetWriterFactory extends ControllerService {
      * @throws SchemaNotFoundException if unable to find the schema
      */
     RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException;
-
-    /**
-     * <p>
-     * Creates a new RecordSetWriter that is capable of writing record contents to an OutputStream.
-     * </p>
-     *
-     * @param logger the logger to use when logging information. This is passed in, rather than using the logger of the Controller Service
-     *            because it allows messages to be logged for the component that is calling this Controller Service.
-     * @param schema the schema that will be used for writing records
-     * @param out the OutputStream to write to
-     *
-     * @return a RecordSetWriter that can write record sets to an OutputStream
-     * @throws IOException if unable to read from the given InputStream
-     *
-     * @deprecated Use {@link #createWriter(ComponentLog, RecordSchema, OutputStream, FlowFile)} or {@link #createWriter(ComponentLog, RecordSchema, OutputStream, Map)} instead.
-     */
-    @Deprecated
-    default RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) throws SchemaNotFoundException, IOException {
-        final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(getClass());
-        final String deprecatedMethod = "createWriter(ComponentLog, RecordSchema, OutputStream)";
-        final String replacementMethod = "createWriter(ComponentLog, RecordSchema, OutputStream, FlowFile)";
-        deprecationLogger.warn("{}[id={}] {} should be replaced with {}",
-                getClass().getSimpleName(),
-                getIdentifier(),
-                deprecatedMethod,
-                replacementMethod
-        );
-        return createWriter(logger, schema, out, Collections.emptyMap());
-    }
 
     /**
      * <p>
