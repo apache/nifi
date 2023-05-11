@@ -73,11 +73,6 @@
             <artifactId>bcrypt</artifactId>
             <version>0.10.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>
 
