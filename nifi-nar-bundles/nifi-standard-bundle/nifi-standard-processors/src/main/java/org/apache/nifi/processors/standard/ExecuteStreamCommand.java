@@ -372,8 +372,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 final String propertyName = propertyDescriptor.getName();
                 final Matcher matcher = COMMAND_ARGUMENT_PATTERN.matcher(propertyName);
                 if (matcher.matches()) {
-                    logger.warn(String.format("'%s' should be set to '%s' when command arguments are supplied as Dynamic Properties. The property '%s' will be ignored.",
-                                ARGUMENTS_STRATEGY.getDisplayName(), DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getDisplayName(), propertyName));
+                    logger.warn("[{}] should be set to [{}] when command arguments are supplied as Dynamic Properties. The property [{}] will be ignored.",
+                                ARGUMENTS_STRATEGY.getDisplayName(), DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getDisplayName(), propertyName);
                 }
             }
         }

@@ -78,7 +78,7 @@
         the ExecuteStreamCommand processor. Environment variables are a set of key-value pairs that can be accessed by processes running on the system.
         ExecuteStreamCommand will treat every Dynamic Property as an environment variable that doesn't match the pattern 'command.arguments.&lt;commandIndex&gt;'.</p>
 
-        <p>Consider that we want to execute a maven command with the processor. If there are multiple Java versions installed on the system, you can specify
+        <p>Consider that we want to execute a Maven command with the processor. If there are multiple Java versions installed on the system, you can specify
         which version will be used by setting the <code>JAVA_HOME</code> environment variable. The output FlowFile will looke like this if we run
         <code>mvn</code> command with <code>--version</code> argument:</p>
 
@@ -117,7 +117,7 @@ OS name: "mac os x", version: "13.1", arch: "x86_64", family: "mac"
         <h3>Streaming input to the command</h3>
         <p>ExecuteStreamCommand passes the incoming FlowFile's content to the command that it executes similarly how piping works.
         It is possible to disable this behavior with the Ignore STDIN property. In the above examples we didn't use the
-        incoming FlowFile's content, so in this cases we could leverage this property for additional performance gain.</p>
+        incoming FlowFile's content, so in this case we could leverage this property for additional performance gain.</p>
 
         <p>To utilize the streaming capability, consider that we want to use <code>grep</code> on the FlowFile. Let's presume that
         we need to list all <code>POST</code> requests from an Apache HTTPD log:</p>
