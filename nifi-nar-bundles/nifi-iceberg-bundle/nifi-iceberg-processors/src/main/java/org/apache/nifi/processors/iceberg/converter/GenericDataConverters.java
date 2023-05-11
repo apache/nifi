@@ -67,7 +67,8 @@ public class GenericDataConverters {
                 case LONG: return DataTypeUtils.convertType(data, RecordFieldType.LONG.getDataType(), null);
                 case FLOAT: return DataTypeUtils.convertType(data, RecordFieldType.FLOAT.getDataType(), null);
                 case DOUBLE: return DataTypeUtils.convertType(data, RecordFieldType.DOUBLE.getDataType(), null);
-                case DATE: return DataTypeUtils.convertType(data, RecordFieldType.DATE.getDataType(), null);
+                // DATE objects are already LocalDates, so return it untouched
+                case DATE: return data;
                 case STRING:
                 default:
                     return DataTypeUtils.convertRecordFieldtoObject(data, RecordFieldType.STRING.getDataType());
