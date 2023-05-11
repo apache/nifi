@@ -19,7 +19,7 @@
  "type": "record",
  "name": "User",
  "fields": [
-     {"name": "id",  "type": ["int", "null"]},
+     {"name": "id",  "type": ["long", "null"]},
      {"name": "name", "type": ["string", "null"]},
      {"name": "department", "type": ["string", "null"]}
  ]

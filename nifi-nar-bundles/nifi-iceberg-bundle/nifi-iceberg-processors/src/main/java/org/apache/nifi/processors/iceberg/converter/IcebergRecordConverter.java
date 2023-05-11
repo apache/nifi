@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 public class IcebergRecordConverter {
 
     private final DataConverter<Record, GenericRecord> converter;
-
     public GenericRecord convert(Record record) {
         return converter.convert(record);
     }
@@ -85,21 +84,21 @@ public class IcebergRecordConverter {
                     case DOUBLE:
                     case DATE:
                     case STRING:
-                        return new GenericDataConverters.SameTypeConverter();
+                        return new GenericDataConverters.PrimitiveTypeConverter(type, dataType);
                     case TIME:
-                        return new GenericDataConverters.TimeConverter();
+                        return new GenericDataConverters.TimeConverter(dataType.getFormat());
                     case TIMESTAMP:
                         final Types.TimestampType timestampType = (Types.TimestampType) type;
                         if (timestampType.shouldAdjustToUTC()) {
-                            return new GenericDataConverters.TimestampWithTimezoneConverter();
+                            return new GenericDataConverters.TimestampWithTimezoneConverter(dataType);
                         }
-                        return new GenericDataConverters.TimestampConverter();
+                        return new GenericDataConverters.TimestampConverter(dataType);
                     case UUID:
                         final UUIDDataType uuidType = (UUIDDataType) dataType;
                         if (uuidType.getFileFormat() == FileFormat.PARQUET) {
                             return new GenericDataConverters.UUIDtoByteArrayConverter();
                         }
-                        return new GenericDataConverters.SameTypeConverter();
+                        return new GenericDataConverters.PrimitiveTypeConverter(type, dataType);
                     case FIXED:
                         final Types.FixedType fixedType = (Types.FixedType) type;
                         return new GenericDataConverters.FixedConverter(fixedType.length());
@@ -167,7 +166,9 @@ public class IcebergRecordConverter {
                 return new RecordTypeWithFieldNameMapper(new Schema(schema.findField(fieldId).type().asStructType().fields()), (RecordDataType) field.getDataType());
             }
 
-            if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)) {
+            // If the source field or target field is of type UUID, create a UUIDDataType from it
+            if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)
+                    || schema.findField(fieldId).type().typeId() == Type.TypeID.UUID) {
                 return new UUIDDataType(field.getDataType(), fileFormat);
             }
 
