@@ -85,7 +85,7 @@ public class IcebergRecordConverter {
                     case DOUBLE:
                     case DATE:
                     case STRING:
-                        return new GenericDataConverters.SameTypeConverter();
+                        return new GenericDataConverters.SameTypeConverter(type, dataType);
                     case TIME:
                         return new GenericDataConverters.TimeConverter();
                     case TIMESTAMP:
@@ -99,7 +99,7 @@ public class IcebergRecordConverter {
                         if (uuidType.getFileFormat() == FileFormat.PARQUET) {
                             return new GenericDataConverters.UUIDtoByteArrayConverter();
                         }
-                        return new GenericDataConverters.SameTypeConverter();
+                        return new GenericDataConverters.SameTypeConverter(type, dataType);
                     case FIXED:
                         final Types.FixedType fixedType = (Types.FixedType) type;
                         return new GenericDataConverters.FixedConverter(fixedType.length());

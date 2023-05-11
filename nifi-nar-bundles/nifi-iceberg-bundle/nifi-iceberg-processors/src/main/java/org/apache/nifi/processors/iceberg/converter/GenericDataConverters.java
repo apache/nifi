@@ -19,11 +19,14 @@ package org.apache.nifi.processors.iceberg.converter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.iceberg.data.GenericRecord;
+import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -48,10 +51,27 @@ import static org.apache.nifi.processors.iceberg.converter.RecordFieldGetter.cre
 public class GenericDataConverters {
 
     static class SameTypeConverter extends DataConverter<Object, Object> {
+        final Type.PrimitiveType targetType;
+        final DataType sourceType;
+
+        public SameTypeConverter(final Type.PrimitiveType type, final DataType dataType) {
+            targetType = type;
+            sourceType = dataType;
+        }
 
         @Override
         public Object convert(Object data) {
-            return data;
+            switch (targetType.typeId()) {
+                case BOOLEAN: return DataTypeUtils.convertType(data, RecordFieldType.BOOLEAN.getDataType(), null);
+                case INTEGER: return DataTypeUtils.convertType(data, RecordFieldType.INT.getDataType(), null);
+                case LONG: return DataTypeUtils.convertType(data, RecordFieldType.LONG.getDataType(), null);
+                case FLOAT: return DataTypeUtils.convertType(data, RecordFieldType.FLOAT.getDataType(), null);
+                case DOUBLE: return DataTypeUtils.convertType(data, RecordFieldType.DOUBLE.getDataType(), null);
+                case DATE: return DataTypeUtils.convertType(data, RecordFieldType.DATE.getDataType(), null);
+                case STRING:
+                default:
+                    return DataTypeUtils.convertRecordFieldtoObject(data, RecordFieldType.STRING.getDataType());
+            }
         }
     }
 
