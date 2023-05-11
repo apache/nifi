@@ -1672,11 +1672,11 @@
     /**
      * Gets the parameters for the specified property descriptor and group.
      *
-     * @param propertyDescriptor    The property descriptor in question
+     * @param sensitive             The sensitivity of property descriptor in question
      * @param groupId               The group in question
      * @returns {deferred}
      */
-    var getParameters = function (propertyDescriptor, groupId) {
+    var getParameters = function (sensitive, groupId) {
         return $.Deferred(function (deferred) {
             if (nfCommon.isDefinedAndNotNull(groupId)) {
                 var parameterContext;
@@ -1699,8 +1699,6 @@
                         },
                         dataType: 'json'
                     }).done(function (response) {
-                        var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
                         deferred.resolve(response.component.parameters.map(function (parameterEntity) {
                             return parameterEntity.parameter;
                         }).filter(function (parameter) {
