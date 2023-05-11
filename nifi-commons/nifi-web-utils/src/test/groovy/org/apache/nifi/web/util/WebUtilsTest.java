@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class WebUtilsTest {
 
-    @Mock
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private HttpServletRequest request;
 
     @Test
