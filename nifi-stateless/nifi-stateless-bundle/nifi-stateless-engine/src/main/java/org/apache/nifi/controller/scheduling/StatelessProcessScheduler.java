@@ -26,6 +26,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ProcessSchedulerConfig;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -63,7 +64,6 @@ import java.util.function.Supplier;
 public class StatelessProcessScheduler implements ProcessScheduler {
     private static final Logger logger = LoggerFactory.getLogger(StatelessProcessScheduler.class);
     private static final int ADMINISTRATIVE_YIELD_MILLIS = 1000;
-    private static final int PROCESSOR_START_TIMEOUT_MILLIS = 10_000;
 
     private final SchedulingAgent schedulingAgent;
     private final ExtensionManager extensionManager;
@@ -72,8 +72,11 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     private ScheduledExecutorService componentMonitoringThreadPool;
     private ProcessContextFactory processContextFactory;
 
-    public StatelessProcessScheduler(final ExtensionManager extensionManager) {
+    private final long processorStartTimeoutMillis;
+
+    public StatelessProcessScheduler(final ExtensionManager extensionManager, final ProcessSchedulerConfig schedulerConfig) {
         this.extensionManager = extensionManager;
+        this.processorStartTimeoutMillis = schedulerConfig.getProcessorStartTimeout();
         schedulingAgent = new StatelessSchedulingAgent(extensionManager);
     }
 
@@ -136,7 +139,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         logger.info("Starting {}", procNode);
 
         final Supplier<ProcessContext> processContextSupplier = () -> processContextFactory.createProcessContext(procNode);
-        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, PROCESSOR_START_TIMEOUT_MILLIS, processContextSupplier, callback, failIfStopping);
+        procNode.start(componentMonitoringThreadPool, ADMINISTRATIVE_YIELD_MILLIS, this.processorStartTimeoutMillis, processContextSupplier, callback, failIfStopping);
         return future;
 
     }

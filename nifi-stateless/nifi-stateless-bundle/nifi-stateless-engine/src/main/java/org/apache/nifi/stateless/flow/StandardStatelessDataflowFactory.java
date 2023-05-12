@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
+import org.apache.nifi.controller.ProcessSchedulerConfig;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.ContentRepositoryContext;
@@ -123,7 +124,8 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
 
             final ParameterContextManager parameterContextManager = new StandardParameterContextManager();
-            processScheduler = new StatelessProcessScheduler(extensionManager);
+            final ProcessSchedulerConfig processSchedulerConfig = new ProcessSchedulerConfig(engineConfiguration.getProcessorStartTimeout());
+            processScheduler = new StatelessProcessScheduler(extensionManager, processSchedulerConfig);
             provenanceRepo = new StatelessProvenanceRepository(1_000);
             provenanceRepo.initialize(EventReporter.NO_OP, new StatelessAuthorizer(), new StatelessProvenanceAuthorizableFactory(), IdentifierLookup.EMPTY);
 
@@ -192,6 +194,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .extensionRepository(extensionRepository)
                     .counterRepository(counterRepo)
                     .statusTaskInterval(engineConfiguration.getStatusTaskInterval())
+                    .statelessEngineConfiguration(engineConfiguration)
                     .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);

@@ -89,4 +89,17 @@ public interface StatelessEngineConfiguration {
      * A <code>null</code> value indicates that no status tasks are scheduled.
      */
     String getStatusTaskInterval();
+
+    /**
+     * @return a String representing the number of milliseconds that the process scheduler should wait for a process to start
+     * Defaults to 10 seconds or 10_000 milliseconds
+     */
+    long getProcessorStartTimeout();
+
+    //TODO: Fix this doc
+    /**
+     * @return a String representing the number of milliseconds that the StatelessEngine should wait for a component to enable
+     * Defaults to 10 seconds or 10_000 milliseconds
+     */
+    long getComponentEnableTimeout();
 }

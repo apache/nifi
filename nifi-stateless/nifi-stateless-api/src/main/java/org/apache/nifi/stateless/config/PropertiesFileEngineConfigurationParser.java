@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -52,6 +53,9 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String WORKING_DIRECTORY = PREFIX + "working.directory";
     private static final String CONTENT_REPO_DIRECTORY = PREFIX + "content.repository.directory";
     private static final String STATUS_TASK_INTERVAL = PREFIX + "status.task.interval";
+
+    private static final String COMPONENT_ENABLE_TIMEOUT = PREFIX + "component.enableTimeout";
+    private static final String PROCESSOR_START_TIMEOUT = PREFIX + "processor.startTimeout";
 
     private static final String TRUSTSTORE_FILE = PREFIX + "security.truststore";
     private static final String TRUSTSTORE_TYPE = PREFIX + "security.truststoreType";
@@ -111,6 +115,9 @@ public class PropertiesFileEngineConfigurationParser {
 
         final String statusTaskInterval = properties.getProperty(STATUS_TASK_INTERVAL, "1 min");
 
+        final long processorStartTimeout = TimeUnit.SECONDS.toMillis(Long.parseLong(properties.getProperty(PROCESSOR_START_TIMEOUT, "10")));
+        final long componentEnableTimeout = TimeUnit.SECONDS.toMillis(Long.parseLong(properties.getProperty(COMPONENT_ENABLE_TIMEOUT, "10")));
+
         return new StatelessEngineConfiguration() {
             @Override
             public File getWorkingDirectory() {
@@ -160,6 +167,16 @@ public class PropertiesFileEngineConfigurationParser {
             @Override
             public String getStatusTaskInterval() {
                 return statusTaskInterval;
+            }
+
+            @Override
+            public long getProcessorStartTimeout() {
+                return processorStartTimeout;
+            }
+
+            @Override
+            public long getComponentEnableTimeout() {
+                return componentEnableTimeout;
             }
         };
     }
