@@ -114,6 +114,7 @@ public class StandardStatelessEngine implements StatelessEngine {
     private final ExtensionRepository extensionRepository;
     private final CounterRepository counterRepository;
     private final Duration statusTaskInterval;
+    private final Duration componentEnableTimeout;
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
@@ -139,6 +140,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
         this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
         this.statusTaskInterval = parseDuration(builder.statusTaskInterval);
+        this.componentEnableTimeout = parseDuration(builder.componentEnableTimeout);
 
         this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
@@ -192,7 +194,7 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository, componentEnableTimeout);
 
         if (statusTaskInterval != null) {
             final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
@@ -672,6 +674,7 @@ public class StandardStatelessEngine implements StatelessEngine {
         private ExtensionRepository extensionRepository = null;
         private CounterRepository counterRepository = null;
         private String statusTaskInterval = null;
+        private String componentEnableTimeout = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -730,6 +733,11 @@ public class StandardStatelessEngine implements StatelessEngine {
 
         public Builder statusTaskInterval(final String statusTaskInterval) {
             this.statusTaskInterval = statusTaskInterval;
+            return this;
+        }
+
+        public Builder componentEnableTimeout(final String componentEnableTimeout) {
+            this.componentEnableTimeout = componentEnableTimeout;
             return this;
         }
 

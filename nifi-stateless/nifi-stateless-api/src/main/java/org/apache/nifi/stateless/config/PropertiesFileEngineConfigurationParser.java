@@ -53,6 +53,9 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String CONTENT_REPO_DIRECTORY = PREFIX + "content.repository.directory";
     private static final String STATUS_TASK_INTERVAL = PREFIX + "status.task.interval";
 
+    private static final String COMPONENT_ENABLE_TIMEOUT = PREFIX + "component.enableTimeout";
+    private static final String PROCESSOR_START_TIMEOUT = PREFIX + "processor.startTimeout";
+
     private static final String TRUSTSTORE_FILE = PREFIX + "security.truststore";
     private static final String TRUSTSTORE_TYPE = PREFIX + "security.truststoreType";
     private static final String TRUSTSTORE_PASSWORD = PREFIX + "security.truststorePasswd";
@@ -111,6 +114,9 @@ public class PropertiesFileEngineConfigurationParser {
 
         final String statusTaskInterval = properties.getProperty(STATUS_TASK_INTERVAL, "1 min");
 
+        final String processorStartTimeout = properties.getProperty(PROCESSOR_START_TIMEOUT, "10 secs");
+        final String componentEnableTimeout = properties.getProperty(COMPONENT_ENABLE_TIMEOUT, "10 secs");
+
         return new StatelessEngineConfiguration() {
             @Override
             public File getWorkingDirectory() {
@@ -160,6 +166,16 @@ public class PropertiesFileEngineConfigurationParser {
             @Override
             public String getStatusTaskInterval() {
                 return statusTaskInterval;
+            }
+
+            @Override
+            public String getProcessorStartTimeout() {
+                return processorStartTimeout;
+            }
+
+            @Override
+            public String getComponentEnableTimeout() {
+                return componentEnableTimeout;
             }
         };
     }
