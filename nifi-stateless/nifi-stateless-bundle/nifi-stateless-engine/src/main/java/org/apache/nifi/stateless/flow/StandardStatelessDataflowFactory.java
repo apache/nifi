@@ -75,16 +75,19 @@ import org.apache.nifi.stateless.repository.StatelessFileSystemContentRepository
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
@@ -123,7 +126,8 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessStateManagerProvider stateManagerProvider = new StatelessStateManagerProvider();
 
             final ParameterContextManager parameterContextManager = new StandardParameterContextManager();
-            processScheduler = new StatelessProcessScheduler(extensionManager);
+            final Duration processorStartTimeoutDuration = Duration.ofSeconds((long) FormatUtils.getPreciseTimeDuration(engineConfiguration.getProcessorStartTimeout(), TimeUnit.SECONDS));
+            processScheduler = new StatelessProcessScheduler(extensionManager, processorStartTimeoutDuration);
             provenanceRepo = new StatelessProvenanceRepository(1_000);
             provenanceRepo.initialize(EventReporter.NO_OP, new StatelessAuthorizer(), new StatelessProvenanceAuthorizableFactory(), IdentifierLookup.EMPTY);
 
@@ -192,6 +196,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                     .extensionRepository(extensionRepository)
                     .counterRepository(counterRepo)
                     .statusTaskInterval(engineConfiguration.getStatusTaskInterval())
+                    .componentEnableTimeout(engineConfiguration.getComponentEnableTimeout())
                     .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext, bulletinRepository);
