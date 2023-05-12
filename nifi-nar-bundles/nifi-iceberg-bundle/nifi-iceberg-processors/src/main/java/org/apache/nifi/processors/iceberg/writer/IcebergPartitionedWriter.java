@@ -35,7 +35,7 @@ public class IcebergPartitionedWriter extends PartitionedFanoutWriter<Record> {
     private final PartitionKey partitionKey;
     private final InternalRecordWrapper wrapper;
 
-    IcebergPartitionedWriter(PartitionSpec spec, FileFormat format, FileAppenderFactory<Record> appenderFactory, OutputFileFactory fileFactory,
+    public IcebergPartitionedWriter(PartitionSpec spec, FileFormat format, FileAppenderFactory<Record> appenderFactory, OutputFileFactory fileFactory,
                              FileIO io, long targetFileSize, Schema schema) {
         super(spec, format, appenderFactory, fileFactory, io, targetFileSize);
         this.partitionKey = new PartitionKey(spec, schema);
