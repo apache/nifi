@@ -163,11 +163,6 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .description("A FlowFile is routed to this relationship after the data ingestion was successful.")
             .build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("A FlowFile is routed to this relationship if the data ingestion failed and retrying the operation will also fail, such as an invalid data or schema.")
-            .build();
-
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             RECORD_READER,
             CATALOG,
