@@ -663,7 +663,9 @@ public class StandardStatelessEngine implements StatelessEngine {
         return statusTaskInterval;
     }
     @Override
-    public StatelessEngineConfiguration getStatelessEngineConfiguration() { return statelessEngineConfiguration; }
+    public StatelessEngineConfiguration getStatelessEngineConfiguration() {
+        return statelessEngineConfiguration;
+    }
 
     public static class Builder {
         private ExtensionManager extensionManager = null;
