@@ -367,7 +367,7 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email"])
 
-        OIDCTokenResponse mockResponse = mockOIDCTokenResponse()
+        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": "person@nifi.apache.org"])
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
@@ -403,7 +403,7 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "non-existent-claim"])
 
-        OIDCTokenResponse mockResponse = mockOIDCTokenResponse()
+        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": "person@nifi.apache.org"])
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
@@ -438,7 +438,7 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "non-existent-claim"])
 
-        OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null])
+        OIDCTokenResponse mockResponse = mockOIDCTokenResponse()
         logger.info("OIDC Token Response: ${mockResponse.dump()}")
 
         // Act
@@ -533,7 +533,6 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
                 "azp"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
                 "aud"           : "1013352044499-05pb1ssdfuihsdfsdsdfdi8r2vike88m.apps.googleusercontent.com",
                 "sub"           : "10703475345439756345540",
-                "email"         : "person@nifi.apache.org",
                 "email_verified": "true",
                 "at_hash"       : "JOGISUDHFiyGHDSFwV5Fah2A",
                 "iat"           : 1590022674,
