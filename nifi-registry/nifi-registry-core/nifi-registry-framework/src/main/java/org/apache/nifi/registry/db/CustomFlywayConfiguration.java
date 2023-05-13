@@ -24,6 +24,7 @@ import org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType;
 import org.flywaydb.core.internal.jdbc.JdbcUtils;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
 import org.flywaydb.database.mysql.mariadb.MariaDBDatabaseType;
+import org.flywaydb.database.sqlserver.SQLServerDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
@@ -52,6 +53,9 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
     private static final String LOCATION_POSTGRES = "classpath:db/migration/postgres";
     private static final String[] LOCATIONS_POSTGRES = {LOCATION_COMMON, LOCATION_POSTGRES};
 
+    private static final String LOCATION_MSSQL = "classpath:db/migration/mssql";
+    private static final String[] LOCATIONS_MSSQL = {LOCATION_COMMON, LOCATION_MSSQL};
+
     private static final String LEGACY_FLYWAY_SCHEMA_TABLE = "schema_version";
 
     @Override
@@ -65,6 +69,9 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
         } else if (databaseType instanceof PostgreSQLDatabaseType) {
             LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_POSTGRES));
             configuration.locations(LOCATIONS_POSTGRES);
+        } else if (databaseType instanceof SQLServerDatabaseType) {
+            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_MSSQL));
+            configuration.locations(LOCATIONS_MSSQL);
         } else {
             LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_DEFAULT));
             configuration.locations(LOCATIONS_DEFAULT);

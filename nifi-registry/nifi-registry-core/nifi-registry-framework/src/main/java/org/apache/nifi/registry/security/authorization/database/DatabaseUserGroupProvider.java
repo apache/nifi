@@ -34,6 +34,10 @@ import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUti
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
+import org.flywaydb.core.api.FlywayException;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.database.sqlserver.SQLServerDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -41,6 +45,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,6 +65,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     private IdentityMapper identityMapper;
 
     private JdbcTemplate jdbcTemplate;
+    private DatabaseType databaseType;
 
     @AuthorizerContext
     public void setDataSource(final DataSource dataSource) {
@@ -73,6 +80,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     @Override
     public void initialize(final UserGroupProviderInitializationContext initializationContext) throws SecurityProviderCreationException {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.databaseType = getDatabaseType(dataSource);
     }
 
     @Override
@@ -121,7 +129,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     @Override
     public User addUser(final User user) throws AuthorizationAccessException {
         Validate.notNull(user);
-        final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
+        final String sql = (databaseType instanceof SQLServerDatabaseType)
+                ? "INSERT INTO UGP_USER(IDENTIFIER, [IDENTITY]) VALUES (?, ?)"
+                : "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         jdbcTemplate.update(sql, new Object[] {user.getIdentifier(), user.getIdentity()});
         return user;
     }
@@ -131,7 +141,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         Validate.notNull(user);
 
         // update the user identity
-        final String sql = "UPDATE UGP_USER SET IDENTITY = ? WHERE IDENTIFIER = ?";
+        final String sql = (databaseType instanceof SQLServerDatabaseType)
+                ? "UPDATE UGP_USER SET [IDENTITY] = ? WHERE IDENTIFIER = ?"
+                : "UPDATE UGP_USER SET IDENTITY = ? WHERE IDENTIFIER = ?";
         final int updated = jdbcTemplate.update(sql, user.getIdentity(), user.getIdentifier());
 
         // if no rows were updated then there is no user with the given identifier, so return null
@@ -170,7 +182,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
     public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
         Validate.notBlank(identity);
 
-        final String sql = "SELECT * FROM UGP_USER WHERE IDENTITY = ?";
+        final String sql = (databaseType instanceof SQLServerDatabaseType)
+                ? "SELECT * FROM UGP_USER WHERE [IDENTITY] = ?"
+                : "SELECT * FROM UGP_USER WHERE IDENTITY = ?";
         final DatabaseUser databaseUser = queryForObject(sql, new Object[] {identity}, new DatabaseUserRowMapper());
         if (databaseUser == null) {
             return null;
@@ -191,8 +205,17 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         if (user == null) {
             groups = null;
         } else {
-            final String userGroupSql =
-                    "SELECT " +
+            final String userGroupSql = (databaseType instanceof SQLServerDatabaseType)
+                    ? "SELECT " +
+                            "G.IDENTIFIER AS IDENTIFIER, " +
+                            "G.[IDENTITY] AS [IDENTITY] " +
+                    "FROM " +
+                            "UGP_GROUP AS G, " +
+                            "UGP_USER_GROUP AS UG " +
+                    "WHERE " +
+                            "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
+                            "UG.USER_IDENTIFIER = ?"
+                    : "SELECT " +
                             "G.IDENTIFIER AS IDENTIFIER, " +
                             "G.IDENTITY AS IDENTITY " +
                     "FROM " +
@@ -201,6 +224,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
                     "WHERE " +
                             "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
                             "UG.USER_IDENTIFIER = ?";
+
 
             final Object[] args = {user.getIdentifier()};
             final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, args, new DatabaseGroupRowMapper());
@@ -260,7 +284,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         Validate.notNull(group);
 
         // insert to the group table...
-        final String groupSql = "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
+        final String groupSql = (databaseType instanceof SQLServerDatabaseType)
+                ? "INSERT INTO UGP_GROUP(IDENTIFIER, [IDENTITY]) VALUES (?, ?)"
+                : "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         jdbcTemplate.update(groupSql, group.getIdentifier(), group.getName());
 
         // insert to the user-group table...
@@ -274,7 +300,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         Validate.notNull(group);
 
         // update the group identity
-        final String updateGroupSql = "UPDATE UGP_GROUP SET IDENTITY = ? WHERE IDENTIFIER = ?";
+        final String updateGroupSql = (databaseType instanceof SQLServerDatabaseType)
+                ? "UPDATE UGP_GROUP SET [IDENTITY] = ? WHERE IDENTIFIER = ?"
+                : "UPDATE UGP_GROUP SET IDENTITY = ? WHERE IDENTIFIER = ?";
         final int updated = jdbcTemplate.update(updateGroupSql, group.getName(), group.getIdentifier());
 
         // if no rows were updated then a group does not exist for the given identifier, so return null
@@ -382,6 +410,15 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
             return jdbcTemplate.queryForObject(sql, args, rowMapper);
         } catch(final EmptyResultDataAccessException e) {
             return null;
+        }
+    }
+
+    private DatabaseType getDatabaseType(final DataSource dataSource) {
+        try (final Connection connection = dataSource.getConnection()) {
+            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }
     }
 }

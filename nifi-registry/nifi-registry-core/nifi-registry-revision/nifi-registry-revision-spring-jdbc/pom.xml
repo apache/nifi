@@ -57,5 +57,11 @@
             <version>${flyway.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-sqlserver</artifactId>
+            <version>${flyway.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

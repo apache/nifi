@@ -27,12 +27,18 @@ import org.apache.nifi.registry.security.authorization.UserGroupProviderInitiali
 import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUtils;
 import org.apache.nifi.registry.security.identity.DefaultIdentityMapper;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
+import org.flywaydb.core.api.FlywayException;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.database.sqlserver.SQLServerDatabaseType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -54,6 +60,7 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
     private IdentityMapper identityMapper;
 
     private ConfigurableUserGroupProvider userGroupProvider;
+    private DatabaseType databaseType;
 
     @BeforeEach
     public void setup() {
@@ -68,6 +75,20 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
         databaseUserGroupProvider.initialize(initializationContext);
 
         userGroupProvider = databaseUserGroupProvider;
+        databaseType = getDatabaseType(dataSource);
+    }
+
+    /**
+     * Helper method to determine databaseType.
+     *
+     * @param dataSource the dataSource
+     */
+    private DatabaseType getDatabaseType(final DataSource dataSource) {
+        try (final Connection connection = dataSource.getConnection()) {
+            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+        } catch (SQLException e) {
+            throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
+        }
     }
 
     /**
@@ -97,7 +118,9 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
      */
     private void createUser(final String userIdentifier, final String userIdentity) {
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        final String sql = "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
+        final String sql = (databaseType instanceof SQLServerDatabaseType)
+                ? "INSERT INTO UGP_USER(IDENTIFIER, [IDENTITY]) VALUES (?, ?)"
+                : "INSERT INTO UGP_USER(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         final int updatedRows1 = jdbcTemplate.update(sql, new Object[] {userIdentifier, userIdentity});
         assertEquals(1, updatedRows1);
     }
@@ -110,7 +133,9 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
      */
     private void createGroup(final String groupIdentifier, final String groupIdentity) {
         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        final String sql = "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
+        final String sql = (databaseType instanceof SQLServerDatabaseType)
+                ? "INSERT INTO UGP_GROUP(IDENTIFIER, [IDENTITY]) VALUES (?, ?)"
+                : "INSERT INTO UGP_GROUP(IDENTIFIER, IDENTITY) VALUES (?, ?)";
         final int updatedRows1 = jdbcTemplate.update(sql, new Object[] {groupIdentifier, groupIdentity});
         assertEquals(1, updatedRows1);
     }

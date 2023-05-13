@@ -284,13 +284,14 @@ If no profile is specified then an H2 DataSource will be used by default and no 
 
 Assuming Docker is running on the system where the build is running, then the following commands can be run:
 
-| Target Database | Build Command                                                      | 
-|-----------------|--------------------------------------------------------------------|
-| All supported   | `mvn verify -Ptest-all-dbs`                                        |
-| H2 (default)    | `mvn verify`                                                       |
-| MariaDB 10.3    | `mvn verify -Pcontrib-check -Dspring.profiles.active=mariadb-10-3` |
-| MySQL 8         | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-8`      |
-| PostgreSQL 10   | `mvn verify -Dspring.profiles.active=postgres-10`                  |
+| Target Database   | Build Command                                                      | 
+|-------------------|--------------------------------------------------------------------|
+| All supported     | `mvn verify -Ptest-all-dbs`                                        |
+| H2 (default)      | `mvn verify`                                                       |
+| MariaDB 10.3      | `mvn verify -Pcontrib-check -Dspring.profiles.active=mariadb-10-3` |
+| MySQL 8           | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-8`      |
+| PostGreSQL 10     | `mvn verify -Dspring.profiles.active=postgres-10`                  |
+| MSSQL Server 2019 | `mvn verify -Dspring.profiles.active=mssql-15`                     |
 
 For a full list of the available DataSource factories, consult the `nifi-registry-test` module.
 

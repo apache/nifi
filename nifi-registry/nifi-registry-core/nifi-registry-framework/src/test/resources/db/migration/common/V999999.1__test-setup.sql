@@ -16,38 +16,38 @@
 -- test data for buckets
 
 insert into BUCKET (id, name, description, created)
-  values ('1', 'Bucket 1', 'This is test bucket 1', DATE'2017-09-11');
+  values ('1', 'Bucket 1', 'This is test bucket 1', '2017-09-11');
 
 insert into BUCKET (id, name, description, created)
-  values ('2', 'Bucket 2', 'This is test bucket 2', DATE'2017-09-12');
+  values ('2', 'Bucket 2', 'This is test bucket 2', '2017-09-12');
 
 insert into BUCKET (id, name, description, created)
-  values ('3', 'Bucket 3', 'This is test bucket 3', DATE'2017-09-13');
+  values ('3', 'Bucket 3', 'This is test bucket 3', '2017-09-13');
 
 insert into BUCKET (id, name, description, created)
-  values ('4', 'Bucket 4', 'This is test bucket 4', DATE'2017-09-14');
+  values ('4', 'Bucket 4', 'This is test bucket 4', '2017-09-14');
 
 insert into BUCKET (id, name, description, created)
-  values ('5', 'Bucket 5', 'This is test bucket 5', DATE'2017-09-15');
+  values ('5', 'Bucket 5', 'This is test bucket 5', '2017-09-15');
 
 insert into BUCKET (id, name, description, created)
-  values ('6', 'Bucket 6', 'This is test bucket 6', DATE'2017-09-16');
+  values ('6', 'Bucket 6', 'This is test bucket 6', '2017-09-16');
 
 
 -- test data for flows
 
 insert into BUCKET_ITEM (id, name, description, created, modified, item_type, bucket_id)
-  values ('1', 'Flow 1', 'This is flow 1 bucket 1', DATE'2017-09-11', DATE'2017-09-11', 'FLOW', '1');
+  values ('1', 'Flow 1', 'This is flow 1 bucket 1', '2017-09-11', '2017-09-11', 'FLOW', '1');
 
 insert into FLOW (id) values ('1');
 
 insert into BUCKET_ITEM (id, name, description, created, modified, item_type, bucket_id)
-  values ('2', 'Flow 2', 'This is flow 2 bucket 1', DATE'2017-09-11', DATE'2017-09-11', 'FLOW', '1');
+  values ('2', 'Flow 2', 'This is flow 2 bucket 1', '2017-09-11', '2017-09-11', 'FLOW', '1');
 
 insert into FLOW (id) values ('2');
 
 insert into BUCKET_ITEM (id, name, description, created, modified, item_type, bucket_id)
-  values ('3', 'Flow 1', 'This is flow 1 bucket 2', DATE'2017-09-11', DATE'2017-09-11', 'FLOW', '2');
+  values ('3', 'Flow 1', 'This is flow 1 bucket 2', '2017-09-11', '2017-09-11', 'FLOW', '2');
 
 insert into FLOW (id) values ('3');
 
@@ -55,13 +55,13 @@ insert into FLOW (id) values ('3');
 -- test data for flow snapshots
 
 insert into FLOW_SNAPSHOT (flow_id, version, created, created_by, comments)
-  values ('1', 1, DATE'2017-09-11', 'user1', 'This is flow 1 snapshot 1');
+  values ('1', 1, '2017-09-11', 'user1', 'This is flow 1 snapshot 1');
 
 insert into FLOW_SNAPSHOT (flow_id, version, created, created_by, comments)
-  values ('1', 2, DATE'2017-09-12', 'user1', 'This is flow 1 snapshot 2');
+  values ('1', 2, '2017-09-12', 'user1', 'This is flow 1 snapshot 2');
 
 insert into FLOW_SNAPSHOT (flow_id, version, created, created_by, comments)
-  values ('1', 3, DATE'2017-09-11', 'user1', 'This is flow 1 snapshot 3');
+  values ('1', 3, '2017-09-11', 'user1', 'This is flow 1 snapshot 3');
 
 
 -- test data for signing keys
@@ -84,8 +84,8 @@ insert into BUCKET_ITEM (
   'eb1',
   'nifi-example-processors-nar',
   'Example processors bundle',
-  DATE'2018-11-02',
-  DATE'2018-11-02',
+  '2018-11-02',
+  '2018-11-02',
   'BUNDLE',
   '3'
 );
@@ -118,7 +118,7 @@ insert into BUNDLE_VERSION (
   'eb1-v1',
   'eb1',
   '1.0.0',
-  DATE'2018-11-02',
+  '2018-11-02',
   'user1',
   'First version of eb1',
   '123456789',
@@ -153,8 +153,8 @@ insert into BUCKET_ITEM (
   'eb2',
   'nifi-example-services-nar',
   'Example services bundle',
-  DATE'2018-11-03',
-  DATE'2018-11-03',
+  '2018-11-03',
+  '2018-11-03',
   'BUNDLE',
   '3'
 );
@@ -187,7 +187,7 @@ insert into BUNDLE_VERSION (
   'eb2-v1',
   'eb2',
   '1.0.0',
-  DATE'2018-11-03',
+  '2018-11-03',
   'user1',
   'First version of eb2',
   '123456789',
@@ -222,8 +222,8 @@ insert into BUCKET_ITEM (
   'eb3',
   'nifi-example-service-api-nar',
   'Example service API bundle',
-  DATE'2018-11-04',
-  DATE'2017-11-04',
+  '2018-11-04',
+  '2017-11-04',
   'BUNDLE',
   '3'
 );
@@ -256,7 +256,7 @@ insert into BUNDLE_VERSION (
   'eb3-v1',
   'eb3',
   '2.0.0',
-  DATE'2018-11-04',
+  '2018-11-04',
   'user1',
   'First version of eb3',
   '123456789',
