@@ -17,9 +17,10 @@
 package org.apache.nifi.registry.web.api;
 
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.junit4.SpringRunner;
 
 /**
@@ -29,7 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
  * - The database is embed H2 using volatile (in-memory) persistence
  * - Custom SQL is clearing the DB before each test method by default, unless method overrides this behavior
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = NiFiRegistryTestApiApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
