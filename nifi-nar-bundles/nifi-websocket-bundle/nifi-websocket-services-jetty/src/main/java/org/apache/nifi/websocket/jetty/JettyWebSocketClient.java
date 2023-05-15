@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.websocket.jetty;
 
-import dto.SessionInfo;
+import org.apache.nifi.websocket.jetty.dto.SessionInfo;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -42,7 +42,7 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import util.HeaderMapExtractor;
+import org.apache.nifi.websocket.jetty.util.HeaderMapExtractor;
 
 import java.io.IOException;
 import java.net.URI;
