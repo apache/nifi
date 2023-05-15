@@ -30,8 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SuppressWarnings("deprecation")
 public class TestFormatUtils {
+    @SuppressWarnings("deprecation")
     @Test
     public void testGetTimeDurationShouldConvertWeeks() {
         final List<String> WEEKS = List.of("1 week", "1 wk", "1 w", "1 wks", "1 weeks");
@@ -44,6 +44,7 @@ public class TestFormatUtils {
         days.forEach(it -> assertEquals(EXPECTED_DAYS, it));
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testGetTimeDurationShouldHandleNegativeWeeks() {
         List<String> WEEKS = List.of("-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week");
@@ -58,6 +59,7 @@ public class TestFormatUtils {
     /**
      * Regression test
      */
+    @SuppressWarnings("deprecation")
     @Test
     public void testGetTimeDurationShouldHandleInvalidAbbreviations() {
         final List<String> WEEKS = List.of("1 work", "1 wek", "1 k");
@@ -69,7 +71,10 @@ public class TestFormatUtils {
         });
     }
 
-    /** New feature test */
+    /**
+     * New feature test
+     */
+    @SuppressWarnings("deprecation")
     @Test
     public void testGetTimeDurationShouldHandleNoSpaceInInput() {
         final List<String> WEEKS = List.of("1week", "1wk", "1w", "1wks", "1weeks");
@@ -85,6 +90,7 @@ public class TestFormatUtils {
     /**
      * New feature test
      */
+    @SuppressWarnings("deprecation")
     @Test
     public void testGetTimeDurationShouldHandleDecimalValues() {
         final List<String> WHOLE_NUMBERS = List.of("10 ms", "10 millis", "10 milliseconds");
