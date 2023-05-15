@@ -26,7 +26,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <tika.version>2.7.0</tika.version>
+        <tika.version>2.8.0</tika.version>
     </properties>
 
     <dependencyManagement>
