@@ -13,15 +13,6 @@ echo "Testing return values on invalid input for all commands:"
 docker run --rm $IMAGE encrypt-config invalid 1>/dev/null 2>&1
 test 2 -eq $? || exit 1
 
-docker run --rm $IMAGE s2s invalid 1>/dev/null 2>&1
-test 0 -eq $? || exit 1
-
-docker run --rm $IMAGE zk-migrator invalid 1>/dev/null 2>&1
-test 0 -eq $? || exit 1
-
-docker run --rm $IMAGE node-manager invalid 1>/dev/null 2>&1
-test 1 -eq $? || exit 1
-
 docker run --rm $IMAGE cli invalid 1>/dev/null 2>&1
 test 255 -eq $? || exit 1
 

@@ -3046,22 +3046,6 @@ nifi.state.management.configuration.file=./conf/state-management.xml
 nifi.state.management.provider.cluster=zk-provider
 --
 
-[[zookeeper_migrator]]
-=== ZooKeeper Migrator
-You can use the `zk-migrator` tool to perform the following tasks:
-
-* Moving ZooKeeper information from one ZooKeeper cluster to another
-* Migrating ZooKeeper node ownership
-
-For example, you may want to use the ZooKeeper Migrator when you are:
-
-* Upgrading from NiFi 0.x to NiFi 1.x in which embedded ZooKeepers are used
-* Migrating from an embedded ZooKeeper in NiFi 0.x or 1.x to an external ZooKeeper
-* Upgrading from NiFi 0.x with an external ZooKeeper to NiFi 1.x with the same external ZooKeeper
-* Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
-
-For more information, see the <<toolkit-guide.adoc#zookeeper_migrator,ZooKeeper Migrator>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
-
 [[bootstrap_properties]]
 == Bootstrap Properties
 The _bootstrap.conf_ file in the `conf` directory allows users to configure settings for how NiFi should be started.
