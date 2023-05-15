@@ -24,6 +24,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public interface StatelessEngineConfiguration {
     /**
@@ -94,12 +95,15 @@ public interface StatelessEngineConfiguration {
      * @return a String representing the number of milliseconds that the process scheduler should wait for a process to start
      * Defaults to 10 seconds or 10_000 milliseconds
      */
-    long getProcessorStartTimeout();
+    default long getProcessorStartTimeout() {
+       return TimeUnit.SECONDS.toMillis(10);
+    }
 
-    //TODO: Fix this doc
     /**
      * @return a String representing the number of milliseconds that the StatelessEngine should wait for a component to enable
      * Defaults to 10 seconds or 10_000 milliseconds
      */
-    long getComponentEnableTimeout();
+    default long getComponentEnableTimeout() {
+        return TimeUnit.SECONDS.toMillis(10);
+    }
 }
