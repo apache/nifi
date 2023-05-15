@@ -38,7 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PBKDF2CipherProviderTest {
     private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess";
-
+    private static final String SHORT_PASSWORD = "shortPassword";
+    private static final String BAD_PASSWORD = "thisIsABadPassword";
     private static List<EncryptionMethod> strongKDFEncryptionMethods;
 
     public static final String MICROBENCHMARK = "microbenchmark";
@@ -65,18 +66,17 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, DEFAULT_KEY_LENGTH, true);
             byte[] iv = cipher.getIV();
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false);
+            cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -90,7 +90,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
 
         final int MAX_LENGTH = 15;
@@ -104,11 +103,11 @@ public class PBKDF2CipherProviderTest {
         // Act
         for (final byte[] badIV : INVALID_IVS) {
             // Encrypt should print a warning about the bad IV but overwrite it
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, true);
 
             // Decrypt should fail
             IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false));
+                    () -> cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, badIV, DEFAULT_KEY_LENGTH, false));
 
             // Assert
             assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"));
@@ -120,18 +119,17 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+            cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -144,7 +142,6 @@ public class PBKDF2CipherProviderTest {
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
 
         final int LONG_KEY_LENGTH = 256;
@@ -152,12 +149,12 @@ public class PBKDF2CipherProviderTest {
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, LONG_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, LONG_KEY_LENGTH, true);
             byte[] iv = cipher.getIV();
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false);
+            cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, iv, LONG_KEY_LENGTH, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -171,7 +168,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider;
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
@@ -191,7 +187,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider;
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
@@ -205,11 +200,11 @@ public class PBKDF2CipherProviderTest {
         cipherProvider = new PBKDF2CipherProvider(prf, TEST_ITERATION_COUNT);
 
         // Initialize a cipher for encryption
-        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+        Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
 
         byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-        cipher = SHA512_PROVIDER.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+        cipher = SHA512_PROVIDER.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
         byte[] recoveredBytes = cipher.doFinal(cipherBytes);
         String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -223,7 +218,6 @@ public class PBKDF2CipherProviderTest {
         final List<String> PRFS = Arrays.asList("SHA-1", "MD5", "SHA-256", "SHA-384", "SHA-512");
         RandomIVPBECipherProvider cipherProvider;
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
@@ -234,11 +228,11 @@ public class PBKDF2CipherProviderTest {
             cipherProvider = new PBKDF2CipherProvider(prf, TEST_ITERATION_COUNT);
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+            cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -253,7 +247,6 @@ public class PBKDF2CipherProviderTest {
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider("SHA-256", TEST_ITERATION_COUNT);
 
         final String PLAINTEXT = "This is a plaintext message.";
-        final String PASSWORD = "thisIsABadPassword";
 
         // These values can be generated by running `$ ./openssl_pbkdf2.rb` in the terminal
         final byte[] SALT = Hex.decodeHex("ae2481bee3d8b5d5b732bf464ea2ff01".toCharArray());
@@ -265,7 +258,7 @@ public class PBKDF2CipherProviderTest {
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC;
 
         // Act
-        Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+        Cipher cipher = cipherProvider.getCipher(encryptionMethod, BAD_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
         byte[] recoveredBytes = cipher.doFinal(cipherBytes);
         String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -279,7 +272,7 @@ public class PBKDF2CipherProviderTest {
         RandomIVPBECipherProvider sha256CP = new PBKDF2CipherProvider("SHA-256", TEST_ITERATION_COUNT);
         RandomIVPBECipherProvider sha512CP = new PBKDF2CipherProvider("SHA-512", TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "thisIsABadPassword";
+        final String BAD_PASSWORD = "thisIsABadPassword";
         final byte[] SALT = new byte[16];
         Arrays.fill(SALT, (byte) 0x11);
         final byte[] IV = new byte[16];
@@ -288,20 +281,20 @@ public class PBKDF2CipherProviderTest {
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC;
 
         // Act
-        Cipher sha256Cipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+        Cipher sha256Cipher = sha256CP.getCipher(encryptionMethod, BAD_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
         byte[] sha256CipherBytes = sha256Cipher.doFinal(PLAINTEXT.getBytes());
 
-        Cipher sha512Cipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+        Cipher sha512Cipher = sha512CP.getCipher(encryptionMethod, BAD_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
         byte[] sha512CipherBytes = sha512Cipher.doFinal(PLAINTEXT.getBytes());
 
         // Assert
         assertFalse(Arrays.equals(sha512CipherBytes, sha256CipherBytes));
 
-        Cipher sha256DecryptCipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+        Cipher sha256DecryptCipher = sha256CP.getCipher(encryptionMethod, BAD_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
         byte[] sha256RecoveredBytes = sha256DecryptCipher.doFinal(sha256CipherBytes);
         assertArrayEquals(PLAINTEXT.getBytes(), sha256RecoveredBytes);
 
-        Cipher sha512DecryptCipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
+        Cipher sha512DecryptCipher = sha512CP.getCipher(encryptionMethod, BAD_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false);
         byte[] sha512RecoveredBytes = sha512DecryptCipher.doFinal(sha512CipherBytes);
         assertArrayEquals(PLAINTEXT.getBytes(), sha512RecoveredBytes);
     }
@@ -311,19 +304,18 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true);
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
             IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(em, PASSWORD, SALT, DEFAULT_KEY_LENGTH, false));
+                    () -> cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, DEFAULT_KEY_LENGTH, false));
 
             // Assert
             assertTrue(iae.getMessage().contains("Cannot decrypt without a valid IV"));
@@ -335,8 +327,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "thisIsABadPassword";
-
         final List<String> INVALID_SALTS = Arrays.asList("pbkdf2", "$3a$11$", "x", "$2a$10$", "", null);
 
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC;
@@ -344,7 +334,7 @@ public class PBKDF2CipherProviderTest {
         // Act
         for (final String salt : INVALID_SALTS) {
             IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, salt != null ? salt.getBytes(): null, DEFAULT_KEY_LENGTH, true));
+                    () -> cipherProvider.getCipher(encryptionMethod, BAD_PASSWORD, salt != null ? salt.getBytes(): null, DEFAULT_KEY_LENGTH, true));
 
             // Assert
             assertTrue(iae.getMessage().contains("The salt must be at least 16 bytes. To generate a salt, use PBKDF2CipherProvider#generateSalt"));
@@ -356,7 +346,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
@@ -367,11 +356,11 @@ public class PBKDF2CipherProviderTest {
         // Act
         for (final int keyLength : VALID_KEY_LENGTHS) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, keyLength, true);
 
             byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, false);
+            cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, keyLength, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -385,7 +374,6 @@ public class PBKDF2CipherProviderTest {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT);
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex(SALT_HEX.toCharArray());
         final byte[] IV = Hex.decodeHex(IV_HEX.toCharArray());
 
@@ -397,7 +385,7 @@ public class PBKDF2CipherProviderTest {
         for (final int keyLength : VALID_KEY_LENGTHS) {
             // Initialize a cipher for encryption
             IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, keyLength, true));
+                    () -> cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, IV, keyLength, true));
 
             // Assert
             assertTrue(iae.getMessage().contains(keyLength + " is not a valid key length for AES"));

@@ -18,9 +18,7 @@ package org.apache.nifi.security.util.crypto;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -28,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,16 +42,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HashServiceTest {
-    @BeforeAll
-    static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
-    }
+    private static final String KNOWN_VALUE = "apachenifi";
 
     @Test
     void testShouldHashValue() {
         // Arrange
         final HashAlgorithm algorithm = HashAlgorithm.SHA256;
-        final String KNOWN_VALUE = "apachenifi";
 
         final String EXPECTED_HASH = "dc4bd945723b9c234f1be408e8ceb78660b481008b8ab5b71eb2aa3b4f08357a";
         final byte[] EXPECTED_HASH_BYTES = Hex.decode(EXPECTED_HASH);
@@ -87,7 +80,6 @@ public class HashServiceTest {
     void testHashValueShouldDifferOnDifferentEncodings() {
         // Arrange
         final HashAlgorithm algorithm = HashAlgorithm.SHA256;
-        final String KNOWN_VALUE = "apachenifi";
 
         // Act
         String utf8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
@@ -118,7 +110,6 @@ public class HashServiceTest {
     void testHashValueShouldHandleUTF16BOMIssue() {
         // Arrange
         HashAlgorithm algorithm = HashAlgorithm.SHA256;
-        final String KNOWN_VALUE = "apachenifi";
 
         List<Charset> charsets = Arrays.asList(StandardCharsets.UTF_8, StandardCharsets.UTF_16, StandardCharsets.UTF_16LE, StandardCharsets.UTF_16BE);
 
@@ -142,7 +133,6 @@ public class HashServiceTest {
     void testHashValueShouldDefaultToUTF8() {
         // Arrange
         final HashAlgorithm algorithm = HashAlgorithm.SHA256;
-        final String KNOWN_VALUE = "apachenifi";
 
         // Act
         String explicitUTF8Hash = HashService.hashValue(algorithm, KNOWN_VALUE, StandardCharsets.UTF_8);
@@ -161,8 +151,6 @@ public class HashServiceTest {
     @Test
     void testShouldRejectNullAlgorithm() {
         // Arrange
-        final String KNOWN_VALUE = "apachenifi";
-
         final List<IllegalArgumentException> errors = new ArrayList<>();
 
         errors.add(assertThrows(IllegalArgumentException.class,
@@ -206,7 +194,6 @@ public class HashServiceTest {
     void testShouldHashConstantValue() throws Exception {
         // Arrange
         final List<HashAlgorithm> algorithms = List.of(HashAlgorithm.values());
-        final String KNOWN_VALUE = "apachenifi";
 
         /* These values were generated using command-line tools (openssl dgst -md5, shasum [-a 1 224 256 384 512 512224 512256], rhash --sha3-224, b2sum -l 224)
          * Ex: {@code $ echo -n "apachenifi" | openssl dgst -md5}

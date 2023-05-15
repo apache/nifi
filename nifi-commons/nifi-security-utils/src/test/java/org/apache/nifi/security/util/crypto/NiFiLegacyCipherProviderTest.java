@@ -41,6 +41,7 @@ public class NiFiLegacyCipherProviderTest {
 
     private static final String PROVIDER_NAME = "BC";
     private static final int ITERATION_COUNT = 1000;
+    private static final String SHORT_PASSWORD = "shortPassword";
 
     private static byte[] SALT_16_BYTES;
 
@@ -63,23 +64,22 @@ public class NiFiLegacyCipherProviderTest {
         // Arrange
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod encryptionMethod : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), encryptionMethod)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), encryptionMethod)) {
                 continue;
             }
 
             byte[] salt = cipherProvider.generateSalt(encryptionMethod);
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, salt, true);
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
+            cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, salt, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -92,7 +92,6 @@ public class NiFiLegacyCipherProviderTest {
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final String plaintext = "This is a plaintext message.";
 
         // Act
@@ -100,11 +99,11 @@ public class NiFiLegacyCipherProviderTest {
             byte[] salt = cipherProvider.generateSalt(encryptionMethod);
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, true);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, salt, true);
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
+            cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, salt, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -118,23 +117,22 @@ public class NiFiLegacyCipherProviderTest {
         // Arrange
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
 
-        final String PASSWORD = "short";
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod encryptionMethod : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), encryptionMethod)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), encryptionMethod)) {
                 continue;
             }
 
             byte[] salt = cipherProvider.generateSalt(encryptionMethod);
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, salt, encryptionMethod.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(SHORT_PASSWORD, salt, encryptionMethod.getAlgorithm());
 
             byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, salt, false);
+            Cipher providedCipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, salt, false);
             byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -148,23 +146,22 @@ public class NiFiLegacyCipherProviderTest {
         // Arrange
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
 
-        final String PASSWORD = "short";
         final byte[] SALT = new byte[0];
 
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), em)) {
                 continue;
             }
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(SHORT_PASSWORD, SALT, em.getAlgorithm());
 
             byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            Cipher providedCipher = cipherProvider.getCipher(em, PASSWORD, false);
+            Cipher providedCipher = cipherProvider.getCipher(em, SHORT_PASSWORD, false);
             byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -178,7 +175,6 @@ public class NiFiLegacyCipherProviderTest {
         // Arrange
         NiFiLegacyCipherProvider cipherProvider = new NiFiLegacyCipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = SALT_16_BYTES;
 
         final String plaintext = "This is a plaintext message.";
@@ -187,12 +183,12 @@ public class NiFiLegacyCipherProviderTest {
 
         // Initialize a cipher for encryption
         EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
-        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, true);
+        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, true);
         byte[] cipherBytes = cipher128.doFinal(plaintext.getBytes("UTF-8"));
 
         // Act
         for (final int keyLength : KEY_LENGTHS) {
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, keyLength, false);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, keyLength, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 

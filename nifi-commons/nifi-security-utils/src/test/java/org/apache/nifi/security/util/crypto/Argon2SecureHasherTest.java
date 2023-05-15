@@ -16,14 +16,11 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,11 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Argon2SecureHasherTest {
-    @BeforeAll
-    static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
         // Arrange
@@ -269,8 +261,6 @@ public class Argon2SecureHasherTest {
             results.add(hashHex);
             resultDurations.add(durationNanos);
         }
-
-
 
         // Assert
         final long MIN_DURATION_NANOS = 500_000_000; // 500 ms

@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class AESKeyedCipherProviderTest {
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210";
@@ -59,14 +57,6 @@ public class AESKeyedCipherProviderTest {
         try {
             key = new SecretKeySpec(Hex.decodeHex(KEY_HEX.toCharArray()), "AES");
         } catch (final DecoderException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static boolean isUnlimitedStrengthCryptoAvailable() {
-        try {
-            return Cipher.getMaxAllowedKeyLength("AES") > 128;
-        } catch (final NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -119,8 +109,6 @@ public class AESKeyedCipherProviderTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        assumeTrue(isUnlimitedStrengthCryptoAvailable(), "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.");
-
         KeyedCipherProvider cipherProvider = new AESKeyedCipherProvider();
         final List<Integer> longKeyLengths = Arrays.asList(192, 256);
 

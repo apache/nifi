@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.security.Security;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -31,12 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HashAlgorithmTest {
-
-    @BeforeAll
-    static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
     @Test
     void testDetermineBrokenAlgorithms() throws Exception {
         // Arrange

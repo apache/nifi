@@ -19,13 +19,11 @@ package org.apache.nifi.security.util.crypto;
 import at.favre.lib.crypto.bcrypt.Radix64Encoder;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -218,41 +216,6 @@ public class BcryptSecureHasherTest {
         // Assert
         hexResults.forEach(result -> assertEquals(EXPECTED_HASH_HEX, result));
         b64Results.forEach(result -> assertEquals(EXPECTED_HASH_BASE64, result));
-    }
-
-    /**
-     * This test can have the minimum time threshold updated to determine if the performance
-     * is still sufficient compared to the existing threat model.
-     */
-    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
-    @Test
-    void testDefaultCostParamsShouldBeSufficient() {
-        // Arrange
-        int testIterations = 100;
-        byte[] inputBytes = "This is a sensitive value".getBytes();
-
-        BcryptSecureHasher bcryptSH = new BcryptSecureHasher();
-
-        final List<String> results = new ArrayList<>();
-        final List<Long> resultDurations = new ArrayList<>();
-
-        // Act
-        for (int i = 0; i < testIterations; i++) {
-            long startNanos = System.nanoTime();
-            byte[] hash = bcryptSH.hashRaw(inputBytes);
-            long endNanos = System.nanoTime();
-            long durationNanos = endNanos - startNanos;
-
-            String hashHex = new String(Hex.encode(hash));
-
-            results.add(hashHex);
-            resultDurations.add(durationNanos);
-        }
-
-        // Assert
-        final long MIN_DURATION_NANOS = 75_000_000; // 75 ms
-        assertTrue(Collections.min(resultDurations) > MIN_DURATION_NANOS);
-        assertTrue(resultDurations.stream().mapToLong(Long::longValue).sum() / testIterations > MIN_DURATION_NANOS);
     }
 
     @Test

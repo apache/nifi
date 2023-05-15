@@ -44,6 +44,7 @@ public class OpenSSLPKCS5CipherProviderTest {
 
     private static final String PROVIDER_NAME = "BC";
     private static final int ITERATION_COUNT = 0;
+    private static final String SHORT_PASSWORD = "shortPassword";
 
     @BeforeAll
     static void setUpOnce() throws Exception {
@@ -62,23 +63,22 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "short";
         final byte[] SALT = Hex.decodeHex("aabbccddeeff0011".toCharArray());
 
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), em)) {
                 continue;
             }
 
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, true);
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, false);
+            cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -92,7 +92,6 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("aabbccddeeff0011".toCharArray());
 
         final String plaintext = "This is a plaintext message.";
@@ -100,11 +99,11 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Act
         for (EncryptionMethod em : pbeEncryptionMethods) {
             // Initialize a cipher for encryption
-            Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, true);
+            Cipher cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, true);
 
             byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            cipher = cipherProvider.getCipher(em, PASSWORD, SALT, false);
+            cipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -118,23 +117,22 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("0011223344556677".toCharArray());
 
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), em)) {
                 continue;
             }
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(SHORT_PASSWORD, SALT, em.getAlgorithm());
 
             byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            Cipher providedCipher = cipherProvider.getCipher(em, PASSWORD, SALT, false);
+            Cipher providedCipher = cipherProvider.getCipher(em, SHORT_PASSWORD, SALT, false);
             byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -148,23 +146,22 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "short";
         final byte[] SALT = new byte[0];
 
         final String plaintext = "This is a plaintext message.";
 
         // Act
         for (EncryptionMethod em : limitedStrengthPbeEncryptionMethods) {
-            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(PASSWORD.length(), em)) {
+            if (!CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(SHORT_PASSWORD.length(), em)) {
                 continue;
             }
 
             // Initialize a legacy cipher for encryption
-            Cipher legacyCipher = getLegacyCipher(PASSWORD, SALT, em.getAlgorithm());
+            Cipher legacyCipher = getLegacyCipher(SHORT_PASSWORD, SALT, em.getAlgorithm());
 
             byte[] cipherBytes = legacyCipher.doFinal(plaintext.getBytes("UTF-8"));
 
-            Cipher providedCipher = cipherProvider.getCipher(em, PASSWORD, false);
+            Cipher providedCipher = cipherProvider.getCipher(em, SHORT_PASSWORD, false);
             byte[] recoveredBytes = providedCipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -178,7 +175,6 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("aabbccddeeff0011".toCharArray());
 
         final String plaintext = "This is a plaintext message.";
@@ -187,12 +183,12 @@ public class OpenSSLPKCS5CipherProviderTest {
 
         // Initialize a cipher for encryption
         EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
-        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, true);
+        final Cipher cipher128 = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, true);
         byte[] cipherBytes = cipher128.doFinal(plaintext.getBytes("UTF-8"));
 
         // Act
         for (final int keyLength : KEY_LENGTHS) {
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, keyLength, false);
+            Cipher cipher = cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, keyLength, false);
             byte[] recoveredBytes = cipher.doFinal(cipherBytes);
             String recovered = new String(recoveredBytes, "UTF-8");
 
@@ -206,12 +202,11 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("0011223344556677".toCharArray());
 
         // Act
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(null, PASSWORD, SALT, false));
+                () -> cipherProvider.getCipher(null, SHORT_PASSWORD, SALT, false));
 
         // Assert
         assertTrue(iae.getMessage().contains("The encryption method must be specified"));
@@ -238,13 +233,12 @@ public class OpenSSLPKCS5CipherProviderTest {
         // Arrange
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider();
 
-        final String PASSWORD = "shortPassword";
         final byte[] SALT = Hex.decodeHex("00112233445566".toCharArray());
         EncryptionMethod encryptionMethod = EncryptionMethod.MD5_128AES;
 
         // Act
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                () -> cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, false));
+                () -> cipherProvider.getCipher(encryptionMethod, SHORT_PASSWORD, SALT, false));
 
         // Assert
         assertTrue(iae.getMessage().contains("Salt must be 8 bytes US-ASCII encoded"));

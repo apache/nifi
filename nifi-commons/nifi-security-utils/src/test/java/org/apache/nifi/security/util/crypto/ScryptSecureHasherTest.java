@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ScryptSecureHasherTest {
     private static final byte[] STATIC_SALT = "NiFi Static Salt".getBytes(StandardCharsets.UTF_8);
+    private static final String SENSITIVE_VALUE = "This is a sensitive value";
 
     @Test
     void testShouldBeDeterministicWithStaticSalt() {
@@ -48,7 +49,7 @@ public class ScryptSecureHasherTest {
         int dkLength = 32;
 
         int testIterations = 10;
-        byte[] inputBytes = "This is a sensitive value".getBytes();
+        byte[] inputBytes = SENSITIVE_VALUE.getBytes();
 
         final String EXPECTED_HASH_HEX = "a67fd2f4b3aa577b8ecdb682e60b4451a84611dcbbc534bce17616056ef8965d";
 
@@ -76,7 +77,7 @@ public class ScryptSecureHasherTest {
         int dkLength = 128;
 
         int testIterations = 10;
-        byte[] inputBytes = "This is a sensitive value".getBytes();
+        byte[] inputBytes = SENSITIVE_VALUE.getBytes();
 
         final String EXPECTED_HASH_HEX = "a67fd2f4b3aa577b8ecdb682e60b4451";
 
@@ -104,7 +105,7 @@ public class ScryptSecureHasherTest {
         int p = 2;
         int dkLength = 32;
 
-        final String input = "This is a sensitive value";
+        final String input = SENSITIVE_VALUE;
         byte[] inputBytes = input.getBytes();
 
         final String EXPECTED_HASH_HEX = "a67fd2f4b3aa577b8ecdb682e60b4451a84611dcbbc534bce17616056ef8965d";
@@ -158,7 +159,7 @@ public class ScryptSecureHasherTest {
         int p = 2;
         int dkLength = 32;
 
-        final String input = "This is a sensitive value";
+        final String input = SENSITIVE_VALUE;
         byte[] inputBytes = input.getBytes();
 
         // Static salt instance
@@ -174,7 +175,7 @@ public class ScryptSecureHasherTest {
     @Test
     void testShouldFormatHex() {
         // Arrange
-        String input = "This is a sensitive value";
+        String input = SENSITIVE_VALUE;
 
         final String EXPECTED_HASH_HEX = "6a9c827815fe0718af5e336811fc78dd719c8d9505e015283239b9bf1d24ee71";
 
@@ -190,7 +191,7 @@ public class ScryptSecureHasherTest {
     @Test
     void testShouldFormatBase64() {
         // Arrange
-        String input = "This is a sensitive value";
+        String input = SENSITIVE_VALUE;
 
         final String EXPECTED_HASH_BASE64 = "apyCeBX+BxivXjNoEfx43XGcjZUF4BUoMjm5vx0k7nE";
 
@@ -239,7 +240,7 @@ public class ScryptSecureHasherTest {
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange
         int testIterations = 100;
-        byte[] inputBytes = "This is a sensitive value".getBytes();
+        byte[] inputBytes = SENSITIVE_VALUE.getBytes();
 
         ScryptSecureHasher scryptSH = new ScryptSecureHasher();
 
