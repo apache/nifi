@@ -76,17 +76,17 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                     .build());
         }
 
-        final BasicDataSource dataSource = new BasicDataSource();
+        final BasicDataSource basicDataSource = new BasicDataSource();
         try {
             final DataSourceConfiguration configuration = getDataSourceConfiguration(context);
-            configureDataSource(context, dataSource, configuration);
+            configureDataSource(context, basicDataSource, configuration);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(SUCCESSFUL)
                     .explanation("Successfully configured data source")
                     .build());
 
-            try (final Connection conn = getConnection(dataSource, kerberosUser)) {
+            try (final Connection conn = getConnection(basicDataSource, kerberosUser)) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("Establish Connection")
                         .outcome(SUCCESSFUL)
@@ -114,7 +114,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
                     .build());
         } finally {
             try {
-                shutdown(dataSource, kerberosUser);
+                shutdown(basicDataSource, kerberosUser);
             } catch (final SQLException e) {
                 verificationLogger.error("Failed to shut down data source", e);
             }
@@ -157,30 +157,30 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     protected abstract DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context);
 
-    protected void configureDataSource(final ConfigurationContext context, final BasicDataSource dataSource, final DataSourceConfiguration configuration) {
+    protected void configureDataSource(final ConfigurationContext context, final BasicDataSource basicDataSource, final DataSourceConfiguration configuration) {
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
 
-        dataSource.setDriver(driver);
-        dataSource.setMaxWaitMillis(configuration.getMaxWaitMillis());
-        dataSource.setMaxTotal(configuration.getMaxTotal());
-        dataSource.setMinIdle(configuration.getMinIdle());
-        dataSource.setMaxIdle(configuration.getMaxIdle());
-        dataSource.setMaxConnLifetimeMillis(configuration.getMaxConnLifetimeMillis());
-        dataSource.setTimeBetweenEvictionRunsMillis(configuration.getTimeBetweenEvictionRunsMillis());
-        dataSource.setMinEvictableIdleTimeMillis(configuration.getMinEvictableIdleTimeMillis());
-        dataSource.setSoftMinEvictableIdleTimeMillis(configuration.getSoftMinEvictableIdleTimeMillis());
+        basicDataSource.setDriver(driver);
+        basicDataSource.setMaxWaitMillis(configuration.getMaxWaitMillis());
+        basicDataSource.setMaxTotal(configuration.getMaxTotal());
+        basicDataSource.setMinIdle(configuration.getMinIdle());
+        basicDataSource.setMaxIdle(configuration.getMaxIdle());
+        basicDataSource.setMaxConnLifetimeMillis(configuration.getMaxConnLifetimeMillis());
+        basicDataSource.setTimeBetweenEvictionRunsMillis(configuration.getTimeBetweenEvictionRunsMillis());
+        basicDataSource.setMinEvictableIdleTimeMillis(configuration.getMinEvictableIdleTimeMillis());
+        basicDataSource.setSoftMinEvictableIdleTimeMillis(configuration.getSoftMinEvictableIdleTimeMillis());
 
         final String validationQuery = configuration.getValidationQuery();
         if (StringUtils.isNotBlank(validationQuery)) {
-            dataSource.setValidationQuery(validationQuery);
-            dataSource.setTestOnBorrow(true);
+            basicDataSource.setValidationQuery(validationQuery);
+            basicDataSource.setTestOnBorrow(true);
         }
 
-        dataSource.setUrl(configuration.getUrl());
-        dataSource.setUsername(configuration.getUserName());
-        dataSource.setPassword(configuration.getPassword());
+        basicDataSource.setUrl(configuration.getUrl());
+        basicDataSource.setUsername(configuration.getUserName());
+        basicDataSource.setPassword(configuration.getPassword());
 
-        getConnectionProperties(context).forEach(dataSource::addConnectionProperty);
+        getConnectionProperties(context).forEach(basicDataSource::addConnectionProperty);
     }
 
     protected Map<String, String> getConnectionProperties(final ConfigurationContext context) {
