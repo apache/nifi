@@ -22,6 +22,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResul
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.Parameter;
@@ -61,6 +62,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1175,6 +1177,99 @@ public class TestQuery {
         attributes.put("attr", "hello");
 
         verifyEquals("${attr:replaceAll('.*?(l+).*', '$1')}", attributes, "ll");
+    }
+
+    @Test
+    public void testReplaceShouldReplaceAllLiteralMatches() {
+        int n = 3;
+        final String ORIGINAL_VALUE = "Hello World";
+        final Map<String, String> attributes = Map.of("single", ORIGINAL_VALUE,
+                "repeating", StringUtils.repeat(ORIGINAL_VALUE, " ", n));
+        final String REPLACEMENT_VALUE = "Goodbye Planet";
+        final String EXPECTED_REPEATING_RESULT = StringUtils.repeat(REPLACEMENT_VALUE, " ", n);
+        final String REPLACE_SINGLE_EXPRESSION = "${single:replace('" + ORIGINAL_VALUE + "', '" + REPLACEMENT_VALUE + "')}";
+        final String REPLACE_REPEATING_EXPRESSION = "${repeating:replace('" + ORIGINAL_VALUE + "', '" + REPLACEMENT_VALUE + "')}";
+        Query replaceSingleQuery = Query.compile(REPLACE_SINGLE_EXPRESSION);
+        Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION);
+
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+
+        assertEquals(REPLACEMENT_VALUE, replaceSingleResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.getResultType());
+    }
+
+    @Test
+    public void testReplaceFirstShouldOnlyReplaceFirstRegexMatch() {
+        // Arrange
+        int n = 3;
+        final String ORIGINAL_VALUE = "Hello World";
+        final Map<String, String> attributes = Map.of("single", ORIGINAL_VALUE,
+                "repeating", StringUtils.repeat(ORIGINAL_VALUE, " ", n));
+
+        final String REPLACEMENT_VALUE = "Goodbye Planet";
+        final String EXPECTED_REPEATING_RESULT = REPLACEMENT_VALUE + " " + StringUtils.repeat(ORIGINAL_VALUE, " ", n -1);
+        final String REPLACE_ONLY_FIRST_PATTERN = "\\w+\\s\\w+\\b??";
+        final String REPLACE_SINGLE_EXPRESSION = "${single:replaceFirst('" + REPLACE_ONLY_FIRST_PATTERN +"', '" + REPLACEMENT_VALUE + "')}";
+        final String REPLACE_REPEATING_EXPRESSION = "${repeating:replaceFirst('" + REPLACE_ONLY_FIRST_PATTERN + "', '" + REPLACEMENT_VALUE + "')}";
+        Query replaceSingleQuery = Query.compile(REPLACE_SINGLE_EXPRESSION);
+        Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION);
+
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+
+        assertEquals(REPLACEMENT_VALUE, replaceSingleResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.getResultType());
+    }
+
+    @Test
+    public void testReplaceFirstShouldOnlyReplaceFirstLiteralMatch() {
+        int n = 3;
+        final String ORIGINAL_VALUE = "Hello World";
+        final Map<String, String> attributes = Map.of("single", ORIGINAL_VALUE,
+                "repeating", StringUtils.repeat(ORIGINAL_VALUE, " ", n));
+        final String REPLACEMENT_VALUE = "Goodbye Planet";
+        final String EXPECTED_REPEATING_RESULT = REPLACEMENT_VALUE + " " + StringUtils.repeat(ORIGINAL_VALUE, " ", n -1);
+        final String REPLACE_SINGLE_EXPRESSION = "${single:replaceFirst('" + ORIGINAL_VALUE + "', '" + REPLACEMENT_VALUE + "')}";
+        final String REPLACE_REPEATING_EXPRESSION = "${repeating:replaceFirst('" + ORIGINAL_VALUE + "', '" + REPLACEMENT_VALUE + "')}";
+        Query replaceSingleQuery = Query.compile(REPLACE_SINGLE_EXPRESSION);
+        Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION);
+
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes));
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes));
+
+        assertEquals(REPLACEMENT_VALUE, replaceSingleResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceSingleResult.getResultType());
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult.getValue());
+        assertEquals(AttributeExpression.ResultType.STRING, replaceRepeatingResult.getResultType());
+    }
+
+    @Test
+    public void testShouldDemonstrateDifferenceBetweenStringReplaceAndStringReplaceFirst() {
+        int n = 3;
+        final String ORIGINAL_VALUE = "Hello World";
+        final Map<String, String> attributes = Map.of("single", ORIGINAL_VALUE,
+                "repeating", StringUtils.repeat(ORIGINAL_VALUE, " ", n));
+        final String REPLACEMENT_VALUE = "Goodbye Planet";
+        final String EXPECTED_REPEATING_RESULT = REPLACEMENT_VALUE + " " + StringUtils.repeat(ORIGINAL_VALUE, " ", n -1);
+        final String REPLACE_ONLY_FIRST_PATTERN = "\\w+\\s\\w+\\b??";
+
+        // Execute on both single and repeating with String#replace()
+        String replaceSingleResult = attributes.get("single").replace(REPLACE_ONLY_FIRST_PATTERN, REPLACEMENT_VALUE);
+        String replaceRepeatingResult = attributes.get("repeating").replace(REPLACE_ONLY_FIRST_PATTERN, REPLACEMENT_VALUE);
+
+        // Execute on both single and repeating with String#replaceFirst()
+        String replaceFirstSingleResult = attributes.get("single").replaceFirst(REPLACE_ONLY_FIRST_PATTERN, REPLACEMENT_VALUE);
+        String replaceFirstRepeatingResult = attributes.get("repeating").replaceFirst(REPLACE_ONLY_FIRST_PATTERN, REPLACEMENT_VALUE);
+
+        assertNotEquals(REPLACEMENT_VALUE, replaceSingleResult);
+        assertNotEquals(EXPECTED_REPEATING_RESULT, replaceRepeatingResult);
+        assertEquals(REPLACEMENT_VALUE, replaceFirstSingleResult);
+        assertEquals(EXPECTED_REPEATING_RESULT, replaceFirstRepeatingResult);
     }
 
     @Test
