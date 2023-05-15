@@ -89,6 +89,8 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
         descriptors = Collections.unmodifiableList(innerDescriptorsList);
 
         final Set<Relationship> innerRelationshipsSet = getAbstractRelationships();
+        innerRelationshipsSet.add(REL_SUCCESS);
+        innerRelationshipsSet.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(innerRelationshipsSet);
     }
 
