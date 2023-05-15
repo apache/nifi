@@ -79,7 +79,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         final BasicDataSource dataSource = new BasicDataSource();
         try {
             final DataSourceConfiguration configuration = getDataSourceConfiguration(context);
-            configureDataSource(context, configuration);
+            configureDataSource(context, dataSource, configuration);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(SUCCESSFUL)
@@ -140,7 +140,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
         kerberosUser = getKerberosUser(context);
         loginKerberos(kerberosUser);
         final DataSourceConfiguration configuration = getDataSourceConfiguration(context);
-        configureDataSource(context, configuration);
+        configureDataSource(context, dataSource, configuration);
     }
 
     private void loginKerberos(KerberosUser kerberosUser) throws InitializationException {
@@ -157,7 +157,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     protected abstract DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context);
 
-    protected void configureDataSource(final ConfigurationContext context, final DataSourceConfiguration configuration) {
+    protected void configureDataSource(final ConfigurationContext context, final BasicDataSource dataSource, final DataSourceConfiguration configuration) {
         final Driver driver = getDriver(configuration.getDriverName(), configuration.getUrl());
 
         dataSource.setDriver(driver);
