@@ -77,6 +77,18 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
             .description("The WebSocket binary message output")
             .build();
 
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFile holding connection configuration attributes (like URL or HTTP headers) in case of successful connection")
+            .autoTerminateDefault(true)
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFile holding connection configuration attributes (like URL or HTTP headers) in case of connection failure")
+            .autoTerminateDefault(true)
+            .build();
+
     static Set<Relationship> getAbstractRelationships() {
         final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_CONNECTED);
@@ -130,8 +142,11 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                 final FlowFile flowFile = session.get();
                 try {
                     webSocketClientService.connect(endpointId, flowFile.getAttributes());
-                } finally {
-                    session.remove(flowFile);
+                    session.transfer(flowFile, REL_SUCCESS);
+                    session.commitAsync();
+                } catch (Exception e) {
+                    getLogger().error("Websocket connection failure", e);
+                    session.transfer(flowFile, REL_FAILURE);
                     session.commitAsync();
                 }
             } else {

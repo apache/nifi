@@ -136,16 +136,8 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final String serviceId = "ws-service";
         final String endpointId = "client-1";
 
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("dynamicUrlPart", "test");
-        MockFlowFile flowFile = new MockFlowFile(1L);
-        flowFile.putAttributes(attributes);
+        MockFlowFile flowFile = getFlowFile();
         runner.enqueue(flowFile);
-
-        attributes.put("dynamicUrlPart", "test2");
-        MockFlowFile flowFileWithWrongUrl = new MockFlowFile(2L);
-        flowFileWithWrongUrl.putAttributes(attributes);
-        runner.enqueue(flowFileWithWrongUrl);
 
         JettyWebSocketClient service = new JettyWebSocketClient();
 
@@ -162,8 +154,42 @@ class TestConnectWebSocket extends TestListenWebSocket {
         final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_CONNECTED);
         assertEquals(1, flowFilesForRelationship.size());
 
+        final List<MockFlowFile> flowFilesForSuccess = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_SUCCESS);
+        assertEquals(1, flowFilesForSuccess.size());
+
         runner.stop();
         webSocketListener.stop();
+    }
+
+    @Test
+    void testDynamicUrlsParsedFromFlowFileButNotAbleToConnect() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
+
+        final String serviceId = "ws-service";
+        final String endpointId = "client-1";
+
+        MockFlowFile flowFile = getFlowFile();
+        runner.enqueue(flowFile);
+
+        JettyWebSocketClient service = new JettyWebSocketClient();
+
+
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, JettyWebSocketClient.WS_URI, "ws://localhost/${dynamicUrlPart}");
+        runner.enableControllerService(service);
+
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, serviceId);
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_ID, endpointId);
+
+        runner.run(1, false);
+
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_CONNECTED);
+        assertEquals(0, flowFilesForRelationship.size());
+
+        final List<MockFlowFile> flowFilesForSuccess = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_FAILURE);
+        assertEquals(1, flowFilesForSuccess.size());
+
+        runner.stop();
     }
 
     private TestRunner getListenWebSocket(final int port) throws InitializationException {
@@ -179,5 +205,13 @@ class TestConnectWebSocket extends TestListenWebSocket {
         runner.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, "/test");
 
         return runner;
+    }
+
+    private MockFlowFile getFlowFile() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("dynamicUrlPart", "test");
+        MockFlowFile flowFile = new MockFlowFile(1L);
+        flowFile.putAttributes(attributes);
+        return flowFile;
     }
 }
