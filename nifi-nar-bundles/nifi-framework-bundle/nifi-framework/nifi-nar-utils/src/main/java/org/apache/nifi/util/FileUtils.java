@@ -32,12 +32,6 @@ public class FileUtils {
 
     public static final long MILLIS_BETWEEN_ATTEMPTS = 50L;
 
-    /* Superseded by renamed method below */
-    @Deprecated
-    public static void ensureDirectoryExistAndCanAccess(final File dir) throws IOException {
-        ensureDirectoryExistAndCanReadAndWrite(dir);
-    }
-
     public static void ensureDirectoryExistAndCanReadAndWrite(final File dir) throws IOException {
         if (dir.exists() && !dir.isDirectory()) {
             throw new IOException(dir.getAbsolutePath() + " is not a directory");

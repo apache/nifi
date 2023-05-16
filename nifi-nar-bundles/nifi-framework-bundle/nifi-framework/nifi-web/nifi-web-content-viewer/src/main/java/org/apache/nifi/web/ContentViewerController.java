@@ -301,7 +301,6 @@ public class ContentViewerController extends HttpServlet {
      * @param request request
      * @return Get the content request context based on the specified request
      */
-    @SuppressWarnings("deprecation")
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
         final String clientId = request.getParameter("clientId");
@@ -348,11 +347,6 @@ public class ContentViewerController extends HttpServlet {
             @Override
             public String getClientId() {
                 return clientId;
-            }
-
-            @Override
-            public String getProxiedEntitiesChain() {
-                return null;
             }
         };
     }

@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
@@ -87,10 +86,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @param newRecordState      new state
      * @param out                 stream to write to
      * @throws IOException if fail during write
-     * @deprecated it is not beneficial to serialize the deltas, so this method just passes through to
-     * {@link #serializeRecord(SerializedRepositoryRecord, DataOutputStream)}. It is preferable to use that method directly.
      */
-    @Deprecated
     @Override
     public void serializeEdit(final SerializedRepositoryRecord previousRecordState,
                               final SerializedRepositoryRecord newRecordState,
@@ -152,9 +148,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      *                            edit record
      * @return deserialized record
      * @throws IOException if failure reading
-     * @deprecated it is not beneficial to serialize the deltas, so this method throws a {@link EOFException}. It is preferable to use {@link #deserializeRecord(DataInputStream, int)}.
      */
-    @Deprecated
     @Override
     public SerializedRepositoryRecord deserializeEdit(final DataInputStream in,
                                                       final Map<Object, SerializedRepositoryRecord> currentRecordStates,
