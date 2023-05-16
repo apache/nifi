@@ -869,7 +869,36 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testDefragmentDuplicateFragement() throws IOException, InterruptedException {
+    public void testDefragmentWithFragmentCountOnLastFragmentOnly() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testDefragmentDuplicateFragment() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
@@ -904,7 +933,7 @@ public class TestMergeContent {
     }
 
     @Test
-    public void testDefragmentWithTooManyFragements() throws IOException {
+    public void testDefragmentWithTooManyFragments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         runner.setProperty(MergeContent.MAX_ENTRIES, "3");

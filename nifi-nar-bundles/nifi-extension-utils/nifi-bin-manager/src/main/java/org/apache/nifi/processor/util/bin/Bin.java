@@ -44,8 +44,8 @@ public class Bin {
     private final long minimumSizeBytes;
     private final long maximumSizeBytes;
 
-    private volatile int minimumEntries = 0;
-    private volatile int maximumEntries = Integer.MAX_VALUE;
+    private volatile int minimumEntries;
+    private volatile int maximumEntries;
     private final String fileCountAttribute;
     private volatile EvictionReason evictionReason = EvictionReason.UNSET;
 
@@ -67,11 +67,21 @@ public class Bin {
      */
     public Bin(final ProcessSession session, final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
         this.session = session;
-        this.minimumSizeBytes = minSizeBytes;
-        this.maximumSizeBytes = maxSizeBytes;
-        this.minimumEntries = minEntries;
-        this.maximumEntries = maxEntries;
         this.fileCountAttribute = fileCountAttribute;
+
+        if (this.fileCountAttribute != null ) {
+            // Merge Strategy = Defragment
+            // FlowFiles will be merged based on fragment.* attributes
+            this.minimumSizeBytes = 0;
+            this.maximumSizeBytes = Long.MAX_VALUE;
+            this.minimumEntries = Integer.MAX_VALUE;
+            this.maximumEntries = Integer.MAX_VALUE;
+        } else {
+            this.minimumSizeBytes = minSizeBytes;
+            this.maximumSizeBytes = maxSizeBytes;
+            this.minimumEntries = minEntries;
+            this.maximumEntries = maxEntries;
+        }
 
         this.creationMomentEpochNs = System.nanoTime();
         if (minSizeBytes > maxSizeBytes) {
@@ -164,16 +174,16 @@ public class Bin {
         if (fileCountAttribute != null) {
             final String countValue = flowFile.getAttribute(fileCountAttribute);
             final Integer count = toInteger(countValue);
-            if (count == null) {
-                return false;
+            if (count != null) {
+                // set the limits for the bin as an exact count when the count attribute arrives
+                this.maximumEntries = count;
+                this.minimumEntries = count;
             }
-            this.maximumEntries = count;
-            this.minimumEntries = count;
 
             final String index = flowFile.getAttribute(FRAGMENT_INDEX_ATTRIBUTE);
             if (index == null || index.isEmpty() || !binIndexSet.add(index)) {
                 // Do not accept flowfile with duplicate fragment index value
-                logger.warn("Duplicate or missing value for '" + FRAGMENT_INDEX_ATTRIBUTE + "' in defragment mode. Flowfile {} not allowed in Bin", new Object[] { flowFile });
+                logger.warn("Duplicate or missing value for '" + FRAGMENT_INDEX_ATTRIBUTE + "' in defragment mode. Flowfile {} not allowed in Bin", flowFile);
                 successiveFailedOfferings++;
                 return false;
             }

@@ -120,9 +120,9 @@ import java.util.zip.ZipOutputStream;
         + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the first FlowFile processed will be "
         + "accepted and subsequent FlowFiles will not be accepted into the Bin."),
     @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge Strategy> property is set to Defragment. This "
-        + "attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
-        + "bundle must have the same value for this attribute. The value of this attribute indicates how many FlowFiles should be expected "
-        + "in the given bundle."),
+        + "attribute indicates how many FlowFiles should be expected in the given bundle. At least one FlowFile must have this attribute in "
+        + "the bundle and it may be the last one only. If multiple FlowFiles contain the \"fragment.count\" attribute in a given bundle, "
+        + "all must have the same value."),
     @ReadsAttribute(attribute = "segment.original.filename", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "This attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute will be used for the filename of the completed merged "
@@ -572,14 +572,21 @@ public class MergeContent extends BinFiles {
             fragmentIdentifier = flowFile.getAttribute(FRAGMENT_ID_ATTRIBUTE);
 
             final String fragmentCount = flowFile.getAttribute(FRAGMENT_COUNT_ATTRIBUTE);
-            if (!isNumber(fragmentCount)) {
-                return "Cannot Defragment " + flowFile + " because it does not have an integer value for the " + FRAGMENT_COUNT_ATTRIBUTE + " attribute";
-            } else if (decidedFragmentCount == null) {
-                decidedFragmentCount = fragmentCount;
-            } else if (!decidedFragmentCount.equals(fragmentCount)) {
-                return "Cannot Defragment " + flowFile + " because it is grouped with another FlowFile, and the two have differing values for the "
-                        + FRAGMENT_COUNT_ATTRIBUTE + " attribute: " + decidedFragmentCount + " and " + fragmentCount;
+            if (fragmentCount != null) {
+                if (!isNumber(fragmentCount)) {
+                    return "Cannot Defragment " + flowFile + " because it does not have an integer value for the " + FRAGMENT_COUNT_ATTRIBUTE + " attribute";
+                } else if (decidedFragmentCount == null) {
+                    decidedFragmentCount = fragmentCount;
+                } else if (!decidedFragmentCount.equals(fragmentCount)) {
+                    return "Cannot Defragment " + flowFile + " because it is grouped with another FlowFile, and the two have differing values for the "
+                            + FRAGMENT_COUNT_ATTRIBUTE + " attribute: " + decidedFragmentCount + " and " + fragmentCount;
+                }
             }
+        }
+
+        if (decidedFragmentCount == null) {
+            return "Cannot Defragment FlowFiles with Fragment Identifier " + fragmentIdentifier + " because no FlowFile arrived with the " + FRAGMENT_COUNT_ATTRIBUTE + " attribute "
+                + "and the expected number of fragments is unknown";
         }
 
         final int numericFragmentCount;
