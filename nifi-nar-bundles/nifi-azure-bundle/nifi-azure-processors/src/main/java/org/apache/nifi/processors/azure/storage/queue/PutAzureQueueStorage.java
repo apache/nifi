@@ -33,6 +33,7 @@ import com.microsoft.azure.storage.queue.CloudQueueMessage;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -49,6 +50,7 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "azure", "microsoft", "cloud", "storage", "queue", "enqueue" })
 @CapabilityDescription("Writes the content of the incoming FlowFiles to the configured Azure Queue Storage.")
+@DeprecationNotice(alternatives = PutAzureQueueStorage_v12.class)
 public class PutAzureQueueStorage extends AbstractAzureQueueStorage {
 
     public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
