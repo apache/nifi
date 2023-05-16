@@ -102,7 +102,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        final Integer batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final Integer batchSize = context.getProperty(BATCH_SIZE_THRESHOLD).asInteger();
 
         pullRequest = PullRequest.newBuilder()
                 .setMaxMessages(batchSize)
@@ -192,7 +192,8 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
         descriptors.add(SUBSCRIPTION);
-        descriptors.add(BATCH_SIZE);
+        descriptors.add(BATCH_SIZE_THRESHOLD);
+        descriptors.add(PUBSUB_ENDPOINT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -268,11 +269,16 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     }
 
     private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
-        final SubscriberStubSettings subscriberStubSettings = SubscriberStubSettings.newBuilder()
-                .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
-                .setTransportChannelProvider(getTransportChannelProvider(context))
-                .build();
+        final String endpoint = context.getProperty(PUBSUB_ENDPOINT).getValue();
 
-        return GrpcSubscriberStub.create(subscriberStubSettings);
+        final SubscriberStubSettings.Builder subscriberBuilder = SubscriberStubSettings.newBuilder()
+                .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                .setTransportChannelProvider(getTransportChannelProvider(context));
+
+        if (endpoint != null && !endpoint.isEmpty()) {
+            subscriberBuilder.setEndpoint(endpoint);
+        }
+
+        return GrpcSubscriberStub.create(subscriberBuilder.build());
     }
 }
