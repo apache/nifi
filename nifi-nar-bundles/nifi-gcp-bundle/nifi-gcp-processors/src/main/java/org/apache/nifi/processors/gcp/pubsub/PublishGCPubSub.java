@@ -48,11 +48,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.threeten.bp.Duration;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -110,7 +112,10 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
         descriptors.add(TOPIC_NAME);
-        descriptors.add(BATCH_SIZE);
+        descriptors.add(BATCH_SIZE_THRESHOLD);
+        descriptors.add(BATCH_BYTES_THRESHOLD);
+        descriptors.add(BATCH_DELAY_THRESHOLD);
+        descriptors.add(PUBSUB_ENDPOINT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -213,7 +218,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final int flowFileCount = context.getProperty(BATCH_SIZE).asInteger();
+        final int flowFileCount = context.getProperty(BATCH_SIZE_THRESHOLD).asInteger();
         final List<FlowFile> flowFiles = session.get(flowFileCount);
 
         if (flowFiles.isEmpty() || publisher == null) {
@@ -310,14 +315,26 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     }
 
     private Publisher.Builder getPublisherBuilder(ProcessContext context) {
-        final Long batchSize = context.getProperty(BATCH_SIZE).asLong();
+        final Long batchSizeThreshold = context.getProperty(BATCH_SIZE_THRESHOLD).asLong();
+        final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue();
+        final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
+        final String endpoint = context.getProperty(PUBSUB_ENDPOINT).getValue();
 
-        return Publisher.newBuilder(getTopicName(context))
+        final Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
-                .setChannelProvider(getTransportChannelProvider(context))
-                .setBatchingSettings(BatchingSettings.newBuilder()
-                .setElementCountThreshold(batchSize)
+                .setChannelProvider(getTransportChannelProvider(context));
+
+        if (endpoint != null && !endpoint.isEmpty()) {
+            publisherBuilder.setEndpoint(endpoint);
+        }
+
+        publisherBuilder.setBatchingSettings(BatchingSettings.newBuilder()
+                .setElementCountThreshold(batchSizeThreshold)
+                .setRequestByteThreshold(batchBytesThreshold)
+                .setDelayThreshold(Duration.ofMillis(batchDelayThreshold))
+                //.setFlowControlSettings(null)
                 .setIsEnabled(true)
                 .build());
+        return publisherBuilder;
     }
 }
