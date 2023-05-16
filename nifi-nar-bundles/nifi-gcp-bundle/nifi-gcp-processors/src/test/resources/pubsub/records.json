@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Acme1",
+    "address": "1234 First Street",
+    "zip": "12345"
+  },
+  {
+    "name": "Acme2",
+    "address": "1234 Second Street",
+    "zip": "12345"
+  },
+  {
+    "name": "Acme3",
+    "address": "1234 Third Street",
+    "zip": "12345"
+  }
+]

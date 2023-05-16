@@ -17,13 +17,15 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutureCallback;
+import com.google.api.core.ApiFutures;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
-import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.ByteString;
@@ -48,11 +50,27 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.gcp.pubsub.publish.FlowFileResult;
+import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
+import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.PushBackRecordSet;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.StopWatch;
+import org.threeten.bp.Duration;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -64,12 +82,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_ATTRIBUTE;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_DESCRIPTION;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_DESCRIPTION;
 
@@ -82,12 +101,63 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
         description = "Attributes to be set for the outgoing Google Cloud PubSub message", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
+        @WritesAttribute(attribute = RECORDS_ATTRIBUTE, description = RECORDS_DESCRIPTION),
         @WritesAttribute(attribute = TOPIC_NAME_ATTRIBUTE, description = TOPIC_NAME_DESCRIPTION)
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
         + "will be read into memory to be sent as a PubSub message.")
 public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.topics.publish");
+    private static final String TRANSIT_URI_FORMAT_STRING = "gcp://%s";
+
+    public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Input Batch Size")
+            .displayName("Input Batch Size")
+            .description("Maximum number of FlowFiles processed for each Processor invocation")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .defaultValue("100")
+            .build();
+
+    public static final PropertyDescriptor MESSAGE_DERIVATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Message Derivation Strategy")
+            .displayName("Message Derivation Strategy")
+            .description("The strategy used to publish the incoming FlowFile to the Google Cloud PubSub endpoint.")
+            .required(true)
+            .defaultValue(MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
+            .allowableValues(MessageDerivationStrategy.class)
+            .build();
+
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("Record Reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use for incoming FlowFiles")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue())
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use in order to serialize the data before sending to GCPubSub endpoint")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue())
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum Message Size")
+            .displayName("Maximum Message Size")
+            .description("The maximum size of a Google PubSub message in bytes. Defaults to 1 MB (1048576 bytes)")
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("1 MB")
+            .build();
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-topic")
@@ -103,14 +173,21 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails but attempting the operation again may succeed.")
             .build();
 
-    private Publisher publisher = null;
-    private final AtomicReference<Exception> storedException = new AtomicReference<>();
+    protected Publisher publisher = null;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(MAX_BATCH_SIZE);
+        descriptors.add(MESSAGE_DERIVATION_STRATEGY);
+        descriptors.add(RECORD_READER);
+        descriptors.add(RECORD_WRITER);
+        descriptors.add(MAX_MESSAGE_SIZE);
         descriptors.add(TOPIC_NAME);
-        descriptors.add(BATCH_SIZE);
+        descriptors.add(BATCH_SIZE_THRESHOLD);
+        descriptors.add(BATCH_BYTES_THRESHOLD);
+        descriptors.add(BATCH_DELAY_THRESHOLD);
+        descriptors.add(API_ENDPOINT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -139,8 +216,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         try {
             publisher = getPublisherBuilder(context).build();
         } catch (IOException e) {
-            getLogger().error("Failed to create Google Cloud PubSub Publisher due to {}", new Object[]{e});
-            storedException.set(e);
+            throw new ProcessException("Failed to create Google Cloud PubSub Publisher", e);
         }
     }
 
@@ -171,25 +247,26 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                         .setTransportChannelProvider(getTransportChannelProvider(context))
                         .build();
 
-                final GrpcPublisherStub publisherStub = GrpcPublisherStub.create(publisherStubSettings);
-                final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
-                final TestIamPermissionsRequest request = TestIamPermissionsRequest.newBuilder()
-                        .addAllPermissions(REQUIRED_PERMISSIONS)
-                        .setResource(topicName)
-                        .build();
-                final TestIamPermissionsResponse response = publisherStub.testIamPermissionsCallable().call(request);
-                if (response.getPermissionsCount() >= REQUIRED_PERMISSIONS.size()) {
-                    results.add(new ConfigVerificationResult.Builder()
-                            .verificationStepName("Test IAM Permissions")
-                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                            .explanation(String.format("Verified Topic [%s] exists and the configured user has the correct permissions.", topicName))
-                            .build());
-                } else {
-                    results.add(new ConfigVerificationResult.Builder()
-                            .verificationStepName("Test IAM Permissions")
-                            .outcome(ConfigVerificationResult.Outcome.FAILED)
-                            .explanation(String.format("The configured user does not have the correct permissions on Topic [%s].", topicName))
-                            .build());
+                try (GrpcPublisherStub publisherStub = GrpcPublisherStub.create(publisherStubSettings)) {
+                    final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
+                    final TestIamPermissionsRequest request = TestIamPermissionsRequest.newBuilder()
+                            .addAllPermissions(REQUIRED_PERMISSIONS)
+                            .setResource(topicName)
+                            .build();
+                    final TestIamPermissionsResponse response = publisherStub.testIamPermissionsCallable().call(request);
+                    if (response.getPermissionsCount() >= REQUIRED_PERMISSIONS.size()) {
+                        results.add(new ConfigVerificationResult.Builder()
+                                .verificationStepName("Test IAM Permissions")
+                                .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                                .explanation(String.format("Verified Topic [%s] exists and the configured user has the correct permissions.", topicName))
+                                .build());
+                    } else {
+                        results.add(new ConfigVerificationResult.Builder()
+                                .verificationStepName("Test IAM Permissions")
+                                .outcome(ConfigVerificationResult.Outcome.FAILED)
+                                .explanation(String.format("The configured user does not have the correct permissions on Topic [%s].", topicName))
+                                .build());
+                    }
                 }
             } catch (final ApiException e) {
                 verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
@@ -213,62 +290,143 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final int flowFileCount = context.getProperty(BATCH_SIZE).asInteger();
-        final List<FlowFile> flowFiles = session.get(flowFileCount);
-
-        if (flowFiles.isEmpty() || publisher == null) {
-            if (storedException.get() != null) {
-                getLogger().error("Google Cloud PubSub Publisher was not properly created due to {}", new Object[]{storedException.get()});
-            }
+        final StopWatch stopWatch = new StopWatch(true);
+        final MessageDerivationStrategy inputStrategy = MessageDerivationStrategy.valueOf(context.getProperty(MESSAGE_DERIVATION_STRATEGY).getValue());
+        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
+        final List<FlowFile> flowFileBatch = session.get(maxBatchSize);
+        if (flowFileBatch.isEmpty()) {
             context.yield();
-            return;
+        } else if (MessageDerivationStrategy.FLOWFILE_ORIENTED.equals(inputStrategy)) {
+            onTriggerFlowFileStrategy(context, session, stopWatch, flowFileBatch);
+        } else if (MessageDerivationStrategy.RECORD_ORIENTED.equals(inputStrategy)) {
+            onTriggerRecordStrategy(context, session, stopWatch, flowFileBatch);
+        } else {
+            throw new IllegalStateException(inputStrategy.getValue());
         }
+    }
 
-        final long startNanos = System.nanoTime();
-        final List<FlowFile> successfulFlowFiles = new ArrayList<>();
-        final String topicName = getTopicName(context).toString();
+    private void onTriggerFlowFileStrategy(
+            final ProcessContext context,
+            final ProcessSession session,
+            final StopWatch stopWatch,
+            final List<FlowFile> flowFileBatch) throws ProcessException {
+        final long maxMessageSize = context.getProperty(MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).longValue();
 
+        final Executor executor = MoreExecutors.directExecutor();
+        final List<FlowFileResult> flowFileResults = new ArrayList<>();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        for (final FlowFile flowFile : flowFileBatch) {
+            final List<ApiFuture<String>> futures = new ArrayList<>();
+            final List<String> successes = new ArrayList<>();
+            final List<Throwable> failures = new ArrayList<>();
+
+            if (flowFile.getSize() > maxMessageSize) {
+                final String message = String.format("FlowFile size %d exceeds MAX_MESSAGE_SIZE", flowFile.getSize());
+                failures.add(new IllegalArgumentException(message));
+                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+            } else {
+                baos.reset();
+                session.exportTo(flowFile, baos);
+
+                final ApiFuture<String> apiFuture = publishOneMessage(context, flowFile, baos.toByteArray());
+                futures.add(apiFuture);
+                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
+                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+            }
+        }
+        finishBatch(session, stopWatch, flowFileResults);
+    }
+
+    private void onTriggerRecordStrategy(
+            final ProcessContext context,
+            final ProcessSession session,
+            final StopWatch stopWatch,
+            final List<FlowFile> flowFileBatch) throws ProcessException {
         try {
-            for (FlowFile flowFile : flowFiles) {
-                try {
-                    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    session.exportTo(flowFile, baos);
-                    final ByteString flowFileContent = ByteString.copyFrom(baos.toByteArray());
-
-                    PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
-                            .setPublishTime(Timestamp.newBuilder().build())
-                            .putAllAttributes(getDynamicAttributesMap(context, flowFile))
-                            .build();
-
-                    ApiFuture<String> messageIdFuture = publisher.publish(message);
-
-                    final Map<String, String> attributes = new HashMap<>();
-                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());
-                    attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
-
-                    flowFile = session.putAllAttributes(flowFile, attributes);
-                    successfulFlowFiles.add(flowFile);
-                } catch (InterruptedException | ExecutionException e) {
-                    if (e.getCause() instanceof DeadlineExceededException) {
-                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {} but attempting again may succeed " +
-                                        "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
-                        session.transfer(flowFile, REL_RETRY);
-                    } else {
-                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}'", topicName, e);
-                        session.transfer(flowFile, REL_FAILURE);
-                    }
-                    context.yield();
-                }
-            }
-        } finally {
-            if (!successfulFlowFiles.isEmpty()) {
-                session.transfer(successfulFlowFiles, REL_SUCCESS);
-                for (FlowFile flowFile : successfulFlowFiles) {
-                    final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                    session.getProvenanceReporter().send(flowFile, topicName, transmissionMillis);
-                }
-            }
+            onTriggerRecordStrategyPublishRecords(context, session, stopWatch, flowFileBatch);
+        } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
+            throw new ProcessException("Record publishing failed", e);
         }
+    }
+
+    private void onTriggerRecordStrategyPublishRecords(
+            final ProcessContext context,
+            final ProcessSession session,
+            final StopWatch stopWatch,
+            final List<FlowFile> flowFileBatch)
+            throws ProcessException, IOException, SchemaNotFoundException, MalformedRecordException {
+        final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+        final Executor executor = MoreExecutors.directExecutor();
+        final List<FlowFileResult> flowFileResults = new ArrayList<>();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        for (final FlowFile flowFile : flowFileBatch) {
+            final List<ApiFuture<String>> futures = new ArrayList<>();
+            final List<String> successes = new ArrayList<>();
+            final List<Throwable> failures = new ArrayList<>();
+
+            final Map<String, String> attributes = flowFile.getAttributes();
+            final RecordReader reader = readerFactory.createRecordReader(
+                    attributes, session.read(flowFile), flowFile.getSize(), getLogger());
+            final RecordSet recordSet = reader.createRecordSet();
+            final RecordSchema schema = writerFactory.getSchema(attributes, recordSet.getSchema());
+
+            final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos, attributes);
+            final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
+
+            while (pushBackRecordSet.isAnotherRecord()) {
+                final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
+                futures.add(apiFuture);
+                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
+            }
+            flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
+        }
+        finishBatch(session, stopWatch, flowFileResults);
+    }
+
+    private ApiFuture<String> publishOneRecord(
+            final ProcessContext context,
+            final FlowFile flowFile,
+            final ByteArrayOutputStream baos,
+            final RecordSetWriter writer,
+            final Record record) throws IOException {
+        baos.reset();
+        writer.write(record);
+        writer.flush();
+        return publishOneMessage(context, flowFile, baos.toByteArray());
+    }
+
+    private ApiFuture<String> publishOneMessage(final ProcessContext context,
+                                                final FlowFile flowFile,
+                                                final byte[] content) {
+        final PubsubMessage message = PubsubMessage.newBuilder()
+                .setData(ByteString.copyFrom(content))
+                .setPublishTime(Timestamp.newBuilder().build())
+                .putAllAttributes(getDynamicAttributesMap(context, flowFile))
+                .build();
+        return publisher.publish(message);
+    }
+
+    private void finishBatch(final ProcessSession session,
+                             final StopWatch stopWatch,
+                             final List<FlowFileResult> flowFileResults) {
+        final String topicName = publisher.getTopicNameString();
+        for (final FlowFileResult flowFileResult : flowFileResults) {
+            final Relationship relationship = flowFileResult.reconcile();
+            final Map<String, String> attributes = flowFileResult.getAttributes();
+            attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
+            final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
+            final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, topicName);
+            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowFile, relationship);
+        }
+    }
+
+    protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, Executor executor) {
+        ApiFutures.addCallback(apiFuture, callback, executor);
     }
 
     @OnStopped
@@ -310,14 +468,22 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     }
 
     private Publisher.Builder getPublisherBuilder(ProcessContext context) {
-        final Long batchSize = context.getProperty(BATCH_SIZE).asLong();
+        final Long batchSizeThreshold = context.getProperty(BATCH_SIZE_THRESHOLD).asLong();
+        final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue();
+        final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
+        final String endpoint = context.getProperty(API_ENDPOINT).getValue();
 
-        return Publisher.newBuilder(getTopicName(context))
+        final Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
                 .setChannelProvider(getTransportChannelProvider(context))
-                .setBatchingSettings(BatchingSettings.newBuilder()
-                .setElementCountThreshold(batchSize)
+                .setEndpoint(endpoint);
+
+        publisherBuilder.setBatchingSettings(BatchingSettings.newBuilder()
+                .setElementCountThreshold(batchSizeThreshold)
+                .setRequestByteThreshold(batchBytesThreshold)
+                .setDelayThreshold(Duration.ofMillis(batchDelayThreshold))
                 .setIsEnabled(true)
                 .build());
+        return publisherBuilder;
     }
 }

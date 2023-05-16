@@ -42,7 +42,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
-        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "10");
+        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE_THRESHOLD, "10");
 
         runner.assertValid();
 
@@ -64,7 +64,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
-        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "2");
+        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE_THRESHOLD, "2");
 
         runner.assertValid();
 
@@ -88,7 +88,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
-        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "2");
+        runner.setProperty(ConsumeGCPubSub.BATCH_SIZE_THRESHOLD, "2");
 
         runner.assertValid();
 

@@ -21,6 +21,9 @@ public class PubSubAttributes {
     public static final String MESSAGE_ID_ATTRIBUTE = "gcp.pubsub.messageId";
     public static final String MESSAGE_ID_DESCRIPTION = "ID of the pubsub message published to the configured Google Cloud PubSub topic";
 
+    public static final String RECORDS_ATTRIBUTE = "gcp.pubsub.count.records";
+    public static final String RECORDS_DESCRIPTION = "Count of pubsub messages published to the configured Google Cloud PubSub topic";
+
     public static final String TOPIC_NAME_ATTRIBUTE = "gcp.pubsub.topic";
     public static final String TOPIC_NAME_DESCRIPTION = "Name of the Google Cloud PubSub topic the message was published to";
 
