@@ -79,13 +79,13 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Connection HTTP header attributes in case of successful connection")
+            .description("FlowFile holding connection configuration attributes (like URL or HTTP headers) in case of successful connection")
             .autoTerminateDefault(true)
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Connection HTTP header attributes in case of connection failure")
+            .description("FlowFile holding connection configuration attributes (like URL or HTTP headers) in case of connection failure")
             .autoTerminateDefault(true)
             .build();
 

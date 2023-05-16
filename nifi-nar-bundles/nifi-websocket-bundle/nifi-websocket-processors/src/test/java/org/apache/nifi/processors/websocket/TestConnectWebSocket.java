@@ -162,7 +162,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
     }
 
     @Test
-    void testDynamicUrlsTransferredToFailure() throws InitializationException {
+    void testDynamicUrlsParsedFromFlowFileButNotAbleToConnect() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
 
         final String serviceId = "ws-service";
@@ -175,7 +175,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
 
 
         runner.addControllerService(serviceId, service);
-        runner.setProperty(service, JettyWebSocketClient.WS_URI, "ws://localhost/12345");
+        runner.setProperty(service, JettyWebSocketClient.WS_URI, "ws://localhost/${dynamicUrlPart}");
         runner.enableControllerService(service);
 
         runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, serviceId);
