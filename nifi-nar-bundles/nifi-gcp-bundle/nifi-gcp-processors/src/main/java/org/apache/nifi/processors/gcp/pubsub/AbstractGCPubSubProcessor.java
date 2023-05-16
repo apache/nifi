@@ -19,9 +19,11 @@ package org.apache.nifi.processors.gcp.pubsub;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 
+import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -36,14 +38,47 @@ import java.util.Set;
 
 public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor implements VerifiableProcessor {
 
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BATCH_SIZE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-publish-batch-size")
-            .displayName("Batch Size")
+            .displayName("Batch Size Threshold")
             .description("Indicates the number of messages the cloud service should bundle together in a batch. If not set and left empty, only one message " +
                     "will be used in a batch")
             .required(true)
             .defaultValue("15")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor BATCH_BYTES_THRESHOLD = new PropertyDescriptor.Builder()
+            .name("gcp-batch-bytes")
+            .displayName("Batch Bytes Threshold")
+            .description("Publish request gets triggered based on this Batch Bytes Threshold property and"
+                    + " the " + BATCH_SIZE_THRESHOLD.getDisplayName() + " property, whichever condition is met first.")
+            .required(true)
+            .defaultValue("3 MB")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor BATCH_DELAY_THRESHOLD = new PropertyDescriptor.Builder()
+            .name("gcp-pubsub-publish-batch-delay")
+            .displayName("Batch Delay Threshold")
+            .description("Indicates the delay threshold to use for batching. After this amount of time has elapsed " +
+                    "(counting from the first element added), the elements will be wrapped up in a batch and sent. " +
+                    "This value should not be set too high, usually on the order of milliseconds. Otherwise, calls " +
+                    "might appear to never complete.")
+            .required(true)
+            .defaultValue("100 millis")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor API_ENDPOINT = new PropertyDescriptor
+            .Builder().name("api-endpoint")
+            .displayName("API Endpoint")
+            .description("Override the gRPC endpoint in the form of [host:port]")
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .defaultValue(PublisherStubSettings.getDefaultEndpoint())  // identical to SubscriberStubSettings.getDefaultEndpoint()
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

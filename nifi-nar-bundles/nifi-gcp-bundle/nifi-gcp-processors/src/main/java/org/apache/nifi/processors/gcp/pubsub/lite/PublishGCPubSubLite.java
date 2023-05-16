@@ -112,17 +112,6 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor BATCH_BYTES = new PropertyDescriptor
-            .Builder().name("gcp-batch-bytes")
-            .displayName("Batch Bytes Threshold")
-            .description("Publish request gets triggered based on this Batch Bytes Threshold property and"
-                    + " the " + BATCH_SIZE.getDisplayName() + " property, whichever condition is met first.")
-            .required(true)
-            .defaultValue("3 MB")
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .build();
-
     private Publisher publisher = null;
 
     @Override
@@ -130,8 +119,9 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
         return Collections.unmodifiableList(Arrays.asList(TOPIC_NAME,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 ORDERING_KEY,
-                BATCH_SIZE,
-                BATCH_BYTES));
+                BATCH_SIZE_THRESHOLD,
+                BATCH_BYTES_THRESHOLD,
+                BATCH_DELAY_THRESHOLD));
     }
 
     @Override
@@ -193,7 +183,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int flowFileCount = context.getProperty(BATCH_SIZE).asInteger();
+        final int flowFileCount = context.getProperty(BATCH_SIZE_THRESHOLD).asInteger();
         final List<FlowFile> flowFiles = session.get(flowFileCount);
 
         if (flowFiles.isEmpty()) {
@@ -290,9 +280,9 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
                     .setTopicPath(topicPath)
                     .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
                     .setBatchingSettings(BatchingSettings.newBuilder()
-                            .setElementCountThreshold(context.getProperty(BATCH_SIZE).asLong())
-                            .setDelayThreshold(Duration.ofMillis(100))
-                            .setRequestByteThreshold(context.getProperty(BATCH_BYTES).asDataSize(DataUnit.B).longValue())
+                            .setElementCountThreshold(context.getProperty(BATCH_SIZE_THRESHOLD).asLong())
+                            .setRequestByteThreshold(context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue())
+                            .setDelayThreshold(Duration.ofMillis(context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS)))
                             .setIsEnabled(true)
                             .build())
                     .build();
