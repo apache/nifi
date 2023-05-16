@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -63,6 +64,7 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "azure.queue.messageId", description = "The ID of the retrieved message"),
         @WritesAttribute(attribute = "azure.queue.popReceipt", description = "The pop receipt of the retrieved message"),
 })
+@DeprecationNotice(alternatives = GetAzureQueueStorage_v12.class)
 public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
 
     public static final PropertyDescriptor AUTO_DELETE = new PropertyDescriptor.Builder()
