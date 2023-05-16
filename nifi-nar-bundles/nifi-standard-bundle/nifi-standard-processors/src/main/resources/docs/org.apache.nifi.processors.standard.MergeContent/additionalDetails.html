@@ -58,9 +58,11 @@
     The "Defragment" Merge Strategy can be used when FlowFiles need to be explicitly assigned to the same bin. For example, if data is split apart using
     the UnpackContent Processor, each unpacked FlowFile can be processed independently and later merged back together using this Processor with the
     Merge Strategy set to Defragment. In order for FlowFiles to be added to the same bin when using this configuration, the FlowFiles must have the same
-    value for the "fragment.identifier" attribute. Each FlowFile with the same identifier must also have the same value for the "fragment.count" attribute
-    (which indicates how many FlowFiles belong in the bin) and a unique value for the "fragment.index" attribute so that the FlowFiles can be ordered
-    correctly. <b>NOTE:</b> while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an anti-pattern to take a larger FlowFile,
+    value for the "fragment.identifier" attribute. Each FlowFile with the same identifier must also have a unique value for the "fragment.index" attribute
+    so that the FlowFiles can be ordered correctly. For a given "fragment.identifier", at least one FlowFile must have the "fragment.count" attribute
+    (which indicates how many FlowFiles belong in the bin). Other FlowFiles with the same identifier must have the same value for the "fragment.count" attribute,
+    or they can omit this attribute.
+    <b>NOTE:</b> while there are valid use cases for breaking apart FlowFiles and later re-merging them, it is an anti-pattern to take a larger FlowFile,
     break it into a million tiny FlowFiles, and then re-merge them. Doing so can result in using huge amounts of Java heap and can result in Out Of Memory Errors.
     Additionally, it adds large amounts of load to the NiFi framework. This can result in increased CPU and disk utilization and often times can be an order of magnitude
     lower throughput and an order of magnitude higher latency. As an alternative, whenever possible, dataflows should be built to make use of Record-oriented processors,
@@ -70,7 +72,7 @@
 <p>
     In order to be added to the same bin, two FlowFiles must be 'like FlowFiles.' In order for two FlowFiles to be like FlowFiles, they must have the same
     schema, and if the &lt;Correlation Attribute Name&gt; property is set, they must have the same value for the specified attribute. For example, if the
-    &lt;Correlation Attribute Name&gt; is set to "filename" then two FlowFiles must have the same value for the "filename" attribute in order to be binned
+    &lt;Correlation Attribute Name&gt; is set to "filename", then two FlowFiles must have the same value for the "filename" attribute in order to be binned
     together. If more than one attribute is needed in order to correlate two FlowFiles, it is recommended to use an UpdateAttribute processor before the
     MergeContent processor and combine the attributes. For example, if the goal is to bin together two FlowFiles only if they have the same value for the
     "abc" attribute and the "xyz" attribute, then we could accomplish this by using UpdateAttribute and adding a property with name "correlation.attribute"
@@ -87,7 +89,7 @@
 </p>
 
 <p>
-    If the &lt;Merge Strategy&gt; property is set to "Bin Packing Algorithm" then then the following rules will be evaluated.
+    If the &lt;Merge Strategy&gt; property is set to "Bin Packing Algorithm", then the following rules will be evaluated.
 </p>
 
 <p>
@@ -107,7 +109,7 @@
 </p>
 
 <p>
-    If the &lt;Merge Strategy&gt; property is set to "Defragment" then a bin is full only when the number of FlowFiles in the bin is equal to the number specified
+    If the &lt;Merge Strategy&gt; property is set to "Defragment", then a bin is full only when the number of FlowFiles in the bin is equal to the number specified
     by the "fragment.count" attribute of one of the FlowFiles in the bin. All FlowFiles that have this attribute must have the same value for this attribute,
     or else they will be routed to the "failure" relationship. It is not necessary that all FlowFiles have this value, but at least one FlowFile in the bin must have
     this value or the bin will never be complete. If all of the necessary FlowFiles are not binned together by the point at which the bin times amount
@@ -152,7 +154,7 @@
     </tr>
     <tr>
         <td>BIN_MANAGER_FULL</td>
-        <td>If an incoming FlowFile does not fit into any of the existing Bins (either due to the Maximum thresholds set, or due to the Correlation Attribute being used, etc.) then a new Bin
+        <td>If an incoming FlowFile does not fit into any of the existing Bins (either due to the Maximum thresholds set, or due to the Correlation Attribute being used, etc.), then a new Bin
             must be created for the incoming FlowFiles. If the number of active Bins is already equal to the &lt;Maximum number of Bins&gt; property, the oldest Bin will be merged in order to
             make room for the new Bin. In that case, the Bin Manager is said to be full, and this value will be used.</td>
     </tr>
