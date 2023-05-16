@@ -45,7 +45,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
-import org.springframework.security.saml2.provider.service.authentication.OpenSamlAuthenticationProvider;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutRequestValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.OpenSamlLogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
@@ -55,16 +55,16 @@ import org.springframework.security.saml2.provider.service.metadata.Saml2Metadat
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationFilter;
-import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationRequestFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationRequestRepository;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
-import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml3AuthenticationRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml4AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2AuthenticationRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml3LogoutRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml3LogoutResponseResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml4LogoutResponseResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestRepository;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestResolver;
@@ -218,26 +218,24 @@ public class SamlAuthenticationSecurityConfiguration {
     /**
      * Spring Security OpenSAML Authentication Provider for processing SAML 2 login responses
      *
-     * @return OpenSAML 3 Authentication Provider required for compatibility with Java 8
+     * @return OpenSAML 4 Authentication Provider compatible with Java 11
      */
-    @SuppressWarnings("deprecation")
     @Bean
-    public OpenSamlAuthenticationProvider openSamlAuthenticationProvider() {
-        final OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
+    public OpenSaml4AuthenticationProvider openSamlAuthenticationProvider() {
+        final OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
         final ResponseAuthenticationConverter responseAuthenticationConverter = new ResponseAuthenticationConverter(properties.getSamlGroupAttributeName());
         provider.setResponseAuthenticationConverter(responseAuthenticationConverter);
         return provider;
     }
 
     /**
-     * Spring Security SAML 2 Authentication Request Resolver uses OpenSAML 3 for compatibility with Java 8
+     * Spring Security SAML 2 Authentication Request Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 3 version of SAML 2 Authentication Request Resolver
+     * @return OpenSAML 4 version of SAML 2 Authentication Request Resolver
      */
-    @SuppressWarnings("deprecation")
     @Bean
     public Saml2AuthenticationRequestResolver saml2AuthenticationRequestResolver() {
-        return new OpenSaml3AuthenticationRequestResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml4AuthenticationRequestResolver(relyingPartyRegistrationResolver());
     }
 
     /**
@@ -261,25 +259,23 @@ public class SamlAuthenticationSecurityConfiguration {
     }
 
     /**
-     * Spring Security SAML 2 Logout Request Resolver uses OpenSAML 3 for compatibility with Java 8
+     * Spring Security SAML 2 Logout Request Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 3 version of SAML 2 Logout Request Resolver
+     * @return OpenSAML 4 version of SAML 2 Logout Request Resolver
      */
-    @SuppressWarnings("deprecation")
     @Bean
     public Saml2LogoutRequestResolver saml2LogoutRequestResolver() {
-        return new OpenSaml3LogoutRequestResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml4LogoutRequestResolver(relyingPartyRegistrationResolver());
     }
 
     /**
-     * Spring Security SAML 2 Logout Response Resolver uses OpenSAML 3 for compatibility with Java 8
+     * Spring Security SAML 2 Logout Response Resolver uses OpenSAML 4
      *
-     * @return OpenSAML 3 version of SAML 2 Logout Response Resolver
+     * @return OpenSAML 4 version of SAML 2 Logout Response Resolver
      */
-    @SuppressWarnings("deprecation")
     @Bean
     public Saml2LogoutResponseResolver saml2LogoutResponseResolver() {
-        return new OpenSaml3LogoutResponseResolver(relyingPartyRegistrationResolver());
+        return new OpenSaml4LogoutResponseResolver(relyingPartyRegistrationResolver());
     }
 
     /**

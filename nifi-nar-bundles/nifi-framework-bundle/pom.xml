@@ -25,6 +25,7 @@
     <properties>
         <curator.version>5.5.0</curator.version>
         <tika.version>2.8.0</tika.version>
+        <org.opensaml.version>4.3.0</org.opensaml.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
@@ -33,6 +34,19 @@
         <module>nifi-headless-server-nar</module>
         <module>nifi-framework-external-resource-utils</module>
     </modules>
+    <repositories>
+        <!-- Shibboleth Repository required for OpenSAML -->
+        <repository>
+            <id>shibboleth</id>
+            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -424,6 +438,22 @@
                 <groupId>org.springframework.security.kerberos</groupId>
                 <artifactId>spring-security-kerberos-core</artifactId>
                 <version>1.0.1.RELEASE</version>
+            </dependency>
+            <!-- Override OpenSAML to version 4 for Spring Security SAML -->
+            <dependency>
+                <groupId>org.opensaml</groupId>
+                <artifactId>opensaml-core</artifactId>
+                <version>${org.opensaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.opensaml</groupId>
+                <artifactId>opensaml-saml-api</artifactId>
+                <version>${org.opensaml.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.opensaml</groupId>
+                <artifactId>opensaml-saml-impl</artifactId>
+                <version>${org.opensaml.version}</version>
             </dependency>
             <!-- Override xmlsec from spring-security-saml2-service-provider -->
             <dependency>

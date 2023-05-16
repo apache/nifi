@@ -24,8 +24,8 @@ import org.opensaml.saml.saml2.core.Assertion;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.saml2.provider.service.authentication.OpenSamlAuthenticationProvider;
-import org.springframework.security.saml2.provider.service.authentication.OpenSamlAuthenticationProvider.ResponseToken;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
+import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider.ResponseToken;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
 import org.springframework.security.saml2.provider.service.authentication.Saml2Authentication;
 
@@ -39,8 +39,7 @@ import java.util.stream.Collectors;
  * Converter from SAML 2 Response Token to SAML 2 Authentication for Spring Security
  */
 public class ResponseAuthenticationConverter implements Converter<ResponseToken, Saml2Authentication> {
-    @SuppressWarnings("deprecation")
-    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = OpenSamlAuthenticationProvider.createDefaultResponseAuthenticationConverter();
+    private static final Converter<ResponseToken, Saml2Authentication> defaultConverter = OpenSaml4AuthenticationProvider.createDefaultResponseAuthenticationConverter();
 
     private final String groupAttributeName;
 
