@@ -70,7 +70,7 @@ public class StandardSaml2CredentialProvider implements Saml2CredentialProvider 
         try {
             return keyStore.getKey(alias, keyPassword);
         } catch (final GeneralSecurityException e) {
-            throw new Saml2Exception(String.format("Loading Key [%s] failed", alias));
+            throw new Saml2Exception(String.format("Loading Key [%s] failed", alias), e);
         }
     }
 
