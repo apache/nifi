@@ -245,7 +245,7 @@ public class CollisionAwareResourceProviderWorkerTest {
     }
 
     private void setUpTestSubject() {
-        testSubject = new CollisionAwareResourceProviderWorker(PREFIX, this.getClass().getClassLoader(), provider, conflictResolutionStrategy, TARGET_DIRECTORY, 50, new CountDownLatch(0));
+        testSubject = new CollisionAwareResourceProviderWorker(PREFIX, this.getClass().getClassLoader(), provider, conflictResolutionStrategy, TARGET_DIRECTORY, 150, new CountDownLatch(0));
     }
 
     private void setUpProviderWithResourceAndFetchSuccessSequence(final ExternalResourceDescriptor resource, final Boolean... fetchSuccessSequence) {
