@@ -17,6 +17,8 @@
 package org.apache.nifi.registry;
 
 import org.apache.nifi.registry.jetty.JettyServer;
+import org.apache.nifi.registry.jetty.handler.HandlerProvider;
+import org.apache.nifi.registry.jetty.handler.StandardHandlerProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.crypto.BootstrapFileCryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
@@ -55,25 +57,13 @@ public class NiFiRegistry {
     private final BootstrapListener bootstrapListener;
     private volatile boolean shutdown = false;
 
-    public NiFiRegistry(final NiFiRegistryProperties properties, CryptoKeyProvider masterKeyProvider)
-            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    public NiFiRegistry(final NiFiRegistryProperties properties, CryptoKeyProvider masterKeyProvider) throws IOException, IllegalArgumentException {
 
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(final Thread t, final Throwable e) {
-                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                LOGGER.error("", e);
-            }
-        });
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> LOGGER.error("An Unknown Error Occurred in Thread {}", t, e));
 
         // register the shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // shutdown the jetty server
-                shutdownHook();
-            }
-        }));
+        // shutdown the jetty server
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdownHook));
 
         final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
         if (bootstrapPort != null) {
@@ -107,11 +97,12 @@ public class NiFiRegistry {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
-        final String docsDir = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY,
-                NiFiRegistryProperties.RELATIVE_DOCS_LOCATION);
-
         final long startTime = System.nanoTime();
-        server = new JettyServer(properties, masterKeyProvider, docsDir);
+
+        final String docsDirectory = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY,
+                NiFiRegistryProperties.RELATIVE_DOCS_LOCATION);
+        final HandlerProvider handlerProvider = new StandardHandlerProvider(masterKeyProvider, docsDirectory);
+        server = new JettyServer(properties, handlerProvider);
 
         if (shutdown) {
             LOGGER.info("NiFi Registry has been shutdown via NiFi Registry Bootstrap. Will not start Controller");
@@ -123,8 +114,8 @@ public class NiFiRegistry {
             }
 
             final long duration = System.nanoTime() - startTime;
-            LOGGER.info("Registry initialization took " + duration + " nanoseconds "
-                    + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
+            final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
+            LOGGER.info("Started Application in {} seconds ({} ns)", durationSeconds, duration);
         }
     }
 
