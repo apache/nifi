@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.processor.ProcessContext;
@@ -91,6 +92,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .name("catalog-namespace")
             .displayName("Catalog Namespace")
             .description("The namespace of the catalog.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -98,7 +100,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("table-name")
             .displayName("Table Name")
-            .description("The name of the table.")
+            .description("The name of the Iceberg table to write to.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -119,6 +122,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum File Size")
             .description("The maximum size that a file can be, if the file size is exceeded a new file will be generated with the remaining data." +
                     " If not set, then the 'write.target-file-size-bytes' table property will be used, default value is 512 MB.")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .build();
 
@@ -127,6 +131,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Number of Commit Retries")
             .description("Number of times to retry a commit before failing.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("10")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
@@ -136,6 +141,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Minimum Commit Wait Time")
             .description("Minimum time to wait before retrying a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("100 ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -145,6 +151,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Wait Time")
             .description("Maximum time to wait before retrying a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -154,6 +161,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Duration")
             .description("Total retry timeout period for a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("30 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -225,13 +233,13 @@ public class PutIceberg extends AbstractIcebergProcessor {
     @Override
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String fileFormat = context.getProperty(FILE_FORMAT).evaluateAttributeExpressions().getValue();
-        final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions().getValue();
+        final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
+        final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
 
         Table table;
 
         try {
-            table = loadTable(context);
+            table = loadTable(context, flowFile);
         } catch (Exception e) {
             getLogger().error("Failed to load table from catalog", e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
@@ -255,7 +263,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             }
 
             final WriteResult result = taskWriter.complete();
-            appendDataFiles(context, table, result);
+            appendDataFiles(context, flowFile, table, result);
         } catch (Exception e) {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {
@@ -280,10 +288,10 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param context holds the user provided information for the {@link Catalog} and the {@link Table}
      * @return loaded table
      */
-    private Table loadTable(PropertyContext context) {
+    private Table loadTable(final PropertyContext context, final FlowFile flowFile) {
         final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
-        final String catalogNamespace = context.getProperty(CATALOG_NAMESPACE).evaluateAttributeExpressions().getValue();
-        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+        final String catalogNamespace = context.getProperty(CATALOG_NAMESPACE).evaluateAttributeExpressions(flowFile).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final Catalog catalog = catalogService.getCatalog();
 
@@ -300,11 +308,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param table  table to append
      * @param result datafiles created by the {@link TaskWriter}
      */
-    void appendDataFiles(ProcessContext context, Table table, WriteResult result) {
-        final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions().asInteger();
-        final long minimumCommitWaitTime = context.getProperty(MINIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maximumCommitWaitTime = context.getProperty(MAXIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maximumCommitDuration = context.getProperty(MAXIMUM_COMMIT_DURATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+    void appendDataFiles(ProcessContext context, FlowFile flowFile, Table table, WriteResult result) {
+        final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions(flowFile).asInteger();
+        final long minimumCommitWaitTime = context.getProperty(MINIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitWaitTime = context.getProperty(MAXIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitDuration = context.getProperty(MAXIMUM_COMMIT_DURATION).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
 
         final AppendFiles appender = table.newAppend();
         Arrays.stream(result.dataFiles()).forEach(appender::appendFile);
