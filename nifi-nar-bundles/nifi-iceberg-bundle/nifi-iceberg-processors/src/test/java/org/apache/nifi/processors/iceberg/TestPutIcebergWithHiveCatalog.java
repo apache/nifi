@@ -256,10 +256,13 @@ public class TestPutIcebergWithHiveCatalog {
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
         initCatalog(PartitionSpec.unpartitioned(), fileFormat);
-        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAME);
-        runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
+        runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "${catalog.name}");
+        runner.setProperty(PutIceberg.TABLE_NAME, "${table.name}");
         runner.setValidateExpressionUsage(false);
-        runner.enqueue(new byte[0]);
+        Map<String,String> attributes = new HashMap<>();
+        attributes.put("catalog.name", CATALOG_NAME);
+        attributes.put("table.name", TABLE_NAME);
+        runner.enqueue(new byte[0], attributes);
         runner.run();
 
         Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
