@@ -56,6 +56,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         addOption(CommandOption.PARAM_DESC.createOption());
         addOption(CommandOption.PARAM_VALUE.createOption());
         addOption(CommandOption.PARAM_SENSITIVE.createOption());
+        addOption(CommandOption.UPDATE_TIMEOUT.createOption());
     }
 
     @Override
@@ -73,6 +74,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         if (!StringUtils.isBlank(paramSensitive) && !"true".equals(paramSensitive) && !"false".equals(paramSensitive)) {
             throw new IllegalArgumentException("Parameter sensitive flag must be one of 'true' or 'false'");
         }
+        final int updateTimeout = getUpdateTimeout(properties);
 
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
@@ -126,7 +128,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
-        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity);
+        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity, updateTimeout);
 
         if (isInteractive()) {
             println();

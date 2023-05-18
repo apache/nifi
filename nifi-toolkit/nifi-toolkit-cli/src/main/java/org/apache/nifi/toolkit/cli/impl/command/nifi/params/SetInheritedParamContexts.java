@@ -61,6 +61,9 @@ public class SetInheritedParamContexts extends AbstractUpdateParamContextCommand
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
         final String inheritedIds = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_INHERITED_IDS);
 
+        // Optional args...
+        final int updateTimeout = getUpdateTimeout(properties);
+
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
         final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
@@ -93,7 +96,7 @@ public class SetInheritedParamContexts extends AbstractUpdateParamContextCommand
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
-        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity);
+        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity, updateTimeout);
 
         if (isInteractive()) {
             println();

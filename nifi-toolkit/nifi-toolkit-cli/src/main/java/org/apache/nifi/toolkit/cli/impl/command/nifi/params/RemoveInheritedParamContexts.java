@@ -58,6 +58,9 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
         // Required args...
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
 
+        // Optional args...
+        final int updateTimeout = getUpdateTimeout(properties);
+
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
         final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
@@ -76,7 +79,7 @@ public class RemoveInheritedParamContexts extends AbstractUpdateParamContextComm
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
-        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity);
+        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity, updateTimeout);
 
         if (isInteractive()) {
             println();

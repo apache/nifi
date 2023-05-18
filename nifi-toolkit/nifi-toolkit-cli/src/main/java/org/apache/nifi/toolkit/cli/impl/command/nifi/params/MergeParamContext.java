@@ -63,6 +63,9 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
 
         final String existingContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
 
+        // Optional args...
+        final int updateTimeout = getUpdateTimeout(properties);
+
         // read the content of the input source into memory
         final String inputSource = getRequiredArg(properties, CommandOption.INPUT_SOURCE);
         final String paramContextJson = getInputSourceContent(inputSource);
@@ -117,7 +120,7 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedContextEntity);
-        performUpdate(paramContextClient, updatedContextEntity, updateRequestEntity);
+        performUpdate(paramContextClient, updatedContextEntity, updateRequestEntity, updateTimeout);
 
         printlnIfInteractive("");
         return VoidResult.getInstance();
