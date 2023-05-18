@@ -23,8 +23,10 @@ import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import java.sql.JDBCType;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
@@ -104,6 +106,37 @@ public final class PhoenixDatabaseAdapter implements DatabaseAdapter {
             }
         }
         return query.toString();
+    }
+
+    @Override
+    public String getUpsertStatement(String table, List<String> columnNames, Collection<String> uniqueKeyColumnNames) {
+        if (org.apache.nifi.util.StringUtils.isEmpty(table)) {
+            throw new IllegalArgumentException("Table name cannot be null or blank");
+        }
+        if (columnNames == null || columnNames.isEmpty()) {
+            throw new IllegalArgumentException("Column names cannot be null or empty");
+        }
+        if (uniqueKeyColumnNames == null || uniqueKeyColumnNames.isEmpty()) {
+            throw new IllegalArgumentException("Key column names cannot be null or empty");
+        }
+
+        String columns = String.join(", ", columnNames);
+
+        String parameterizedUpsertValues = columnNames.stream()
+                .map(columnName -> "?")
+                .collect(Collectors.joining(", "));
+
+        StringBuilder statementStringBuilder = new StringBuilder("UPSERT INTO ")
+                .append(table)
+                .append("(").append(columns).append(")")
+                .append(" VALUES ")
+                .append("(").append(parameterizedUpsertValues).append(")");
+        return statementStringBuilder.toString();
+    }
+
+    @Override
+    public boolean supportsUpsert() {
+        return true;
     }
 
     @Override
