@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.ldap.tenants;
 
-import org.apache.directory.server.core.integ.AbstractLdapTestUnit;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
@@ -71,7 +70,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class LdapUserGroupProviderTest extends AbstractLdapTestUnit {
+public class LdapUserGroupProviderTest {
 
     private static final String USER_SEARCH_BASE = "ou=users,o=nifi";
     private static final String GROUP_SEARCH_BASE = "ou=groups,o=nifi";
