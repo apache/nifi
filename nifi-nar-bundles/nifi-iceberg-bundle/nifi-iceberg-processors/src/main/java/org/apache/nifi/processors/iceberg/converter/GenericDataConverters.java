@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -50,11 +51,11 @@ import static org.apache.nifi.processors.iceberg.converter.RecordFieldGetter.cre
  */
 public class GenericDataConverters {
 
-    static class SameTypeConverter extends DataConverter<Object, Object> {
+    static class PrimitiveTypeConverter extends DataConverter<Object, Object> {
         final Type.PrimitiveType targetType;
         final DataType sourceType;
 
-        public SameTypeConverter(final Type.PrimitiveType type, final DataType dataType) {
+        public PrimitiveTypeConverter(final Type.PrimitiveType type, final DataType dataType) {
             targetType = type;
             sourceType = dataType;
         }
@@ -62,13 +63,22 @@ public class GenericDataConverters {
         @Override
         public Object convert(Object data) {
             switch (targetType.typeId()) {
-                case BOOLEAN: return DataTypeUtils.convertType(data, RecordFieldType.BOOLEAN.getDataType(), null);
-                case INTEGER: return DataTypeUtils.convertType(data, RecordFieldType.INT.getDataType(), null);
-                case LONG: return DataTypeUtils.convertType(data, RecordFieldType.LONG.getDataType(), null);
-                case FLOAT: return DataTypeUtils.convertType(data, RecordFieldType.FLOAT.getDataType(), null);
-                case DOUBLE: return DataTypeUtils.convertType(data, RecordFieldType.DOUBLE.getDataType(), null);
-                // DATE objects are already LocalDates, so return it untouched
-                case DATE: return data;
+                case BOOLEAN:
+                    return DataTypeUtils.convertType(data, RecordFieldType.BOOLEAN.getDataType(), null);
+                case INTEGER:
+                    return DataTypeUtils.convertType(data, RecordFieldType.INT.getDataType(), null);
+                case LONG:
+                    return DataTypeUtils.convertType(data, RecordFieldType.LONG.getDataType(), null);
+                case FLOAT:
+                    return DataTypeUtils.convertType(data, RecordFieldType.FLOAT.getDataType(), null);
+                case DOUBLE:
+                    return DataTypeUtils.convertType(data, RecordFieldType.DOUBLE.getDataType(), null);
+                case DATE:
+                    return DataTypeUtils.toLocalDate(data, () -> StringUtils.isEmpty(sourceType.getFormat())
+                            ? null
+                            : DataTypeUtils.getDateTimeFormatter(sourceType.getFormat(), ZoneId.systemDefault()), null);
+                case UUID:
+                    return DataTypeUtils.convertType(data, RecordFieldType.UUID.getDataType(), null);
                 case STRING:
                 default:
                     return DataTypeUtils.convertRecordFieldtoObject(data, RecordFieldType.STRING.getDataType());
@@ -76,37 +86,71 @@ public class GenericDataConverters {
         }
     }
 
-    static class TimeConverter extends DataConverter<Time, LocalTime> {
+    static class TimeConverter extends DataConverter<Object, LocalTime> {
+
+        private final String timeFormat;
+
+        public TimeConverter(final String format) {
+            this.timeFormat = format;
+        }
 
         @Override
-        public LocalTime convert(Time data) {
-            return data.toLocalTime();
+        public LocalTime convert(Object data) {
+            if (data instanceof Time) {
+                return ((Time) data).toLocalTime();
+            }
+            return DataTypeUtils.toTime(data, () -> StringUtils.isEmpty(timeFormat)
+                    ? null
+                    : DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
         }
     }
 
-    static class TimestampConverter extends DataConverter<Timestamp, LocalDateTime> {
+    static class TimestampConverter extends DataConverter<Object, LocalDateTime> {
+
+        private final DataType dataType;
+
+        public TimestampConverter(final DataType dataType) {
+            this.dataType = dataType;
+        }
 
         @Override
-        public LocalDateTime convert(Timestamp data) {
-            return data.toLocalDateTime();
+        public LocalDateTime convert(Object data) {
+            final Timestamp convertedTimestamp = (Timestamp) DataTypeUtils.convertType(data, RecordFieldType.TIMESTAMP.getDataType(dataType.getFormat()),
+                    null, null, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
+            return convertedTimestamp.toLocalDateTime();
         }
     }
 
-    static class TimestampWithTimezoneConverter extends DataConverter<Timestamp, OffsetDateTime> {
+    static class TimestampWithTimezoneConverter extends DataConverter<Object, OffsetDateTime> {
+
+        private final DataType dataType;
+
+        public TimestampWithTimezoneConverter(final DataType dataType) {
+            this.dataType = dataType;
+        }
 
         @Override
-        public OffsetDateTime convert(Timestamp data) {
-            return OffsetDateTime.ofInstant(data.toInstant(), ZoneId.of("UTC"));
+        public OffsetDateTime convert(Object data) {
+            final Timestamp convertedTimestamp = (Timestamp) DataTypeUtils.convertType(data, RecordFieldType.TIMESTAMP.getDataType(dataType.getFormat()),
+                    null, null, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
+            return OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
         }
     }
 
-    static class UUIDtoByteArrayConverter extends DataConverter<UUID, byte[]> {
+    static class UUIDtoByteArrayConverter extends DataConverter<Object, byte[]> {
 
         @Override
-        public byte[] convert(UUID data) {
+        public byte[] convert(Object data) {
+            final UUID uuid;
+            if (data instanceof String) {
+                uuid = UUID.fromString((String) data);
+            } else {
+                uuid = (UUID) data;
+            }
+
             ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
-            byteBuffer.putLong(data.getMostSignificantBits());
-            byteBuffer.putLong(data.getLeastSignificantBits());
+            byteBuffer.putLong(uuid.getMostSignificantBits());
+            byteBuffer.putLong(uuid.getLeastSignificantBits());
             return byteBuffer.array();
         }
     }
@@ -134,7 +178,7 @@ public class GenericDataConverters {
         }
     }
 
-    static class BigDecimalConverter extends DataConverter<BigDecimal, BigDecimal> {
+    static class BigDecimalConverter extends DataConverter<Object, BigDecimal> {
         private final int precision;
         private final int scale;
 
@@ -144,10 +188,15 @@ public class GenericDataConverters {
         }
 
         @Override
-        public BigDecimal convert(BigDecimal data) {
-            Validate.isTrue(data.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale: %s", precision, scale, data);
-            Validate.isTrue(data.precision() <= precision, "Cannot write value as decimal(%s,%s), invalid precision: %s", precision, scale, data);
-            return data;
+        public BigDecimal convert(Object data) {
+            if (data instanceof BigDecimal) {
+                BigDecimal bigDecimal = (BigDecimal) data;
+                Validate.isTrue(bigDecimal.scale() == scale, "Cannot write value as decimal(%s,%s), wrong scale %s for value: %s", precision, scale, bigDecimal.scale(), data);
+                Validate.isTrue(bigDecimal.precision() <= precision, "Cannot write value as decimal(%s,%s), invalid precision %s for value: %s",
+                        precision, scale, bigDecimal.precision(), data);
+                return bigDecimal;
+            }
+            return (BigDecimal) DataTypeUtils.convertType(data, RecordFieldType.DECIMAL.getDecimalDataType(precision, scale), null);
         }
     }
 

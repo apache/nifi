@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 public class IcebergRecordConverter {
 
     private final DataConverter<Record, GenericRecord> converter;
+    final FileFormat fileFormat;
 
     public GenericRecord convert(Record record) {
         return converter.convert(record);
@@ -54,12 +55,19 @@ public class IcebergRecordConverter {
     @SuppressWarnings("unchecked")
     public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat) {
         this.converter = (DataConverter<Record, GenericRecord>) IcebergSchemaVisitor.visit(schema, new RecordDataType(recordSchema), fileFormat);
+        this.fileFormat = fileFormat;
     }
 
     private static class IcebergSchemaVisitor extends SchemaWithPartnerVisitor<DataType, DataConverter<?, ?>> {
 
+        private final FileFormat fileFormat;
+
+        public IcebergSchemaVisitor(final FileFormat fileFormat) {
+            this.fileFormat = fileFormat;
+        }
+
         public static DataConverter<?, ?> visit(Schema schema, RecordDataType recordDataType, FileFormat fileFormat) {
-            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(), new IcebergPartnerAccessors(schema, fileFormat));
+            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(fileFormat), new IcebergPartnerAccessors(schema, fileFormat));
         }
 
         @Override
@@ -85,21 +93,25 @@ public class IcebergRecordConverter {
                     case DOUBLE:
                     case DATE:
                     case STRING:
-                        return new GenericDataConverters.SameTypeConverter(type, dataType);
+                        return new GenericDataConverters.PrimitiveTypeConverter(type, dataType);
                     case TIME:
-                        return new GenericDataConverters.TimeConverter();
+                        return new GenericDataConverters.TimeConverter(dataType.getFormat());
                     case TIMESTAMP:
                         final Types.TimestampType timestampType = (Types.TimestampType) type;
                         if (timestampType.shouldAdjustToUTC()) {
-                            return new GenericDataConverters.TimestampWithTimezoneConverter();
+                            return new GenericDataConverters.TimestampWithTimezoneConverter(dataType);
                         }
-                        return new GenericDataConverters.TimestampConverter();
+                        return new GenericDataConverters.TimestampConverter(dataType);
                     case UUID:
-                        final UUIDDataType uuidType = (UUIDDataType) dataType;
-                        if (uuidType.getFileFormat() == FileFormat.PARQUET) {
+                        if (dataType instanceof UUIDDataType) {
+                            final UUIDDataType uuidType = (UUIDDataType) dataType;
+                            if (uuidType.getFileFormat() == FileFormat.PARQUET) {
+                                return new GenericDataConverters.UUIDtoByteArrayConverter();
+                            }
+                        } else if (type instanceof Types.UUIDType && fileFormat == FileFormat.PARQUET) {
                             return new GenericDataConverters.UUIDtoByteArrayConverter();
                         }
-                        return new GenericDataConverters.SameTypeConverter(type, dataType);
+                        return new GenericDataConverters.PrimitiveTypeConverter(type, dataType);
                     case FIXED:
                         final Types.FixedType fixedType = (Types.FixedType) type;
                         return new GenericDataConverters.FixedConverter(fixedType.length());

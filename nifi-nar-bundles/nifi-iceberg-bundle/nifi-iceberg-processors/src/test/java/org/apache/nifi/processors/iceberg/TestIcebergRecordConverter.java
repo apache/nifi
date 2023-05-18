@@ -67,6 +67,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -133,6 +134,23 @@ public class TestIcebergRecordConverter {
             Types.NestedField.optional(4, "double", Types.DoubleType.get()),
             Types.NestedField.optional(5, "decimal", Types.DecimalType.of(10, 2)),
             Types.NestedField.optional(6, "boolean", Types.BooleanType.get()),
+            Types.NestedField.optional(7, "fixed", Types.FixedType.ofLength(5)),
+            Types.NestedField.optional(8, "binary", Types.BinaryType.get()),
+            Types.NestedField.optional(9, "date", Types.DateType.get()),
+            Types.NestedField.optional(10, "time", Types.TimeType.get()),
+            Types.NestedField.optional(11, "timestamp", Types.TimestampType.withZone()),
+            Types.NestedField.optional(12, "timestampTz", Types.TimestampType.withoutZone()),
+            Types.NestedField.optional(13, "uuid", Types.UUIDType.get()),
+            Types.NestedField.optional(14, "choice", Types.IntegerType.get())
+    );
+
+    private static final Schema COMPATIBLE_PRIMITIVES_SCHEMA = new Schema(
+            Types.NestedField.optional(0, "string", Types.StringType.get()),
+            Types.NestedField.optional(1, "integer", Types.IntegerType.get()),
+            Types.NestedField.optional(2, "float", Types.FloatType.get()),
+            Types.NestedField.optional(3, "long", Types.LongType.get()),
+            Types.NestedField.optional(4, "double", Types.DoubleType.get()),
+            Types.NestedField.optional(5, "decimal", Types.DecimalType.of(10, 2)),
             Types.NestedField.optional(7, "fixed", Types.FixedType.ofLength(5)),
             Types.NestedField.optional(8, "binary", Types.BinaryType.get()),
             Types.NestedField.optional(9, "date", Types.DateType.get()),
@@ -216,6 +234,26 @@ public class TestIcebergRecordConverter {
         fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampTz", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("uuid", RecordFieldType.UUID.getDataType()));
+        fields.add(new RecordField("choice", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType())));
+
+        return new SimpleRecordSchema(fields);
+    }
+
+    private static RecordSchema getPrimitivesAsCompatiblesSchema() {
+        List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("integer", RecordFieldType.SHORT.getDataType()));
+        fields.add(new RecordField("float", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("long", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("double", RecordFieldType.FLOAT.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("fixed", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
+        fields.add(new RecordField("binary", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType())));
+        fields.add(new RecordField("date", RecordFieldType.STRING.getDataType("yyyy-MM-dd")));
+        fields.add(new RecordField("time", RecordFieldType.STRING.getDataType("hh:mm:ss.SSS")));
+        fields.add(new RecordField("timestamp", RecordFieldType.STRING.getDataType("yyyy-MM-dd hh:mm:ss.SSSZ")));
+        fields.add(new RecordField("timestampTz", RecordFieldType.STRING.getDataType("yyyy-MM-dd hh:mm:ss.SSSZ")));
+        fields.add(new RecordField("uuid", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("choice", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.STRING.getDataType(), RecordFieldType.INT.getDataType())));
 
         return new SimpleRecordSchema(fields);
@@ -331,6 +369,27 @@ public class TestIcebergRecordConverter {
         return new MapRecord(getPrimitivesSchema(), values);
     }
 
+    private static Record setupCompatiblePrimitivesTestRecord() {
+
+        Map<String, Object> values = new HashMap<>();
+        values.put("string", "Test String");
+        values.put("integer", 8);
+        values.put("float", 1.23456);
+        values.put("long", 42L);
+        values.put("double", 3.14159);
+        values.put("decimal", 12345678.12);
+        values.put("fixed", "hello".getBytes());
+        values.put("binary", "hello".getBytes());
+        values.put("date", "2017-04-04");
+        values.put("time", "14:20:33.000");
+        values.put("timestamp", "2017-04-04 14:20:33.789-0500");
+        values.put("timestampTz", "2017-04-04 14:20:33.789-0500");
+        values.put("uuid", "0000-00-00-00-000000");
+        values.put("choice", "10");
+
+        return new MapRecord(getPrimitivesAsCompatiblesSchema(), values);
+    }
+
     private static Record setupCaseInsensitiveTestRecord() {
         Map<String, Object> values = new HashMap<>();
         values.put("field1", "Text1");
@@ -411,6 +470,48 @@ public class TestIcebergRecordConverter {
             assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(13, byte[].class));
         } else {
             assertEquals(UUID.fromString("0000-00-00-00-000000"), resultRecord.get(13, UUID.class));
+        }
+    }
+
+    @DisabledOnOs(WINDOWS)
+    @ParameterizedTest
+    @EnumSource(value = FileFormat.class, names = {"AVRO", "ORC", "PARQUET"})
+    public void testCompatiblePrimitives(FileFormat format) throws IOException {
+        RecordSchema nifiSchema = getPrimitivesAsCompatiblesSchema();
+        Record record = setupCompatiblePrimitivesTestRecord();
+
+        IcebergRecordConverter recordConverter = new IcebergRecordConverter(COMPATIBLE_PRIMITIVES_SCHEMA, nifiSchema, format);
+        GenericRecord genericRecord = recordConverter.convert(record);
+
+        writeTo(format, COMPATIBLE_PRIMITIVES_SCHEMA, genericRecord, tempFile);
+
+        List<GenericRecord> results = readFrom(format, COMPATIBLE_PRIMITIVES_SCHEMA, tempFile.toInputFile());
+
+        assertEquals(results.size(), 1);
+        GenericRecord resultRecord = results.get(0);
+
+        LocalDateTime localDateTime = LocalDateTime.of(2017, 4, 4, 14, 20, 33, 789000000);
+        OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
+        LocalDateTime expectedLocalDateTimestamp = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
+
+        assertEquals("Test String", resultRecord.get(0, String.class));
+        assertEquals(Integer.valueOf(8), resultRecord.get(1, Integer.class));
+        assertEquals(Float.valueOf(1.23456F), resultRecord.get(2, Float.class));
+        assertEquals(Long.valueOf(42L), resultRecord.get(3, Long.class));
+        assertEquals(Double.valueOf(3.141590118408203), resultRecord.get(4, Double.class));
+        assertEquals(new BigDecimal("12345678.12"), resultRecord.get(5, BigDecimal.class));
+        assertArrayEquals(new byte[]{104, 101, 108, 108, 111}, resultRecord.get(6, byte[].class));
+        assertArrayEquals(new byte[]{104, 101, 108, 108, 111}, resultRecord.get(7, ByteBuffer.class).array());
+        assertEquals(LocalDate.of(2017, 4, 4), resultRecord.get(8, LocalDate.class));
+        assertEquals(LocalTime.of(14, 20, 33), resultRecord.get(9, LocalTime.class));
+        assertEquals(offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC), resultRecord.get(10, OffsetDateTime.class));
+        assertEquals(expectedLocalDateTimestamp, resultRecord.get(11, LocalDateTime.class));
+        assertEquals(Integer.valueOf(10), resultRecord.get(13, Integer.class));
+
+        if (format.equals(PARQUET)) {
+            assertArrayEquals(new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, resultRecord.get(12, byte[].class));
+        } else {
+            assertEquals(UUID.fromString("0000-00-00-00-000000"), resultRecord.get(12, UUID.class));
         }
     }
 
