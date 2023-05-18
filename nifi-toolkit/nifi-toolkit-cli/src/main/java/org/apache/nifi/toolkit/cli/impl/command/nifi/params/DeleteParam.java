@@ -61,6 +61,9 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
         final String paramName = getRequiredArg(properties, CommandOption.PARAM_NAME);
 
+        // Optional args...
+        final int updateTimeout = getUpdateTimeout(properties);
+
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
         final ParameterContextEntity existingEntity = paramContextClient.getParamContext(paramContextId, false);
@@ -95,7 +98,7 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);
-        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity);
+        performUpdate(paramContextClient, updatedParameterContextEntity, updateRequestEntity, updateTimeout);
 
         if (isInteractive()) {
             println();
