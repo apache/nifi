@@ -23,6 +23,8 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
@@ -34,6 +36,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Assertions;
@@ -43,6 +46,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,6 +147,57 @@ public class RegistryClientIT extends NiFiSystemIT {
 
 
     @Test
+    public void testChangeConnectionDestinationRemoveOldAndMoveGroup() throws NiFiClientException, IOException, InterruptedException {
+        final FlowRegistryClientEntity clientEntity = registerClient();
+        final NiFiClientUtil util = getClientUtil();
+
+        // Create a PG that contains Generate -> Count
+        final ProcessGroupEntity parent = util.createProcessGroup("Parent", "root");
+
+        final ProcessorEntity generate = util.createProcessor("GenerateFlowFile", parent.getId());
+        final ProcessorEntity countProcessor = util.createProcessor("CountFlowFiles", parent.getId());
+
+        final ConnectionEntity generateToCount = util.createConnection(generate, countProcessor, "success");
+
+        // Save the flow as v1
+        final VersionControlInformationEntity v1Vci = util.startVersionControl(parent, clientEntity, "testChangeConnectionDestinationRemoveOldAndMoveGroup", "Parent");
+
+        // Create a Terminate processor and change flow to be:
+        // Generate -> Terminate - remove the old Count Processor
+        final ProcessorEntity terminate = util.createProcessor("TerminateFlowFile", parent.getId());
+
+        generateToCount.setDestinationId(terminate.getId());
+        generateToCount.getComponent().setDestination(util.createConnectableDTO(terminate));
+        final ConnectionEntity generateToTerminate = getNifiClient().getConnectionClient().updateConnection(generateToCount);
+        getNifiClient().getProcessorClient().deleteProcessor(countProcessor);
+
+        final ProcessGroupEntity childGroup = util.createProcessGroup("Child", parent.getId());
+
+        // Move the Generate, Terminate, and Connection to the child group
+        final Map<String, RevisionDTO> processorRevisions = new HashMap<>();
+        processorRevisions.put(generate.getId(), generate.getRevision());
+        processorRevisions.put(terminate.getId(), terminate.getRevision());
+
+        final SnippetDTO snippetDto = new SnippetDTO();
+        snippetDto.setConnections(Collections.singletonMap(generateToTerminate.getId(), generateToTerminate.getRevision()));
+        snippetDto.setProcessors(processorRevisions);
+        snippetDto.setParentGroupId(parent.getId());
+        final SnippetEntity snippet = new SnippetEntity();
+        snippet.setSnippet(snippetDto);
+        final SnippetEntity createdSnippet = getNifiClient().getSnippetClient().createSnippet(snippet);
+
+        createdSnippet.getSnippet().setParentGroupId(childGroup.getId());
+        getNifiClient().getSnippetClient().updateSnippet(createdSnippet);
+
+        // Save the flow as v2
+        util.saveFlowVersion(parent, clientEntity, v1Vci);
+
+        util.changeFlowVersion(parent.getId(), 1);
+        util.changeFlowVersion(parent.getId(), 2);
+    }
+
+
+    @Test
     public void testControllerServiceUpdateWhileRunning() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
@@ -198,6 +253,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         final Map<String, String> thirdFlowFileAttributes = util.getQueueFlowFile(connectionToTerminate.getId(), getNumberOfNodes() * 2).getFlowFile().getAttributes();
         assertEquals("1", thirdFlowFileAttributes.get("count"));
     }
+
 
     @Test
     public void testChangeVersionWithPortMoveBetweenGroups() throws NiFiClientException, IOException, InterruptedException {
@@ -310,7 +366,7 @@ public class RegistryClientIT extends NiFiSystemIT {
         final ProcessGroupEntity group = getClientUtil().createProcessGroup("Outer", "root");
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile", group.getId());
 
-        final VersionControlInformationEntity vci = getClientUtil().startVersionControl(group, clientEntity, "First Bucket", "First Flow");
+        getClientUtil().startVersionControl(group, clientEntity, "First Bucket", "First Flow");
 
         String versionedFlowState = getVersionedFlowState(group.getId(), "root");
         assertEquals("UP_TO_DATE", versionedFlowState);

@@ -102,7 +102,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
     public static final String CONTENT_REPOSITORY_IMPLEMENTATION = "nifi.content.repository.implementation";
     public static final String MAX_APPENDABLE_CLAIM_SIZE = "nifi.content.claim.max.appendable.size";
-    public static final String MAX_FLOWFILES_PER_CLAIM = "nifi.content.claim.max.flow.files";
     public static final String CONTENT_ARCHIVE_MAX_RETENTION_PERIOD = "nifi.content.repository.archive.max.retention.period";
     public static final String CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE = "nifi.content.repository.archive.max.usage.percentage";
     public static final String CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE = "nifi.content.repository.archive.backpressure.percentage";
@@ -360,7 +359,6 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
     public static final String DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL = "20 secs";
-    public static final int DEFAULT_MAX_FLOWFILES_PER_CLAIM = 100;
     public static final String DEFAULT_MAX_APPENDABLE_CLAIM_SIZE = "1 MB";
     public static final int DEFAULT_QUEUE_SWAP_THRESHOLD = 20000;
     public static final long DEFAULT_BACKPRESSURE_COUNT = 10_000L;
@@ -1549,22 +1547,6 @@ public class NiFiProperties extends ApplicationProperties {
         return provenanceRepositoryPaths;
     }
 
-    /**
-     * Returns the number of claims to keep open for writing. Ideally, this will be at
-     * least as large as the number of threads that will be updating the repository simultaneously but we don't want
-     * to get too large because it will hold open up to this many FileOutputStreams.
-     * <p>
-     * Default is {@link #DEFAULT_MAX_FLOWFILES_PER_CLAIM}
-     *
-     * @return the maximum number of flow files per claim
-     */
-    public int getMaxFlowFilesPerClaim() {
-        try {
-            return Integer.parseInt(getProperty(MAX_FLOWFILES_PER_CLAIM));
-        } catch (NumberFormatException nfe) {
-            return DEFAULT_MAX_FLOWFILES_PER_CLAIM;
-        }
-    }
 
     /**
      * Returns the maximum size, in bytes, that claims should grow before writing a new file. This means that we won't continually write to one

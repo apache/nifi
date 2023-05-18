@@ -30,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
@@ -50,6 +51,7 @@ import java.nio.file.StandardOpenOption;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -134,6 +136,107 @@ public class TestFileSystemRepository {
         assertTrue(repository.isArchived(Paths.get("a/archive/1.txt")));
         assertTrue(repository.isArchived(Paths.get("a/b/c/archive/1.txt")));
     }
+
+
+    @Test
+    @Timeout(30)
+    public void testClaimsArchivedWhenMarkedDestructable() throws IOException, InterruptedException {
+        final ContentClaim contentClaim = repository.create(false);
+        final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertEquals(1, containerPaths.size());
+        final String containerName = containerPaths.keySet().iterator().next();
+
+        try (final OutputStream out = repository.write(contentClaim)) {
+            long bytesWritten = 0L;
+            final byte[] bytes = "Hello World".getBytes(StandardCharsets.UTF_8);
+
+            while (bytesWritten <= configuredAppendableClaimLength) {
+                out.write(bytes);
+                bytesWritten += bytes.length;
+            }
+        }
+
+        assertEquals(0, repository.getArchiveCount(containerName));
+        assertEquals(0, claimManager.decrementClaimantCount(contentClaim.getResourceClaim()));
+        claimManager.markDestructable(contentClaim.getResourceClaim());
+
+        // The claim should become archived but it may take a few seconds, as it's handled by background threads
+        while (repository.getArchiveCount(containerName) != 1) {
+            Thread.sleep(50L);
+        }
+    }
+
+    @Test
+    @Timeout(value=30)
+    public void testArchivedClaimRemovedDueToAge() throws IOException, InterruptedException {
+        // Recreate Repository with specific properties
+        final Map<String, String> propertyOverrides = new HashMap<>();
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD, "2 sec");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 sec");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "99%");
+        recreateRepositoryWithPropertyOverrides(propertyOverrides);
+
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertEquals(1, containerPaths.size());
+        final Path containerPath = containerPaths.values().iterator().next();
+
+        // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
+        for (int i=0; i< 3; i++) {
+            final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
+            assertTrue(archiveDir.mkdirs());
+            final File archivedFile = new File(archiveDir, "1234");
+
+            try (final OutputStream fos = new FileOutputStream(archivedFile)) {
+                fos.write("Hello World".getBytes());
+            }
+
+            while (archivedFile.exists()) {
+                Thread.sleep(50L);
+            }
+        }
+    }
+
+    @Test
+    @Timeout(value=30)
+    public void testArchivedClaimRemovedDueToDiskUsage() throws IOException, InterruptedException {
+        // Recreate Repository with specific properties
+        final Map<String, String> propertyOverrides = new HashMap<>();
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD, "555 days");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 sec");
+        propertyOverrides.put(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE, "1%");
+        recreateRepositoryWithPropertyOverrides(propertyOverrides);
+
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertEquals(1, containerPaths.size());
+        final Path containerPath = containerPaths.values().iterator().next();
+
+        // Perform a few iterations to ensure that it works not just the first time, since there is a lot of logic on initialization.
+        for (int i=0; i< 3; i++) {
+            final File archiveDir = containerPath.resolve(String.valueOf(i)).resolve("archive").toFile();
+            assertTrue(archiveDir.mkdirs());
+            final File archivedFile = new File(archiveDir, "1234");
+
+            try (final OutputStream fos = new FileOutputStream(archivedFile)) {
+                fos.write("Hello World".getBytes());
+            }
+
+            while (archivedFile.exists()) {
+                Thread.sleep(50L);
+            }
+        }
+    }
+
+    private void recreateRepositoryWithPropertyOverrides(final Map<String, String> propertyOverrides) throws IOException {
+        repository.shutdown();
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile(), propertyOverrides);
+
+        repository = new FileSystemRepository(nifiProperties);
+        claimManager = new StandardResourceClaimManager();
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
+        repository.purge();
+    }
+
 
     @Test
     public void testUnreferencedFilesAreArchivedOnCleanup() throws IOException {

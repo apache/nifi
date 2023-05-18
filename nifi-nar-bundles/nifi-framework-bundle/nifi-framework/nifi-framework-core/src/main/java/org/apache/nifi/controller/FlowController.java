@@ -1172,9 +1172,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         LOG.info("Creating Content Repository [{}]", implementationClassName);
         try {
             final ContentRepository contentRepo = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ContentRepository.class, properties);
-            synchronized (contentRepo) {
-                contentRepo.initialize(new StandardContentRepositoryContext(resourceClaimManager, createEventReporter()));
-            }
+            contentRepo.initialize(new StandardContentRepositoryContext(resourceClaimManager, createEventReporter()));
+
             return contentRepo;
         } catch (final Exception e) {
             throw new RuntimeException(e);

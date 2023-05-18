@@ -51,4 +51,20 @@ public class JerseySnippetClient extends AbstractJerseyClient implements Snippet
                 SnippetEntity.class
             ));
     }
+
+    @Override
+    public SnippetEntity updateSnippet(final SnippetEntity snippet) throws NiFiClientException, IOException {
+        if (snippet == null) {
+            throw new IllegalArgumentException("Snippet entity cannot be null");
+        }
+
+        return executeAction("Error updating snippet", () -> {
+            final WebTarget target = snippetTarget
+                .path("/{id}")
+                .resolveTemplate("id", snippet.getSnippet().getId());
+
+            final Entity<SnippetEntity> entity = Entity.entity(snippet, MediaType.APPLICATION_JSON);
+            return getRequestBuilder(target).put(entity, SnippetEntity.class);
+        });
+    }
 }
