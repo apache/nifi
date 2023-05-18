@@ -64,7 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -120,7 +119,6 @@ public class FileSystemRepository implements ContentRepository {
     // in order to avoid backpressure on session commits. With 1 MB as the target file size, 100's of thousands of
     // files would mean that we are writing gigabytes per second - quite a bit faster than any disks can handle now.
     private final long maxAppendableClaimLength;
-    private final int maxFlowFilesPerClaim;
     private final long maxArchiveMillis;
     private final Map<String, Long> minUsableContainerBytesForArchive = new HashMap<>();
     private final boolean alwaysSync;
@@ -132,27 +130,9 @@ public class FileSystemRepository implements ContentRepository {
     // Map of container to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
 
-    // guarded by synchronizing on this
-    private final AtomicLong oldestArchiveDate = new AtomicLong(0L);
 
     private final NiFiProperties nifiProperties;
 
-    /**
-     * Default no args constructor for service loading only
-     */
-    public FileSystemRepository() {
-        containers = null;
-        containerNames = null;
-        index = null;
-        archiveData = false;
-        maxArchiveMillis = 0;
-        alwaysSync = false;
-        containerCleanupExecutor = null;
-        nifiProperties = null;
-        maxAppendableClaimLength = 0;
-        maxFlowFilesPerClaim = 0;
-        writableClaimQueue = null;
-    }
 
     public FileSystemRepository(final NiFiProperties nifiProperties) throws IOException {
         this.nifiProperties = nifiProperties;
@@ -161,8 +141,7 @@ public class FileSystemRepository implements ContentRepository {
         for (final Path path : fileRespositoryPaths.values()) {
             Files.createDirectories(path);
         }
-        this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
-        this.writableClaimQueue = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        this.writableClaimQueue = new LinkedBlockingQueue<>(1024);
         final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
         final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
         if (configuredAppendableClaimLength > appendableClaimLengthCap) {
@@ -230,7 +209,7 @@ public class FileSystemRepository implements ContentRepository {
                     throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
                 }
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
-                minUsableContainerBytesForArchive.put(container.getKey(), Long.valueOf(maxArchiveBytes));
+                minUsableContainerBytesForArchive.put(container.getKey(), maxArchiveBytes);
                 LOG.info("Maximum Threshold for Container {} set to {} bytes; if volume exceeds this size, archived data will be deleted until it no longer exceeds this size",
                         containerName, maxArchiveBytes);
 
@@ -247,7 +226,7 @@ public class FileSystemRepository implements ContentRepository {
         if (maxArchiveRatio <= 0D) {
             maxArchiveMillis = 0L;
         } else {
-            maxArchiveMillis = StringUtils.isEmpty(maxArchiveRetentionPeriod) ? Long.MAX_VALUE : FormatUtils.getTimeDuration(maxArchiveRetentionPeriod, TimeUnit.MILLISECONDS);
+            maxArchiveMillis = StringUtils.isEmpty(maxArchiveRetentionPeriod) ? Long.MAX_VALUE : Math.round(FormatUtils.getPreciseTimeDuration(maxArchiveRetentionPeriod, TimeUnit.MILLISECONDS));
         }
 
         this.alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty("nifi.content.repository.always.sync"));
@@ -294,7 +273,7 @@ public class FileSystemRepository implements ContentRepository {
         for (final OutputStream out : writableClaimStreams.values()) {
             try {
                 out.close();
-            } catch (final IOException ioe) {
+            } catch (final IOException ignored) {
             }
         }
     }
@@ -308,7 +287,7 @@ public class FileSystemRepository implements ContentRepository {
     private synchronized void initializeRepository() throws IOException {
         final Map<String, Path> realPathMap = new HashMap<>();
         final ExecutorService executor = Executors.newFixedThreadPool(containers.size());
-        final List<Future<Long>> futures = new ArrayList<>();
+        final List<Future<?>> futures = new ArrayList<>();
 
         // Run through each of the containers. For each container, create the sections if necessary.
         // Then, we need to scan through the archived data so that we can determine what the oldest
@@ -332,61 +311,18 @@ public class FileSystemRepository implements ContentRepository {
 
             realPathMap.put(containerName, realPath);
 
-            // We need to scan the archive directories to find out the oldest timestamp so that know whether or not we
-            // will have to delete archived data based on time threshold. Scanning all of the directories can be very
-            // expensive because of all of the disk accesses. So we do this in multiple threads. Since containers are
-            // often unique to a disk, we just map 1 thread to each container.
-            final Callable<Long> scanContainer = new Callable<Long>() {
-                @Override
-                public Long call() throws IOException {
-                    final AtomicLong oldestDateHolder = new AtomicLong(0L);
-
-                    // the path already exists, so scan the path to find any files and update maxIndex to the max of
-                    // all filenames seen.
-                    Files.walkFileTree(realPath, new SimpleFileVisitor<Path>() {
-                        @Override
-                        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                            LOG.warn("Content repository contains un-readable file or directory '" + file.getFileName() + "'. Skipping. ", exc);
-                            return FileVisitResult.SKIP_SUBTREE;
-                        }
-
-                        @Override
-                        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-                            if (attrs.isDirectory()) {
-                                return FileVisitResult.CONTINUE;
-                            }
-
-                            // Check if this is an 'archive' directory
-                            if (isArchived(file)) {
-                                final long lastModifiedTime = getLastModTime(file);
-
-                                if (lastModifiedTime < oldestDateHolder.get()) {
-                                    oldestDateHolder.set(lastModifiedTime);
-                                }
-                                containerState.incrementArchiveCount();
-                            }
-
-                            return FileVisitResult.CONTINUE;
-                        }
-                    });
-
-                    return oldestDateHolder.get();
-                }
-            };
-
             // If the path didn't exist to begin with, there's no archive directory, so don't bother scanning.
             if (pathExists) {
-                futures.add(executor.submit(scanContainer));
+                futures.add(executor.submit(() -> scanArchiveDirectories(realPath.toFile(), containerState)));
             }
         }
 
         executor.shutdown();
-        for (final Future<Long> future : futures) {
+
+        // Wait for all futures to complete
+        for (final Future<?> future : futures) {
             try {
-                final Long oldestDate = future.get();
-                if (oldestDate < oldestArchiveDate.get()) {
-                    oldestArchiveDate.set(oldestDate);
-                }
+                future.get();
             } catch (final ExecutionException | InterruptedException e) {
                 if (e.getCause() instanceof IOException) {
                     throw (IOException) e.getCause();
@@ -398,6 +334,23 @@ public class FileSystemRepository implements ContentRepository {
 
         containers.clear();
         containers.putAll(realPathMap);
+    }
+
+    private void scanArchiveDirectories(final File containerDir, final ContainerState containerState) {
+        for (int i=0; i < SECTIONS_PER_CONTAINER; i++) {
+            final File sectionDir = new File(containerDir, String.valueOf(i));
+            final File archiveDir = new File(sectionDir, ARCHIVE_DIR_NAME);
+            if (!archiveDir.exists()) {
+                continue;
+            }
+
+            final String[] filenames = archiveDir.list();
+            if (filenames == null) {
+                continue;
+            }
+
+            containerState.incrementArchiveCount(filenames.length);
+        }
     }
 
     // Visible for testing
@@ -509,7 +462,7 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     private void removeIncompleteContent(final Path fileToRemove, final String containerName) {
-        String fileDescription = null;
+        String fileDescription;
         try {
             fileDescription = fileToRemove.toFile().getAbsolutePath() + " (" + Files.size(fileToRemove) + " bytes)";
         } catch (final IOException e) {
@@ -556,21 +509,52 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
-    public Set<ResourceClaim> getActiveResourceClaims(final String containerName) throws IOException {
+    public Set<ResourceClaim> getActiveResourceClaims(final String containerName) {
         final Path containerPath = containers.get(containerName);
         if (containerPath == null) {
             return Collections.emptySet();
         }
 
-        final ScanForActiveResourceClaims scan = new ScanForActiveResourceClaims(containerPath, containerName, resourceClaimManager, containers.keySet());
-        Files.walkFileTree(containerPath, scan);
-
-        final Set<ResourceClaim> activeResourceClaims = scan.getActiveResourceClaims();
+        final Set<ResourceClaim> activeResourceClaims = getActiveResourceClaims(containerPath.toFile(), containerName);
 
         LOG.debug("Obtaining active resource claims, will return a list of {} resource claims for container {}", activeResourceClaims.size(), containerName);
         if (LOG.isTraceEnabled()) {
             LOG.trace("Listing of resource claims:");
             activeResourceClaims.forEach(claim -> LOG.trace(claim.toString()));
+        }
+
+        return activeResourceClaims;
+    }
+
+    public Set<ResourceClaim> getActiveResourceClaims(final File containerDir, final String containerName) {
+        final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
+
+        for (int i=0; i < SECTIONS_PER_CONTAINER; i++) {
+            final String sectionName = String.valueOf(i);
+            final File sectionDir = new File(containerDir, sectionName);
+            if (!sectionDir.exists()) {
+                continue;
+            }
+
+            final File[] files = sectionDir.listFiles();
+            if (files == null) {
+                LOG.warn("Content repository contains un-readable file or directory [{}]. Skipping.", sectionDir.getAbsolutePath());
+                continue;
+            }
+
+            for (final File file : files) {
+                if (ARCHIVE_DIR_NAME.equals(file.getName())) {
+                    continue;
+                }
+
+                final String identifier = file.getName();
+                ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(containerName, sectionName, identifier);
+                if (resourceClaim == null) {
+                    resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, identifier, false, false);
+                }
+
+                activeResourceClaims.add(resourceClaim);
+            }
         }
 
         return activeResourceClaims;
@@ -683,7 +667,11 @@ public class FileSystemRepository implements ContentRepository {
             // at the same time because we will call create() to get the claim before we write to it,
             // and when we call create(), it will remove it from the Queue, which means that no other
             // thread will get the same Claim until we've finished writing to it.
-            final File file = getPath(resourceClaim).toFile();
+            final Path resourceClaimPath = getPath(resourceClaim);
+            if (resourceClaimPath == null) {
+                throw new IOException("Could not determine file to write to for " + resourceClaim);
+            }
+            final File file = resourceClaimPath.toFile();
             ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
             writableClaimStreams.put(resourceClaim, claimStream);
 
@@ -753,7 +741,7 @@ public class FileSystemRepository implements ContentRepository {
         Path path = null;
         try {
             path = getPath(claim);
-        } catch (final ContentNotFoundException cnfe) {
+        } catch (final ContentNotFoundException ignored) {
         }
 
         // Ensure that we have no writable claim streams for this resource claim
@@ -767,10 +755,12 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
-        final File file = path.toFile();
-        if (!file.delete() && file.exists()) {
-            LOG.warn("Unable to delete {} at path {}", new Object[]{claim, path});
-            return false;
+        if (path != null) {
+            final File file = path.toFile();
+            if (!file.delete() && file.exists()) {
+                LOG.warn("Unable to delete {} at path {}", new Object[]{claim, path});
+                return false;
+            }
         }
 
         return true;
@@ -1028,7 +1018,6 @@ public class FileSystemRepository implements ContentRepository {
 
         final ByteCountingOutputStream bcos = claimStream;
 
-        // TODO: Refactor OS implementation out (deduplicate methods, etc.)
         final OutputStream out = new ContentRepositoryOutputStream(scc, bcos, initialLength);
 
         LOG.debug("Writing to {}", out);
@@ -1080,9 +1069,13 @@ public class FileSystemRepository implements ContentRepository {
                     try {
                         Thread.sleep(100L);
                     } catch (final Exception e) {
+                        Thread.currentThread().interrupt();
+                        LOG.error("Interrupted while attempting to purge Content Repository", e);
+                        return;
                     }
                 }
             }
+
             if (!writable) {
                 throw new RepositoryPurgeException("File " + path.toFile().getAbsolutePath() + " is not writable");
             }
@@ -1127,7 +1120,7 @@ public class FileSystemRepository implements ContentRepository {
                     }
                 }
             } catch (final Throwable t) {
-                LOG.error("Failed to cleanup content claims due to {}", t);
+                LOG.error("Failed to cleanup content claims", t);
             }
         }
     }
@@ -1146,7 +1139,7 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
-    public boolean isAccessible(final ContentClaim contentClaim) throws IOException {
+    public boolean isAccessible(final ContentClaim contentClaim) {
         if (contentClaim == null) {
             return false;
         }
@@ -1200,28 +1193,9 @@ public class FileSystemRepository implements ContentRepository {
         return writableClaimStreams.size();
     }
 
-    protected ConcurrentMap<ResourceClaim, ByteCountingOutputStream> getWritableClaimStreams() {
-        return writableClaimStreams;
-    }
 
     protected ByteCountingOutputStream getWritableClaimStreamByResourceClaim(ResourceClaim rc) {
         return writableClaimStreams.get(rc);
-    }
-
-    protected ResourceClaimManager getResourceClaimManager() {
-        return resourceClaimManager;
-    }
-
-    protected BlockingQueue<ClaimLengthPair> getWritableClaimQueue() {
-        return writableClaimQueue;
-    }
-
-    protected long getMaxAppendableClaimLength() {
-        return maxAppendableClaimLength;
-    }
-
-    protected boolean isAlwaysSync() {
-        return alwaysSync;
     }
 
     // marked protected for visibility and ability to override for unit tests.
@@ -1270,7 +1244,7 @@ public class FileSystemRepository implements ContentRepository {
             final String creationTimestamp = filename.substring(0, dashIndex);
             try {
                 return Long.parseLong(creationTimestamp);
-            } catch (final NumberFormatException nfe) {
+            } catch (final NumberFormatException ignored) {
             }
         }
 
@@ -1294,17 +1268,16 @@ public class FileSystemRepository implements ContentRepository {
         return (oldestArchiveDate <= removalTimeThreshold);
     }
 
-    private long destroyExpiredArchives(final String containerName, final Path container) throws IOException {
+    private void destroyExpiredArchives(final String containerName, final Path container) throws IOException {
         archiveExpirationLog.debug("Destroying Expired Archives for Container {}", containerName);
         final List<ArchiveInfo> notYetExceedingThreshold = new ArrayList<>();
         long removalTimeThreshold = System.currentTimeMillis() - maxArchiveMillis;
-        long oldestArchiveDateFound = System.currentTimeMillis();
 
         // determine how much space we must have in order to stop deleting old data
         final Long minRequiredSpace = minUsableContainerBytesForArchive.get(containerName);
         if (minRequiredSpace == null) {
             archiveExpirationLog.debug("Could not determine minimum required space so will not destroy any archived data");
-            return -1L;
+            return;
         }
 
         final long usableSpace = getContainerUsableSpace(containerName);
@@ -1339,6 +1312,10 @@ public class FileSystemRepository implements ContentRepository {
                 // If so, then we call poll() to remove it
                 if (freed < toFree || getLastModTime(toDelete.toPath()) < removalTimeThreshold) {
                     toDelete = fileQueue.poll(); // remove the head of the queue, which is already stored in 'toDelete'
+                    if (toDelete == null) {
+                        continue;
+                    }
+
                     Files.deleteIfExists(toDelete.toPath());
                     containerState.decrementArchiveCount();
                     LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because the archival size was exceeding the max configured size", toDelete.getName(), containerName);
@@ -1346,7 +1323,7 @@ public class FileSystemRepository implements ContentRepository {
                     deleteCount++;
                 }
 
-                // If we'd freed up enough space, we're done... unless the next file needs to be destroyed based on time.
+                // If we've freed up enough space, we're done... unless the next file needs to be destroyed based on time.
                 if (freed >= toFree) {
                     // If the last mod time indicates that it should be removed, just continue loop.
                     if (deleteBasedOnTimestamp(fileQueue, removalTimeThreshold)) {
@@ -1369,7 +1346,7 @@ public class FileSystemRepository implements ContentRepository {
                                 deleteCount, containerName, new Date(oldestArchiveDate), millis);
                     }
 
-                    return oldestArchiveDate;
+                    return;
                 }
             } catch (final IOException ioe) {
                 LOG.warn("Failed to delete {} from archive due to {}", toDelete, ioe.toString());
@@ -1393,7 +1370,8 @@ public class FileSystemRepository implements ContentRepository {
 
             try {
                 final long timestampThreshold = removalTimeThreshold;
-                Files.walkFileTree(archive, new SimpleFileVisitor<Path>() {
+
+                Files.walkFileTree(archive, new SimpleFileVisitor<>() {
                     @Override
                     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                         if (attrs.isDirectory()) {
@@ -1433,12 +1411,7 @@ public class FileSystemRepository implements ContentRepository {
         final long deleteExpiredMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS);
 
         // Sort the list according to last modified time
-        Collections.sort(notYetExceedingThreshold, new Comparator<ArchiveInfo>() {
-            @Override
-            public int compare(final ArchiveInfo o1, final ArchiveInfo o2) {
-                return Long.compare(o1.getLastModTime(), o2.getLastModTime());
-            }
-        });
+        notYetExceedingThreshold.sort(Comparator.comparing(ArchiveInfo::getLastModTime));
 
         final long sortRemainingMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - deleteExpiredMillis;
 
@@ -1492,10 +1465,6 @@ public class FileSystemRepository implements ContentRepository {
             oldestContainerArchive = notYetExceedingThreshold.get(0).getLastModTime();
         }
 
-        if (oldestContainerArchive < oldestArchiveDateFound) {
-            oldestArchiveDateFound = oldestContainerArchive;
-        }
-
         // Queue up the files in the order that they should be destroyed so that we don't have to scan the directories for a while.
         for (final ArchiveInfo toEnqueue : notYetExceedingThreshold.subList(0, Math.min(100000, notYetExceedingThreshold.size()))) {
             fileQueue.offer(toEnqueue);
@@ -1504,7 +1473,7 @@ public class FileSystemRepository implements ContentRepository {
         final long cleanupMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - deleteOldestMillis - sortRemainingMillis - deleteExpiredMillis;
         LOG.debug("Oldest Archive Date for Container {} is {}; delete expired = {} ms, sort remaining = {} ms, delete oldest = {} ms, cleanup = {} ms",
                 containerName, new Date(oldestContainerArchive), deleteExpiredMillis, sortRemainingMillis, deleteOldestMillis, cleanupMillis);
-        return oldestContainerArchive;
+        return;
     }
 
     private class ArchiveOrDestroyDestructableClaims implements Runnable {
@@ -1618,27 +1587,9 @@ public class FileSystemRepository implements ContentRepository {
         @Override
         public void run() {
             try {
-                if (oldestArchiveDate.get() > System.currentTimeMillis() - maxArchiveMillis) {
-                    final Long minRequiredSpace = minUsableContainerBytesForArchive.get(containerName);
-                    if (minRequiredSpace == null) {
-                        return;
-                    }
-
-                    try {
-                        final long usableSpace = getContainerUsableSpace(containerName);
-                        if (usableSpace > minRequiredSpace) {
-                            return;
-                        }
-                    } catch (final Exception e) {
-                        LOG.error("Failed to determine space available in container {}; will attempt to cleanup archive", containerName);
-                    }
-                }
-
                 Thread.currentThread().setName("Cleanup Archive for " + containerName);
-                final long oldestContainerArchive;
-
                 try {
-                    oldestContainerArchive = destroyExpiredArchives(containerName, containerPath);
+                    destroyExpiredArchives(containerName, containerPath);
 
                     final ContainerState containerState = containerStateMap.get(containerName);
                     containerState.signalCreationReady(); // indicate that we've finished cleaning up the archive.
@@ -1648,22 +1599,6 @@ public class FileSystemRepository implements ContentRepository {
                         LOG.error("", ioe);
                     }
                     return;
-                }
-
-                if (oldestContainerArchive < 0L) {
-                    boolean updated;
-                    do {
-                        final long oldest = oldestArchiveDate.get();
-                        if (oldestContainerArchive < oldest) {
-                            updated = oldestArchiveDate.compareAndSet(oldest, oldestContainerArchive);
-
-                            if (updated && LOG.isDebugEnabled()) {
-                                LOG.debug("Oldest Archive Date is now {}", new Date(oldestContainerArchive));
-                            }
-                        } else {
-                            updated = true;
-                        }
-                    } while (!updated);
                 }
             } catch (final Throwable t) {
                 LOG.error("Failed to cleanup archive for container {} due to {}", containerName, t.toString());
@@ -1751,6 +1686,9 @@ public class FileSystemRepository implements ContentRepository {
                         eventReporter.reportEvent(Severity.WARNING, "FileSystemRepository", message);
                         condition.await();
                     } catch (final InterruptedException e) {
+                        LOG.warn("Interrupted while waiting for Content Repository archive expiration", e);
+                        Thread.currentThread().interrupt();
+                        return;
                     }
                 }
             } finally {
@@ -1786,6 +1724,10 @@ public class FileSystemRepository implements ContentRepository {
 
         public void incrementArchiveCount() {
             archivedFileCount.incrementAndGet();
+        }
+
+        public void incrementArchiveCount(final int count) {
+            archivedFileCount.addAndGet(count);
         }
 
         public long getArchiveCount() {
@@ -1854,101 +1796,29 @@ public class FileSystemRepository implements ContentRepository {
      * 1 second (1000 milliseconds). If attempt is made to set lower value a
      * warning will be logged and the method will return minimum value of 1000
      */
-    private long determineCleanupInterval(NiFiProperties properties) {
-        long cleanupInterval = DEFAULT_CLEANUP_INTERVAL_MILLIS;
-        String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-        if (archiveCleanupFrequency != null) {
-            try {
-                cleanupInterval = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                throw new RuntimeException(
-                        "Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-            }
-            if (cleanupInterval < MIN_CLEANUP_INTERVAL_MILLIS) {
-                LOG.warn("The value of " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY + " property is set to '"
-                        + archiveCleanupFrequency + "' which is "
-                        + "below the allowed minimum of 1 second (1000 milliseconds). Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.");
-                cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
-            }
+    private long determineCleanupInterval(final NiFiProperties properties) {
+        final String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
+        if (archiveCleanupFrequency == null) {
+            return DEFAULT_CLEANUP_INTERVAL_MILLIS;
         }
+
+        long cleanupInterval;
+        try {
+            cleanupInterval = Math.round(FormatUtils.getPreciseTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS));
+        } catch (final Exception e) {
+            throw new RuntimeException("Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, e);
+        }
+
+        if (cleanupInterval < MIN_CLEANUP_INTERVAL_MILLIS) {
+            LOG.warn("The value of the '{}' property is set to [{}] which is below the allowed minimum of 1 second. Will use 1 second as scheduling interval for archival cleanup task.",
+                NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, archiveCleanupFrequency);
+            cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+        }
+
         return cleanupInterval;
     }
 
 
-    private static class ScanForActiveResourceClaims extends SimpleFileVisitor<Path> {
-        private static final Pattern SECTION_NAME_PATTERN = Pattern.compile("\\d{0,4}");
-        private final String containerName;
-        private final ResourceClaimManager resourceClaimManager;
-        private final Set<String> containerNames;
-        private final Path rootPath;
-
-        private final Set<ResourceClaim> activeResourceClaims = new HashSet<>();
-        private String sectionName = null;
-
-        public ScanForActiveResourceClaims(final Path rootPath, final String containerName, final ResourceClaimManager resourceClaimManager, final Set<String> containerNames) {
-            this.rootPath = rootPath;
-            this.containerName = containerName;
-            this.resourceClaimManager = resourceClaimManager;
-            this.containerNames = containerNames;
-        }
-
-        public Set<ResourceClaim> getActiveResourceClaims() {
-            return activeResourceClaims;
-        }
-
-        @Override
-        public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-            LOG.warn("Content repository contains un-readable file or directory '" + file.getFileName() + "'. Skipping. ", exc);
-            return FileVisitResult.SKIP_SUBTREE;
-        }
-
-        @Override
-        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
-            if (dir.equals(rootPath)) {
-                return FileVisitResult.CONTINUE;
-            }
-
-            // Check if this is an 'archive' directory
-            final String dirName = dir.toFile().getName();
-
-            if (containerNames.contains(dirName)) {
-                LOG.debug("Obtaining active resource claims, will traverse into Container {}", dirName);
-                return FileVisitResult.CONTINUE;
-            }
-
-            if (SECTION_NAME_PATTERN.matcher(dirName).matches()) {
-                LOG.debug("Obtaining active resource claims, will traverse into Section {}", dirName);
-                sectionName = dirName;
-                return FileVisitResult.CONTINUE;
-            } else {
-                LOG.debug("Obtaining active resource claims, will NOT traverse into sub-directory {}", dirName);
-                return FileVisitResult.SKIP_SUBTREE;
-            }
-        }
-
-        @Override
-        public FileVisitResult visitFile(final Path path, final BasicFileAttributes attrs) throws IOException {
-            if (attrs.isDirectory()) {
-                return FileVisitResult.CONTINUE;
-            }
-
-            final File file = path.toFile();
-            if (sectionName == null || !sectionName.equals(file.getParentFile().getName())) {
-                LOG.debug("Obtaining active resource claims, will NOT consider {} because its parent is not the current section", file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            final String identifier = file.getName();
-            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(containerName, sectionName, identifier);
-            if (resourceClaim == null) {
-                resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, identifier, false, false);
-            }
-
-            activeResourceClaims.add(resourceClaim);
-
-            return FileVisitResult.CONTINUE;
-        }
-    }
 
     protected class ContentRepositoryOutputStream extends OutputStream {
         protected final StandardContentClaim scc;
