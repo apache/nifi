@@ -367,10 +367,6 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         }
     }
 
-    protected void addTempComponent(final ConfigurableComponent instance, final BundleCoordinate coordinate) {
-        final String cacheKey = getClassBundleKey(instance.getClass().getCanonicalName(), coordinate);
-        tempComponentLookup.put(cacheKey, instance);
-    }
 
     /**
      * Registers extension for the specified type from the specified Bundle.

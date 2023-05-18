@@ -109,6 +109,10 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         }
     }
 
+    protected TestInfo getTestInfo() {
+        return testInfo;
+    }
+
     @AfterAll
     public static void cleanup() {
         final NiFiInstance nifi = nifiRef.get();
@@ -252,7 +256,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     protected void setupClient(final int apiPort) {
         nifiClient = createClient(apiPort);
-        clientUtil = new NiFiClientUtil(nifiClient, getNiFiVersion());
+        clientUtil = new NiFiClientUtil(nifiClient, getNiFiVersion(), getTestName());
     }
 
     protected NiFiClientUtil getClientUtil() {

@@ -55,16 +55,10 @@ import java.util.Objects;
 public class EncryptedFileSystemRepository extends FileSystemRepository {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepository.class);
 
-    private RepositoryEncryptor<OutputStream, InputStream> repositoryEncryptor;
+    private final RepositoryEncryptor<OutputStream, InputStream> repositoryEncryptor;
 
-    private String keyId;
+    private final String keyId;
 
-    /**
-     * Default no args constructor for service loading only
-     */
-    public EncryptedFileSystemRepository() {
-
-    }
 
     public EncryptedFileSystemRepository(final NiFiProperties niFiProperties) throws IOException {
         super(niFiProperties);
