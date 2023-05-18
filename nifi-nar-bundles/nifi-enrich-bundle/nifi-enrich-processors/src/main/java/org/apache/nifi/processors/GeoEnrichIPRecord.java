@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -194,7 +195,20 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
         FlowFile output = session.create(input);
         FlowFile notFound = splitOutput ? session.create(input) : null;
-        final DatabaseReader dbReader = databaseReaderRef.get();
+        try {
+            if (watcher != null && watcher.checkAndReset()) {
+                if (dbWriteLock.tryLock()) {
+                    try {
+                        loadDatabaseFile();
+                    } finally {
+                        dbWriteLock.unlock();
+                    }
+                }
+            }
+        } catch (final IllegalStateException | IOException e) {
+            throw new ProcessException(e.getMessage(), e);
+        }
+        DatabaseReader dbReader = databaseReaderRef.get();
         try (InputStream is = session.read(input);
              OutputStream os = session.write(output);
              OutputStream osNotFound = splitOutput ? session.write(notFound) : null) {
@@ -227,12 +241,38 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             int foundCount = 0;
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
-                CityResponse response = geocode(ipPath, record, dbReader);
+                CityResponse response;
+                try {
+                    response = geocode(ipPath, record, dbReader);
+                } catch (InvalidDatabaseException idbe) {
+                    if (dbWriteLock.tryLock()) {
+                        try {
+                            getLogger().debug("Attempting to reload database after InvalidDatabaseException");
+                            try {
+                                loadDatabaseFile();
+                            } catch (IOException ioe) {
+                                throw new ProcessException("Error reloading database due to: " + ioe.getMessage(), ioe);
+                            }
+
+                            getLogger().debug("Attempting to retry lookup after InvalidDatabaseException");
+                            try {
+                                dbReader = databaseReaderRef.get();
+                                response = geocode(ipPath, record, dbReader);
+                            } catch (final Exception e) {
+                                throw new ProcessException("Error performing look up: " + e.getMessage(), e);
+                            }
+                        } finally {
+                            dbWriteLock.unlock();
+                        }
+                    } else {
+                        throw new ProcessException("Failed to lookup the key from " + ipPath.getPath() + " due to " + idbe.getMessage(), idbe);
+                    }
+                }
                 boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
                     targetRelationship = REL_FOUND;
                 }
-                if (!splitOutput || (splitOutput && wasEnriched)) {
+                if (!splitOutput || wasEnriched) {
                     writer.write(record);
                     foundCount++;
                 } else {

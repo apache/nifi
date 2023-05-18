@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
@@ -72,14 +73,28 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             return;
         }
 
-        final DatabaseReader dbReader = databaseReaderRef.get();
+        try {
+            if (watcher != null && watcher.checkAndReset()) {
+                if (dbWriteLock.tryLock()) {
+                    try {
+                        loadDatabaseFile();
+                    } finally {
+                        dbWriteLock.unlock();
+                    }
+                }
+            }
+        } catch (final IllegalStateException | IOException e) {
+            throw new ProcessException(e.getMessage(), e);
+        }
+
+        DatabaseReader dbReader = databaseReaderRef.get();
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
 
         if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("FlowFile '{}' attribute '{}' was empty. Routing to failure",
-                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
+                    flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName());
             return;
         }
 
@@ -97,10 +112,36 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             return;
         }
 
-        final StopWatch stopWatch = new StopWatch(true);
+        StopWatch stopWatch = new StopWatch(true);
         try {
             response = dbReader.city(inetAddress);
             stopWatch.stop();
+        } catch (InvalidDatabaseException idbe) {
+            stopWatch.stop();
+            if (dbWriteLock.tryLock()) {
+                try {
+                    getLogger().debug("Attempting to reload database after InvalidDatabaseException");
+                    try {
+                        loadDatabaseFile();
+                    } catch (IOException ioe) {
+                        throw new ProcessException("Error reloading database due to: " + ioe.getMessage(), ioe);
+                    }
+
+                    getLogger().debug("Attempting to retry lookup after InvalidDatabaseException");
+                    try {
+                        dbReader = databaseReaderRef.get();
+                        stopWatch = new StopWatch(true);
+                        response = dbReader.city(inetAddress);
+                        stopWatch.stop();
+                    } catch (final Exception e) {
+                        throw new ProcessException("Error performing look up: " + e.getMessage(), e);
+                    }
+                } finally {
+                    dbWriteLock.unlock();
+                }
+            } else {
+                throw new ProcessException("Failed to lookup the key " + inetAddress + " due to " + idbe.getMessage(), idbe);
+            }
         } catch (GeoIp2Exception | IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
             // Most name or IP resolutions failure should have been triggered in the try loop above but
