@@ -43,7 +43,7 @@
         <groovy.eclipse.compiler.version>3.7.0</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>6.5.0.202303070854-r</jgit.version>
-        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
+        <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
     </properties>
 
     <dependencyManagement>
