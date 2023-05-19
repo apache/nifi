@@ -28,6 +28,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -38,8 +40,8 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -108,6 +110,33 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     }
 
     @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = (List<ValidationResult>) super.customValidate(validationContext);
+
+        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+
+        if (visibilityTimeout <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(VISIBILITY_TIMEOUT.getDisplayName())
+                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
+                    .build());
+        }
+
+        // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages
+        final int maxVisibilityTimeout = 7 * 24 * 60 * 60;
+        if (visibilityTimeout >  maxVisibilityTimeout) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(VISIBILITY_TIMEOUT.getDisplayName())
+                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should not be greater than 7 days")
+                    .build());
+        }
+
+        return results;
+    }
+
+    @Override
     public Set<Relationship> getRelationships() {
         return Collections.singleton(REL_SUCCESS);
     }
@@ -117,6 +146,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final int visibilityTimeoutInSecs = context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final int requestTimeoutInSecs = context.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
 
         final QueueClient queueClient;
         queueClient = createQueueClient(context, null);
@@ -134,8 +164,11 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             return;
         }
 
-        final List<QueueMessageItem> messages = toList(retrievedMessagesIterable);
-        for (final QueueMessageItem message : messages) {
+        // Map used to store messages to delete after get operation is successful and
+        // auto-delete is enabled (key: messageID, value: popReceipt)
+        final Map<String, String> messagesToDelete = new HashMap<>();
+
+        for (final QueueMessageItem message : retrievedMessagesIterable) {
             FlowFile flowFile = session.create();
 
             final Map<String, String> attributes = new HashMap<>();
@@ -145,6 +178,10 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             attributes.put("azure.queue.messageId", message.getMessageId());
             attributes.put("azure.queue.popReceipt", message.getPopReceipt());
 
+            if (autoDelete) {
+                messagesToDelete.put(message.getMessageId(), message.getPopReceipt());
+            }
+
             flowFile = session.putAllAttributes(flowFile, attributes);
             flowFile = session.write(flowFile, out -> out.write(message.getBody().toString().getBytes()));
 
@@ -152,28 +189,14 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             session.getProvenanceReporter().receive(flowFile, queueClient.getQueueUrl().toString());
         }
 
-        final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
         if (autoDelete) {
             session.commitAsync(() -> {
-                for (final QueueMessageItem message : messages) {
-                    queueClient.deleteMessage(message.getMessageId(), message.getPopReceipt());
+                for (final Map.Entry<String, String> entry : messagesToDelete.entrySet()) {
+                    final String messageId = entry.getKey();
+                    final String popReceipt = entry.getValue();
+                    queueClient.deleteMessage(messageId, popReceipt);
                 }
             });
         }
-    }
-
-    private List<QueueMessageItem> toList(Iterable<QueueMessageItem> iterable) {
-        if (iterable instanceof List) {
-            return (List<QueueMessageItem>) iterable;
-        }
-
-        final ArrayList<QueueMessageItem> list = new ArrayList<>();
-        if (iterable != null) {
-            for(QueueMessageItem message : iterable) {
-                list.add(message);
-            }
-        }
-
-        return list;
     }
 }

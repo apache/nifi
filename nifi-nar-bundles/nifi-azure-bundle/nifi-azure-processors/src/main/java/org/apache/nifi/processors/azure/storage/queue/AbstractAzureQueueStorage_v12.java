@@ -27,6 +27,8 @@ import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.QueueClientBuilder;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -39,10 +41,14 @@ import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
@@ -88,12 +94,30 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
         return relationships;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        final int requestTimeout = validationContext.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+
+        if (requestTimeout <= 0 || requestTimeout > 30) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(REQUEST_TIMEOUT.getDisplayName())
+                    .explanation(REQUEST_TIMEOUT.getDisplayName() + " should be greater than 0 secs " +
+                            "and less than or equal to 30 secs")
+                    .build());
+        }
+
+        AzureStorageUtils.validateProxySpec(validationContext, results);
+
+        return results;
+    }
+
     protected final QueueClient createQueueClient(final ProcessContext context, final FlowFile flowFile) {
         final QueueClientBuilder clientBuilder = new QueueClientBuilder();
 
         final AzureStorageCredentialsService_v12 storageCredentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
         final AzureStorageCredentialsDetails_v12 storageCredentialsDetails = storageCredentialsService.getCredentialsDetails();
-        clientBuilder.endpoint(String.format("https://%s.%s", storageCredentialsDetails.getAccountName(), storageCredentialsDetails.getEndpointSuffix()));
         processCredentials(clientBuilder, storageCredentialsDetails);
         processProxyOptions(clientBuilder, context);
 

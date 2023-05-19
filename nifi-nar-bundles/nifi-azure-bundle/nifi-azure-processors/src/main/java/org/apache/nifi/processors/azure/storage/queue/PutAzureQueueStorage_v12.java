@@ -24,6 +24,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -35,6 +37,7 @@ import org.apache.nifi.proxy.ProxySpec;
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -79,6 +82,41 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = (List<ValidationResult>) super.customValidate(validationContext);
+        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+
+        if (visibilityTimeout <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(VISIBILITY_TIMEOUT.getDisplayName())
+                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should be greater than 0 secs")
+                    .build());
+        }
+
+        // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/put-message
+        final int maxVisibilityTimeout = 7 * 24 * 60 * 60;
+        if (visibilityTimeout >  maxVisibilityTimeout) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(VISIBILITY_TIMEOUT.getDisplayName())
+                    .explanation(VISIBILITY_TIMEOUT.getDisplayName() + " should not be greater than 7 days")
+                    .build());
+        }
+
+        final int ttl = validationContext.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS).intValue();
+        if (ttl <= 0) {
+            results.add(new ValidationResult.Builder()
+                    .subject(TTL.getDisplayName())
+                    .valid(false)
+                    .explanation(TTL.getDisplayName() + " should be any positive number")
+                    .build());
+        }
+
+        return results;
     }
 
     @Override
