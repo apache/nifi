@@ -36,6 +36,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
@@ -120,6 +121,8 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
         final AzureStorageCredentialsDetails_v12 storageCredentialsDetails = storageCredentialsService.getCredentialsDetails();
         processCredentials(clientBuilder, storageCredentialsDetails);
         processProxyOptions(clientBuilder, context);
+
+        clientBuilder.endpoint(String.format("https://%s.%s", storageCredentialsDetails.getAccountName(), AzureServiceEndpoints.DEFAULT_QUEUE_ENDPOINT_SUFFIX));
 
         final String queueName = context.getProperty(QUEUE).evaluateAttributeExpressions(flowFile).getValue();
         clientBuilder.queueName(queueName);
