@@ -50,6 +50,7 @@ import org.apache.nifi.flow.BatchSize;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
@@ -3194,6 +3195,26 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
+    private Set<Connectable> getUpstreamComponents(final VersionedConnection connection) {
+        if (connection == null) {
+            return Collections.emptySet();
+        }
+
+        final Set<Connectable> components = new HashSet<>();
+        findUpstreamComponents(connection, components);
+        return components;
+    }
+
+    private void findUpstreamComponents(final VersionedConnection connection, final Set<Connectable> components) {
+        final ConnectableComponent sourceConnectable = connection.getSource();
+        final Connectable source = context.getFlowManager().findConnectable(sourceConnectable.getId());
+        if (sourceConnectable.getType() == ConnectableComponentType.FUNNEL) {
+            source.getIncomingConnections().forEach(incoming -> findUpstreamComponents(incoming, components));
+        } else {
+            components.add(source);
+        }
+    }
+
     @Override
     public void synchronize(final Connection connection, final VersionedConnection proposedConnection, final ProcessGroup group, final FlowSynchronizationOptions synchronizationOptions)
         throws FlowSynchronizationException, TimeoutException {
@@ -3205,7 +3226,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         final long timeout = System.currentTimeMillis() + synchronizationOptions.getComponentStopTimeout().toMillis();
 
         // Stop any upstream components so that we can update the connection
-        final Set<Connectable> upstream = getUpstreamComponents(connection);
+        final Set<Connectable> upstream = new HashSet<>(getUpstreamComponents(connection));
+        if (connection == null) {
+            upstream.addAll(getUpstreamComponents(proposedConnection));
+        }
         Set<Connectable> stoppedComponents;
         try {
             stoppedComponents = stopOrTerminate(upstream, timeout, synchronizationOptions);
