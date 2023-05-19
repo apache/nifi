@@ -94,7 +94,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.firstRow = getFirstRow(context);
+        this.firstRow = getStartingRow(context);
         String[] rawRequiredSheets = getRawRequiredSheets(context);
         this.requiredSheets = new AtomicReferenceArray<>(rawRequiredSheets.length);
         IntStream.range(0, rawRequiredSheets.length)
@@ -161,13 +161,13 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return SchemaInferenceUtil.INFER_SCHEMA;
     }
 
-    private int getFirstRow(final PropertyContext context) {
-        int rawFirstRow = context.getProperty(STARTING_ROW).asInteger();
-        return getZeroBasedIndex(rawFirstRow);
+    private int getStartingRow(final PropertyContext context) {
+        int rawStartingRow = context.getProperty(STARTING_ROW).asInteger();
+        return getZeroBasedIndex(rawStartingRow);
     }
 
-    static int getZeroBasedIndex(int rawFirstRow) {
-        return rawFirstRow > 0 ? rawFirstRow - 1 : 0;
+    static int getZeroBasedIndex(int rawStartingRow) {
+        return rawStartingRow > 0 ? rawStartingRow - 1 : 0;
     }
 
     private String[] getRawRequiredSheets(final PropertyContext context) {

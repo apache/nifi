@@ -54,6 +54,7 @@ public class ExcelRecordReaderConfiguration {
     public String getTimestampFormat() {
         return timestampFormat;
     }
+
     public static final class Builder {
         private RecordSchema schema;
         private AtomicReferenceArray<String> requiredSheets;
