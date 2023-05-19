@@ -55,7 +55,7 @@ import java.util.stream.IntStream;
 @Tags({"excel", "spreadsheet", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
 @CapabilityDescription("Parses a Microsoft Excel document returning each row in each sheet as a separate record. "
         + "This reader allows for inferring a schema either based on the first line of an Excel sheet if a 'header line' is "
-        + "present or from all the desired sheets, or providing an explicit schema "
+        + "present or from all the required sheets, or providing an explicit schema "
         + "for interpreting the values. See Controller Service's Usage for further documentation. "
         + "This reader is currently only capable of processing .xlsx "
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.)")
@@ -63,30 +63,30 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     private static final AllowableValue HEADER_DERIVED = new AllowableValue("excel-header-derived", "Use fields From Header",
             "The first chosen row of the Excel sheet is a header row that contains the columns representative of all the rows " +
-                    "in the desired sheets. The schema will be derived by using those columns in the header.");
-    public static final PropertyDescriptor DESIRED_SHEETS = new PropertyDescriptor
-            .Builder().name("extract-sheets")
-            .displayName("Sheets to Extract")
+                    "in the required sheets. The schema will be derived by using those columns in the header.");
+    public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
+            .Builder().name("Required Sheets")
+            .displayName("Required Sheets")
             .description("Comma separated list of Excel document sheet names whose rows should be extracted from the excel document. If this property" +
-                    " is left blank then all the rows from all the sheets will be extracted from the Excel document. The list of names is case in-sensitive. Any sheets not" +
-                    " specified in this value will be ignored. A bulletin will be generated if a specified sheet(s) are not found.")
+                    " is left blank then all the rows from all the sheets will be extracted from the Excel document. The list of names is case sensitive. Any sheets not" +
+                    " specified in this value will be ignored. An exception will be thrown if a specified sheet(s) are not found.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor FIRST_ROW_NUM = new PropertyDescriptor
-            .Builder().name("excel-extract-first-row")
-            .displayName("Row number to start from")
+    public static final PropertyDescriptor STARTING_ROW = new PropertyDescriptor
+            .Builder().name("Starting Row")
+            .displayName("Starting Row")
             .description("The row number of the first row to start processing (One based)."
                     + " Use this to skip over rows of data at the top of a worksheet that are not part of the dataset.")
             .required(true)
-            .defaultValue("0")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("1")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    private AtomicReferenceArray<String> desiredSheets;
+    private AtomicReferenceArray<String> requiredSheets;
     private volatile int firstRow;
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -95,48 +95,39 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.firstRow = getFirstRow(context);
-        String[] rawDesiredSheets = getRawDesiredSheets(context);
-        this.desiredSheets = new AtomicReferenceArray<>(rawDesiredSheets.length);
-        IntStream.range(0, rawDesiredSheets.length)
-                .forEach(index -> this.desiredSheets.set(index, rawDesiredSheets[index]));
+        String[] rawRequiredSheets = getRawRequiredSheets(context);
+        this.requiredSheets = new AtomicReferenceArray<>(rawRequiredSheets.length);
+        IntStream.range(0, rawRequiredSheets.length)
+                .forEach(index -> this.requiredSheets.set(index, rawRequiredSheets[index]));
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
     }
 
-    private int getFirstRow(final PropertyContext context) {
-        int rawFirstRow = context.getProperty(FIRST_ROW_NUM).asInteger();
-        return getZeroBasedIndex(rawFirstRow);
-    }
+    @Override
+    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+        // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
+        in.mark(1024 * 1024);
+        final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
+        in.reset();
 
-    static int getZeroBasedIndex(int rawFirstRow) {
-        return rawFirstRow > 0 ? rawFirstRow - 1 : 0;
-    }
-    private String[] getRawDesiredSheets(final PropertyContext context) {
-        final String desiredSheetsDelimited = context.getProperty(DESIRED_SHEETS).getValue();
-        return getRawDesiredSheets(desiredSheetsDelimited, getLogger());
-    }
+        ExcelRecordReaderConfiguration args = new ExcelRecordReaderConfiguration.Builder()
+                .withDateFormat(dateFormat)
+                .withRequiredSheets(requiredSheets)
+                .withFirstRow(firstRow)
+                .withSchema(schema)
+                .withTimeFormat(timeFormat)
+                .withTimestampFormat(timestampFormat)
+                .build();
 
-    static String[] getRawDesiredSheets(String desiredSheetsDelimited, ComponentLog logger) {
-        if (desiredSheetsDelimited != null) {
-            String[] delimitedSheets = StringUtils.split(desiredSheetsDelimited, ",");
-            if (delimitedSheets != null) {
-                return delimitedSheets;
-            } else {
-                if (logger != null) {
-                    logger.debug("Excel document was parsed but no sheets with the specified desired names were found.");
-                }
-            }
-        }
-
-        return new String[0];
+        return new ExcelRecordReader(args, in, logger);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(DESIRED_SHEETS);
-        properties.add(FIRST_ROW_NUM);
+        properties.add(REQUIRED_SHEETS);
+        properties.add(STARTING_ROW);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -146,10 +137,10 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (allowableValue.equalsIgnoreCase(HEADER_DERIVED.getValue())) {
-            return new ExcelHeaderSchemaStrategy(context);
+        if (allowableValue.equals(HEADER_DERIVED.getValue())) {
+            return new ExcelHeaderSchemaStrategy(context, getLogger());
         } else if (allowableValue.equalsIgnoreCase(SchemaInferenceUtil.INFER_SCHEMA.getValue())) {
-            final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables);
+            final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables, getLogger());
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
             return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());
         }
@@ -166,28 +157,32 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     }
 
     @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-        // Use Mark/Reset of a BufferedInputStream in case we read from the Input Stream for the header.
-        in.mark(1024 * 1024);
-        final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
-        in.reset();
-
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withDateFormat(dateFormat)
-                .withDesiredSheets(desiredSheets)
-                .withFirstRow(firstRow)
-                .withInputStream(in)
-                .withLogger(logger)
-                .withSchema(schema)
-                .withTimeFormat(timeFormat)
-                .withTimestampFormat(timestampFormat)
-                .build();
-
-        return new ExcelRecordReader(args);
-    }
-
-    @Override
     protected AllowableValue getDefaultSchemaAccessStrategy() {
         return SchemaInferenceUtil.INFER_SCHEMA;
+    }
+
+    private int getFirstRow(final PropertyContext context) {
+        int rawFirstRow = context.getProperty(STARTING_ROW).asInteger();
+        return getZeroBasedIndex(rawFirstRow);
+    }
+
+    static int getZeroBasedIndex(int rawFirstRow) {
+        return rawFirstRow > 0 ? rawFirstRow - 1 : 0;
+    }
+
+    private String[] getRawRequiredSheets(final PropertyContext context) {
+        final String requiredSheetsDelimited = context.getProperty(REQUIRED_SHEETS).getValue();
+        return getRawRequiredSheets(requiredSheetsDelimited);
+    }
+
+    static String[] getRawRequiredSheets(String requiredSheetsDelimited) {
+        if (requiredSheetsDelimited != null) {
+            String[] delimitedSheets = StringUtils.split(requiredSheetsDelimited, ",");
+            if (delimitedSheets != null) {
+                return delimitedSheets;
+            }
+        }
+
+        return new String[0];
     }
 }

@@ -30,6 +30,7 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -42,9 +43,8 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class ExcelRecordReader implements RecordReader {
     private final RowIterator rowIterator;
-    private ComponentLog logger;
     private final RecordSchema schema;
-    private final List<String> desiredSheets;
+    private final List<String> requiredSheets;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
@@ -52,45 +52,42 @@ public class ExcelRecordReader implements RecordReader {
     private final String timeFormat;
     private final String timestampFormat;
 
-    public ExcelRecordReader(ExcelRecordReaderArgs args) throws MalformedRecordException {
-        this.logger = args.getLogger();
-        this.schema = args.getSchema();
-        this.desiredSheets = new ArrayList<>();
-        if (args.getDesiredSheets() != null && args.getDesiredSheets().length() > 0) {
-            IntStream.range(0, args.getDesiredSheets().length())
-                    .forEach(index -> this.desiredSheets.add(args.getDesiredSheets().get(index)));
+    public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
+        this.schema = configuration.getSchema();
+        this.requiredSheets = new ArrayList<>();
+        if (configuration.getRequiredSheets() != null && configuration.getRequiredSheets().length() > 0) {
+            IntStream.range(0, configuration.getRequiredSheets().length())
+                    .forEach(index -> this.requiredSheets.add(configuration.getRequiredSheets().get(index)));
         }
 
-        if (isEmpty(args.getDateFormat())) {
+        if (isEmpty(configuration.getDateFormat())) {
             this.dateFormat = null;
             LAZY_DATE_FORMAT = null;
         } else {
-            this.dateFormat = args.getDateFormat();
+            this.dateFormat = configuration.getDateFormat();
             LAZY_DATE_FORMAT = () -> DataTypeUtils.getDateFormat(dateFormat);
         }
 
-        if (isEmpty(args.getTimeFormat())) {
+        if (isEmpty(configuration.getTimeFormat())) {
             this.timeFormat = null;
             LAZY_TIME_FORMAT = null;
         } else {
-            this.timeFormat = args.getTimeFormat();
+            this.timeFormat = configuration.getTimeFormat();
             LAZY_TIME_FORMAT = () -> DataTypeUtils.getDateFormat(timeFormat);
         }
 
-        if (isEmpty(args.getTimestampFormat())) {
+        if (isEmpty(configuration.getTimestampFormat())) {
             this.timestampFormat = null;
             LAZY_TIMESTAMP_FORMAT = null;
         } else {
-            this.timestampFormat = args.getTimestampFormat();
+            this.timestampFormat = configuration.getTimestampFormat();
             LAZY_TIMESTAMP_FORMAT = () -> DataTypeUtils.getDateFormat(timestampFormat);
         }
 
         try {
-            this.rowIterator = new RowIterator(args.getInputStream(), desiredSheets, args.getFirstRow(), logger);
+            this.rowIterator = new RowIterator(inputStream, requiredSheets, configuration.getFirstRow(), logger);
         } catch (RuntimeException e) {
-            String msg = "Error occurred while processing record file";
-            logger.error(msg, e);
-            throw new MalformedRecordException(msg, e);
+            throw new MalformedRecordException("Error occurred while processing record file", e);
         }
     }
 
@@ -137,7 +134,7 @@ public class ExcelRecordReader implements RecordReader {
         return currentRowValues;
     }
 
-    public static Object getCellValue(Cell cell) {
+    private static Object getCellValue(Cell cell) {
         if (cell != null) {
             switch (cell.getCellType()) {
                 case _NONE:
@@ -212,10 +209,5 @@ public class ExcelRecordReader implements RecordReader {
     @Override
     public void close() throws IOException {
         this.rowIterator.close();
-    }
-
-    void setLogger(ComponentLog logger) {
-        this.logger = logger;
-        this.rowIterator.setLogger(logger);
     }
 }

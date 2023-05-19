@@ -17,6 +17,7 @@
 package org.apache.nifi.excel;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -51,14 +52,16 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
 
     private final DataFormatter dataFormatter;
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context) {
-        this.context = context;
-        this.dataFormatter = new DataFormatter();
+    private final ComponentLog logger;
+
+    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger) {
+        this(context, logger, null);
     }
 
-    public ExcelHeaderSchemaStrategy(PropertyContext context, Locale locale) {
+    public ExcelHeaderSchemaStrategy(PropertyContext context, ComponentLog logger, Locale locale) {
         this.context = context;
-        this.dataFormatter = new DataFormatter(locale);
+        this.logger = logger;
+        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
     }
 
     @Override
@@ -70,7 +73,7 @@ public class ExcelHeaderSchemaStrategy implements SchemaAccessStrategy {
         String errMsg = "Failed to read Header line from Excel worksheet";
         RecordSource<Row> recordSource;
         try {
-            recordSource = new ExcelRecordSource(contentStream, context, variables);
+            recordSource = new ExcelRecordSource(contentStream, context, variables, logger);
         } catch (Exception e) {
             throw new SchemaNotFoundException(errMsg, e);
         }

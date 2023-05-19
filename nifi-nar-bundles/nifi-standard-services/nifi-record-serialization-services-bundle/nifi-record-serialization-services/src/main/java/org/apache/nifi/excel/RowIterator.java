@@ -17,6 +17,7 @@
 
 import com.github.pjfanning.xlsx.StreamingReader;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -35,27 +36,21 @@ public class RowIterator implements Iterator<Row>, Closeable {
     private final Iterator<Sheet> sheets;
     private Sheet currentSheet;
     private Iterator<Row> currentRows;
-    private final Map<String, Boolean> desiredSheets;
+    private final Map<String, Boolean> requiredSheets;
     private final int firstRow;
-    private ComponentLog logger;
-    private boolean log;
+    private final ComponentLog logger;
     private Row currentRow;
 
-    public RowIterator(InputStream in, List<String> desiredSheets, int firstRow) {
-        this(in, desiredSheets, firstRow, null);
-    }
-
-    public RowIterator(InputStream in, List<String> desiredSheets, int firstRow, ComponentLog logger) {
+    public RowIterator(InputStream in, List<String> requiredSheets, int firstRow, ComponentLog logger) {
         this.workbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
                 .open(in);
         this.sheets = this.workbook.iterator();
-        this.desiredSheets = desiredSheets != null ? desiredSheets.stream()
+        this.requiredSheets = requiredSheets != null ? requiredSheets.stream()
                 .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE)) : new HashMap<>();
         this.firstRow = firstRow;
         this.logger = logger;
-        this.log = logger != null;
     }
 
     @Override
@@ -63,9 +58,9 @@ public class RowIterator implements Iterator<Row>, Closeable {
         setCurrent();
         boolean next = currentRow != null;
         if(!next) {
-            String sheetsNotFound = getSheetsNotFound(desiredSheets);
-            if (!sheetsNotFound.isEmpty() && log) {
-                logger.warn("Excel sheet(s) not found: {}", sheetsNotFound);
+            String sheetsNotFound = getSheetsNotFound();
+            if (!sheetsNotFound.isEmpty()) {
+                throw new ProcessException("The following required Excel sheet(s) were not found " + sheetsNotFound);
             }
         }
         return next;
@@ -103,8 +98,8 @@ public class RowIterator implements Iterator<Row>, Closeable {
 
     private boolean hasExhaustedRows() {
         boolean exhausted = !currentRows.hasNext();
-        if (log && exhausted) {
-            logger.info("Exhausted all rows from sheet {}", currentSheet.getSheetName());
+        if (exhausted) {
+            logger.debug("Exhausted all rows from sheet {}", currentSheet.getSheetName());
         }
         return exhausted;
     }
@@ -114,25 +109,26 @@ public class RowIterator implements Iterator<Row>, Closeable {
     }
 
     private boolean isIterateOverAllSheets() {
-        boolean iterateAllSheets = desiredSheets.isEmpty();
-        if (iterateAllSheets && log) {
-            logger.info("Advanced to sheet {}", currentSheet.getSheetName());
+        boolean iterateAllSheets = requiredSheets.isEmpty();
+        if (iterateAllSheets) {
+            logger.debug("Advanced to sheet {}", currentSheet.getSheetName());
         }
         return iterateAllSheets;
     }
 
     private boolean hasSheet(String name) {
-        boolean sheetByName = !desiredSheets.isEmpty()
-                && desiredSheets.keySet().stream()
-                .anyMatch(desiredSheet -> desiredSheet.equalsIgnoreCase(name));
+        boolean sheetByName = !requiredSheets.isEmpty()
+                && requiredSheets.keySet().stream()
+                .anyMatch(requiredSheet -> requiredSheet.equals(name));
         if (sheetByName) {
-            desiredSheets.put(name, Boolean.TRUE);
+            requiredSheets.put(name, Boolean.TRUE);
         }
+
         return sheetByName;
     }
 
-    private String getSheetsNotFound(Map<String, Boolean> desiredSheets) {
-        return desiredSheets.entrySet().stream()
+    private String getSheetsNotFound() {
+        return requiredSheets.entrySet().stream()
                 .filter(entry -> !entry.getValue())
                 .map(Map.Entry::getKey)
                 .collect(Collectors.joining(","));
@@ -146,10 +142,5 @@ public class RowIterator implements Iterator<Row>, Closeable {
     @Override
     public void close() throws IOException {
         this.workbook.close();
-    }
-
-    void setLogger(ComponentLog logger) {
-        this.logger = logger;
-        this.log = logger != null;
     }
 }

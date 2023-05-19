@@ -18,14 +18,18 @@ package org.apache.nifi.excel;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -41,7 +45,10 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ExtendWith(MockitoExtension.class)
 public class TestExcelHeaderSchemaStrategy {
+    @Mock
+    ComponentLog logger;
     @ParameterizedTest
     @MethodSource("getLocales")
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException, SchemaNotFoundException {
@@ -49,7 +56,7 @@ public class TestExcelHeaderSchemaStrategy {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
-        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, locale);
+        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, locale);
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
@@ -78,7 +85,7 @@ public class TestExcelHeaderSchemaStrategy {
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
 
-        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context);
+        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger);
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
@@ -95,8 +102,8 @@ public class TestExcelHeaderSchemaStrategy {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
-        properties.put(ExcelReader.FIRST_ROW_NUM, "2");
-        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context);
+        properties.put(ExcelReader.STARTING_ROW, "2");
+        ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger);
 
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);

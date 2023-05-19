@@ -18,17 +18,19 @@ package org.apache.nifi.excel;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,42 +47,39 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(MockitoExtension.class)
 public class TestExcelRecordReader {
 
     private static final String DATA_FORMATTING_FILE = "dataformatting.xlsx";
     private static final String MULTI_SHEET_FILE = "twoSheets.xlsx";
 
+    @Mock
+    ComponentLog logger;
+
     @Test
-    public void testNonExcelFile() throws IOException {
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream("notExcel.txt"))
-                .withLogger(Mockito.mock(ComponentLog.class))
+    public void testNonExcelFile() {
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .build();
 
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(args));
+        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("notExcel.txt"), logger));
         assertTrue(ExceptionUtils.getStackTrace(mre).contains("this is not a valid OOXML"));
     }
 
     @Test
-    public void testOlderExcelFormatFile() throws IOException {
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream("olderFormat.xls"))
-                .withLogger(Mockito.mock(ComponentLog.class))
-                .build();
-
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(args));
+    public void testOlderExcelFormatFile() {
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder().build();
+        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> new ExcelRecordReader(configuration, getInputStream("olderFormat.xls"), logger));
         assertTrue(ExceptionUtils.getStackTrace(mre).contains("data appears to be in the OLE2 Format"));
     }
+
     @Test
     public void testMultipleRecordsSingleSheet() throws IOException, MalformedRecordException {
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream(DATA_FORMATTING_FILE))
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(getDataFormattingSchema())
-                .withLogger(Mockito.mock(ComponentLog.class))
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, false, true);
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
+        List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(9, records.size());
     }
@@ -101,20 +100,10 @@ public class TestExcelRecordReader {
         return Files.newInputStream(excelDoc);
     }
 
-    private ExcelRecordReader getRecordReader(ExcelRecordReaderArgs args) throws MalformedRecordException {
-        ExcelRecordReader recordReader = new ExcelRecordReader(args);
-        recordReader.setLogger(new MockComponentLog(null, recordReader));
-
-        return recordReader;
-    }
-
-    private List<Record> getRecords(ExcelRecordReader recordReader, boolean coerceTypes, boolean dropUnknownFields, boolean print) throws IOException, MalformedRecordException {
+    private List<Record> getRecords(ExcelRecordReader recordReader, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException {
         Record record;
         List<Record> records = new ArrayList<>();
         while ((record = recordReader.nextRecord(coerceTypes, dropUnknownFields)) != null) {
-            if (print) {
-                System.out.println(record.toMap());
-            }
             records.add(record);
         }
 
@@ -128,14 +117,12 @@ public class TestExcelRecordReader {
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
 
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream(DATA_FORMATTING_FILE))
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(new SimpleRecordSchema(fields))
-                .withLogger(Mockito.mock(ComponentLog.class))
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, dropUnknownFields, true);
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
+        List<Record> records = getRecords(recordReader, false, dropUnknownFields);
 
         assertEquals(9, records.size());
         if(dropUnknownFields) {
@@ -150,15 +137,13 @@ public class TestExcelRecordReader {
 
     @Test
     public void testSkipLines() throws IOException, MalformedRecordException {
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withFirstRow(5)
-                .withInputStream(getInputStream(DATA_FORMATTING_FILE))
                 .withSchema(getDataFormattingSchema())
-                .withLogger(Mockito.mock(ComponentLog.class))
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, false, false);
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(DATA_FORMATTING_FILE), logger);
+        List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(4, records.size());
     }
@@ -168,17 +153,15 @@ public class TestExcelRecordReader {
     public void tesCoerceTypes(boolean coerceTypes) throws IOException, MalformedRecordException {
         String fieldName = "dates";
         RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat("MM/dd/yyyy")
                 .withTimeFormat(RecordFieldType.TIME.getDefaultFormat())
                 .withTimestampFormat(RecordFieldType.TIMESTAMP.getDefaultFormat())
-                .withInputStream(getInputStream("dates.xlsx"))
                 .withSchema(schema)
-                .withLogger(Mockito.mock(ComponentLog.class))
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, coerceTypes, false, false);
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream("dates.xlsx"), logger);
+        List<Record> records = getRecords(recordReader, coerceTypes, false);
 
         assertEquals(6, records.size());
         records.forEach(record -> assertInstanceOf(Timestamp.class, record.getValue(fieldName)));
@@ -187,18 +170,16 @@ public class TestExcelRecordReader {
     @Test
     public void testSelectSpecificSheet() throws IOException, MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
-        AtomicReferenceArray<String> desiredSheets = new AtomicReferenceArray<>(1);
-        desiredSheets.set(0, "TestSheetA");
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream(MULTI_SHEET_FILE))
+        AtomicReferenceArray<String> requiredSheets = new AtomicReferenceArray<>(1);
+        requiredSheets.set(0, "TestSheetA");
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withFirstRow(1)
-                .withDesiredSheets(desiredSheets)
-                .withLogger(Mockito.mock(ComponentLog.class))
+                .withRequiredSheets(requiredSheets)
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, false, false);
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
+        List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(3, records.size());
     }
@@ -211,35 +192,31 @@ public class TestExcelRecordReader {
     @Test
     public void testSelectSpecificSheetNotFound() throws IOException, MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
-        AtomicReferenceArray<String> desiredSheets = new AtomicReferenceArray<>(1);
-        desiredSheets.set(0, "notExistingSheet");
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream(MULTI_SHEET_FILE))
+        AtomicReferenceArray<String> requiredSheets = new AtomicReferenceArray<>(1);
+        requiredSheets.set(0, "notExistingSheet");
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withFirstRow(1)
-                .withDesiredSheets(desiredSheets)
-                .withLogger(Mockito.mock(ComponentLog.class))
+                .withRequiredSheets(requiredSheets)
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, false, false);
-
-        assertEquals(0, records.size());
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
+        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> getRecords(recordReader, false, false));
+        assertTrue(mre.getMessage().startsWith("Error while getting next record"));
+        assertInstanceOf(ProcessException.class, mre.getCause());
+        assertTrue(mre.getCause().getMessage().startsWith("The following required Excel sheet(s) were not found"));
     }
 
     @Test
     public void testSelectAllSheets() throws IOException, MalformedRecordException {
         RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType())));
-        ExcelRecordReaderArgs args = new ExcelRecordReaderArgs.Builder()
-                .withInputStream(getInputStream(MULTI_SHEET_FILE))
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
-                .withLogger(Mockito.mock(ComponentLog.class))
                 .build();
 
-        ExcelRecordReader recordReader = getRecordReader(args);
-        List<Record> records = getRecords(recordReader, false, false, true);
-
+        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
+        List<Record> records = getRecords(recordReader, false, false);
 
         assertEquals(7, records.size());
     }

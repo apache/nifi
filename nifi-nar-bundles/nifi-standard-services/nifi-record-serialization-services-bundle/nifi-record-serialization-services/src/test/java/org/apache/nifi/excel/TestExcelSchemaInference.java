@@ -25,10 +25,13 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -44,8 +47,12 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@ExtendWith(MockitoExtension.class)
 public class TestExcelSchemaInference {
     private final TimeValueInference timestampInference = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
+
+    @Mock
+    ComponentLog logger;
 
     @ParameterizedTest
     @MethodSource("getLocales")
@@ -57,8 +64,8 @@ public class TestExcelSchemaInference {
         final RecordSchema schema;
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (variables, content) -> new ExcelRecordSource(content, context, variables),
-                    new ExcelSchemaInference(timestampInference, locale), Mockito.mock(ComponentLog.class));
+                    (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
+                    new ExcelSchemaInference(timestampInference, locale), logger);
             schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
             assertEquals(List.of("0"), fieldNames);
@@ -92,7 +99,7 @@ public class TestExcelSchemaInference {
         final RecordSchema schema;
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (variables, content) -> new ExcelRecordSource(content, context, variables),
+                    (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                     new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
             schema = accessStrategy.getSchema(null, inputStream, null);
         }
@@ -113,17 +120,17 @@ public class TestExcelSchemaInference {
         final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
-        properties.put(ExcelReader.DESIRED_SHEETS, "${desired.sheets}");
-        properties.put(ExcelReader.FIRST_ROW_NUM, "${rows.to.skip}");
+        properties.put(ExcelReader.REQUIRED_SHEETS, "${required.sheets}");
+        properties.put(ExcelReader.STARTING_ROW, "${rows.to.skip}");
         final PropertyContext context = new MockConfigurationContext(properties, null);
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("desired.sheets", "Sheet1");
+        attributes.put("required.sheets", "Sheet1");
         attributes.put("rows.to.skip", "2");
 
         final RecordSchema schema;
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (variables, content) -> new ExcelRecordSource(content, context, variables),
+                    (variables, content) -> new ExcelRecordSource(content, context, variables, logger),
                     new ExcelSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
             schema = accessStrategy.getSchema(attributes, inputStream, null);
         }

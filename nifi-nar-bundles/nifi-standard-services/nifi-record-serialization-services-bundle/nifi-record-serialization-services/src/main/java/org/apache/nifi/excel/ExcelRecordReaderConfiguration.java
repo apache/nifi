@@ -16,39 +16,27 @@
  */
 package org.apache.nifi.excel;
 
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
-public class ExcelRecordReaderArgs {
-    private InputStream inputStream;
-    private ComponentLog logger;
+public class ExcelRecordReaderConfiguration {
     private RecordSchema schema;
-    private AtomicReferenceArray<String> desiredSheets;
+    private AtomicReferenceArray<String> requiredSheets;
     private int firstRow;
     private String dateFormat;
     private String timeFormat;
     private String timestampFormat;
 
-    private ExcelRecordReaderArgs() {
-    }
-
-    public InputStream getInputStream() {
-        return inputStream;
-    }
-
-    public ComponentLog getLogger() {
-        return logger;
+    private ExcelRecordReaderConfiguration() {
     }
 
     public RecordSchema getSchema() {
         return schema;
     }
 
-    public AtomicReferenceArray<String> getDesiredSheets() {
-        return desiredSheets;
+    public AtomicReferenceArray<String> getRequiredSheets() {
+        return requiredSheets;
     }
 
     public int getFirstRow() {
@@ -67,32 +55,20 @@ public class ExcelRecordReaderArgs {
         return timestampFormat;
     }
     public static final class Builder {
-        private InputStream inputStream;
-        private ComponentLog logger;
         private RecordSchema schema;
-        private AtomicReferenceArray<String> desiredSheets;
+        private AtomicReferenceArray<String> requiredSheets;
         private int firstRow;
         private String dateFormat;
         private String timeFormat;
         private String timestampFormat;
-
-        public Builder withInputStream(InputStream inputStream) {
-            this.inputStream = inputStream;
-            return this;
-        }
-
-        public Builder withLogger(ComponentLog logger) {
-            this.logger = logger;
-            return this;
-        }
 
         public Builder withSchema(RecordSchema schema) {
             this.schema = schema;
             return this;
         }
 
-        public Builder withDesiredSheets(AtomicReferenceArray<String> desiredSheets) {
-            this.desiredSheets = desiredSheets;
+        public Builder withRequiredSheets(AtomicReferenceArray<String> requiredSheets) {
+            this.requiredSheets = requiredSheets;
             return this;
         }
 
@@ -116,17 +92,15 @@ public class ExcelRecordReaderArgs {
             return this;
         }
 
-        public ExcelRecordReaderArgs build() {
-            ExcelRecordReaderArgs excelRecordReaderArgs = new ExcelRecordReaderArgs();
-            excelRecordReaderArgs.schema = this.schema;
-            excelRecordReaderArgs.inputStream = this.inputStream;
-            excelRecordReaderArgs.timeFormat = this.timeFormat;
-            excelRecordReaderArgs.timestampFormat = this.timestampFormat;
-            excelRecordReaderArgs.desiredSheets = this.desiredSheets;
-            excelRecordReaderArgs.dateFormat = this.dateFormat;
-            excelRecordReaderArgs.firstRow = this.firstRow;
-            excelRecordReaderArgs.logger = this.logger;
-            return excelRecordReaderArgs;
+        public ExcelRecordReaderConfiguration build() {
+            ExcelRecordReaderConfiguration excelRecordReaderConfiguration = new ExcelRecordReaderConfiguration();
+            excelRecordReaderConfiguration.schema = this.schema;
+            excelRecordReaderConfiguration.timeFormat = this.timeFormat;
+            excelRecordReaderConfiguration.timestampFormat = this.timestampFormat;
+            excelRecordReaderConfiguration.requiredSheets = this.requiredSheets;
+            excelRecordReaderConfiguration.dateFormat = this.dateFormat;
+            excelRecordReaderConfiguration.firstRow = this.firstRow;
+            return excelRecordReaderConfiguration;
         }
     }
 }
