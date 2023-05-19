@@ -140,6 +140,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private CapturingScheduledStateChangeListener scheduledStateChangeListener;
     private ControllerServiceNode controllerServiceNode;
     private BundleCoordinate bundleCoordinate;
+    private FlowManager flowManager;
 
     private final Set<String> queuesWithData = Collections.synchronizedSet(new HashSet<>());
     private final Bundle bundle = new Bundle("group", "artifact", "version 1.0");
@@ -147,7 +148,7 @@ public class StandardVersionedComponentSynchronizerTest {
     @BeforeEach
     public void setup() {
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        flowManager = Mockito.mock(FlowManager.class);
         controllerServiceProvider = Mockito.mock(ControllerServiceProvider.class);
         final Function<ProcessorNode, ProcessContext> processContextFactory = proc -> Mockito.mock(ProcessContext.class);
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
@@ -448,6 +449,31 @@ public class StandardVersionedComponentSynchronizerTest {
 
         // Ensure that we terminate the source
         verify(processorA, times(1)).terminate();
+
+        // Ensure that the update occurred
+        verify(connectionAB, times(1)).setName("Hello");
+
+        // Ensure that the source was stopped and restarted
+        verifyStopped(processorA);
+        verifyRestarted(processorA);
+
+        verifyCallbackIndicatedRestart(processorA);
+    }
+
+    @Test
+    public void testSourceStoppedForNewConnection() throws FlowSynchronizationException, TimeoutException {
+
+        when(flowManager.findConnectable(processorA.getIdentifier())).thenReturn(processorA);
+
+        startProcessor(processorA, true);
+
+        final VersionedConnection versionedConnection = createMinimalVersionedConnection(processorA, processorB);
+        versionedConnection.setName("Hello");
+
+        synchronizer.synchronize(connectionAB, versionedConnection, group, synchronizationOptions);
+
+        // Ensure that we terminate the source
+        verify(group, times(1)).stopProcessor(processorA);
 
         // Ensure that the update occurred
         verify(connectionAB, times(1)).setName("Hello");
