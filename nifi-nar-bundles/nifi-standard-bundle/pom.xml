@@ -35,7 +35,7 @@
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.7</jolt.version>
-        <org.apache.sshd.version>2.9.2</org.apache.sshd.version>
+        <org.apache.sshd.version>2.10.0</org.apache.sshd.version>
         <tika.version>2.6.0</tika.version>
     </properties>
     <dependencyManagement>
