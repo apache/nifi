@@ -23,11 +23,7 @@ import software.amazon.awssdk.core.SdkClient;
 
 public class AwsClientCache<T extends SdkClient> {
 
-    private static final int MAXIMUM_CACHE_SIZE = 10;
-
-    private final Cache<AwsClientDetails, T> clientCache = Caffeine.newBuilder()
-            .maximumSize(MAXIMUM_CACHE_SIZE)
-            .build();
+    private final Cache<AwsClientDetails, T> clientCache = Caffeine.newBuilder().build();
 
     public T getOrCreateClient(final ProcessContext context, final AwsClientDetails clientDetails, final AwsClientProvider<T> provider) {
         return clientCache.get(clientDetails, ignored -> provider.createClient(context));

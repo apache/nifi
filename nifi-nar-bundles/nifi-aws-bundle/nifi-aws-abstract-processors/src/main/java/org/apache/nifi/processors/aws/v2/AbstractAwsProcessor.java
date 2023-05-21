@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.v2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,8 +38,6 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -51,15 +48,17 @@ import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
 import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.http.FileStoreTlsKeyManagersProvider;
 import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.net.Proxy;
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,8 +133,8 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
             .name("Region")
             .required(true)
-            .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Region.US_WEST_2).getValue())
+            .allowableValues(RegionUtil.getAvailableRegions())
+            .defaultValue(RegionUtil.createAllowableValue(Region.US_WEST_2).getValue())
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
@@ -329,15 +328,10 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
                 final TrustManager[] trustManagers = new TrustManager[] { sslContextService.createTrustManager() };
-                final KeyManagerFactory keyManagerFactory;
-                try {
-                    keyManagerFactory = KeyStoreUtils.loadKeyManagerFactory(sslContextService.createTlsConfiguration());
-                    builder.tlsTrustManagersProvider(() -> trustManagers);
-                    builder.tlsKeyManagersProvider(() -> keyManagerFactory.getKeyManagers());
-                } catch (final TlsException e) {
-                    throw new RuntimeException("Failed to configure TLS Key Manager", e);
-                }
-
+                final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
+                        .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                builder.tlsTrustManagersProvider(() -> trustManagers);
+                builder.tlsKeyManagersProvider(() -> keyManagersProvider.keyManagers());
             }
         }
 
@@ -433,19 +427,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
         }
 
         return AnonymousCredentialsProvider.create();
-    }
-
-    public static AllowableValue createAllowableValue(final Region region) {
-        final String description = region.metadata() != null ? region.metadata().description() : region.id();
-        return new AllowableValue(region.id(), description, "AWS Region Code : " + region.id());
-    }
-
-    public static AllowableValue[] getAvailableRegions() {
-        final List<AllowableValue> values = new ArrayList<>();
-        for (final Region region : Region.regions()) {
-            values.add(createAllowableValue(region));
-        }
-        return values.toArray(new AllowableValue[0]);
     }
 
 }
