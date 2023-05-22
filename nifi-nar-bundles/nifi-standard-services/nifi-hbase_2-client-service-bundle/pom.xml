@@ -85,7 +85,7 @@
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>9.31</version>
             </dependency>
-            <!-- Override woodstox-core 5.3.0 from HBase -->
+            <!-- Override woodstox-core 5.4.0 from HBase -->
             <dependency>
                 <groupId>com.fasterxml.woodstox</groupId>
                 <artifactId>woodstox-core</artifactId>

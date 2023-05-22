@@ -180,9 +180,9 @@ The following binary components are provided under the Apache Software License v
         OkHttp 3.12.2
         Copyright 2019 Square, Inc.
 
-  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:jar:6.1.1 - https://github.com/FasterXML/woodstox)
+  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:jar:6.5.0 - https://github.com/FasterXML/woodstox)
       The following NOTICE information applies:
-        Woodstox Core 6.1.1
+        Woodstox Core 6.5.0
         Copyright 2015, FasterXML, LLC
 
   (ASLv2) Non Blocking Reactive Foundation For The JVM (io.projectreactor:reactor-core:jar:3.3.5.RELEASE - https://github.com/reactor/reactor-core)

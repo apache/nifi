@@ -39,7 +39,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
         </dependency>
-        <!-- Override woodstox-core 6.2.4 from Solr 8.11.1 -->
+        <!-- Override woodstox-core 6.5.0 from Solr 8.11.1 -->
         <dependency>
             <groupId>com.fasterxml.woodstox</groupId>
             <artifactId>woodstox-core</artifactId>
