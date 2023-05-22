@@ -53,6 +53,7 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
      * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
      *                          communications will not be encrypted
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
+     * @param identifier        uniquely identifies this client
      * @param log               Component Log from instantiating Services
      */
     public NettyDistributedMapCacheClient(
@@ -61,9 +62,10 @@ public class NettyDistributedMapCacheClient extends DistributedCacheClient {
             final int timeoutMillis,
             final SSLContextService sslContextService,
             final VersionNegotiatorFactory factory,
+            final String identifier,
             final ComponentLog log
     ) {
-        super(hostname, port, timeoutMillis, sslContextService, factory);
+        super(hostname, port, timeoutMillis, sslContextService, factory, identifier);
         this.log = Objects.requireNonNull(log, "Component Log required");
     }
 

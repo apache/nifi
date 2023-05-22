@@ -40,14 +40,17 @@ public class NettyDistributedSetCacheClient extends DistributedCacheClient {
      * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
      *                          communications will not be encrypted
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
+     * @param identifier        uniquely identifies this client
      */
     public NettyDistributedSetCacheClient(
             final String hostname,
             final int port,
             final int timeoutMillis,
             final SSLContextService sslContextService,
-            final VersionNegotiatorFactory factory) {
-        super(hostname, port, timeoutMillis, sslContextService, factory);
+            final VersionNegotiatorFactory factory,
+            final String identifier
+    ) {
+        super(hostname, port, timeoutMillis, sslContextService, factory, identifier);
     }
 
     /**
