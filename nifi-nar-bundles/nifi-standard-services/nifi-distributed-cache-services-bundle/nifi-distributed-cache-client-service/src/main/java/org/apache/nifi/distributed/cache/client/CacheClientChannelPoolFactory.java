@@ -26,6 +26,7 @@ import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
 import io.netty.channel.pool.FixedChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
@@ -70,7 +71,7 @@ public class CacheClientChannelPoolFactory {
                                          final SSLContextService sslContextService,
                                          final VersionNegotiatorFactory factory) {
         final SSLContext sslContext = (sslContextService == null) ? null : sslContextService.createContext();
-        final EventLoopGroup group = new NioEventLoopGroup();
+        final EventLoopGroup group = new NioEventLoopGroup(new DefaultThreadFactory("DMCNioEventLoopGroup", true));
         final Bootstrap bootstrap = new Bootstrap();
         final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, factory, Duration.ofMillis(timeoutMillis), Duration.ofMillis(timeoutMillis));
         bootstrap.group(group)
