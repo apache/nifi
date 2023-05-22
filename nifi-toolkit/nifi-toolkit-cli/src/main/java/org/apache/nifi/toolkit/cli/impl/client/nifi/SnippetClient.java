@@ -28,4 +28,6 @@ public interface SnippetClient {
      * @return the created entity
      */
     SnippetEntity createSnippet(SnippetEntity snippet) throws NiFiClientException, IOException;
+
+    SnippetEntity updateSnippet(SnippetEntity snippet) throws NiFiClientException, IOException;
 }
