@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -59,9 +60,37 @@ import java.util.stream.Collectors;
 @Tags({"json", "attributes", "flowfile"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Generates a JSON representation of the input FlowFile Attributes. The resulting JSON " +
-        "can be written to either a new Attribute 'JSONAttributes' or written to the FlowFile as content.")
+        "can be written to either a new Attribute 'JSONAttributes' or written to the FlowFile as content. Attributes " +
+        " which contain nested JSON objects can either be handled as JSON or as escaped JSON depending on the strategy chosen.")
 @WritesAttribute(attribute = "JSONAttributes", description = "JSON representation of Attributes")
 public class AttributesToJSON extends AbstractProcessor {
+    public enum JsonHandlingStrategy implements DescribedValue {
+        ESCAPED_STRING("Escapes any nested JSON as a string", "Escaped String"),
+        NESTED_OBJECT("Handles nested JSON as JSON", "Nested Object");
+
+        private final String description;
+        private final String displayName;
+
+        JsonHandlingStrategy(String description, String displayName) {
+            this.description = description;
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
 
     public static final String JSON_ATTRIBUTE_NAME = "JSONAttributes";
     private static final String AT_LIST_SEPARATOR = ",";
@@ -122,15 +151,14 @@ public class AttributesToJSON extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
-    public static final PropertyDescriptor RETAIN_JSON_REGEX = new PropertyDescriptor.Builder()
-            .name("retain-json-regex")
-            .displayName("Retain Json Regular Expression")
-            .description("Regular expression that will be evaluated against the flow file attributes to select "
-                    + "the matching attributes whose value are already JSON and should remain as JSON and not be escaped.")
-            .required(false)
+    public static final PropertyDescriptor JSON_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Json Handling Strategy")
+            .displayName("Json Handling Strategy")
+            .description("Strategy to use for handling attributes which contain nested JSON.")
+            .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(JsonHandlingStrategy.class)
+            .defaultValue(JsonHandlingStrategy.ESCAPED_STRING.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -146,7 +174,7 @@ public class AttributesToJSON extends AbstractProcessor {
     private volatile Boolean nullValueForEmptyString;
     private volatile boolean destinationContent;
     private volatile Pattern pattern;
-    private volatile Pattern retainJsonPattern;
+    private volatile JsonHandlingStrategy jsonHandlingStrategy;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -156,7 +184,7 @@ public class AttributesToJSON extends AbstractProcessor {
         properties.add(DESTINATION);
         properties.add(INCLUDE_CORE_ATTRIBUTES);
         properties.add(NULL_VALUE_FOR_EMPTY_STRING);
-        properties.add(RETAIN_JSON_REGEX);
+        properties.add(JSON_HANDLING_STRATEGY);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -174,7 +202,6 @@ public class AttributesToJSON extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return relationships;
     }
-
 
     /**
      * Builds the Map of attributes that should be included in the JSON that is emitted from this process.
@@ -240,13 +267,10 @@ public class AttributesToJSON extends AbstractProcessor {
         attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue());
         nullValueForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
+        jsonHandlingStrategy = JsonHandlingStrategy.valueOf(context.getProperty(JSON_HANDLING_STRATEGY).evaluateAttributeExpressions().getValue());
+
         if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {
             pattern = Pattern.compile(context.getProperty(ATTRIBUTES_REGEX).evaluateAttributeExpressions().getValue());
-        }
-
-        if (context.getProperty(RETAIN_JSON_REGEX).isSet()) {
-            retainJsonPattern =
-                    Pattern.compile(context.getProperty(RETAIN_JSON_REGEX).evaluateAttributeExpressions().getValue());
         }
     }
 
@@ -260,7 +284,7 @@ public class AttributesToJSON extends AbstractProcessor {
         final Map<String, Object> atrList = buildAttributesMapForFlowFile(original, attributes, attributesToRemove, nullValueForEmptyString, pattern);
 
         try {
-            Map<String, Object> asJson = getAsJson(atrList, retainJsonPattern);
+            Map<String, Object> asJson = getAsJson(atrList);
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
                     try (OutputStream outputStream = new BufferedOutputStream(out)) {
@@ -279,15 +303,15 @@ public class AttributesToJSON extends AbstractProcessor {
         }
     }
 
-    private Map<String, Object> getAsJson(Map<String, Object> atrList, Pattern retainJsonPattern) throws JsonProcessingException {
-        if (retainJsonPattern == null) {
+    private Map<String, Object> getAsJson(Map<String, Object> atrList) throws JsonProcessingException {
+        if(JsonHandlingStrategy.ESCAPED_STRING.equals(jsonHandlingStrategy)) {
             return atrList;
         }
 
         Map<String, Object> asJson = new HashMap<>();
         for (Map.Entry<String, Object> entry : atrList.entrySet()) {
             String value = (String) entry.getValue();
-            if (retainJsonPattern.matcher(entry.getKey()).matches() && StringUtils.isNotBlank(value) && (isPossibleJsonArray(value) || isPossibleJsonObject(value))) {
+            if (StringUtils.isNotBlank(value) && (isPossibleJsonArray(value) || isPossibleJsonObject(value))) {
                 asJson.put(entry.getKey(), objectMapper.readTree(value));
             } else {
                 asJson.put(entry.getKey(), value);

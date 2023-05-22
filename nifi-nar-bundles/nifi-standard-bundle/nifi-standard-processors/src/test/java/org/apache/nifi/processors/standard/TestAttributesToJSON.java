@@ -467,10 +467,11 @@ public class TestAttributesToJSON {
 
     @ParameterizedTest
     @MethodSource("getNestedJson")
-    public void testAttributeWithNestedJsonOutputAsContent(String nestedJson, Class<?> expectedClass) throws IOException {
+    public void testAttributeWithNestedJsonOutputAsJsonInContent(String nestedJson, Class<?> expectedClass) throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
-        testRunner.setProperty(AttributesToJSON.RETAIN_JSON_REGEX, TEST_ATTRIBUTE_KEY);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -496,10 +497,11 @@ public class TestAttributesToJSON {
 
     @ParameterizedTest
     @MethodSource("getNestedJson")
-    public void testAttributeWithNestedJsonOutputAsAttribute(String nestedJson, Class<?> expectedClass) throws IOException {
+    public void testAttributeWithNestedJsonOutputAsJsonInAttribute(String nestedJson, Class<?> expectedClass) throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(AttributesToJSON.RETAIN_JSON_REGEX, TEST_ATTRIBUTE_KEY);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -524,7 +526,8 @@ public class TestAttributesToJSON {
     public void testAttributesWithLookALikeJson(String lookAlikeJson) {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
-        testRunner.setProperty(AttributesToJSON.RETAIN_JSON_REGEX, TEST_ATTRIBUTE_KEY);
+        testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
+                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -540,7 +543,7 @@ public class TestAttributesToJSON {
 
     @ParameterizedTest
     @MethodSource("getNestedJson")
-    public void testAttributeWithNestedJsonOutputAsAttributeWithoutRetainingAsJson(String nestedJson/*, Class<?> expectedClass*/) throws IOException {
+    public void testAttributeWithNestedJsonOutputAsStringInAttribute(String nestedJson) throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
 
