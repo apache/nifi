@@ -17,14 +17,16 @@
 package org.apache.nifi.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,337 +34,276 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFormatUtils {
     @SuppressWarnings("deprecation")
-    @Test
-    public void testGetTimeDurationShouldConvertWeeks() {
-        final List<String> WEEKS = List.of("1 week", "1 wk", "1 w", "1 wks", "1 weeks");
-        final long EXPECTED_DAYS = 7L;
-
-        List<Long> days = WEEKS.stream()
-                .map(week -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS))
-                .collect(Collectors.toList());
-
-        days.forEach(it -> assertEquals(EXPECTED_DAYS, it));
+    @ParameterizedTest
+    @ValueSource(strings = {"1 week", "1 wk", "1 w", "1 wks", "1 weeks"})
+    public void testGetTimeDurationShouldConvertWeeks(String week) {
+        assertEquals(7L, FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
     }
 
     @SuppressWarnings("deprecation")
-    @Test
-    public void testGetTimeDurationShouldHandleNegativeWeeks() {
-        List<String> WEEKS = List.of("-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week");
-
-        WEEKS.forEach(week -> {
-            IllegalArgumentException iae =
-                    assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
-            assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
-        });
+    @ParameterizedTest
+    @ValueSource(strings = {"-1 week", "-1 wk", "-1 w", "-1 weeks", "- 1 week"})
+    public void testGetTimeDurationShouldHandleNegativeWeeks(String week) {
+        IllegalArgumentException iae =
+                assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
+        assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
     }
 
     /**
      * Regression test
      */
     @SuppressWarnings("deprecation")
-    @Test
-    public void testGetTimeDurationShouldHandleInvalidAbbreviations() {
-        final List<String> WEEKS = List.of("1 work", "1 wek", "1 k");
-
-        WEEKS.forEach(week -> {
-            IllegalArgumentException iae =
-                    assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
-            assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
-        });
+    @ParameterizedTest
+    @ValueSource(strings = {"1 work", "1 wek", "1 k"})
+    public void testGetTimeDurationShouldHandleInvalidAbbreviations(String week) {
+        IllegalArgumentException iae =
+                assertThrows(IllegalArgumentException.class, () -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
+        assertTrue(iae.getMessage().contains("Value '" + week + "' is not a valid time duration"));
     }
 
     /**
      * New feature test
      */
     @SuppressWarnings("deprecation")
-    @Test
-    public void testGetTimeDurationShouldHandleNoSpaceInInput() {
-        final List<String> WEEKS = List.of("1week", "1wk", "1w", "1wks", "1weeks");
-        final long EXPECTED_DAYS = 7L;
-
-        List<Long> days = WEEKS.stream()
-                .map(week -> FormatUtils.getTimeDuration(week, TimeUnit.DAYS))
-                .collect(Collectors.toList());
-
-        days.forEach(it -> assertEquals(EXPECTED_DAYS, it));
+    @ParameterizedTest
+    @ValueSource(strings={"1week", "1wk", "1w", "1wks", "1weeks"})
+    public void testGetTimeDurationShouldHandleNoSpaceInInput(String week) {
+        assertEquals(7L, FormatUtils.getTimeDuration(week, TimeUnit.DAYS));
     }
 
     /**
      * New feature test
      */
     @SuppressWarnings("deprecation")
-    @Test
-    public void testGetTimeDurationShouldHandleDecimalValues() {
-        final List<String> WHOLE_NUMBERS = List.of("10 ms", "10 millis", "10 milliseconds");
-        final List<String> DECIMAL_NUMBERS = List.of("0.010 s", "0.010 seconds");
-        final long EXPECTED_MILLIS = 10L;
+    @ParameterizedTest
+    @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
+    public void testGetTimeDurationWithWholeNumbers(String whole){
+        assertEquals(10L, FormatUtils.getTimeDuration(whole, TimeUnit.MILLISECONDS));
+    }
 
-        List<Long> parsedWholeMillis = WHOLE_NUMBERS.stream()
-                .map(whole -> FormatUtils.getTimeDuration(whole, TimeUnit.MILLISECONDS))
-                .collect(Collectors.toList());
-
-        List<Long> parsedDecimalMillis = DECIMAL_NUMBERS.stream()
-                .map(decimal -> FormatUtils.getTimeDuration(decimal, TimeUnit.MILLISECONDS))
-                .collect(Collectors.toList());
-
-        parsedWholeMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it));
-        parsedDecimalMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it));
+    /**
+     * New feature test
+     */
+    @SuppressWarnings("deprecation")
+    @ParameterizedTest
+    @ValueSource(strings={"0.010 s", "0.010 seconds"})
+    public void testGetTimeDurationWithDecimalNumbers(String decimal){
+        assertEquals(10L, FormatUtils.getTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }
 
     /**
      * Regression test for custom week logic
      */
-    @Test
-    public void testGetPreciseTimeDurationShouldHandleWeeks() {
-        final String ONE_WEEK = "1 week";
-        final Map<TimeUnit, Number> ONE_WEEK_IN_OTHER_UNITS = Map.of(
-                (TimeUnit.DAYS), 7L,
-                (TimeUnit.HOURS), 7 * 24L,
-                (TimeUnit.MINUTES), 7 * 24 * 60L,
-                (TimeUnit.SECONDS), 7 * 24 * 60 * 60L,
-                (TimeUnit.MILLISECONDS), 7 * 24 * 60 * 60 * 1000L,
-                (TimeUnit.MICROSECONDS), 7 * 24 * 60 * 60 * 1000 * 1000L,
-                (TimeUnit.NANOSECONDS), 7 * 24 * 60 * 60 * (1000 * 1000 * 1000L));
+    @ParameterizedTest
+    @MethodSource("getOneWeekInOtherUnits")
+    public void testGetPreciseTimeDurationShouldHandleWeeks(TimeUnit timeUnit, long expected){
+        assertEquals(expected,  FormatUtils.getPreciseTimeDuration("1 week", timeUnit));
+    }
 
-        Map<TimeUnit, Number> oneWeekInOtherUnits = Arrays.stream(TimeUnit.values())
-                .collect(Collectors.toMap(destinationUnit -> destinationUnit,
-                        destinationUnit -> FormatUtils.getPreciseTimeDuration(ONE_WEEK, destinationUnit)));
-
-        oneWeekInOtherUnits.forEach((key, value) -> assertEquals(ONE_WEEK_IN_OTHER_UNITS.get(key), value.longValue()));
+    private static Stream<Arguments> getOneWeekInOtherUnits() {
+        return Stream.of(Arguments.of(TimeUnit.DAYS, 7L),
+                Arguments.of(TimeUnit.HOURS, 7 * 24L),
+                Arguments.of(TimeUnit.MINUTES, 7 * 24 * 60L),
+                Arguments.of(TimeUnit.SECONDS, 7 * 24 * 60 * 60L),
+                Arguments.of(TimeUnit.MILLISECONDS, 7 * 24 * 60 * 60 * 1000L),
+                Arguments.of(TimeUnit.MICROSECONDS, 7 * 24 * 60 * 60 * 1000 * 1000L),
+                Arguments.of(TimeUnit.NANOSECONDS, 7 * 24 * 60 * 60 * (1000 * 1000 * 1000L))
+        );
     }
 
     /**
      * Positive flow test for custom week logic with decimal value
      */
-    @Test
-    public void testGetPreciseTimeDurationShouldHandleDecimalWeeks() {
-        final String ONE_AND_A_HALF_WEEKS = "1.5 week";
-        final Map<TimeUnit, Double> ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS = Map.of(
-                        (TimeUnit.HOURS), 7 * 24L,
-                        (TimeUnit.MINUTES), 7 * 24 * 60L,
-                        (TimeUnit.SECONDS), 7 * 24 * 60 * 60L,
-                        (TimeUnit.MILLISECONDS), 7 * 24 * 60 * 60 * 1000L,
-                        (TimeUnit.MICROSECONDS), 7 * 24 * 60 * 60 * (1000 * 1000L),
-                        (TimeUnit.NANOSECONDS), 7 * 24 * 60 * 60 * (1000 * 1000 * 1000L)
-                ).entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue() * 1.5));
+    @ParameterizedTest
+    @MethodSource("getOneAndAHalfWeeksInOtherUnits")
+    public void testGetPreciseTimeDurationShouldHandleDecimalWeeks(TimeUnit timeUnit, double expected) {
+        assertEquals(expected, FormatUtils.getPreciseTimeDuration("1.5 week", timeUnit));
+    }
 
-        Map<TimeUnit, Double> onePointFiveWeeksInOtherUnits = Arrays.stream(TimeUnit.values())
-                .filter(timeUnit -> !TimeUnit.DAYS.equals(timeUnit))
-                .collect(Collectors.toMap(destinationUnit -> destinationUnit,
-                        destinationUnit -> FormatUtils.getPreciseTimeDuration(ONE_AND_A_HALF_WEEKS, destinationUnit)));
+    private static Stream<Arguments> getOneAndAHalfWeeksInOtherUnits() {
+        final double oneAndAHalf = 1.5;
+        return Stream.of(Arguments.of(TimeUnit.HOURS, 7 * 24 * oneAndAHalf),
+                Arguments.of(TimeUnit.MINUTES, 7 * 24 * 60 * oneAndAHalf),
+                Arguments.of(TimeUnit.SECONDS, 7 * 24 * 60 * 60 * oneAndAHalf),
+                Arguments.of(TimeUnit.MILLISECONDS, 7 * 24 * 60 * 60 * 1000 * oneAndAHalf),
+                Arguments.of(TimeUnit.MICROSECONDS, 7 * 24 * 60 * 60 * (1000 * 1000L) * oneAndAHalf),
+                Arguments.of(TimeUnit.NANOSECONDS, 7 * 24 * 60 * 60 * (1000 * 1000 * 1000L) * oneAndAHalf));
+    }
 
-        onePointFiveWeeksInOtherUnits.forEach((key, value) ->
-                assertEquals(ONE_POINT_FIVE_WEEKS_IN_OTHER_UNITS.get(key), value)
-        );
+    @ParameterizedTest
+    @ValueSource(strings={"10 ms", "10 millis", "10 milliseconds"})
+    public void testGetPreciseTimeDurationWithWholeNumbers(String whole) {
+        assertEquals(10.0, FormatUtils.getPreciseTimeDuration(whole, TimeUnit.MILLISECONDS));
     }
 
     /**
      * Positive flow test for decimal time inputs
      */
-    @Test
-    public void testGetPreciseTimeDurationShouldHandleDecimalValues() {
-        final List<String> WHOLE_NUMBERS = List.of("10 ms", "10 millis", "10 milliseconds");
-        final List<String> DECIMAL_NUMBERS = List.of("0.010 s", "0.010 seconds");
-        final double EXPECTED_MILLIS = 10.0;
-
-        List<Double> parsedWholeMillis = WHOLE_NUMBERS.stream()
-                .map(whole -> FormatUtils.getPreciseTimeDuration(whole, TimeUnit.MILLISECONDS))
-                .collect(Collectors.toList());
-        List<Double> parsedDecimalMillis = DECIMAL_NUMBERS.stream()
-                .map(decimal -> FormatUtils.getPreciseTimeDuration(decimal, TimeUnit.MILLISECONDS))
-                .collect(Collectors.toList());
-
-        parsedWholeMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it));
-        parsedDecimalMillis.forEach(it -> assertEquals(EXPECTED_MILLIS, it));
+    @ParameterizedTest
+    @ValueSource(strings={"0.010 s", "0.010 seconds"})
+    public void testGetPreciseTimeDurationWithDecimalNumbers(String decimal) {
+        assertEquals(10.0, FormatUtils.getPreciseTimeDuration(decimal, TimeUnit.MILLISECONDS));
     }
 
     /**
      * Positive flow test for decimal inputs that are extremely small
      */
-    @Test
-    public void testGetPreciseTimeDurationShouldHandleSmallDecimalValues() {
-        final Map<String, Map<String, Object>> SCENARIOS = Map.of(
-                "decimalNanos", Map.of("originalUnits", TimeUnit.NANOSECONDS, "expectedUnits", TimeUnit.NANOSECONDS, "originalValue", 123.4, "expectedValue", 123.0),
-                "lessThanOneNano", Map.of("originalUnits", TimeUnit.NANOSECONDS, "expectedUnits", TimeUnit.NANOSECONDS, "originalValue", 0.9, "expectedValue", 1.0),
-                "lessThanOneNanoToMillis", Map.of("originalUnits", TimeUnit.NANOSECONDS, "expectedUnits", TimeUnit.MILLISECONDS, "originalValue", 0.9, "expectedValue", 0.0),
-                "decimalMillisToNanos", Map.of("originalUnits", TimeUnit.MILLISECONDS, "expectedUnits", TimeUnit.NANOSECONDS, "originalValue", 123.4, "expectedValue", 123_400_000.0)
-        );
+    @ParameterizedTest
+    @MethodSource("getTinyDecimalValues")
+    public void testGetPreciseTimeDurationShouldHandleSmallDecimalValues(String originalValue, TimeUnit desiredUnit, double expectedValue) {
+        assertEquals(expectedValue, FormatUtils.getPreciseTimeDuration(originalValue, desiredUnit));
+    }
 
-        Map<String, Double> results = SCENARIOS.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FormatUtils.getPreciseTimeDuration(entry.getValue().get("originalValue") + " " + ((TimeUnit) entry.getValue().get("originalUnits")).name(),
-                                (TimeUnit) entry.getValue().get("expectedUnits"))));
-
-        results.forEach((key, value) -> assertEquals(SCENARIOS.get(key).get("expectedValue"), value));
+    private static Stream<Arguments> getTinyDecimalValues() {
+        return Stream.of(Arguments.of("123.4 " + TimeUnit.NANOSECONDS.name(), TimeUnit.NANOSECONDS, 123.0),
+                Arguments.of("0.9 " + TimeUnit.NANOSECONDS.name(), TimeUnit.NANOSECONDS, 1.0),
+                Arguments.of("0.9 " + TimeUnit.NANOSECONDS.name(), TimeUnit.MILLISECONDS, 0.0),
+                Arguments.of("123.4 " + TimeUnit.MILLISECONDS.name(), TimeUnit.NANOSECONDS, 123_400_000.0));
     }
 
     /**
-     * Positive flow test for decimal inputs that can be converted (all equal values)
+     * Positive flow test for decimal inputs that can be converted (all equal values),
      */
-    @Test
-    public void testMakeWholeNumberTimeShouldHandleDecimals() {
-        Map<Double, TimeUnit> DECIMAL_TIMES = Map.of(0.000_000_010, TimeUnit.SECONDS,
-                0.000_010, TimeUnit.MILLISECONDS, 0.010, TimeUnit.MICROSECONDS);
-        final long EXPECTED_NANOS = 10L;
+    @ParameterizedTest
+    @MethodSource("getDecimalsForMakeWholeNumber")
+    public void testMakeWholeNumberTimeShouldHandleDecimals(double decimal, TimeUnit timeUnit) {
+        assertEquals(Arrays.asList(10L, TimeUnit.NANOSECONDS), FormatUtils.makeWholeNumberTime(decimal, timeUnit));
+    }
 
-        List<Object> parsedWholeNanos = DECIMAL_TIMES.entrySet().stream()
-                .map(entry -> FormatUtils.makeWholeNumberTime(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
-
-        parsedWholeNanos.forEach(it -> assertEquals(List.of(EXPECTED_NANOS, TimeUnit.NANOSECONDS), it));
+    private static Stream<Arguments> getDecimalsForMakeWholeNumber() {
+        return Stream.of(Arguments.of(0.000_000_010, TimeUnit.SECONDS),
+                Arguments.of(0.000_010, TimeUnit.MILLISECONDS),
+                Arguments.of(0.010, TimeUnit.MICROSECONDS)
+        );
     }
 
     /**
      * Positive flow test for decimal inputs that can be converted (metric values)
      */
-    @Test
-    public void testMakeWholeNumberTimeShouldHandleMetricConversions() {
-        final Map<String, Map<String, Object>> SCENARIOS = Map.of(
-                "secondsToMillis", Map.of("originalUnits", TimeUnit.SECONDS, "expectedUnits", TimeUnit.MILLISECONDS, "originalValue", 123.4, "expectedValue", 123_400L),
-                "secondsToMicros", Map.of("originalUnits", TimeUnit.SECONDS, "expectedUnits", TimeUnit.MICROSECONDS, "originalValue", 1.000_345, "expectedValue", 1_000_345L),
-                "millisToMicros", Map.of("originalUnits", TimeUnit.MILLISECONDS, "expectedUnits", TimeUnit.MICROSECONDS, "originalValue", 0.75, "expectedValue", 750L),
-                "nanosToNanosGE1", Map.of("originalUnits", TimeUnit.NANOSECONDS, "expectedUnits", TimeUnit.NANOSECONDS, "originalValue", 123.4, "expectedValue", 123L),
-                "nanosToNanosLE1", Map.of("originalUnits", TimeUnit.NANOSECONDS, "expectedUnits", TimeUnit.NANOSECONDS, "originalValue", 0.123, "expectedValue", 1L)
-        );
+    @ParameterizedTest
+    @MethodSource("getDecimalsForMetricConversions")
+    public void testMakeWholeNumberTimeShouldHandleMetricConversions(double originalValue, TimeUnit originalUnits, long expectedValue, TimeUnit expectedUnits) {
+        assertEquals(Arrays.asList(expectedValue, expectedUnits),
+                FormatUtils.makeWholeNumberTime(originalValue, originalUnits));
+    }
 
-        Map<String, List<Object>> results = SCENARIOS.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FormatUtils.makeWholeNumberTime((Double) entry.getValue().get("originalValue"),
-                                (TimeUnit) entry.getValue().get("originalUnits"))));
-
-        results.forEach((key, value) -> {
-            assertEquals(SCENARIOS.get(key).get("expectedValue"), value.get(0));
-            assertEquals(SCENARIOS.get(key).get("expectedUnits"), value.get(1));
-        });
+    private static Stream<Arguments> getDecimalsForMetricConversions() {
+        return Stream.of(Arguments.of(123.4, TimeUnit.SECONDS, 123_400L, TimeUnit.MILLISECONDS),
+                Arguments.of(1.000_345, TimeUnit.SECONDS, 1_000_345L, TimeUnit.MICROSECONDS),
+                Arguments.of(0.75, TimeUnit.MILLISECONDS, 750L, TimeUnit.MICROSECONDS),
+                Arguments.of(123.4, TimeUnit.NANOSECONDS, 123L, TimeUnit.NANOSECONDS),
+                Arguments.of(0.123, TimeUnit.NANOSECONDS, 1L, TimeUnit.NANOSECONDS));
     }
 
     /**
      * Positive flow test for decimal inputs that can be converted (non-metric values)
      */
-    @Test
-    public void testMakeWholeNumberTimeShouldHandleNonMetricConversions() {
-        final Map<String, Map<String, Object>> SCENARIOS = Map.of(
-                "daysToHours", Map.of("originalUnits", TimeUnit.DAYS, "expectedUnits", TimeUnit.HOURS, "originalValue", 1.5, "expectedValue", 36L),
-                "hoursToMinutes", Map.of("originalUnits", TimeUnit.HOURS, "expectedUnits", TimeUnit.MINUTES, "originalValue", 1.5, "expectedValue", 90L),
-                "hoursToMinutes2", Map.of("originalUnits", TimeUnit.HOURS, "expectedUnits", TimeUnit.MINUTES, "originalValue", .75, "expectedValue", 45L));
+    @ParameterizedTest
+    @MethodSource("getDecimalsForNonMetricConversions")
+    public void testMakeWholeNumberTimeShouldHandleNonMetricConversions(double originalValue, TimeUnit originalUnits, long expectedValue, TimeUnit expectedUnits) {
+        assertEquals(Arrays.asList(expectedValue, expectedUnits),
+                FormatUtils.makeWholeNumberTime(originalValue, originalUnits));
+    }
 
-        Map<String, List<Object>> results = SCENARIOS.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FormatUtils.makeWholeNumberTime(((Number) entry.getValue().get("originalValue")).doubleValue(),
-                                (TimeUnit) entry.getValue().get("originalUnits"))));
-
-        results.forEach((key, value) -> {
-            assertEquals(SCENARIOS.get(key).get("expectedValue"), value.get(0));
-            assertEquals(SCENARIOS.get(key).get("expectedUnits"), value.get(1));
-        });
+    private static Stream<Arguments> getDecimalsForNonMetricConversions() {
+        return Stream.of(Arguments.of(1.5, TimeUnit.DAYS, 36L, TimeUnit.HOURS),
+                Arguments.of(1.5, TimeUnit.HOURS, 90L, TimeUnit.MINUTES),
+                Arguments.of(.75, TimeUnit.HOURS, 45L, TimeUnit.MINUTES));
     }
 
     /**
      * Positive flow test for whole inputs
      */
-    @Test
-    public void testMakeWholeNumberTimeShouldHandleWholeNumbers() {
-        List<List<Object>> WHOLE_TIMES = new ArrayList<>();
-        for (TimeUnit timeUnit : TimeUnit.values()) {
-            WHOLE_TIMES.add(List.of(10.0, timeUnit));
-        }
-
-        List<List<Object>> parsedWholeTimes = WHOLE_TIMES.stream()
-                .map(wholeTime -> FormatUtils.makeWholeNumberTime((Double) wholeTime.get(0), (TimeUnit) wholeTime.get(1)))
-                .collect(Collectors.toList());
-
-        IntStream.range(0, parsedWholeTimes.size())
-                .forEach(index -> {
-                    List<Object> elements = parsedWholeTimes.get(index);
-                    assertEquals(10L, elements.get(0));
-                    assertEquals(WHOLE_TIMES.get(index).get(1), elements.get(1));
-                });
+    @ParameterizedTest
+    @EnumSource(TimeUnit.class)
+    public void testMakeWholeNumberTimeShouldHandleWholeNumbers(TimeUnit timeUnit) {
+        assertEquals(Arrays.asList(10L, timeUnit), FormatUtils.makeWholeNumberTime(10.0, timeUnit));
     }
 
     /**
      * Negative flow test for nanosecond inputs (regardless of value, the unit cannot be converted)
      */
+    @ParameterizedTest
+    @MethodSource("getNanoSecondsForMakeWholeNumber")
+    public void testMakeWholeNumberTimeShouldHandleNanoseconds(double original, long expected) {
+        assertEquals(Arrays.asList(expected, TimeUnit.NANOSECONDS),
+                FormatUtils.makeWholeNumberTime(original, TimeUnit.NANOSECONDS));
+    }
+
+    private static Stream<Arguments> getNanoSecondsForMakeWholeNumber() {
+        return Stream.of(Arguments.of(1100.0, 1100L),
+                Arguments.of(2.1, 2L),
+                Arguments.of(1.0, 1L),
+                Arguments.of(0.1, 1L));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    public void testGetSmallerTimeUnitWithNull(TimeUnit timeUnit) {
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> FormatUtils.getSmallerTimeUnit(timeUnit));
+
+        assertEquals("Cannot determine a smaller time unit than 'null'", iae.getMessage());
+    }
+
     @Test
-    public void testMakeWholeNumberTimeShouldHandleNanoseconds() {
-        final List<List<Object>> WHOLE_TIMES = List.of(
-                List.of(1100.0, TimeUnit.NANOSECONDS),
-                List.of(2.1, TimeUnit.NANOSECONDS),
-                List.of(1.0, TimeUnit.NANOSECONDS),
-                List.of(0.1, TimeUnit.NANOSECONDS));
+    public void testGetSmallerTimeUnitWithNanoseconds() {
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> FormatUtils.getSmallerTimeUnit(TimeUnit.NANOSECONDS));
 
-        final List<List<Object>> EXPECTED_TIMES = List.of(
-                List.of(1100L, TimeUnit.NANOSECONDS),
-                List.of(2L, TimeUnit.NANOSECONDS),
-                List.of(1L, TimeUnit.NANOSECONDS),
-                List.of(1L, TimeUnit.NANOSECONDS)
-        );
-
-        List<List<Object>> parsedWholeTimes = WHOLE_TIMES.stream()
-                .map(it -> FormatUtils.makeWholeNumberTime((Double) it.get(0), (TimeUnit) it.get(1)))
-                .collect(Collectors.toList());
-
-        assertEquals(EXPECTED_TIMES, parsedWholeTimes);
+        assertEquals("Cannot determine a smaller time unit than 'NANOSECONDS'", iae.getMessage());
     }
 
     /**
      * Positive flow test for whole inputs
      */
-    @Test
-    public void testShouldGetSmallerTimeUnit() {
-        final List<TimeUnit> UNITS = Arrays.asList(TimeUnit.values());
+    @ParameterizedTest
+    @MethodSource("getSmallerUnits")
+    public void testShouldGetSmallerTimeUnit(TimeUnit original, TimeUnit expected) {
+        assertEquals(expected, FormatUtils.getSmallerTimeUnit(original));
+    }
 
-        IllegalArgumentException nullIae = assertThrows(IllegalArgumentException.class,
-                () -> FormatUtils.getSmallerTimeUnit(null));
-        IllegalArgumentException nanoIae = assertThrows(IllegalArgumentException.class,
-                () -> FormatUtils.getSmallerTimeUnit(TimeUnit.NANOSECONDS));
-
-        List<TimeUnit> smallerTimeUnits = UNITS.stream()
-                .filter(timeUnit -> !TimeUnit.NANOSECONDS.equals(timeUnit))
-                .map(FormatUtils::getSmallerTimeUnit)
-                .collect(Collectors.toList());
-
-        assertEquals("Cannot determine a smaller time unit than 'null'", nullIae.getMessage());
-        assertEquals("Cannot determine a smaller time unit than 'NANOSECONDS'", nanoIae.getMessage());
-        assertEquals(UNITS.subList(0, UNITS.size() - 1), smallerTimeUnits);
+    private static Stream<Arguments> getSmallerUnits() {
+        return Stream.of(Arguments.of(TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS),
+                Arguments.of(TimeUnit.MILLISECONDS, TimeUnit.MICROSECONDS),
+                Arguments.of(TimeUnit.SECONDS, TimeUnit.MILLISECONDS),
+                Arguments.of(TimeUnit.MINUTES, TimeUnit.SECONDS),
+                Arguments.of(TimeUnit.HOURS, TimeUnit.MINUTES),
+                Arguments.of(TimeUnit.DAYS, TimeUnit.HOURS));
     }
 
     /**
      * Positive flow test for multipliers based on valid time units
      */
-    @Test
-    void testShouldCalculateMultiplier() {
-        final Map<String, Map<String, Object>> SCENARIOS = Map.of(
-                "allUnits", Map.of("original", TimeUnit.DAYS, "destination", TimeUnit.NANOSECONDS, "expectedMultiplier", 24 * 60 * 60 * 1_000_000_000L),
-                "microsToNanos", Map.of("original", TimeUnit.MICROSECONDS, "destination", TimeUnit.NANOSECONDS, "expectedMultiplier", 1_000L),
-                "millisToNanos", Map.of("original", TimeUnit.MILLISECONDS, "destination", TimeUnit.NANOSECONDS, "expectedMultiplier", 1_000_000L),
-                "millisToMicros", Map.of("original", TimeUnit.MILLISECONDS, "destination", TimeUnit.MICROSECONDS, "expectedMultiplier", 1_000L),
-                "daysToHours", Map.of("original", TimeUnit.DAYS, "destination", TimeUnit.HOURS, "expectedMultiplier", 24L),
-                "daysToSeconds", Map.of("original", TimeUnit.DAYS, "destination", TimeUnit.SECONDS, "expectedMultiplier", 24 * 60 * 60L)
-        );
+    @ParameterizedTest
+    @MethodSource("getMultipliers")
+    void testShouldCalculateMultiplier(TimeUnit original, TimeUnit newTimeUnit, long expected) {
+        assertEquals(expected, FormatUtils.calculateMultiplier(original, newTimeUnit));
+    }
 
-        Map<String, Long> results = SCENARIOS.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        entry -> FormatUtils.calculateMultiplier((TimeUnit) entry.getValue().get("original"), (TimeUnit) entry.getValue().get("destination"))));
-
-        results.forEach((key, value) -> assertEquals(SCENARIOS.get(key).get("expectedMultiplier"), value));
+    private static Stream<Arguments> getMultipliers() {
+        return Stream.of(Arguments.of(TimeUnit.DAYS, TimeUnit.NANOSECONDS, 24 * 60 * 60 * 1_000_000_000L),
+                Arguments.of(TimeUnit.MICROSECONDS, TimeUnit.NANOSECONDS, 1_000L),
+                Arguments.of(TimeUnit.MILLISECONDS, TimeUnit.NANOSECONDS, 1_000_000L),
+                Arguments.of(TimeUnit.MILLISECONDS, TimeUnit.MICROSECONDS, 1_000L),
+                Arguments.of(TimeUnit.DAYS, TimeUnit.HOURS, 24L),
+                Arguments.of(TimeUnit.DAYS, TimeUnit.SECONDS, 24 * 60 * 60L));
     }
 
     /**
      * Negative flow test for multipliers based on incorrectly-ordered time units
      */
-    @Test
-    public void testCalculateMultiplierShouldHandleIncorrectUnits() {
-        final Map<String, Map<String, TimeUnit>> SCENARIOS = Map.of(
-                "allUnits", Map.of("original", TimeUnit.NANOSECONDS, "destination", TimeUnit.DAYS),
-                "nanosToMicros", Map.of("original", TimeUnit.NANOSECONDS, "destination", TimeUnit.MICROSECONDS),
-                "hoursToDays", Map.of("original", TimeUnit.HOURS, "destination", TimeUnit.DAYS)
-        );
+    @ParameterizedTest
+    @MethodSource("getIncorrectUnits")
+    public void testCalculateMultiplierShouldHandleIncorrectUnits(TimeUnit original, TimeUnit newTimeUnit) {
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> FormatUtils.calculateMultiplier(original, newTimeUnit));
+        assertTrue(iae.getMessage().matches("The original time unit '.*' must be larger than the new time unit '.*'"));
+    }
 
-        SCENARIOS.forEach((key, value) -> {
-            IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
-                    () -> FormatUtils.calculateMultiplier(value.get("original"), value.get("destination")));
-            assertTrue(iae.getMessage().matches("The original time unit '.*' must be larger than the new time unit '.*'"));
-        });
+    private static Stream<Arguments> getIncorrectUnits() {
+        return Stream.of(Arguments.of(TimeUnit.NANOSECONDS, TimeUnit.DAYS),
+                Arguments.of(TimeUnit.NANOSECONDS, TimeUnit.MICROSECONDS),
+                Arguments.of(TimeUnit.HOURS, TimeUnit.DAYS));
     }
 }
