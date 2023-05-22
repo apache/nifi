@@ -117,6 +117,7 @@
         <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
+            <version>2.3-groovy-4.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
