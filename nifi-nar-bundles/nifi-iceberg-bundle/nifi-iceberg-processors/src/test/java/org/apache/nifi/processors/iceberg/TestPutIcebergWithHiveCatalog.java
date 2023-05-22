@@ -258,10 +258,11 @@ public class TestPutIcebergWithHiveCatalog {
         initCatalog(PartitionSpec.unpartitioned(), fileFormat);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "${catalog.name}");
         runner.setProperty(PutIceberg.TABLE_NAME, "${table.name}");
-        runner.setValidateExpressionUsage(false);
+        runner.setProperty(PutIceberg.MAXIMUM_FILE_SIZE, "${max.filesize}");
         Map<String,String> attributes = new HashMap<>();
         attributes.put("catalog.name", CATALOG_NAME);
         attributes.put("table.name", TABLE_NAME);
+        attributes.put("max.filesize", "536870912"); // 512 MB
         runner.enqueue(new byte[0], attributes);
         runner.run();
 

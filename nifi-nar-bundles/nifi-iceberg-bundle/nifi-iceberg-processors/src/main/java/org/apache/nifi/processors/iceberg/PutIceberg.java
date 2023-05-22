@@ -100,7 +100,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("table-name")
             .displayName("Table Name")
-            .description("The name of the Iceberg table name to write to.")
+            .description("The name of the Iceberg table to write to.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -131,6 +131,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Number of Commit Retries")
             .description("Number of times to retry a commit before failing.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("10")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
@@ -140,6 +141,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Minimum Commit Wait Time")
             .description("Minimum time to wait before retrying a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("100 ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -149,6 +151,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Wait Time")
             .description("Maximum time to wait before retrying a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("2 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -158,6 +161,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .displayName("Maximum Commit Duration")
             .description("Total retry timeout period for a commit.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue("30 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
@@ -229,7 +233,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
     @Override
     public void doOnTrigger(ProcessContext context, ProcessSession session, FlowFile flowFile) throws ProcessException {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        final String fileFormat = context.getProperty(FILE_FORMAT).evaluateAttributeExpressions().getValue();
+        final String fileFormat = context.getProperty(FILE_FORMAT).getValue();
         final String maximumFileSize = context.getProperty(MAXIMUM_FILE_SIZE).evaluateAttributeExpressions(flowFile).getValue();
 
         Table table;
@@ -259,7 +263,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             }
 
             final WriteResult result = taskWriter.complete();
-            appendDataFiles(context, table, result);
+            appendDataFiles(context, flowFile, table, result);
         } catch (Exception e) {
             getLogger().error("Exception occurred while writing iceberg records. Removing uncommitted data files", e);
             try {
@@ -304,11 +308,11 @@ public class PutIceberg extends AbstractIcebergProcessor {
      * @param table  table to append
      * @param result datafiles created by the {@link TaskWriter}
      */
-    void appendDataFiles(ProcessContext context, Table table, WriteResult result) {
-        final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions().asInteger();
-        final long minimumCommitWaitTime = context.getProperty(MINIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maximumCommitWaitTime = context.getProperty(MAXIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maximumCommitDuration = context.getProperty(MAXIMUM_COMMIT_DURATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+    void appendDataFiles(ProcessContext context, FlowFile flowFile, Table table, WriteResult result) {
+        final int numberOfCommitRetries = context.getProperty(NUMBER_OF_COMMIT_RETRIES).evaluateAttributeExpressions(flowFile).asInteger();
+        final long minimumCommitWaitTime = context.getProperty(MINIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitWaitTime = context.getProperty(MAXIMUM_COMMIT_WAIT_TIME).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumCommitDuration = context.getProperty(MAXIMUM_COMMIT_DURATION).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
 
         final AppendFiles appender = table.newAppend();
         Arrays.stream(result.dataFiles()).forEach(appender::appendFile);

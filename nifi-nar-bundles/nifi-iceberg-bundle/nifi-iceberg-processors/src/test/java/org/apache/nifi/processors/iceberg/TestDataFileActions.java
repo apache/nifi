@@ -31,6 +31,7 @@ import org.apache.iceberg.exceptions.CommitFailedException;
 import org.apache.iceberg.io.TaskWriter;
 import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
@@ -40,6 +41,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,6 +131,7 @@ public class TestDataFileActions {
         when(context.getProperty(MAXIMUM_COMMIT_WAIT_TIME)).thenReturn(new MockPropertyValue("1 ms", null));
         when(context.getProperty(MAXIMUM_COMMIT_DURATION)).thenReturn(new MockPropertyValue("1 min", null));
 
+        FlowFile mockFlowFile = new MockFlowFile(1234567890L);
         AppendFiles appender = Mockito.mock(AppendFiles.class);
         doThrow(CommitFailedException.class).when(appender).commit();
 
@@ -136,7 +139,7 @@ public class TestDataFileActions {
         when(table.newAppend()).thenReturn(appender);
 
         // assert the commit action eventually fails after exceeding the number of retries
-        assertThrows(CommitFailedException.class, () -> icebergProcessor.appendDataFiles(context, table, WriteResult.builder().build()));
+        assertThrows(CommitFailedException.class, () -> icebergProcessor.appendDataFiles(context, mockFlowFile, table, WriteResult.builder().build()));
 
         // verify the commit action was called the configured number of times
         verify(appender, times(4)).commit();
@@ -151,6 +154,7 @@ public class TestDataFileActions {
         when(context.getProperty(MAXIMUM_COMMIT_WAIT_TIME)).thenReturn(new MockPropertyValue("1 ms", null));
         when(context.getProperty(MAXIMUM_COMMIT_DURATION)).thenReturn(new MockPropertyValue("1 min", null));
 
+        FlowFile mockFlowFile = new MockFlowFile(1234567890L);
         AppendFiles appender = Mockito.mock(AppendFiles.class);
         // the commit action should throw exception 2 times before succeeding
         doThrow(CommitFailedException.class, CommitFailedException.class).doNothing().when(appender).commit();
@@ -159,7 +163,7 @@ public class TestDataFileActions {
         when(table.newAppend()).thenReturn(appender);
 
         // the method call shouldn't throw exception since the configured number of retries is higher than the number of failed commit actions
-        icebergProcessor.appendDataFiles(context, table, WriteResult.builder().build());
+        icebergProcessor.appendDataFiles(context, mockFlowFile, table, WriteResult.builder().build());
 
         // verify the proper number of commit action was called
         verify(appender, times(3)).commit();
@@ -173,6 +177,7 @@ public class TestDataFileActions {
         when(context.getProperty(MAXIMUM_COMMIT_WAIT_TIME)).thenReturn(new MockPropertyValue("2 ms", null));
         when(context.getProperty(MAXIMUM_COMMIT_DURATION)).thenReturn(new MockPropertyValue("1 ms", null));
 
+        FlowFile mockFlowFile = new MockFlowFile(1234567890L);
         AppendFiles appender = Mockito.mock(AppendFiles.class);
         doThrow(CommitFailedException.class).when(appender).commit();
 
@@ -180,7 +185,7 @@ public class TestDataFileActions {
         when(table.newAppend()).thenReturn(appender);
 
         // assert the commit action eventually fails after exceeding duration of maximum retries
-        assertThrows(CommitFailedException.class, () -> icebergProcessor.appendDataFiles(context, table, WriteResult.builder().build()));
+        assertThrows(CommitFailedException.class, () -> icebergProcessor.appendDataFiles(context, mockFlowFile, table, WriteResult.builder().build()));
 
         // verify the commit action was called only 2 times instead of the configured 5
         verify(appender, times(2)).commit();
