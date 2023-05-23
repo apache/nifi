@@ -37,6 +37,7 @@ import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -77,6 +78,7 @@ import org.apache.nifi.stream.io.StreamUtils;
     })
 @SeeAlso({GetIgniteCache.class})
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@DeprecationNotice(reason = "Apache Ignite 1 is no longer supported")
 public class PutIgniteCache extends AbstractIgniteCacheProcessor {
 
     /**
