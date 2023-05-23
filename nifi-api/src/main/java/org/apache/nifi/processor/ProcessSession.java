@@ -735,7 +735,11 @@ public interface ProcessSession {
      *             FlowFile content; if an attempt is made to access the InputStream
      *             provided to the given InputStreamCallback after this method completed its
      *             execution
+     *
+     * @deprecated Restricting the ProcessSession's ability to manage its own streams should not be used. The need for this
+     * capability was obviated by the introduction of the {@link #migrate(ProcessSession, Collection)} and {@link #migrate(ProcessSession)} methods.
      */
+    @Deprecated
     void read(FlowFile source, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException;
 
     /**
