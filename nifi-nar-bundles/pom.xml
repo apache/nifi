@@ -73,7 +73,6 @@
         <module>nifi-snmp-bundle</module>
         <module>nifi-datadog-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
-        <module>nifi-ignite-bundle</module>
         <module>nifi-rethinkdb-bundle</module>
         <module>nifi-influxdb-bundle</module>
         <module>nifi-graph-bundle</module>
