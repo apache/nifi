@@ -27,7 +27,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -64,24 +63,22 @@ public class GenericDataConverters {
         public Object convert(Object data) {
             switch (targetType.typeId()) {
                 case BOOLEAN:
-                    return DataTypeUtils.convertType(data, RecordFieldType.BOOLEAN.getDataType(), null);
+                    return DataTypeUtils.toBoolean(data, null);
                 case INTEGER:
-                    return DataTypeUtils.convertType(data, RecordFieldType.INT.getDataType(), null);
+                    return DataTypeUtils.toInteger(data, null);
                 case LONG:
-                    return DataTypeUtils.convertType(data, RecordFieldType.LONG.getDataType(), null);
+                    return DataTypeUtils.toLong(data, null);
                 case FLOAT:
-                    return DataTypeUtils.convertType(data, RecordFieldType.FLOAT.getDataType(), null);
+                    return DataTypeUtils.toFloat(data, null);
                 case DOUBLE:
-                    return DataTypeUtils.convertType(data, RecordFieldType.DOUBLE.getDataType(), null);
+                    return DataTypeUtils.toDouble(data, null);
                 case DATE:
-                    return DataTypeUtils.toLocalDate(data, () -> StringUtils.isEmpty(sourceType.getFormat())
-                            ? null
-                            : DataTypeUtils.getDateTimeFormatter(sourceType.getFormat(), ZoneId.systemDefault()), null);
+                    return DataTypeUtils.toLocalDate(data, () -> DataTypeUtils.getDateTimeFormatter(sourceType.getFormat(), ZoneId.systemDefault()), null);
                 case UUID:
-                    return DataTypeUtils.convertType(data, RecordFieldType.UUID.getDataType(), null);
+                    return DataTypeUtils.toUUID(data);
                 case STRING:
                 default:
-                    return DataTypeUtils.convertRecordFieldtoObject(data, RecordFieldType.STRING.getDataType());
+                    return DataTypeUtils.toString(data, () -> null);
             }
         }
     }
@@ -99,9 +96,7 @@ public class GenericDataConverters {
             if (data instanceof Time) {
                 return ((Time) data).toLocalTime();
             }
-            return DataTypeUtils.toTime(data, () -> StringUtils.isEmpty(timeFormat)
-                    ? null
-                    : DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
+            return DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
         }
     }
 
@@ -115,8 +110,7 @@ public class GenericDataConverters {
 
         @Override
         public LocalDateTime convert(Object data) {
-            final Timestamp convertedTimestamp = (Timestamp) DataTypeUtils.convertType(data, RecordFieldType.TIMESTAMP.getDataType(dataType.getFormat()),
-                    null, null, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
+            final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
             return convertedTimestamp.toLocalDateTime();
         }
     }
@@ -131,8 +125,7 @@ public class GenericDataConverters {
 
         @Override
         public OffsetDateTime convert(Object data) {
-            final Timestamp convertedTimestamp = (Timestamp) DataTypeUtils.convertType(data, RecordFieldType.TIMESTAMP.getDataType(dataType.getFormat()),
-                    null, null, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
+            final Timestamp convertedTimestamp = DataTypeUtils.toTimestamp(data, () -> DataTypeUtils.getDateFormat(dataType.getFormat()), null);
             return OffsetDateTime.ofInstant(convertedTimestamp.toInstant(), ZoneId.of("UTC"));
         }
     }
@@ -141,13 +134,7 @@ public class GenericDataConverters {
 
         @Override
         public byte[] convert(Object data) {
-            final UUID uuid;
-            if (data instanceof String) {
-                uuid = UUID.fromString((String) data);
-            } else {
-                uuid = (UUID) data;
-            }
-
+            final UUID uuid = DataTypeUtils.toUUID(data);
             ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[16]);
             byteBuffer.putLong(uuid.getMostSignificantBits());
             byteBuffer.putLong(uuid.getLeastSignificantBits());

@@ -60,14 +60,8 @@ public class IcebergRecordConverter {
 
     private static class IcebergSchemaVisitor extends SchemaWithPartnerVisitor<DataType, DataConverter<?, ?>> {
 
-        private final FileFormat fileFormat;
-
-        public IcebergSchemaVisitor(final FileFormat fileFormat) {
-            this.fileFormat = fileFormat;
-        }
-
         public static DataConverter<?, ?> visit(Schema schema, RecordDataType recordDataType, FileFormat fileFormat) {
-            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(fileFormat), new IcebergPartnerAccessors(schema, fileFormat));
+            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(), new IcebergPartnerAccessors(schema, fileFormat));
         }
 
         @Override
@@ -103,12 +97,8 @@ public class IcebergRecordConverter {
                         }
                         return new GenericDataConverters.TimestampConverter(dataType);
                     case UUID:
-                        if (dataType instanceof UUIDDataType) {
-                            final UUIDDataType uuidType = (UUIDDataType) dataType;
-                            if (uuidType.getFileFormat() == FileFormat.PARQUET) {
-                                return new GenericDataConverters.UUIDtoByteArrayConverter();
-                            }
-                        } else if (type instanceof Types.UUIDType && fileFormat == FileFormat.PARQUET) {
+                        final UUIDDataType uuidType = (UUIDDataType) dataType;
+                        if (uuidType.getFileFormat() == FileFormat.PARQUET) {
                             return new GenericDataConverters.UUIDtoByteArrayConverter();
                         }
                         return new GenericDataConverters.PrimitiveTypeConverter(type, dataType);
@@ -179,7 +169,9 @@ public class IcebergRecordConverter {
                 return new RecordTypeWithFieldNameMapper(new Schema(schema.findField(fieldId).type().asStructType().fields()), (RecordDataType) field.getDataType());
             }
 
-            if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)) {
+            // If the source field or target field is of type UUID, create a UUIDDataType from it
+            if (field.getDataType().getFieldType().equals(RecordFieldType.UUID)
+                    || schema.findField(fieldId).type().typeId() == Type.TypeID.UUID) {
                 return new UUIDDataType(field.getDataType(), fileFormat);
             }
 

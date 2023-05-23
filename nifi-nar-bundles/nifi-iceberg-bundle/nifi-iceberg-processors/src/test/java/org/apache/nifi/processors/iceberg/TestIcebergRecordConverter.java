@@ -241,7 +241,7 @@ public class TestIcebergRecordConverter {
 
     private static RecordSchema getPrimitivesAsCompatiblesSchema() {
         List<RecordField> fields = new ArrayList<>();
-        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("string", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("integer", RecordFieldType.SHORT.getDataType()));
         fields.add(new RecordField("float", RecordFieldType.DOUBLE.getDataType()));
         fields.add(new RecordField("long", RecordFieldType.INT.getDataType()));
@@ -372,7 +372,7 @@ public class TestIcebergRecordConverter {
     private static Record setupCompatiblePrimitivesTestRecord() {
 
         Map<String, Object> values = new HashMap<>();
-        values.put("string", "Test String");
+        values.put("string", 123);
         values.put("integer", 8);
         values.put("float", 1.23456);
         values.put("long", 42L);
@@ -494,7 +494,7 @@ public class TestIcebergRecordConverter {
         OffsetDateTime offsetDateTime = OffsetDateTime.of(localDateTime, ZoneOffset.ofHours(-5));
         LocalDateTime expectedLocalDateTimestamp = offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
 
-        assertEquals("Test String", resultRecord.get(0, String.class));
+        assertEquals("123", resultRecord.get(0, String.class));
         assertEquals(Integer.valueOf(8), resultRecord.get(1, Integer.class));
         assertEquals(Float.valueOf(1.23456F), resultRecord.get(2, Float.class));
         assertEquals(Long.valueOf(42L), resultRecord.get(3, Long.class));
