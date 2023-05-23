@@ -20,7 +20,7 @@ package org.apache.nifi.kafka.connect;
 import org.apache.kafka.common.config.ConfigDef;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,11 +51,11 @@ public class StatelessNiFiSinkConfig extends StatelessNiFiCommonConfig {
      * @return The output ports to handle as failure ports. Flow files sent to this port will cause the Connector to retry.
      */
     public Set<String> getFailurePorts() {
-        List<String> configuredPorts = getList(FAILURE_PORTS);
+        final List<String> configuredPorts = getList(FAILURE_PORTS);
         if (configuredPorts == null) {
             return Collections.emptySet();
         }
-        return new HashSet<>(configuredPorts);
+        return new LinkedHashSet<>(configuredPorts);
     }
 
     public String getHeadersAsAttributesRegex() {

@@ -74,14 +74,14 @@ public class StatelessKafkaConnectorUtil {
     public static StatelessDataflow createDataflow(final StatelessNiFiCommonConfig config) {
         final StatelessEngineConfiguration engineConfiguration = createEngineConfiguration(config);
 
-        final List<ParameterOverride> parameterOverrides = config.provideParameterOverrides();
+        final List<ParameterOverride> parameterOverrides = config.getParameterOverrides();
         final String dataflowName = config.getDataflowName();
 
         final DataflowDefinition dataflowDefinition;
         final StatelessBootstrap bootstrap;
         try {
             final Map<String, String> dataflowDefinitionProperties = new HashMap<>();
-            config.provideFlowDefinition(dataflowDefinitionProperties);
+            config.setFlowDefinition(dataflowDefinitionProperties);
             dataflowDefinitionProperties.put(StatelessNiFiCommonConfig.BOOTSTRAP_FLOW_NAME, dataflowName);
             MDC.setContextMap(Collections.singletonMap("dataflow", dataflowName));
 

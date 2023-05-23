@@ -147,11 +147,11 @@ public abstract class StatelessNiFiCommonConfig extends AbstractConfig {
     }
 
     /**
-     * Populates the properties with the data flow definition params.
+     * Populates the properties with the data flow definition parameters
      *
      * @param dataflowDefinitionProperties The properties to populate.
      */
-    public void provideFlowDefinition(Map<String, String> dataflowDefinitionProperties) {
+    public void setFlowDefinition(final Map<String, String> dataflowDefinitionProperties) {
         String configuredFlowSnapshot = getString(FLOW_SNAPSHOT);
         if (configuredFlowSnapshot.startsWith("http://") || configuredFlowSnapshot.startsWith("https://")) {
             logger.debug("Configured Flow Snapshot appears to be a URL. Will use {} property to configured Stateless NiFi", StatelessNiFiCommonConfig.BOOTSTRAP_SNAPSHOT_URL);
@@ -167,9 +167,11 @@ public abstract class StatelessNiFiCommonConfig extends AbstractConfig {
     }
 
     /**
+     * Collect Parameter Context values that override standard properties
+     *
      * @return The parameter overrides of the flow.
      */
-    public List<ParameterOverride> provideParameterOverrides() {
+    public List<ParameterOverride> getParameterOverrides() {
         final List<ParameterOverride> parameterOverrides = new ArrayList<>();
 
         for (final Map.Entry<String, String> entry : originalsStrings().entrySet()) {
