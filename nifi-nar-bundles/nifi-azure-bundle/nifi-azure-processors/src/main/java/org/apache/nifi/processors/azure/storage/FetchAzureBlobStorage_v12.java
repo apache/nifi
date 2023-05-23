@@ -152,7 +152,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 im
         Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
         try {
-            BlobServiceClient storageClient = getStorageClient();
+            BlobServiceClient storageClient = getStorageClient(context, flowFile);
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             final BlobClient blobClient;
             if (isClientSideEncryptionEnabled(context)) {

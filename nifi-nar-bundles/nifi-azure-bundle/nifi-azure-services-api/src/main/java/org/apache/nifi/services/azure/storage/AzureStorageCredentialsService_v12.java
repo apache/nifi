@@ -18,6 +18,8 @@ package org.apache.nifi.services.azure.storage;
 
 import org.apache.nifi.controller.ControllerService;
 
+import java.util.Map;
+
 /**
  * Service interface to provide Azure credentials details for processors using Azure Storage Java v12 client library.
  */
@@ -25,7 +27,8 @@ public interface AzureStorageCredentialsService_v12 extends ControllerService {
 
     /**
      * Get AzureStorageCredentialsDetails_v12 object which contains the Storage Account Name, the Storage Service Endpoint Suffix and the parameters of the Storage Credentials
+     * @param attributes FlowFile attributes (typically)
      * @return AzureStorageCredentialsDetails_v12 object
      */
-    AzureStorageCredentialsDetails_v12 getCredentialsDetails();
+    AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes);
 }

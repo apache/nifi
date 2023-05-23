@@ -16,29 +16,22 @@
  */
 package org.apache.nifi.processors.azure;
 
-import com.azure.core.credential.AzureSasCredential;
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.BlobServiceClientFactory;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
-import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +85,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             REL_FAILURE
     )));
 
-    private BlobServiceClient storageClient;
+    private volatile BlobServiceClientFactory clientFactory;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -101,64 +94,23 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        storageClient = createStorageClient(context);
+        clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
     }
 
     @OnStopped
     public void onStopped() {
-        storageClient = null;
+        clientFactory = null;
     }
 
-    protected BlobServiceClient getStorageClient() {
-        return storageClient;
-    }
+    protected BlobServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
+        final Map<String, String> attributes = flowFile != null ? flowFile.getAttributes() : Collections.emptyMap();
 
-    public static BlobServiceClient createStorageClient(PropertyContext context) {
         final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
-        final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
+        final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
-        final BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
-        clientBuilder.endpoint(String.format("https://%s.%s", credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
+        final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
 
-        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
-
-        nettyClientBuilder.proxy(getProxyOptions(context));
-
-        final HttpClient nettyClient = nettyClientBuilder.build();
-        clientBuilder.httpClient(nettyClient);
-
-        configureCredential(clientBuilder, credentialsService, credentialsDetails);
-
-        return clientBuilder.buildClient();
-    }
-
-    private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsService_v12 credentialsService, AzureStorageCredentialsDetails_v12 credentialsDetails) {
-        switch (credentialsDetails.getCredentialsType()) {
-            case ACCOUNT_KEY:
-                clientBuilder.credential(new StorageSharedKeyCredential(credentialsDetails.getAccountName(), credentialsDetails.getAccountKey()));
-                break;
-            case SAS_TOKEN:
-                clientBuilder.credential(new AzureSasCredential(credentialsDetails.getSasToken()));
-                break;
-            case MANAGED_IDENTITY:
-                clientBuilder.credential(new ManagedIdentityCredentialBuilder()
-                        .clientId(credentialsDetails.getManagedIdentityClientId())
-                        .build());
-                break;
-            case SERVICE_PRINCIPAL:
-                clientBuilder.credential(new ClientSecretCredentialBuilder()
-                        .tenantId(credentialsDetails.getServicePrincipalTenantId())
-                        .clientId(credentialsDetails.getServicePrincipalClientId())
-                        .clientSecret(credentialsDetails.getServicePrincipalClientSecret())
-                        .build());
-                break;
-            case ACCESS_TOKEN:
-                TokenCredential credential = tokenRequestContext -> Mono.just(credentialsService.getCredentialsDetails().getAccessToken());
-                clientBuilder.credential(credential);
-                break;
-            default:
-                throw new IllegalArgumentException("Unhandled credentials type: " + credentialsDetails.getCredentialsType());
-        }
+        return storageClient;
     }
 
     protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {
