@@ -175,7 +175,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
 
-    private DataLakeServiceClientFactory clientFactory;
+    private volatile DataLakeServiceClientFactory clientFactory;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

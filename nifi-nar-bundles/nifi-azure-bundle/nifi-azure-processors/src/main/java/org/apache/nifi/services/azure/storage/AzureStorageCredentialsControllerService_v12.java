@@ -29,6 +29,7 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Provides credentials details for Azure Blob processors
@@ -133,7 +134,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
     }
 
     @Override
-    public AzureStorageCredentialsDetails_v12 getCredentialsDetails() {
+    public AzureStorageCredentialsDetails_v12 getCredentialsDetails(Map<String, String> attributes) {
         String accountName = context.getProperty(ACCOUNT_NAME).getValue();
         String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
         AzureStorageCredentialsType credentialsType = AzureStorageCredentialsType.valueOf(context.getProperty(CREDENTIALS_TYPE).getValue());

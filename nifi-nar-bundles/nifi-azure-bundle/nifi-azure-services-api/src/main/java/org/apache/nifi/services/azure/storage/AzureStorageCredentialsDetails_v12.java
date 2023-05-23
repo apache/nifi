@@ -18,6 +18,8 @@ package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
 
+import java.util.Objects;
+
 public class AzureStorageCredentialsDetails_v12 {
 
     private final String accountName;
@@ -84,6 +86,45 @@ public class AzureStorageCredentialsDetails_v12 {
 
     public AccessToken getAccessToken() {
         return accessToken;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        AzureStorageCredentialsDetails_v12 that = (AzureStorageCredentialsDetails_v12) o;
+        return credentialsType == that.credentialsType
+                && Objects.equals(accountName, that.accountName)
+                && Objects.equals(endpointSuffix, that.endpointSuffix)
+                && Objects.equals(accountKey, that.accountKey)
+                && Objects.equals(sasToken, that.sasToken)
+                && Objects.equals(managedIdentityClientId, that.managedIdentityClientId)
+                && Objects.equals(servicePrincipalTenantId, that.servicePrincipalTenantId)
+                && Objects.equals(servicePrincipalClientId, that.servicePrincipalClientId)
+                && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret)
+                && Objects.equals(accessToken, that.accessToken);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(
+                credentialsType,
+                accountName,
+                endpointSuffix,
+                accountKey,
+                sasToken,
+                managedIdentityClientId,
+                servicePrincipalTenantId,
+                servicePrincipalClientId,
+                servicePrincipalClientSecret,
+                accessToken
+        );
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithAccountKey(
