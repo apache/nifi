@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -54,6 +55,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 @WritesAttributes({
     @WritesAttribute(attribute = GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY, description = "The reason for getting entry from cache"),
     })
+@DeprecationNotice(reason = "Apache Ignite 1 is no longer supported")
 public class GetIgniteCache extends AbstractIgniteCacheProcessor {
 
     /** Flow file attribute keys and messages */
