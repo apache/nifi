@@ -241,7 +241,7 @@ public class StandardHandlerProvider implements HandlerProvider {
     }
 
     private ServletHolder getDocsServletHolder(final File directory) {
-        final ServletHolder servletHolder = new ServletHolder(directory.getName(), DefaultServlet.class);
+        final ServletHolder servletHolder = new ServletHolder(directory.getPath(), DefaultServlet.class);
         servletHolder.setInitParameter(RESOURCE_BASE_PARAMETER, directory.getPath());
         servletHolder.setInitParameter(DIR_ALLOWED_PARAMETER, Boolean.FALSE.toString());
         return servletHolder;
