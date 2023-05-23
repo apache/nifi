@@ -1371,7 +1371,7 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 final long timestampThreshold = removalTimeThreshold;
 
-                Files.walkFileTree(archive, new SimpleFileVisitor<>() {
+                Files.walkFileTree(archive, new SimpleFileVisitor<Path>() {
                     @Override
                     public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                         if (attrs.isDirectory()) {
