@@ -46,8 +46,11 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
+import org.apache.nifi.processors.azure.storage.utils.BlobServiceClientFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
+import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.createStorageClient;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -148,7 +151,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
-    private BlobServiceClient storageClient;
+    private volatile BlobServiceClientFactory clientFactory;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -157,12 +160,12 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        storageClient = createStorageClient(context);
+        clientFactory = new BlobServiceClientFactory(getLogger(), getProxyOptions(context));
     }
 
     @OnStopped
     public void onStopped() {
-        storageClient = null;
+        clientFactory = null;
     }
 
     @Override
@@ -214,6 +217,10 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
 
         try {
             final List<BlobInfo> listing = new ArrayList<>();
+
+            final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+            final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
+            final BlobServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails);
 
             final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
 

@@ -95,7 +95,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final String TEMP_FILE_DIRECTORY = "_nifitempdirectory";
 
-    private DataLakeServiceClientFactory clientFactory;
+    private volatile DataLakeServiceClientFactory clientFactory;
 
     @Override
     public Set<Relationship> getRelationships() {

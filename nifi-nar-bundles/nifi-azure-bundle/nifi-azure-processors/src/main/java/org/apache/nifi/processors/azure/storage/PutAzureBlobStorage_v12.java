@@ -160,7 +160,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
 
         long startNanos = System.nanoTime();
         try {
-            BlobServiceClient storageClient = getStorageClient();
+            BlobServiceClient storageClient = getStorageClient(context, flowFile);
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             if (createContainer && !containerClient.exists()) {
                 containerClient.create();

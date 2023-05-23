@@ -101,7 +101,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
         long startNanos = System.nanoTime();
         try {
-            BlobServiceClient storageClient = getStorageClient();
+            BlobServiceClient storageClient = getStorageClient(context, flowFile);
             BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(blobName);
 

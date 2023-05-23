@@ -18,9 +18,9 @@ package org.apache.nifi.processors.azure.storage.utils;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.util.ClientOptions;
+import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
@@ -28,52 +28,18 @@ import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import reactor.core.publisher.Mono;
 
-public class DataLakeServiceClientFactory {
-
-    private static final long STORAGE_CLIENT_CACHE_SIZE = 10;
-
-    private final ComponentLog logger;
-    private final ProxyOptions proxyOptions;
-
-    private final Cache<ADLSCredentialsDetails, DataLakeServiceClient> clientCache;
+public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<ADLSCredentialsDetails, DataLakeServiceClient> {
 
     public DataLakeServiceClientFactory(ComponentLog logger, ProxyOptions proxyOptions) {
-        this.logger = logger;
-        this.proxyOptions = proxyOptions;
-        this.clientCache = createCache();
+        super(logger, proxyOptions);
     }
 
-    private Cache<ADLSCredentialsDetails, DataLakeServiceClient> createCache() {
-        // Beware! By default, Caffeine does not perform cleanup and evict values
-        // "automatically" or instantly after a value expires. Because of that it
-        // can happen that there are more elements in the cache than the maximum size.
-        // See: https://github.com/ben-manes/caffeine/wiki/Cleanup
-        return Caffeine.newBuilder()
-                .maximumSize(STORAGE_CLIENT_CACHE_SIZE)
-                .build();
-    }
-
-    /**
-     * Retrieves a {@link DataLakeServiceClient}
-     *
-     * @param credentialsDetails used for caching because it can contain properties that are results of an expression
-     * @return DataLakeServiceClient
-     */
-    public DataLakeServiceClient getStorageClient(ADLSCredentialsDetails credentialsDetails) {
-        return clientCache.get(credentialsDetails, __ -> {
-            logger.debug("DataLakeServiceClient is not found in the cache with the given credentials. Creating it.");
-            return createStorageClient(credentialsDetails, proxyOptions);
-        });
-    }
-
-    private static DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
+    protected DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
         final String accountName = credentialsDetails.getAccountName();
         final String accountKey = credentialsDetails.getAccountKey();
         final String sasToken = credentialsDetails.getSasToken();
@@ -114,11 +80,8 @@ public class DataLakeServiceClientFactory {
             throw new IllegalArgumentException("No valid credentials were provided");
         }
 
-        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
-        nettyClientBuilder.proxy(proxyOptions);
-
-        final HttpClient nettyClient = nettyClientBuilder.build();
-        dataLakeServiceClientBuilder.httpClient(nettyClient);
+        final ClientOptions clientOptions = new HttpClientOptions().setProxyOptions(proxyOptions);
+        dataLakeServiceClientBuilder.clientOptions(clientOptions);
 
         return dataLakeServiceClientBuilder.buildClient();
     }
