@@ -51,7 +51,7 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
         // Start input port for Group B
         // Wait for all 5 FlowFiles to be ingested into Group B
         // Wait for 5 additional FlowFiles to be queued between A and B
-        // Ensure that queue between A and B has 2 FlowFiles
+        // Ensure that queue Generate and Input Port A has 2 FlowFiles
         // Start Output Port of Group B
         // Wait for count from CountEvents to equal 25
 
@@ -66,7 +66,7 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
         getClientUtil().updateProcessorProperties(duplicate, Collections.singletonMap("Output Count", "5"));
 
         final ProcessorEntity sleep = getClientUtil().createProcessor("Sleep", processGroupA.getId());
-        getClientUtil().updateProcessorProperties(sleep, Collections.singletonMap("onTrigger Sleep Time", "10 ms"));
+        getClientUtil().updateProcessorProperties(sleep, Collections.singletonMap("onTrigger Sleep Time", "2 sec"));
 
         getClientUtil().createConnection(inputPortA, duplicate);
         getClientUtil().createConnection(duplicate, sleep, "success");

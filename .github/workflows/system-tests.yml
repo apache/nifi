@@ -110,9 +110,6 @@ jobs:
             nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
             nifi-system-tests/nifi-system-test-suite/target/troubleshooting/**/*
           retention-days: 7
-      - name: Upload Surefire Report
-        if: failure()
-        uses: scacap/action-surefire-report@v1
 
   ubuntu:
     timeout-minutes: 120
@@ -157,9 +154,6 @@ jobs:
             nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
             nifi-system-tests/nifi-system-test-suite/target/troubleshooting/**/*
           retention-days: 7
-      - name: Upload Surefire Report
-        if: failure()
-        uses: scacap/action-surefire-report@v1
 
   macos:
     timeout-minutes: 120
@@ -204,6 +198,3 @@ jobs:
             nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
             nifi-system-tests/nifi-system-test-suite/target/troubleshooting/**/*
           retention-days: 7
-      - name: Upload Surefire Report
-        if: failure()
-        uses: scacap/action-surefire-report@v1
