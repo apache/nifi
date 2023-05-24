@@ -513,7 +513,7 @@ public class ExtensionBuilder {
                     validationContextFactory,
                     serviceProvider,
                     componentType,
-                    simpleClassName,
+                    type,
                     componentVarRegistry,
                     reloadComponent,
                     extensionManager,
