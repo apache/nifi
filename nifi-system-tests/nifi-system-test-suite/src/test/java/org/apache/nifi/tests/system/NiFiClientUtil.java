@@ -67,6 +67,8 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -95,6 +97,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -687,7 +690,8 @@ public class NiFiClientUtil {
                 return;
             }
 
-            if (entity.getStatus().getAggregateSnapshot().getActiveThreadCount() == 0) {
+            final ProcessorStatusSnapshotDTO snapshotDto = entity.getStatus().getAggregateSnapshot();
+            if (snapshotDto.getActiveThreadCount() == 0 && snapshotDto.getTerminatedThreadCount() == 0) {
                 return;
             }
 
@@ -836,8 +840,47 @@ public class NiFiClientUtil {
         scheduleComponentsEntity.setDisconnectedNodeAcknowledged(true);
         final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents(groupId, scheduleComponentsEntity);
         waitForProcessorsStopped(groupId);
+        waitForNoRunningComponents(groupId);
 
         return scheduleEntity;
+    }
+
+    private void waitForNoRunningComponents(final String groupId) throws NiFiClientException, IOException {
+        while (true) {
+            final boolean anyRunning = isAnyComponentRunning(groupId);
+            if (!anyRunning) {
+                return;
+            }
+
+            try {
+                Thread.sleep(10L);
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
+    private boolean isAnyComponentRunning(final String groupId) throws NiFiClientException, IOException {
+        final ProcessGroupStatusEntity statusEntity = nifiClient.getFlowClient().getProcessGroupStatus(groupId, false);
+        final ProcessGroupStatusSnapshotDTO snapshotDto = statusEntity.getProcessGroupStatus().getAggregateSnapshot();
+        final Integer activeThreadCount = snapshotDto.getActiveThreadCount();
+        if (activeThreadCount != null && activeThreadCount > 0) {
+            return true;
+        }
+
+        final Integer terminatedThreadCount = snapshotDto.getTerminatedThreadCount();
+        if (terminatedThreadCount != null && terminatedThreadCount > 0) {
+            return true;
+        }
+
+        final ProcessGroupEntity rootGroup = nifiClient.getProcessGroupClient().getProcessGroup(groupId);
+        final Integer runningCount = rootGroup.getRunningCount();
+        if (runningCount != null && runningCount > 0) {
+            return true;
+        }
+
+        return false;
     }
 
     private void waitForProcessorsStopped(final String groupId) throws IOException, NiFiClientException {
