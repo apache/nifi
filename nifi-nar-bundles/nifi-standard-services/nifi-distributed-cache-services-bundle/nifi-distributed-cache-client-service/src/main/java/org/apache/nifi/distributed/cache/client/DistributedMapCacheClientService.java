@@ -114,6 +114,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
                 context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
                 context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class),
                 versionNegotiatorFactory,
+                this.getIdentifier(),
                 getLogger());
     }
 

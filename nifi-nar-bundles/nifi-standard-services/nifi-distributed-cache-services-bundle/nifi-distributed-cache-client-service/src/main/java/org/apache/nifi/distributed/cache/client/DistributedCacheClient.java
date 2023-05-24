@@ -45,14 +45,17 @@ public class DistributedCacheClient {
      * @param sslContextService the SSL context (if any) associated with requests to the service; if not specified,
      *                          communications will not be encrypted
      * @param factory           creator of object used to broker the version of the distributed cache protocol with the service
+     * @param identifier        uniquely identifies this client
      */
     protected DistributedCacheClient(final String hostname,
                                      final int port,
                                      final int timeoutMillis,
                                      final SSLContextService sslContextService,
-                                     final VersionNegotiatorFactory factory) {
+                                     final VersionNegotiatorFactory factory,
+                                     final String identifier) {
+        String poolName = String.format("%s[%s]", getClass().getSimpleName(), identifier);
         this.channelPool = new CacheClientChannelPoolFactory().createChannelPool(
-                hostname, port, timeoutMillis, sslContextService, factory);
+                hostname, port, timeoutMillis, sslContextService, factory, poolName);
     }
 
     /**
