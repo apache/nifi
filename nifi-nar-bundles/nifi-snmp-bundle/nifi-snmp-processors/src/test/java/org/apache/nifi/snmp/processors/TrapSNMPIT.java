@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.processors;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.V1TrapConfiguration;
 import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
 import org.apache.nifi.snmp.helper.TrapConfigurationFactory;
@@ -26,9 +25,12 @@ import org.apache.nifi.snmp.helper.testrunners.SNMPV2cTestRunnerFactory;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.snmp4j.mp.SnmpConstants;
+
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,15 +42,16 @@ class TrapSNMPIT {
 
     @Test
     void testSendReceiveV1Trap() throws InterruptedException {
-        final int listenPort = NetworkUtils.getAvailableUdpPort();
-
         final V1TrapConfiguration v1TrapConfiguration = TrapConfigurationFactory.getV1TrapConfiguration();
         final SNMPTestRunnerFactory v1TestRunnerFactory = new SNMPV1TestRunnerFactory();
 
-        final TestRunner sendTrapTestRunner = v1TestRunnerFactory.createSnmpSendTrapTestRunner(listenPort, SYSTEM_DESCRIPTION_OID, SYSTEM_DESCRIPTION_OID_VALUE);
-        final TestRunner listenTrapTestRunner = v1TestRunnerFactory.createSnmpListenTrapTestRunner(listenPort);
-
+        final TestRunner listenTrapTestRunner = v1TestRunnerFactory.createSnmpListenTrapTestRunner(0);
         listenTrapTestRunner.run(1, false);
+        final ListenTrapSNMP listenTrapSNMP = (ListenTrapSNMP) listenTrapTestRunner.getProcessor();
+        final int listenPort = listenTrapSNMP.getListeningPort();
+
+        final TestRunner sendTrapTestRunner = v1TestRunnerFactory.createSnmpSendTrapTestRunner(listenPort, SYSTEM_DESCRIPTION_OID, SYSTEM_DESCRIPTION_OID_VALUE);
+
         sendTrapTestRunner.run(1);
 
         Thread.sleep(50);
@@ -71,21 +74,30 @@ class TrapSNMPIT {
     }
 
     @Test
+    @Timeout(10)
     void testSendReceiveV2Trap() throws InterruptedException {
-        final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V2TrapConfiguration v2TrapConfiguration = TrapConfigurationFactory.getV2TrapConfiguration();
         final SNMPTestRunnerFactory v2cTestRunnerFactory = new SNMPV2cTestRunnerFactory();
 
-        final TestRunner sendTrapTestRunner = v2cTestRunnerFactory.createSnmpSendTrapTestRunner(listenPort, SYSTEM_DESCRIPTION_OID, SYSTEM_DESCRIPTION_OID_VALUE);
-        final TestRunner listenTrapTestRunner = v2cTestRunnerFactory.createSnmpListenTrapTestRunner(listenPort);
-
+        final TestRunner listenTrapTestRunner = v2cTestRunnerFactory.createSnmpListenTrapTestRunner(0);
         listenTrapTestRunner.run(1, false);
-        sendTrapTestRunner.run(1);
+        final ListenTrapSNMP listenTrapSNMP = ((ListenTrapSNMP) listenTrapTestRunner.getProcessor());
+        final int listenPort = listenTrapSNMP.getListeningPort();
 
-        Thread.sleep(50);
+        final TestRunner sendTrapTestRunner = v2cTestRunnerFactory.createSnmpSendTrapTestRunner(listenPort, SYSTEM_DESCRIPTION_OID, SYSTEM_DESCRIPTION_OID_VALUE);
 
-        final MockFlowFile successFF = listenTrapTestRunner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
+        sendTrapTestRunner.run();
+
+        List<MockFlowFile> successFlowFiles = Collections.emptyList();
+        while (successFlowFiles.isEmpty()) {
+            successFlowFiles = listenTrapTestRunner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS);
+            if (successFlowFiles.isEmpty()) {
+                Thread.sleep(10L);
+            }
+        }
+
+        final MockFlowFile successFF = successFlowFiles.get(0);
 
         assertNotNull(successFF);
         assertEquals("Success", successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
@@ -97,12 +109,5 @@ class TrapSNMPIT {
                 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
 
         listenTrapTestRunner.shutdown();
-    }
-
-    @Disabled("The ListenTrapSNMP and SendTrapSNMP processors use the same SecurityProtocols instance" +
-            " and same USM (the USM is stored in a map by version), hence this case shall be manually tested." +
-            " Check assertByVersion() to see what the trap payload must contain.")
-    @Test
-    void testReceiveV3Trap() {
     }
 }

@@ -23,7 +23,6 @@ import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -40,8 +39,7 @@ public class NettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventTcpException() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.TCP);
+        final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, 0, TransportProtocol.TCP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
@@ -56,8 +54,7 @@ public class NettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventCloseUdp() throws Exception {
-        final int port = NetworkUtils.getAvailableUdpPort();
-        final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.UDP);
+        final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, 29102, TransportProtocol.UDP);
         factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());

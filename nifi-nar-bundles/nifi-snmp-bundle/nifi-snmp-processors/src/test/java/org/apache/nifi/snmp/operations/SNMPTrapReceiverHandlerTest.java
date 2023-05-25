@@ -17,7 +17,6 @@
 package org.apache.nifi.snmp.operations;
 
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.utils.JsonFileUsmReader;
 import org.apache.nifi.util.MockComponentLog;
@@ -51,16 +50,14 @@ class SNMPTrapReceiverHandlerTest {
         final ProcessSessionFactory mockProcessSessionFactory = mock(ProcessSessionFactory.class);
         final MockComponentLog mockComponentLog = new MockComponentLog("componentId", new Object());
         final Snmp mockSnmpManager = mock(Snmp.class);
-        when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
+        when(snmpConfiguration.getManagerPort()).thenReturn(0);
         when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version1);
 
         final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
         trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
 
-
         verify(mockSnmpManager).addCommandResponder(any(SNMPTrapReceiver.class));
-
         assertTrue(trapReceiverHandler.isStarted());
     }
 
@@ -73,7 +70,7 @@ class SNMPTrapReceiverHandlerTest {
         final Snmp mockSnmpManager = mock(Snmp.class);
 
         when(mockSnmpManager.getUSM()).thenReturn(mockUsm);
-        when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
+        when(snmpConfiguration.getManagerPort()).thenReturn(0);
         when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version1);
 
         final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null);
@@ -92,7 +89,7 @@ class SNMPTrapReceiverHandlerTest {
         final List<UsmUser> usmUsers = new JsonFileUsmReader(USERS_JSON).readUsm();
 
         final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
-                .setManagerPort(NetworkUtils.getAvailableUdpPort())
+                .setManagerPort(0)
                 .setVersion(SnmpConstants.version3)
                 .build();
 

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.processors;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.helper.testrunners.SNMPV1TestRunnerFactory;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
@@ -36,7 +35,7 @@ class GetSNMPTest {
 
     @Test
     void testOnTriggerWithGetStrategyPerformsSnmpGet() {
-        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "GET");
+        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(0, OID, "GET");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
 
@@ -49,7 +48,7 @@ class GetSNMPTest {
 
     @Test
     void testOnTriggerWithWalkStrategyPerformsSnmpWalk() {
-        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "WALK");
+        final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(0, OID, "WALK");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
 

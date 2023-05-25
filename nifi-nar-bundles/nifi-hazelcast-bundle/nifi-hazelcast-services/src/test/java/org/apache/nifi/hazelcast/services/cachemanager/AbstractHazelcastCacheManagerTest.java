@@ -44,7 +44,7 @@ public abstract class AbstractHazelcastCacheManagerTest {
         testRunner.shutdown();
     }
 
-    protected void givenHazelcastMapCacheClient() throws Exception {
+    protected void setupHazelcastMapCacheClient() throws Exception {
         hazelcastMapCacheClient = new HazelcastMapCacheClient();
         testRunner.addControllerService("hazelcast-map-cache-client", hazelcastMapCacheClient);
 
@@ -55,7 +55,7 @@ public abstract class AbstractHazelcastCacheManagerTest {
         testRunner.setProperty(TestHazelcastProcessor.TEST_HAZELCAST_MAP_CACHE_CLIENT, "hazelcast-map-cache-client");
     }
 
-    protected void givenServicesAreEnabled() {
+    protected void enableServices() {
         testRunner.enableControllerService(testSubject);
         assertTrue(testSubject.isEnabled());
 
@@ -63,12 +63,12 @@ public abstract class AbstractHazelcastCacheManagerTest {
         assertTrue(hazelcastMapCacheClient.isEnabled());
     }
 
-    protected void whenExecuting() {
+    protected void triggerProcessor() {
         testRunner.enqueue("trigger");
         testRunner.run();
     }
 
-    protected void thenProcessingIsSuccessful() {
+    protected void assertSuccessfulTransfer() {
         testRunner.assertAllFlowFilesTransferred(TestHazelcastProcessor.REL_SUCCESS, 1);
     }
 }

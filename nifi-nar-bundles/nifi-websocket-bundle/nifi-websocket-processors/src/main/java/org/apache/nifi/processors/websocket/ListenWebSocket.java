@@ -110,8 +110,7 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
 
     @Override
     protected WebSocketService getWebSocketService(final ProcessContext context) {
-        return context.getProperty(PROP_WEBSOCKET_SERVER_SERVICE)
-                .asControllerService(WebSocketService.class);
+        return context.getProperty(PROP_WEBSOCKET_SERVER_SERVICE).asControllerService(WebSocketService.class);
     }
 
     @Override

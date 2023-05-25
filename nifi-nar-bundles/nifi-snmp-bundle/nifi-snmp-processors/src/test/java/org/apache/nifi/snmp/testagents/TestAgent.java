@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.testagents;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.snmp4j.TransportMapping;
 import org.snmp4j.agent.BaseAgent;
 import org.snmp4j.agent.CommandProcessor;
@@ -45,11 +44,10 @@ public abstract class TestAgent extends BaseAgent {
     protected static final String BOOT_COUNTER_NAME_TEMPLATE = "target/bootCounter%s_%s.agent";
     protected static final String CONFIG_NAME_TEMPLATE = "target/conf%s_%s.agent";
     protected final String address;
-    protected final int port;
+    private final int port = 56291;
 
     public TestAgent(final File bootCounterFile, final File configFile, final CommandProcessor commandProcessor, final String host) {
         super(bootCounterFile, configFile, commandProcessor);
-        port = NetworkUtils.getAvailableUdpPort();
         this.address = String.format("udp:%s/%d", host, port);
     }
 

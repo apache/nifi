@@ -90,7 +90,4 @@ public class TestSNMPV2cAgent extends TestAgent {
         communityMIB.getSnmpCommunityEntry().addRow(row);
     }
 
-    public int getPort() {
-        return port;
-    }
 }

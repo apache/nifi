@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.websocket.jetty;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -59,7 +58,7 @@ class ITJettyWebsocketReconnect {
         clientService = new JettyWebSocketTestClient();
 
         clientServiceContext = new ControllerServiceTestContext(clientService, "JettyWebSocketClient1");
-        clientServiceContext.setCustomValue(JettyWebSocketClient.WS_URI, "ws://localhost:" + NetworkUtils.getAvailableTcpPort() + "/test");
+        clientServiceContext.setCustomValue(JettyWebSocketClient.WS_URI, "ws://localhost:0/test");
 
         clientServiceContext.setCustomValue(JettyWebSocketClient.USER_NAME, "user2");
         clientServiceContext.setCustomValue(JettyWebSocketClient.USER_PASSWORD, "password2");

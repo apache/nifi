@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.processors.standard.ftp;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.mockito.Captor;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.SocketFactory;
@@ -54,13 +53,10 @@ public class ProxyFTPClientTest {
 
     private static final String WELCOME_REPLY = "220 Welcome";
 
-    private int port;
-
     private ProxyFTPClient client;
 
     @BeforeEach
     public void setClient() {
-        port = NetworkUtils.getAvailableTcpPort();
         client = new ProxyFTPClient(socketFactory);
     }
 
@@ -70,13 +66,13 @@ public class ProxyFTPClientTest {
         when(socket.getInputStream()).thenReturn(new ByteArrayInputStream(WELCOME_REPLY.getBytes(StandardCharsets.US_ASCII)));
         when(socket.getOutputStream()).thenReturn(new ByteArrayOutputStream());
 
-        client.connect(HOST, port);
+        client.connect(HOST, 0);
 
         verify(socket).connect(socketAddressCaptor.capture(), anyInt());
 
         final InetSocketAddress socketAddress = socketAddressCaptor.getValue();
         assertNotNull(socketAddress);
         assertEquals(HOST, socketAddress.getHostString());
-        assertEquals(port, socketAddress.getPort());
+        assertEquals(0, socketAddress.getPort());
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.factory.core;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -28,8 +27,8 @@ import org.snmp4j.security.SecurityLevel;
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -60,9 +59,7 @@ class V1V2cSNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesResourceHandler() {
         final V1V2cSNMPFactory snmpFactory = spy(V1V2cSNMPFactory.class);
-        final int managerPort = NetworkUtils.getAvailableUdpPort();
-        final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
-        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(managerPort, targetPort);
+        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(0, "48");
 
         snmpFactory.createSNMPResourceHandler(snmpConfiguration);
 

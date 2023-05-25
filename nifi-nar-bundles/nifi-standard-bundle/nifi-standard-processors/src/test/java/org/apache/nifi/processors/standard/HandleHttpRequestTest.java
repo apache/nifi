@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.http.HttpContextMap;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -67,9 +66,7 @@ class HandleHttpRequestTest {
     void testRun() {
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
         runner.setProperty(HandleHttpRequest.MAXIMUM_THREADS, MINIMUM_THREADS);
-
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(HandleHttpRequest.PORT, Integer.toString(port));
+        runner.setProperty(HandleHttpRequest.PORT, "0");
 
         runner.run();
 

@@ -21,7 +21,6 @@ import org.apache.nifi.processors.beats.protocol.FrameType;
 import org.apache.nifi.processors.beats.protocol.ProtocolVersion;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -62,23 +61,19 @@ class ListenBeatsTest {
     TestRunner runner;
 
     @BeforeEach
-    void setRunner() {
+    void createRunner() {
         runner = TestRunners.newTestRunner(ListenBeats.class);
     }
 
     @Timeout(10)
     @Test
     void testRunSingleJsonMessage() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
+        final int port = startServer();
 
-        startServer();
+        try (final Socket socket = new Socket(LOCALHOST, port);
+             final InputStream inputStream = socket.getInputStream();
+             final OutputStream outputStream = socket.getOutputStream()) {
 
-        try (
-                final Socket socket = new Socket(LOCALHOST, port);
-                final InputStream inputStream = socket.getInputStream();
-                final OutputStream outputStream = socket.getOutputStream()
-        ) {
             sendMessage(outputStream, FIRST_SEQUENCE_NUMBER);
             assertAckPacketMatched(inputStream, FIRST_SEQUENCE_NUMBER);
         }
@@ -90,16 +85,12 @@ class ListenBeatsTest {
     @Timeout(10)
     @Test
     void testRunWindowSizeJsonMessages() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
+        final int port = startServer();
 
-        startServer();
+        try (final Socket socket = new Socket(LOCALHOST, port);
+             final InputStream inputStream = socket.getInputStream();
+             final OutputStream outputStream = socket.getOutputStream()) {
 
-        try (
-                final Socket socket = new Socket(LOCALHOST, port);
-                final InputStream inputStream = socket.getInputStream();
-                final OutputStream outputStream = socket.getOutputStream()
-        ) {
             sendWindowSize(outputStream);
 
             for (int sequenceNumber = FIRST_SEQUENCE_NUMBER; sequenceNumber <= WINDOWED_MESSAGES; sequenceNumber++) {
@@ -116,16 +107,12 @@ class ListenBeatsTest {
     @Timeout(10)
     @Test
     void testRunWindowSizeCompressedJsonMessages() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
+        final int port = startServer();
 
-        startServer();
+        try (final Socket socket = new Socket(LOCALHOST, port);
+             final InputStream inputStream = socket.getInputStream();
+             final OutputStream outputStream = socket.getOutputStream()) {
 
-        try (
-                final Socket socket = new Socket(LOCALHOST, port);
-                final InputStream inputStream = socket.getInputStream();
-                final OutputStream outputStream = socket.getOutputStream()
-        ) {
             sendWindowSize(outputStream);
 
             final ByteArrayOutputStream compressedOutputStream = new ByteArrayOutputStream();
@@ -146,8 +133,13 @@ class ListenBeatsTest {
         assertReceiveEventFound(port);
     }
 
-    private void startServer() {
+    private int startServer() {
+        runner.setProperty(ListenerProperties.PORT, "0");
         runner.run(1, false, true);
+
+        final int port = ((ListenBeats) runner.getProcessor()).getListeningPort();
+
+        return port;
     }
 
     private void assertReceiveEventFound(final int port) {

@@ -22,7 +22,6 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -55,7 +54,6 @@ public class DistributedMapCacheTlsTest {
 
     @BeforeAll
     public static void setServices() throws Exception {
-        final String port = Integer.toString(NetworkUtils.getAvailableTcpPort());
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
         sslContextService = createSslContextService();
         runner.addControllerService(sslContextService.getIdentifier(), sslContextService);
@@ -63,14 +61,15 @@ public class DistributedMapCacheTlsTest {
 
         server = new DistributedMapCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedMapCacheServer.PORT, port);
+        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
         runner.setProperty(server, DistributedMapCacheServer.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
         runner.enableControllerService(server);
+        final int listeningPort = server.getPort();
 
         client = new DistributedMapCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
         runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, port);
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(listeningPort));
         runner.setProperty(client, DistributedMapCacheClientService.SSL_CONTEXT_SERVICE, sslContextService.getIdentifier());
         runner.enableControllerService(client);
     }

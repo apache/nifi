@@ -17,7 +17,6 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.websocket.api.Session;
@@ -77,12 +76,11 @@ public class TestJettyWebSocketServer {
 
     @Test
     public void testWebSocketConnect() throws Exception {
-        final int port = NetworkUtils.availablePort();
 
         final String identifier = JettyWebSocketServer.class.getSimpleName();
         final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(identifier, server);
-        runner.setProperty(server, JettyWebSocketServer.LISTEN_PORT, Integer.toString(port));
+        runner.setProperty(server, JettyWebSocketServer.LISTEN_PORT, "0");
         runner.enableControllerService(server);
 
         server.registerProcessor(ROOT_ENDPOINT_ID, runner.getProcessor());
@@ -103,10 +101,12 @@ public class TestJettyWebSocketServer {
 
             }
         };
+
+
         try {
             client.start();
 
-            final URI uri = getWebSocketUri(port);
+            final URI uri = getWebSocketUri(server.getListeningPort());
             final Future<Session> connectSession = client.connect(adapter, uri);
             final Session session = connectSession.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
             session.getRemote().sendString(command);

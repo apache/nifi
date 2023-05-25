@@ -111,7 +111,6 @@ public class ListenBeats extends AbstractProcessor {
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
 
-    protected volatile int port;
     protected volatile BlockingQueue<BatchMessage> events;
     protected volatile BlockingQueue<BatchMessage> errorEvents;
     protected volatile EventServer eventServer;
@@ -135,7 +134,7 @@ public class ListenBeats extends AbstractProcessor {
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
         final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
-        port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
+        final int port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
         final String msgDemarcator = getMessageDemarcator(context);
@@ -163,6 +162,10 @@ public class ListenBeats extends AbstractProcessor {
         } catch (final EventException e) {
             getLogger().error("Failed to bind to [{}:{}]", address, port, e);
         }
+    }
+
+    public int getListeningPort() {
+        return eventServer.getListeningPort();
     }
 
     @Override
@@ -207,7 +210,7 @@ public class ListenBeats extends AbstractProcessor {
     private String getTransitUri(final FlowFileEventBatch<BatchMessage> batch) {
         final List<BatchMessage> events = batch.getEvents();
         final String sender = events.get(0).getSender();
-        return String.format("beats://%s:%d", sender, port);
+        return String.format("beats://%s:%d", sender, getListeningPort());
     }
 
     private Map<String, String> getAttributes(final FlowFileEventBatch<BatchMessage> batch) {
@@ -216,7 +219,7 @@ public class ListenBeats extends AbstractProcessor {
         final String sender = events.get(0).getSender();
         final Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put(BeatsAttributes.SENDER.key(), sender);
-        attributes.put(BeatsAttributes.PORT.key(), String.valueOf(port));
+        attributes.put(BeatsAttributes.PORT.key(), String.valueOf(getListeningPort()));
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
 
         if (events.size() == 1) {

@@ -19,11 +19,10 @@ package org.apache.nifi.distributed.cache.server.map;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.Deserializer;
+import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -56,18 +55,18 @@ public class DistributedMapCacheTest {
 
     @BeforeAll
     public static void startServices() throws Exception {
-        final String port = Integer.toString(NetworkUtils.getAvailableTcpPort());
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
         server = new DistributedMapCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedMapCacheServer.PORT, port);
+        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
         runner.enableControllerService(server);
+        final int port = server.getPort();
 
         client = new DistributedMapCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
         runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, port);
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(port));
         runner.enableControllerService(client);
     }
 

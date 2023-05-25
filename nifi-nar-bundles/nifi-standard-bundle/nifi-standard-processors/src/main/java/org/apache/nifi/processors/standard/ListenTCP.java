@@ -228,6 +228,10 @@ public class ListenTCP extends AbstractProcessor {
         }
     }
 
+    public int getListeningPort() {
+        return eventServer == null ? 0 : eventServer.getListeningPort();
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         processTrackingLog();

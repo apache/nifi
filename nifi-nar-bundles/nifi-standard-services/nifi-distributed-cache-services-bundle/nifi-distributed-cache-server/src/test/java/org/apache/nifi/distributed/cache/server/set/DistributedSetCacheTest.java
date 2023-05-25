@@ -17,11 +17,10 @@
 package org.apache.nifi.distributed.cache.server.set;
 
 import org.apache.commons.lang3.SerializationException;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService;
+import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -45,18 +44,18 @@ public class DistributedSetCacheTest {
 
     @BeforeAll
     public static void setRunner() throws Exception {
-        final String port = Integer.toString(NetworkUtils.getAvailableTcpPort());
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
         server = new DistributedSetCacheServer();
         runner.addControllerService(server.getClass().getName(), server);
-        runner.setProperty(server, DistributedSetCacheServer.PORT, port);
+        runner.setProperty(server, DistributedSetCacheServer.PORT, "0");
         runner.enableControllerService(server);
+        final int port = server.getPort();
 
         client = new DistributedSetCacheClientService();
         runner.addControllerService(client.getClass().getName(), client);
         runner.setProperty(client, DistributedSetCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedSetCacheClientService.PORT, port);
+        runner.setProperty(client, DistributedSetCacheClientService.PORT, String.valueOf(port));
         runner.enableControllerService(client);
     }
 

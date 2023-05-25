@@ -36,7 +36,7 @@ public abstract class EventCacheServer implements CacheServer {
 
     private final ComponentLog log;
 
-    private final int port;
+    private volatile int port;
 
     private EventServer eventServer;
 
@@ -55,6 +55,7 @@ public abstract class EventCacheServer implements CacheServer {
     @Override
     public void start() {
         eventServer = createEventServer();
+        port = eventServer.getListeningPort();
         log.info("Started Cache Server Port [{}]", port);
     }
 

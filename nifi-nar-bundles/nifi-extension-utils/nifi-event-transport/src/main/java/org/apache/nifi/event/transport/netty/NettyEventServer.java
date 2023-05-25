@@ -24,6 +24,8 @@ import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -82,5 +84,15 @@ class NettyEventServer implements EventServer {
             group.shutdownGracefully(shutdownQuietPeriod.toMillis(), shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS)
                     .awaitUninterruptibly(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS);
         }
+    }
+
+    @Override
+    public int getListeningPort() {
+        final SocketAddress socketAddress = channel.localAddress();
+        if (socketAddress instanceof InetSocketAddress) {
+            return ((InetSocketAddress) socketAddress).getPort();
+        }
+
+        return 0;
     }
 }
