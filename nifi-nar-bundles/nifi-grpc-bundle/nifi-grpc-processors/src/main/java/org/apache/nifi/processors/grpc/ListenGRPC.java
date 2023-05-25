@@ -207,6 +207,10 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
         this.server = serverBuilder.build().start();
     }
 
+    public int getListeningPort() {
+        return server == null ? 0 : server.getPort();
+    }
+
     @OnStopped
     public void stopServer(final ProcessContext context) {
         if (this.server != null) {

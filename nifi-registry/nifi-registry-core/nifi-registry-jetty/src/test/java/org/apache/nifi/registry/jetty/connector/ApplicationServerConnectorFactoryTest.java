@@ -17,7 +17,6 @@
 package org.apache.nifi.registry.jetty.connector;
 
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.StringUtils;
@@ -65,9 +64,8 @@ class ApplicationServerConnectorFactoryTest {
 
     @Test
     void testGetServerConnectorRequiredProperties() {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final Properties configuredProperties = new Properties();
-        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, "0");
 
         final NiFiRegistryProperties properties = getProperties(configuredProperties);
         final ApplicationServerConnectorFactory factory = new ApplicationServerConnectorFactory(server, properties);
@@ -80,9 +78,8 @@ class ApplicationServerConnectorFactoryTest {
 
     @Test
     void testGetServerConnectorHostProperty() {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final Properties configuredProperties = new Properties();
-        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, "0");
         configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_HOST, LOCALHOST);
 
         final NiFiRegistryProperties properties = getProperties(configuredProperties);
@@ -96,9 +93,8 @@ class ApplicationServerConnectorFactoryTest {
 
     @Test
     void testGetServerConnectorHostPropertyEmpty() {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final Properties configuredProperties = new Properties();
-        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_PORT, "0");
         configuredProperties.put(NiFiRegistryProperties.WEB_HTTP_HOST, StringUtils.EMPTY);
 
         final NiFiRegistryProperties properties = getProperties(configuredProperties);
@@ -112,9 +108,8 @@ class ApplicationServerConnectorFactoryTest {
 
     @Test
     void testGetServerConnectorSslProperties() {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final Properties configuredProperties = getSecurityProperties();
-        configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_PORT, "0");
 
         final NiFiRegistryProperties properties = getProperties(configuredProperties);
         final ApplicationServerConnectorFactory factory = new ApplicationServerConnectorFactory(server, properties);
@@ -128,9 +123,8 @@ class ApplicationServerConnectorFactoryTest {
 
     @Test
     void testGetServerConnectorHttp2Properties() {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final Properties configuredProperties = getSecurityProperties();
-        configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_PORT, Integer.toString(port));
+        configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_PORT, "0");
         configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_APPLICATION_PROTOCOLS, H2_PROTOCOL);
         configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE, INCLUDE_CIPHERS);
         configuredProperties.put(NiFiRegistryProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE, EXCLUDE_CIPHERS);

@@ -206,6 +206,14 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         snmpTrapReceiverHandler = new SNMPTrapReceiverHandler(configuration, usmUsers);
     }
 
+    public int getListeningPort() {
+        if (snmpTrapReceiverHandler == null || !snmpTrapReceiverHandler.isStarted()) {
+            return 0;
+        }
+
+        return snmpTrapReceiverHandler.getListeningPort();
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory processSessionFactory) {
         if (!snmpTrapReceiverHandler.isStarted()) {

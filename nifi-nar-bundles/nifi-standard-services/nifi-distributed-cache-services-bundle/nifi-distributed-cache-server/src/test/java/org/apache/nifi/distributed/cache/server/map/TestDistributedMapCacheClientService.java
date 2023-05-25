@@ -30,7 +30,6 @@ import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -65,7 +64,6 @@ public class TestDistributedMapCacheClientService {
     @BeforeEach
     public void setRunner() throws UnknownHostException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
-        port = NetworkUtils.getAvailableTcpPort();
 
         final InetAddress serverAddress = InetAddress.getByName(LOCALHOST);
         final NettyEventServerFactory serverFactory = new NettyEventServerFactory(serverAddress, port, TransportProtocol.TCP);
@@ -80,6 +78,7 @@ public class TestDistributedMapCacheClientService {
                 new CacheVersionRequestHandler(log, versionNegotiator)
         ));
         server = serverFactory.getEventServer();
+        port = server.getListeningPort();
     }
 
     @AfterEach

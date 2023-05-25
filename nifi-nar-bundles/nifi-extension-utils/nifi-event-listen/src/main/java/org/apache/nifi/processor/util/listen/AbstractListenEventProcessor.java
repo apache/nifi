@@ -102,15 +102,6 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     // Putting these properties here so sub-classes don't have to redefine them, but they are
     // not added to the properties by default since not all processors may need them
 
-    public static final PropertyDescriptor MAX_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("Max Number of TCP Connections")
-            .description("The maximum number of concurrent TCP connections to accept.")
-            .addValidator(StandardValidators.createLongValidator(1, 65535, true))
-            .defaultValue("2")
-            .required(true)
-            .build();
-
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Messages received successfully will be sent out this relationship.")
@@ -155,7 +146,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
      * @return a list of relationships
      */
     protected List<Relationship> getAdditionalRelationships() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     /**
@@ -164,7 +155,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
      * @return a list of properties
      */
     protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
@@ -180,7 +171,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
-        port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final int specifiedPort = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         eventsCapacity = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         events = new TrackingLinkedBlockingQueue<>(eventsCapacity);
         final String interfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
@@ -189,13 +180,18 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         // create the dispatcher and call open() to bind to the given port
         dispatcher = createDispatcher(context, events);
-        dispatcher.open(interfaceAddress, port, maxChannelBufferSize);
+        dispatcher.open(interfaceAddress, specifiedPort, maxChannelBufferSize);
+        port = dispatcher.getPort();
 
         // start a thread to run the dispatcher
         final Thread readerThread = new Thread(dispatcher);
         readerThread.setName(getClass().getName() + " [" + getIdentifier() + "]");
         readerThread.setDaemon(true);
         readerThread.start();
+    }
+
+    public int getListeningPort() {
+        return port;
     }
 
     /**

@@ -23,7 +23,6 @@ import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsException;
@@ -33,8 +32,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -169,14 +168,14 @@ public class TestListenTCP {
         }
     }
 
-    private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
-            throws Exception {
-
-        final int port = NetworkUtils.availablePort();
-        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
+    private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext) throws Exception {
+        runner.setProperty(ListenerProperties.PORT, "0");
         final String message = StringUtils.join(messages, null);
         final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
         runner.run(1, false, true);
+
+        final int port = ((ListenTCP) runner.getProcessor()).getListeningPort();
+
         sendMessages(port, bytes, sslContext);
         runner.run(flowFiles, false, false);
     }

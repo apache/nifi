@@ -23,7 +23,6 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -267,7 +266,8 @@ public class TestPutSplunk {
     @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testUnableToCreateConnectionShouldRouteToFailure() {
         // Set an unreachable port
-        runner.setProperty(PutSplunk.PORT, String.valueOf(NetworkUtils.getAvailableUdpPort()));
+        runner.setProperty(PutSplunk.PORT, "482");
+        runner.setProperty(PutSplunk.HOSTNAME, "host-that-does-not-exist");
 
         final String message = "This is one message, should send the whole FlowFile";
 
@@ -276,24 +276,17 @@ public class TestPutSplunk {
         runner.assertAllFlowFilesTransferred(PutSplunk.REL_FAILURE, 1);
     }
 
-    private void createTestServer(final TransportProtocol protocol) {
-        if (protocol == TransportProtocol.UDP) {
-            createTestServer(NetworkUtils.getAvailableUdpPort(), protocol);
-        } else {
-            createTestServer(NetworkUtils.getAvailableTcpPort(), protocol);
-        }
-    }
 
-    private void createTestServer(final int port, final TransportProtocol protocol) {
+    private void createTestServer(final TransportProtocol protocol) {
         messages = new LinkedBlockingQueue<>();
         runner.setProperty(PutSplunk.PROTOCOL, protocol.name());
-        runner.setProperty(PutSplunk.PORT, String.valueOf(port));
         final byte[] delimiter = OUTGOING_MESSAGE_DELIMITER.getBytes(CHARSET);
 
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), port, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), 0, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
+        runner.setProperty(PutSplunk.PORT, String.valueOf(eventServer.getListeningPort()));
     }
 
     private void checkReceivedAllData(final String... sentData) throws Exception {

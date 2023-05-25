@@ -19,21 +19,23 @@ package org.apache.nifi.hazelcast.services.cachemanager;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
     private HazelcastInstance hazelcastInstance;
 
-    private int port;
 
     @BeforeEach
     public void setUp() {
-        port = NetworkUtils.availablePort();
         final Config config = new Config();
-        config.getNetworkConfig().setPort(port);
+        config.getNetworkConfig().setPort(0);
         config.setClusterName("nifi");
 
         hazelcastInstance = Hazelcast.newHazelcastInstance(config);
@@ -50,13 +52,17 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
     public void testExecution() throws Exception {
         testSubject = new ExternalHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
-        testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, String.format("localhost:%d", port));
 
-        givenHazelcastMapCacheClient();
-        givenServicesAreEnabled();
+        final SocketAddress localAddress = hazelcastInstance.getLocalEndpoint().getSocketAddress();
+        assertTrue(localAddress instanceof InetSocketAddress);
+        final int port = ((InetSocketAddress) localAddress).getPort();
+        testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, "localhost:" + port);
 
-        whenExecuting();
+        setupHazelcastMapCacheClient();
+        enableServices();
 
-        thenProcessingIsSuccessful();
+        triggerProcessor();
+
+        assertSuccessfulTransfer();
     }
 }

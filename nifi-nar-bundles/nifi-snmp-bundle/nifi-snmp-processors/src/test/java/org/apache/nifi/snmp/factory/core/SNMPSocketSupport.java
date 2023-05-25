@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.snmp.factory.core;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.snmp4j.security.SecurityLevel;
+
 import java.net.BindException;
 import java.util.function.Function;
 
-import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
+import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
 
 public class SNMPSocketSupport {
 
@@ -52,7 +52,7 @@ public class SNMPSocketSupport {
         int attempts = 0;
         while (attempts < retries) {
             try {
-                return runnable.apply(getSnmpConfiguration(NetworkUtils.getAvailableUdpPort(), String.valueOf(NetworkUtils.getAvailableUdpPort())));
+                return runnable.apply(getSnmpConfiguration(0, "0"));
             } catch (Exception e) {
                 if (isBindException(e)) {
                     attempts++;

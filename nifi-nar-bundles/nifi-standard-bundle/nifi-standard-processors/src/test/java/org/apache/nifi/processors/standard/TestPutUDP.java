@@ -23,7 +23,6 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -65,8 +64,7 @@ public class TestPutUDP {
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutUDP.class);
         runner.setVariable(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
-        port = NetworkUtils.getAvailableUdpPort();
-        createTestServer(port, VALID_LARGE_FILE_SIZE);
+        createTestServer(VALID_LARGE_FILE_SIZE);
     }
 
     @AfterEach
@@ -116,12 +114,12 @@ public class TestPutUDP {
         configureProperties();
         sendMessages(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        reset(port);
+        reset();
 
         configureProperties();
         sendMessages(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        reset(port);
+        reset();
 
         configureProperties();
         sendMessages(VALID_FILES);
@@ -129,10 +127,10 @@ public class TestPutUDP {
         runner.assertQueueEmpty();
     }
 
-    private void reset(final int port) throws Exception {
+    private void reset() throws Exception {
         runner.clearTransferState();
         removeTestServer();
-        createTestServer(port, MAX_FRAME_LENGTH);
+        createTestServer(MAX_FRAME_LENGTH);
     }
 
     private void configureProperties() {
@@ -181,7 +179,7 @@ public class TestPutUDP {
         return new String[] { new String(content).concat("\n") };
     }
 
-    private void createTestServer(final int port, final int frameSize) throws Exception {
+    private void createTestServer(final int frameSize) throws Exception {
         messages = new LinkedBlockingQueue<>();
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         final InetAddress listenAddress = InetAddress.getByName(UDP_SERVER_ADDRESS);
@@ -191,6 +189,7 @@ public class TestPutUDP {
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
+        this.port = eventServer.getListeningPort();
     }
 
     private void removeTestServer() {

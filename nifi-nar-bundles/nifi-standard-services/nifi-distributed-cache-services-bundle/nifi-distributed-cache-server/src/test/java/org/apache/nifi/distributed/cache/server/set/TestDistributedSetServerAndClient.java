@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.distributed.cache.server.set;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.commons.lang3.StringUtils;
@@ -38,7 +26,6 @@ import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
@@ -46,9 +33,21 @@ import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestDistributedSetServerAndClient {
 
@@ -69,8 +68,7 @@ public class TestDistributedSetServerAndClient {
         server = new DistributedSetCacheServer();
         runner.addControllerService("server", server);
 
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(server, DistributedSetCacheServer.PORT, Integer.toString(port));
+        runner.setProperty(server, DistributedSetCacheServer.PORT, "0");
     }
 
     @AfterEach

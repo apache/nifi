@@ -25,11 +25,11 @@ public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         testSubject = new EmbeddedHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
-        givenHazelcastMapCacheClient();
-        givenServicesAreEnabled();
+        setupHazelcastMapCacheClient();
+        enableServices();
 
-        whenExecuting();
+        triggerProcessor();
 
-        thenProcessingIsSuccessful();
+        assertSuccessfulTransfer();
     }
 }

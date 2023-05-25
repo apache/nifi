@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -57,6 +44,20 @@ import org.springframework.util.StringUtils;
 import org.subethamail.smtp.MessageContext;
 import org.subethamail.smtp.MessageHandlerFactory;
 import org.subethamail.smtp.server.SMTPServer;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"listen", "email", "smtp"})
 @TriggerSerially
@@ -187,6 +188,10 @@ public class ListenSMTP extends AbstractSessionFactoryProcessor {
             }
         }
         context.yield();//nothing really to do here since threading managed by smtp server sessions
+    }
+
+    public int getListeningPort() {
+        return smtp == null ? 0 : smtp.getPort();
     }
 
     @OnStopped

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.configuration;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
@@ -32,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SNMPConfigurationTest {
 
-    private static final int MANAGER_PORT = NetworkUtils.getAvailableUdpPort();
+    private static final int MANAGER_PORT = 0;
     private static final String TARGET_PORT = "55556";
     private static final int RETRIES = 3;
     private static final int VERSION = SnmpConstants.version3;

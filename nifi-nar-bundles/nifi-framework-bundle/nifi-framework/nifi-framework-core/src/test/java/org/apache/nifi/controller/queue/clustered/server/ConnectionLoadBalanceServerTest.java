@@ -17,7 +17,6 @@
 package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -112,10 +111,9 @@ class ConnectionLoadBalanceServerTest {
     }
 
     private ConnectionLoadBalanceServer getServer(final LoadBalanceProtocol loadBalanceProtocol) {
-        final int port = NetworkUtils.getAvailableTcpPort();
         return new ConnectionLoadBalanceServer(
                 LOCALHOST,
-                port,
+                0,
                 sslContext,
                 SERVER_THREADS,
                 loadBalanceProtocol,

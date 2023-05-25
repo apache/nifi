@@ -24,16 +24,20 @@ import org.apache.nifi.snmp.factory.core.SNMPManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snmp4j.Snmp;
+import org.snmp4j.TransportMapping;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
+import org.snmp4j.smi.Address;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.TransportIpAddress;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public class SNMPTrapReceiverHandler {
@@ -49,6 +53,19 @@ public class SNMPTrapReceiverHandler {
         this.configuration = configuration;
         this.usmUsers = usmUsers;
         snmpManager = new SNMPManagerFactory().createSnmpManagerInstance(configuration);
+    }
+
+    public int getListeningPort() {
+        final Collection<TransportMapping> transportMappings = snmpManager.getMessageDispatcher().getTransportMappings();
+        if (transportMappings == null || transportMappings.isEmpty()) {
+            return 0;
+        }
+        final Address address = transportMappings.iterator().next().getListenAddress();
+        if (address instanceof TransportIpAddress) {
+            return ((org.snmp4j.smi.TransportIpAddress) address).getPort();
+        }
+
+        return 0;
     }
 
     public void createTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {

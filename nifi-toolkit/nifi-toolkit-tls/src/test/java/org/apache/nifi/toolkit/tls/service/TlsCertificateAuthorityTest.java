@@ -18,9 +18,8 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClient;
@@ -96,13 +95,12 @@ public class TlsCertificateAuthorityTest {
         subjectAlternativeName = "nifi.apache.org";
 
         String myTestTokenUseSomethingStronger = "myTestTokenUseSomethingStronger";
-        int port = NetworkUtils.getAvailableTcpPort();
 
         serverConfig = new TlsConfig();
         serverConfig.setCaHostname("localhost");
         serverConfig.setToken(myTestTokenUseSomethingStronger);
         serverConfig.setKeyStore(serverKeyStore);
-        serverConfig.setPort(port);
+        serverConfig.setPort(0);
         serverConfig.setDays(5);
         serverConfig.setKeySize(2048);
         serverConfig.initDefaults();
@@ -114,7 +112,7 @@ public class TlsCertificateAuthorityTest {
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);
         clientConfig.setDomainAlternativeNames(Collections.singletonList(subjectAlternativeName));
-        clientConfig.setPort(port);
+        clientConfig.setPort(0);
         clientConfig.setKeySize(2048);
         clientConfig.initDefaults();
 

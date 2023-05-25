@@ -25,11 +25,10 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
 import org.apache.nifi.processor.util.listen.event.StandardNetworkEventFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.net.InetSocketAddress;
@@ -72,8 +71,8 @@ public class EventBatcherTest {
 
     @Test
     public void testGetBatches() throws InterruptedException {
-        String sender1 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
-        String sender2 = new InetSocketAddress(NetworkUtils.getAvailableTcpPort()).toString();
+        String sender1 = new InetSocketAddress(0).toString();
+        String sender2 = new InetSocketAddress(2).toString();
         final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1);
         final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2);
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));

@@ -313,6 +313,10 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         eventServer = factory.getEventServer();
     }
 
+    public int getListeningPort() {
+        return eventServer == null ? 0 : eventServer.getListeningPort();
+    }
+
     @OnStopped
     public void shutdownEventServer() {
         if (eventServer != null) {
@@ -448,7 +452,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     }
 
     private Map<String, String> getDefaultAttributes(final ProcessContext context) {
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
+        final String port = String.valueOf(getListeningPort());
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>();
