@@ -196,10 +196,8 @@ public abstract class AbstractKerberosUser implements KerberosUser {
     public synchronized boolean checkTGTAndRelogin()  {
         final KerberosTicket tgt = getTGT();
         if (tgt == null) {
-            LOGGER.debug("TGT for {} was not found, performing logout/login", principal);
-            logout();
-            login();
-            return true;
+            LOGGER.debug("TGT for {} was not found", principal);
+            return logoutAndLogin();
         }
 
         if (tgt != null && System.currentTimeMillis() < getRefreshTime(tgt)) {
@@ -207,6 +205,11 @@ public abstract class AbstractKerberosUser implements KerberosUser {
             return false;
         }
 
+        if (!tgt.isRenewable() || tgt.getRenewTill() == null) {
+            return logoutAndLogin();
+        }
+
+        LOGGER.debug("TGT for {} is renewable, will attempt refresh", principal);
         try {
             tgt.refresh();
             LOGGER.debug("TGT for {} was refreshed", principal);
@@ -214,12 +217,15 @@ public abstract class AbstractKerberosUser implements KerberosUser {
         } catch (final RefreshFailedException e) {
             LOGGER.debug("TGT for {} could not be refreshed", principal);
             LOGGER.trace("", e);
-            LOGGER.debug("Performing logout/login for {}", principal);
-            logout();
-            login();
-            return true;
+            return logoutAndLogin();
         }
+    }
 
+    private boolean logoutAndLogin() {
+        LOGGER.debug("Performing logout/login", principal);
+        logout();
+        login();
+        return true;
     }
 
     /**
