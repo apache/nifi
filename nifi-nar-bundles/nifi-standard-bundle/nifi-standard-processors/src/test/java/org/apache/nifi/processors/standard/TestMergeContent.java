@@ -898,6 +898,69 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testDefragmentWithFragmentCountOnMiddleFragment() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
+
+        final String fragmentId = "Fragment Id";
+
+        runner.enqueue("Fragment 1 without count ".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        }});
+
+        runner.enqueue("Fragment 2 with count ".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+            put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "3");
+        }});
+
+        runner.enqueue("Fragment 3 without count".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        }});
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        assembled.assertContentEquals("Fragment 1 without count Fragment 2 with count Fragment 3 without count".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testDefragmentWithDifferentFragmentCounts() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
+
+        final String fragmentId = "Fragment Id";
+
+        runner.enqueue("Fragment 1 with count ".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+            put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        }});
+
+        runner.enqueue("Fragment 2 with count ".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+            put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "3");
+        }});
+
+        runner.enqueue("Fragment 3 without count".getBytes("UTF-8"), new HashMap<String, String>() {{
+            put(MergeContent.FRAGMENT_ID_ATTRIBUTE, fragmentId);
+            put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        }});
+
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 0);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 3);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 0);
+    }
+
+    @Test
     public void testDefragmentDuplicateFragment() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
         runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);

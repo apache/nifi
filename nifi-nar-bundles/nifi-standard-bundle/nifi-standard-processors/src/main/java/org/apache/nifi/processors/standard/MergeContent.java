@@ -121,8 +121,7 @@ import java.util.zip.ZipOutputStream;
         + "accepted and subsequent FlowFiles will not be accepted into the Bin."),
     @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge Strategy> property is set to Defragment. This "
         + "attribute indicates how many FlowFiles should be expected in the given bundle. At least one FlowFile must have this attribute in "
-        + "the bundle and it may be the last one only. If multiple FlowFiles contain the \"fragment.count\" attribute in a given bundle, "
-        + "all must have the same value."),
+        + "the bundle. If multiple FlowFiles contain the \"fragment.count\" attribute in a given bundle, all must have the same value."),
     @ReadsAttribute(attribute = "segment.original.filename", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "This attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute will be used for the filename of the completed merged "
