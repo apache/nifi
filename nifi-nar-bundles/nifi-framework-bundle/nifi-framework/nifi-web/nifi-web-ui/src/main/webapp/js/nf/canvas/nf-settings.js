@@ -3071,7 +3071,7 @@
             if (!nfCommon.isEmpty(reportingTaskBulletins)) {
                 var reportingTaskBulletinsBySource = new Map(reportingTaskBulletins.map(function(d) { return [d.sourceId, d]; }));
 
-                reportingTaskBulletinsBySource.each(function (sourceBulletins, sourceId) {
+                reportingTaskBulletinsBySource.forEach(function (sourceBulletins, sourceId) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);
                     if (nfCommon.isDefinedAndNotNull(reportingTask)) {
                         reportingTasksData.updateItem(sourceId, $.extend(reportingTask, {
