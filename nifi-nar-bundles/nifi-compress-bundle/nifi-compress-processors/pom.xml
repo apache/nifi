@@ -42,7 +42,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.github.luben</groupId>
             <artifactId>zstd-jni</artifactId>
-            <version>1.5.5-1</version>
+            <version>1.5.5-3</version>
         </dependency>
         <dependency>
             <groupId>com.aayushatharva.brotli4j</groupId>
