@@ -58,6 +58,7 @@ org.apache.nifi.processors.standard.HandleHttpRequest
 org.apache.nifi.processors.standard.HandleHttpResponse
 org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
+org.apache.nifi.processors.standard.InvokeHTTPRecord
 org.apache.nifi.processors.standard.JoltTransformJSON
 org.apache.nifi.processors.standard.JoinEnrichment
 org.apache.nifi.processors.standard.ListDatabaseTables

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>InvokeHTTPRecord</title>
+
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Overview</h2>
+        <p>
+            The InvokeHTTPRecord processor's options are largely based on the InvokeHTTP processor's options, with some
+            additions to handle varying the request per-Record and handling output.
+        </p>
+
+        <h2>Varying Requests per-Record</h2>
+        <p>
+            In most cases, it isn't helpful to send exactly the same HTTP request for each record in a FlowFile.
+            Normally, the requests would vary - the path might include a customer ID, or a POST request body might
+            contain information from inside each Record.
+        </p>
+        <p>
+            To allow for this, several parts of the request can either be configured as literal values or as a
+            RecordPath expression. The following properties control these:
+        </p>
+        <ul>
+            <li>HTTP URL Type</li>
+            <li>Request Body Type</li>
+            <li>HTTP Header Type</li>
+        </ul>
+        <p>
+            If set to "Literal", the corresponding properties (or dynamic properties in the case of HTTP headers) will
+            have their values sent as the literal URL, request body or header. If set to "Record Path", the property
+            value will be interpreted as a RecordPath and evaluated against each record. For example, if you configured
+            the following property settings:
+        </p>
+        <ul>
+            <li><strong>HTTP URL Type</strong>: Record Path Value</li>
+            <li><strong>HTTP URL - RecordPath</strong>: concat('https://api.example.com?name=', /name)</li>
+        </ul>
+        <p>
+            The processor would fetch the value at <code>/name</code> from each Record in the input FlowFile and
+            concatenate it together with <code>https://api.example.com?name=</code> (using the RecordPath
+            <code>concat</code> function), then use this as the URL for the Record. The same is possible for the request
+            body and HTTP header values.
+        </p>
+
+        <h2>Error Routing</h2>
+        <p>
+            The InvokeHTTPRecord processor supports two different modes for handling errors and request failures,
+            controlled by the "Error Routing" property. (Note that a "failure" can include a request body not meeting
+            success criteria; see the Response Body Success Criteria section for details). In both modes, the unmodified
+            input FlowFile is routed to the <code>original</code> relationship.
+        </p>
+        <h3>Route Entire FlowFile to Failure</h3>
+        <p>
+            In this mode, if any requests fail, the entire input FlowFile is routed to the <code>failure</code>
+            relationship. If the requests for all records succeed, the modified FlowFile is routed to the
+            <code>success</code> relationship.
+        </p>
+        <h3>Split Failed Request Records</h3>
+        <p>
+            In this mode, the input FlowFile will be split based on the success or failure of the request for each
+            Record. A new FlowFile containing Records that succeeded will be routed to <code>split-success</code>, while
+            Records for requests that fail will be routed to <code>split-failure</code>. (No failure FlowFile is
+            generated if no Record requests fail.) If a fatal error is encountered, the FlowFile is routed to
+            <code>failure</code>.
+        </p>
+
+        <h2>Response Body Handling</h2>
+        <p>
+            The response body for requests can be handled in three ways, controlled by the "Handle Response Body As"
+            property. The method selected will affect whether the response body can be stored on the input Record, and
+            whether the response body can be used to evaluate success or failure.
+        </p>
+        <h3>None</h3>
+        <p>
+            The response body is ignored. It can't be stored on the Record or used to determine whether the request was
+            successful.
+        </p>
+        <h3>String</h3>
+        <p>
+            The response body is handled as a raw string. It can optionally be stored in a Record field as a string by
+            providing a RecordPath in the "Response Body RecordPath" property. The maximum number of bytes that will be
+            stored can be limited by setting the "Response Body String Maximum Bytes" property.
+        </p>
+        <p>
+            When handling the response body as a string, it can't be used to determine whether the request was
+            successful.
+        </p>
+        <h3>Record</h3>
+        <p>
+            The response body is handled as a Record. This requires a record reader controller service to be configured
+            using the "Response Body Record Reader" property. This will be used to parse the request body into a Record.
+            The response body can be stored on the input Record as a sub-Record (if the input schema allows for it) by
+            providing a RecordPath in the "Response Body RecordPath" property. If this RecordPath targets an existing
+            Record field, the response body Record's fields will be merged with the target Record's fields. Otherwise,
+            the target field will be overwritten by the response body Record.
+        </p>
+        <p>
+            When handling the response body as a Record, it can be used to determine whether the request succeeded or
+            failed. See the "Response Body Success Criteria" below.
+        </p>
+
+        <h2>Response Metadata</h2>
+        <p>
+            The following properties can be used to store various response metadata on each Record. Each of them can be
+            set to a RecordPath that indicates where the metadata should be stored in the Record. Note that response
+            headers are written as a Map:
+        </p>
+        <ul>
+            <li>Response Status Code RecordPath</li>
+            <li>Response Status Text RecordPath</li>
+            <li>Response Headers RecordPath</li>
+            <li>Response Time RecordPath</li>
+        </ul>
+
+        <h2>Error Handling and Retries</h2>
+        <p>
+            The "Maximum Retries" property can be used to control how many times a failed request will be retried. Note
+            that this is the number of retries after the initial request - setting this property to zero will cause only
+            the initial request to be made.
+        </p>
+        <p>
+            A request will be retried only under certain error conditions:
+        </p>
+        <ul>
+            <li>A 5xx response status code (server error, potentially transient)</li>
+            <li>A request timeout</li>
+            <li>The response body failing to meet success criteria (potentially transient)</li>
+        </ul>
+        <p>
+            Requests will not be retried under the following conditions:
+        </p>
+        <ul>
+            <li>A 4xx response status code (client error)</li>
+            <li>Number of maximum retries exceeded</li>
+            <li>An internal error in the processor</li>
+        </ul>
+
+        <h2>Response Body Success Criteria</h2>
+        <p>
+            Sometimes an HTTP API request might indicate failure by varying the response body, instead of varying the
+            status code. For example, GraphQL APIs will often return a 200 status code even if the operation failed. The
+            failure is indicated by an <code>error</code> field in the response body.
+        </p>
+        <p>
+            In order to detect these error conditions, the InvokeHTTPRecord processor can evaluate a RecordPath against
+            each response body, then perform a simple comparison against the result. This is used to determine whether
+            the Record is counted as having succeeded or failed.
+        </p>
+        <p>
+            In order to use this functionality, the "Handle Response Body As" property must be set to "Record", the
+            "Response Body Record Reader" property must be configured with a record reader and a value must be provided
+            for the "Response Body Success Criteria RecordPath" property. A comparison operator can then be selected
+            using the "Response Body Success Criteria Comparison Operator" property, and a value to compare to can be
+            provided using the "Response Body Success Criteria Comparison Value" property.
+        </p>
+        <p>
+            For example, the following settings will parse the response body as JSON and then check if the
+            <code>result.code</code> path contains a value greater than zero:
+        </p>
+        <ul>
+            <li><strong>Handle Response Body As</strong>: Record</li>
+            <li><strong>Response Body Record Reader</strong>: (<code>JSONTreeReader</code> service)</li>
+            <li><strong>Response Body Success Criteria RecordPath</strong>: /result/code</li>
+            <li><strong>Response Body Success Criteria Comparison Operator</strong>: Greater Than</li>
+            <li><strong>Response Body Success Criteria Comparison Value</strong>: 0</li>
+        </ul>
+        <p>
+            If these criteria match, then the Record's request is treated as being successful. If they don't, it's
+            treated as having failed. This will either result in the entire input FlowFile being routed to
+            <code>failure</code> or the record being routed to <code>split-failure</code>, depending on the "Error
+            Routing" property.
+        </p>
+    </body>
+</html>
