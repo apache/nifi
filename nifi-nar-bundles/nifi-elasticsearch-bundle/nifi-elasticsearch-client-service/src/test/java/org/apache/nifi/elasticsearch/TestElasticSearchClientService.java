@@ -28,10 +28,10 @@ import java.util.List;
 import java.util.Map;
 
 public class TestElasticSearchClientService extends AbstractControllerService implements ElasticSearchClientService {
-    private Map<String, Object> data;
+    private final Map<String, Object> data;
 
     public TestElasticSearchClientService() {
-        data = new HashMap<>();
+        data = new HashMap<>(4, 1);
         data.put("username", "john.smith");
         data.put("password", "testing1234");
         data.put("email", "john.smith@test.com");

@@ -18,6 +18,10 @@ package org.apache.nifi.elasticsearch.integration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -49,12 +53,24 @@ public abstract class AbstractElasticsearchITBase {
     protected static final DockerImageName IMAGE = DockerImageName
             .parse(System.getProperty("elasticsearch.docker.image", "docker.elastic.co/elasticsearch/elasticsearch:8.7.1"));
     protected static final String ELASTIC_USER_PASSWORD = System.getProperty("elasticsearch.elastic_user.password", RandomStringUtils.randomAlphanumeric(10, 20));
+    private static final int PORT = 9200;
     protected static final ElasticsearchContainer ELASTICSEARCH_CONTAINER = new ElasticsearchContainer(IMAGE)
             .withPassword(ELASTIC_USER_PASSWORD)
             .withEnv("xpack.security.enabled", "true")
             // enable API Keys for integration-tests (6.x & 7.x don't enable SSL and therefore API Keys by default, so use a trial license and explicitly enable API Keys)
             .withEnv("xpack.license.self_generated.type", "trial")
-            .withEnv("xpack.security.authc.api_key.enabled", "true");
+            .withEnv("xpack.security.authc.api_key.enabled", "true")
+            // use a "special address" to ensure the publish_host is in the bind_host list, otherwise the Sniffer won't work
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-network.html#network-interface-values
+            // TestContainers makes Elasticsearch available via localhost/127.0.0.1; Elasticsearch uses the IP Address in publish_host
+            .withEnv("network.bind_host", "_local_,_site_")
+            .withEnv("network.publish_host", "127.0.0.1")
+            // pin the Elasticsearch port (typically 9200 but not guaranteed), also bind that to 9200 on the host so the network.publish_host is accessible
+            .withEnv("http.port", String.valueOf(PORT))
+            .withExposedPorts(PORT)
+            .withCreateContainerCmdModifier(cmd -> cmd.withHostConfig(
+                    new HostConfig().withPortBindings(new PortBinding(Ports.Binding.bindPort(PORT), new ExposedPort(PORT)))
+            ));
     protected static final String CLIENT_SERVICE_NAME = "Client Service";
     protected static final String INDEX = "messages";
 
@@ -90,7 +106,6 @@ public abstract class AbstractElasticsearchITBase {
 
     @BeforeAll
     static void beforeAll() throws IOException {
-
         startTestcontainer();
         type = getElasticMajorVersion() == 6 ? "_doc" : "";
         System.out.printf("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nIMAGE: %s:%s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
