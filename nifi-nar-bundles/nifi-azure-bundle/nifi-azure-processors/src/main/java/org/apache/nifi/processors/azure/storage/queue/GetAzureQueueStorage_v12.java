@@ -44,10 +44,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.EXPIRATION_TIME_ATTRIBUTE;
+import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.INSERTION_TIME_ATTRIBUTE;
+import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.MESSAGE_ID_ATTRIBUTE;
+import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.POP_RECEIPT_ATTRIBUTE;
+import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.URI_ATTRIBUTE;
 
 @SeeAlso({PutAzureQueueStorage.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -56,15 +63,15 @@ import java.util.concurrent.TimeUnit;
         "to consume messages without deleting them, set 'Auto Delete Messages' to 'false'. Note: There might be chances of receiving duplicates in situations like " +
         "when a message is received but was unable to be deleted from the queue due to some unexpected situations.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "azure.queue.uri", description = "The absolute URI of the configured Azure Queue Storage"),
-        @WritesAttribute(attribute = "azure.queue.insertionTime", description = "The time when the message was inserted into the queue storage"),
-        @WritesAttribute(attribute = "azure.queue.expirationTime", description = "The time when the message will expire from the queue storage"),
-        @WritesAttribute(attribute = "azure.queue.messageId", description = "The ID of the retrieved message"),
-        @WritesAttribute(attribute = "azure.queue.popReceipt", description = "The pop receipt of the retrieved message"),
+        @WritesAttribute(attribute = URI_ATTRIBUTE, description = "The absolute URI of the configured Azure Queue Storage"),
+        @WritesAttribute(attribute = INSERTION_TIME_ATTRIBUTE, description = "The time when the message was inserted into the queue storage"),
+        @WritesAttribute(attribute = EXPIRATION_TIME_ATTRIBUTE, description = "The time when the message will expire from the queue storage"),
+        @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = "The ID of the retrieved message"),
+        @WritesAttribute(attribute = POP_RECEIPT_ATTRIBUTE, description = "The pop receipt of the retrieved message"),
 })
 public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     public static final PropertyDescriptor AUTO_DELETE = new PropertyDescriptor.Builder()
-            .name("auto-delete-messages")
+            .name("Auto Delete Messages")
             .displayName("Auto Delete Messages")
             .description("Specifies whether the received message is to be automatically deleted from the queue.")
             .required(true)
@@ -73,9 +80,9 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("batch-size")
-            .displayName("Batch Size")
+    public static final PropertyDescriptor MESSAGE_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Message Batch Size")
+            .displayName("Message Batch Size")
             .description("The number of messages to be retrieved from the queue.")
             .required(true)
             .addValidator(StandardValidators.createLongValidator(1, 32, true))
@@ -83,7 +90,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .build();
 
     public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("visibility-timeout")
+            .name("Visibility Timeout")
             .displayName("Visibility Timeout")
             .description("The duration during which the retrieved message should be invisible to other consumers.")
             .required(true)
@@ -92,30 +99,37 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
-    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
             Arrays.asList(
                     QUEUE,
                     STORAGE_CREDENTIALS_SERVICE,
                     AUTO_DELETE,
-                    BATCH_SIZE,
+                    MESSAGE_BATCH_SIZE,
                     VISIBILITY_TIMEOUT,
                     REQUEST_TIMEOUT,
                     ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
             )
     );
 
+    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+
+    // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages
+    private static final Duration MAX_VISIBILITY_TIMEOUT = Duration.ofDays(7);
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = (List<ValidationResult>) super.customValidate(validationContext);
 
-        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final Duration visibilityTimeout = Duration.ofSeconds(
+                validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS)
+        );
 
-        if (visibilityTimeout <= 0) {
+        if (visibilityTimeout.getSeconds() <= 0) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(VISIBILITY_TIMEOUT.getDisplayName())
@@ -123,9 +137,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
                     .build());
         }
 
-        // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages
-        final int maxVisibilityTimeout = 7 * 24 * 60 * 60;
-        if (visibilityTimeout >  maxVisibilityTimeout) {
+        if (MAX_VISIBILITY_TIMEOUT.compareTo(visibilityTimeout) < 0) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(VISIBILITY_TIMEOUT.getDisplayName())
@@ -138,12 +150,12 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return RELATIONSHIPS;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(MESSAGE_BATCH_SIZE).asInteger();
         final int visibilityTimeoutInSecs = context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final int requestTimeoutInSecs = context.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
         final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
@@ -159,7 +171,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
                     Duration.ofSeconds(requestTimeoutInSecs),
                     Context.NONE);
         } catch (final QueueStorageException e) {
-            getLogger().error("Failed to retrieve messages from the provided Azure Storage Queue due to {}", new Object[] {e});
+            getLogger().error("Failed to retrieve messages from Azure Storage Queue", e);
             context.yield();
             return;
         }
@@ -171,7 +183,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
         for (final QueueMessageItem message : retrievedMessagesIterable) {
             FlowFile flowFile = session.create();
 
-            final Map<String, String> attributes = new HashMap<>();
+            final Map<String, String> attributes = new LinkedHashMap<>();
             attributes.put("azure.queue.uri", queueClient.getQueueUrl());
             attributes.put("azure.queue.insertionTime", message.getInsertionTime().toString());
             attributes.put("azure.queue.expirationTime", message.getExpirationTime().toString());

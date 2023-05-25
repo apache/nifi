@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
     public static final PropertyDescriptor QUEUE = new PropertyDescriptor.Builder()
-            .name("storage-queue-name")
+            .name("Queue Name")
             .displayName("Queue Name")
             .description("Name of the Azure Storage Queue")
             .required(true)
@@ -62,20 +62,20 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("storage-credentials-service")
-            .displayName("Storage Credentials")
+            .name("Credentials Service")
+            .displayName("Credentials Service")
             .description("Controller Service used to obtain Azure Storage Credentials.")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor REQUEST_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("request-timeout")
+            .name("Request Timeout")
             .displayName("Request Timeout")
             .description("The timeout for read or write requests to Azure Queue Storage. " +
                     "Defaults to 1 second.")
             .required(true)
-            .defaultValue("1 secs")
+            .defaultValue("10 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
@@ -88,11 +88,17 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
             .name("failure")
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+
+    static final String URI_ATTRIBUTE = "azure.queue.uri";
+    static final String INSERTION_TIME_ATTRIBUTE = "azure.queue.insertionTime";
+    static final String EXPIRATION_TIME_ATTRIBUTE = "azure.queue.expirationTime";
+    static final String MESSAGE_ID_ATTRIBUTE = "azure.queue.messageId";
+    static final String POP_RECEIPT_ATTRIBUTE = "azure.queue.popReceipt";
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override

@@ -47,9 +47,9 @@ import java.util.concurrent.TimeUnit;
 @Tags({ "azure", "microsoft", "cloud", "storage", "queue", "enqueue" })
 @CapabilityDescription("Writes the content of the incoming FlowFiles to the configured Azure Queue Storage.")
 public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
-    public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
-            .name("time-to-live")
-            .displayName("TTL")
+    public static final PropertyDescriptor MESSAGE_TIME_TO_LIVE = new PropertyDescriptor.Builder()
+            .name("Message Time To Live")
+            .displayName("Message Time To Live")
             .description("Maximum time to allow the message to be in the queue. If left empty, the default value of 7 days will be used.")
             .required(false)
             .defaultValue("7 days")
@@ -57,7 +57,7 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .build();
 
     public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("visibility-timeout")
+            .name("Visibility Timeout")
             .displayName("Visibility Timeout")
             .description("The length of time during which the message will be invisible after it is read. " +
                     "If the processing unit fails to delete the message after it is read, then the message will reappear in the queue. " +
@@ -68,28 +68,33 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
-    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
             Arrays.asList(
                     QUEUE,
                     STORAGE_CREDENTIALS_SERVICE,
-                    TTL,
+                    MESSAGE_TIME_TO_LIVE,
                     VISIBILITY_TIMEOUT,
                     REQUEST_TIMEOUT,
                     ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
             )
     );
 
+    // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/get-messages
+    private static final Duration MAX_VISIBILITY_TIMEOUT = Duration.ofDays(7);
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = (List<ValidationResult>) super.customValidate(validationContext);
-        final int visibilityTimeout = validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final Duration visibilityTimeout = Duration.ofSeconds(
+                validationContext.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS)
+        );
 
-        if (visibilityTimeout <= 0) {
+        if (visibilityTimeout.getSeconds() <= 0) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(VISIBILITY_TIMEOUT.getDisplayName())
@@ -97,9 +102,7 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
                     .build());
         }
 
-        // 7 days is the maximum timeout as per https://learn.microsoft.com/en-us/rest/api/storageservices/put-message
-        final int maxVisibilityTimeout = 7 * 24 * 60 * 60;
-        if (visibilityTimeout >  maxVisibilityTimeout) {
+        if (MAX_VISIBILITY_TIMEOUT.compareTo(visibilityTimeout) < 0) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(VISIBILITY_TIMEOUT.getDisplayName())
@@ -107,12 +110,12 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
                     .build());
         }
 
-        final int ttl = validationContext.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final int ttl = validationContext.getProperty(MESSAGE_TIME_TO_LIVE).asTimePeriod(TimeUnit.SECONDS).intValue();
         if (ttl <= 0) {
             results.add(new ValidationResult.Builder()
-                    .subject(TTL.getDisplayName())
+                    .subject(MESSAGE_TIME_TO_LIVE.getDisplayName())
                     .valid(false)
-                    .explanation(TTL.getDisplayName() + " should be any positive number")
+                    .explanation(MESSAGE_TIME_TO_LIVE.getDisplayName() + " should be any positive number")
                     .build());
         }
 
@@ -133,11 +136,10 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
         final String flowFileContent = baos.toString();
 
         final int visibilityTimeoutInSecs = context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
-        final int ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final int ttl = context.getProperty(MESSAGE_TIME_TO_LIVE).asTimePeriod(TimeUnit.SECONDS).intValue();
         final int requestTimeoutInSecs = context.getProperty(REQUEST_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
 
-        final QueueClient queueClient;
-        queueClient = createQueueClient(context, flowFile);
+        final QueueClient queueClient = createQueueClient(context, flowFile);
         try {
             queueClient.sendMessageWithResponse(
                     flowFileContent,
@@ -147,7 +149,7 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
                     Context.NONE
             );
         } catch (final QueueStorageException e) {
-            getLogger().error("Failed to write the message to Azure Queue Storage due to {}", new Object[]{e});
+            getLogger().error("Failed to write message to Azure Queue Storage", e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
