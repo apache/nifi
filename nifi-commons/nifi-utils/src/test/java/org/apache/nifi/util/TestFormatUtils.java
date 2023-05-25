@@ -24,7 +24,16 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.text.DecimalFormatSymbols;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -33,6 +42,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestFormatUtils {
+    private static final String NEW_YORK_TIME_ZONE_ID = "America/New_York";
+    private static final String KIEV_TIME_ZONE_ID = "Europe/Kiev";
+    private static final String UTC_TIME_ZONE_ID = ZoneOffset.UTC.getId();
+
+    @SuppressWarnings("deprecation")
+    @ParameterizedTest
+    @MethodSource("getParse")
+    public void testParse(String value, TimeUnit desiredUnit, Long expected) {
+        assertEquals(expected, FormatUtils.getTimeDuration(value, desiredUnit));
+    }
+
+    private static Stream<Arguments> getParse() {
+        return Stream.of(Arguments.of("3000 ms", TimeUnit.SECONDS, 3L),
+                Arguments.of("3000 s", TimeUnit.SECONDS, 3000L),
+                Arguments.of("999 millis", TimeUnit.SECONDS, 0L),
+                Arguments.of("4 days", TimeUnit.NANOSECONDS, 4L * 24L * 60L * 60L * 1000000000L),
+                Arguments.of("1 DAY", TimeUnit.HOURS, 24L),
+                Arguments.of("1 hr", TimeUnit.MINUTES, 60L),
+                Arguments.of("1 Hrs", TimeUnit.MINUTES, 60L));
+    }
+
     @SuppressWarnings("deprecation")
     @ParameterizedTest
     @ValueSource(strings = {"1 week", "1 wk", "1 w", "1 wks", "1 weeks"})
@@ -305,5 +335,165 @@ public class TestFormatUtils {
         return Stream.of(Arguments.of(TimeUnit.NANOSECONDS, TimeUnit.DAYS),
                 Arguments.of(TimeUnit.NANOSECONDS, TimeUnit.MICROSECONDS),
                 Arguments.of(TimeUnit.HOURS, TimeUnit.DAYS));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getFormatTime")
+    public void testFormatTime(long sourceDuration, TimeUnit sourceUnit, String expected) {
+        assertEquals(expected, FormatUtils.formatHoursMinutesSeconds(sourceDuration, sourceUnit));
+    }
+
+    private static Stream<Arguments> getFormatTime() {
+        return Stream.of(Arguments.of(0L, TimeUnit.DAYS, "00:00:00.000"),
+                Arguments.of(1L, TimeUnit.HOURS, "01:00:00.000"),
+                Arguments.of(2L, TimeUnit.HOURS, "02:00:00.000"),
+                Arguments.of(1L, TimeUnit.MINUTES, "00:01:00.000"),
+                Arguments.of(10L, TimeUnit.SECONDS, "00:00:10.000"),
+                Arguments.of(777L, TimeUnit.MILLISECONDS, "00:00:00.777"),
+                Arguments.of(7777, TimeUnit.MILLISECONDS, "00:00:07.777"),
+                Arguments.of(TimeUnit.MILLISECONDS.convert(20, TimeUnit.HOURS)
+                        + TimeUnit.MILLISECONDS.convert(11, TimeUnit.MINUTES)
+                        + TimeUnit.MILLISECONDS.convert(36, TimeUnit.SECONDS)
+                        + TimeUnit.MILLISECONDS.convert(897, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "20:11:36.897"),
+                Arguments.of(TimeUnit.MILLISECONDS.convert(999, TimeUnit.HOURS)
+                        + TimeUnit.MILLISECONDS.convert(60, TimeUnit.MINUTES)
+                        + TimeUnit.MILLISECONDS.convert(60, TimeUnit.SECONDS)
+                        + TimeUnit.MILLISECONDS.convert(1001, TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS, "1000:01:01.001"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getFormatNanos")
+    public void testFormatNanos(long nanos, boolean includeTotalNanos, String expected) {
+        assertEquals(expected, FormatUtils.formatNanos(nanos, includeTotalNanos));
+    }
+
+    private static Stream<Arguments> getFormatNanos() {
+        return Stream.of(Arguments.of(0L, false, "0 nanos"),
+                Arguments.of(0L, true, "0 nanos (0 nanos)"),
+                Arguments.of(1_000_000L, false, "1 millis, 0 nanos"),
+                Arguments.of(1_000_000L, true, "1 millis, 0 nanos (1000000 nanos)"),
+                Arguments.of(1_000_001L, false, "1 millis, 1 nanos"),
+                Arguments.of(1_000_001L, true, "1 millis, 1 nanos (1000001 nanos)"),
+                Arguments.of(1_000_000_000L, false, "1 seconds, 0 millis, 0 nanos"),
+                Arguments.of(1_000_000_000L, true, "1 seconds, 0 millis, 0 nanos (1000000000 nanos)"),
+                Arguments.of(1_001_000_000L, false, "1 seconds, 1 millis, 0 nanos"),
+                Arguments.of(1_001_000_000L, true, "1 seconds, 1 millis, 0 nanos (1001000000 nanos)"),
+                Arguments.of(1_001_000_001L, false, "1 seconds, 1 millis, 1 nanos"),
+                Arguments.of(1_001_000_001L, true, "1 seconds, 1 millis, 1 nanos (1001000001 nanos)"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getFormatDataSize")
+    public void testFormatDataSize(double dataSize, String expected) {
+        assertEquals(expected, FormatUtils.formatDataSize(dataSize));
+    }
+
+    private static Stream<Arguments> getFormatDataSize() {
+        DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
+        char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
+        char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
+
+        return Stream.of(Arguments.of(0d, "0 bytes"),
+                Arguments.of(10.4d, String.format("10%s4 bytes", decimalSeparator)),
+                Arguments.of(1024d, String.format("1%s024 bytes", groupingSeparator)),
+                Arguments.of(1025d, "1 KB"),
+                Arguments.of(2000d, String.format("1%s95 KB", decimalSeparator)),
+                Arguments.of(200_000d, String.format("195%s31 KB", decimalSeparator)),
+                Arguments.of(200_000_000d, String.format("190%s73 MB", decimalSeparator)),
+                Arguments.of(200_000_000_000d, String.format("186%s26 GB", decimalSeparator)),
+                Arguments.of(200_000_000_000_000d, String.format("181%s9 TB", decimalSeparator)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getParseToInstantUsingFormatterWithoutZones")
+    public void testParseToInstantUsingFormatterWithoutZones(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) throws Exception {
+        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
+    }
+
+    private static Stream<Arguments> getParseToInstantUsingFormatterWithoutZones() {
+        return Stream.of(/*GMT-*/
+                Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
+                Arguments.of("yyyy-MM-dd", "2020-01-01", NEW_YORK_TIME_ZONE_ID, "2020-01-01T05:00:00"),
+                Arguments.of("HH:mm:ss", "03:00:00", NEW_YORK_TIME_ZONE_ID, "1970-01-01T08:00:00"),
+                Arguments.of("yyyy-MMM-dd", "2020-may-01", NEW_YORK_TIME_ZONE_ID, "2020-05-01T04:00:00"),
+                /*GMT+*/
+                Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
+                Arguments.of("yyyy-MM-dd", "2020-01-01", KIEV_TIME_ZONE_ID, "2019-12-31T22:00:00"),
+                Arguments.of("HH:mm:ss", "03:00:00", KIEV_TIME_ZONE_ID, "1970-01-01T00:00:00"),
+                Arguments.of("yyyy-MMM-dd", "2020-may-01", KIEV_TIME_ZONE_ID, "2020-04-30T21:00:00"),
+                /*UTC*/
+                Arguments.of("yyyy-MM-dd HH:mm:ss", "2020-01-01 02:00:00", ZoneOffset.UTC.getId(), "2020-01-01T02:00:00"),
+                Arguments.of("yyyy-MM-dd", "2020-01-01", ZoneOffset.UTC.getId(), "2020-01-01T00:00:00"),
+                Arguments.of("HH:mm:ss", "03:00:00", ZoneOffset.UTC.getId(), "1970-01-01T03:00:00"),
+                Arguments.of("yyyy-MMM-dd", "2020-may-01", ZoneOffset.UTC.getId(), "2020-05-01T00:00:00"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getParseToInstantUsingFormatterWithZone")
+    public void testParseToInstantUsingFormatterWithZone(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) throws Exception {
+        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, formatZoneId, expectedUtcDateTime);
+    }
+
+    private static Stream<Arguments> getParseToInstantUsingFormatterWithZone() {
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+        String parsedDateTime = "2020-01-01 02:00:00";
+        return Stream.of(Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
+                Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
+                Arguments.of(pattern, parsedDateTime, NEW_YORK_TIME_ZONE_ID, UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"),
+                Arguments.of(pattern, parsedDateTime, KIEV_TIME_ZONE_ID, NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
+                Arguments.of(pattern, parsedDateTime, KIEV_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
+                Arguments.of(pattern, parsedDateTime, KIEV_TIME_ZONE_ID, UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"),
+                Arguments.of(pattern, parsedDateTime, UTC_TIME_ZONE_ID, NEW_YORK_TIME_ZONE_ID, "2020-01-01T07:00:00"),
+                Arguments.of(pattern, parsedDateTime, UTC_TIME_ZONE_ID, KIEV_TIME_ZONE_ID, "2020-01-01T00:00:00"),
+                Arguments.of(pattern, parsedDateTime, UTC_TIME_ZONE_ID, UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getParseToInstantWithZonePassedInText")
+    public void testParseToInstantWithZonePassedInText(String pattern, String parsedDateTime, String systemDefaultZoneId, String expectedUtcDateTime) throws Exception {
+        checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, systemDefaultZoneId, null, expectedUtcDateTime);
+    }
+
+    private static Stream<Arguments> getParseToInstantWithZonePassedInText() {
+        String pattern = "yyyy-MM-dd HH:mm:ss Z";
+        return Stream.of(Arguments.of(pattern, "2020-01-01 02:00:00 -0100", NEW_YORK_TIME_ZONE_ID, "2020-01-01T03:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0100", NEW_YORK_TIME_ZONE_ID, "2020-01-01T01:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0000", NEW_YORK_TIME_ZONE_ID, "2020-01-01T02:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 -0100", KIEV_TIME_ZONE_ID, "2020-01-01T03:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0100", KIEV_TIME_ZONE_ID, "2020-01-01T01:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0000", KIEV_TIME_ZONE_ID, "2020-01-01T02:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 -0100", UTC_TIME_ZONE_ID, "2020-01-01T03:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0100", UTC_TIME_ZONE_ID, "2020-01-01T01:00:00"),
+                Arguments.of(pattern, "2020-01-01 02:00:00 +0000", UTC_TIME_ZONE_ID, "2020-01-01T02:00:00"));
+    }
+
+    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String systemDefaultZoneId, String formatZoneId, String expectedUtcDateTime) throws Exception {
+        TimeZone current = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone(systemDefaultZoneId));
+        try {
+            checkSameResultsWithSimpleDateFormat(pattern, parsedDateTime, formatZoneId, expectedUtcDateTime);
+        } finally {
+            TimeZone.setDefault(current);
+        }
+    }
+
+    private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String formatterZoneId, String expectedUtcDateTime) throws Exception {
+        Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
+
+        // reference implementation
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.US);
+        if (formatterZoneId != null) {
+            sdf.setTimeZone(TimeZone.getTimeZone(formatterZoneId));
+        }
+        Instant simpleDateFormatResult = sdf.parse(parsedDateTime).toInstant();
+        assertEquals(expectedInstant, simpleDateFormatResult);
+
+        // current implementation
+        DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(pattern);
+        if (formatterZoneId != null) {
+            dtf = dtf.withZone(ZoneId.of(formatterZoneId));
+        }
+        Instant result = FormatUtils.parseToInstant(dtf, parsedDateTime);
+        assertEquals(expectedInstant, result);
     }
 }
