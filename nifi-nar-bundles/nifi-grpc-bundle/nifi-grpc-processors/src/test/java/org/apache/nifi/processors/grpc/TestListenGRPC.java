@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.grpc;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -75,21 +74,18 @@ class TestListenGRPC {
 
     @Test
     void testRunSocketListening() throws IOException {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, Integer.toString(port));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, "0");
         runner.assertValid();
 
         runner.run(1, false);
+        final int port = ((ListenGRPC) runner.getProcessor()).getListeningPort();
 
         assertSocketConnected(port, SocketFactory.getDefault());
     }
 
     @Test
     void testRunSocketListeningSslContextService() throws IOException, InitializationException {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
-        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, Integer.toString(port));
+        runner.setProperty(ListenGRPC.PROP_SERVICE_PORT, "0");
 
         when(sslContextService.getIdentifier()).thenReturn(SSL_SERVICE_ID);
         when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
@@ -105,6 +101,7 @@ class TestListenGRPC {
 
         runner.run(1, false);
 
+        final int port = ((ListenGRPC) runner.getProcessor()).getListeningPort();
         assertSocketConnectedProtocolNegotiated(port, sslContext.getSocketFactory());
     }
 
