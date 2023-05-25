@@ -71,6 +71,7 @@ public class PutAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(
             Arrays.asList(
                     QUEUE,
+                    ENDPOINT_SUFFIX,
                     STORAGE_CREDENTIALS_SERVICE,
                     MESSAGE_TIME_TO_LIVE,
                     VISIBILITY_TIMEOUT,
