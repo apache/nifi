@@ -65,8 +65,8 @@ import java.util.stream.Collectors;
 @WritesAttribute(attribute = "JSONAttributes", description = "JSON representation of Attributes")
 public class AttributesToJSON extends AbstractProcessor {
     public enum JsonHandlingStrategy implements DescribedValue {
-        ESCAPED_STRING("Escaped String", "Escapes JSON attribute values to strings"),
-        NESTED_OBJECT("Nested Object", "Handles JSON attribute values as nested structured objects");
+        ESCAPED("Escaped", "Escapes JSON attribute values to strings"),
+        NESTED("Nested", "Handles JSON attribute values as nested structured objects or arrays");
 
         JsonHandlingStrategy(String displayName, String description) {
             this.displayName = displayName;
@@ -158,7 +158,7 @@ public class AttributesToJSON extends AbstractProcessor {
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues(JsonHandlingStrategy.class)
-            .defaultValue(AttributesToJSON.JsonHandlingStrategy.ESCAPED_STRING.getValue())
+            .defaultValue(AttributesToJSON.JsonHandlingStrategy.ESCAPED.getValue())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
@@ -304,7 +304,7 @@ public class AttributesToJSON extends AbstractProcessor {
     }
 
     private Map<String, Object> getFormattedAttributes(Map<String, Object> flowFileAttributes) throws JsonProcessingException {
-        if (JsonHandlingStrategy.ESCAPED_STRING == jsonHandlingStrategy) {
+        if (JsonHandlingStrategy.ESCAPED == jsonHandlingStrategy) {
             return flowFileAttributes;
         }
 

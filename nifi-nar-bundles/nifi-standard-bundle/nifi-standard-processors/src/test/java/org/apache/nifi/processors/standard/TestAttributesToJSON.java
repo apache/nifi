@@ -471,7 +471,7 @@ public class TestAttributesToJSON {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
         testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -501,7 +501,7 @@ public class TestAttributesToJSON {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_ATTRIBUTE);
         testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
@@ -527,7 +527,7 @@ public class TestAttributesToJSON {
         final TestRunner testRunner = TestRunners.newTestRunner(new AttributesToJSON());
         testRunner.setProperty(AttributesToJSON.DESTINATION, AttributesToJSON.DESTINATION_CONTENT);
         testRunner.setProperty(AttributesToJSON.JSON_HANDLING_STRATEGY,
-                AttributesToJSON.JsonHandlingStrategy.NESTED_OBJECT.getValue());
+                AttributesToJSON.JsonHandlingStrategy.NESTED.getValue());
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
