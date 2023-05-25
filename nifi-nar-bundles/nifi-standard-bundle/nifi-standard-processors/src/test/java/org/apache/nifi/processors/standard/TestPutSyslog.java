@@ -23,11 +23,12 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -81,11 +82,21 @@ public class TestPutSyslog {
     private InetAddress address;
 
     private int port;
+    private EventServer eventServer;
+    private BlockingQueue<ByteArrayMessage> messages;
 
     @BeforeEach
     public void setRunner() throws UnknownHostException {
+        final byte[] delimiter = DELIMITER.getBytes(CHARSET);
+        messages = new LinkedBlockingQueue<>();
+
         address = InetAddress.getByName(ADDRESS);
-        port = NetworkUtils.getAvailableUdpPort();
+        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(new MockComponentLogger(), address, 0, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
+        this.eventServer = serverFactory.getEventServer();
+        this.port = eventServer.getListeningPort();
+
         runner = TestRunners.newTestRunner(PutSyslog.class);
         runner.setProperty(PutSyslog.HOSTNAME, ADDRESS);
         runner.setProperty(PutSyslog.PROTOCOL, protocol.toString());
@@ -95,6 +106,13 @@ public class TestPutSyslog {
         runner.setProperty(PutSyslog.MSG_HOSTNAME, LOCALHOST);
         runner.setProperty(PutSyslog.MSG_TIMESTAMP, TIMESTAMP);
         runner.assertValid();
+    }
+
+    @AfterEach
+    public void shutdownEventServer() {
+        if (eventServer != null) {
+            eventServer.shutdown();
+        }
     }
 
     @Test
@@ -128,20 +146,14 @@ public class TestPutSyslog {
     @Test
     public void testRunFailure() {
         runner.setProperty(PutSyslog.PROTOCOL, PutSyslog.TCP_VALUE);
-        runner.setProperty(PutSyslog.PORT, Integer.toString(NetworkUtils.getAvailableTcpPort()));
+        runner.setProperty(PutSyslog.HOSTNAME, "this-host-does-not-exist");
+        runner.setProperty(PutSyslog.PORT, "44");
         runner.enqueue(new byte[]{});
         runner.run();
         runner.assertAllFlowFilesTransferred(PutSyslog.REL_FAILURE);
     }
 
     private void assertSyslogMessageSuccess(final String expectedSyslogMessage, final Map<String, String> attributes) throws InterruptedException {
-        final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
-        final byte[] delimiter = DELIMITER.getBytes(CHARSET);
-        final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
-        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
-        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
-        final EventServer eventServer = serverFactory.getEventServer();
-
         try {
             runner.enqueue(expectedSyslogMessage, attributes);
             runner.run();

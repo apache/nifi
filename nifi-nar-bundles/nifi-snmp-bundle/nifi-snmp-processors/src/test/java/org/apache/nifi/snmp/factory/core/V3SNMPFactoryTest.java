@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.factory.core;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
@@ -64,9 +63,7 @@ class V3SNMPFactoryTest extends SNMPSocketSupport {
     @Test
     void testFactoryCreatesResourceHandler() {
         final V3SNMPFactory snmpFactory = spy(V3SNMPFactory.class);
-        final int managerPort = NetworkUtils.getAvailableUdpPort();
-        final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
-        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(managerPort, targetPort);
+        final SNMPConfiguration snmpConfiguration = getSnmpConfiguration(0, "48");
         snmpFactory.createSNMPResourceHandler(snmpConfiguration);
 
         verify(snmpFactory).createTargetInstance(snmpConfiguration);

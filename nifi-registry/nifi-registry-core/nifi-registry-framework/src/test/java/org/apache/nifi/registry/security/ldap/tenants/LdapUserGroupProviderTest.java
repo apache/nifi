@@ -27,7 +27,6 @@ import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.security.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.registry.security.ldap.ReferralStrategy;
 import org.apache.nifi.registry.util.StandardPropertyValue;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,9 +84,9 @@ public class LdapUserGroupProviderTest {
     public void setup() {
         server = new UnboundIdContainer("o=nifi", "classpath:nifi-example.ldif");
         server.setApplicationContext(new GenericApplicationContext());
-        serverPort = NetworkUtils.availablePort();
-        server.setPort(serverPort);
+        server.setPort(0);
         server.afterPropertiesSet();
+        serverPort = server.getPort();
         final UserGroupProviderInitializationContext initializationContext = mock(UserGroupProviderInitializationContext.class);
         when(initializationContext.getIdentifier()).thenReturn("identifier");
 

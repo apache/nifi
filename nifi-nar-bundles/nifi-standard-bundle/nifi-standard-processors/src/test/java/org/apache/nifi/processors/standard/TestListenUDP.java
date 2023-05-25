@@ -25,7 +25,6 @@ import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -54,7 +53,6 @@ public class TestListenUDP {
 
     private static final String LOCALHOST = "localhost";
 
-    private int port = 0;
 
     private TestRunner runner;
 
@@ -64,8 +62,7 @@ public class TestListenUDP {
     @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(ListenUDP.class);
-        port = NetworkUtils.getAvailableUdpPort();
-        runner.setProperty(ListenUDP.PORT, Integer.toString(port));
+        runner.setProperty(ListenUDP.PORT, "0");
     }
 
     @Test
@@ -173,7 +170,7 @@ public class TestListenUDP {
 
     @Test
     public void testWithSendingHostAndPortSameAsSender() throws IOException, InterruptedException {
-        final Integer sendingPort = NetworkUtils.getAvailableUdpPort();
+        final int sendingPort = 27911;
         runner.setProperty(ListenUDP.SENDING_HOST, LOCALHOST);
         runner.setProperty(ListenUDP.SENDING_HOST_PORT, String.valueOf(sendingPort));
 
@@ -200,6 +197,8 @@ public class TestListenUDP {
     }
 
     private void verifyFlowFiles(List<MockFlowFile> mockFlowFiles) {
+        final int port = ((ListenUDP) runner.getProcessor()).getListeningPort();
+
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             MockFlowFile flowFile = mockFlowFiles.get(i);
             flowFile.assertContentEquals("This is message " + (i + 1));
@@ -222,6 +221,7 @@ public class TestListenUDP {
             throws IOException, InterruptedException {
         // Run Processor and start Dispatcher without shutting down
         runner.run(1, false, true);
+        final int port = ((ListenUDP) runner.getProcessor()).getListeningPort();
 
         try {
             final InetSocketAddress destination = new InetSocketAddress(LOCALHOST, port);

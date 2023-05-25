@@ -216,6 +216,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     private volatile SyslogParser parser;
     private volatile BlockingQueue<ByteArrayMessage> syslogEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
+    private volatile int listeningPort;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -311,6 +312,10 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             factory.setClientAuth(clientAuth);
         }
         eventServer = factory.getEventServer();
+    }
+
+    public int getListeningPort() {
+        return eventServer == null ? 0 : eventServer.getListeningPort();
     }
 
     @OnStopped
@@ -448,7 +453,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     }
 
     private Map<String, String> getDefaultAttributes(final ProcessContext context) {
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
+        final String port = String.valueOf(getListeningPort());
         final String protocol = context.getProperty(PROTOCOL).getValue();
 
         final Map<String, String> defaultAttributes = new HashMap<>();

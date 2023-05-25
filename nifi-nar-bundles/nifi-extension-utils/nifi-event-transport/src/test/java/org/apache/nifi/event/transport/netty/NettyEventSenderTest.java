@@ -19,7 +19,6 @@ package org.apache.nifi.event.transport.netty;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.util.concurrent.Future;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -49,7 +48,7 @@ public class NettyEventSenderTest {
 
     @Test
     public void testClose() {
-        final SocketAddress socketAddress = InetSocketAddress.createUnresolved(LOCALHOST, NetworkUtils.getAvailableTcpPort());
+        final SocketAddress socketAddress = InetSocketAddress.createUnresolved(LOCALHOST, 0);
         final NettyEventSender<?> sender = new NettyEventSender<>(group, channelPool, socketAddress, false);
         doReturn(shutdownFuture).when(group).shutdownGracefully(anyLong(), anyLong(), eq(TimeUnit.MILLISECONDS));
         sender.close();

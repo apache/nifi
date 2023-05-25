@@ -161,7 +161,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .name("Listening Port")
             .description("The Port to listen on for incoming HTTP requests")
             .required(true)
-            .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
+            .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("80")
             .build();

@@ -26,7 +26,6 @@ import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -94,12 +93,10 @@ public class StringNettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventTcpEventException() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
-        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
-        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(port);
+        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(eventServer.getListeningPort());
         try (final EventSender<String> sender = senderFactory.getEventSender()) {
             eventServer.shutdown();
             assertThrows(EventException.class, () -> sender.sendEvent(MESSAGE));
@@ -110,12 +107,10 @@ public class StringNettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventTcp() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
-        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
-        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(port);
+        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(eventServer.getListeningPort());
         try (final EventSender<String> sender = senderFactory.getEventSender()) {
             sender.sendEvent(MESSAGE);
         } finally {
@@ -127,12 +122,10 @@ public class StringNettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventTcpEventDropped() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>(SINGLE_MESSAGE);
-        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
-        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(port);
+        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(eventServer.getListeningPort());
         try (final EventSender<String> sender = senderFactory.getEventSender()) {
             sender.sendEvent(MESSAGE);
             assertMessageMatched(messages.take());
@@ -155,17 +148,16 @@ public class StringNettyEventSenderFactoryTest {
 
     @Test
     public void testSendEventTcpSslContextConfigured() throws Exception {
-        final int port = NetworkUtils.getAvailableTcpPort();
-
-        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(port);
         final SSLContext sslContext = getSslContext();
-        senderFactory.setSslContext(sslContext);
 
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
-        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         serverFactory.setSslContext(sslContext);
         serverFactory.setClientAuth(ClientAuth.NONE);
         final EventServer eventServer = serverFactory.getEventServer();
+
+        final NettyEventSenderFactory<String> senderFactory = getEventSenderFactory(eventServer.getListeningPort());
+        senderFactory.setSslContext(sslContext);
 
         try (final EventSender<String> eventSender = senderFactory.getEventSender()) {
             eventSender.sendEvent(MESSAGE);

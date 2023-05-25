@@ -16,13 +16,40 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.mockito.Mockito;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -42,41 +69,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.http.HttpContextMap;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.standard.util.HTTPUtils;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class ITestHandleHttpRequest {
 
@@ -511,8 +510,7 @@ public class ITestHandleHttpRequest {
     public void testOnPrimaryNodeChangePrimaryNodeRevoked() throws Exception {
         processor = new HandleHttpRequest();
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(HandleHttpRequest.PORT, Integer.toString(port));
+        runner.setProperty(HandleHttpRequest.PORT, "0");
 
         final MockHttpContextMap contextMap = new MockHttpContextMap();
         final String contextMapId = MockHttpContextMap.class.getSimpleName();
@@ -526,7 +524,7 @@ public class ITestHandleHttpRequest {
 
         final OkHttpClient client = new OkHttpClient.Builder().build();
 
-        final String url = String.format("http://localhost:%d", port);
+        final String url = String.format("http://localhost:%d", processor.getPort());
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
         final CountDownLatch requestCompleted = new CountDownLatch(1);

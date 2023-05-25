@@ -140,6 +140,10 @@ public class ListenRELP extends AbstractProcessor {
         }
     }
 
+    public int getListeningPort() {
+        return eventServer == null ? 0 : eventServer.getListeningPort();
+    }
+
     @OnStopped
     public void stopped() {
         if (eventServer != null) {

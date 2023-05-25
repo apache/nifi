@@ -40,7 +40,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
@@ -52,13 +51,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -91,8 +89,7 @@ public class TestDistributedMapServerAndClient {
         server = new DistributedMapCacheServer();
         runner.addControllerService("server", server);
 
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(server, DistributedMapCacheServer.PORT, Integer.toString(port));
+        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
     }
 
     @AfterEach
@@ -249,8 +246,7 @@ public class TestDistributedMapServerAndClient {
             }
         };
         runner.addControllerService("server", server);
-        final int port = NetworkUtils.getAvailableTcpPort();
-        runner.setProperty(server, DistributedMapCacheServer.PORT, Integer.toString(port));
+        runner.setProperty(server, DistributedMapCacheServer.PORT, "0");
         runner.enableControllerService(server);
 
         DistributedMapCacheClientService client = new DistributedMapCacheClientService();
@@ -313,19 +309,16 @@ public class TestDistributedMapServerAndClient {
 
     @Test
     public void testIncompleteHandshakeScenario() throws InitializationException, IOException {
-        // Default port used by Distributed Server and Client
-        final int port = NetworkUtils.getAvailableTcpPort();
-
         // This is used to simulate a DistributedCacheServer that does not complete the handshake response
         final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
-        final NettyEventServerFactory serverFactory = getEventServerFactory(port, messages);
+        final NettyEventServerFactory serverFactory = getEventServerFactory(0, messages);
         final EventServer eventServer = serverFactory.getEventServer();
 
         DistributedMapCacheClientService client = new DistributedMapCacheClientService();
 
         runner.addControllerService("client", client);
         runner.setProperty(client, DistributedMapCacheClientService.HOSTNAME, "localhost");
-        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(port));
+        runner.setProperty(client, DistributedMapCacheClientService.PORT, String.valueOf(eventServer.getListeningPort()));
         runner.setProperty(client, DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "250 ms");
         runner.enableControllerService(client);
 

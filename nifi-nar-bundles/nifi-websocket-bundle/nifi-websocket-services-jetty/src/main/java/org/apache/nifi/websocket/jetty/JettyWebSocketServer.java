@@ -315,15 +315,19 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         final SslContextFactory sslContextFactory = createSslFactory(context);
 
         final ServerConnector serverConnector = createConnector(sslContextFactory, listenPort);
-
         server.setConnectors(new Connector[] {serverConnector});
 
         servletHandler.addServletWithMapping(JettyWebSocketServlet.class, "/*");
 
         getLogger().info("Starting JettyWebSocketServer on port {}.", new Object[]{listenPort});
         server.start();
+        listenPort = serverConnector.getLocalPort();
 
         portToControllerService.put(listenPort, this);
+    }
+
+    public int getListeningPort() {
+        return listenPort;
     }
 
     private ServerConnector createConnector(final SslContextFactory sslContextFactory, final Integer listenPort) {

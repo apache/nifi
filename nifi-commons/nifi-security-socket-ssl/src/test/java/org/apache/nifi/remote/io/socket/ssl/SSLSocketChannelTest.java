@@ -33,7 +33,6 @@ import io.netty.handler.codec.Delimiters;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -118,8 +117,7 @@ public class SSLSocketChannelTest {
 
     @Test
     public void testClientConnectFailed() throws IOException {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslContext, LOCALHOST, port, null, CLIENT_CHANNEL);
+        final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslContext, "this-host-does-not-exist", 1, null, CLIENT_CHANNEL);
         sslSocketChannel.setTimeout(CHANNEL_FAILURE_TIMEOUT);
         assertThrows(Exception.class, sslSocketChannel::connect);
     }
@@ -131,8 +129,8 @@ public class SSLSocketChannelTest {
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
 
         try (final SocketChannel socketChannel = SocketChannel.open()) {
-            final int port = NetworkUtils.getAvailableTcpPort();
-            startServer(group, port, enabledProtocol, getSingleCountDownLatch());
+            final Channel serverChannel = startServer(group, enabledProtocol, getSingleCountDownLatch());
+            final int port = getListeningPort(serverChannel);
 
             socketChannel.connect(new InetSocketAddress(LOCALHOST, port));
             final SSLEngine sslEngine = createSslEngine(enabledProtocol, CLIENT_CHANNEL);
@@ -183,15 +181,17 @@ public class SSLSocketChannelTest {
     }
 
     private void assertServerChannelConnectedReadClosed(final String enabledProtocol) throws IOException, InterruptedException {
-        final int port = NetworkUtils.getAvailableTcpPort();
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-        final SocketAddress socketAddress = new InetSocketAddress(LOCALHOST, port);
+        final SocketAddress socketAddress = new InetSocketAddress(LOCALHOST, 0);
         serverSocketChannel.bind(socketAddress);
 
         final Executor executor = Executors.newSingleThreadExecutor();
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
         try {
-            final Channel channel = startClient(group, port, enabledProtocol);
+            final SocketAddress serverLocalAddress = serverSocketChannel.getLocalAddress();
+            final int listeningPort = (serverLocalAddress instanceof InetSocketAddress) ? ((InetSocketAddress) serverLocalAddress).getPort() : 0;
+
+            final Channel channel = startClient(group, listeningPort, enabledProtocol);
 
             try {
                 final SocketChannel socketChannel = serverSocketChannel.accept();
@@ -300,14 +300,23 @@ public class SSLSocketChannelTest {
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
 
         try {
-            final int port = NetworkUtils.getAvailableTcpPort();
-            startServer(group, port, enabledProtocol, countDownLatch);
+            final Channel channel = startServer(group, enabledProtocol, countDownLatch);
+            final int port = getListeningPort(channel);
             final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslContext, LOCALHOST, port, null, CLIENT_CHANNEL);
             sslSocketChannel.setTimeout(CHANNEL_TIMEOUT);
             channelConsumer.accept(sslSocketChannel);
         } finally {
             shutdownGroup(group);
         }
+    }
+
+    private int getListeningPort(final Channel serverChannel) {
+        final SocketAddress address = serverChannel.localAddress();
+        if (address instanceof InetSocketAddress) {
+            return ((InetSocketAddress) address).getPort();
+        }
+
+        return 0;
     }
 
     private Channel startClient(final EventLoopGroup group, final int port, final String enabledProtocol) {
@@ -325,7 +334,7 @@ public class SSLSocketChannelTest {
         return bootstrap.connect(LOCALHOST, port).syncUninterruptibly().channel();
     }
 
-    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol, final CountDownLatch countDownLatch) {
+    private Channel startServer(final EventLoopGroup group, final String enabledProtocol, final CountDownLatch countDownLatch) {
         final ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
@@ -345,8 +354,9 @@ public class SSLSocketChannelTest {
             }
         });
 
-        final ChannelFuture bindFuture = bootstrap.bind(LOCALHOST, port);
+        final ChannelFuture bindFuture = bootstrap.bind(LOCALHOST, 0);
         bindFuture.syncUninterruptibly();
+        return bindFuture.channel();
     }
 
     private SSLEngine createSslEngine(final String enabledProtocol, final boolean useClientMode) {

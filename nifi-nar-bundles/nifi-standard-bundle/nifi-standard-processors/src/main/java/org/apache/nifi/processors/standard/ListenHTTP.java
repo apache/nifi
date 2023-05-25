@@ -55,6 +55,7 @@ import org.apache.nifi.stream.io.StreamThrottler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
@@ -137,7 +138,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .description("The Port to listen on for incoming connections")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .addValidator(StandardValidators.PORT_VALIDATOR)
         .build();
     public static final PropertyDescriptor HEALTH_CHECK_PORT = new PropertyDescriptor.Builder()
             .name("health-check-port")
@@ -387,7 +388,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     synchronized private void createHttpServerFromService(final ProcessContext context) throws Exception {
-        if(initialized.get()) {
+        if (initialized.get()) {
             return;
         }
         runOnPrimary.set(context.getExecutionNode().equals(ExecutionNode.PRIMARY));
@@ -436,15 +437,18 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
         final boolean securityEnabled = sslContextService != null;
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/", true, securityEnabled);
+        final List<Servlet> servlets = new ArrayList<>();
         for (final Class<? extends Servlet> cls : getServerClasses()) {
             final Path path = cls.getAnnotation(Path.class);
             // Note: servlets must have a path annotation - this will NPE otherwise
             // also, servlets other than ListenHttpServlet must have a path starting with /
             if (basePath.isEmpty() && !path.value().isEmpty()) {
                 // Note: this is to handle the condition of an empty uri, otherwise pathSpec would start with //
-                contextHandler.addServlet(cls, path.value());
+                final ServletHolder holder = contextHandler.addServlet(cls, path.value());
+                servlets.add(holder.getServlet());
             } else {
-                contextHandler.addServlet(cls, "/" + basePath + path.value());
+                final ServletHolder holder = contextHandler.addServlet(cls, "/" + basePath + path.value());
+                servlets.add(holder.getServlet());
             }
         }
 
@@ -466,11 +470,21 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
         }
+
         try {
             server.start();
         } catch (Exception e) {
             shutdownHttpServer(server);
             throw e;
+        }
+
+        // If Port is set to 0, we need to notify the ListenHTTPServlet of the actual port being used. But this isn't available until after
+        // the server has been started, and at that point it is too late to set it in the configuration for the context handler so we set it afterwards.
+        for (final ServletHolder holder : contextHandler.getServletHandler().getServlets()) {
+            final Servlet servlet = holder.getServlet();
+            if (servlet instanceof ListenHTTPServlet) {
+                ((ListenHTTPServlet) servlet).setPort(connector.getLocalPort());
+            }
         }
 
         this.server = server;

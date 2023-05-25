@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.snmp.processors;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.dto.SNMPValue;
 import org.apache.nifi.snmp.helper.testrunners.SNMPV1TestRunnerFactory;
@@ -53,7 +52,7 @@ class AbstractSNMPProcessorTest {
 
     @BeforeEach
     public void init() {
-        getTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), TEST_OID, "GET");
+        getTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(0, TEST_OID, "GET");
         getSNMP = (GetSNMP) getTestRunner.getProcessor();
         mockProcessContext = new MockProcessContext(getSNMP);
         mockProcessSession = new MockProcessSession(new SharedSessionState(getSNMP, new AtomicLong(0L)), getSNMP);

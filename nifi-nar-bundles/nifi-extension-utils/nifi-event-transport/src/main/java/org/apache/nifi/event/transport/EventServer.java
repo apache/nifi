@@ -25,4 +25,10 @@ public interface EventServer {
      * Shutdown Event Server and close resources
      */
     void shutdown();
+
+    /**
+     * Returns the port that the server is listening on, if available. If unable to determine the port, will return 0.
+     * @return the port that the server is listening on, or 0 if unable to determine the port
+     */
+    int getListeningPort();
 }

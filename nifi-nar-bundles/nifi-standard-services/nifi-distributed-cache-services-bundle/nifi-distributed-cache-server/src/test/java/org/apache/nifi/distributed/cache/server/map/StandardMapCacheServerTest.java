@@ -21,7 +21,6 @@ import org.apache.nifi.distributed.cache.protocol.ProtocolHandshake;
 import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,12 +76,11 @@ class StandardMapCacheServerTest {
 
     @BeforeEach
     void setServer() throws IOException {
-        final int port = NetworkUtils.getAvailableTcpPort();
         server = new StandardMapCacheServer(
                 log,
                 IDENTIFIER,
                 SSL_CONTEXT_DISABLED,
-                port,
+                0,
                 MAX_CACHE_ENTRIES,
                 EVICTION_POLICY,
                 PERSISTENCE_PATH_DISABLED,

@@ -20,7 +20,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
@@ -127,26 +126,36 @@ class TestConnectWebSocket extends TestListenWebSocket {
     @Test
     void testDynamicUrlsParsedFromFlowFileAndAbleToConnect() throws InitializationException {
         // Start websocket server
-        final int port = NetworkUtils.availablePort();
-        TestRunner webSocketListener = getListenWebSocket(port);
+        final TestRunner webSocketListener = TestRunners.newTestRunner(ListenWebSocket.class);
+
+        final String serverId = "ws-server-service";
+        JettyWebSocketServer server = new JettyWebSocketServer();
+        webSocketListener.addControllerService(serverId, server);
+        webSocketListener.setProperty(server, JettyWebSocketServer.LISTEN_PORT, "0");
+        webSocketListener.enableControllerService(server);
+
+        webSocketListener.setProperty(ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE, serverId);
+        webSocketListener.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, "/test");
+
         webSocketListener.run(1, false);
+        final int listeningPort = server.getListeningPort();
 
         final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
 
-        final String serviceId = "ws-service";
+        final String clientId = "ws-service";
         final String endpointId = "client-1";
 
         MockFlowFile flowFile = getFlowFile();
         runner.enqueue(flowFile);
 
-        JettyWebSocketClient service = new JettyWebSocketClient();
+        JettyWebSocketClient client = new JettyWebSocketClient();
 
 
-        runner.addControllerService(serviceId, service);
-        runner.setProperty(service, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", port));
-        runner.enableControllerService(service);
+        runner.addControllerService(clientId, client);
+        runner.setProperty(client, JettyWebSocketClient.WS_URI, String.format("ws://localhost:%s/${dynamicUrlPart}", listeningPort));
+        runner.enableControllerService(client);
 
-        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, serviceId);
+        runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE, clientId);
         runner.setProperty(ConnectWebSocket.PROP_WEBSOCKET_CLIENT_ID, endpointId);
 
         runner.run(1, false);
@@ -192,20 +201,6 @@ class TestConnectWebSocket extends TestListenWebSocket {
         runner.stop();
     }
 
-    private TestRunner getListenWebSocket(final int port) throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(ListenWebSocket.class);
-
-        final String serviceId = "ws-server-service";
-        JettyWebSocketServer service = new JettyWebSocketServer();
-        runner.addControllerService(serviceId, service);
-        runner.setProperty(service, JettyWebSocketServer.LISTEN_PORT, String.valueOf(port));
-        runner.enableControllerService(service);
-
-        runner.setProperty(ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE, serviceId);
-        runner.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, "/test");
-
-        return runner;
-    }
 
     private MockFlowFile getFlowFile() {
         Map<String, String> attributes = new HashMap<>();

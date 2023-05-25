@@ -23,7 +23,6 @@ import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.bootstrap.notification.email.EmailNotificationService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.Test;
 
@@ -103,8 +102,7 @@ public class EmailNotificationServiceTest {
 
         properties.put(EmailNotificationService.SMTP_HOSTNAME, new MockPropertyValue(LOCALHOST_ADDRESS));
 
-        final int port = NetworkUtils.getAvailableTcpPort();
-        properties.put(EmailNotificationService.SMTP_PORT, new MockPropertyValue(Integer.toString(port)));
+        properties.put(EmailNotificationService.SMTP_PORT, new MockPropertyValue("0"));
         properties.put(EmailNotificationService.SMTP_AUTH, new MockPropertyValue(Boolean.FALSE.toString()));
         properties.put(EmailNotificationService.FROM, new MockPropertyValue(ADDRESS));
         properties.put(EmailNotificationService.TO, new MockPropertyValue(ADDRESS));

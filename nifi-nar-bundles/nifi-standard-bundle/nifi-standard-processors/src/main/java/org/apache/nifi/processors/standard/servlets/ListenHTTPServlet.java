@@ -141,6 +141,10 @@ public class ListenHTTPServlet extends HttpServlet {
         this.writerFactory = processContext.getProperty(ListenHTTP.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
     }
 
+    public void setPort(final int port) {
+        this.port = port;
+    }
+
     @Override
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         if (request.getLocalPort() == port) {

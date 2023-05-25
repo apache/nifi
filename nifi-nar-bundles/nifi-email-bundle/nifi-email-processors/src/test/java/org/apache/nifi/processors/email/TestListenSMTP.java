@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -27,6 +26,7 @@ import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,12 +37,12 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.net.ssl.SSLContext;
+import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -80,11 +80,11 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void testListenSMTP() throws MessagingException {
-        final int port = NetworkUtils.availablePort();
-        final TestRunner runner = newTestRunner(port);
+    public void testListenSMTP() throws MessagingException, InterruptedException {
+        final TestRunner runner = newTestRunner();
 
         runner.run(1, false);
+        final int port = ((ListenSMTP) runner.getProcessor()).getListeningPort();
         assertPortListening(port);
 
         final Session session = getSession(port);
@@ -98,8 +98,7 @@ public class TestListenSMTP {
 
     @Test
     public void testListenSMTPwithTLSCurrentVersion() throws Exception {
-        final int port = NetworkUtils.availablePort();
-        final TestRunner runner = newTestRunner(port);
+        final TestRunner runner = newTestRunner();
 
         configureSslContextService(runner);
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, SSL_SERVICE_IDENTIFIER);
@@ -107,6 +106,8 @@ public class TestListenSMTP {
         runner.assertValid();
 
         runner.run(1, false);
+
+        final int port = ((ListenSMTP) runner.getProcessor()).getListeningPort();
         assertPortListening(port);
         final Session session = getSessionTls(port, tlsConfiguration.getProtocol());
 
@@ -120,8 +121,7 @@ public class TestListenSMTP {
 
     @Test
     public void testListenSMTPwithTLSLegacyProtocolException() throws Exception {
-        final int port = NetworkUtils.availablePort();
-        final TestRunner runner = newTestRunner(port);
+        final TestRunner runner = newTestRunner();
 
         configureSslContextService(runner);
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, SSL_SERVICE_IDENTIFIER);
@@ -129,6 +129,8 @@ public class TestListenSMTP {
         runner.assertValid();
 
         runner.run(1, false);
+
+        final int port = ((ListenSMTP) runner.getProcessor()).getListeningPort();
         assertPortListening(port);
 
         final Session session = getSessionTls(port, TlsConfiguration.TLS_1_0_PROTOCOL);
@@ -140,12 +142,14 @@ public class TestListenSMTP {
     }
 
     @Test
-    public void testListenSMTPwithTooLargeMessage() {
-        final int port = NetworkUtils.availablePort();
-        final TestRunner runner = newTestRunner(port);
+    public void testListenSMTPwithTooLargeMessage() throws InterruptedException {
+        final TestRunner runner = newTestRunner();
+
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_MSG_SIZE, "10 B");
 
         runner.run(1, false);
+
+        final int port = ((ListenSMTP) runner.getProcessor()).getListeningPort();
         assertPortListening(port);
 
         final Session session = getSession(port);
@@ -155,17 +159,28 @@ public class TestListenSMTP {
         runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, 0);
     }
 
-    private TestRunner newTestRunner(final int port) {
+    private TestRunner newTestRunner() {
         final ListenSMTP processor = new ListenSMTP();
         final TestRunner runner = TestRunners.newTestRunner(processor);
 
-        runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
+        runner.setProperty(ListenSMTP.SMTP_PORT, "0");
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
         return runner;
     }
 
-    private void assertPortListening(final int port) {
-        assertTrue(NetworkUtils.isListening("localhost", port, 5000), String.format("expected server listening on %s:%d", "localhost", port));
+    private void assertPortListening(final int port) throws InterruptedException {
+        final long endTime = System.currentTimeMillis() + 5_000L;
+        while (System.currentTimeMillis() <= endTime) {
+            try (final Socket socket = new Socket("localhost", port)) {
+                if (socket.isConnected()) {
+                    return;
+                }
+            } catch (final Exception e) {
+                Thread.sleep(10L);
+            }
+        }
+
+        Assertions.fail(String.format("expected server listening on %s:%d", "localhost", port));
     }
 
     private Session getSession(final int port) {

@@ -29,7 +29,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -45,6 +44,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -163,13 +163,15 @@ public class TestPeerChannel {
             final Socket socket = socketChannel.socket();
             socket.setSoTimeout(SOCKET_TIMEOUT);
 
-            final InetSocketAddress serverSocketAddress = getServerSocketAddress();
-            startServer(group, serverSocketAddress.getPort(), enabledProtocol);
+            final InetSocketAddress serverSocketAddress = new InetSocketAddress(LOCALHOST, 0);
+            final Channel serverChannel = startServer(group, serverSocketAddress.getPort(), enabledProtocol);
+            final int port = getLocalPort(serverChannel);
 
-            socketChannel.connect(serverSocketAddress);
+            final InetSocketAddress clientSocketAddress = new InetSocketAddress(LOCALHOST, port);
+            socketChannel.connect(clientSocketAddress);
             final SSLEngine sslEngine = createSslEngine(enabledProtocol, CLIENT_CHANNEL);
 
-            final PeerChannel peerChannel = new PeerChannel(socketChannel, sslEngine, serverSocketAddress.toString());
+            final PeerChannel peerChannel = new PeerChannel(socketChannel, sslEngine, clientSocketAddress.toString());
             assertConnectedOpen(peerChannel);
 
             socketChannel.configureBlocking(false);
@@ -182,6 +184,14 @@ public class TestPeerChannel {
         }
     }
 
+    private int getLocalPort(final Channel serverChannel) {
+        final SocketAddress address = serverChannel.localAddress();
+        if (address instanceof InetSocketAddress) {
+            return ((InetSocketAddress) address).getPort();
+        }
+        return 0;
+    }
+
     private void assertConnectedOpen(final PeerChannel peerChannel) {
         assertTrue(peerChannel.isConnected(), "Channel not connected");
         assertTrue(peerChannel.isOpen(), "Channel not open");
@@ -192,7 +202,7 @@ public class TestPeerChannel {
         assertFalse(peerChannel.isOpen(), "Channel open");
     }
 
-    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol) {
+    private Channel startServer(final EventLoopGroup group, final int port, final String enabledProtocol) {
         final ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
@@ -225,6 +235,7 @@ public class TestPeerChannel {
 
         final ChannelFuture bindFuture = bootstrap.bind(LOCALHOST, port);
         bindFuture.syncUninterruptibly();
+        return bindFuture.channel();
     }
 
     private SSLEngine createSslEngine(final String enabledProtocol, final boolean useClientMode) {
@@ -241,11 +252,6 @@ public class TestPeerChannel {
 
     private void shutdownGroup(final EventLoopGroup group) {
         group.shutdownGracefully(SHUTDOWN_TIMEOUT, SHUTDOWN_TIMEOUT, TimeUnit.MILLISECONDS).syncUninterruptibly();
-    }
-
-    private InetSocketAddress getServerSocketAddress() {
-        final int port = NetworkUtils.getAvailableTcpPort();
-        return new InetSocketAddress(LOCALHOST, port);
     }
 
     private String getEnabledProtocol() {

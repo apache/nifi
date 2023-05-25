@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.security.util.ClientAuth;
@@ -215,11 +214,11 @@ public class TestListenTCPRecord {
     }
 
     protected void run(final int expectedTransferred, final SSLContext sslContext) throws IOException, InterruptedException {
-        final int port = NetworkUtils.availablePort();
-        runner.setProperty(ListenTCPRecord.PORT, Integer.toString(port));
+        runner.setProperty(ListenTCPRecord.PORT, "0");
 
         // Run Processor and start listener without shutting down
         runner.run(1, false, true);
+        final int port = ((ListenTCPRecord) runner.getProcessor()).getListeningPort();
 
         final Thread thread = new Thread(() -> {
             try (final Socket socket = getSocket(port, sslContext)) {

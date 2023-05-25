@@ -21,7 +21,6 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -96,8 +95,8 @@ class TestUDPEventRecordSink {
         runner.addControllerService(WRITER_IDENTIFIER, recordWriter);
         runner.enableControllerService(recordWriter);
 
-        final int port = NetworkUtils.getAvailableUdpPort();
-        eventServer = createServer(runner, port);
+        eventServer = createServer(runner, 0);
+        final int port = eventServer.getListeningPort();
 
         sink = new UDPEventRecordSink();
         runner.addControllerService(IDENTIFIER, sink);
