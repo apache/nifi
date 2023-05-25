@@ -46,7 +46,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -215,7 +214,7 @@ public class AttributesToJSON extends AbstractProcessor {
         Map<String, Object> result;
         //If list of attributes specified get only those attributes. Otherwise write them all
         if (attributes != null || attPattern != null) {
-            result = new HashMap<>();
+            result = new LinkedHashMap<>();
             if(attributes != null) {
                 for (String attribute : attributes) {
                     String val = ff.getAttribute(attribute);
@@ -235,7 +234,7 @@ public class AttributesToJSON extends AbstractProcessor {
             }
         } else {
             Map<String, String> ffAttributes = ff.getAttributes();
-            result = new HashMap<>(ffAttributes.size());
+            result = new LinkedHashMap<>(ffAttributes.size());
             for (Map.Entry<String, String> e : ffAttributes.entrySet()) {
                 if (!attributesToRemove.contains(e.getKey())) {
                     result.put(e.getKey(), e.getValue());
