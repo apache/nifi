@@ -149,8 +149,20 @@ public class DynamicClassPathModificationIT extends NiFiSystemIT {
         getNifiClient().getProcessorClient().terminateProcessor(modify.getId());
         getClientUtil().waitForStoppedProcessor(modify.getId());
 
-        // Empty the queue and generate another FlowFile with a sleep of 0 sec
+        // Empty the queue. Because the processor was terminated, it may still hold the FlowFile for a bit until the terminate completes.
+        // Because of that we'll wait until the queue is empty, attempting to empty it if it is not.
         getClientUtil().emptyQueue(modifyInputConnection.getId());
+        waitFor(() -> {
+            final int queueSize = getConnectionQueueSize(modifyInputConnection.getId());
+            if (queueSize == 0) {
+                return true;
+            }
+
+            getClientUtil().emptyQueue(modifyInputConnection.getId());
+            return false;
+        });
+
+        // Generate another FlowFile with a sleep of 0 sec
         getClientUtil().stopProcessor(generate);
         getClientUtil().updateProcessorProperties(generate, Collections.singletonMap("sleep", "0 sec"));
         getClientUtil().waitForValidProcessor(generate.getId());

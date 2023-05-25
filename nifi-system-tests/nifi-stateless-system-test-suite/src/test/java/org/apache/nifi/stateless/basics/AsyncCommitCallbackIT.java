@@ -177,7 +177,11 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         Thread.sleep(1000L);
         assertFalse(trigger.getResultNow().isPresent());
 
-        Files.write(replacementFile.toPath(), "Good-bye World".getBytes(), StandardOpenOption.CREATE);
+        // Write to a temp file, then rename to the replacement file. Otherwise, the file may be created, and then the flow
+        // run before the data is written to the file, which can cause the FlowFile to be replaced with 0 bytes.
+        final File tempFile = new File(replacementFile.getParentFile(), "." + replacementFile.getName());
+        Files.write(tempFile.toPath(), "Good-bye World".getBytes(), StandardOpenOption.CREATE);
+        assertTrue(tempFile.renameTo(replacementFile));
 
         assertTrue(inputFile.exists());
 
