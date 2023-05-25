@@ -14,18 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.hadoop.util;
+package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.hadoop.ListHDFS;
+import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
+import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FlowFileObjectWriter implements HdfsObjectWriter {
@@ -33,34 +37,48 @@ public class FlowFileObjectWriter implements HdfsObjectWriter {
     private static final String HDFS_ATTRIBUTE_PREFIX = "hdfs";
 
     private final ProcessSession session;
+    private final FileStatusIterable fileStatuses;
+    final long minimumAge;
+    final long maximumAge;
+    final PathFilter pathFilter;
+    final FileStatusManager fileStatusManager;
+    final long latestModificationTime;
+    final List<String> latestModifiedStatuses;
+    private long listedFileCount;
 
-    public FlowFileObjectWriter(final ProcessSession session) {
+
+    public FlowFileObjectWriter(final ProcessSession session, final FileStatusIterable fileStatuses, final long minimumAge,
+                                final long maximumAge, final PathFilter pathFilter, final FileStatusManager fileStatusManager,
+                                final long latestModificationTime, final List<String> latestModifiedStatuses) {
         this.session = session;
+        this.fileStatuses = fileStatuses;
+        this.minimumAge = minimumAge;
+        this.maximumAge = maximumAge;
+        this.pathFilter = pathFilter;
+        this.fileStatusManager = fileStatusManager;
+        this.latestModificationTime = latestModificationTime;
+        this.latestModifiedStatuses = latestModifiedStatuses;
+        listedFileCount = 0;
     }
 
     @Override
-    public void beginListing() {
+    public void write() {
+        for (FileStatus status : fileStatuses) {
+            if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
+
+                final Map<String, String> attributes = createAttributes(status);
+                FlowFile flowFile = session.create();
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(flowFile, ListHDFS.REL_SUCCESS);
+
+                fileStatusManager.update(status);
+                listedFileCount++;
+            }
+        }
     }
 
-    @Override
-    public void addToListing(final FileStatus fileStatus) {
-        final Map<String, String> attributes = createAttributes(fileStatus);
-        FlowFile flowFile = session.create();
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        session.transfer(flowFile, ListHDFS.REL_SUCCESS);
-    }
-
-    @Override
-    public void finishListing() {
-    }
-
-    @Override
-    public void finishListingExceptionally(final Exception cause) {
-    }
-
-    @Override
-    public boolean isCheckpoint() {
-        return true;
+    public long getListedFileCount() {
+        return listedFileCount;
     }
 
     private Map<String, String> createAttributes(final FileStatus status) {

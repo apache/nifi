@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.hadoop.util;
+package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
+import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -34,7 +37,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -82,59 +84,66 @@ public class RecordObjectWriter implements HdfsObjectWriter {
     private final ProcessSession session;
     private final RecordSetWriterFactory writerFactory;
     private final ComponentLog logger;
-    private RecordSetWriter recordWriter;
-    private FlowFile flowFile;
+    private final FileStatusIterable fileStatuses;
+    final long minimumAge;
+    final long maximumAge;
+    final PathFilter pathFilter;
+    final FileStatusManager fileStatusManager;
+    final long latestModificationTime;
+    final List<String> latestModifiedStatuses;
+    long fileCount;
 
-    public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger) {
+
+    public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger,
+                              final FileStatusIterable fileStatuses, final long minimumAge, final long maximumAge, final PathFilter pathFilter,
+                              final FileStatusManager fileStatusManager, final long latestModificationTime, final List<String> latestModifiedStatuses) {
         this.session = session;
         this.writerFactory = writerFactory;
         this.logger = logger;
+        this.fileStatuses = fileStatuses;
+        this.minimumAge = minimumAge;
+        this.maximumAge = maximumAge;
+        this.pathFilter = pathFilter;
+        this.fileStatusManager = fileStatusManager;
+        this.latestModificationTime = latestModificationTime;
+        this.latestModifiedStatuses = latestModifiedStatuses;
+        fileCount = 0;
     }
 
     @Override
-    public void beginListing() throws IOException, SchemaNotFoundException {
-        flowFile = session.create();
+    public void write() {
+        FlowFile flowFile = session.create();
 
         final OutputStream out = session.write(flowFile);
-        recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile);
-        recordWriter.beginRecordSet();
-    }
+        try (RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)) {
+            recordWriter.beginRecordSet();
 
-    @Override
-    public void addToListing(final FileStatus fileStatus) throws IOException {
-        recordWriter.write(createRecordForListing(fileStatus));
-    }
+            for (FileStatus status : fileStatuses) {
+                if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
+                    recordWriter.write(createRecordForListing(status));
+                    fileStatusManager.update(status);
+                }
+            }
 
-    @Override
-    public void finishListing() throws IOException {
-        final WriteResult writeResult = recordWriter.finishRecordSet();
-        recordWriter.close();
+            WriteResult writeResult = recordWriter.finishRecordSet();
+            fileCount = writeResult.getRecordCount();
 
-        if (writeResult.getRecordCount() == 0) {
-            session.remove(flowFile);
-        } else {
-            final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
-            attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-            flowFile = session.putAllAttributes(flowFile, attributes);
+            if (fileCount == 0) {
+                session.remove(flowFile);
+            } else {
+                final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                flowFile = session.putAllAttributes(flowFile, attributes);
 
-            session.transfer(flowFile, REL_SUCCESS);
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        } catch (Exception e) {
+            throw new ProcessException("An error occured while writing results", e);
         }
     }
 
-    @Override
-    public void finishListingExceptionally(final Exception cause) {
-        try {
-            recordWriter.close();
-        } catch (IOException e) {
-            logger.error("Failed to write listing as Records due to {}", new Object[]{e}, e);
-        }
-
-        session.remove(flowFile);
-    }
-
-    @Override
-    public boolean isCheckpoint() {
-        return false;
+    public long getListedFileCount() {
+        return fileCount;
     }
 
     private Record createRecordForListing(final FileStatus fileStatus) {

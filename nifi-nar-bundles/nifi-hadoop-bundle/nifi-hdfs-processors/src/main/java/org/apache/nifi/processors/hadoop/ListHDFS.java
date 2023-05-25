@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
@@ -49,27 +48,23 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.hadoop.util.FileCountRemoteIterator;
+import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
 import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.processors.hadoop.util.FilterMode;
-import org.apache.nifi.processors.hadoop.util.FlowFileObjectWriter;
-import org.apache.nifi.processors.hadoop.util.HdfsObjectWriter;
-import org.apache.nifi.processors.hadoop.util.RecordObjectWriter;
+import org.apache.nifi.processors.hadoop.util.writer.FlowFileObjectWriter;
+import org.apache.nifi.processors.hadoop.util.writer.HdfsObjectWriter;
+import org.apache.nifi.processors.hadoop.util.writer.RecordObjectWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.io.IOException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -169,14 +164,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
     private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(ListHDFS.class);
 
     public static final String LEGACY_EMITTED_TIMESTAMP_KEY = "emitted.timestamp";
-    public static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
-    static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
+    public static final String LEGACY_LISTING_TIMESTAMP_KEY = "listing.timestamp";
+    public static final String LATEST_TIMESTAMP_KEY = "latest.timestamp";
+    public static final String LATEST_FILES_KEY = "latest.files";
 
-    private volatile long lastRunTimestamp = -1L;
     private volatile boolean resetState = false;
 
-    private FileStatusManager fileStatusManager = FileStatusManager.createFileStatusManager();
     private Pattern fileFilterRegexPattern;
+    private long latestModificationTime;
+    private List<String> latestModifiedStatuses;
 
     @Override
     protected void preProcessConfiguration(Configuration config, ProcessContext context) {
@@ -233,8 +229,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     @OnScheduled
     public void resetStateIfNecessary(final ProcessContext context) throws IOException {
         if (resetState) {
-            fileStatusManager = FileStatusManager.createFileStatusManager();
-            getLogger().debug("Property has been modified. Resetting the state values - listing.timestamp and emitted.timestamp to -1L");
+            getLogger().debug("Property has been modified. Resetting the state values.");
             context.getStateManager().clear(Scope.CLUSTER);
             this.resetState = false;
         }
@@ -242,45 +237,23 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        // We have to ensure that we don't continually perform listings, because if we perform two listings within
-        // the same millisecond, our algorithm for comparing timestamps will not work. So we ensure here that we do
-        // not let that happen.
-        if (notEnoughTimeElapsedToRun(context)) {
-            return;
-        }
-
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
-        boolean isTransitioningFromLegacyState = false;
-        boolean isLegacyLastStatusListed = false;
         try {
+            latestModifiedStatuses = new ArrayList<>();
             StateMap stateMap = session.getState(Scope.CLUSTER);
-            if (stateMap.getStateVersion().isPresent()) {
-                final String emittedString = stateMap.get(LEGACY_EMITTED_TIMESTAMP_KEY);
-                // Legacy states stored two different timestamps since it always held back the latest modified file(s).
-                // The timestamp for the most recently modified file(s) was stored in the listing timestamp, while the
-                // timestamp for the most recently listed file (second latest timestamp) was stored in the emitting timestamp.
-                // The two were equal when the processor ran with just one file remaining to list.
-                if (emittedString != null) {
-                    isTransitioningFromLegacyState = true;
-                    final String listingString = stateMap.get(LISTING_TIMESTAMP_KEY);
-                    if (listingString != null) {
-                        long lastModificationTimeFromLegacyState = Long.parseLong(listingString);
-                        fileStatusManager.setLastModificationTime(lastModificationTimeFromLegacyState);
-                        isLegacyLastStatusListed = emittedString.equals(listingString);
-                    }
-                    getLogger().debug("State restored from legacy format, latesting timestamp emitted = {}, latest listed = {}", emittedString, listingString);
-                    // Restoring state from new format
-                } else {
-                    final String listingString = stateMap.get(LISTING_TIMESTAMP_KEY);
-                    if (listingString != null) {
-                        long lastModificationTimeFromNewState = Long.parseLong(listingString);
-                        fileStatusManager.setLastModificationTime(lastModificationTimeFromNewState);
-                    } else {
-                        fileStatusManager = FileStatusManager.createFileStatusManager();
-                    }
-                }
-            } else {
-                fileStatusManager = FileStatusManager.createFileStatusManager();
+            String latestListedTimestampString = stateMap.get(LATEST_TIMESTAMP_KEY);
+            String latestFiles = stateMap.get(LATEST_FILES_KEY);
+
+            final String legacyLatestListingTimestampString = stateMap.get(LEGACY_LISTING_TIMESTAMP_KEY);
+            final String legacyLatestEmittedTimestampString = stateMap.get(LEGACY_EMITTED_TIMESTAMP_KEY);
+
+            if (legacyLatestListingTimestampString != null) {
+                final long legacyLatestListingTimestamp = Long.parseLong(legacyLatestListingTimestampString);
+                final long legacyLatestEmittedTimestamp = Long.parseLong(legacyLatestEmittedTimestampString);
+                latestModificationTime = legacyLatestListingTimestamp == legacyLatestEmittedTimestamp ? legacyLatestListingTimestamp + 1 : legacyLatestListingTimestamp;
+            } else if (latestListedTimestampString != null) {
+                latestModificationTime = Long.parseLong(latestListedTimestampString);
+                latestModifiedStatuses = new ArrayList<>(Arrays.asList(latestFiles.split("\\s")));
             }
         } catch (IOException e) {
             getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
@@ -294,167 +267,48 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final PathFilter pathFilter = createPathFilter(context);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final HdfsObjectWriter writer = getHdfsObjectWriter(session, writerFactory);
+        final FileStatusManager fileStatusManager = new FileStatusManager();
+        final Path rootPath = getNormalizedPath(context, DIRECTORY);
+        final FileStatusIterable fileStatuses = new FileStatusIterable(rootPath, recursive, hdfs, getUserGroupInformation());
 
-        long listedFileCount = 0;
-        try {
-            final Path rootPath = getNormalizedPath(context, DIRECTORY);
-            final FileCountRemoteIterator<FileStatus> fileStatusIterator = getFileStatusIterator(rootPath, recursive, hdfs, pathFilter);
+        final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
+        final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
-            final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-            final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
-            final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-            final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
+        final HdfsObjectWriter writer = getHdfsObjectWriter(session, writerFactory, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager);
 
-            writer.beginListing();
+        writer.write();
 
-            FileStatus status;
-            while (fileStatusIterator.hasNext()) {
-                status = fileStatusIterator.next();
-                if (status != null && determineListable(status, minimumAge, maximumAge, isTransitioningFromLegacyState, isLegacyLastStatusListed)) {
-                    writer.addToListing(status);
-                    fileStatusManager.update(status);
-                    listedFileCount++;
-                }
-            }
-            writer.finishListing();
+        getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatuses.getTotalFileCount(), writer.getListedFileCount());
 
-            long totalFileCount = fileStatusIterator.getFileCount();
-            getLogger().debug("Found a total of {} files in HDFS, {} are listed", totalFileCount, listedFileCount);
-        } catch (final IOException | IllegalArgumentException | SchemaNotFoundException e) {
-            getLogger().error("Failed to perform listing of HDFS", e);
-            writer.finishListingExceptionally(e);
-            return;
-        }
 
-        if (listedFileCount > 0) {
-            fileStatusManager.finishIteration();
+        if (writer.getListedFileCount() > 0) {
             final Map<String, String> updatedState = new HashMap<>(1);
-            updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLastModificationTime()));
+            updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLastModificationTime()));
+            updatedState.put(LATEST_FILES_KEY, String.valueOf(fileStatusManager.getLastModifiedStatusesAsString()));
             getLogger().debug("New state map: {}", updatedState);
             updateState(session, updatedState);
 
-            getLogger().info("Successfully created listing with {} new files from HDFS", listedFileCount);
-            session.commitAsync();
+            getLogger().info("Successfully created listing with {} new files from HDFS", writer.getListedFileCount());
         } else {
             getLogger().debug("There is no data to list. Yielding.");
             context.yield();
         }
     }
 
-    private HdfsObjectWriter getHdfsObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory) {
+    private HdfsObjectWriter getHdfsObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory,
+                                                 FileStatusIterable fileStatuses, long minimumAge, long maximumAge,
+                                                 PathFilter pathFilter, FileStatusManager fileStatusManager) {
         final HdfsObjectWriter writer;
         if (writerFactory == null) {
-            writer = new FlowFileObjectWriter(session);
+            writer = new FlowFileObjectWriter(session, fileStatuses, minimumAge, maximumAge,
+                    pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), fileStatuses, minimumAge, maximumAge,
+                    pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
         }
         return writer;
-    }
-
-    private boolean notEnoughTimeElapsedToRun(final ProcessContext context) {
-        final long now = System.nanoTime();
-        if (now - lastRunTimestamp < LISTING_LAG_NANOS) {
-            context.yield();
-            return true;
-        }
-        lastRunTimestamp = now;
-        return false;
-    }
-
-    private boolean determineListable(final FileStatus status, final long minimumAge, final long maximumAge, final boolean isTransitioningFromLegacyState, final boolean isLegacyLastStatusListed) {
-        // If the file was created during the processor's last iteration we have to check if it was already listed
-        // If legacy state was used and the file was already listed once, we don't want to list it once again.
-        if (status.getModificationTime() == fileStatusManager.getLastModificationTime()) {
-            if (isTransitioningFromLegacyState) {
-                return !isLegacyLastStatusListed;
-            }
-            return !fileStatusManager.getLastModifiedStatuses().contains(status);
-        }
-
-        final long fileAge = System.currentTimeMillis() - status.getModificationTime();
-        if (minimumAge > fileAge || fileAge > maximumAge) {
-            return false;
-        }
-
-        return status.getModificationTime() > fileStatusManager.getLastModificationTime();
-    }
-
-    private FileCountRemoteIterator<FileStatus> getFileStatusIterator(final Path path, final boolean recursive, final FileSystem hdfs, final PathFilter filter) {
-        final Deque<Path> pathStack = new ArrayDeque<>();
-        pathStack.push(path);
-
-        return new FileCountRemoteIterator<>() {
-            private FileStatus[] currentBatch = null;
-            private int currentIndex = 0;
-            private long fileCount = 0L;
-
-            @Override
-            public boolean hasNext() throws IOException {
-                if (currentBatch == null || currentIndex >= currentBatch.length) {
-                    fetchNextBatch();
-                }
-                return currentBatch != null && currentIndex < currentBatch.length;
-            }
-
-            @Override
-            public FileStatus next() throws IOException {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-                FileStatus status = getNextStatus();
-
-                while (status != null && shouldSkip(status)) {
-                    status = getNextStatus();
-                }
-                return status;
-            }
-
-            private void fetchNextBatch() throws IOException {
-                if (pathStack.isEmpty()) {
-                    currentBatch = null;
-                } else {
-                    Path currentPath = pathStack.pop();
-                    getLogger().debug("Fetching listing for {}", currentPath);
-
-                    try {
-                        currentBatch = getUserGroupInformation().doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(currentPath));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        getLogger().error("Interrupted while performing listing of HDFS", e);
-                    }
-                    currentIndex = 0;
-
-                    if (recursive) {
-                        for (final FileStatus status : currentBatch) {
-                            if (status.isDirectory()) {
-                                pathStack.push(status.getPath());
-                            }
-                        }
-                    }
-                }
-            }
-
-            public long getFileCount() {
-                return fileCount;
-            }
-
-            private boolean shouldSkip(FileStatus status) {
-                final boolean isDirectory = status.isDirectory();
-                final boolean isFilteredOut = !filter.accept(status.getPath());
-                final boolean isCopyInProgress = status.getPath().getName().endsWith("_COPYING_");
-
-                return isDirectory || isFilteredOut || isCopyInProgress;
-            }
-
-            private FileStatus getNextStatus() throws IOException {
-                if (!hasNext()) {
-                    return null;
-                }
-                fileCount++;
-                return currentBatch[currentIndex++];
-            }
-        };
     }
 
     private PathFilter createPathFilter(final ProcessContext context) {
@@ -462,15 +316,16 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
 
         switch (filterMode) {
-            case FILTER_DIRECTORIES_AND_FILES:
-                return path -> Stream.of(path.toString().split("/"))
-                        .skip(getPathSegmentsToSkip(recursive))
-                        .allMatch(v -> fileFilterRegexPattern.matcher(v).matches());
+            case FILTER_MODE_FILES_ONLY:
+                return path -> fileFilterRegexPattern.matcher(path.getName()).matches();
             case FILTER_MODE_FULL_PATH:
                 return path -> fileFilterRegexPattern.matcher(path.toString()).matches()
                         || fileFilterRegexPattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
+            // FILTER_DIRECTORIES_AND_FILES
             default:
-                return path -> fileFilterRegexPattern.matcher(path.getName()).matches();
+                return path -> Stream.of(path.toString().split("/"))
+                        .skip(getPathSegmentsToSkip(recursive))
+                        .allMatch(v -> fileFilterRegexPattern.matcher(v).matches());
         }
     }
 

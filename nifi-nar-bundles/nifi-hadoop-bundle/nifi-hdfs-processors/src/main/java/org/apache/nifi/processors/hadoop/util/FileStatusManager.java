@@ -23,48 +23,34 @@ import java.util.List;
 
 public class FileStatusManager {
 
-    private List<FileStatus> lastModifiedStatusesFromLastIteration;
-    private long lastModificationTimeFromLastIteration;
-    private List<FileStatus> lastModifiedStatusesFromCurrentIteration;
-    private long lastModificationTimeFromCurrentIteration;
+    private final List<String> lastModifiedStatuses;
+    private long lastModificationTime;
 
-    private FileStatusManager() {
-        this.lastModificationTimeFromCurrentIteration = -1L;
-        this.lastModificationTimeFromLastIteration = -1L;
-        this.lastModifiedStatusesFromCurrentIteration = new ArrayList<>();
-        this.lastModifiedStatusesFromLastIteration = new ArrayList<>();
+    public FileStatusManager() {
+        lastModificationTime = 0L;
+        lastModifiedStatuses = new ArrayList<>();
     }
 
-    public static FileStatusManager createFileStatusManager() {
-        return new FileStatusManager();
+    public FileStatusManager(final long lastModificationTime, final List<String> lastModifiedStatuses) {
+        this.lastModificationTime = lastModificationTime;
+        this.lastModifiedStatuses = lastModifiedStatuses;
     }
 
     public void update(final FileStatus status) {
-        if (status != null && status.getModificationTime() > lastModificationTimeFromCurrentIteration) {
-            lastModificationTimeFromCurrentIteration = status.getModificationTime();
-            lastModifiedStatusesFromCurrentIteration.clear();
-            lastModifiedStatusesFromCurrentIteration.add(status);
-        } else if (status != null && status.getModificationTime() == lastModificationTimeFromCurrentIteration) {
-            lastModifiedStatusesFromCurrentIteration.add(status);
+        if (status.getModificationTime() > lastModificationTime) {
+            lastModificationTime = status.getModificationTime();
+            lastModifiedStatuses.clear();
+            lastModifiedStatuses.add(status.getPath().toString());
+        } else if (status.getModificationTime() == lastModificationTime) {
+            lastModifiedStatuses.add(status.getPath().toString());
         }
     }
 
-    public void finishIteration() {
-        lastModificationTimeFromLastIteration = lastModificationTimeFromCurrentIteration;
-        lastModifiedStatusesFromLastIteration.clear();
-        lastModifiedStatusesFromLastIteration.addAll(lastModifiedStatusesFromCurrentIteration);
-        lastModifiedStatusesFromCurrentIteration.clear();
-    }
-
-    public List<FileStatus> getLastModifiedStatuses() {
-        return lastModifiedStatusesFromLastIteration;
+    public String getLastModifiedStatusesAsString() {
+        return String.join(" ", lastModifiedStatuses);
     }
 
     public long getLastModificationTime() {
-        return lastModificationTimeFromLastIteration;
-    }
-
-    public void setLastModificationTime(long lastModificationTime) {
-        this.lastModificationTimeFromLastIteration = lastModificationTime;
+        return lastModificationTime;
     }
 }

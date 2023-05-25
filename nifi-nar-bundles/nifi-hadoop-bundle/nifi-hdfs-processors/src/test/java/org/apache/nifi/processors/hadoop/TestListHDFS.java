@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.hadoop.KerberosProperties;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
@@ -50,11 +51,12 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.processors.hadoop.ListHDFS.LISTING_TIMESTAMP_KEY;
+import static org.apache.nifi.processors.hadoop.ListHDFS.LATEST_TIMESTAMP_KEY;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FILES_ONLY;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FULL_PATH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -70,15 +72,13 @@ class TestListHDFS {
 
     private TestRunner runner;
     private ListHDFSWithMockedFileSystem proc;
-    private NiFiProperties mockNiFiProperties;
-    private KerberosProperties kerberosProperties;
     private MockComponentLog mockLogger;
 
     @BeforeEach
     public void setup() throws InitializationException {
-        mockNiFiProperties = mock(NiFiProperties.class);
+        final NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = new KerberosProperties(null);
+        final KerberosProperties kerberosProperties = new KerberosProperties(null);
 
         proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
         mockLogger = spy(new MockComponentLog(UUID.randomUUID().toString(), proc));
@@ -121,18 +121,19 @@ class TestListHDFS {
     }
 
     @Test
-    void testListingWithUnrecognizedELFunction() throws InterruptedException {
+    void testListingWithUnrecognizedELFunction() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.setProperty(ListHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
 
-        runner.run();
+        final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
+        assertEquals(IllegalArgumentException.class, assertionError.getCause().getClass());
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
     }
 
     @Test
-    void testListingHasCorrectAttributes() throws InterruptedException {
+    void testListingHasCorrectAttributes() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.run();
@@ -145,7 +146,7 @@ class TestListHDFS {
 
 
     @Test
-    void testRecursiveWithDefaultFilterAndFilterMode() throws InterruptedException {
+    void testRecursiveWithDefaultFilterAndFilterMode() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/.testFile.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
@@ -172,7 +173,7 @@ class TestListHDFS {
     }
 
     @Test
-    void testRecursiveWithCustomFilterDirectoriesAndFiles() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterDirectoriesAndFiles() {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, ".*txt.*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_DIRECTORIES_AND_FILES.getValue());
@@ -211,7 +212,7 @@ class TestListHDFS {
     }
 
     @Test
-    void testRecursiveWithCustomFilterFilesOnly() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFilesOnly() {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "[^\\.].*\\.txt");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FILES_ONLY.getValue());
@@ -255,7 +256,7 @@ class TestListHDFS {
     }
 
     @Test
-    void testRecursiveWithCustomFilterFullPathWithoutSchemeAndAuthority() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFullPathWithoutSchemeAndAuthority() {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "(/.*/)*anotherDir/1\\..*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
@@ -306,7 +307,7 @@ class TestListHDFS {
     }
 
     @Test
-    void testRecursiveWithCustomFilterFullPathWithSchemeAndAuthority() throws InterruptedException, IOException {
+    void testRecursiveWithCustomFilterFullPathWithSchemeAndAuthority() {
         // set custom regex filter and filter mode
         runner.setProperty(ListHDFS.FILE_FILTER, "hdfs://hdfscluster:8020(/.*/)*anotherDir/1\\..*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
@@ -375,7 +376,7 @@ class TestListHDFS {
 
 
     @Test
-    void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException, InterruptedException {
+    void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 1999L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
         runner.run();
@@ -404,17 +405,16 @@ class TestListHDFS {
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
 
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, false);
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
         Map<String, String> newState = runner.getStateManager().getState(Scope.CLUSTER).toMap();
-        assertEquals("2000", newState.get(LISTING_TIMESTAMP_KEY));
+        assertEquals("2000", newState.get(LATEST_TIMESTAMP_KEY));
     }
 
     @Test
-    void testEntriesWithSameTimestampOnlyAddedOnce() throws InterruptedException {
+    void testEntriesWithSameTimestampOnlyAddedOnce() {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 8L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
 
@@ -427,14 +427,13 @@ class TestListHDFS {
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
 
         proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/2.txt")));
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
     }
 
     @Test
-    void testMinAgeMaxAge() throws IOException, InterruptedException {
+    void testMinAgeMaxAge() throws IOException {
 
         long now = new Date().getTime();
         long oneHourAgo = now - 3600000;
@@ -460,7 +459,6 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.MAX_AGE, "90 min");
         runner.assertValid();
 
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -473,7 +471,6 @@ class TestListHDFS {
         runner.removeProperty(ListHDFS.MAX_AGE);
         runner.assertValid();
 
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
@@ -485,14 +482,13 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.MAX_AGE, "90 min");
         runner.assertValid();
 
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
     }
 
     @Test
-    void testListAfterDirectoryChange() throws InterruptedException {
+    void testListAfterDirectoryChange() {
         proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_1.txt")));
         proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 200L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_2.txt")));
         proc.fileSystem.addFileStatus(new Path("/test2"), new FileStatus(1L, false, 1, 1L, 150L, 0L, create777(), "owner", "group", new Path("/test2/testFile-2_1.txt")));
@@ -501,19 +497,16 @@ class TestListHDFS {
 
         runner.run(); // Initial run, latest file from /test1 will be ignored
 
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
-//        runner.run(); // Latest file i.e. testFile-1_2.txt from /test1 should also be picked up now
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
 
         runner.setProperty(ListHDFS.DIRECTORY, "/test2"); // Changing directory should reset the state
 
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run(); // Since state has been reset, testFile-2_1.txt from /test2 should be picked up
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
     }
 
     @Test
-    void testListingEmptyDir() throws InterruptedException, IOException {
+    void testListingEmptyDir() {
         runner.setProperty(ListHDFS.DIRECTORY, "/test/emptyDir");
 
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
@@ -549,7 +542,6 @@ class TestListHDFS {
         // We must then wait long enough to ensure that the listing can be performed safely and
         // run the Processor again.
         runner.run();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
         runner.run();
 
         // verify that no messages were logged at the error level
@@ -557,9 +549,9 @@ class TestListHDFS {
         final ArgumentCaptor<Throwable> throwableArgumentCaptor = ArgumentCaptor.forClass(Throwable.class);
         verify(mockLogger, atLeast(0)).error(anyString(), throwableArgumentCaptor.capture());
         // if error.(message, throwable) was called, ignore JobConf CNFEs since mapreduce libs are not included as dependencies
-        assertTrue(throwableArgumentCaptor.getAllValues().stream().flatMap(Stream::of)
+        assertTrue(throwableArgumentCaptor.getAllValues().stream()
                 // check that there are no throwables that are not of JobConf CNFE exceptions
-                .noneMatch(throwable -> !(throwable instanceof ClassNotFoundException && throwable.getMessage().contains("JobConf"))));
+                .allMatch(throwable -> throwable instanceof ClassNotFoundException && throwable.getMessage().contains("JobConf")));
         verify(mockLogger, never()).error(anyString(), any(Object[].class));
         verify(mockLogger, never()).error(anyString(), any(Object[].class), any(Throwable.class));
 
@@ -570,7 +562,7 @@ class TestListHDFS {
     }
 
     @Test
-    void testListingNonExistingDir() throws InterruptedException, IOException {
+    void testListingNonExistingDir() {
         String nonExistingPath = "/test/nonExistingDir";
         runner.setProperty(ListHDFS.DIRECTORY, nonExistingPath);
 
@@ -603,7 +595,8 @@ class TestListHDFS {
         proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
                 new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
 
-        runner.run();
+        final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
+        assertEquals(ProcessException.class, assertionError.getCause().getClass());
 
         // assert that no files were listed
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
@@ -612,11 +605,11 @@ class TestListHDFS {
     }
 
     private FsPermission create777() {
-        return new FsPermission((short) 0777);
+        return new FsPermission((short) 0x777);
     }
 
 
-    private class ListHDFSWithMockedFileSystem extends ListHDFS {
+    private static class ListHDFSWithMockedFileSystem extends ListHDFS {
         private final MockFileSystem fileSystem = new MockFileSystem();
         private final KerberosProperties testKerberosProps;
 
@@ -634,17 +627,13 @@ class TestListHDFS {
             return fileSystem;
         }
 
-        protected File getPersistenceFile() {
-            return new File("target/conf/state-file");
-        }
-
         @Override
-        protected FileSystem getFileSystem(final Configuration config) throws IOException {
+        protected FileSystem getFileSystem(final Configuration config) {
             return fileSystem;
         }
     }
 
-    private class MockFileSystem extends FileSystem {
+    private static class MockFileSystem extends FileSystem {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
 
         public void addFileStatus(final Path parent, final FileStatus child) {
@@ -676,33 +665,33 @@ class TestListHDFS {
         }
 
         @Override
-        public FSDataInputStream open(final Path f, final int bufferSize) throws IOException {
+        public FSDataInputStream open(final Path f, final int bufferSize) {
             return null;
         }
 
         @Override
         public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
-                                         final long blockSize, final Progressable progress) throws IOException {
+                                         final long blockSize, final Progressable progress) {
             return null;
         }
 
         @Override
-        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) throws IOException {
+        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) {
             return null;
         }
 
         @Override
-        public boolean rename(final Path src, final Path dst) throws IOException {
+        public boolean rename(final Path src, final Path dst) {
             return false;
         }
 
         @Override
-        public boolean delete(final Path f, final boolean recursive) throws IOException {
+        public boolean delete(final Path f, final boolean recursive) {
             return false;
         }
 
         @Override
-        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
+        public FileStatus[] listStatus(final Path f) throws IOException {
             return fileStatuses.keySet().stream()
                     // find the key in fileStatuses that matches the given Path f
                     .filter(pathKey -> f.isAbsoluteAndSchemeAuthorityNull()
@@ -731,12 +720,12 @@ class TestListHDFS {
         }
 
         @Override
-        public boolean mkdirs(final Path f, final FsPermission permission) throws IOException {
+        public boolean mkdirs(final Path f, final FsPermission permission) {
             return false;
         }
 
         @Override
-        public FileStatus getFileStatus(final Path f) throws IOException {
+        public FileStatus getFileStatus(final Path f) {
             return null;
         }
     }
