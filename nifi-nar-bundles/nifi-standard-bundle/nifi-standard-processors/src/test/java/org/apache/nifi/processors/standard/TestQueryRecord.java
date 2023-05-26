@@ -251,7 +251,7 @@ public class TestQueryRecord {
         runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
         runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
         runner.setProperty(REL_NAME,
-                "SELECT title, name, jobLevel" +
+                "SELECT title, name" +
                         "    FROM FLOWFILE" +
                         "    WHERE CARDINALITY(addresses) > 1");
 
@@ -270,7 +270,6 @@ public class TestQueryRecord {
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
-        assertEquals(JobLevel.IC2, output.getValue("jobLevel"));
     }
 
     @Test
@@ -778,7 +777,6 @@ public class TestQueryRecord {
      *          {
      *               "name": "John Doe",
      *               "title": "Software Engineer",
-     *               "jobLevel": "IC2",
      *               "age": 40,
      *               "addresses": [{
      *                   "streetNumber": 4820,
@@ -817,7 +815,6 @@ public class TestQueryRecord {
         personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
         personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
-        personFields.add(new RecordField("jobLevel", RecordFieldType.ENUM.getDataType()));
         personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
@@ -847,7 +844,6 @@ public class TestQueryRecord {
         map.put("age", 30);
         map.put("height", 60.5);
         map.put("title", "Software Engineer");
-        map.put("jobLevel", JobLevel.IC2);
         map.put("addresses", new Record[] {homeAddress, workAddress});
         return new MapRecord(personSchema, map);
     }
@@ -1283,12 +1279,6 @@ public class TestQueryRecord {
             };
         }
 
-    }
-
-    public enum JobLevel {
-        IC1,
-        IC2,
-        IC3
     }
 
 }

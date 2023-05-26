@@ -227,8 +227,6 @@ public class FlowFileTable extends AbstractTable implements QueryableTable, Tran
                 return typeFactory.createJavaType(BigInteger.class);
             case DECIMAL:
                 return typeFactory.createJavaType(BigDecimal.class);
-            case ENUM:
-                return typeFactory.createJavaType(Enum.class);
             case CHOICE:
                 final ChoiceDataType choiceDataType = (ChoiceDataType) fieldType;
                 DataType widestDataType = choiceDataType.getPossibleSubTypes().get(0);
