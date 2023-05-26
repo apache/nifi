@@ -100,7 +100,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
         + "In clustered environment, ConsumeAzureEventHub processor instances form a consumer group and the messages are distributed among the cluster nodes "
         + "(each message is processed on one cluster node only).")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@Stateful(scopes = {Scope.CLUSTER}, description = "Used to store partitions offsets when component state is configured as the checkpointing strategy.")
+@Stateful(scopes = {Scope.CLUSTER}, description = "Used to store partition ownership and offsets when component state is configured as the checkpointing strategy.")
 @TriggerSerially
 @WritesAttributes({
         @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
