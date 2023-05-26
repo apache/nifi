@@ -247,7 +247,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
                     + "and TIMESTAMP as logical 'timestamp-millis': written as long denoting milliseconds since Unix epoch. "
                     + "If a reader of written Avro records also knows these logical types, then these values can be deserialized with more context depending on reader implementation.")
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .required(true)
             .build();
 
