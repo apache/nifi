@@ -57,17 +57,6 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "fragment.identifier, fragment.index, fragment.count, segment.original.filename; these attributes can then be used by the "
         + "MergeContent processor in order to reconstitute the original FlowFile")
 @WritesAttributes({
-    @WritesAttribute(attribute = "segment.identifier",
-            description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this "
-            + "attribute. This attribute is added to maintain backward compatibility, but the fragment.identifier is preferred, as "
-            + "it is designed to work in conjunction with the MergeContent Processor"),
-    @WritesAttribute(attribute = "segment.index",
-            description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile. "
-            + "This attribute is added to maintain backward compatibility, but the fragment.index is preferred, as it is designed "
-            + "to work in conjunction with the MergeContent Processor"),
-    @WritesAttribute(attribute = "segment.count",
-            description = "The number of segments generated from the parent FlowFile. This attribute is added to maintain backward compatibility, "
-            + "but the fragment.count is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
     @WritesAttribute(attribute = "fragment.identifier",
             description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
     @WritesAttribute(attribute = "fragment.index",
@@ -79,9 +68,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SeeAlso(MergeContent.class)
 public class SegmentContent extends AbstractProcessor {
 
-    public static final String SEGMENT_ID = "segment.identifier";
-    public static final String SEGMENT_INDEX = "segment.index";
-    public static final String SEGMENT_COUNT = "segment.count";
     public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
     public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
@@ -143,9 +129,6 @@ public class SegmentContent extends AbstractProcessor {
         final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         if (flowFile.getSize() <= segmentSize) {
-            flowFile = session.putAttribute(flowFile, SEGMENT_ID, segmentId);
-            flowFile = session.putAttribute(flowFile, SEGMENT_INDEX, "1");
-            flowFile = session.putAttribute(flowFile, SEGMENT_COUNT, "1");
             flowFile = session.putAttribute(flowFile, SEGMENT_ORIGINAL_FILENAME, originalFileName);
 
             flowFile = session.putAttribute(flowFile, FRAGMENT_ID, segmentId);
@@ -164,8 +147,6 @@ public class SegmentContent extends AbstractProcessor {
         }
 
         final Map<String, String> segmentAttributes = new HashMap<>();
-        segmentAttributes.put(SEGMENT_ID, segmentId);
-        segmentAttributes.put(SEGMENT_COUNT, String.valueOf(totalSegments));
         segmentAttributes.put(SEGMENT_ORIGINAL_FILENAME, originalFileName);
 
         segmentAttributes.put(FRAGMENT_ID, segmentId);
@@ -175,7 +156,6 @@ public class SegmentContent extends AbstractProcessor {
         for (int i = 1; i <= totalSegments; i++) {
             final long segmentOffset = segmentSize * (i - 1);
             FlowFile segment = session.clone(flowFile, segmentOffset, Math.min(segmentSize, flowFile.getSize() - segmentOffset));
-            segmentAttributes.put(SEGMENT_INDEX, String.valueOf(i));
             segmentAttributes.put(FRAGMENT_INDEX, String.valueOf(i));
             segment = session.putAllAttributes(segment, segmentAttributes);
             segmentSet.add(segment);
