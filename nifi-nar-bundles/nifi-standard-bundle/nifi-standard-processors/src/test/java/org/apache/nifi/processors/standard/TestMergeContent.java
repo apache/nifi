@@ -1037,17 +1037,17 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 min");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("segment.identifier", "1");
-        attributes.put("segment.count", "4");
-        attributes.put("segment.index", "1");
+        attributes.put("fragment.identifier", "1");
+        attributes.put("fragment.count", "4");
+        attributes.put("fragment.index", "1");
         attributes.put("segment.original.filename", "originalfilename");
 
         runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
-        attributes.put("segment.index", "2");
+        attributes.put("fragment.index", "2");
         runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
-        attributes.put("segment.index", "3");
+        attributes.put("fragment.index", "3");
         runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
-        attributes.put("segment.index", "4");
+        attributes.put("fragment.index", "4");
         runner.enqueue("Panama".getBytes("UTF-8"), attributes);
 
         runner.run();
