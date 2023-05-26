@@ -33,6 +33,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 class TestComponentStateCheckpointStore {
     private static final String EVENT_HUB_NAMESPACE = "NAMESPACE";
@@ -60,7 +62,7 @@ class TestComponentStateCheckpointStore {
                 EVENT_HUB_NAME,
                 CONSUMER_GROUP
         ).blockFirst();
-        assert listed.getETag().equals(claimed.getETag());
+        assertEquals(listed.getETag(), claimed.getETag());
     }
 
     @Test
@@ -69,7 +71,7 @@ class TestComponentStateCheckpointStore {
         var claimed = checkpointStore.claimOwnership(List.of(
                 partitionOwnership
         )).blockFirst();
-        assert claimed == null;
+        assertNull(claimed);
     }
 
     @Test
