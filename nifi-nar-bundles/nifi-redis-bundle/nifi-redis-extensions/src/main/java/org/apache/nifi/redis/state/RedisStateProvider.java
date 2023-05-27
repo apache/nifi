@@ -187,7 +187,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         boolean updated = false;
 
         while (!updated && attempted < this.maxAttempts) {
-            updated = replace(currStateMap, state, componentId, true);
+            updated = replace(currStateMap, state, componentId);
             attempted++;
         }
 
@@ -213,10 +213,6 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
     @Override
     public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) throws IOException {
-        return replace(oldValue, newValue, componentId, false);
-    }
-
-    private boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId, final boolean allowReplaceMissing) throws IOException {
         return withConnection(redisConnection -> {
 
             boolean replaced = false;
@@ -230,12 +226,6 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             final byte[] currValue = redisConnection.get(key);
             final RedisStateMap currStateMap = serDe.deserialize(currValue);
             final long currVersion = currStateMap == null ? -1L : currStateMap.getVersion();
-
-            // the replace API expects that you can't call replace on a non-existing value, so unwatch and return
-            if (!allowReplaceMissing && currVersion == -1) {
-                redisConnection.unwatch();
-                return false;
-            }
 
             // start a transaction
             redisConnection.multi();
@@ -274,7 +264,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
         while (!updated && attempted < this.maxAttempts) {
             final StateMap currStateMap = getState(componentId);
-            updated = replace(currStateMap, Collections.emptyMap(), componentId, true);
+            updated = replace(currStateMap, Collections.emptyMap(), componentId);
 
             final String result = updated ? "successful" : "unsuccessful";
             logger.debug("Attempt # {} to clear state for component {} was {}", new Object[] { attempted + 1, componentId, result});

@@ -236,17 +236,10 @@ public class StandardOidcAuthorizedClientRepository implements OAuth2AuthorizedC
     private synchronized void updateState(final String principalId, final Consumer<Map<String, String>> stateConsumer) {
         try {
             final StateMap stateMap = getStateMap();
-            final Map<String, String> currentStateMap = stateMap.toMap();
-            final Map<String, String> updated = new LinkedHashMap<>(currentStateMap);
+            final Map<String, String> updated = new LinkedHashMap<>(stateMap.toMap());
             stateConsumer.accept(updated);
 
-            final boolean completed;
-            if (currentStateMap.isEmpty()) {
-                stateManager.setState(updated, SCOPE);
-                completed = true;
-            } else {
-                completed = stateManager.replace(stateMap, updated, SCOPE);
-            }
+            final boolean completed = stateManager.replace(stateMap, updated, SCOPE);
 
             if (completed) {
                 logger.info("Identity [{}] OIDC Authorized Client update completed", principalId);
