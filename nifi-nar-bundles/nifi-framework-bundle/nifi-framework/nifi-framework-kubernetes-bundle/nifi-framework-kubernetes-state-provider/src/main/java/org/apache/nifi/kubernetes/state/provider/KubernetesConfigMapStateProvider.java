@@ -168,13 +168,19 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         final Optional<String> stateVersion = currentState.getStateVersion();
         if (stateVersion.isPresent()) {
             final String resourceVersion = stateVersion.get();
-            configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion);
+            configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion).endMetadata();
         }
         final ConfigMap configMap = configMapBuilder.build();
 
         try {
-            final ConfigMap configMapReplaced = kubernetesClient.configMaps().resource(configMap).replace();
-            final Optional<String> version = getVersion(configMapReplaced);
+            Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
+            final ConfigMap newConfigMap;
+            if (stateVersion.isPresent()) {
+                newConfigMap = configMapResource.update();
+            } else {
+                newConfigMap = configMapResource.create();
+            }
+            final Optional<String> version = getVersion(newConfigMap);
             logger.debug("Replaced State Component ID [{}] Version [{}]", componentId, version);
             return true;
         } catch (final KubernetesClientException e) {
