@@ -271,11 +271,6 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
         // see above explanation as to why this method is synchronized.
         public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue) throws IOException {
-            if (!stateMap.getStateVersion().isPresent()) {
-                // state has never been set so return false
-                return false;
-            }
-
             if (stateMap != oldValue) {
                 return false;
             }

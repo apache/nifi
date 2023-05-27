@@ -36,7 +36,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -74,7 +76,6 @@ import java.util.stream.Collectors;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
-    private static final int EMPTY_VERSION = -1;
 
     private static final String COMPONENTS_RELATIVE_PATH = "/components";
 
@@ -301,11 +302,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         return new Scope[]{Scope.CLUSTER};
     }
 
-    @Override
-    public void setState(final Map<String, String> state, final String componentId) throws IOException {
-        setState(state, -1, componentId);
-    }
-
 
     private byte[] serialize(final Map<String, String> stateValues) throws IOException {
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -357,30 +353,17 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
     }
 
-    private void setState(final Map<String, String> stateValues, final int version, final String componentId) throws IOException {
-        try {
-            setState(stateValues, version, componentId, true);
-        } catch (final NoNodeException nne) {
-            // should never happen because we are passing 'true' for allowNodeCreation
-            throw new IOException("Unable to create Node in ZooKeeper to set state for component with ID " + componentId, nne);
-        }
-    }
-
     /**
-     * Sets the component state to the given stateValues if and only if the version is equal to the version currently
-     * tracked by ZooKeeper (or if the version is -1, in which case the state will be updated regardless of the version).
+     * Sets the component state to the given stateValues unconditionally..
      *
      * @param stateValues the new values to set
-     * @param version the expected version of the ZNode
      * @param componentId the ID of the component whose state is being updated
-     * @param allowNodeCreation if <code>true</code> and the corresponding ZNode does not exist in ZooKeeper, it will be created; if <code>false</code>
-     *            and the corresponding node does not exist in ZooKeeper, a {@link KeeperException.NoNodeException} will be thrown
      *
      * @throws IOException if unable to communicate with ZooKeeper
-     * @throws NoNodeException if the corresponding ZNode does not exist in ZooKeeper and allowNodeCreation is set to <code>false</code>
      * @throws StateTooLargeException if the state to be stored exceeds the maximum size allowed by ZooKeeper (Based on jute.maxbuffer property, after serialization)
      */
-    private void setState(final Map<String, String> stateValues, final int version, final String componentId, final boolean allowNodeCreation) throws IOException, NoNodeException {
+    @Override
+    public void setState(final Map<String, String> stateValues, final String componentId) throws IOException {
         verifyEnabled();
 
         try {
@@ -388,29 +371,23 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             final byte[] data = serialize(stateValues);
             final ZooKeeper keeper = getZooKeeper();
             validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
+
             try {
-                keeper.setData(path, data, version);
+                keeper.setData(path, data, -1);
             } catch (final NoNodeException nne) {
-                if (allowNodeCreation) {
-                    createNode(path, data, componentId, stateValues, acl);
-                    return;
-                } else {
-                    throw nne;
+                try {
+                    createNode(path, data, acl, false);
+                } catch (NodeExistsException nee) {
+                    setState(stateValues, componentId);
                 }
             }
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", e);
-        } catch (final NoNodeException nne) {
-            throw nne;
         } catch (final KeeperException ke) {
             if (Code.SESSIONEXPIRED == ke.code()) {
                 invalidateClient();
-                setState(stateValues, version, componentId, allowNodeCreation);
-                return;
-            }
-            if (Code.NODEEXISTS == ke.code()) {
-                setState(stateValues, version, componentId, allowNodeCreation);
+                setState(stateValues, componentId);
                 return;
             }
 
@@ -422,8 +399,60 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
     }
 
+    /**
+     * Sets the component state to the given stateValues if and only if oldState's version is equal to the version currently
+     * tracked by ZooKeeper or if oldState's version is not present (no old state) and the Zookeeper node does not exist.
+     *
+     * @param oldState the old state whose version is used to compare against
+     * @param stateValues the new values to set
+     * @param componentId the ID of the component whose state is being updated
+     *
+     * @throws IOException if unable to communicate with ZooKeeper
+     * @throws StateTooLargeException if the state to be stored exceeds the maximum size allowed by ZooKeeper (Based on jute.maxbuffer property, after serialization)
+     */
+    @Override
+    public boolean replace(final StateMap oldState, final Map<String, String> stateValues, final String componentId) throws IOException {
+        verifyEnabled();
 
-    private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues, final List<ACL> acls) throws IOException, KeeperException {
+        try {
+            final String path = getComponentPath(componentId);
+            final byte[] data = serialize(stateValues);
+            final ZooKeeper keeper = getZooKeeper();
+            validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
+
+            if (oldState.getStateVersion().isPresent()) {
+                final int version = oldState.getStateVersion().map(Integer::parseInt).get();
+                try {
+                    keeper.setData(path, data, version);
+                } catch (final BadVersionException | NoNodeException e) {
+                    return false;
+                }
+            } else {
+                try {
+                    createNode(path, data, acl, true);
+                } catch (final NodeExistsException e) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId + " due to interruption", e);
+        } catch (final KeeperException ke) {
+            if (Code.SESSIONEXPIRED == ke.code()) {
+                invalidateClient();
+                return replace(oldState, stateValues, componentId);
+            }
+
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ke);
+        } catch (final StateTooLargeException stle) {
+            throw stle;
+        } catch (final IOException ioe) {
+            throw new IOException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId, ioe);
+        }
+    }
+
+    private void createNode(final String path, final byte[] data, final List<ACL> acls, final boolean failIfExists) throws IOException, KeeperException {
         try {
             final ZooKeeper zooKeeper = getZooKeeper();
             zooKeeper.create(path, data, acls, CreateMode.PERSISTENT);
@@ -433,29 +462,37 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             final Code exceptionCode = ke.code();
             if (Code.NONODE == exceptionCode) {
                 final String parentPath = StringUtils.substringBeforeLast(path, "/");
-                createNode(parentPath, null, componentId, stateValues, Ids.OPEN_ACL_UNSAFE);
-                createNode(path, data, componentId, stateValues, acls);
+                createNode(parentPath, null, Ids.OPEN_ACL_UNSAFE, failIfExists);
+                createNode(path, data, acls, failIfExists);
                 return;
             }
             if (Code.SESSIONEXPIRED == exceptionCode) {
                 invalidateClient();
-                createNode(path, data, componentId, stateValues, acls);
+                createNode(path, data, acls, failIfExists);
                 return;
             }
 
-            // Node already exists. Node must have been created by "someone else". Just set the data.
+            // Node already exists. Node must have been created by "someone else".
             if (Code.NODEEXISTS == exceptionCode) {
-                try {
-                    getZooKeeper().setData(path, data, -1);
+                if (data == null) {
+                    // It is a parent node. Simply return.
                     return;
-                } catch (final KeeperException ke1) {
-                    // Node no longer exists -- it was removed by someone else. Go recreate the node.
-                    if (ke1.code() == Code.NONODE) {
-                        createNode(path, data, componentId, stateValues, acls);
+                }
+
+                if (!failIfExists) {
+                    // Just set the data if "fail if exists" was not requested.
+                    try {
+                        getZooKeeper().setData(path, data, -1);
                         return;
+                    } catch (final KeeperException ke1) {
+                        // Node no longer exists -- it was removed by someone else. Go recreate the node.
+                        if (ke1.code() == Code.NONODE) {
+                            createNode(path, data, acls, failIfExists);
+                            return;
+                        }
+                    } catch (final InterruptedException ie) {
+                        throw new IOException("Failed to update cluster-wide state due to interruption", ie);
                     }
-                } catch (final InterruptedException ie) {
-                    throw new IOException("Failed to update cluster-wide state due to interruption", ie);
                 }
             }
             throw ke;
@@ -492,30 +529,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             throw new IOException("Failed to obtain value from ZooKeeper for component with ID " + componentId, ioe);
         }
     }
-
-    @Override
-    public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) throws IOException {
-        verifyEnabled();
-
-        final int version = oldValue.getStateVersion().map(Integer::parseInt).orElse(EMPTY_VERSION);
-        try {
-            setState(newValue, version, componentId, false);
-            return true;
-        } catch (final NoNodeException nne) {
-            return false;
-        } catch (final IOException ioe) {
-            final Throwable cause = ioe.getCause();
-            if (cause instanceof KeeperException) {
-                final KeeperException ke = (KeeperException) cause;
-                if (Code.BADVERSION == ke.code()) {
-                    return false;
-                }
-            }
-
-            throw ioe;
-        }
-    }
-
 
     @Override
     public void clear(final String componentId) throws IOException {
