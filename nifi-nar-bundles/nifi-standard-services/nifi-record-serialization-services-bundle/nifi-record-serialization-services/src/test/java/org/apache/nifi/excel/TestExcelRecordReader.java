@@ -39,6 +39,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -85,7 +87,7 @@ public class TestExcelRecordReader {
     }
 
     private RecordSchema getDataFormattingSchema() {
-        final List<RecordField> fields = List.of(
+        final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()),
                 new RecordField("Money", RecordFieldType.DOUBLE.getDataType()),
@@ -113,7 +115,7 @@ public class TestExcelRecordReader {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void testDropUnknownFields(boolean dropUnknownFields) throws IOException, MalformedRecordException {
-        final List<RecordField> fields = List.of(
+        final List<RecordField> fields = Arrays.asList(
                 new RecordField("Numbers", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("Timestamps", RecordFieldType.DATE.getDataType()));
 
@@ -152,7 +154,7 @@ public class TestExcelRecordReader {
     @ValueSource(booleans = {true, false})
     public void tesCoerceTypes(boolean coerceTypes) throws IOException, MalformedRecordException {
         String fieldName = "dates";
-        RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
+        RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(new RecordField(fieldName, RecordFieldType.TIMESTAMP.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat("MM/dd/yyyy")
                 .withTimeFormat(RecordFieldType.TIME.getDefaultFormat())
@@ -185,10 +187,11 @@ public class TestExcelRecordReader {
     }
 
     private RecordSchema getSpecificSheetSchema() {
-        return  new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        return  new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType()),
                 new RecordField("third", RecordFieldType.STRING.getDataType())));
     }
+
     @Test
     public void testSelectSpecificSheetNotFound() throws IOException, MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
@@ -209,7 +212,7 @@ public class TestExcelRecordReader {
 
     @Test
     public void testSelectAllSheets() throws IOException, MalformedRecordException {
-        RecordSchema schema = new SimpleRecordSchema(List.of(new RecordField("first", RecordFieldType.STRING.getDataType()),
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(new RecordField("first", RecordFieldType.STRING.getDataType()),
                 new RecordField("second", RecordFieldType.STRING.getDataType())));
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)

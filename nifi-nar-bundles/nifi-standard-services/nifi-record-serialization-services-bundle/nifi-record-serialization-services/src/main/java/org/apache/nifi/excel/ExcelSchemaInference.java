@@ -40,14 +40,14 @@ import java.util.stream.IntStream;
 public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
     private final TimeValueInference timeValueInference;
     private final DataFormatter dataFormatter;
+
     public ExcelSchemaInference(TimeValueInference timeValueInference) {
-        this.timeValueInference = timeValueInference;
-        this.dataFormatter = new DataFormatter();
+        this(timeValueInference, null);
     }
 
     public ExcelSchemaInference(TimeValueInference timeValueInference, Locale locale) {
         this.timeValueInference = timeValueInference;
-        this.dataFormatter = new DataFormatter(locale);
+        this.dataFormatter = locale == null ? new DataFormatter() : new DataFormatter(locale);
     }
 
     @Override

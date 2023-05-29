@@ -111,7 +111,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
 
-        ExcelRecordReaderConfiguration args = new ExcelRecordReaderConfiguration.Builder()
+        ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withDateFormat(dateFormat)
                 .withRequiredSheets(requiredSheets)
                 .withFirstRow(firstRow)
@@ -120,7 +120,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
                 .withTimestampFormat(timestampFormat)
                 .build();
 
-        return new ExcelRecordReader(args, in, logger);
+        return new ExcelRecordReader(configuration, in, logger);
     }
 
     @Override
@@ -137,9 +137,9 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (allowableValue.equals(HEADER_DERIVED.getValue())) {
+        if (HEADER_DERIVED.getValue().equals(allowableValue)) {
             return new ExcelHeaderSchemaStrategy(context, getLogger());
-        } else if (allowableValue.equalsIgnoreCase(SchemaInferenceUtil.INFER_SCHEMA.getValue())) {
+        } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables, getLogger());
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
             return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());

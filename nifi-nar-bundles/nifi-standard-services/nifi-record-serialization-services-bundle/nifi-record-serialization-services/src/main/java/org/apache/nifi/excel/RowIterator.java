@@ -58,9 +58,9 @@ public class RowIterator implements Iterator<Row>, Closeable {
         setCurrent();
         boolean next = currentRow != null;
         if(!next) {
-            String sheetsNotFound = getSheetsNotFound();
-            if (!sheetsNotFound.isEmpty()) {
-                throw new ProcessException("The following required Excel sheet(s) were not found " + sheetsNotFound);
+            String requiredSheetsNotFoundMessage = getRequiredSheetsNotFoundMessage();
+            if (!requiredSheetsNotFoundMessage.isEmpty()) {
+                throw new ProcessException("The following required Excel sheet(s) were not found " + requiredSheetsNotFoundMessage);
             }
         }
         return next;
@@ -127,7 +127,7 @@ public class RowIterator implements Iterator<Row>, Closeable {
         return sheetByName;
     }
 
-    private String getSheetsNotFound() {
+    private String getRequiredSheetsNotFoundMessage() {
         return requiredSheets.entrySet().stream()
                 .filter(entry -> !entry.getValue())
                 .map(Map.Entry::getKey)

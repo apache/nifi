@@ -37,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -49,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestExcelHeaderSchemaStrategy {
     @Mock
     ComponentLog logger;
+
     @ParameterizedTest
     @MethodSource("getLocales")
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException, SchemaNotFoundException {
@@ -60,7 +62,7 @@ public class TestExcelHeaderSchemaStrategy {
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
             RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(List.of("0"), fieldNames);
+            assertEquals(Collections.singletonList("0"), fieldNames);
             if (Locale.FRENCH.equals(locale)) {
                 assertEquals(RecordFieldType.STRING, schema.getDataType("0").get().getFieldType());
             } else {
@@ -78,6 +80,7 @@ public class TestExcelHeaderSchemaStrategy {
                 Arguments.of(Locale.FRENCH)
         );
     }
+
     @Test
     public void testColumnHeaders() throws IOException, SchemaNotFoundException {
         final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
@@ -96,6 +99,7 @@ public class TestExcelHeaderSchemaStrategy {
             assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("3").get());
         }
     }
+
     @Test
     public void testAfterColumnHeaders() throws IOException, SchemaNotFoundException{
         final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");

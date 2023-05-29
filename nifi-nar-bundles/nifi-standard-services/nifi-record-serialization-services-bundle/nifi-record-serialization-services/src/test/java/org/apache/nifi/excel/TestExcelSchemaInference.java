@@ -39,6 +39,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -68,7 +69,7 @@ public class TestExcelSchemaInference {
                     new ExcelSchemaInference(timestampInference, locale), logger);
             schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(List.of("0"), fieldNames);
+            assertEquals(Collections.singletonList("0"), fieldNames);
 
             if (Locale.FRENCH.equals(locale)) {
                 assertEquals(RecordFieldType.STRING, schema.getDataType("0").get().getFieldType());
