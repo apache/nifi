@@ -66,6 +66,16 @@ public class RowIterator implements Iterator<Row>, Closeable {
         return next;
     }
 
+    @Override
+    public Row next() {
+        return currentRow;
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.workbook.close();
+    }
+
     private void setCurrent() {
         currentRow = getNextRow();
         if (currentRow != null) {
@@ -132,15 +142,5 @@ public class RowIterator implements Iterator<Row>, Closeable {
                 .filter(entry -> !entry.getValue())
                 .map(Map.Entry::getKey)
                 .collect(Collectors.joining(","));
-    }
-
-    @Override
-    public Row next() {
-        return currentRow;
-    }
-
-    @Override
-    public void close() throws IOException {
-        this.workbook.close();
     }
 }

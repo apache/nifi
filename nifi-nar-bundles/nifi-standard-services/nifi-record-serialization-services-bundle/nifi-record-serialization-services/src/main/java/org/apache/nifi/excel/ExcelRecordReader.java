@@ -105,6 +105,16 @@ public class ExcelRecordReader implements RecordReader {
         return null;
     }
 
+    @Override
+    public RecordSchema getSchema() throws MalformedRecordException {
+        return schema;
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.rowIterator.close();
+    }
+
     private Map<String, Object> getCurrentRowValues(Row currentRow, boolean coerceTypes, boolean dropUnknownFields) {
         final List<RecordField> recordFields = schema.getFields();
         final Map<String, Object> currentRowValues = new LinkedHashMap<>();
@@ -199,15 +209,5 @@ public class ExcelRecordReader implements RecordReader {
         }
 
         return value;
-    }
-
-    @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
-        return schema;
-    }
-
-    @Override
-    public void close() throws IOException {
-        this.rowIterator.close();
     }
 }
