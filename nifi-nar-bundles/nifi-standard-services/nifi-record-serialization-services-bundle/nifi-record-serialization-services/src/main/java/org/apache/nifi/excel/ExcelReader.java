@@ -58,10 +58,10 @@ import java.util.stream.IntStream;
         + "present or from all the required sheets, or providing an explicit schema "
         + "for interpreting the values. See Controller Service's Usage for further documentation. "
         + "This reader is currently only capable of processing .xlsx "
-        + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.)")
+        + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    private static final AllowableValue HEADER_DERIVED = new AllowableValue("excel-header-derived", "Use fields From Header",
+    private static final AllowableValue HEADER_DERIVED = new AllowableValue("excel-header-derived", "Use Fields From Header",
             "The first chosen row of the Excel sheet is a header row that contains the columns representative of all the rows " +
                     "in the required sheets. The schema will be derived by using those columns in the header.");
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor

@@ -25,7 +25,7 @@
         	The ExcelReader allows for interpreting input data as delimited Records. Each row in an Excel spreadsheet is a record
 			and each cell is considered a field. The reader allows for choosing which row to start from and which sheets
 			in a spreadsheet to ingest.
-			When using the "Infer Schema" or "Use String Fields From Header" schema access strategies, the field names will be assumed to be the
+			When using the "Infer Schema" or "Use Fields From Header" schema access strategies, the field names will be assumed to be the
 			cell number in the column. Otherwise, the names of fields can be supplied
 			by specifying the schema by using the Schema Text or looking up the schema in a Schema Registry.
         </p>
@@ -312,7 +312,7 @@ first customer!"<br />
     		a couple of different properties for configuring how to handle these column names. The
     		"Schema Access Strategy" property as well as the associated properties ("Schema Registry," "Schema Text," and
     		"Schema Name" properties) can be used to specify how to obtain the schema. If the "Schema Access Strategy" is set
-    		to "Use String Fields From Header" then the header line of the first chosen Excel sheet will be used to determine the schema. Otherwise,
+    		to "Use Fields From Header" then the header line of the first chosen Excel sheet will be used to determine the schema. Otherwise,
     		a schema will be referenced elsewhere and the column names specified in those schemas will be used instead of the cell numbers.
     	</p>
     </body>

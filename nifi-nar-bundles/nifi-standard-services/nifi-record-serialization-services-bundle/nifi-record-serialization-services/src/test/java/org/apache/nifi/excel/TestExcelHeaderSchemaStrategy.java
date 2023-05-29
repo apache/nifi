@@ -31,11 +31,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,20 +54,19 @@ public class TestExcelHeaderSchemaStrategy {
     @ParameterizedTest
     @MethodSource("getLocales")
     public void testInferenceAgainstDifferentLocales(Locale locale) throws IOException, SchemaNotFoundException {
-        final File file = new File("src/test/resources/excel/numbers.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
         ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger, locale);
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
-            final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(Collections.singletonList("0"), fieldNames);
-            if (Locale.FRENCH.equals(locale)) {
-                assertEquals(RecordFieldType.STRING, schema.getDataType("0").get().getFieldType());
-            } else {
-                assertEquals(RecordFieldType.FLOAT, schema.getDataType("0").get().getFieldType());
-            }
+
+        RecordSchema schema = headerSchemaStrategy.getSchema(null, getInputStream("numbers.xlsx"), null);
+
+        final List<String> fieldNames = schema.getFieldNames();
+        assertEquals(Collections.singletonList("0"), fieldNames);
+        if (Locale.FRENCH.equals(locale)) {
+            assertEquals(RecordFieldType.STRING, schema.getDataType("0").get().getFieldType());
+        } else {
+            assertEquals(RecordFieldType.FLOAT, schema.getDataType("0").get().getFieldType());
         }
     }
 
@@ -81,42 +80,44 @@ public class TestExcelHeaderSchemaStrategy {
         );
     }
 
+    private InputStream getInputStream(String excelFile) throws IOException {
+        String excelResourcesDir = "src/test/resources/excel";
+        Path excelDoc = Paths.get(excelResourcesDir, excelFile);
+        return Files.newInputStream(excelDoc);
+    }
+
     @Test
     public void testColumnHeaders() throws IOException, SchemaNotFoundException {
-        final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
-
         ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger);
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
-            final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
-            assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("0").get());
-            assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("1").get());
-            assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
-            assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("3").get());
-        }
+
+        RecordSchema schema = headerSchemaStrategy.getSchema(null, getInputStream("simpleDataFormatting.xlsx"), null);
+
+        final List<String> fieldNames = schema.getFieldNames();
+        assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
+        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("0").get());
+        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("1").get());
+        assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
+        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("3").get());
     }
 
     @Test
     public void testAfterColumnHeaders() throws IOException, SchemaNotFoundException{
-        final File file = new File("src/test/resources/excel/simpleDataFormatting.xlsx");
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         new ExcelReader().getSupportedPropertyDescriptors().forEach(prop -> properties.put(prop, prop.getDefaultValue()));
         final PropertyContext context = new MockConfigurationContext(properties, null);
         properties.put(ExcelReader.STARTING_ROW, "2");
         ExcelHeaderSchemaStrategy headerSchemaStrategy = new ExcelHeaderSchemaStrategy(context, logger);
 
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            RecordSchema schema = headerSchemaStrategy.getSchema(null, inputStream, null);
-            final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
-            assertEquals(RecordFieldType.INT.getDataType(), schema.getDataType("0").get());
-            assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("1").get());
-            assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
-            assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType("3").get());
-        }
+        RecordSchema schema = headerSchemaStrategy.getSchema(null, getInputStream("simpleDataFormatting.xlsx"), null);
+
+        final List<String> fieldNames = schema.getFieldNames();
+        assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
+        assertEquals(RecordFieldType.INT.getDataType(), schema.getDataType("0").get());
+        assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("1").get());
+        assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
+        assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType("3").get());
     }
 }

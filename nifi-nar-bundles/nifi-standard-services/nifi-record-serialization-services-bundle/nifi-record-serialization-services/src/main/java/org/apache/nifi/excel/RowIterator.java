@@ -13,7 +13,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.apache.nifi.excel;
+ */
+package org.apache.nifi.excel;
 
 import com.github.pjfanning.xlsx.StreamingReader;
 import org.apache.nifi.logging.ComponentLog;
@@ -34,11 +35,11 @@ import java.util.stream.Collectors;
 public class RowIterator implements Iterator<Row>, Closeable {
     private final Workbook workbook;
     private final Iterator<Sheet> sheets;
-    private Sheet currentSheet;
-    private Iterator<Row> currentRows;
     private final Map<String, Boolean> requiredSheets;
     private final int firstRow;
     private final ComponentLog logger;
+    private Sheet currentSheet;
+    private Iterator<Row> currentRows;
     private Row currentRow;
 
     public RowIterator(InputStream in, List<String> requiredSheets, int firstRow, ComponentLog logger) {
