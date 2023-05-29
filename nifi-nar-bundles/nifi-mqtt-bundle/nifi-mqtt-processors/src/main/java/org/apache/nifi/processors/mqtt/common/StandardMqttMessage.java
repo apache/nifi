@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.mqtt.common;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Represents a MQTT message.
  */
@@ -23,6 +26,8 @@ public class StandardMqttMessage {
     private byte[] payload;
     private int qos;
     private boolean retained;
+
+    private final Map<MqttAttribute, String> additionalAttributes = new HashMap<>();
 
     public StandardMqttMessage(byte[] payload, int qos, boolean retained) {
         this.payload = payload;
@@ -40,5 +45,13 @@ public class StandardMqttMessage {
 
     public boolean isRetained() {
         return retained;
+    }
+
+    public Map<MqttAttribute, String> getAttributes() {
+        return additionalAttributes;
+    }
+
+    public void putAttribute(MqttAttribute key, String value) {
+        additionalAttributes.put(key, value);
     }
 }

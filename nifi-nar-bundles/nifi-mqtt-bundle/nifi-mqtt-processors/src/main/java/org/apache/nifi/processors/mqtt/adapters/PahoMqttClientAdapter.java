@@ -24,6 +24,7 @@ import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.util.StringUtils;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -115,6 +116,10 @@ public class PahoMqttClientAdapter implements MqttClient {
     @Override
     public void publish(String topic, StandardMqttMessage message) {
         logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
+
+        if (StringUtils.isEmpty(topic)) {
+            throw new MqttException("Topic is empty");
+        }
 
         try {
             client.publish(topic, message.getPayload(), message.getQos(), message.isRetained());

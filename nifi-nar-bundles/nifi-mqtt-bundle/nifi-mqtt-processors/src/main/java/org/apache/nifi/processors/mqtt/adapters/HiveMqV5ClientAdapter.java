@@ -22,6 +22,8 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5Connect;
 import com.hivemq.client.mqtt.mqtt5.message.connect.Mqtt5ConnectBuilder;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PublishBuilder;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
@@ -33,13 +35,16 @@ import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.util.StringUtils;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.CORRELATION_DATA;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.RESPONSE_TOPIC;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.SSL;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WS;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WSS;
@@ -89,7 +94,7 @@ public class HiveMqV5ClientAdapter implements MqttClient {
         if (username != null && password != null) {
             connectBuilder.simpleAuth()
                     .username(clientProperties.getUsername())
-                    .password(password.getBytes(StandardCharsets.UTF_8))
+                    .password(password.getBytes(UTF_8))
                     .applySimpleAuth();
         }
 
@@ -113,12 +118,26 @@ public class HiveMqV5ClientAdapter implements MqttClient {
     public void publish(String topic, StandardMqttMessage message) {
         logger.debug("Publishing message to {} with QoS: {}", topic, message.getQos());
 
-        mqtt5BlockingClient.publishWith()
-                .topic(topic)
-                .payload(message.getPayload())
-                .retain(message.isRetained())
-                .qos(Objects.requireNonNull(MqttQos.fromCode(message.getQos())))
-                .send();
+        if (StringUtils.isEmpty(topic)) {
+            throw new MqttException("Topic is empty");
+        }
+
+        final Mqtt5PublishBuilder.Complete publishBuilder =
+                Mqtt5Publish.builder()
+                            .topic(topic)
+                            .payload(message.getPayload())
+                            .retain(message.isRetained())
+                            .qos(Objects.requireNonNull(MqttQos.fromCode(message.getQos())));
+
+        if (message.getAttributes().containsKey(RESPONSE_TOPIC)) {
+            publishBuilder.responseTopic(message.getAttributes().get(RESPONSE_TOPIC));
+        }
+
+        if (message.getAttributes().containsKey(CORRELATION_DATA)) {
+            publishBuilder.correlationData(message.getAttributes().get(CORRELATION_DATA).getBytes(UTF_8));
+        }
+
+        mqtt5BlockingClient.publish(publishBuilder.build());
     }
 
     @Override
@@ -133,7 +152,12 @@ public class HiveMqV5ClientAdapter implements MqttClient {
                             mqtt5Publish.getPayloadAsBytes(),
                             mqtt5Publish.getQos().getCode(),
                             mqtt5Publish.isRetain(),
-                            mqtt5Publish.getTopic().toString());
+                            mqtt5Publish.getTopic().toString()
+                    );
+
+                    mqtt5Publish.getResponseTopic().ifPresent(responseTopic -> receivedMessage.putAttribute(RESPONSE_TOPIC, responseTopic.toString()));
+                    mqtt5Publish.getCorrelationData().ifPresent(byteBuffer -> receivedMessage.putAttribute(CORRELATION_DATA, UTF_8.decode(byteBuffer).toString()));
+
                     handler.handleReceivedMessage(receivedMessage);
                 })
                 .send();

@@ -83,6 +83,8 @@ import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_RETAINED_ATTRIBUTE_
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.QOS_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.RECORD_COUNT_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.TOPIC_ATTRIBUTE_KEY;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.CORRELATION_DATA;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.RESPONSE_TOPIC;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_0;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_1;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_2;
@@ -448,6 +450,8 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         attrs.put(IS_DUPLICATE_ATTRIBUTE_KEY, String.valueOf(mqttMessage.isDuplicate()));
         attrs.put(IS_RETAINED_ATTRIBUTE_KEY, String.valueOf(mqttMessage.isRetained()));
 
+        mqttMessage.getAttributes().forEach((key, value) -> attrs.put(key.getAttributeName(), value));
+
         messageFlowfile = session.putAllAttributes(messageFlowfile, attrs);
         return messageFlowfile;
     }
@@ -507,6 +511,14 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
                                         fields.add(new RecordField(IS_DUPLICATE_FIELD_KEY, RecordFieldType.BOOLEAN.getDataType()));
                                         fields.add(new RecordField(IS_RETAINED_FIELD_KEY, RecordFieldType.BOOLEAN.getDataType()));
 
+                                        if (mqttMessage.getAttributes().containsKey(RESPONSE_TOPIC)) {
+                                            fields.add(new RecordField(RESPONSE_TOPIC.getRecordFieldName(), RecordFieldType.STRING.getDataType()));
+                                        }
+
+                                        if (mqttMessage.getAttributes().containsKey(CORRELATION_DATA)) {
+                                            fields.add(new RecordField(CORRELATION_DATA.getRecordFieldName(), RecordFieldType.STRING.getDataType()));
+                                        }
+
                                         writeSchema = new SimpleRecordSchema(fields);
                                     }
                                 } catch (final Exception e) {
@@ -525,6 +537,14 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
                                     record.setValue(QOS_FIELD_KEY, mqttMessage.getQos());
                                     record.setValue(IS_RETAINED_FIELD_KEY, mqttMessage.isRetained());
                                     record.setValue(IS_DUPLICATE_FIELD_KEY, mqttMessage.isDuplicate());
+
+                                    if (mqttMessage.getAttributes().containsKey(RESPONSE_TOPIC)) {
+                                        record.setValue(RESPONSE_TOPIC.getRecordFieldName(), mqttMessage.getAttributes().get(RESPONSE_TOPIC));
+                                    }
+
+                                    if (mqttMessage.getAttributes().containsKey(CORRELATION_DATA)) {
+                                        record.setValue(CORRELATION_DATA.getRecordFieldName(), mqttMessage.getAttributes().get(CORRELATION_DATA));
+                                    }
                                 }
                                 writer.write(record);
                                 isWriterInitialized = true;

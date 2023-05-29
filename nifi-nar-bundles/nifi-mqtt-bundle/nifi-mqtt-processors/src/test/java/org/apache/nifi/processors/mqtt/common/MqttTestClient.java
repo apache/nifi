@@ -67,7 +67,9 @@ public class MqttTestClient implements MqttClient {
                 publishedMessages.add(Pair.of(topic, message));
                 break;
             case Subscriber:
-                receivedMqttMessageHandler.handleReceivedMessage(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
+                final ReceivedMqttMessage receivedMqttMessage = new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic);
+                receivedMqttMessage.getAttributes().putAll(message.getAttributes());
+                receivedMqttMessageHandler.handleReceivedMessage(receivedMqttMessage);
                 break;
         }
     }

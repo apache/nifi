@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mqtt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.nifi.processors.mqtt.common.MqttAttribute;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
@@ -38,8 +39,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Arrays.asList;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.PROP_CORRELATION_DATA;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.PROP_CORRELATION_DATA_IS_RECORD_PATH;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.PROP_TOPIC;
+import static org.apache.nifi.processors.mqtt.PublishMQTT.PROP_TOPIC_IS_RECORD_PATH;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_FAILURE;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_RECOVER;
 import static org.apache.nifi.processors.mqtt.PublishMQTT.ProcessDemarcatedContentStrategy.PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS;
@@ -474,6 +480,128 @@ public class TestPublishMQTT {
         final MockFlowFile successfulFlowFile = flowFiles.get(0);
         assertNull(successfulFlowFile.getAttribute(publishFailedIndexAttributeName),
                 publishFailedIndexAttributeName + " is expected to be removed after all remaining records have been published successfully.");
+    }
+
+    @Test
+    public void testResponseTopicAndCorrelationDataIsAppended() {
+        final String expectedResponseTopic = "response-topic";
+        final String expectedCorrelationData = "123456789";
+
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.setProperty(PublishMQTT.PROP_RESPONSE_TOPIC, expectedResponseTopic);
+        testRunner.setProperty(PublishMQTT.PROP_CORRELATION_DATA, expectedCorrelationData);
+
+        testRunner.assertValid();
+
+        final String testMessage = "testMessage";
+        testRunner.enqueue(testMessage.getBytes());
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        assertProvenanceEvent();
+
+        final Pair<String, StandardMqttMessage> lastPublished = mqttTestClient.getLastPublished();
+        final Map<MqttAttribute, String> attributes = lastPublished.getRight().getAttributes();
+
+        assertEquals(expectedResponseTopic, attributes.get(MqttAttribute.RESPONSE_TOPIC));
+        assertEquals(expectedCorrelationData, attributes.get(MqttAttribute.CORRELATION_DATA));
+    }
+
+    @Test
+    public void testThatTopicAndCorrelationDataIsEvaluatedFromRecord() throws InitializationException {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.setProperty(PROP_TOPIC, "/firstAttribute");
+        testRunner.setProperty(PROP_TOPIC_IS_RECORD_PATH, TRUE.toString());
+        testRunner.setProperty(PROP_CORRELATION_DATA, "/recordId");
+        testRunner.setProperty(PROP_CORRELATION_DATA_IS_RECORD_PATH, TRUE.toString());
+        testRunner.assertValid();
+
+        final ArrayNode testInput = createTestJsonInput();
+
+        testRunner.enqueue(testInput.toString().getBytes());
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, 3));
+
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        Pair<String, StandardMqttMessage> lastPublished = mqttTestClient.getLastPublished();
+        assertEquals("1", lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals("foo", lastPublished.getLeft());
+
+        lastPublished = mqttTestClient.getLastPublished();
+        assertEquals("2", lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals("bar", lastPublished.getLeft());
+
+        lastPublished = mqttTestClient.getLastPublished();
+        assertEquals("3", lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals("foobar", lastPublished.getLeft());
+
+        verifyNoMorePublished();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
+    }
+
+    @Test
+    public void testThatTopicAndCorrelationDataNonRecordPathWithRecords() throws InitializationException {
+        final String correlationData = "shared-correlation-for-all-records";
+
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(PublishMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(PublishMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(PublishMQTT.PROP_QOS, "2");
+        testRunner.setProperty(PROP_CORRELATION_DATA, correlationData);
+        testRunner.assertValid();
+
+        final ArrayNode testInput = createTestJsonInput();
+
+        testRunner.enqueue(testInput.toString().getBytes());
+
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvent(String.format(PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS, 3));
+
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        Pair<String, StandardMqttMessage> lastPublished = mqttTestClient.getLastPublished();
+        assertEquals(correlationData, lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals(TOPIC, lastPublished.getLeft());
+
+        lastPublished = mqttTestClient.getLastPublished();
+        assertEquals(correlationData, lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals(TOPIC, lastPublished.getLeft());
+
+        lastPublished = mqttTestClient.getLastPublished();
+        assertEquals(correlationData, lastPublished.getRight().getAttributes().get(MqttAttribute.CORRELATION_DATA));
+        assertEquals(TOPIC, lastPublished.getLeft());
+
+        verifyNoMorePublished();
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        final MockFlowFile successfulFlowFile = flowFiles.get(0);
+        final String publishFailedIndexAttributeName = testRunner.getProcessor().getIdentifier() + ATTR_PUBLISH_FAILED_INDEX_SUFFIX;
+        assertFalse(successfulFlowFile.getAttributes().containsKey(publishFailedIndexAttributeName), "Failed attribute should not be present on the FlowFile");
     }
 
     private void verifyPublishedMessage(byte[] payload, int qos, boolean retain) {

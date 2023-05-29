@@ -28,6 +28,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -39,6 +41,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.RecordPath;
+import org.apache.nifi.record.path.exception.RecordPathException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -56,15 +61,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Boolean.FALSE;
 import static java.util.Optional.ofNullable;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.CORRELATION_DATA;
+import static org.apache.nifi.processors.mqtt.common.MqttAttribute.RESPONSE_TOPIC;
+import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_500;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -74,13 +85,40 @@ import static java.util.Optional.ofNullable;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PublishMQTT extends AbstractMQTTProcessor {
 
+    private static final String PROP_TOPIC_IS_RECORD_PATH_NAME = "Topic Is Record Path";
+    private static final String PROP_CORRELATION_DATA_IS_RECORD_PATH_NAME = "Correlation Data Is Record Path";
+
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_READER)
+            .description("The Record Reader to use for parsing the incoming FlowFile into Records.")
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(BASE_RECORD_WRITER)
+            .description("The Record Writer to use for serializing Records before publishing them as an MQTT Message.")
+            .build();
+
     public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()
             .name("Topic")
-            .description("The topic to publish the message to.")
+            .description("The topic to publish the message to. "
+                    + "If the message is a response to a request processed by ConsumeMQTT, then the " + "'" + RESPONSE_TOPIC.getAttributeName() + "' attribute should be used. "
+                    + "In case of records the value can be a record field. See '" + PROP_TOPIC_IS_RECORD_PATH_NAME + "' property for more information.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_TOPIC_IS_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name(PROP_TOPIC_IS_RECORD_PATH_NAME)
+            .description("In case of records, topic property can contain a record path which can be used to set topic based on the field of the given record. "
+                    + "If the message is a response to a request processed by ConsumeMQTT, then the '/" + RESPONSE_TOPIC.getRecordFieldName() + "' path should be used. ")
+            .defaultValue(FALSE.toString())
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .dependsOn(PROP_TOPIC)
+            .dependsOn(RECORD_READER)
             .build();
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
@@ -101,16 +139,6 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .addValidator(RETAIN_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BASE_RECORD_READER)
-            .description("The Record Reader to use for parsing the incoming FlowFile into Records.")
-            .build();
-
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(BASE_RECORD_WRITER)
-            .description("The Record Writer to use for serializing Records before publishing them as an MQTT Message.")
-            .build();
-
     public static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(BASE_MESSAGE_DEMARCATOR)
             .description("With this property, you have an option to publish multiple messages from a single FlowFile. "
@@ -119,6 +147,41 @@ public class PublishMQTT extends AbstractMQTTProcessor {
                     + "Record Reader/Writer, each FlowFile will be published as a single message. To enter special "
                     + "character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS.")
             .build();
+
+    public static final PropertyDescriptor PROP_RESPONSE_TOPIC = new PropertyDescriptor.Builder()
+            .name("Response Topic")
+            .description("The response topic field represents the topics on which the responses from the receivers of the message are expected. Should be used when the message is a request.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
+            .build();
+
+    public static final PropertyDescriptor PROP_CORRELATION_DATA = new PropertyDescriptor.Builder()
+            .name("Correlation Data")
+            .description("Correlation data is optional binary data that follows the response topic. The sender of the request uses the data for "
+                    + "identifying to which specific request a response that is received later relates. This data is irrelevant to the MQTT broker "
+                    + "and only functions as a means to identify the relationship between sender and receiver. "
+                    + "If the message is a response to a request processed by ConsumeMQTT, then the '" + CORRELATION_DATA.getAttributeName() + "' attribute should be used. "
+                    + "In case of records the value can be a record field. See '" + PROP_CORRELATION_DATA_IS_RECORD_PATH_NAME + "' property for more information.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
+            .build();
+
+    public static final PropertyDescriptor PROP_CORRELATION_DATA_IS_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("Correlation Data Is Record Path")
+            .description("In case of records, correlation data can contain a record path which can be used to set correlation data based on the field of the given record. "
+                    + "If the message is a response to a request processed by ConsumeMQTT, then the '/" + CORRELATION_DATA.getRecordFieldName() + "' path should be used. ")
+            .defaultValue(FALSE.toString())
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .dependsOn(PROP_CORRELATION_DATA)
+            .dependsOn(RECORD_READER)
+            .build();
+
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -139,11 +202,15 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             PROP_SESSION_EXPIRY_INTERVAL,
             PROP_CLIENTID,
             PROP_TOPIC,
+            PROP_TOPIC_IS_RECORD_PATH,
             PROP_RETAIN,
             PROP_QOS,
             RECORD_READER,
             RECORD_WRITER,
             MESSAGE_DEMARCATOR,
+            PROP_RESPONSE_TOPIC,
+            PROP_CORRELATION_DATA,
+            PROP_CORRELATION_DATA_IS_RECORD_PATH,
             PROP_CONN_TIMEOUT,
             PROP_KEEP_ALIVE_INTERVAL,
             PROP_LAST_WILL_MESSAGE,
@@ -159,6 +226,9 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
     static final String ATTR_PUBLISH_FAILED_INDEX_SUFFIX = ".mqtt.publish.failed.index";
     private String publishFailedIndexAttributeName;
+
+    private RecordPath topicRecordPath;
+    private RecordPath correlationDataRecordPath;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -176,9 +246,46 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         return PROPERTIES;
     }
 
+    @Override
+    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Collection<ValidationResult> results = super.customValidate(validationContext);
+
+        if (validationContext.getProperty(PROP_TOPIC_IS_RECORD_PATH).asBoolean()) {
+            validateRecordPath(validationContext, PROP_TOPIC, results);
+        }
+
+
+        if (validationContext.getProperty(PROP_CORRELATION_DATA_IS_RECORD_PATH).asBoolean()) {
+            validateRecordPath(validationContext, PROP_CORRELATION_DATA, results);
+        }
+
+        return results;
+    }
+
+    private void validateRecordPath(ValidationContext validationContext, PropertyDescriptor propertyDescriptor, Collection<ValidationResult> results) {
+        try {
+            final String rawPath = validationContext.getProperty(propertyDescriptor).getValue();
+            RecordPath.compile(rawPath);
+        } catch (RecordPathException e) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(propertyDescriptor.getName())
+                    .explanation("contains an invalid recordPath.")
+                    .build());
+        }
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
+
+        if (context.getProperty(PROP_TOPIC_IS_RECORD_PATH).asBoolean()) {
+            topicRecordPath = RecordPath.compile(context.getProperty(PROP_TOPIC).getValue());
+        }
+
+        if (context.getProperty(PROP_CORRELATION_DATA_IS_RECORD_PATH).asBoolean()) {
+            correlationDataRecordPath = RecordPath.compile(context.getProperty(PROP_CORRELATION_DATA).getValue());
+        }
     }
 
     @OnStopped
@@ -203,32 +310,23 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             }
         }
 
-        // get the MQTT topic
-        final String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
-
-        if (topic == null || topic.isEmpty()) {
-            logger.warn("Evaluation of the topic property returned null or evaluated to be empty, routing to failure");
-            session.transfer(flowfile, REL_FAILURE);
-            return;
-        }
-
         if (context.getProperty(RECORD_READER).isSet()) {
-            processMultiMessageFlowFile(new ProcessRecordSetStrategy(), context, session, flowfile, topic);
+            processMultiMessageFlowFile(new ProcessRecordSetStrategy(), context, session, flowfile);
         } else if (context.getProperty(MESSAGE_DEMARCATOR).isSet()) {
-            processMultiMessageFlowFile(new ProcessDemarcatedContentStrategy(), context, session, flowfile, topic);
+            processMultiMessageFlowFile(new ProcessDemarcatedContentStrategy(), context, session, flowfile);
         } else {
-            processStandardFlowFile(context, session, flowfile, topic);
+            processStandardFlowFile(context, session, flowfile);
         }
     }
 
-    private void processMultiMessageFlowFile(ProcessStrategy processStrategy, ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {
+    private void processMultiMessageFlowFile(ProcessStrategy processStrategy, ProcessContext context, ProcessSession session, final FlowFile flowfile) {
         final StopWatch stopWatch = new StopWatch(true);
         final AtomicInteger processedRecords = new AtomicInteger();
 
         try {
             final Long previousProcessFailedAt = ofNullable(flowfile.getAttribute(publishFailedIndexAttributeName)).map(Long::valueOf).orElse(null);
 
-            session.read(flowfile, in -> processStrategy.process(context, flowfile, in, topic, processedRecords, previousProcessFailedAt));
+            session.read(flowfile, in -> processStrategy.process(context, flowfile, in, processedRecords, previousProcessFailedAt));
 
             FlowFile successFlowFile = flowfile;
 
@@ -259,13 +357,16 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         }
     }
 
-    private void processStandardFlowFile(ProcessContext context, ProcessSession session, FlowFile flowfile, String topic) {
+    private void processStandardFlowFile(ProcessContext context, ProcessSession session, FlowFile flowfile) {
         try {
+            final String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
+            final String correlationData = context.getProperty(PROP_CORRELATION_DATA).evaluateAttributeExpressions(flowfile).getValue();
+
             final byte[] messageContent = new byte[(int) flowfile.getSize()];
             session.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
 
             final StopWatch stopWatch = new StopWatch(true);
-            publishMessage(context, flowfile, topic, messageContent);
+            publishMessage(context, flowfile, topic, correlationData, messageContent);
             session.getProvenanceReporter().send(flowfile, clientProperties.getRawBrokerUris(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowfile, REL_SUCCESS);
         } catch (Exception e) {
@@ -274,10 +375,20 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         }
     }
 
-    private void publishMessage(ProcessContext context, FlowFile flowfile, String topic, byte[] messageContent) {
-        int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
-        boolean retained = context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean();
+    private void publishMessage(ProcessContext context, FlowFile flowfile, String topic, String correlationData, byte[] messageContent) {
+        final int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
+        final boolean retained = context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean();
+        final String responseTopic = context.getProperty(PROP_RESPONSE_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
+
         final StandardMqttMessage mqttMessage = new StandardMqttMessage(messageContent, qos, retained);
+
+        if (responseTopic != null) {
+            mqttMessage.getAttributes().put(RESPONSE_TOPIC, responseTopic);
+        }
+
+        if (correlationData != null) {
+            mqttMessage.getAttributes().put(CORRELATION_DATA, correlationData);
+        }
 
         mqttClient.publish(topic, mqttMessage);
     }
@@ -295,7 +406,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
     }
 
     interface ProcessStrategy {
-        void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException;
+        void process(ProcessContext context, FlowFile flowfile, InputStream in, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException;
         String getFailureTemplateMessage();
         String getRecoverTemplateMessage();
         String getSuccessTemplateMessage();
@@ -308,7 +419,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         static final String PROVENANCE_EVENT_DETAILS_ON_RECORDSET_SUCCESS = "Successfully published all records. Total record count: %d";
 
         @Override
-        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException {
+        public void process(ProcessContext context, FlowFile flowfile, InputStream in, AtomicInteger processedRecords, Long previousProcessFailedAt) throws IOException {
             final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
@@ -328,6 +439,20 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
                     baos.reset();
 
+                    String topic;
+                    if (topicRecordPath != null) {
+                        topic = extractRecordValue(record, topicRecordPath);
+                    } else {
+                        topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();;
+                    }
+
+                    String correlationData;
+                    if (correlationDataRecordPath != null) {
+                        correlationData = extractRecordValue(record, correlationDataRecordPath);
+                    } else {
+                        correlationData = context.getProperty(PROP_CORRELATION_DATA).evaluateAttributeExpressions(flowfile).getValue();
+                    }
+
                     try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowfile)) {
                         writer.write(record);
                         writer.flush();
@@ -335,11 +460,33 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
                     final byte[] messageContent = baos.toByteArray();
 
-                    publishMessage(context, flowfile, topic, messageContent);
+                    publishMessage(context, flowfile, topic, correlationData, messageContent);
                     processedRecords.getAndIncrement();
                 }
             } catch (SchemaNotFoundException | MalformedRecordException e) {
                 throw new ProcessException("An error happened during creating components for serialization.", e);
+            }
+        }
+
+        private String extractRecordValue(Record record, RecordPath recordPath) {
+            final Optional<FieldValue> fv = recordPath.evaluate(record).getSelectedFields().findFirst();
+            if (fv.isPresent()) {
+                final FieldValue fieldValue = fv.get();
+
+                final Object value = fieldValue.getValue();
+                if (value == null) {
+                    throw new ProcessException(String.format("Value not found with the specified [%s] record path.", recordPath.getPath()));
+                }
+
+                if (value instanceof String) {
+                    return (String) value;
+                } else if (value instanceof Integer) {
+                    return String.valueOf(value);
+                } else {
+                    throw new ProcessException(String.format("[%s] type on [%s] record path is not supported.", value.getClass(), recordPath.getPath()));
+                }
+            } else {
+                throw new ProcessException(String.format("FieldValue not found with the specified [%s] record path.", recordPath.getPath()));
             }
         }
 
@@ -366,7 +513,9 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         static final String PROVENANCE_EVENT_DETAILS_ON_DEMARCATED_MESSAGE_SUCCESS = "Successfully published all messages. Total message count: %d";
 
         @Override
-        public void process(ProcessContext context, FlowFile flowfile, InputStream in, String topic, AtomicInteger processedRecords, Long previousProcessFailedAt) {
+        public void process(ProcessContext context, FlowFile flowfile, InputStream in, AtomicInteger processedRecords, Long previousProcessFailedAt) {
+            final String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
+            final String correlationData = context.getProperty(PROP_CORRELATION_DATA).evaluateAttributeExpressions(flowfile).getValue();
             final String demarcator = context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue();
 
             try (final Scanner scanner = new Scanner(in)) {
@@ -379,7 +528,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
                         continue;
                     }
 
-                    publishMessage(context, flowfile, topic, messageContent.getBytes(StandardCharsets.UTF_8));
+                    publishMessage(context, flowfile, topic, correlationData, messageContent.getBytes(StandardCharsets.UTF_8));
                     processedRecords.getAndIncrement();
                 }
             }

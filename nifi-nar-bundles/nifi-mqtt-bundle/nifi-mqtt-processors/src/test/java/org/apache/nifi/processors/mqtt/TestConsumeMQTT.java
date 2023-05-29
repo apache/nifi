@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mqtt;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
+import org.apache.nifi.processors.mqtt.common.MqttAttribute;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
@@ -75,6 +76,8 @@ public class TestConsumeMQTT {
     private static final String INVALID_CLUSTERED_BROKER_URI = "ssl://localhost:1883,tcp://localhost:1884";
     private static final String CLIENT_ID = "TestClient";
     private static final String TOPIC_NAME = "testTopic";
+    private static final String RESPONSE_TOPIC = "responseTopic";
+    private static final String CORRELATION_DATA = "123456789";
     private static final String INTERNAL_QUEUE_SIZE = "100";
 
     private static final String STRING_MESSAGE = "testMessage";
@@ -638,6 +641,84 @@ public class TestConsumeMQTT {
                 }
             })));
         assertTrue(mqttQueue.contains(mock));
+    }
+
+    @Test
+    public void testResponseTopicAndCorrelationDataAddedAsAttribute() throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.PROP_QOS, "2");
+
+        testRunner.assertValid();
+
+        final ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        final StandardMqttMessage message = new StandardMqttMessage(STRING_MESSAGE.getBytes(StandardCharsets.UTF_8), EXACTLY_ONCE, false);
+        message.getAttributes().put(MqttAttribute.RESPONSE_TOPIC, RESPONSE_TOPIC);
+        message.getAttributes().put(MqttAttribute.CORRELATION_DATA, CORRELATION_DATA);
+        mqttTestClient.publish(TOPIC_NAME, message);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 1);
+        assertProvenanceEvents(1);
+
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        final MockFlowFile flowFile = flowFiles.get(0);
+
+        flowFile.assertContentEquals("testMessage");
+        flowFile.assertAttributeEquals(BROKER_ATTRIBUTE_KEY, BROKER_URI);
+        flowFile.assertAttributeEquals(TOPIC_ATTRIBUTE_KEY, TOPIC_NAME);
+        flowFile.assertAttributeEquals(QOS_ATTRIBUTE_KEY, "2");
+        flowFile.assertAttributeEquals(IS_DUPLICATE_ATTRIBUTE_KEY, "false");
+        flowFile.assertAttributeEquals(IS_RETAINED_ATTRIBUTE_KEY, "false");
+        flowFile.assertAttributeEquals(MqttAttribute.RESPONSE_TOPIC.getAttributeName(), RESPONSE_TOPIC);
+        flowFile.assertAttributeEquals(MqttAttribute.CORRELATION_DATA.getAttributeName(), CORRELATION_DATA);
+    }
+
+    @Test
+    public void testConsumeRecordsAndResponseTopicAndCorrelationDataAddedAsAttribute() throws Exception {
+        mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
+        testRunner = initializeTestRunner(mqttTestClient);
+
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, createJsonRecordSetReaderService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, createJsonRecordSetWriterService(testRunner));
+        testRunner.setProperty(ConsumeMQTT.ADD_ATTRIBUTES_AS_FIELDS, "true");
+
+        testRunner.assertValid();
+
+        final ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        final StandardMqttMessage message = new StandardMqttMessage(JSON_PAYLOAD.getBytes(StandardCharsets.UTF_8), EXACTLY_ONCE, false);
+        message.getAttributes().put(MqttAttribute.RESPONSE_TOPIC, RESPONSE_TOPIC);
+        message.getAttributes().put(MqttAttribute.CORRELATION_DATA, CORRELATION_DATA);
+        mqttTestClient.publish(TOPIC_NAME, message);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        final String expectedMessage = "[{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":2,\"_isDuplicate\":false,\"_isRetained\":false,"
+                                     + "\"" + MqttAttribute.RESPONSE_TOPIC.getRecordFieldName() + "\":\"" + RESPONSE_TOPIC + "\","
+                                     + "\"" + MqttAttribute.CORRELATION_DATA.getRecordFieldName() + "\":\"" + CORRELATION_DATA + "\"}]";
+        final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        assertEquals(1, flowFiles.size());
+        assertEquals(expectedMessage, new String(flowFiles.get(0).toByteArray()));
     }
 
     private TestRunner initializeTestRunner() {
