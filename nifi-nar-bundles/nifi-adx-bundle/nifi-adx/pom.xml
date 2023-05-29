@@ -88,25 +88,14 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.1.2</version>
                 <configuration>
                     <archive>
                         <manifest>
-                            <packageName>org.apache.nifi.adx</packageName>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
-                        <manifestEntries>
-                            <implementation-title>nifi-adx</implementation-title>
-                            <implementation-version>${project.version}</implementation-version>
-                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>

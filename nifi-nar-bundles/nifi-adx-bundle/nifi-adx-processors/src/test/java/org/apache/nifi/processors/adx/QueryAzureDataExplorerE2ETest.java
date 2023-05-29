@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
+import org.apache.nifi.adx.service.StandardKustoQueryService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -51,12 +51,12 @@ class QueryAzureDataExplorerE2ETest {
         QueryAzureDataExplorer queryAzureDataExplorer = new QueryAzureDataExplorer();
         testRunner = TestRunners.newTestRunner(queryAzureDataExplorer);
         testRunner.setValidateExpressionUsage(false);
-        AzureAdxSourceConnectionService azureAdxSourceConnectionService = new AzureAdxSourceConnectionService();
+        StandardKustoQueryService azureAdxSourceConnectionService = new StandardKustoQueryService();
         testRunner.addControllerService("adx-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,System.getProperty("appId"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,System.getProperty("appKey"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,System.getProperty("appTenant"));
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, System.getProperty("clusterUrl"));
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_ID,System.getProperty("appId"));
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_KEY,System.getProperty("appKey"));
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_TENANT,System.getProperty("appTenant"));
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.CLUSTER_URL, System.getProperty("clusterUrl"));
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
     }
@@ -84,29 +84,4 @@ class QueryAzureDataExplorerE2ETest {
         testRunner.assertQueueEmpty();
         testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.SUCCESS);
     }
-
-    /**
-     * tests the failure scenario when the kusto query limit is execeeded
-     * queries the ADX database against the input query, query result records/size too large, results in RL_FAILURE
-     * -DexecuteE2ETests=(set to true)
-     * -DappId=(appId)
-     * -DappKey=(appKey)
-     * -DappTenant=(appTenant)
-     * -DclusterUrl=(clusterUrl)
-     * -DdatabaseName=(databaseName)
-     * -adxQueryWhichExceedsLimit=(query-to-be-executed-in-source-ADX-which-exceeds-the-kusto-limits-500000records/64MB)
-     */
-    @Test
-    void testAzureAdxSourceProcessorFailureQueryLimitExceededE2E() {
-        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getProperty("executeE2ETests")));
-
-        testRunner.setProperty(QueryAzureDataExplorer.ADX_QUERY,System.getProperty("adxQueryWhichExceedsLimit"));
-        testRunner.setProperty(QueryAzureDataExplorer.DB_NAME,System.getProperty("databaseName"));
-        testRunner.setProperty(QueryAzureDataExplorer.ADX_SOURCE_SERVICE,"adx-connection-service");
-        testRunner.setIncomingConnection(false);
-        testRunner.run(1);
-        testRunner.assertQueueEmpty();
-        testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.FAILED);
-    }
-
 }

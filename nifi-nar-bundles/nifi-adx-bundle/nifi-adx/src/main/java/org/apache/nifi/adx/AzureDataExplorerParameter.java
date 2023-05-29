@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.adx;
 
-public enum AzureAdxConnectionServiceParameter {
+public enum AzureDataExplorerParameter {
 
-    AUTH_STRATEGY("Kusto Authentication Method", "The strategy/method to authenticate against Azure Active Directory, either 'application' or 'managed_identity'."),
+    AUTH_STRATEGY("Kusto Authentication Method", "The strategy or method to authenticate against Azure Data Explorer"),
     APP_ID("Application ID", "Azure application ID for accessing the ADX-Cluster"),
     APP_KEY("Application KEY", "Azure application Key for accessing the ADX-Cluster"),
     APP_TENANT("Application Tenant", "Azure application tenant for accessing the ADX-Cluster"),
@@ -28,12 +28,12 @@ public enum AzureAdxConnectionServiceParameter {
     private final String description;
 
 
-    AzureAdxConnectionServiceParameter(String paramDisplayName, String description) {
+    AzureDataExplorerParameter(String paramDisplayName, String description) {
         this.paramDisplayName = paramDisplayName;
         this.description = description;
     }
 
-    public String getParamDisplayName() {
+    public String getDisplayName() {
         return paramDisplayName;
     }
 

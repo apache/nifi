@@ -21,8 +21,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
-@Tags({"azure", "adx"})
+@Tags({"azure", "adx", "explorer", "kusto"})
 @CapabilityDescription("Connection-Service to Azure ADX (Kusto) cluster.")
-public interface AdxSourceConnectionService extends ControllerService {
+public interface KustoQueryService extends ControllerService {
     KustoQueryResponse executeQuery(String databaseName, String query);
 }

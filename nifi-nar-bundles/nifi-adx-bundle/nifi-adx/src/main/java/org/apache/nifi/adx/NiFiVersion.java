@@ -28,12 +28,8 @@ public class NiFiVersion {
     }
 
     static {
-        try {
-            version = NiFiVersion.class.getPackage().getImplementationVersion();
-            log.info("Loaded version: {}", version);
-        } catch (Exception e) {
-            log.warn("Error while loading version:", e);
-        }
+        version = NiFiVersion.class.getPackage().getImplementationVersion();
+        log.info("Loaded version: {}", version);
     }
 
     public static String getVersion() {

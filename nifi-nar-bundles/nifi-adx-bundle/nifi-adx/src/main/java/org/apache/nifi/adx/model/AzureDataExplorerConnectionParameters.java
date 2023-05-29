@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.adx.model;
 
-public class ADXConnectionParams {
+public class AzureDataExplorerConnectionParameters {
 
     private String kustoAuthStrategy;
     private String appId;

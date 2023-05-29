@@ -16,28 +16,28 @@
  */
 package org.apache.nifi.adx.model;
 
-import java.util.List;
+import java.io.InputStream;
 
 public class KustoQueryResponse {
 
-    private List<List<Object>> tableData;
+    private InputStream adxQueryResponseStream;
     private boolean isError;
     private String errorMessage;
 
     public KustoQueryResponse(boolean isError, String errorMessage) {
-        this.tableData = null;
+        this.adxQueryResponseStream = null;
         this.isError = isError;
         this.errorMessage = errorMessage;
     }
 
-    public KustoQueryResponse(List<List<Object>> tableData) {
-        this.tableData = tableData;
+    public KustoQueryResponse(InputStream inputStream) {
+        this.adxQueryResponseStream = inputStream;
         this.isError = false;
         this.errorMessage = null;
     }
 
-    public List<List<Object>> getTableData() {
-        return tableData;
+    public InputStream getAdxQueryResponseStream() {
+        return adxQueryResponseStream;
     }
 
     public boolean isError() {

@@ -16,62 +16,56 @@
  */
 package org.apache.nifi.processors.adx.mock;
 
-import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.nifi.adx.service.StandardKustoQueryService;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
+import java.io.InputStream;
 
 /**
  * these are mock implementation classes of adx source connection service required for junit classes to work properly
  */
-public class MockAzureAdxSourceConnectionService extends AzureAdxSourceConnectionService {
+public class MockAzureAdxSourceConnectionService extends StandardKustoQueryService {
 
     @Override
-    public Client getKustoQueryClient(){
-        return new Client() {
+    public StreamingClient getKustoQueryClient(){
+        return new StreamingClient() {
 
             @Override
-            public void close() throws IOException {
+            public void close() {
             }
+
+            @Override
+            public KustoOperationResult executeStreamingIngest(String s,
+                                                               String s1,
+                                                               InputStream inputStream,
+                                                               ClientRequestProperties clientRequestProperties,
+                                                               String s2,
+                                                               String s3,
+                                                               boolean b) throws DataServiceException, DataClientException {
+                return null;
+            }
+
+            @Override
+            public InputStream executeStreamingQuery(String s, String s1, ClientRequestProperties clientRequestProperties) throws DataServiceException, DataClientException {
+                return null;
+            }
+
+            @Override
+            public InputStream executeStreamingQuery(String s, String s1) throws DataClientException {
+               return this.getClass().getResourceAsStream("/Test.json");
+            }
+
+            @Override
+            public InputStream executeStreamingQuery(String s) throws DataServiceException, DataClientException {
+                return null;
+            }
+
             @Override
             public KustoOperationResult execute(String command) {
-                return null;
-            }
-
-            @Override
-            public KustoOperationResult execute(String database, String command) throws DataClientException {
-                try {
-                    String response = IOUtils.toString(Objects.requireNonNull(this.getClass().getResourceAsStream("/Test.json")), StandardCharsets.UTF_8);
-                    return new KustoOperationResult(response, "v1");
-                } catch (KustoServiceQueryError | IOException e) {
-                    throw new DataClientException("exception","exception",e);
-                }
-            }
-
-            @Override
-            public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) {
-                return null;
-            }
-
-            @Override
-            public String executeToJsonResult(String database) {
-                return null;
-            }
-
-            @Override
-            public String executeToJsonResult(String database, String command) {
-                return null;
-            }
-
-            @Override
-            public String executeToJsonResult(String database, String command, ClientRequestProperties properties) {
                 return null;
             }
         };

@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.adx;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.adx.AdxSourceConnectionService;
+import org.apache.nifi.adx.KustoQueryService;
 import org.apache.nifi.adx.model.KustoQueryResponse;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -34,7 +33,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.adx.enums.AzureAdxSourceProcessorParameter;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -80,12 +78,11 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
             .displayName(AzureAdxSourceProcessorParameter.ADX_SOURCE_SERVICE.getParamDisplayName())
             .description(AzureAdxSourceProcessorParameter.ADX_SOURCE_SERVICE.getParamDescription())
             .required(true)
-            .identifiesControllerService(AdxSourceConnectionService.class)
+            .identifiesControllerService(KustoQueryService.class)
             .build();
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Set<Relationship> relationships = Set.of(SUCCESS,FAILED);
     private final List<PropertyDescriptor> descriptors = List.of(ADX_SOURCE_SERVICE,DB_NAME,ADX_QUERY);
-    private AdxSourceConnectionService service;
+    private KustoQueryService service;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -99,7 +96,7 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(AdxSourceConnectionService.class);
+        service = context.getProperty(ADX_SOURCE_SERVICE).asControllerService(KustoQueryService.class);
     }
 
     @Override
@@ -140,26 +137,18 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
             adxQuery = context.getProperty(ADX_QUERY).evaluateAttributeExpressions(outgoingFlowFile).getValue();
         }
 
-        try {
-            //execute Query
-            kustoQueryResponse = executeQuery(databaseName,adxQuery);
-            if(!kustoQueryResponse.isError()){
-                try(ByteArrayInputStream bais = new ByteArrayInputStream(objectMapper.writeValueAsBytes(kustoQueryResponse.getTableData()))){
-                    session.importFrom(bais, outgoingFlowFile);
-                }
-            }else {
-                if(kustoQueryResponse.getErrorMessage().contains("No results were returned for query")){
-                    outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_QUERY_ERROR_MESSAGE, kustoQueryResponse.getErrorMessage());
-                }
-                session.transfer(outgoingFlowFile, FAILED);
-                return;
-            }
-            //if no error
+        //execute Query
+        kustoQueryResponse = executeQuery(databaseName,adxQuery);
+        if(kustoQueryResponse.isError()){
+            //failure scenario
+            getLogger().error("Failed to execute query: {}", kustoQueryResponse.getErrorMessage());
+            outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_QUERY_ERROR_MESSAGE, kustoQueryResponse.getErrorMessage());
+            session.transfer(outgoingFlowFile, FAILED);
+        }else {
+            // success scenario
+            session.importFrom(kustoQueryResponse.getAdxQueryResponseStream(), outgoingFlowFile);
             outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
             session.transfer(outgoingFlowFile, SUCCESS);
-        } catch (IOException e) {
-            getLogger().error("Exception occurred while reading data from ADX ", e);
-            session.transfer(outgoingFlowFile, FAILED);
         }
     }
 

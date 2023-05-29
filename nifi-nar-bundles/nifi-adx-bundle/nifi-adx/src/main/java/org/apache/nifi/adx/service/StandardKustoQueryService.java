@@ -16,19 +16,17 @@
  */
 package org.apache.nifi.adx.service;
 
-import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.nifi.adx.AdxSourceConnectionService;
-import org.apache.nifi.adx.AzureAdxConnectionServiceParameter;
+import org.apache.nifi.adx.AzureDataExplorerParameter;
+import org.apache.nifi.adx.KustoQueryService;
 import org.apache.nifi.adx.NiFiVersion;
-import org.apache.nifi.adx.model.ADXConnectionParams;
+import org.apache.nifi.adx.model.AzureDataExplorerConnectionParameters;
 import org.apache.nifi.adx.model.KustoQueryResponse;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -42,7 +40,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Arrays;
+import java.io.InputStream;
 import java.util.List;
 
 @Tags({"Azure", "ADX", "Kusto", "ingest", "azure"})
@@ -54,7 +52,7 @@ import java.util.List;
         @ReadsAttribute(attribute = "APP_TENANT", description = "Azure application tenant for accessing the ADX-Cluster."),
         @ReadsAttribute(attribute = "CLUSTER_URL", description = "Endpoint of ADX cluster. This is required only when streaming data to ADX cluster is enabled."),
 })
-public class AzureAdxSourceConnectionService extends AbstractControllerService implements AdxSourceConnectionService {
+public class StandardKustoQueryService extends AbstractControllerService implements KustoQueryService {
 
     private static final String KUSTO_STRATEGY_APPLICATION = "application";
 
@@ -63,52 +61,52 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     public static final Pair<String,String> NIFI_SOURCE = Pair.of("processor", "nifi-source");
 
     public static final PropertyDescriptor KUSTO_AUTH_STRATEGY = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.name())
-            .displayName(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParameter.AUTH_STRATEGY.getDescription())
+            .Builder().name(AzureDataExplorerParameter.AUTH_STRATEGY.name())
+            .displayName(AzureDataExplorerParameter.AUTH_STRATEGY.getDisplayName())
+            .description(AzureDataExplorerParameter.AUTH_STRATEGY.getDescription())
             .required(false)
             .defaultValue(KUSTO_STRATEGY_APPLICATION)
             .allowableValues(KUSTO_STRATEGY_APPLICATION, KUSTO_STRATEGY_MANAGED_IDENTITY)
             .build();
 
     public static final PropertyDescriptor APP_ID = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParameter.APP_ID.name())
-            .displayName(AzureAdxConnectionServiceParameter.APP_ID.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParameter.APP_ID.getDescription())
+            .Builder().name(AzureDataExplorerParameter.APP_ID.name())
+            .displayName(AzureDataExplorerParameter.APP_ID.getDisplayName())
+            .description(AzureDataExplorerParameter.APP_ID.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_KEY = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParameter.APP_KEY.name())
-            .displayName(AzureAdxConnectionServiceParameter.APP_KEY.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParameter.APP_KEY.getDescription())
+            .Builder().name(AzureDataExplorerParameter.APP_KEY.name())
+            .displayName(AzureDataExplorerParameter.APP_KEY.getDisplayName())
+            .description(AzureDataExplorerParameter.APP_KEY.getDescription())
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor APP_TENANT = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParameter.APP_TENANT.name())
-            .displayName(AzureAdxConnectionServiceParameter.APP_TENANT.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParameter.APP_TENANT.getDescription())
+            .Builder().name(AzureDataExplorerParameter.APP_TENANT.name())
+            .displayName(AzureDataExplorerParameter.APP_TENANT.getDisplayName())
+            .description(AzureDataExplorerParameter.APP_TENANT.getDescription())
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CLUSTER_URL = new PropertyDescriptor
-            .Builder().name(AzureAdxConnectionServiceParameter.CLUSTER_URL.name())
-            .displayName(AzureAdxConnectionServiceParameter.CLUSTER_URL.getParamDisplayName())
-            .description(AzureAdxConnectionServiceParameter.CLUSTER_URL.getDescription())
+            .Builder().name(AzureDataExplorerParameter.CLUSTER_URL.name())
+            .displayName(AzureDataExplorerParameter.CLUSTER_URL.getDisplayName())
+            .description(AzureDataExplorerParameter.CLUSTER_URL.getDescription())
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(KUSTO_AUTH_STRATEGY,APP_ID,APP_KEY,APP_TENANT,CLUSTER_URL);
 
-    private Client executionClient;
+    private StreamingClient kustoClient;
 
-    private ADXConnectionParams adxConnectionParams;
+    private AzureDataExplorerConnectionParameters adxConnectionParams;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -120,33 +118,31 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws ProcessException {
-        getLogger().info("Starting Azure ADX Source Connection Service...");
-        adxConnectionParams = new ADXConnectionParams();
-        adxConnectionParams.setKustoAuthStrategy(context.getProperty(KUSTO_AUTH_STRATEGY).evaluateAttributeExpressions().getValue());
-        adxConnectionParams.setAppId(context.getProperty(APP_ID).evaluateAttributeExpressions().getValue());
-        adxConnectionParams.setAppKey(context.getProperty(APP_KEY).evaluateAttributeExpressions().getValue());
-        adxConnectionParams.setAppTenant(context.getProperty(APP_TENANT).evaluateAttributeExpressions().getValue());
-        adxConnectionParams.setKustoEngineURL(context.getProperty(CLUSTER_URL).evaluateAttributeExpressions().getValue());
-        if (this.executionClient != null) {
-            onStopped();
+        adxConnectionParams = new AzureDataExplorerConnectionParameters();
+        adxConnectionParams.setKustoAuthStrategy(context.getProperty(KUSTO_AUTH_STRATEGY).getValue());
+        adxConnectionParams.setAppId(context.getProperty(APP_ID).getValue());
+        adxConnectionParams.setAppKey(context.getProperty(APP_KEY).getValue());
+        adxConnectionParams.setAppTenant(context.getProperty(APP_TENANT).getValue());
+        adxConnectionParams.setKustoEngineURL(context.getProperty(CLUSTER_URL).getValue());
+        if (this.kustoClient == null) {
+            this.kustoClient = getKustoQueryClient();
         }
-
     }
 
     @OnStopped
     public final void onStopped() {
-        if(this.executionClient!=null){
+        if(this.kustoClient != null) {
             try {
-                this.executionClient.close();
+                this.kustoClient.close();
             } catch (Exception e) {
-                getLogger().error("Error closing Kusto Execution Client", e);
+                getLogger().error("Kusto Client close failed", e);
             }
         }
-        this.executionClient = null;
+        this.kustoClient = null;
     }
 
 
-    public Client getKustoQueryClient() {
+    public StreamingClient getKustoQueryClient() {
         return createKustoExecutionClient(adxConnectionParams.getKustoEngineURL(),
                 adxConnectionParams.getAppId(),
                 adxConnectionParams.getAppKey(),
@@ -155,33 +151,16 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
     }
 
     @Override
-    public KustoQueryResponse executeQuery(String databaseName, String query){
-        if (this.executionClient == null) {
-            this.executionClient = getKustoQueryClient();
-        }
-        List<List<Object>> tableData;
+    public KustoQueryResponse executeQuery(String databaseName, String query)  {
         KustoQueryResponse kustoQueryResponse;
-        KustoOperationResult kustoOperationResult;
+        InputStream kustoQueryResultStream;
         try {
-            kustoOperationResult = this.executionClient.execute(databaseName, query);
+            kustoQueryResultStream = this.kustoClient.executeStreamingQuery(databaseName, query);
+            kustoQueryResponse = new KustoQueryResponse(kustoQueryResultStream);
         } catch (DataServiceException | DataClientException e) {
-            String errorMessage;
-            if(Arrays.stream(ExceptionUtils.getRootCauseStackTrace(e)).anyMatch(str -> str.contains("LimitsExceeded"))){
-                errorMessage = "Exception occurred while reading data from ADX : Query Limits exceeded : Please modify your query to fetch results below the kusto query limits";
-            }else {
-                errorMessage = "Exception occurred while reading data from ADX";
-            }
-            getLogger().error(errorMessage, e);
-            kustoQueryResponse = new KustoQueryResponse(true,errorMessage);
-            return kustoQueryResponse;
+            getLogger().error("Kusto Query execution failed", e);
+            kustoQueryResponse = new KustoQueryResponse(true,e.getMessage());
         }
-        if(kustoOperationResult.getPrimaryResults() != null){
-            tableData = kustoOperationResult.getPrimaryResults().getData();
-            kustoQueryResponse = new KustoQueryResponse(tableData);
-        }else{
-            kustoQueryResponse = new KustoQueryResponse(true,"No results were returned for query : "+query);
-        }
-
         return kustoQueryResponse;
     }
 
@@ -218,9 +197,9 @@ public class AzureAdxSourceConnectionService extends AbstractControllerService i
         return kcsb;
     }
 
-    public Client createKustoExecutionClient(final String clusterUrl, final String appId, final String appKey, final String appTenant, final String kustoAuthStrategy) {
+    public StreamingClient createKustoExecutionClient(final String clusterUrl, final String appId, final String appKey, final String appTenant, final String kustoAuthStrategy) {
         try {
-            return ClientFactory.createClient(createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy));
+            return ClientFactory.createStreamingClient(createKustoEngineConnectionString(clusterUrl, appId, appKey, appTenant, kustoAuthStrategy));
         } catch (Exception e) {
             throw new ProcessException("Failed to initialize KustoEngineClient", e);
         }

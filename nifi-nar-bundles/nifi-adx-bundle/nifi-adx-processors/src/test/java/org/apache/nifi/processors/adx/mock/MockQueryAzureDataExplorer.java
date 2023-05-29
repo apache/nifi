@@ -19,14 +19,12 @@ package org.apache.nifi.processors.adx.mock;
 import org.apache.nifi.adx.model.KustoQueryResponse;
 import org.apache.nifi.processors.adx.QueryAzureDataExplorer;
 
-import java.util.ArrayList;
-
 /**
  * these are mock implementation classes of adx source processor required for junit classes to work properly
  */
 public class MockQueryAzureDataExplorer extends QueryAzureDataExplorer {
     @Override
     protected KustoQueryResponse executeQuery(String databaseName, String adxQuery) {
-        return new KustoQueryResponse(new ArrayList<>());
+        return new KustoQueryResponse(this.getClass().getResourceAsStream("/Test.json"));
     }
 }

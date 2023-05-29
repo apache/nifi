@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.adx;
 
-import com.microsoft.azure.kusto.data.Client;
-import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
+import com.microsoft.azure.kusto.data.StreamingClient;
+import org.apache.nifi.adx.service.StandardKustoQueryService;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.ControllerServiceConfiguration;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.StandardProcessorTestRunner;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -33,7 +31,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +41,7 @@ class TestAzureAdxSourceConnectionService {
 
     private TestRunner runner;
 
-    private AzureAdxSourceConnectionService service;
+    private StandardKustoQueryService service;
 
     private static final String MOCK_APP_ID = "mockAppId";
 
@@ -56,25 +53,8 @@ class TestAzureAdxSourceConnectionService {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(new AbstractProcessor() {
-            @Override
-            public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-            }
-
-            @Override
-            protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-                List<PropertyDescriptor> propDescs = new ArrayList<>();
-                propDescs.add(new PropertyDescriptor.Builder()
-                        .name("AdxService")
-                        .description("AdxService")
-                        .identifiesControllerService(AdxSourceConnectionService.class)
-                        .required(true)
-                        .build());
-                return propDescs;
-            }
-        });
-
-        service = new AzureAdxSourceConnectionService();
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        service = new StandardKustoQueryService();
         runner.addControllerService("test-good", service);
     }
 
@@ -108,7 +88,7 @@ class TestAzureAdxSourceConnectionService {
         runner.assertValid(service);
         runner.setValidateExpressionUsage(false);
         runner.enableControllerService(service);
-        Client executionClient = service.getKustoQueryClient();
+        StreamingClient executionClient = service.getKustoQueryClient();
 
         Assertions.assertNotNull(executionClient);
     }
@@ -121,10 +101,10 @@ class TestAzureAdxSourceConnectionService {
         configureClusterURL();
         List<PropertyDescriptor> pd = service.getSupportedPropertyDescriptors();
 
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_ID));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_KEY));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.APP_TENANT));
-        assertTrue(pd.contains(AzureAdxSourceConnectionService.CLUSTER_URL));
+        assertTrue(pd.contains(StandardKustoQueryService.APP_ID));
+        assertTrue(pd.contains(StandardKustoQueryService.APP_KEY));
+        assertTrue(pd.contains(StandardKustoQueryService.APP_TENANT));
+        assertTrue(pd.contains(StandardKustoQueryService.CLUSTER_URL));
     }
 
 
@@ -135,28 +115,27 @@ class TestAzureAdxSourceConnectionService {
         configureAppTenant();
         runner.assertNotValid(service);
         runner.setValidateExpressionUsage(false);
-        Assertions.assertNull(
-                ((ControllerServiceConfiguration)
-                        ((Map.Entry<?, ?>) (((StandardProcessorTestRunner)runner).getProcessContext().getControllerServices()).entrySet().toArray()[0])
-                                .getValue()).getProperty(AzureAdxSourceConnectionService.CLUSTER_URL));
-
+        MockProcessContext mockProcessContext = ((StandardProcessorTestRunner)runner).getProcessContext();
+        Map.Entry<?, ?> entryMap = (Map.Entry<?, ?>) mockProcessContext.getControllerServices().entrySet().toArray()[0];
+        ControllerServiceConfiguration controllerServiceConfiguration = (ControllerServiceConfiguration)entryMap.getValue();
+        String clusterURL = controllerServiceConfiguration.getProperty(StandardKustoQueryService.CLUSTER_URL);
+        Assertions.assertNull(clusterURL);
         assertThrows(IllegalStateException.class, () -> runner.enableControllerService(service));
-
     }
 
     private void configureAppId() {
-        runner.setProperty(service, AzureAdxSourceConnectionService.APP_ID, MOCK_APP_ID);
+        runner.setProperty(service, StandardKustoQueryService.APP_ID, MOCK_APP_ID);
     }
 
     private void configureAppKey() {
-        runner.setProperty(service, AzureAdxSourceConnectionService.APP_KEY, MOCK_APP_KEY);
+        runner.setProperty(service, StandardKustoQueryService.APP_KEY, MOCK_APP_KEY);
     }
 
     private void configureAppTenant() {
-        runner.setProperty(service, AzureAdxSourceConnectionService.APP_TENANT, MOCK_APP_TENANT);
+        runner.setProperty(service, StandardKustoQueryService.APP_TENANT, MOCK_APP_TENANT);
     }
 
     private void configureClusterURL() {
-        runner.setProperty(service, AzureAdxSourceConnectionService.CLUSTER_URL, MOCK_CLUSTER_URL);
+        runner.setProperty(service, StandardKustoQueryService.CLUSTER_URL, MOCK_CLUSTER_URL);
     }
 }

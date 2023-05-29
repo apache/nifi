@@ -17,8 +17,7 @@
 package org.apache.nifi.processors.adx;
 
 
-import org.apache.nifi.adx.model.KustoQueryResponse;
-import org.apache.nifi.adx.service.AzureAdxSourceConnectionService;
+import org.apache.nifi.adx.service.StandardKustoQueryService;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.adx.mock.MockAzureAdxSourceConnectionService;
 import org.apache.nifi.processors.adx.mock.MockQueryAzureDataExplorer;
@@ -42,7 +41,7 @@ class QueryAzureDataExplorerTest {
 
     private static final String MOCK_ADX_QUERY= "mockAdxQuery";
 
-    private AzureAdxSourceConnectionService azureAdxSourceConnectionService;
+    private StandardKustoQueryService azureAdxSourceConnectionService;
 
     private TestRunner testRunner;
 
@@ -63,10 +62,10 @@ class QueryAzureDataExplorerTest {
 
         testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
 
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_ID,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_KEY,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.APP_TENANT,"sample");
+        testRunner.setProperty(azureAdxSourceConnectionService, StandardKustoQueryService.CLUSTER_URL, "http://sample.com/");
         testRunner.enableControllerService(azureAdxSourceConnectionService);
         testRunner.assertValid(azureAdxSourceConnectionService);
 
@@ -125,42 +124,6 @@ class QueryAzureDataExplorerTest {
         testRunner.enqueue("Storms");
         testRunner.run(1);
         testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.SUCCESS);
-    }
-
-    /**
-     * test failure scenario of source processor where kusto query limit exceeded
-     */
-    @Test
-    void testAzureAdxSourceProcessorFailureQueryLimitExceeded() throws InitializationException {
-        QueryAzureDataExplorer mockQueryAzureDataExplorer = new QueryAzureDataExplorer(){
-            @Override
-            protected KustoQueryResponse executeQuery(String databaseName, String adxQuery) {
-                return new KustoQueryResponse(true, "Query limit exceeded");
-            }
-        };
-
-        testRunner = TestRunners.newTestRunner(mockQueryAzureDataExplorer);
-
-        testRunner.setProperty(QueryAzureDataExplorer.DB_NAME,MOCK_DB_NAME);
-        testRunner.setProperty(QueryAzureDataExplorer.ADX_QUERY,MOCK_ADX_QUERY);
-        testRunner.setProperty(QueryAzureDataExplorer.ADX_SOURCE_SERVICE,"adx-source-connection-service");
-
-        testRunner.setValidateExpressionUsage(false);
-
-        azureAdxSourceConnectionService = new MockAzureAdxSourceConnectionService();
-
-        testRunner.addControllerService("adx-source-connection-service", azureAdxSourceConnectionService, new HashMap<>());
-
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_ID,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_KEY,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.APP_TENANT,"sample");
-        testRunner.setProperty(azureAdxSourceConnectionService, AzureAdxSourceConnectionService.CLUSTER_URL, "http://sample.com/");
-
-        testRunner.enableControllerService(azureAdxSourceConnectionService);
-        testRunner.assertValid(azureAdxSourceConnectionService);
-        testRunner.setIncomingConnection(false);
-        testRunner.run(1);
-        testRunner.assertAllFlowFilesTransferred(QueryAzureDataExplorer.FAILED);
     }
 
 }
