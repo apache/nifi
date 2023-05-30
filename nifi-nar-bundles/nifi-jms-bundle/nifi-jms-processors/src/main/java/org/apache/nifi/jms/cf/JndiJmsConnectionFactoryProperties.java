@@ -18,6 +18,8 @@ package org.apache.nifi.jms.cf;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
@@ -25,11 +27,19 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
 public class JndiJmsConnectionFactoryProperties {
+
+    public static final String URL_SCHEMES_ALLOWED_PROPERTY = "org.apache.nifi.jms.cf.jndi.provider.url.schemes.allowed";
 
     public static final PropertyDescriptor JNDI_INITIAL_CONTEXT_FACTORY = new Builder()
             .name("java.naming.factory.initial")
@@ -43,9 +53,9 @@ public class JndiJmsConnectionFactoryProperties {
     public static final PropertyDescriptor JNDI_PROVIDER_URL = new Builder()
             .name("java.naming.provider.url")
             .displayName("JNDI Provider URL")
-            .description("The URL of the JNDI Provider to use (java.naming.provider.url).")
+            .description("The URL of the JNDI Provider to use as the value for java.naming.provider.url. See additional details documentation for allowed URL schemes.")
             .required(true)
-            .addValidator(NON_EMPTY_VALIDATOR)
+            .addValidator(new JndiJmsProviderUrlValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -114,4 +124,80 @@ public class JndiJmsConnectionFactoryProperties {
                 .build();
     }
 
+    static class JndiJmsProviderUrlValidator implements Validator {
+
+        private static final Pattern URL_SCHEME_PATTERN = Pattern.compile("^([^:]+)://.+$");
+
+        private static final int SCHEME_GROUP = 1;
+
+        private static final String SPACE_SEPARATOR = " ";
+
+        private static final Set<String> DEFAULT_ALLOWED_SCHEMES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+                "file",
+                "jgroups",
+                "t3",
+                "t3s",
+                "tcp",
+                "ssl",
+                "udp",
+                "vm"
+        )));
+
+        private final Set<String> allowedSchemes;
+
+        JndiJmsProviderUrlValidator() {
+            final String allowed = System.getProperty(URL_SCHEMES_ALLOWED_PROPERTY);
+            if (allowed == null || allowed.isEmpty()) {
+                allowedSchemes = DEFAULT_ALLOWED_SCHEMES;
+            } else {
+                allowedSchemes = Arrays.stream(allowed.split(SPACE_SEPARATOR)).collect(Collectors.toSet());
+            }
+        }
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            final ValidationResult.Builder builder = new ValidationResult.Builder().subject(subject).input(input);
+
+            if (input == null || input.isEmpty()) {
+                builder.valid(false);
+                builder.explanation("URL is required");
+            } else if (isUrlAllowed(input)) {
+                builder.valid(true);
+                builder.explanation("URL scheme allowed");
+            } else {
+                builder.valid(false);
+                final String explanation = String.format("URL scheme not allowed. Allowed URL schemes include %s", allowedSchemes);
+                builder.explanation(explanation);
+            }
+
+            return builder.build();
+        }
+
+        private boolean isUrlAllowed(final String input) {
+            final boolean allowed;
+
+            final Matcher matcher = URL_SCHEME_PATTERN.matcher(input);
+            if (matcher.matches()) {
+                final String scheme = matcher.group(SCHEME_GROUP);
+                allowed = isSchemeAllowed(scheme);
+            } else {
+                allowed = true;
+            }
+
+            return allowed;
+        }
+
+        private boolean isSchemeAllowed(final String scheme) {
+            boolean allowed = false;
+
+            for (final String allowedScheme : allowedSchemes) {
+                if (allowedScheme.contains(scheme)) {
+                    allowed = true;
+                    break;
+                }
+            }
+
+            return allowed;
+        }
+    }
 }
