@@ -51,9 +51,9 @@ public class PublishGCPubSubTest {
         runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
         runner.assertValid();
 
-        runner.setProperty(PublishGCPubSub.PUBSUB_ENDPOINT, "localhost");
+        runner.setProperty(PublishGCPubSub.API_ENDPOINT, "localhost");
         runner.assertNotValid();
-        runner.setProperty(PublishGCPubSub.PUBSUB_ENDPOINT, "localhost:443");
+        runner.setProperty(PublishGCPubSub.API_ENDPOINT, "localhost:443");
         runner.assertValid();
 
         runner.setProperty(PublishGCPubSub.BATCH_SIZE_THRESHOLD, "-1");

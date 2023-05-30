@@ -41,7 +41,6 @@ public class PublishGCPubSubLiteTest {
         final String controllerServiceId = GCPCredentialsControllerService.class.getSimpleName();
         runner.addControllerService(controllerServiceId, controllerService);
         runner.enableControllerService(controllerService);
-        //runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, controllerServiceId);
         runner.setProperty(PublishGCPubSubLite.GCP_CREDENTIALS_PROVIDER_SERVICE, controllerServiceId);
         runner.assertNotValid();
 

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.gcp.pubsub;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
 
+import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -69,13 +70,14 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PUBSUB_ENDPOINT = new PropertyDescriptor
-            .Builder().name("pubsub-api-endpoint")
-            .displayName("PubSub API Endpoint")
-            .description("Override the gRPC endpoint (form is \"host:port\").")
+    public static final PropertyDescriptor API_ENDPOINT = new PropertyDescriptor
+            .Builder().name("api-endpoint")
+            .displayName("API Endpoint")
+            .description("Override the gRPC endpoint in the form of [host:port]")
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(false)
+            .required(true)
+            .defaultValue(PublisherStubSettings.getDefaultEndpoint())  // identical to SubscriberStubSettings.getDefaultEndpoint()
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

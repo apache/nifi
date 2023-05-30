@@ -24,7 +24,7 @@ import org.apache.nifi.components.DescribedValue;
 public enum ContentInputStrategy implements DescribedValue {
     FLOWFILE_ORIENTED("FlowFile Oriented",
             "Each incoming FlowFile is sent as a Google Cloud PubSub message"),
-    RECORD_ORIENTED("FlowFile Record Oriented",
+    RECORD_ORIENTED("Record Oriented",
             "Each incoming FlowFile is parsed into NiFi records, which are each sent as a Google Cloud PubSub message");
 
     private final String displayName;

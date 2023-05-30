@@ -77,12 +77,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
@@ -107,8 +107,8 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     private static final String TRANSIT_URI_FORMAT_STRING = "gcp://%s";
 
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("max-batch-size")
-            .displayName("Maximum Batch Size")
+            .name("Input Batch Size")
+            .displayName("Input Batch Size")
             .description("Maximum number of FlowFiles processed for each Processor invocation")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -117,7 +117,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .build();
 
     public static final PropertyDescriptor CONTENT_INPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("content-input-strategy")
+            .name("Content Input Strategy")
             .displayName("Content Input Strategy")
             .description("The strategy used to publish the incoming FlowFile to the Google Cloud PubSub endpoint.")
             .required(true)
@@ -146,9 +146,9 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("max.message.size")
-            .displayName("Max Message Size")
-            .description("The maximum size of a GCPubSub message in bytes. Defaults to 1 MB (1048576).")
+            .name("Maximum Message Size")
+            .displayName("Maximum Message Size")
+            .description("The maximum size of a Google PubSub message in bytes. Defaults to 1 MB (1048576 bytes)")
             .dependsOn(CONTENT_INPUT_STRATEGY, ContentInputStrategy.FLOWFILE_ORIENTED.getValue())
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -170,7 +170,6 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .build();
 
     private Publisher publisher = null;
-    private final AtomicReference<Exception> storedException = new AtomicReference<>();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -184,7 +183,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         descriptors.add(BATCH_SIZE_THRESHOLD);
         descriptors.add(BATCH_BYTES_THRESHOLD);
         descriptors.add(BATCH_DELAY_THRESHOLD);
-        descriptors.add(PUBSUB_ENDPOINT);
+        descriptors.add(API_ENDPOINT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -211,11 +210,9 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         try {
-            storedException.set(null);
             publisher = getPublisherBuilder(context).build();
         } catch (IOException e) {
-            getLogger().error("Failed to create Google Cloud PubSub Publisher due to {}", e);
-            storedException.set(e);
+            throw new ProcessException("Failed to create Google Cloud PubSub Publisher", e);
         }
     }
 
@@ -295,9 +292,6 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         final List<FlowFile> flowFileBatch = session.get(maxBatchSize);
         if (flowFileBatch.isEmpty()) {
             context.yield();
-        } else if (storedException.get() != null) {
-            getLogger().error("Google Cloud PubSub Publisher was not properly created due to {}", storedException.get());
-            context.yield();
         } else if (ContentInputStrategy.FLOWFILE_ORIENTED.equals(inputStrategy)) {
             onTriggerFlowFileStrategy(context, session, stopWatch, flowFileBatch);
         } else if (ContentInputStrategy.RECORD_ORIENTED.equals(inputStrategy)) {
@@ -338,7 +332,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         try {
             onTriggerRecordStrategyInner(context, session, stopWatch, flowFileBatch);
         } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
-            throw new ProcessException(e);
+            throw new ProcessException("Record publishing failed", e);
         }
     }
 
@@ -368,7 +362,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 futures.add(future);
             }
             messageTracker.add(new FlowFileResult(flowFile, futures));
-            getLogger().trace("Parsing of FlowFile (ID:{}) records complete, now {} messages", flowFile.getId(), messageTracker.size());
+            getLogger().debug("Parsing Records in {} completed: {} messages tracked", flowFile, messageTracker.size());
         }
         finishBatch(session, flowFileBatch, stopWatch, messageTracker);
     }
@@ -401,13 +395,13 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                              final StopWatch stopWatch,
                              final MessageTracker messageTracker) {
         try {
-            getLogger().trace("Submit of batch complete, size {}", messageTracker.size());
+            getLogger().debug("Finish batch of Messages [{}]", messageTracker.size());
             final List<String> messageIdsSuccess = ApiFutures.successfulAsList(messageTracker.getFutures()).get();
-            getLogger().trace("Send of batch complete, success size {}", messageIdsSuccess.size());
+            getLogger().debug("Successful Messages [{}] of Batched Messages [{}]", messageIdsSuccess.size(), messageTracker.size());
             messageTracker.reconcile(messageIdsSuccess);
             final String topicName = publisher.getTopicNameString();
             for (final FlowFileResult flowFileResult : messageTracker.getFlowFileResults()) {
-                final Map<String, String> attributes = new HashMap<>();
+                final Map<String, String> attributes = new LinkedHashMap<>();
                 //attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());  // what to do if using record strategy?
                 attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
                 final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
@@ -415,11 +409,10 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 session.transfer(flowFile, flowFileResult.getRelationship());
                 if (flowFileResult.getException() != null) {
-                    getLogger().error("FlowFile send failure", flowFileResult.getException());
+                    getLogger().error("Send failed for {}", flowFile, flowFileResult.getException());
                 }
             }
         } catch (final InterruptedException | ExecutionException e) {
-            session.rollback();
             final String message = String.format("FlowFile batch processing failed (size=%d)", flowFileBatch.size());
             getLogger().error(message, e);
         }
@@ -467,15 +460,12 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         final Long batchSizeThreshold = context.getProperty(BATCH_SIZE_THRESHOLD).asLong();
         final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue();
         final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
-        final String endpoint = context.getProperty(PUBSUB_ENDPOINT).getValue();
+        final String endpoint = context.getProperty(API_ENDPOINT).getValue();
 
         final Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
-                .setChannelProvider(getTransportChannelProvider(context));
-
-        if (endpoint != null && !endpoint.isEmpty()) {
-            publisherBuilder.setEndpoint(endpoint);
-        }
+                .setChannelProvider(getTransportChannelProvider(context))
+                .setEndpoint(endpoint);
 
         publisherBuilder.setBatchingSettings(BatchingSettings.newBuilder()
                 .setElementCountThreshold(batchSizeThreshold)

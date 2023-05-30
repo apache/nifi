@@ -193,7 +193,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
         descriptors.add(SUBSCRIPTION);
         descriptors.add(BATCH_SIZE_THRESHOLD);
-        descriptors.add(PUBSUB_ENDPOINT);
+        descriptors.add(API_ENDPOINT);
         return Collections.unmodifiableList(descriptors);
     }
 
@@ -269,15 +269,12 @@ public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     }
 
     private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
-        final String endpoint = context.getProperty(PUBSUB_ENDPOINT).getValue();
+        final String endpoint = context.getProperty(API_ENDPOINT).getValue();
 
         final SubscriberStubSettings.Builder subscriberBuilder = SubscriberStubSettings.newBuilder()
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
-                .setTransportChannelProvider(getTransportChannelProvider(context));
-
-        if (endpoint != null && !endpoint.isEmpty()) {
-            subscriberBuilder.setEndpoint(endpoint);
-        }
+                .setTransportChannelProvider(getTransportChannelProvider(context))
+                .setEndpoint(endpoint);
 
         return GrpcSubscriberStub.create(subscriberBuilder.build());
     }
