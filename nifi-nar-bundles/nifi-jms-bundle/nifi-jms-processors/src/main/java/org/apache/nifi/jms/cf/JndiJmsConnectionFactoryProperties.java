@@ -18,6 +18,8 @@ package org.apache.nifi.jms.cf;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
@@ -25,7 +27,10 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
@@ -36,7 +41,7 @@ public class JndiJmsConnectionFactoryProperties {
             .displayName("JNDI Initial Context Factory Class")
             .description("The fully qualified class name of the JNDI Initial Context Factory Class (java.naming.factory.initial).")
             .required(true)
-            .addValidator(NON_EMPTY_VALIDATOR)
+            .addValidator(new JndiJmsContextFactoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -45,7 +50,7 @@ public class JndiJmsConnectionFactoryProperties {
             .displayName("JNDI Provider URL")
             .description("The URL of the JNDI Provider to use (java.naming.provider.url).")
             .required(true)
-            .addValidator(NON_EMPTY_VALIDATOR)
+            .addValidator(new JndiJmsProviderUrlValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -114,4 +119,67 @@ public class JndiJmsConnectionFactoryProperties {
                 .build();
     }
 
+    private static class JndiJmsContextFactoryValidator implements Validator {
+        private static final String DISALLOWED_CONTEXT_FACTORY = "LdapCtxFactory";
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            final ValidationResult.Builder builder = new ValidationResult.Builder().subject(subject).input(input);
+
+            if (input == null || input.isEmpty()) {
+                builder.valid(false);
+                builder.explanation("Context Factory is required");
+            } else if (input.endsWith(DISALLOWED_CONTEXT_FACTORY)) {
+                builder.valid(false);
+                builder.explanation(String.format("Context Factory [%s] not allowed", DISALLOWED_CONTEXT_FACTORY));
+            } else {
+                builder.valid(true);
+                builder.explanation("Context Factory allowed");
+            }
+
+            return builder.build();
+        }
+    }
+
+    private static class JndiJmsProviderUrlValidator implements Validator {
+        /** JNDI JMS URL Allowed Schemes based on ActiveMQ Connection Factory */
+        private static final Set<String> ALLOWED_SCHEMES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+                "jgroups",
+                "tcp",
+                "udp",
+                "vm"
+        )));
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            final ValidationResult.Builder builder = new ValidationResult.Builder().subject(subject).input(input);
+
+            if (input == null || input.isEmpty()) {
+                builder.valid(false);
+                builder.explanation("URL is required");
+            } else if (startsWithAllowedScheme(input)) {
+                builder.valid(true);
+                builder.explanation("URL scheme allowed");
+            } else {
+                builder.valid(false);
+                final String explanation = String.format("URL scheme not allowed. Allowed URL schemes include %s", ALLOWED_SCHEMES);
+                builder.explanation(explanation);
+            }
+
+            return builder.build();
+        }
+
+        private boolean startsWithAllowedScheme(final String input) {
+            boolean startsWithAllowedScheme = false;
+
+            for (final String allowedScheme : ALLOWED_SCHEMES) {
+                if (input.startsWith(allowedScheme)) {
+                    startsWithAllowedScheme = true;
+                    break;
+                }
+            }
+
+            return startsWithAllowedScheme;
+        }
+    }
 }
