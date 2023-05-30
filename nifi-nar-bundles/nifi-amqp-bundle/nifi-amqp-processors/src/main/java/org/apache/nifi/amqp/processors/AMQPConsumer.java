@@ -58,7 +58,7 @@ final class AMQPConsumer extends AMQPWorker {
             public void handleDelivery(final String consumerTag, final Envelope envelope, final BasicProperties properties, final byte[] body) throws IOException {
                 if (closed) {
                     // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
-                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", new Object[]{envelope.getDeliveryTag()});
+                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", envelope.getDeliveryTag());
                     return;
                 }
 
@@ -123,7 +123,7 @@ final class AMQPConsumer extends AMQPWorker {
                 GetResponse response;
                 while ((response = responseQueue.poll()) != null) {
                     // simply discard the messages, all unacknowledged messages will be redelivered by the broker when the consumer connects again
-                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", new Object[]{response.getEnvelope().getDeliveryTag()});
+                    processorLog.info("Consumer is closed, discarding message (delivery tag: {}).", response.getEnvelope().getDeliveryTag());
                 }
             } catch (Exception e) {
                 processorLog.error("Failed to drain response queue.");

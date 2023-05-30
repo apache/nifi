@@ -325,7 +325,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
         cf.setExceptionHandler(new DefaultExceptionHandler() {
             @Override
             public void handleUnexpectedConnectionDriverException(Connection conn, Throwable exception) {
-                getLogger().error("Connection lost to server {}:{}.", new Object[]{conn.getAddress(), conn.getPort()}, exception);
+                getLogger().error("Connection lost to server {}:{}.", conn.getAddress(), conn.getPort(), exception);
             }
         });
 
@@ -342,7 +342,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
 
             return connection;
         } catch (Exception e) {
-            throw new IllegalStateException("Failed to establish connection with AMQP Broker: " + cf.toString(), e);
+            throw new IllegalStateException(String.format("Failed to establish connection with AMQP Broker: %s:%s", cf.getHost(), cf.getPort()), e);
         }
     }
 }
