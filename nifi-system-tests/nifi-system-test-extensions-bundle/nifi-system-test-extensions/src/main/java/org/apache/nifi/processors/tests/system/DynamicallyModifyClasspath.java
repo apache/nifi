@@ -98,11 +98,15 @@ public class DynamicallyModifyClasspath extends AbstractProcessor {
 
         final long sleepMillis = context.getProperty(SLEEP_DURATION).evaluateAttributeExpressions(flowFile).asTimePeriod(TimeUnit.MILLISECONDS);
         if (sleepMillis > 0) {
+            getLogger().info("Sleeping for {} millis", sleepMillis);
+
             try {
                 Thread.sleep(sleepMillis);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+
+            getLogger().info("Finished sleeping");
         }
 
         final String classToLoad = context.getProperty(CLASS_TO_LOAD).getValue();
@@ -118,8 +122,12 @@ public class DynamicallyModifyClasspath extends AbstractProcessor {
             }
 
             session.transfer(flowFile, REL_SUCCESS);
+            getLogger().info("Transferred {} to success", flowFile);
         } catch (final Exception e) {
+            getLogger().error("Failed to update {}", flowFile, e);
+
             session.transfer(flowFile, REL_FAILURE);
+            getLogger().info("Transferred {} to failure", flowFile);
         }
     }
 }

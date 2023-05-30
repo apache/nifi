@@ -287,6 +287,8 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
             dropRequest.setDroppedSize(originalSize);
             dropRequest.setState(DropFlowFileState.COMPLETE);
             dropRequestMap.put(requestIdentifier, dropRequest);
+
+            logger.info("No FlowFiles to drop from {} for request {} because the queue is empty", this, requestIdentifier);
             return dropRequest;
         }
 
