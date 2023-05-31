@@ -24,7 +24,6 @@ import org.apache.iceberg.types.Types;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -179,7 +178,7 @@ public class GenericDataConverters {
                         precision, scale, bigDecimal.precision(), data);
                 return bigDecimal;
             }
-            return (BigDecimal) DataTypeUtils.convertType(data, RecordFieldType.DECIMAL.getDecimalDataType(precision, scale), null);
+            return DataTypeUtils.toBigDecimal(data, null);
         }
     }
 
