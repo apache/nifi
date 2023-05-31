@@ -279,8 +279,12 @@ public class TestGeoEnrichIP {
     class TestableGeoEnrichIP extends GeoEnrichIP {
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) {
+        public void onScheduled(ProcessContext context) throws IOException {
             databaseReaderRef.set(databaseReader);
+        }
+
+        protected void loadDatabaseFile() throws IOException {
+            //  Do nothing, the mock database reader is used
         }
     }
 }

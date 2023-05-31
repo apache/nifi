@@ -162,5 +162,8 @@ public class TestGeoEnrichIPRecord {
             writerFactory = context.getProperty(WRITER).asControllerService(RecordSetWriterFactory.class);
             splitOutput = context.getProperty(SPLIT_FOUND_NOT_FOUND).asBoolean();
         }
+        protected void loadDatabaseFile() {
+            //  Do nothing, the mock database reader is used
+        }
     }
 }

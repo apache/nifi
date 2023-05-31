@@ -44,7 +44,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractEnrichIP extends AbstractProcessor {
 
@@ -82,11 +83,13 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;
     final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
-    protected volatile SynchronousFileWatcher watcher;
+    private volatile SynchronousFileWatcher watcher;
 
-    protected final Lock dbWriteLock = new ReentrantLock();
+    private final ReadWriteLock dbReadWriteLock = new ReentrantReadWriteLock();
 
-    protected volatile File dbFile;
+    private volatile File dbFile;
+
+    private volatile boolean needsReload = true;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -134,4 +137,23 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         this.propertyDescriptors = Collections.unmodifiableList(props);
     }
 
+    protected SynchronousFileWatcher getWatcher() {
+        return watcher;
+    }
+
+    protected Lock getDbWriteLock() {
+        return dbReadWriteLock.writeLock();
+    }
+
+    protected Lock getDbReadLock() {
+        return dbReadWriteLock.readLock();
+    }
+
+    protected boolean isNeedsReload() {
+        return needsReload;
+    }
+
+    protected void setNeedsReload(final boolean needsReload) {
+        this.needsReload = needsReload;
+    }
 }

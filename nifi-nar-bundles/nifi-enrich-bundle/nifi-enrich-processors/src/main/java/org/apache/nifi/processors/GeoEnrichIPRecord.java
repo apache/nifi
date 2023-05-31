@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"geo", "enrich", "ip", "maxmind", "record"})
@@ -196,13 +197,19 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
         FlowFile output = session.create(input);
         FlowFile notFound = splitOutput ? session.create(input) : null;
         try {
-            if (watcher != null && watcher.checkAndReset()) {
-                if (dbWriteLock.tryLock()) {
-                    try {
-                        loadDatabaseFile();
-                    } finally {
-                        dbWriteLock.unlock();
-                    }
+            if (isNeedsReload() || getWatcher().checkAndReset()) {
+                Lock dbWriteLock = getDbWriteLock();
+                dbWriteLock.lock();
+                try {
+                    loadDatabaseFile();
+                    setNeedsReload(false);
+                } catch (InternalError | InvalidDatabaseException ie) {
+                    // The database was likely changed out while being read, rollback and try again
+                    setNeedsReload(true);
+                    session.rollback();
+                    return;
+                } finally {
+                    dbWriteLock.unlock();
                 }
             }
         } catch (final IllegalStateException | IOException e) {
@@ -242,32 +249,7 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
                 CityResponse response;
-                try {
-                    response = geocode(ipPath, record, dbReader);
-                } catch (InvalidDatabaseException idbe) {
-                    if (dbWriteLock.tryLock()) {
-                        try {
-                            getLogger().debug("Attempting to reload database after InvalidDatabaseException");
-                            try {
-                                loadDatabaseFile();
-                            } catch (IOException ioe) {
-                                throw new ProcessException("Error reloading database due to: " + ioe.getMessage(), ioe);
-                            }
-
-                            getLogger().debug("Attempting to retry lookup after InvalidDatabaseException");
-                            try {
-                                dbReader = databaseReaderRef.get();
-                                response = geocode(ipPath, record, dbReader);
-                            } catch (final Exception e) {
-                                throw new ProcessException("Error performing look up: " + e.getMessage(), e);
-                            }
-                        } finally {
-                            dbWriteLock.unlock();
-                        }
-                    } else {
-                        throw new ProcessException("Failed to lookup the key from " + ipPath.getPath() + " due to " + idbe.getMessage(), idbe);
-                    }
-                }
+                response = geocode(ipPath, record, dbReader);
                 boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
                     targetRelationship = REL_FOUND;
@@ -310,6 +292,13 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 session.getProvenanceReporter().modifyContent(notFound);
             }
             session.getProvenanceReporter().modifyContent(output);
+        } catch (InvalidDatabaseException | InternalError idbe) {
+            // The database was likely changed out while being read, rollback and try again
+            setNeedsReload(true);
+            getLogger().warn("Failure while trying to load enrichment data due to {}, rolling back session "
+                    + "and will reload the database on the next run", idbe.getMessage());
+            session.rollback();
+            return;
         } catch (Exception ex) {
             getLogger().error("Error enriching records.", ex);
             session.rollback();
