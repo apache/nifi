@@ -17,6 +17,9 @@ from enum import Enum
 from nifiapi.__jvm__ import JvmHolder
 import re
 
+EMPTY_STRING_ARRAY = JvmHolder.gateway.new_array(JvmHolder.jvm.java.lang.String, 0)
+EMPTY_ALLOWABLE_VALUE_ARRAY = JvmHolder.gateway.new_array(JvmHolder.jvm.org.apache.nifi.components.AllowableValue, 0)
+
 class ExpressionLanguageScope(Enum):
     NONE = 1
     LIMITED = 2
@@ -49,15 +52,12 @@ class StandardValidators:
 
 
 class PropertyDependency:
-    def __init__(self, property_descriptor, dependent_values=None):
+    def __init__(self, property_descriptor, *dependent_values):
         if dependent_values is None:
             dependent_values = []
 
-        if isinstance(property_descriptor, str):
-            self.property_name = property_descriptor
-        else:
-            self.property_name = property_descriptor.getName()
-        self.dependentValues = dependent_values
+        self.property_descriptor = property_descriptor
+        self.dependent_values = dependent_values
 
     @staticmethod
     def from_java_dependency(java_dependencies):
@@ -195,7 +195,6 @@ class PropertyDescriptor:
 
 
     def to_java_descriptor(self, gateway, cs_type_lookup):
-        # TODO: Consider dependencies
         el_scope = gateway.jvm.org.apache.nifi.expression.ExpressionLanguageScope.valueOf(self.expressionLanguageScope.name)
 
         builder = gateway.jvm.org.apache.nifi.components.PropertyDescriptor.Builder() \
@@ -218,6 +217,32 @@ class PropertyDescriptor:
         if self.allowableValues is not None:
             builder.allowableValues(self.__get_allowable_values(gateway))
 
+        if self.dependencies is not None:
+            for dependency in self.dependencies:
+                dependent_property = dependency.property_descriptor.to_java_descriptor(gateway, cs_type_lookup)
+
+                # The PropertyDescriptor.dependsOn method uses varargs to provide the dependent values. This makes things a bit complicated on the Python side.
+                # If there are no dependent values provided, we must pass the property descriptor and an empty array of AllowableValues.
+                # Otherwise, we must pass the first dependent value as a String followed by an empty array of Strings. We call this out as a special case so that
+                # we can avoid creating an empty String array, as doing so would mean another call to the Java side, which is expensive.
+                # Finally, we can consider the case where there are 2 or more dependent values. In that case, we must create an array of Strings that contains all but
+                # the first dependent value. We then pass the property descriptor, the first dependent value, and the array of remaining dependent values.
+                if dependency.dependent_values:
+                    if len(dependency.dependent_values) == 1:
+                        builder.dependsOn(dependent_property, dependency.dependent_values[0], EMPTY_STRING_ARRAY)
+                    else:
+                        additional_args = JvmHolder.gateway.new_array(JvmHolder.jvm.java.lang.String, len(dependency.dependent_values) - 1)
+
+                        # copy all but first element of dependency.dependent_values into additional_args
+                        for i, arg in enumerate(dependency.dependent_values):
+                            if i == 0:
+                                continue
+                            additional_args[i - 1] = arg
+
+                        builder.dependsOn(dependent_property, dependency.dependent_values[0], additional_args)
+                else:
+                    builder.dependsOn(dependent_property, EMPTY_ALLOWABLE_VALUE_ARRAY)
+
         for validator in self.validators:
             builder.addValidator(validator)
 
@@ -227,7 +252,7 @@ class PropertyDescriptor:
     def __get_allowable_values(self, gateway):
         if self.allowableValues is None:
             return None
-        values = gateway.jvm.java.util.ArrayList()
+        values = gateway.jvm.java.util.LinkedHashSet()
         for value in self.allowableValues:
             values.add(value)
 
