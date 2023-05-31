@@ -115,7 +115,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private final AtomicReference<Exception> error = new AtomicReference<>();
     private final AtomicInteger appendSuccessCount = new AtomicInteger(0);
     private final Phaser inflightRequestCount = new Phaser(1);
-    private TableName tableName = null;
     private BigQueryWriteClient writeClient = null;
     private StreamWriter streamWriter = null;
     private String transferType;
@@ -207,7 +206,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             return;
         }
 
-        final TableName tableName = TableName.of(context.getProperty(PROJECT_ID).getValue(), context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue(), context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue());
+        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue();
+        final String dataTableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final TableName tableName = TableName.of(projectId, dataset, dataTableName);
+
         try {
             writeStream = createWriteStream(tableName);
             protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
