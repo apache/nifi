@@ -20,6 +20,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,11 +37,25 @@ public class JndiJmsConnectionFactoryProviderTest {
 
     private static final String LDAP_PROVIDER_URL = "ldap://127.0.0.1";
 
+    private static final String TEST_PROVIDER_URL = "test://127.0.0.1";
+
+    private static final String ALLOWED_URL_SCHEMES = "tcp test";
+
     private static final String LDAP_CONTEXT_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
 
     private TestRunner runner;
 
     private JndiJmsConnectionFactoryProvider provider;
+
+    @BeforeAll
+    static void setProperties() {
+        System.setProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY, ALLOWED_URL_SCHEMES);
+    }
+
+    @AfterAll
+    static void clearProperties() {
+        System.clearProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY);
+    }
 
     @BeforeEach
     void setRunner() throws InitializationException {
@@ -80,6 +96,15 @@ public class JndiJmsConnectionFactoryProviderTest {
         runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, TCP_PROVIDER_URL);
 
         runner.assertNotValid(provider);
+    }
+
+    @Test
+    void testPropertiesUrlSchemeSystemProperty() {
+        setFactoryProperties();
+
+        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, TEST_PROVIDER_URL);
+
+        runner.assertValid(provider);
     }
 
     private void setFactoryProperties() {

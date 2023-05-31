@@ -21,9 +21,9 @@
 </head>
 
 <body>
-<h2>Description:</h2>
+<h2>Capabilities</h2>
 <p>
-    This ControllerService allows users to reference a JMS Connection Factory that has already been established and
+    This Controller Service allows users to reference a JMS Connection Factory that has already been established and
     made available via Java Naming and Directory Interface (JNDI) Server. Please see documentation from your JMS Vendor in order
     to understand the appropriate values to configure for this service.
 </p>
@@ -55,7 +55,7 @@ ConnectionFactory connectionFactory = initialContext.lookup(JNDI_CONNECTION_FACT
 </p>
 
 
-<h2>Example:</h2>
+<h2>Example Configuration</h2>
 
 <p>
     As an example, the following configuration may be used to connect to Active MQ's JMS Broker, using the Connection Factory provided via their embedded JNDI server:
@@ -90,6 +90,78 @@ ConnectionFactory connectionFactory = initialContext.lookup(JNDI_CONNECTION_FACT
     The above example assumes that there exists a host that is accessible with hostname "jms-broker" and that is running Apache ActiveMQ on port 61616 and also that
     the jar(s) containing the org.apache.activemq.jndi.ActiveMQInitialContextFactory class and the other JMS client classes can be found within the /opt/apache-activemq-5.15.2/lib/ directory.
 </p>
+
+<h2>Property Validation</h2>
+
+<p>
+  The following component properties include additional validation to restrict allowed values:
+</p>
+
+<ul>
+  <li>JNDI Initial Context Factory Class</li>
+  <li>JNDI Provider URL</li>
+</ul>
+
+<h3>JNDI Initial Context Factory Class Validation</h3>
+
+<p>
+  The default validation for <code>JNDI Initial Context Factory Class</code> disallows the following class values:
+</p>
+
+<ul>
+  <li><code>com.sun.jndi.ldap.LdapCtxFactory</code></li>
+</ul>
+
+<p>
+  Specialized configurations can retrieve JNDI JMS settings from an LDAP server, requiring the use of the LDAP Context Factory.
+  Property validation for the Context Factory Class can be adjusted using Java System properties.
+</p>
+<p>
+  The following Java System property can be configured to override the default disallowed Context Factory Class:
+</p>
+
+<ul>
+  <li>
+    <code>org.apache.nifi.jms.cf.jndi.context.factory.disallowed</code>
+  </li>
+</ul>
+
+<h3>JNDI Provider URL Validation</h3>
+
+<p>
+  The default validation for <code>JNDI Provider URL</code> allows the following URL schemes:
+</p>
+
+<ul>
+  <li>file</li>
+  <li>jgroups</li>
+  <li>ssl</li>
+  <li>t3</li>
+  <li>tcp</li>
+  <li>udp</li>
+  <li>vm</li>
+</ul>
+
+<p>
+  The following Java System property can be configured to override the default allowed URL schemes:
+</p>
+
+<ul>
+  <li>
+    <code>org.apache.nifi.jms.cf.jndi.provider.url.schemes.allowed</code>
+  </li>
+</ul>
+
+<p>
+  The System property must contain a space-separated list of URL schemes. This property can be configured in the application
+  <code>bootstrap.conf</code> as follows:
+</p>
+
+<ul>
+  <li>
+    <code>java.arg.jndiJmsUrlSchemesAllowed=-Dorg.apache.nifi.jms.cf.jndi.provider.url.schemes.allowed=ssl tcp</code>
+  </li>
+</ul>
 
 </body>
 </html>

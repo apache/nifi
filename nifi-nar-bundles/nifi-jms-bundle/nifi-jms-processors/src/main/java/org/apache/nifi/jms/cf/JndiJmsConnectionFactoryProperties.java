@@ -31,15 +31,20 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 
 public class JndiJmsConnectionFactoryProperties {
 
+    private static final String CONTEXT_FACTORY_DISALLOWED_PROPERTY = "org.apache.nifi.jms.cf.jndi.context.factory.disallowed";
+
+    public static final String URL_SCHEMES_ALLOWED_PROPERTY = "org.apache.nifi.jms.cf.jndi.provider.url.schemes.allowed";
+
     public static final PropertyDescriptor JNDI_INITIAL_CONTEXT_FACTORY = new Builder()
             .name("java.naming.factory.initial")
             .displayName("JNDI Initial Context Factory Class")
-            .description("The fully qualified class name of the JNDI Initial Context Factory Class (java.naming.factory.initial).")
+            .description("The fully qualified class name of the JNDI Initial Context Factory Class. See additional details documentation for disallowed classes.")
             .required(true)
             .addValidator(new JndiJmsContextFactoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -48,7 +53,7 @@ public class JndiJmsConnectionFactoryProperties {
     public static final PropertyDescriptor JNDI_PROVIDER_URL = new Builder()
             .name("java.naming.provider.url")
             .displayName("JNDI Provider URL")
-            .description("The URL of the JNDI Provider to use (java.naming.provider.url).")
+            .description("The URL of the JNDI Provider to use as the value for java.naming.provider.url. See additional details documentation for allowed URL schemes.")
             .required(true)
             .addValidator(new JndiJmsProviderUrlValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -120,7 +125,13 @@ public class JndiJmsConnectionFactoryProperties {
     }
 
     private static class JndiJmsContextFactoryValidator implements Validator {
-        private static final String DISALLOWED_CONTEXT_FACTORY = "LdapCtxFactory";
+        private static final String DEFAULT_DISALLOWED_CONTEXT_FACTORY = "LdapCtxFactory";
+
+        private static final String DISALLOWED_CONTEXT_FACTORY;
+
+        static {
+            DISALLOWED_CONTEXT_FACTORY = System.getProperty(CONTEXT_FACTORY_DISALLOWED_PROPERTY, DEFAULT_DISALLOWED_CONTEXT_FACTORY);
+        }
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
@@ -142,13 +153,29 @@ public class JndiJmsConnectionFactoryProperties {
     }
 
     private static class JndiJmsProviderUrlValidator implements Validator {
-        /** JNDI JMS URL Allowed Schemes based on ActiveMQ Connection Factory */
-        private static final Set<String> ALLOWED_SCHEMES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+
+        private static final String SPACE_SEPARATOR = " ";
+
+        private static final Set<String> DEFAULT_ALLOWED_SCHEMES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+                "file",
                 "jgroups",
+                "t3",
                 "tcp",
+                "ssl",
                 "udp",
                 "vm"
         )));
+
+        private static final Set<String> ALLOWED_SCHEMES;
+
+        static {
+            final String allowed = System.getProperty(URL_SCHEMES_ALLOWED_PROPERTY);
+            if (allowed == null || allowed.isEmpty()) {
+                ALLOWED_SCHEMES = DEFAULT_ALLOWED_SCHEMES;
+            } else {
+                ALLOWED_SCHEMES = Arrays.stream(allowed.split(SPACE_SEPARATOR)).collect(Collectors.toSet());
+            }
+        }
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
