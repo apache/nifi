@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutureCallback;
 import com.google.api.core.ApiFutures;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
@@ -24,6 +25,7 @@ import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.ByteString;
@@ -56,7 +58,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.pubsub.publish.ContentInputStrategy;
 import org.apache.nifi.processors.gcp.pubsub.publish.FlowFileResult;
-import org.apache.nifi.processors.gcp.pubsub.publish.MessageTracker;
+import org.apache.nifi.processors.gcp.pubsub.publish.NiFiApiFutureCallback;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -77,15 +79,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.MESSAGE_ID_DESCRIPTION;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_ATTRIBUTE;
+import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.RECORDS_DESCRIPTION;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_ATTRIBUTE;
 import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_DESCRIPTION;
 
@@ -98,6 +101,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
         description = "Attributes to be set for the outgoing Google Cloud PubSub message", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @WritesAttributes({
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
+        @WritesAttribute(attribute = RECORDS_ATTRIBUTE, description = RECORDS_DESCRIPTION),
         @WritesAttribute(attribute = TOPIC_NAME_ATTRIBUTE, description = TOPIC_NAME_DESCRIPTION)
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
@@ -169,7 +173,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("FlowFiles are routed to this relationship if the Google Cloud Pub/Sub operation fails but attempting the operation again may succeed.")
             .build();
 
-    private Publisher publisher = null;
+    protected Publisher publisher = null;
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -308,20 +312,30 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             final List<FlowFile> flowFileBatch) throws ProcessException {
         final long maxMessageSize = context.getProperty(MAX_MESSAGE_SIZE).asDataSize(DataUnit.B).longValue();
 
-        final MessageTracker messageTracker = new MessageTracker();
+        final Executor executor = MoreExecutors.directExecutor();
+        final List<FlowFileResult> flowFileResults = new ArrayList<>();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         for (final FlowFile flowFile : flowFileBatch) {
+            final List<ApiFuture<String>> futures = new ArrayList<>();
+            final List<String> successes = new ArrayList<>();
+            final List<Throwable> failures = new ArrayList<>();
+
             if (flowFile.getSize() > maxMessageSize) {
                 final String message = String.format("FlowFile size %d exceeds MAX_MESSAGE_SIZE", flowFile.getSize());
-                messageTracker.add(new FlowFileResult(flowFile, Collections.emptyList(), new IllegalArgumentException(message)));
+                failures.add(new IllegalArgumentException(message));
+                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
             } else {
                 baos.reset();
                 session.exportTo(flowFile, baos);
-                final ApiFuture<String> future = publishOneMessage(context, flowFile, baos.toByteArray());
-                messageTracker.add(new FlowFileResult(flowFile, Collections.singletonList(future)));
+
+                final ApiFuture<String> apiFuture = publishOneMessage(context, flowFile, baos.toByteArray());
+                futures.add(apiFuture);
+                addCallback(apiFuture, new NiFiApiFutureCallback(successes, failures), executor);
+                flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
             }
         }
-        finishBatch(session, flowFileBatch, stopWatch, messageTracker);
+        finishBatch(session, stopWatch, flowFileResults);
     }
 
     private void onTriggerRecordStrategy(
@@ -345,9 +359,15 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final MessageTracker messageTracker = new MessageTracker();
+        final Executor executor = MoreExecutors.directExecutor();
+        final List<FlowFileResult> flowFileResults = new ArrayList<>();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
         for (final FlowFile flowFile : flowFileBatch) {
+            final List<ApiFuture<String>> futures = new ArrayList<>();
+            final List<String> successes = new ArrayList<>();
+            final List<Throwable> failures = new ArrayList<>();
+
             final Map<String, String> attributes = flowFile.getAttributes();
             final RecordReader reader = readerFactory.createRecordReader(
                     attributes, session.read(flowFile), flowFile.getSize(), getLogger());
@@ -356,15 +376,15 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
             final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, baos, attributes);
             final PushBackRecordSet pushBackRecordSet = new PushBackRecordSet(recordSet);
-            final List<ApiFuture<String>> futures = new ArrayList<>();
+
             while (pushBackRecordSet.isAnotherRecord()) {
-                final ApiFuture<String> future = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
-                futures.add(future);
+                final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
+                futures.add(apiFuture);
+                addCallback(apiFuture, new NiFiApiFutureCallback(successes, failures), executor);
             }
-            messageTracker.add(new FlowFileResult(flowFile, futures));
-            getLogger().debug("Parsing Records in {} completed: {} messages tracked", flowFile, messageTracker.size());
+            flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
         }
-        finishBatch(session, flowFileBatch, stopWatch, messageTracker);
+        finishBatch(session, stopWatch, flowFileResults);
     }
 
     private ApiFuture<String> publishOneRecord(
@@ -391,31 +411,22 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     }
 
     private void finishBatch(final ProcessSession session,
-                             final List<FlowFile> flowFileBatch,
                              final StopWatch stopWatch,
-                             final MessageTracker messageTracker) {
-        try {
-            getLogger().debug("Finish batch of Messages [{}]", messageTracker.size());
-            final List<String> messageIdsSuccess = ApiFutures.successfulAsList(messageTracker.getFutures()).get();
-            getLogger().debug("Successful Messages [{}] of Batched Messages [{}]", messageIdsSuccess.size(), messageTracker.size());
-            messageTracker.reconcile(messageIdsSuccess);
-            final String topicName = publisher.getTopicNameString();
-            for (final FlowFileResult flowFileResult : messageTracker.getFlowFileResults()) {
-                final Map<String, String> attributes = new LinkedHashMap<>();
-                //attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());  // what to do if using record strategy?
-                attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
-                final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
-                final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, topicName);
-                session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-                session.transfer(flowFile, flowFileResult.getRelationship());
-                if (flowFileResult.getException() != null) {
-                    getLogger().error("Send failed for {}", flowFile, flowFileResult.getException());
-                }
-            }
-        } catch (final InterruptedException | ExecutionException e) {
-            final String message = String.format("FlowFile batch processing failed (size=%d)", flowFileBatch.size());
-            getLogger().error(message, e);
+                             final List<FlowFileResult> flowFileResults) {
+        final String topicName = publisher.getTopicNameString();
+        for (final FlowFileResult flowFileResult : flowFileResults) {
+            final Relationship relationship = flowFileResult.reconcile();
+            final Map<String, String> attributes = flowFileResult.getAttributes();
+            attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
+            final FlowFile flowFile = session.putAllAttributes(flowFileResult.getFlowFile(), attributes);
+            final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, topicName);
+            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowFile, relationship);
         }
+    }
+
+    protected void addCallback(final ApiFuture<String> apiFuture, final ApiFutureCallback<? super String> callback, Executor executor) {
+        ApiFutures.addCallback(apiFuture, callback, executor);
     }
 
     @OnStopped
