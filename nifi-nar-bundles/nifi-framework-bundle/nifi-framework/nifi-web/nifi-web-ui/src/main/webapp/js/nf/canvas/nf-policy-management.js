@@ -455,7 +455,7 @@
                                     description: 'Allows users to create/modify all restricted components regardless of restrictions.'
                                 }];
 
-                                requiredPermissions.each(function (label, id) {
+                                requiredPermissions.forEach(function (label, id) {
                                     if (id !== option.value) {
                                         options.push({
                                             text: "requiring '" + label + "'",
