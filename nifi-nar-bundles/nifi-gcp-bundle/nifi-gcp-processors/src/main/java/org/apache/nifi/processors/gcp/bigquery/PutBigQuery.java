@@ -120,7 +120,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private String transferType;
     private int maxRetryCount;
     private int recordBatchCount;
-    private boolean skipInvalidRows;
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(AbstractBigQueryProcessor.PROJECT_ID)
@@ -186,7 +185,6 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         super.onScheduled(context);
         transferType = context.getProperty(TRANSFER_TYPE).getValue();
         maxRetryCount = context.getProperty(RETRY_COUNT).asInteger();
-        skipInvalidRows = context.getProperty(SKIP_INVALID_ROWS).asBoolean();
         recordBatchCount = context.getProperty(APPEND_RECORD_COUNT).asInteger();
         writeClient = createWriteClient(getGoogleCredentials(context));
     }
@@ -222,14 +220,14 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
             return;
         }
 
-
+        final boolean skipInvalidRows = context.getProperty(SKIP_INVALID_ROWS).evaluateAttributeExpressions(flowFile).asBoolean();
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         int recordNumWritten;
         try {
             try (InputStream in = session.read(flowFile);
                     RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
-                recordNumWritten = writeRecordsToStream(reader, protoDescriptor);
+                recordNumWritten = writeRecordsToStream(reader, protoDescriptor, skipInvalidRows);
             }
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
         } catch (Exception e) {
@@ -239,13 +237,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor) throws Exception {
+    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor, boolean skipInvalidRows) throws Exception {
         Record currentRecord;
         int offset = 0;
         int recordNum = 0;
         ProtoRows.Builder rowsBuilder = ProtoRows.newBuilder();
         while ((currentRecord = reader.nextRecord()) != null) {
-            DynamicMessage message = recordToProtoMessage(currentRecord, descriptor);
+            DynamicMessage message = recordToProtoMessage(currentRecord, descriptor, skipInvalidRows);
 
             if (message == null) {
                 continue;
@@ -267,7 +265,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return recordNum;
     }
 
-    private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor) {
+    private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor, boolean skipInvalidRows) {
         Map<String, Object> valueMap = convertMapRecord(record.toMap());
         DynamicMessage message = null;
         try {
