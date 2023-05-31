@@ -185,12 +185,10 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         super.onScheduled(context);
-
         transferType = context.getProperty(TRANSFER_TYPE).getValue();
         maxRetryCount = context.getProperty(RETRY_COUNT).asInteger();
         skipInvalidRows = context.getProperty(SKIP_INVALID_ROWS).asBoolean();
         recordBatchCount = context.getProperty(APPEND_RECORD_COUNT).asInteger();
-        tableName = TableName.of(context.getProperty(PROJECT_ID).getValue(), context.getProperty(DATASET).getValue(), context.getProperty(TABLE_NAME).getValue());
         writeClient = createWriteClient(getGoogleCredentials(context));
     }
 
@@ -203,20 +201,24 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     public void onTrigger(ProcessContext context, ProcessSession session)  {
         WriteStream writeStream;
         Descriptors.Descriptor protoDescriptor;
-        try {
-            writeStream = createWriteStream();
-            protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
-            streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
-        } catch (Descriptors.DescriptorValidationException | IOException e) {
-            getLogger().error("Failed to create Big Query Stream Writer for writing", e);
-            context.yield();
-            return;
-        }
 
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
+
+        final TableName tableName = TableName.of(context.getProperty(PROJECT_ID).getValue(), context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue(), context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue());
+        try {
+            writeStream = createWriteStream(tableName);
+            protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
+            streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
+        } catch (Descriptors.DescriptorValidationException | IOException e) {
+            getLogger().error("Failed to create Big Query Stream Writer for writing", e);
+            context.yield();
+            session.rollback();
+            return;
+        }
+
 
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
@@ -369,7 +371,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private WriteStream createWriteStream() {
+    private WriteStream createWriteStream(TableName tableName) {
         WriteStream.Type type = isBatch() ? WriteStream.Type.PENDING : WriteStream.Type.COMMITTED;
         CreateWriteStreamRequest createWriteStreamRequest = CreateWriteStreamRequest.newBuilder()
             .setParent(tableName.toString())
