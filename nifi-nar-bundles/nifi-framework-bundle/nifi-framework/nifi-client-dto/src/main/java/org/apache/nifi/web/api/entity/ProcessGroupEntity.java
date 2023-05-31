@@ -56,6 +56,9 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private ParameterContextReferenceEntity parameterContext;
 
+    private Boolean logToOwnFile;
+    private String logFileSuffix;
+
     /**
      * The ProcessGroupDTO that is being serialized.
      *
@@ -327,5 +330,23 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty("Whether dedicated logging is enabled for this Process Group")
+    public Boolean isLogToOwnFile() {
+        return logToOwnFile;
+    }
+
+    public void setLogToOwnFile(final Boolean logToOwnFile) {
+        this.logToOwnFile = logToOwnFile;
+    }
+
+    @ApiModelProperty("Log File Suffix for this Process Group")
+    public String getLogFileSuffix() {
+        return logFileSuffix;
+    }
+
+    public void setLogFileSuffix(final String logFileSuffix) {
+        this.logFileSuffix = logFileSuffix;
     }
 }

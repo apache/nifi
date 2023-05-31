@@ -40,6 +40,7 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -286,7 +287,7 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
+                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext<>(connectable));
 
                     try {
                         rawSession.commitAsync(null, t -> {
@@ -377,7 +378,7 @@ public class ConnectableTask {
     }
 
     private ComponentLog getComponentLog() {
-        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
+        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext<>(connectable));
     }
 
     private static class SampledMetrics {

@@ -215,6 +215,9 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
 
+    private Boolean logToOwnFile = Boolean.FALSE;
+    private String logFileSuffix;
+
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
@@ -244,6 +247,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.defaultFlowFileExpiration = new AtomicReference<>();
         this.defaultBackPressureObjectThreshold = new AtomicReference<>();
         this.defaultBackPressureDataSizeThreshold = new AtomicReference<>();
+        this.logFileSuffix = getName();
 
         // save only the nifi properties needed, and account for the possibility those properties are missing
         if (nifiProperties == null) {
@@ -4420,6 +4424,26 @@ public final class StandardProcessGroup implements ProcessGroup {
             contentSize += queueSize.getByteCount();
         }
         return new QueueSize(count, contentSize);
+    }
+
+    @Override
+    public Boolean isLogToOwnFile() {
+        return logToOwnFile;
+    }
+
+    @Override
+    public void setLogToOwnFile(final Boolean logToOwnFile) {
+        this.logToOwnFile = logToOwnFile;
+    }
+
+    @Override
+    public String getLogFileSuffix() {
+        return logFileSuffix;
+    }
+
+    @Override
+    public void setLogFileSuffix(final String logFileSuffix) {
+        this.logFileSuffix = logFileSuffix;
     }
 
     @Override

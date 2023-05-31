@@ -256,6 +256,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(element, "defaultFlowFileExpiration", group.getDefaultFlowFileExpiration());
         addTextElement(element, "defaultBackPressureObjectThreshold", group.getDefaultBackPressureObjectThreshold());
         addTextElement(element, "defaultBackPressureDataSizeThreshold", group.getDefaultBackPressureDataSizeThreshold());
+        addTextElement(element, "logToOwnFile", String.valueOf(group.isLogToOwnFile()));
+        addTextElement(element, "logFileSuffix", group.getLogFileSuffix());
 
         final VersionControlInformation versionControlInfo = group.getVersionControlInformation();
         if (versionControlInfo != null) {

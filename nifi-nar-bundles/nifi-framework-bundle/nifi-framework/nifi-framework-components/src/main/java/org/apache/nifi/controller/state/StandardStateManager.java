@@ -25,6 +25,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 
 import java.io.IOException;
 import java.util.Map;
@@ -52,7 +53,7 @@ public class StandardStateManager implements StateManager {
         final LogRepository repo = LogRepositoryFactory.getRepository(componentId);
         final ComponentLog logger = (repo == null) ? null : repo.getLogger();
         if (repo == null || logger == null) {
-            return new SimpleProcessLogger(componentId, this);
+            return new SimpleProcessLogger(componentId, this, new StandardLoggingContext<>(null));
         }
 
         return logger;

@@ -1233,4 +1233,28 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return the QueueSize of this Process Group and all child Process Groups
      */
     QueueSize getQueueSize();
+
+    /**
+     * @return whether dedicated logging is set for the ProcessGroup
+     */
+    Boolean isLogToOwnFile();
+
+    /**
+     * Updates logging setting of this ProcessGroup.
+     *
+     * @param logToOwnFile new logging setting value
+     */
+    void setLogToOwnFile(Boolean logToOwnFile);
+
+    /**
+     * @return the log file suffix of the ProcessGroup
+     */
+    String getLogFileSuffix();
+
+    /**
+     * Updates the log file suffix of this ProcessGroup.
+     *
+     * @param logFileSuffix new log file suffix
+     */
+    void setLogFileSuffix(String logFileSuffix);
 }

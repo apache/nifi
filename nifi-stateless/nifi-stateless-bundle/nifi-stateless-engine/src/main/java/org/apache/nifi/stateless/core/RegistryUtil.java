@@ -155,6 +155,8 @@ public class RegistryUtil {
             group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());
             group.setDefaultBackPressureObjectThreshold(contents.getDefaultBackPressureObjectThreshold());
             group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
+            group.setLogToOwnFile(contents.isLogToOwnFile());
+            group.setLogFileSuffix(contents.getLogFileSuffix());
             coordinates.setLatest(snapshot.isLatest());
         }
 

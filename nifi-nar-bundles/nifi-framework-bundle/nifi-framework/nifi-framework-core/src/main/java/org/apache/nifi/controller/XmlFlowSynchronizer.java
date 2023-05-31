@@ -1292,6 +1292,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         final String defaultFlowFileExpiration = dto.getDefaultFlowFileExpiration();
         final Long defaultBackPressureObjectThreshold = dto.getDefaultBackPressureObjectThreshold();
         final String defaultBackPressureDataSizeThreshold = dto.getDefaultBackPressureDataSizeThreshold();
+        final Boolean logToOwnFile = dto.isLogToOwnFile();
+        final String logFileSuffix = dto.getLogFileSuffix();
 
         if (name != null) {
             group.setName(name);
@@ -1332,6 +1334,14 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         }
         if (defaultBackPressureDataSizeThreshold != null) {
             group.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        }
+
+        if (logToOwnFile != null) {
+            group.setLogToOwnFile(logToOwnFile);
+        }
+
+        if (logFileSuffix != null) {
+            group.setLogFileSuffix(logFileSuffix);
         }
     }
 
@@ -1467,6 +1477,9 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         processGroup.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
         processGroup.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
         processGroup.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
+
+        processGroup.setLogToOwnFile(processGroupDTO.isLogToOwnFile());
+        processGroup.setLogFileSuffix(processGroupDTO.getLogFileSuffix());
 
         final String parameterContextId = getString(processGroupElement, "parameterContextId");
         if (parameterContextId != null) {

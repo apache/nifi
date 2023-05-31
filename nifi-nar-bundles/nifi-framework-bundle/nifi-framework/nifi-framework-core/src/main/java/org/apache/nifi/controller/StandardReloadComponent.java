@@ -32,6 +32,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -93,7 +94,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final ProcessorNode newNode = flowController.getFlowManager().createProcessor(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new processor in the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor(), new StandardLoggingContext<>(newNode));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -152,7 +153,7 @@ public class StandardReloadComponent implements ReloadComponent {
         invocationHandler.setServiceNode(existingNode);
 
         // create LoggableComponents for the proxy and implementation
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getControllerServiceImplementation());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getControllerServiceImplementation(), new StandardLoggingContext<>(newNode));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -203,7 +204,7 @@ public class StandardReloadComponent implements ReloadComponent {
         final ReportingTaskNode newNode = flowController.getFlowManager().createReportingTask(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
 
         // set the new reporting task into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask(), new StandardLoggingContext<>(null));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -250,7 +251,7 @@ public class StandardReloadComponent implements ReloadComponent {
         }
 
         // set the new parameter provider into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider(), new StandardLoggingContext<>(null));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -291,7 +292,7 @@ public class StandardReloadComponent implements ReloadComponent {
         extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
 
         // set the new flow registyr client into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent());
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent(), new StandardLoggingContext<>(null));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 

@@ -522,6 +522,8 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.DEFAULT_BACKPRESSURE_OBJECT_COUNT_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultBackPressureObjectThreshold, true, 10_000L);
         addIfDifferent(differences, DifferenceType.DEFAULT_FLOWFILE_EXPIRATION_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultFlowFileExpiration, true, "0 sec");
         addIfDifferent(differences, DifferenceType.PARAMETER_CONTEXT_CHANGED, groupA, groupB, VersionedProcessGroup::getParameterContextName, true, null);
+        addIfDifferent(differences, DifferenceType.LOG_TO_OWN_FILE_CHANGED, groupA, groupB, VersionedProcessGroup::isLogToOwnFile, true, Boolean.FALSE);
+        addIfDifferent(differences, DifferenceType.LOG_FILE_SUFFIX_CHANGED, groupA, groupB, VersionedProcessGroup::getLogFileSuffix, true, groupA.getName());
 
         final VersionedFlowCoordinates groupACoordinates = groupA.getVersionedFlowCoordinates();
         final VersionedFlowCoordinates groupBCoordinates = groupB.getVersionedFlowCoordinates();

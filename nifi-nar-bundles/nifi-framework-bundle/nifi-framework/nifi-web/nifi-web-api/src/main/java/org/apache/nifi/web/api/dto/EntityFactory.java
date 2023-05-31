@@ -291,6 +291,9 @@ public final class EntityFactory {
             entity.setLocallyModifiedAndStaleCount(dto.getLocallyModifiedAndStaleCount());
             entity.setSyncFailureCount(dto.getSyncFailureCount());
 
+            entity.setLogToOwnFile(dto.isLogToOwnFile());
+            entity.setLogFileSuffix(dto.getLogFileSuffix());
+
             final ParameterContextReferenceEntity parameterContextReference = dto.getParameterContext();
             if (parameterContextReference != null) {
                 entity.setParameterContext(parameterContextReference);

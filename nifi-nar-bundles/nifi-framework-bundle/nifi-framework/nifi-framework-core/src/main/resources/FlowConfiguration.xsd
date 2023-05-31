@@ -207,6 +207,8 @@
             <xs:element name="defaultBackPressureObjectThreshold" type="xs:long" minOccurs="0" maxOccurs="1" />
             <xs:element name="defaultBackPressureDataSizeThreshold" type="xs:string" minOccurs="0" maxOccurs="1" />
     		<xs:element name="versionControlInformation" type="VersionControlInformation" minOccurs="0" maxOccurs="1" />
+            <xs:element name="logToOwnFile" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="logFileSuffix" type="xs:string" minOccurs="0" maxOccurs="1"/>
 
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>
@@ -273,6 +275,8 @@
             <xs:element name="defaultFlowFileExpiration" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="defaultBackPressureObjectThreshold" type="xs:long" minOccurs="0" maxOccurs="1" />
             <xs:element name="defaultBackPressureDataSizeThreshold" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="logToOwnFile" type="xs:boolean" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="logFileSuffix" type="xs:string" minOccurs="0" maxOccurs="1"/>
 
             <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
             <xs:element name="processor" type="ProcessorType" minOccurs="0" maxOccurs="unbounded"/>

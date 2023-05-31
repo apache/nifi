@@ -859,6 +859,26 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Boolean isLogToOwnFile() {
+        return Boolean.FALSE;
+    }
+
+    @Override
+    public void setLogToOwnFile(Boolean logToOwnFile) {
+
+    }
+
+    @Override
+    public String getLogFileSuffix() {
+        return getName();
+    }
+
+    @Override
+    public void setLogFileSuffix(String logFileSuffix) {
+
+    }
+
+    @Override
     public void terminateProcessor(ProcessorNode processor) {
     }
 }
