@@ -54,7 +54,7 @@ public abstract class QuestDbWritingTemplate<T> {
         }
 
         try (
-            final TableWriter tableWriter = engine.getWriter(context.getCairoSecurityContext(), tableName, "adding rows")
+            final TableWriter tableWriter = engine.getWriter(context.getCairoSecurityContext(), engine.getTableToken(tableName), "adding rows")
         ) {
             addRows(tableWriter, entries);
             tableWriter.commit();
