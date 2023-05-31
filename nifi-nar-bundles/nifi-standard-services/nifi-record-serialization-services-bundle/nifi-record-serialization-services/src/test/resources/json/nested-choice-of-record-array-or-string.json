@@ -1,0 +1,2 @@
+[{"test_record":{"array_test_record":{"test_array":[ {"greeting": "hello"} ]}}},
+{"test_record":{"array_test_record":{"test_array":["test"]}}}]

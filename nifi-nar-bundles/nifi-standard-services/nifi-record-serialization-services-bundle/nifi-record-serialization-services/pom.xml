@@ -234,6 +234,8 @@
                         <exclude>src/test/resources/json/docs-example.json</exclude>
                         <exclude>src/test/resources/json/choice-of-string-or-array-record.json</exclude>
                         <exclude>src/test/resources/json/choice-of-string-or-array-record.avsc</exclude>
+                        <exclude>src/test/resources/json/nested-choice-of-empty-array-or-string.json</exclude>
+                        <exclude>src/test/resources/json/nested-choice-of-record-array-or-string.json</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log.txt</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log_all.txt</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log_mix.txt</exclude>

@@ -22,13 +22,16 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -122,25 +125,51 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
      */
     private RecordField defaultArrayTypes(final RecordField recordField) {
         final DataType dataType = recordField.getDataType();
-        if (dataType.getFieldType() == RecordFieldType.ARRAY) {
-            if (((ArrayDataType) dataType).getElementType() == null) {
+        final RecordFieldType fieldType = dataType.getFieldType();
+        if (fieldType == RecordFieldType.ARRAY) {
+            final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+
+            if (arrayDataType.getElementType() == null) {
                 return new RecordField(recordField.getFieldName(), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()),
                         recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
             } else {
                 // Iterate over the array element type (using a synthesized temporary RecordField), defaulting any arrays as well
-                ArrayDataType arrayDataType = (ArrayDataType) dataType;
-                RecordField elementRecordField = new RecordField(recordField.getFieldName() + "_element", arrayDataType.getElementType(), recordField.isNullable());
-                RecordField adjustedElementRecordField = defaultArrayTypes(elementRecordField);
+                final RecordField elementRecordField = new RecordField(recordField.getFieldName() + "_element", arrayDataType.getElementType(), recordField.isNullable());
+                final RecordField adjustedElementRecordField = defaultArrayTypes(elementRecordField);
 
                 return new RecordField(recordField.getFieldName(), RecordFieldType.ARRAY.getArrayDataType(adjustedElementRecordField.getDataType()),
                         recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
             }
-        }
-        if (dataType.getFieldType() == RecordFieldType.RECORD) {
-            RecordDataType recordDataType = (RecordDataType) dataType;
-            RecordSchema childSchema = recordDataType.getChildSchema();
-            RecordSchema adjustedRecordSchema = defaultArrayTypes(childSchema);
+        } else if (fieldType == RecordFieldType.RECORD) {
+            final RecordDataType recordDataType = (RecordDataType) dataType;
+            final RecordSchema childSchema = recordDataType.getChildSchema();
+            final RecordSchema adjustedRecordSchema = defaultArrayTypes(childSchema);
+
             return new RecordField(recordField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(adjustedRecordSchema), recordField.getDefaultValue(),
+                    recordField.getAliases(), recordField.isNullable());
+        } else if (fieldType == RecordFieldType.CHOICE) {
+            final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
+            final List<DataType> choices = choiceDataType.getPossibleSubTypes();
+
+            // Use a LinkedHashSet to preserve ordering while at the same time ensuring that we don't add duplicates,
+            // as resolving null values could cause a duplicate (e.g., if there's a STRING and a NULL, that may become a choice of two STRINGs).
+            final Set<DataType> defaulted = new LinkedHashSet<>(choices.size());
+
+            for (final DataType choice : choices) {
+                final RecordField choiceRecordField = new RecordField(recordField.getFieldName() + "_choice", choice, recordField.isNullable());
+                final RecordField defaultedRecordField = defaultArrayTypes(choiceRecordField);
+                defaulted.add(defaultedRecordField.getDataType());
+            }
+
+            // If there's only 1 possible sub-type, don't use a CHOICE. Instead, just use that type.
+            if (defaulted.size() == 1) {
+                return new RecordField(recordField.getFieldName(), defaulted.iterator().next(), recordField.getDefaultValue(), recordField.getAliases(),
+                        recordField.isNullable());
+            }
+
+            // Create a CHOICE for all of the possible types
+            final List<DataType> defaultedTypeList = new ArrayList<>(defaulted);
+            return new RecordField(recordField.getFieldName(), RecordFieldType.CHOICE.getChoiceDataType(defaultedTypeList), recordField.getDefaultValue(),
                     recordField.getAliases(), recordField.isNullable());
         }
 
