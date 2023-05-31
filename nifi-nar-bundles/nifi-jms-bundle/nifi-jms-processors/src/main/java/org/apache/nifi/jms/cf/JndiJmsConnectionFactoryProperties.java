@@ -31,6 +31,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
@@ -154,12 +156,17 @@ public class JndiJmsConnectionFactoryProperties {
 
     private static class JndiJmsProviderUrlValidator implements Validator {
 
+        private static final Pattern URL_SCHEME_PATTERN = Pattern.compile("^([^:]+)://.+$");
+
+        private static final int SCHEME_GROUP = 1;
+
         private static final String SPACE_SEPARATOR = " ";
 
         private static final Set<String> DEFAULT_ALLOWED_SCHEMES = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
                 "file",
                 "jgroups",
                 "t3",
+                "t3s",
                 "tcp",
                 "ssl",
                 "udp",
@@ -184,7 +191,7 @@ public class JndiJmsConnectionFactoryProperties {
             if (input == null || input.isEmpty()) {
                 builder.valid(false);
                 builder.explanation("URL is required");
-            } else if (startsWithAllowedScheme(input)) {
+            } else if (isUrlAllowed(input)) {
                 builder.valid(true);
                 builder.explanation("URL scheme allowed");
             } else {
@@ -196,17 +203,31 @@ public class JndiJmsConnectionFactoryProperties {
             return builder.build();
         }
 
-        private boolean startsWithAllowedScheme(final String input) {
-            boolean startsWithAllowedScheme = false;
+        private boolean isUrlAllowed(final String input) {
+            final boolean allowed;
+
+            final Matcher matcher = URL_SCHEME_PATTERN.matcher(input);
+            if (matcher.matches()) {
+                final String scheme = matcher.group(SCHEME_GROUP);
+                allowed = isSchemeAllowed(scheme);
+            } else {
+                allowed = true;
+            }
+
+            return allowed;
+        }
+
+        private boolean isSchemeAllowed(final String scheme) {
+            boolean allowed = false;
 
             for (final String allowedScheme : ALLOWED_SCHEMES) {
-                if (input.startsWith(allowedScheme)) {
-                    startsWithAllowedScheme = true;
+                if (allowedScheme.contains(scheme)) {
+                    allowed = true;
                     break;
                 }
             }
 
-            return startsWithAllowedScheme;
+            return allowed;
         }
     }
 }

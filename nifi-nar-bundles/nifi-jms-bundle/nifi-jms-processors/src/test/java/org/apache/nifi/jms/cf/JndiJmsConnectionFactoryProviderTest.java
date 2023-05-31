@@ -39,6 +39,8 @@ public class JndiJmsConnectionFactoryProviderTest {
 
     private static final String TEST_PROVIDER_URL = "test://127.0.0.1";
 
+    private static final String HOST_PORT_URL = "127.0.0.1:1024";
+
     private static final String ALLOWED_URL_SCHEMES = "tcp test";
 
     private static final String LDAP_CONTEXT_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
@@ -103,6 +105,15 @@ public class JndiJmsConnectionFactoryProviderTest {
         setFactoryProperties();
 
         runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, TEST_PROVIDER_URL);
+
+        runner.assertValid(provider);
+    }
+
+    @Test
+    void testPropertiesHostPortUrl() {
+        setFactoryProperties();
+
+        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, HOST_PORT_URL);
 
         runner.assertValid(provider);
     }
