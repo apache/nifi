@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -37,7 +38,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestJsonSchemaInference {
 
@@ -122,6 +126,64 @@ class TestJsonSchemaInference {
         final DataType itemDataElementType = itemDataArrayType.getElementType();
         // Empty arrays should be inferred as array<string>
         assertEquals(RecordFieldType.STRING, itemDataElementType.getFieldType());
+    }
+
+    @Test
+    public void testNestedChoiceOfArrayTypes() throws IOException {
+        final RecordSchema schema = inferSchema(new File("src/test/resources/json/nested-choice-of-record-array-or-string.json"));
+        final DataType testRecordDataType = schema.getDataType("test_record").get();
+        assertSame(RecordFieldType.RECORD, testRecordDataType.getFieldType());
+
+        final RecordDataType recordDataType = (RecordDataType) testRecordDataType;
+        final DataType childDataType = recordDataType.getChildSchema().getDataType("array_test_record").get();
+        assertSame(RecordFieldType.CHOICE, childDataType.getFieldType());
+
+        final ChoiceDataType childChoiceDataType = (ChoiceDataType) childDataType;
+        final List<DataType> childChoices = childChoiceDataType.getPossibleSubTypes();
+        assertEquals(2, childChoices.size());
+
+        final DataType firstChoice = childChoices.get(0);
+        assertSame(RecordFieldType.RECORD, firstChoice.getFieldType());
+
+        final DataType secondChoice = childChoices.get(1);
+        assertSame(RecordFieldType.RECORD, firstChoice.getFieldType());
+
+        final RecordSchema firstChildSchema = ((RecordDataType) firstChoice).getChildSchema();
+        final DataType firstArrayType = firstChildSchema.getDataType("test_array").get();
+        assertSame(RecordFieldType.ARRAY, firstArrayType.getFieldType());
+        final DataType firstArrayElementType = ((ArrayDataType) firstArrayType).getElementType();
+        assertNotNull(firstArrayElementType);
+        final RecordFieldType firstArrayFieldType = firstArrayElementType.getFieldType();
+
+        final RecordSchema secondChildSchema = ((RecordDataType) secondChoice).getChildSchema();
+        final DataType secondArrayType = secondChildSchema.getDataType("test_array").get();
+        assertSame(RecordFieldType.ARRAY, secondArrayType.getFieldType());
+        final DataType secondArrayElementType = ((ArrayDataType) secondArrayType).getElementType();
+        assertNotNull(secondArrayElementType);
+        final RecordFieldType secondArrayFieldType = secondArrayElementType.getFieldType();
+
+        // Ensure that one of the arrays is a STRING and the other is a RECORD.
+        assertTrue(firstArrayFieldType == RecordFieldType.STRING || secondArrayFieldType == RecordFieldType.STRING);
+        assertTrue(firstArrayFieldType == RecordFieldType.RECORD || secondArrayFieldType == RecordFieldType.RECORD);
+        assertNotEquals(firstArrayElementType, secondArrayElementType);
+    }
+
+    @Test
+    public void testNestedChoiceOfEmptyOrStringArray() throws IOException {
+        final RecordSchema schema = inferSchema(new File("src/test/resources/json/nested-choice-of-empty-array-or-string.json"));
+        final DataType testRecordDataType = schema.getDataType("test_record").get();
+        assertSame(RecordFieldType.RECORD, testRecordDataType.getFieldType());
+
+        final RecordDataType recordDataType = (RecordDataType) testRecordDataType;
+        final DataType childDataType = recordDataType.getChildSchema().getDataType("array_test_record").get();
+        assertSame(RecordFieldType.RECORD, childDataType.getFieldType());
+
+        final RecordSchema childSchema = ((RecordDataType) childDataType).getChildSchema();
+        final DataType arrayDataType = childSchema.getDataType("test_array").get();
+        assertSame(RecordFieldType.ARRAY, arrayDataType.getFieldType());
+
+        final DataType arrayElementType = ((ArrayDataType) arrayDataType).getElementType();
+        assertSame(RecordFieldType.STRING, arrayElementType.getFieldType());
     }
 
     private RecordSchema inferSchema(final File jsonFile) throws IOException {
