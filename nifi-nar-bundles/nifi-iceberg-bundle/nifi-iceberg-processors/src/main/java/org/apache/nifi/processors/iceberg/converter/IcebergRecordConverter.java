@@ -46,8 +46,6 @@ import java.util.stream.Collectors;
 public class IcebergRecordConverter {
 
     private final DataConverter<Record, GenericRecord> converter;
-    final FileFormat fileFormat;
-
     public GenericRecord convert(Record record) {
         return converter.convert(record);
     }
@@ -55,7 +53,6 @@ public class IcebergRecordConverter {
     @SuppressWarnings("unchecked")
     public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat) {
         this.converter = (DataConverter<Record, GenericRecord>) IcebergSchemaVisitor.visit(schema, new RecordDataType(recordSchema), fileFormat);
-        this.fileFormat = fileFormat;
     }
 
     private static class IcebergSchemaVisitor extends SchemaWithPartnerVisitor<DataType, DataConverter<?, ?>> {

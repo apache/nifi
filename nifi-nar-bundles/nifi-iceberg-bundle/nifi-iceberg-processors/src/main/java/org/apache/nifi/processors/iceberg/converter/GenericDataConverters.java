@@ -30,7 +30,6 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -93,9 +92,6 @@ public class GenericDataConverters {
 
         @Override
         public LocalTime convert(Object data) {
-            if (data instanceof Time) {
-                return ((Time) data).toLocalTime();
-            }
             return DataTypeUtils.toTime(data, () -> DataTypeUtils.getDateFormat(timeFormat), null).toLocalTime();
         }
     }
