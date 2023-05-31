@@ -216,7 +216,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     private volatile SyslogParser parser;
     private volatile BlockingQueue<ByteArrayMessage> syslogEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
-    private volatile int listeningPort;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {

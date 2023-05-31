@@ -170,12 +170,12 @@ public class TestListenUDP {
 
     @Test
     public void testWithSendingHostAndPortSameAsSender() throws IOException, InterruptedException {
-        final int sendingPort = 27911;
+        // bind to the same sending port that processor has for Sending Host Port
+        final DatagramSocket socket = new DatagramSocket();
+        final int sendingPort = socket.getLocalPort();
+
         runner.setProperty(ListenUDP.SENDING_HOST, LOCALHOST);
         runner.setProperty(ListenUDP.SENDING_HOST_PORT, String.valueOf(sendingPort));
-
-        // bind to the same sending port that processor has for Sending Host Port
-        final DatagramSocket socket = new DatagramSocket(sendingPort);
 
         final List<String> messages = getMessages(6);
         final int expectedTransferred = messages.size();
