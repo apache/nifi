@@ -301,7 +301,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 log(Level.ERROR, componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
             } else {
-                log(Level.ERROR, componentMessage, setFormattedThrowable(arguments, lastThrowable), lastThrowable);
+                log(Level.ERROR, componentMessage, setFormattedThrowable(arguments, lastThrowable));
                 logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), setCauses(arguments, lastThrowable), lastThrowable);
             }
         }
@@ -577,24 +577,9 @@ public class SimpleProcessLogger implements ComponentLog {
         return loggingContext.getLogFileSuffix().orElse(null);
     }
 
-    private void log(final Level level, final String message, final Object argument) {
-        log(level, message, argument, null);
-    }
-
-    private void log(final Level level, final String message, final Object argument, final Throwable throwable) {
-        if (throwable == null) {
-            logger.makeLoggingEventBuilder(level)
-                    .setMessage(message)
-                    .addArgument(argument)
-                    .addKeyValue(getDiscriminatorKey(), getLogFileSuffix())
-                    .log();
-        } else {
-            logger.makeLoggingEventBuilder(level)
-                    .setMessage(message)
-                    .addArgument(argument)
-                    .addKeyValue(getDiscriminatorKey(), getLogFileSuffix())
-                    .setCause(throwable)
-                    .log();
-        }
+    private void log(final Level level, final String message, final Object... arguments) {
+        logger.makeLoggingEventBuilder(level)
+                .addKeyValue(getDiscriminatorKey(), getLogFileSuffix())
+                .log(message, arguments);
     }
 }

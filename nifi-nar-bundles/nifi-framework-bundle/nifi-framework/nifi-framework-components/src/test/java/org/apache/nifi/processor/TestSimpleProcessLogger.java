@@ -26,17 +26,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.event.Level;
-import org.slf4j.spi.DefaultLoggingEventBuilder;
+import org.slf4j.spi.LoggingEventBuilder;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -95,7 +96,7 @@ public class TestSimpleProcessLogger {
     private Logger logger;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    DefaultLoggingEventBuilder loggingEventBuilder;
+    LoggingEventBuilder loggingEventBuilder;
 
     @Mock
     StandardLoggingContext<PerProcessGroupLoggable> loggingContext;
@@ -109,6 +110,8 @@ public class TestSimpleProcessLogger {
     private Object[] componentCausesArguments;
 
     private SimpleProcessLogger componentLog;
+
+    private final ArgumentCaptor<Object[]> argumentCaptor = ArgumentCaptor.forClass(Object[].class);
 
     @BeforeEach
     public void setLogger() throws IllegalAccessException {
@@ -128,10 +131,7 @@ public class TestSimpleProcessLogger {
         when(logger.makeLoggingEventBuilder(any(Level.class))).thenReturn(loggingEventBuilder);
         when(loggingContext.getDiscriminatorKey()).thenReturn(DISCRIMINATOR_KEY);
         when(loggingContext.getLogFileSuffix()).thenReturn(Optional.of(LOG_FILE_SUFFIX));
-        when(loggingEventBuilder.setMessage(anyString())
-                .addArgument(any(Object.class))
-                .addKeyValue(any(String.class), any(String.class)))
-                .thenReturn(loggingEventBuilder);
+        when(loggingEventBuilder.addKeyValue(any(String.class), any(String.class))).thenReturn(loggingEventBuilder);
     }
 
     @Test
@@ -143,91 +143,66 @@ public class TestSimpleProcessLogger {
                 case TRACE:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(1, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+
                     reset(loggingEventBuilder);
                     break;
                 case DEBUG:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(1, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+
                     reset(loggingEventBuilder);
                     break;
                 case INFO:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(1, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+
                     reset(loggingEventBuilder);
                     break;
                 case WARN:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(1, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+
                     reset(loggingEventBuilder);
                     break;
                 case ERROR:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(1, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+
                     reset(loggingEventBuilder);
                     break;
                 default:
@@ -240,7 +215,6 @@ public class TestSimpleProcessLogger {
 
     @Test
     public void testLogLevelMessageArguments() {
-        final Object[] LOGGABLE_ARGUMENTS = new Object[] { component, FIRST, SECOND };
         for (final LogLevel logLevel : LogLevel.values()) {
             componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_ARGUMENTS);
 
@@ -248,91 +222,76 @@ public class TestSimpleProcessLogger {
                 case TRACE:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+
                     reset(loggingEventBuilder);
                     break;
                 case DEBUG:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+
                     reset(loggingEventBuilder);
                     break;
                 case INFO:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+
                     reset(loggingEventBuilder);
                     break;
                 case WARN:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+
                     reset(loggingEventBuilder);
                     break;
                 case ERROR:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+
                     reset(loggingEventBuilder);
                     break;
                 default:
@@ -352,121 +311,71 @@ public class TestSimpleProcessLogger {
                 case TRACE:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(2, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[1]);
+
                     reset(loggingEventBuilder);
                     break;
                 case DEBUG:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(2, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[1]);
+
                     reset(loggingEventBuilder);
                     break;
                 case INFO:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(2, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[1]);
+
                     reset(loggingEventBuilder);
                     break;
                 case WARN:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(2, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[1]);
+
                     reset(loggingEventBuilder);
                     break;
                 case ERROR:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(component));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_MESSAGE_WITH_COMPONENT)
-                            .addArgument(component)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(2, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[1]);
+
                     reset(loggingEventBuilder);
                     break;
                 default:
@@ -479,7 +388,6 @@ public class TestSimpleProcessLogger {
 
     @Test
     public void testLogLevelMessageArgumentsThrowable() {
-        final Object[] LOGGABLE_ARGUMENTS = new Object[] { component, FIRST, SECOND, EXCEPTION_STRING, EXCEPTION};
         for (final LogLevel logLevel : LogLevel.values()) {
             componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_EXCEPTION_ARGUMENTS);
 
@@ -487,121 +395,86 @@ public class TestSimpleProcessLogger {
                 case TRACE:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(5, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION_STRING, argumentCaptor.getValue()[3]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[4]);
+
                     reset(loggingEventBuilder);
                     break;
                 case DEBUG:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(5, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION_STRING, argumentCaptor.getValue()[3]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[4]);
+
                     reset(loggingEventBuilder);
                     break;
                 case INFO:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(5, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION_STRING, argumentCaptor.getValue()[3]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[4]);
+
                     reset(loggingEventBuilder);
                     break;
                 case WARN:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(5, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION_STRING, argumentCaptor.getValue()[3]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[4]);
+
                     reset(loggingEventBuilder);
                     break;
                 case ERROR:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
                     verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .setCause(eq(EXCEPTION));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
-                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX)
-                            .setCause(EXCEPTION), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(5, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION_STRING, argumentCaptor.getValue()[3]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[4]);
+
                     reset(loggingEventBuilder);
                     break;
                 default:
@@ -643,7 +516,6 @@ public class TestSimpleProcessLogger {
 
     @Test
     public void testLogLevelMessageArgumentsThrowableNull() {
-        final Object[] LOGGABLE_ARGUMENTS = new Object[] { component, FIRST, SECOND };
         for (final LogLevel logLevel : LogLevel.values()) {
             componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_ARGUMENTS, NULL_THROWABLE);
 
@@ -651,91 +523,66 @@ public class TestSimpleProcessLogger {
                 case TRACE:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
                     reset(loggingEventBuilder);
                     break;
                 case DEBUG:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
                     reset(loggingEventBuilder);
                     break;
                 case INFO:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
                     reset(loggingEventBuilder);
                     break;
                 case WARN:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
                     reset(loggingEventBuilder);
                     break;
                 case ERROR:
                     verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
                     verify(loggingEventBuilder, times(1))
-                            .setMessage(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), times(1))
-                            .addArgument(eq(LOGGABLE_ARGUMENTS));
-                    verify(loggingEventBuilder
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS), times(1))
                             .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
-                    verify(logger.makeLoggingEventBuilder(Level.TRACE)
-                            .setMessage(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT)
-                            .addArgument(LOGGABLE_ARGUMENTS)
+                    verify(loggingEventBuilder
                             .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
-                            .log();
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+                    assertEquals(3, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
                     reset(loggingEventBuilder);
                     break;
                 default:
