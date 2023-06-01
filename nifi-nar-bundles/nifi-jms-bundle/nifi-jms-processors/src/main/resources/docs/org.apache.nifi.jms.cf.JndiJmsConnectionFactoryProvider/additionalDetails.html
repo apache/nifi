@@ -98,32 +98,7 @@ ConnectionFactory connectionFactory = initialContext.lookup(JNDI_CONNECTION_FACT
 </p>
 
 <ul>
-  <li>JNDI Initial Context Factory Class</li>
   <li>JNDI Provider URL</li>
-</ul>
-
-<h3>JNDI Initial Context Factory Class Validation</h3>
-
-<p>
-  The default validation for <code>JNDI Initial Context Factory Class</code> disallows the following class values:
-</p>
-
-<ul>
-  <li><code>com.sun.jndi.ldap.LdapCtxFactory</code></li>
-</ul>
-
-<p>
-  Specialized configurations can retrieve JNDI JMS settings from an LDAP server, requiring the use of the LDAP Context Factory.
-  Property validation for the Context Factory Class can be adjusted using Java System properties.
-</p>
-<p>
-  The following Java System property can be configured to override the default disallowed Context Factory Class:
-</p>
-
-<ul>
-  <li>
-    <code>org.apache.nifi.jms.cf.jndi.context.factory.disallowed</code>
-  </li>
 </ul>
 
 <h3>JNDI Provider URL Validation</h3>
@@ -137,6 +112,7 @@ ConnectionFactory connectionFactory = initialContext.lookup(JNDI_CONNECTION_FACT
   <li>jgroups</li>
   <li>ssl</li>
   <li>t3</li>
+  <li>t3s</li>
   <li>tcp</li>
   <li>udp</li>
   <li>vm</li>

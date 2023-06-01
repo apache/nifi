@@ -16,14 +16,18 @@
  */
 package org.apache.nifi.jms.cf;
 
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JndiJmsConnectionFactoryProviderTest {
 
@@ -37,27 +41,13 @@ public class JndiJmsConnectionFactoryProviderTest {
 
     private static final String LDAP_PROVIDER_URL = "ldap://127.0.0.1";
 
-    private static final String TEST_PROVIDER_URL = "test://127.0.0.1";
-
     private static final String HOST_PORT_URL = "127.0.0.1:1024";
 
-    private static final String ALLOWED_URL_SCHEMES = "tcp test";
-
-    private static final String LDAP_CONTEXT_FACTORY = "com.sun.jndi.ldap.LdapCtxFactory";
+    private static final String LDAP_ALLOWED_URL_SCHEMES = "ldap";
 
     private TestRunner runner;
 
     private JndiJmsConnectionFactoryProvider provider;
-
-    @BeforeAll
-    static void setProperties() {
-        System.setProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY, ALLOWED_URL_SCHEMES);
-    }
-
-    @AfterAll
-    static void clearProperties() {
-        System.clearProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY);
-    }
 
     @BeforeEach
     void setRunner() throws InitializationException {
@@ -92,30 +82,31 @@ public class JndiJmsConnectionFactoryProviderTest {
     }
 
     @Test
-    void testPropertiesInvalidContextFactory() {
-        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY, LDAP_CONTEXT_FACTORY);
-        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME, FACTORY_NAME);
-        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, TCP_PROVIDER_URL);
-
-        runner.assertNotValid(provider);
-    }
-
-    @Test
-    void testPropertiesUrlSchemeSystemProperty() {
-        setFactoryProperties();
-
-        runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, TEST_PROVIDER_URL);
-
-        runner.assertValid(provider);
-    }
-
-    @Test
     void testPropertiesHostPortUrl() {
         setFactoryProperties();
 
         runner.setProperty(provider, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL, HOST_PORT_URL);
 
         runner.assertValid(provider);
+    }
+
+
+    @Test
+    void testUrlSchemeValidSystemProperty() {
+        try {
+            System.setProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY, LDAP_ALLOWED_URL_SCHEMES);
+
+            final MockProcessContext processContext = new MockProcessContext(new NoOpProcessor());
+            final MockValidationContext validationContext = new MockValidationContext(processContext);
+
+            final JndiJmsConnectionFactoryProperties.JndiJmsProviderUrlValidator validator = new JndiJmsConnectionFactoryProperties.JndiJmsProviderUrlValidator();
+            final ValidationResult result = validator.validate(JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL.getDisplayName(), LDAP_PROVIDER_URL, validationContext);
+
+            assertNotNull(result);
+            assertTrue(result.isValid());
+        } finally {
+            System.clearProperty(JndiJmsConnectionFactoryProperties.URL_SCHEMES_ALLOWED_PROPERTY);
+        }
     }
 
     private void setFactoryProperties() {
