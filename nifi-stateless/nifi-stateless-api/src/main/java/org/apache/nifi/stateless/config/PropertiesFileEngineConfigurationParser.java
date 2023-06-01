@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -115,8 +114,8 @@ public class PropertiesFileEngineConfigurationParser {
 
         final String statusTaskInterval = properties.getProperty(STATUS_TASK_INTERVAL, "1 min");
 
-        final long processorStartTimeout = TimeUnit.SECONDS.toMillis(Long.parseLong(properties.getProperty(PROCESSOR_START_TIMEOUT, "10")));
-        final long componentEnableTimeout = TimeUnit.SECONDS.toMillis(Long.parseLong(properties.getProperty(COMPONENT_ENABLE_TIMEOUT, "10")));
+        final String processorStartTimeout = properties.getProperty(PROCESSOR_START_TIMEOUT, "10 secs");
+        final String componentEnableTimeout = properties.getProperty(COMPONENT_ENABLE_TIMEOUT, "10 secs");
 
         return new StatelessEngineConfiguration() {
             @Override
@@ -170,12 +169,12 @@ public class PropertiesFileEngineConfigurationParser {
             }
 
             @Override
-            public long getProcessorStartTimeout() {
+            public String getProcessorStartTimeout() {
                 return processorStartTimeout;
             }
 
             @Override
-            public long getComponentEnableTimeout() {
+            public String getComponentEnableTimeout() {
                 return componentEnableTimeout;
             }
         };

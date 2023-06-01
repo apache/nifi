@@ -71,6 +71,4 @@ public interface StatelessEngine {
     CounterRepository getCounterRepository();
 
     Duration getStatusTaskInterval();
-
-    StatelessEngineConfiguration getStatelessEngineConfiguration();
 }

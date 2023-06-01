@@ -26,7 +26,6 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.ProcessSchedulerConfig;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -49,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -74,9 +74,9 @@ public class StatelessProcessScheduler implements ProcessScheduler {
 
     private final long processorStartTimeoutMillis;
 
-    public StatelessProcessScheduler(final ExtensionManager extensionManager, final ProcessSchedulerConfig schedulerConfig) {
+    public StatelessProcessScheduler(final ExtensionManager extensionManager, final Duration processorStartTimeout) {
         this.extensionManager = extensionManager;
-        this.processorStartTimeoutMillis = schedulerConfig.getProcessorStartTimeout();
+        this.processorStartTimeoutMillis = processorStartTimeout.toMillis();
         schedulingAgent = new StatelessSchedulingAgent(extensionManager);
     }
 

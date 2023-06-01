@@ -75,6 +75,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -126,7 +127,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
                                  final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository,
-                                 final StatelessFlowConfiguration statelessFlowConfiguration) {
+                                 final Duration componentEnableTimeout) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -138,8 +139,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.processScheduler = processScheduler;
         this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
         this.bulletinRepository = bulletinRepository;
-
-        this.componentEnableTimeoutMillis = statelessFlowConfiguration.getComponentEnableTimeoutMillis();
+        this.componentEnableTimeoutMillis = componentEnableTimeout.toMillis();
 
         rootConnectables = new HashSet<>();
 
