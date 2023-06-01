@@ -244,6 +244,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor SOCKET_WRITE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Socket Write Timeout")
+            .displayName("Socket Write Timeout")
+            .description("Maximum time to wait for write operations while sending requests from a socket connection to the HTTP URL.")
+            .required(true)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor SOCKET_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
             .name("idle-timeout")
             .displayName("Socket Idle Timeout")
@@ -560,6 +569,7 @@ public class InvokeHTTP extends AbstractProcessor {
             SSL_CONTEXT_SERVICE,
             SOCKET_CONNECT_TIMEOUT,
             SOCKET_READ_TIMEOUT,
+            SOCKET_WRITE_TIMEOUT,
             SOCKET_IDLE_TIMEOUT,
             SOCKET_IDLE_CONNECTIONS,
             PROXY_CONFIGURATION_SERVICE,
@@ -833,6 +843,7 @@ public class InvokeHTTP extends AbstractProcessor {
         okHttpClientBuilder.followRedirects(context.getProperty(RESPONSE_REDIRECTS_ENABLED).asBoolean());
         okHttpClientBuilder.connectTimeout((context.getProperty(SOCKET_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(context.getProperty(SOCKET_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.writeTimeout(context.getProperty(SOCKET_WRITE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.connectionPool(
                 new ConnectionPool(
                         context.getProperty(SOCKET_IDLE_CONNECTIONS).asInteger(),
