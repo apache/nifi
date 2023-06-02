@@ -136,9 +136,13 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Set<ProcessGroup> getProcessGroups(String parentGroupId) {
+    public Set<ProcessGroup> getProcessGroups(String parentGroupId, boolean includeDescendants) {
         ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
-        return group.getProcessGroups();
+        if (includeDescendants) {
+            return new HashSet<>(group.findAllProcessGroups());
+        } else {
+            return group.getProcessGroups();
+        }
     }
 
     @Override

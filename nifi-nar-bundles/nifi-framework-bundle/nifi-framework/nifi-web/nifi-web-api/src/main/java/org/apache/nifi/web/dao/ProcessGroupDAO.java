@@ -59,9 +59,10 @@ public interface ProcessGroupDAO {
      * Gets all of the process groups.
      *
      * @param parentGroupId The parent group id
+     * @param includeDescendants if process groups from descendant groups should be included
      * @return The process groups
      */
-    Set<ProcessGroup> getProcessGroups(String parentGroupId);
+    Set<ProcessGroup> getProcessGroups(String parentGroupId, boolean includeDescendants);
 
     /**
      * Verifies the specified process group can be modified.

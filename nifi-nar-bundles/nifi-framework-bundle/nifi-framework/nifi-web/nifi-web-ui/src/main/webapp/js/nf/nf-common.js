@@ -1855,6 +1855,46 @@
                 return true;
             }
             return false;
+        },
+
+        /**
+         * Sorts Parameter Contexts alphabetically for authorized items first, following unauthorized items.
+         *
+         * @param Array
+         * @returns {Array}
+         */
+        sortParameterContextsAlphabeticallyBasedOnAuthorization: function (parameterContexts) {
+            var authorizedParameterContexts = parameterContexts.filter(function (parameterContext) {
+                return parameterContext.permissions.canRead;
+            });
+
+            var unauthorizedParameterContexts = parameterContexts.filter(function (parameterContext) {
+                return !parameterContext.permissions.canRead;
+            });
+
+            //sort alphabetically
+            var sortedAuthorizedParameterContexts = authorizedParameterContexts.sort(function (a, b) {
+                if (a.component.name < b.component.name) {
+                    return -1;
+                }
+                if (a.component.name > b.component.name) {
+                    return 1;
+                }
+                return 0;
+            });
+
+            //sort alphabetically
+            var sortedUnauthorizedParameterContexts = unauthorizedParameterContexts.sort(function (a, b) {
+                if (a.id < b.id) {
+                    return -1;
+                }
+                if (a.id > b.id) {
+                    return 1;
+                }
+                return 0;
+            });
+
+            return sortedAuthorizedParameterContexts.concat(sortedUnauthorizedParameterContexts);
         }
 
     };

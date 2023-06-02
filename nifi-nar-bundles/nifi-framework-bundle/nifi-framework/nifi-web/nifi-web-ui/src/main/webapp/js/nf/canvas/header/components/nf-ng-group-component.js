@@ -69,7 +69,7 @@
          * @argument {string} groupName The name of the group.
          * @argument {object} pt        The point that the group was dropped.
          */
-        var createGroup = function (groupName, pt) {
+        var createGroup = function (groupName, pt, parameterContextId) {
             var processGroupEntity = {
                 'revision': nfClient.getRevision({
                     'revision': {
@@ -82,6 +82,9 @@
                     'position': {
                         'x': pt.x,
                         'y': pt.y
+                    },
+                    'parameterContext': {
+                        'id': parameterContextId
                     }
                 }
             };
@@ -127,6 +130,67 @@
             return filepath.replace(/^.*[\\\/]/, '').replace(/\..*/, '');
         };
 
+        /**
+        * parameter context
+        */
+        var parameterContextOptions = [];
+        var noParameterContext = {
+            text: 'No parameter context',
+            value: null
+            };
+        var selectedOption = noParameterContext;
+        var parentParameterContextUrl = '../nifi-api/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId());
+        var parameterContextsUrl = '../nifi-api/flow/parameter-contexts';
+
+        var fetchUrl = function(url) {
+            return $.ajax({
+                type: 'GET',
+                url: url,
+                dataType: 'json'
+            });
+        };
+
+        var getParameterContextOptions = function () {
+            $.when(fetchUrl(parentParameterContextUrl), fetchUrl(parameterContextsUrl))
+            .done(function (processGroupResponse, parameterContextsResponse) {
+                var parentParameterContext = processGroupResponse[0].processGroupFlow.parameterContext;
+                var parameterContexts = parameterContextsResponse[0].parameterContexts;
+
+                parameterContextOptions.push(noParameterContext);
+
+                var sortedParameterContexts = nfCommon.sortParameterContextsAlphabeticallyBasedOnAuthorization(parameterContexts);
+
+                sortedParameterContexts.forEach(function (parameterContext) {
+                var option;
+                if (parameterContext.permissions.canRead) {
+                    option = {
+                        text: parameterContext.component.name,
+                        value: parameterContext.id,
+                        description: parameterContext.component.description
+                    };
+                } else {
+                    option = {
+                        disabled: true,
+                        text: parameterContext.id,
+                        value: parameterContext.id
+                    };
+                }
+                if (!nfCommon.isUndefinedOrNull(parentParameterContext) && parentParameterContext.id === parameterContext.id && parentParameterContext.permissions.canRead) {
+                    selectedOption = option;
+                }
+
+                parameterContextOptions.push(option);
+                });
+
+                $('#new-pg-parameter-context-combo').combo({
+                    selectedOption: {
+                        value: selectedOption.value
+                    },
+                    options: parameterContextOptions
+                });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+        };
+
         function GroupComponent() {
 
             this.icon = 'icon icon-group';
@@ -170,7 +234,10 @@
                         selectedFilename.text('');
                         uploadFileField.val('');
                         self.fileToBeUploaded = null;
+                        parameterContextOptions.length = 0;
+                        selectedOption = noParameterContext;
                     }
+
 
                     self.fileForm = $('#file-upload-form').ajaxForm({
                         url: '../nifi-api/process-groups/',
@@ -349,10 +416,14 @@
                     }
                 });
 
+                getParameterContextOptions();
+
                 return $.Deferred(function (deferred) {
                     var addGroup = function () {
                         // get the name of the group and clear the textfield
                         var groupName = $('#new-process-group-name').val();
+
+                        var parameterContextId = $('#new-pg-parameter-context-combo').combo('getSelectedOption').value
 
                         // ensure the group name is specified
                         if (nfCommon.isBlank(groupName)) {
@@ -437,7 +508,7 @@
                                 self.modal.fileForm.submit();
                             } else {
                                 // create the group and resolve the deferred accordingly
-                                createGroup(groupName, pt).done(function (response) {
+                                createGroup(groupName, pt, parameterContextId).done(function (response) {
                                     deferred.resolve(response.component);
                                 }).fail(function () {
                                     deferred.reject();

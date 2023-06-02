@@ -4542,8 +4542,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId) {
-        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId);
+    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final boolean includeDescendants) {
+        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, includeDescendants);
         return groups.stream()
             .map(group -> createProcessGroupEntity(group))
             .collect(Collectors.toSet());

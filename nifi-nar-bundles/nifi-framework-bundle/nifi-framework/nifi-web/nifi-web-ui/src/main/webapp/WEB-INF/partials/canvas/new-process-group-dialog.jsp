@@ -29,6 +29,12 @@
                 <input id="new-process-group-name" type="text" placeholder="Enter a name or select a file to upload"/>
             </div>
         </div>
+            <div class="setting">
+                <div class="setting-name">Parameter Context</div>
+                <div class="setting-field">
+                    <div id="new-pg-parameter-context-combo"></div>
+                </div>
+        </div>
         <div id="file-cancel-button-container">
             <button class="icon" id="file-cancel-button" aria-hidden="true" title="Cancel the selected file">
                 <i class="fa fa-times"></i>
@@ -44,11 +50,11 @@
                 <div id="selected-file-name"></div>
             </div>
         </div>
-    </div>
     <div class="setting">
         <span id="import-process-group-link" class="link" title="Import a flow from a registry">
             <i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>
             Import from Registry...
         </span>
     </div>
+        </div>
 </div>
