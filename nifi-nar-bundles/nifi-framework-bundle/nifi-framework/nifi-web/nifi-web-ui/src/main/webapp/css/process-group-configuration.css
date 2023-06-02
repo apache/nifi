@@ -93,6 +93,19 @@
     width: 328px;
 }
 
+#parameter-contexts-recursive-container {
+    margin-left: 10px;
+}
+
+#parameter-contexts-recursive-container > div {
+    float: left;
+    line-height: 30px;
+}
+
+#parameter-contexts-recursive {
+    margin-top: 8px;
+}
+
 #process-group-flowfile-concurrency-combo {
     width: 328px;
 }
@@ -128,8 +141,4 @@
 
 #upload-process-group-link {
     float: right;
-}
-
-#process-group-log-to-own-file-combo {
-    width: 328px;
 }
