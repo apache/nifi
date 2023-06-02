@@ -20,7 +20,6 @@ import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.SeekableInputStream;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 public class NifiParquetInputFile implements InputFile {
@@ -42,12 +41,12 @@ public class NifiParquetInputFile implements InputFile {
     }
 
     @Override
-    public long getLength() throws IOException {
+    public long getLength() {
         return length;
     }
 
     @Override
-    public SeekableInputStream newStream() throws IOException {
+    public SeekableInputStream newStream() {
         return new NifiSeekableInputStream(input);
     }
 }

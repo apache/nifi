@@ -29,11 +29,11 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
     public NifiSeekableInputStream(final ByteCountingInputStream input) {
         super(input);
         this.input = input;
-        this.input.mark(Integer.MAX_VALUE);
+        this.input.mark(8192);
     }
 
     @Override
-    public long getPos() throws IOException {
+    public long getPos() {
         return input.getBytesConsumed();
     }
 
@@ -47,7 +47,7 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
         if (newPos < currentPos) {
             // seeking backwards so first reset back to beginning of the stream then seek
             input.reset();
-            input.mark(Integer.MAX_VALUE);
+            input.mark(8192);
         }
 
         // must call getPos() again in case reset was called above
@@ -65,7 +65,7 @@ public class NifiSeekableInputStream extends DelegatingSeekableInputStream {
     }
 
     @Override
-    public synchronized void reset() throws IOException {
+    public synchronized void reset() {
         throw new UnsupportedOperationException("Mark/reset is not supported");
     }
 }
