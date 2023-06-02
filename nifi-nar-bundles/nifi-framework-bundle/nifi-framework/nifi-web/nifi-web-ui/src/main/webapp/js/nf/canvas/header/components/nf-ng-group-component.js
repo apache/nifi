@@ -26,10 +26,11 @@
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
+                'nf.FlowVersion',
                 'nf.Common',
                 'nf.Dialog'],
-            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
-                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog));
+            function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFlowVersion, nfCommon, nfDialog) {
+                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFlowVersion, nfCommon, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.GroupComponent =
@@ -40,6 +41,7 @@
                 require('nf.Graph'),
                 require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
+                require('nf.FlowVersion'),
                 require('nf.Common'),
                 require('nf.Dialog')));
     } else {
@@ -50,10 +52,11 @@
             root.nf.Graph,
             root.nf.CanvasUtils,
             root.nf.ErrorHandler,
+            root.nf.FlowVersion,
             root.nf.Common,
             root.nf.Dialog);
     }
-}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfCommon, nfDialog) {
+}(this, function ($, nfClient, nfBirdseye, nfStorage, nfGraph, nfCanvasUtils, nfErrorHandler, nfFlowVersion, nfCommon, nfDialog) {
     'use strict';
 
     return function (serviceProvider) {
@@ -63,13 +66,19 @@
         var cancelFileBtn = $('#file-cancel-button');
         var submitFileContainer = $('#submit-file-container');
 
+        var noParameterContext = {
+            text: 'No parameter context',
+            value: null
+        };
+
         /**
          * Create the group and add to the graph.
          *
          * @argument {string} groupName The name of the group.
          * @argument {object} pt        The point that the group was dropped.
+         * @argument {string} parameterContextId Option parameter context reference
          */
-        var createGroup = function (groupName, pt) {
+        var createGroup = function (groupName, pt, parameterContextId) {
             var processGroupEntity = {
                 'revision': nfClient.getRevision({
                     'revision': {
@@ -85,6 +94,13 @@
                     }
                 }
             };
+
+            // include the parameter context if specified
+            if (nf.Common.isDefinedAndNotNull(parameterContextId)) {
+                processGroupEntity.component.parameterContext = {
+                    'id': parameterContextId
+                };
+            }
 
             // create a new processor of the defined type
             return $.ajax({
@@ -125,6 +141,50 @@
          */
         var getFilenameNoExtension = function (filepath) {
             return filepath.replace(/^.*[\\\/]/, '').replace(/\..*/, '');
+        };
+
+        var setParameterContextOptions = function () {
+            return new $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/flow/parameter-contexts',
+                    dataType: 'json'
+                }).done(function (response) {
+                    var selectedOption = noParameterContext;
+                    var parameterContextOptions = [noParameterContext];
+                    var parentParameterContext = nf.CanvasUtils.getParameterContext();
+
+                    // prepare the options
+                    var sortedParameterContexts = nfCommon.sortParameterContextsAlphabeticallyBasedOnAuthorization(response.parameterContexts);
+                    sortedParameterContexts.forEach(function (parameterContext) {
+                        if (parameterContext.permissions.canRead) {
+                            var option = {
+                                text: parameterContext.component.name,
+                                value: parameterContext.id,
+                                description: parameterContext.component.description
+                            };
+
+                            if (nfCommon.isDefinedAndNotNull(parentParameterContext) && parentParameterContext.id === parameterContext.id) {
+                                selectedOption = option;
+                            }
+
+                            parameterContextOptions.push(option);
+                        }
+                    });
+
+                    // set the combo options
+                    $('#new-pg-parameter-context-combo').combo({
+                        selectedOption: {
+                            value: selectedOption.value
+                        },
+                        options: parameterContextOptions
+                    });
+
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
+                }).fail(nfErrorHandler.handleAjaxError);
+            }).promise();
         };
 
         function GroupComponent() {
@@ -170,7 +230,12 @@
                         selectedFilename.text('');
                         uploadFileField.val('');
                         self.fileToBeUploaded = null;
+
+                        // reset the parameter context fields
+                        $('#parameters-from-uploaded-flow').hide();
+                        $('#new-pg-parameter-context-combo').show();
                     }
+
 
                     self.fileForm = $('#file-upload-form').ajaxForm({
                         url: '../nifi-api/process-groups/',
@@ -234,6 +299,10 @@
                             // update the Add button to the enabled stated
                             processGroupDialog.modal('refreshButtons');
                         }
+
+                        // update the parameter context
+                        $('#parameters-from-uploaded-flow').show();
+                        $('#new-pg-parameter-context-combo').hide();
 
                         cancelFileBtn.show();
                     });
@@ -354,6 +423,8 @@
                         // get the name of the group and clear the textfield
                         var groupName = $('#new-process-group-name').val();
 
+                        var parameterContextId = $('#new-pg-parameter-context-combo').combo('getSelectedOption').value
+
                         // ensure the group name is specified
                         if (nfCommon.isBlank(groupName)) {
                             nfDialog.showOkDialog({
@@ -437,7 +508,7 @@
                                 self.modal.fileForm.submit();
                             } else {
                                 // create the group and resolve the deferred accordingly
-                                createGroup(groupName, pt).done(function (response) {
+                                createGroup(groupName, pt, parameterContextId).done(function (response) {
                                     deferred.resolve(response.component);
                                 }).fail(function () {
                                     deferred.reject();
@@ -449,74 +520,88 @@
                         }
                     };
 
-                    groupComponent.modal.update('setButtonModel', [{
-                        buttonText: 'Add',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        disabled: function () {
-                            if (nfCommon.isBlank($('#new-process-group-name').val())) {
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        },
-                        handler: {
-                            click: addGroup
-                        }
-                    },
-                        {
-                            buttonText: 'Cancel',
-                            color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
-                            },
-                            handler: {
-                                click: function () {
-                                    // reject the deferred
-                                    deferred.reject();
-
-                                    // close the dialog
-                                    groupComponent.modal.hide();
+                    // set the parameter context options and then proceed with showing the new pg dialog
+                    setParameterContextOptions().done(function () {
+                        var buttonModel = [{
+                                buttonText: 'Add',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                disabled: function () {
+                                    if (nfCommon.isBlank($('#new-process-group-name').val())) {
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                },
+                                handler: {
+                                    click: addGroup
                                 }
-                            }
-                        }]);
+                            },
+                            {
+                                buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        // reject the deferred
+                                        deferred.reject();
 
-                    // hide the selected file to upload title
-                    submitFileContainer.hide();
+                                        // close the dialog
+                                        groupComponent.modal.hide();
+                                    }
+                                }
+                            }];
 
-                    // hide file cancel button
-                    cancelFileBtn.hide();
-
-                    // determine if import from registry link should show
-                    var importProcessGroupLink = $('#import-process-group-link');
-
-                    if (showImportLink === true && nfCommon.canVersionFlows()) {
-                        importProcessGroupLink.show();
-                    } else {
-                        importProcessGroupLink.hide();
-                    }
-
-                    // determine if Upload File button should show
-                    if (showUploadFileButton === true) {
-                        uploadFileBtn.show();
-                    } else {
-                        uploadFileBtn.hide();
-                    }
-
-                    // show the dialog
-                    groupComponent.modal.storePt(pt);
-                    groupComponent.modal.show();
-
-                    // set up the focus and key handlers
-                    $('#new-process-group-name').focus().off('keyup').on('keyup', function (e) {
-                        var code = e.keyCode ? e.keyCode : e.which;
-                        if (code === $.ui.keyCode.ENTER) {
-                            addGroup();
+                        if (showImportLink === true && nfCommon.canVersionFlows()) {
+                            buttonModel.push({
+                                buttonText: 'Import from Registry',
+                                clazz: 'fa fa-cloud-download button-icon',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        nfFlowVersion.showImportFlowDialog();
+                                    }
+                                }
+                            });
                         }
+
+                        // set the button model
+                        groupComponent.modal.update('setButtonModel', buttonModel);
+
+                        // hide the selected file to upload title
+                        submitFileContainer.hide();
+
+                        // hide file cancel button
+                        cancelFileBtn.hide();
+
+                        // determine if Upload File button should show
+                        if (showUploadFileButton === true) {
+                            uploadFileBtn.show();
+                        } else {
+                            uploadFileBtn.hide();
+                        }
+
+                        // show the dialog
+                        groupComponent.modal.storePt(pt);
+                        groupComponent.modal.show();
+
+                        // set up the focus and key handlers
+                        $('#new-process-group-name').focus().off('keyup').on('keyup', function (e) {
+                            var code = e.keyCode ? e.keyCode : e.which;
+                            if (code === $.ui.keyCode.ENTER) {
+                                addGroup();
+                            }
+                        });
                     });
                 }).promise();
             }

@@ -484,7 +484,7 @@ div.button-icon span {
 
 div.button-icon {
     float: left !important;
-    margin-left: 20px;
+    margin-left: 0;
     font-size: 18px !important;
 }
 
