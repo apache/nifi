@@ -1784,15 +1784,17 @@
                 }
             });
 
-            // handle the click for the process group import
-            $('#import-process-group-link').on('click', function() {
-                showImportFlowVersionDialog();
-            });
-
             // initialize the import flow version table
             initImportFlowVersionTable();
             initLocalChangesTable($('#revert-local-changes-table'), $('#revert-local-changes-filter'), $('#displayed-revert-local-changes-entries'), $('#total-revert-local-changes-entries'));
             initLocalChangesTable($('#show-local-changes-table'), $('#show-local-changes-filter'), $('#displayed-show-local-changes-entries'), $('#total-show-local-changes-entries'));
+        },
+
+        /**
+         * Shows the import flow dialog.
+         */
+        showImportFlowDialog: function () {
+            showImportFlowVersionDialog();
         },
 
         /**
