@@ -18,11 +18,12 @@ package org.apache.nifi.excel;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.Collections;
+import java.util.List;
 
 public class ExcelRecordReaderConfiguration {
     private RecordSchema schema;
-    private AtomicReferenceArray<String> requiredSheets;
+    private List<String> requiredSheets;
     private int firstRow;
     private String dateFormat;
     private String timeFormat;
@@ -35,7 +36,7 @@ public class ExcelRecordReaderConfiguration {
         return schema;
     }
 
-    public AtomicReferenceArray<String> getRequiredSheets() {
+    public List<String> getRequiredSheets() {
         return requiredSheets;
     }
 
@@ -57,7 +58,7 @@ public class ExcelRecordReaderConfiguration {
 
     public static final class Builder {
         private RecordSchema schema;
-        private AtomicReferenceArray<String> requiredSheets;
+        private List<String> requiredSheets;
         private int firstRow;
         private String dateFormat;
         private String timeFormat;
@@ -68,7 +69,7 @@ public class ExcelRecordReaderConfiguration {
             return this;
         }
 
-        public Builder withRequiredSheets(AtomicReferenceArray<String> requiredSheets) {
+        public Builder withRequiredSheets(List<String> requiredSheets) {
             this.requiredSheets = requiredSheets;
             return this;
         }
@@ -98,7 +99,8 @@ public class ExcelRecordReaderConfiguration {
             excelRecordReaderConfiguration.schema = this.schema;
             excelRecordReaderConfiguration.timeFormat = this.timeFormat;
             excelRecordReaderConfiguration.timestampFormat = this.timestampFormat;
-            excelRecordReaderConfiguration.requiredSheets = this.requiredSheets;
+            excelRecordReaderConfiguration.requiredSheets = this.requiredSheets != null && !this.requiredSheets.isEmpty()
+                    ? this.requiredSheets : Collections.emptyList();
             excelRecordReaderConfiguration.dateFormat = this.dateFormat;
             excelRecordReaderConfiguration.firstRow = this.firstRow;
             return excelRecordReaderConfiguration;

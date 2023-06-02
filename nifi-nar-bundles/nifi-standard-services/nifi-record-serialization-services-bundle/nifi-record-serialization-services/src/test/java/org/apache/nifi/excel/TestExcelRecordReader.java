@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -172,8 +171,7 @@ public class TestExcelRecordReader {
     @Test
     public void testSelectSpecificSheet() throws IOException, MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
-        AtomicReferenceArray<String> requiredSheets = new AtomicReferenceArray<>(1);
-        requiredSheets.set(0, "TestSheetA");
+        List<String> requiredSheets = Collections.singletonList("TestSheetA");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withFirstRow(1)
@@ -195,8 +193,7 @@ public class TestExcelRecordReader {
     @Test
     public void testSelectSpecificSheetNotFound() throws IOException, MalformedRecordException {
         RecordSchema schema = getSpecificSheetSchema();
-        AtomicReferenceArray<String> requiredSheets = new AtomicReferenceArray<>(1);
-        requiredSheets.set(0, "notExistingSheet");
+        List<String> requiredSheets = Collections.singletonList("notExistingSheet");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
                 .withSchema(schema)
                 .withFirstRow(1)
@@ -207,7 +204,7 @@ public class TestExcelRecordReader {
         MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> getRecords(recordReader, false, false));
         assertTrue(mre.getMessage().startsWith("Error while getting next record"));
         assertInstanceOf(ProcessException.class, mre.getCause());
-        assertTrue(mre.getCause().getMessage().startsWith("The following required Excel sheet(s) were not found"));
+        assertTrue(mre.getCause().getMessage().startsWith("Required Excel Sheets not found"));
     }
 
     @Test

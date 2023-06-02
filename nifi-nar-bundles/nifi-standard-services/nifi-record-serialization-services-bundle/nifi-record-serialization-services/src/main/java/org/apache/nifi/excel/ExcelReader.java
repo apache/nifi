@@ -47,23 +47,20 @@ import org.apache.poi.ss.usermodel.Row;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.stream.IntStream;
 
 @Tags({"excel", "spreadsheet", "xlsx", "parse", "record", "row", "reader", "values", "cell"})
 @CapabilityDescription("Parses a Microsoft Excel document returning each row in each sheet as a separate record. "
-        + "This reader allows for inferring a schema either based on the first line of an Excel sheet if a 'header line' is "
-        + "present or from all the required sheets, or providing an explicit schema "
-        + "for interpreting the values. See Controller Service's Usage for further documentation. "
+        + "This reader allows for inferring a schema from all the required sheets "
+        + "or providing an explicit schema for interpreting the values."
+        + "See Controller Service's Usage for further documentation. "
         + "This reader is currently only capable of processing .xlsx "
         + "(XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
-    private static final AllowableValue HEADER_DERIVED = new AllowableValue("excel-header-derived", "Use Fields From Header",
-            "The first chosen row of the Excel sheet is a header row that contains the columns representative of all the rows " +
-                    "in the required sheets. The schema will be derived by using those columns in the header.");
     public static final PropertyDescriptor REQUIRED_SHEETS = new PropertyDescriptor
             .Builder().name("Required Sheets")
             .displayName("Required Sheets")
@@ -86,7 +83,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    private AtomicReferenceArray<String> requiredSheets;
+    private volatile List<String> requiredSheets;
     private volatile int firstRow;
     private volatile String dateFormat;
     private volatile String timeFormat;
@@ -95,10 +92,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.firstRow = getStartingRow(context);
-        String[] rawRequiredSheets = getRawRequiredSheets(context);
-        this.requiredSheets = new AtomicReferenceArray<>(rawRequiredSheets.length);
-        IntStream.range(0, rawRequiredSheets.length)
-                .forEach(index -> this.requiredSheets.set(index, rawRequiredSheets[index]));
+        this.requiredSheets = getRequiredSheets(context);
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
@@ -126,8 +120,8 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(REQUIRED_SHEETS);
         properties.add(STARTING_ROW);
+        properties.add(REQUIRED_SHEETS);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -137,9 +131,7 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String allowableValue, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        if (HEADER_DERIVED.getValue().equals(allowableValue)) {
-            return new ExcelHeaderSchemaStrategy(context, getLogger());
-        } else if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
+        if (SchemaInferenceUtil.INFER_SCHEMA.getValue().equals(allowableValue)) {
             final RecordSourceFactory<Row> sourceFactory = (variables, in) -> new ExcelRecordSource(in, context, variables, getLogger());
             final SchemaInferenceEngine<Row> inference = new ExcelSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
             return new InferSchemaAccessStrategy<>(sourceFactory, inference, getLogger());
@@ -151,7 +143,6 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
-        allowableValues.add(HEADER_DERIVED);
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
@@ -170,19 +161,19 @@ public class ExcelReader extends SchemaRegistryService implements RecordReaderFa
         return rawStartingRow > 0 ? rawStartingRow - 1 : 0;
     }
 
-    private String[] getRawRequiredSheets(final PropertyContext context) {
+    private List<String> getRequiredSheets(final PropertyContext context) {
         final String requiredSheetsDelimited = context.getProperty(REQUIRED_SHEETS).getValue();
-        return getRawRequiredSheets(requiredSheetsDelimited);
+        return getRequiredSheets(requiredSheetsDelimited);
     }
 
-    static String[] getRawRequiredSheets(String requiredSheetsDelimited) {
+    static List<String> getRequiredSheets(String requiredSheetsDelimited) {
         if (requiredSheetsDelimited != null) {
             String[] delimitedSheets = StringUtils.split(requiredSheetsDelimited, ",");
             if (delimitedSheets != null) {
-                return delimitedSheets;
+                return Arrays.asList(delimitedSheets);
             }
         }
 
-        return new String[0];
+        return Collections.emptyList();
     }
 }

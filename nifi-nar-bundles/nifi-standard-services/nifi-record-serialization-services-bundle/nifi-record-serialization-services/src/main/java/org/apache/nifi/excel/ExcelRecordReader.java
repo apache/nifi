@@ -32,7 +32,6 @@ import org.apache.poi.ss.usermodel.Row;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,6 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class ExcelRecordReader implements RecordReader {
     private final RowIterator rowIterator;
     private final RecordSchema schema;
-    private final List<String> requiredSheets;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
@@ -54,11 +52,6 @@ public class ExcelRecordReader implements RecordReader {
 
     public ExcelRecordReader(ExcelRecordReaderConfiguration configuration, InputStream inputStream, ComponentLog logger) throws MalformedRecordException {
         this.schema = configuration.getSchema();
-        this.requiredSheets = new ArrayList<>();
-        if (configuration.getRequiredSheets() != null && configuration.getRequiredSheets().length() > 0) {
-            IntStream.range(0, configuration.getRequiredSheets().length())
-                    .forEach(index -> this.requiredSheets.add(configuration.getRequiredSheets().get(index)));
-        }
 
         if (isEmpty(configuration.getDateFormat())) {
             this.dateFormat = null;
@@ -85,7 +78,7 @@ public class ExcelRecordReader implements RecordReader {
         }
 
         try {
-            this.rowIterator = new RowIterator(inputStream, requiredSheets, configuration.getFirstRow(), logger);
+            this.rowIterator = new RowIterator(inputStream, configuration.getRequiredSheets(), configuration.getFirstRow(), logger);
         } catch (RuntimeException e) {
             throw new MalformedRecordException("Error occurred while processing record file", e);
         }

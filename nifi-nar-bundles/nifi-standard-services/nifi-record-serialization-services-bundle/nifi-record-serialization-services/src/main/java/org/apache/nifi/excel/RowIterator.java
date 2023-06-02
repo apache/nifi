@@ -61,7 +61,7 @@ public class RowIterator implements Iterator<Row>, Closeable {
         if(!next) {
             String requiredSheetsNotFoundMessage = getRequiredSheetsNotFoundMessage();
             if (!requiredSheetsNotFoundMessage.isEmpty()) {
-                throw new ProcessException("The following required Excel sheet(s) were not found " + requiredSheetsNotFoundMessage);
+                throw new ProcessException("Required Excel Sheets not found " + requiredSheetsNotFoundMessage);
             }
         }
         return next;
