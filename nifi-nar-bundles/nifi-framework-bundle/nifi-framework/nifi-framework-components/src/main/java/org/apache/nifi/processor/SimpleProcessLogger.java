@@ -91,8 +91,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 logger.warn(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.WARN, componentMessage, arguments);
             } else {
-                final Object[] argumentsWithThrowable = insertThrowable(arguments, t);
-                logger.warn(componentMessage, setFormattedThrowable(argumentsWithThrowable, t));
+                logger.warn(componentMessage, addThrowable(arguments, t));
                 logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
@@ -159,8 +158,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 logger.trace(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.TRACE, componentMessage, arguments);
             } else {
-                final Object[] argumentsWithThrowable = insertThrowable(arguments, t);
-                logger.trace(componentMessage, setFormattedThrowable(argumentsWithThrowable, t));
+                logger.trace(componentMessage, addThrowable(arguments, t));
                 logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
@@ -247,8 +245,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 logger.info(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.INFO, componentMessage, arguments);
             } else {
-                final Object[] argumentsWithThrowable = insertThrowable(arguments, t);
-                logger.info(componentMessage, setFormattedThrowable(argumentsWithThrowable, t));
+                logger.info(componentMessage, addThrowable(arguments, t));
                 logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
@@ -315,8 +312,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 logger.error(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
             } else {
-                final Object[] argumentsWithThrowable = insertThrowable(arguments, t);
-                logger.error(componentMessage, setFormattedThrowable(argumentsWithThrowable, t));
+                logger.error(componentMessage, addThrowable(arguments, t));
                 logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
@@ -373,8 +369,7 @@ public class SimpleProcessLogger implements ComponentLog {
                 logger.debug(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, arguments);
             } else {
-                final Object[] argumentsWithThrowable = insertThrowable(arguments, t);
-                logger.debug(componentMessage, setFormattedThrowable(argumentsWithThrowable, t));
+                logger.debug(componentMessage, addThrowable(arguments, t));
                 logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
@@ -538,8 +533,8 @@ public class SimpleProcessLogger implements ComponentLog {
         return ArrayUtils.insert(0, originalArgs, component);
     }
 
-    private Object[] insertThrowable(final Object[] originalArgs, final Throwable throwable) {
-        return ArrayUtils.insert(originalArgs.length, originalArgs, throwable);
+    private Object[] addThrowable(final Object[] originalArgs, final Throwable throwable) {
+        return ArrayUtils.add(originalArgs, throwable);
     }
 
     private Object[] addCauses(final Object[] arguments, final Throwable throwable) {
