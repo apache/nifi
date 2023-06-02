@@ -58,7 +58,7 @@ import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.net.Proxy;
 import java.net.URI;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -398,7 +398,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient, U extends AwsSyn
             if (sslContextService != null) {
                 final TrustManager[] trustManagers = new TrustManager[] { sslContextService.createTrustManager() };
                 final TlsKeyManagersProvider keyManagersProvider = FileStoreTlsKeyManagersProvider
-                        .create(Path.of(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
+                        .create(Paths.get(sslContextService.getKeyStoreFile()), sslContextService.getKeyStoreType(), sslContextService.getKeyStorePassword());
                 builder.tlsTrustManagersProvider(() -> trustManagers);
                 builder.tlsKeyManagersProvider(keyManagersProvider);
             }
