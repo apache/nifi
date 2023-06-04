@@ -34,7 +34,7 @@
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>
                 <artifactId>download-maven-plugin</artifactId>
-                <version>1.7.0</version>
+                <version>1.6.8</version>
                 <executions>
                     <execution>
                         <id>download-py4j</id>
