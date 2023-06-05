@@ -23,6 +23,7 @@
     <artifactId>nifi-property-protection-gcp</artifactId>
     <properties>
         <gcp.sdk.version>26.15.0</gcp.sdk.version>
+        <guava.version>32.0.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -49,6 +50,12 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <!-- Override Guava 31.1 from google-cloud-kms -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>

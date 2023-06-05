@@ -27,6 +27,7 @@
 
     <properties>
         <atlas.version>2.3.0</atlas.version>
+        <guava.version>32.0.0-jre</guava.version>
     </properties>
 
     <modules>
@@ -115,6 +116,12 @@
                         <artifactId>slf4j-reload4j</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!-- Override Guava 25.1 -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

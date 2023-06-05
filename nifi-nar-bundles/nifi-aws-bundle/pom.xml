@@ -39,4 +39,15 @@
         <module>nifi-aws-parameter-value-providers</module>
         <module>nifi-aws-parameter-providers</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override Guava 31.0.1 from amazon-kinesis-client -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>32.0.0-jre</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

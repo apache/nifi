@@ -27,7 +27,7 @@
     <properties>
         <gremlin.version>3.6.4</gremlin.version>
         <janusgraph.version>0.6.3</janusgraph.version>
-        <guava.version>31.1-jre</guava.version>
+        <guava.version>32.0.0-jre</guava.version>
     </properties>
     <dependencyManagement>
         <dependencies>
