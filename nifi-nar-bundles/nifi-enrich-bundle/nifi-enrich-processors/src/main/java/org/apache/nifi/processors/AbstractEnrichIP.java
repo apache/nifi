@@ -30,9 +30,12 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
+import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,6 +43,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class AbstractEnrichIP extends AbstractProcessor {
 
@@ -77,6 +83,13 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;
     final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
+    private volatile SynchronousFileWatcher watcher;
+
+    private final ReadWriteLock dbReadWriteLock = new ReentrantReadWriteLock();
+
+    private volatile File dbFile;
+
+    private volatile boolean needsReload = true;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -90,7 +103,12 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final File dbFile = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().asResource().asFile();
+        dbFile = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().asResource().asFile();
+        this.watcher = new SynchronousFileWatcher(Paths.get(dbFile.toURI()), new LastModifiedMonitor(), 30000L);
+        loadDatabaseFile();
+    }
+
+    protected void loadDatabaseFile() throws IOException {
         final StopWatch stopWatch = new StopWatch(true);
         final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();
         stopWatch.stop();
@@ -119,4 +137,23 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         this.propertyDescriptors = Collections.unmodifiableList(props);
     }
 
+    protected SynchronousFileWatcher getWatcher() {
+        return watcher;
+    }
+
+    protected Lock getDbWriteLock() {
+        return dbReadWriteLock.writeLock();
+    }
+
+    protected Lock getDbReadLock() {
+        return dbReadWriteLock.readLock();
+    }
+
+    protected boolean isNeedsReload() {
+        return needsReload;
+    }
+
+    protected void setNeedsReload(final boolean needsReload) {
+        this.needsReload = needsReload;
+    }
 }
