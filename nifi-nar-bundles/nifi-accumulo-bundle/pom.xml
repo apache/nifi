@@ -20,6 +20,7 @@
 
     <properties>
         <accumulo.version>2.1.0</accumulo.version>
+        <guava.version>32.0.0-jre</guava.version>
     </properties>
 
     <artifactId>nifi-accumulo-bundle</artifactId>
@@ -84,6 +85,12 @@
                         <artifactId>log4j-1.2-api</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!-- Override Guava 31.1 -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
