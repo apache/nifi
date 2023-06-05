@@ -20,6 +20,7 @@ import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.core.internal.database.DatabaseType;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType;
 import org.flywaydb.core.internal.jdbc.JdbcUtils;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
@@ -52,6 +53,9 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
     private static final String LOCATION_POSTGRES = "classpath:db/migration/postgres";
     private static final String[] LOCATIONS_POSTGRES = {LOCATION_COMMON, LOCATION_POSTGRES};
 
+    private static final String LOCATION_ORACLE = "classpath:db/migration/oracle";
+    private static final String[] LOCATIONS_ORACLE = {LOCATION_COMMON, LOCATION_ORACLE};
+
     private static final String LEGACY_FLYWAY_SCHEMA_TABLE = "schema_version";
 
     @Override
@@ -59,16 +63,9 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
         final DatabaseType databaseType = getDatabaseType(configuration.getDataSource());
         LOGGER.info("Determined database type is {}", databaseType.getName());
 
-        if (databaseType instanceof MySQLDatabaseType || databaseType instanceof MariaDBDatabaseType) {
-            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_MYSQL));
-            configuration.locations(LOCATIONS_MYSQL);
-        } else if (databaseType instanceof PostgreSQLDatabaseType) {
-            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_POSTGRES));
-            configuration.locations(LOCATIONS_POSTGRES);
-        } else {
-            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_DEFAULT));
-            configuration.locations(LOCATIONS_DEFAULT);
-        }
+        final String[] locations = getDatabaseTypeLocations(databaseType);
+        LOGGER.info("Setting migration locations to {}", Arrays.asList(locations));
+        configuration.locations(locations);
 
         // At some point Flyway changed their default table name: https://github.com/flyway/flyway/issues/1848
         // So we need to determine if we are upgrading from an existing nifi registry that is using the older
@@ -121,5 +118,18 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }
+    }
+
+    private String[] getDatabaseTypeLocations(final DatabaseType databaseType) {
+        if (databaseType instanceof MySQLDatabaseType || databaseType instanceof MariaDBDatabaseType) {
+            return LOCATIONS_MYSQL;
+        }
+        if (databaseType instanceof PostgreSQLDatabaseType) {
+            return LOCATIONS_POSTGRES;
+        }
+        if (databaseType instanceof OracleDatabaseType) {
+            return LOCATIONS_ORACLE;
+        }
+        return LOCATIONS_DEFAULT;
     }
 }
