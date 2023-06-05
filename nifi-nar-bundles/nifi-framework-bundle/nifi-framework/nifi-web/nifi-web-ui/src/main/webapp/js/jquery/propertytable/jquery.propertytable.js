@@ -1727,7 +1727,7 @@
                                                     const paramReference = getExistingParametersReferenced(propertyValue);
                                                     // if parameter references exist, loop through all and interpolate the value in the propertyValue string
                                                     if (paramReference.length > 0) {
-                                                        paramReference.forEach((param) => {
+                                                        paramReference.forEach(function (param) {
                                                             // handle null values by replacing with an empty string instead
                                                             propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
                                                         });
@@ -1968,7 +1968,7 @@
                                         const paramReference = getExistingParametersReferenced(propertyValue);
                                         // if parameter references exist, loop through all and interpolate the value in the propertyValue string
                                         if (paramReference.length > 0) {
-                                            paramReference.forEach((param) => {
+                                            paramReference.forEach(function (param) {
                                                 // handle null values by replacing with an empty string instead
                                                 propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
                                             });
