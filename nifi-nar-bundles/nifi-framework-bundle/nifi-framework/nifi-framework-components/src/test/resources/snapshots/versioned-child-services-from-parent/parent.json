@@ -1,0 +1,260 @@
+{
+  "externalControllerServices": {},
+  "flowContents": {
+    "comments": "",
+    "componentType": "PROCESS_GROUP",
+    "connections": [],
+    "controllerServices": [
+      {
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-record-serialization-services-nar",
+          "group": "org.apache.nifi",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "CONTROLLER_SERVICE",
+        "controllerServiceApis": [
+          {
+            "bundle": {
+              "artifact": "nifi-standard-services-api-nar",
+              "group": "org.apache.nifi",
+              "version": "2.0.0-SNAPSHOT"
+            },
+            "type": "org.apache.nifi.serialization.RecordSetWriterFactory"
+          }
+        ],
+        "groupIdentifier": "d4386a93-8013-3a90-a2cc-4cb72322f246",
+        "identifier": "faddf543-c1f4-3c9c-ab99-dc17a7922e2b",
+        "instanceIdentifier": "a44aed77-0187-1000-ce63-3170a105bc81",
+        "name": "MyAvroRecordSetWriter",
+        "properties": {
+          "compression-format": "NONE",
+          "Schema Write Strategy": "avro-embedded",
+          "schema-name": "${schema.name}",
+          "cache-size": "1000",
+          "schema-access-strategy": "inherit-record-schema",
+          "schema-protocol-version": "1",
+          "encoder-pool-size": "32",
+          "schema-text": "${avro.schema}"
+        },
+        "propertyDescriptors": {
+          "compression-format": {
+            "displayName": "Compression Format",
+            "identifiesControllerService": false,
+            "name": "compression-format",
+            "sensitive": false
+          },
+          "Schema Write Strategy": {
+            "displayName": "Schema Write Strategy",
+            "identifiesControllerService": false,
+            "name": "Schema Write Strategy",
+            "sensitive": false
+          },
+          "schema-branch": {
+            "displayName": "Schema Branch",
+            "identifiesControllerService": false,
+            "name": "schema-branch",
+            "sensitive": false
+          },
+          "schema-name": {
+            "displayName": "Schema Name",
+            "identifiesControllerService": false,
+            "name": "schema-name",
+            "sensitive": false
+          },
+          "cache-size": {
+            "displayName": "Cache Size",
+            "identifiesControllerService": false,
+            "name": "cache-size",
+            "sensitive": false
+          },
+          "schema-registry": {
+            "displayName": "Schema Registry",
+            "identifiesControllerService": true,
+            "name": "schema-registry",
+            "sensitive": false
+          },
+          "schema-access-strategy": {
+            "displayName": "Schema Access Strategy",
+            "identifiesControllerService": false,
+            "name": "schema-access-strategy",
+            "sensitive": false
+          },
+          "schema-protocol-version": {
+            "displayName": "Schema Protocol Version",
+            "identifiesControllerService": false,
+            "name": "schema-protocol-version",
+            "sensitive": false
+          },
+          "schema-version": {
+            "displayName": "Schema Version",
+            "identifiesControllerService": false,
+            "name": "schema-version",
+            "sensitive": false
+          },
+          "encoder-pool-size": {
+            "displayName": "Encoder Pool Size",
+            "identifiesControllerService": false,
+            "name": "encoder-pool-size",
+            "sensitive": false
+          },
+          "schema-cache": {
+            "displayName": "Schema Cache",
+            "identifiesControllerService": true,
+            "name": "schema-cache",
+            "sensitive": false
+          },
+          "schema-text": {
+            "displayName": "Schema Text",
+            "identifiesControllerService": false,
+            "name": "schema-text",
+            "sensitive": false
+          }
+        },
+        "scheduledState": "DISABLED",
+        "type": "org.apache.nifi.avro.AvroRecordSetWriter"
+      },
+      {
+        "bulletinLevel": "WARN",
+        "bundle": {
+          "artifact": "nifi-record-serialization-services-nar",
+          "group": "org.apache.nifi",
+          "version": "2.0.0-SNAPSHOT"
+        },
+        "comments": "",
+        "componentType": "CONTROLLER_SERVICE",
+        "controllerServiceApis": [
+          {
+            "bundle": {
+              "artifact": "nifi-standard-services-api-nar",
+              "group": "org.apache.nifi",
+              "version": "2.0.0-SNAPSHOT"
+            },
+            "type": "org.apache.nifi.serialization.RecordReaderFactory"
+          }
+        ],
+        "groupIdentifier": "d4386a93-8013-3a90-a2cc-4cb72322f246",
+        "identifier": "317bbb66-135a-398a-8101-976d14ae0882",
+        "instanceIdentifier": "a44ae24d-0187-1000-cf90-4d00cd5b71dc",
+        "name": "MyAvroReader",
+        "properties": {
+          "schema-name": "${schema.name}",
+          "cache-size": "1000",
+          "schema-access-strategy": "embedded-avro-schema",
+          "schema-text": "${avro.schema}"
+        },
+        "propertyDescriptors": {
+          "schema-branch": {
+            "displayName": "Schema Branch",
+            "identifiesControllerService": false,
+            "name": "schema-branch",
+            "sensitive": false
+          },
+          "schema-name": {
+            "displayName": "Schema Name",
+            "identifiesControllerService": false,
+            "name": "schema-name",
+            "sensitive": false
+          },
+          "cache-size": {
+            "displayName": "Cache Size",
+            "identifiesControllerService": false,
+            "name": "cache-size",
+            "sensitive": false
+          },
+          "schema-registry": {
+            "displayName": "Schema Registry",
+            "identifiesControllerService": true,
+            "name": "schema-registry",
+            "sensitive": false
+          },
+          "schema-access-strategy": {
+            "displayName": "Schema Access Strategy",
+            "identifiesControllerService": false,
+            "name": "schema-access-strategy",
+            "sensitive": false
+          },
+          "schema-version": {
+            "displayName": "Schema Version",
+            "identifiesControllerService": false,
+            "name": "schema-version",
+            "sensitive": false
+          },
+          "schema-text": {
+            "displayName": "Schema Text",
+            "identifiesControllerService": false,
+            "name": "schema-text",
+            "sensitive": false
+          }
+        },
+        "scheduledState": "DISABLED",
+        "type": "org.apache.nifi.avro.AvroReader"
+      }
+    ],
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultFlowFileExpiration": "0 sec",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "funnels": [],
+    "identifier": "d4386a93-8013-3a90-a2cc-4cb72322f246",
+    "inputPorts": [],
+    "instanceIdentifier": "a44ac702-0187-1000-a1cd-1c10c796f849",
+    "labels": [],
+    "name": "Parent",
+    "outputPorts": [],
+    "position": {
+      "x": 348.0,
+      "y": 161.0
+    },
+    "processGroups": [
+      {
+        "comments": "",
+        "componentType": "PROCESS_GROUP",
+        "connections": [],
+        "controllerServices": [],
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultFlowFileExpiration": "0 sec",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "funnels": [],
+        "groupIdentifier": "d4386a93-8013-3a90-a2cc-4cb72322f246",
+        "identifier": "c1976be6-e5d7-31b5-aaa8-64a44810c9d0",
+        "inputPorts": [],
+        "instanceIdentifier": "a44b3017-0187-1000-6f44-3881b5ac4217",
+        "labels": [],
+        "name": "Child",
+        "outputPorts": [],
+        "position": {
+          "x": 433.0,
+          "y": 266.0
+        },
+        "processGroups": [],
+        "processors": [],
+        "remoteProcessGroups": [],
+        "variables": {},
+        "versionedFlowCoordinates": {
+          "bucketId": "6e767fa6-5113-46f0-9b7e-8024b75a40c1",
+          "flowId": "2192834e-60d7-413b-9ea9-dc4187824a41",
+          "registryUrl": "http://localhost:18080",
+          "storageLocation": "http://localhost:18080/nifi-registry-api/buckets/6e767fa6-5113-46f0-9b7e-8024b75a40c1/flows/2192834e-60d7-413b-9ea9-dc4187824a41/versions/2",
+          "version": 2
+        }
+      }
+    ],
+    "processors": [],
+    "remoteProcessGroups": [],
+    "variables": {}
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterContexts": {},
+  "parameterProviders": {},
+  "snapshotMetadata": {
+    "author": "anonymous",
+    "comments": "",
+    "timestamp": 1682088790173,
+    "version": 2
+  }
+}

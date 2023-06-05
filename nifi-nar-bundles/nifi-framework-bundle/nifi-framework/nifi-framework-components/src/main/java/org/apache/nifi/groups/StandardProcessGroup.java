@@ -87,6 +87,7 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistryClientContextFactory;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
@@ -3864,8 +3865,9 @@ public final class StandardProcessGroup implements ProcessGroup {
                     throw new FlowRegistryException(flowRegistry + " cannot currently be used to synchronize with Flow Registry because it is currently validating");
                 }
 
-                final RegisteredFlowSnapshot registrySnapshot = flowRegistry.getFlowContents(
+                final FlowSnapshotContainer registrySnapshotContainer = flowRegistry.getFlowContents(
                         FlowRegistryClientContextFactory.getAnonymousContext(), vci.getBucketIdentifier(), vci.getFlowIdentifier(), vci.getVersion(), false);
+                final RegisteredFlowSnapshot registrySnapshot = registrySnapshotContainer.getFlowSnapshot();
                 final VersionedProcessGroup registryFlow = registrySnapshot.getFlowContents();
                 vci.setFlowSnapshot(registryFlow);
             } catch (final IOException | FlowRegistryException e) {

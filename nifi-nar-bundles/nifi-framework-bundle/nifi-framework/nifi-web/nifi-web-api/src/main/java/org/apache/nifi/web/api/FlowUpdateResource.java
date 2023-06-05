@@ -31,6 +31,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
+import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -135,12 +136,12 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
      * @param allowDirtyFlowUpdate         allow updating a flow with versioned changes present
      * @param requestType                  the type of request ("replace-requests" or "update-requests")
      * @param replicateUriPath             the uri path to use for replicating the request (differs from initial request uri)
-     * @param flowSnapshotSupplier         provides access to the flow snapshot to be used for replacement
+     * @param flowSnapshotContainerSupplier         provides access to the flow snapshot to be used for replacement
      * @return response containing status of the async request
      */
     protected Response initiateFlowUpdate(final String groupId, final T requestEntity, final boolean allowDirtyFlowUpdate,
                                           final String requestType, final String replicateUriPath,
-                                          final Supplier<RegisteredFlowSnapshot> flowSnapshotSupplier) {
+                                          final Supplier<FlowSnapshotContainer> flowSnapshotContainerSupplier) {
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getProcessGroupRevision();
         if (revisionDto == null) {
@@ -185,14 +186,15 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // 13. Re-Start all Processors, Funnels, Ports that are affected and not removed.
 
         // Step 0: Obtain the versioned flow snapshot to use for the update
-        final RegisteredFlowSnapshot flowSnapshot = flowSnapshotSupplier.get();
+        final FlowSnapshotContainer flowSnapshotContainer = flowSnapshotContainerSupplier.get();
+        final RegisteredFlowSnapshot flowSnapshot = flowSnapshotContainer.getFlowSnapshot();
 
         // The new flow may not contain the same versions of components in existing flow. As a result, we need to update
         // the flow snapshot to contain compatible bundles.
         serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
         // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(flowSnapshot, groupId, user);
+        serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, user);
 
         // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
         serviceFacade.resolveParameterProviders(flowSnapshot, user);
@@ -379,7 +381,14 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // Get the Original Flow Snapshot in case we fail to update and need to rollback
         // This only applies to flows that were under version control, update may be called without version control
         final VersionControlInformationEntity vciEntity = serviceFacade.getVersionControlInformation(groupId);
-        final RegisteredFlowSnapshot originalFlowSnapshot = vciEntity == null ? null : serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
+
+        final RegisteredFlowSnapshot originalFlowSnapshot;
+        if (vciEntity == null) {
+            originalFlowSnapshot = null;
+        } else {
+            final FlowSnapshotContainer originalFlowSnapshotContainer = serviceFacade.getVersionedFlowSnapshot(vciEntity.getVersionControlInformation(), true);
+            originalFlowSnapshot = originalFlowSnapshotContainer.getFlowSnapshot();
+        }
 
         try {
             if (replicateRequest) {

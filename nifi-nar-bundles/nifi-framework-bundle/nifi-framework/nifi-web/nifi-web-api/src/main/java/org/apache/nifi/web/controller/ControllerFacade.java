@@ -54,6 +54,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceResolver;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -188,6 +189,10 @@ public class ControllerFacade implements Authorizable {
 
     public ControllerServiceProvider getControllerServiceProvider() {
         return flowController.getControllerServiceProvider();
+    }
+
+    public ControllerServiceResolver getControllerServiceResolver() {
+        return flowController.getControllerServiceResolver();
     }
 
     public ExtensionManager getExtensionManager() {
