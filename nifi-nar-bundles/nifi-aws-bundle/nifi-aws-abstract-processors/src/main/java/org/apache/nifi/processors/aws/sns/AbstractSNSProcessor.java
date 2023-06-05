@@ -21,14 +21,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.sns.AmazonSNSClient;
+import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.SnsClientBuilder;
 
-public abstract class AbstractSNSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonSNSClient> {
+public abstract class AbstractSNSProcessor extends AbstractAwsProcessor<SnsClient, SnsClientBuilder> {
 
     protected static final AllowableValue ARN_TYPE_TOPIC
             = new AllowableValue("Topic ARN", "Topic ARN", "The ARN is the name of a topic");
@@ -52,25 +50,9 @@ public abstract class AbstractSNSProcessor extends AbstractAWSCredentialsProvide
             .defaultValue(ARN_TYPE_TOPIC.getValue())
             .build();
 
-    /**
-     * Create client using aws credentials provider. This is the preferred way for creating clients
-     */
+
     @Override
-    protected AmazonSNSClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials provider");
-
-        return new AmazonSNSClient(credentialsProvider, config);
-    }
-
-    /**
-     * Create client using AWSCredentials
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Override
-    protected AmazonSNSClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials");
-
-        return new AmazonSNSClient(credentials, config);
+    protected SnsClientBuilder createClientBuilder(final ProcessContext context) {
+        return SnsClient.builder();
     }
 }
