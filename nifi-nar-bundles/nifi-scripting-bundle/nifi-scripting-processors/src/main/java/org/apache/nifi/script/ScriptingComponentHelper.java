@@ -39,8 +39,8 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -59,7 +59,8 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 public class ScriptingComponentHelper {
     private static final String UNKNOWN_VERSION = "UNKNOWN";
 
-    private static final List<String> DEPRECATED_LANGUAGE_NAMES = Collections.singletonList("ECMAScript");
+    private static final List<String> DEPRECATED_LANGUAGE_NAMES =
+            Arrays.asList("ECMAScript", "lua", "ruby");
 
     private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(ScriptingComponentHelper.class);
 
