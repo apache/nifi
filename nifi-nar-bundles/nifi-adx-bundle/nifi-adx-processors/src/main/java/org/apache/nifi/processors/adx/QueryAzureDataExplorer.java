@@ -35,6 +35,7 @@ import org.apache.nifi.processors.adx.enums.AzureAdxSourceProcessorParameter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -146,9 +147,15 @@ public class QueryAzureDataExplorer extends AbstractProcessor {
             session.transfer(outgoingFlowFile, FAILED);
         }else {
             // success scenario
-            session.importFrom(kustoQueryResponse.getAdxQueryResponseStream(), outgoingFlowFile);
-            outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
-            session.transfer(outgoingFlowFile, SUCCESS);
+            try (final InputStream responseStream = kustoQueryResponse.getResponseStream()){
+                session.importFrom(responseStream, outgoingFlowFile);
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_EXECUTED_QUERY, String.valueOf(adxQuery));
+                session.transfer(outgoingFlowFile, SUCCESS);
+            } catch (IOException e) {
+                getLogger().error("Failed to fetch results: {}", e);
+                outgoingFlowFile = session.putAttribute(outgoingFlowFile, ADX_QUERY_ERROR_MESSAGE, e.getMessage());
+                session.transfer(outgoingFlowFile, FAILED);
+            }
         }
     }
 

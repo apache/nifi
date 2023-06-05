@@ -20,28 +20,28 @@ import java.io.InputStream;
 
 public class KustoQueryResponse {
 
-    private InputStream adxQueryResponseStream;
-    private boolean isError;
+    private InputStream responseStream;
+    private boolean error;
     private String errorMessage;
 
     public KustoQueryResponse(boolean isError, String errorMessage) {
-        this.adxQueryResponseStream = null;
-        this.isError = isError;
+        this.responseStream = null;
+        this.error = isError;
         this.errorMessage = errorMessage;
     }
 
     public KustoQueryResponse(InputStream inputStream) {
-        this.adxQueryResponseStream = inputStream;
-        this.isError = false;
+        this.responseStream = inputStream;
+        this.error = false;
         this.errorMessage = null;
     }
 
-    public InputStream getAdxQueryResponseStream() {
-        return adxQueryResponseStream;
+    public InputStream getResponseStream() {
+        return responseStream;
     }
 
     public boolean isError() {
-        return isError;
+        return error;
     }
 
     public String getErrorMessage() {
