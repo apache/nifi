@@ -24,6 +24,7 @@
     <description>Tooling to make tls configuration easier</description>
 
     <properties>
+        <guava.version>32.0.0-jre</guava.version>
         <jline.version>3.23.0</jline.version>
     </properties>
 
@@ -79,6 +80,12 @@
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Override Guava 31.1 through nifi-framework-core -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

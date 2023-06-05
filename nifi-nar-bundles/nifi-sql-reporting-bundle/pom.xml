@@ -21,6 +21,9 @@
     </parent>
     <artifactId>nifi-sql-reporting-bundle</artifactId>
     <packaging>pom</packaging>
+    <properties>
+        <guava.version>32.0.0-jre</guava.version>
+    </properties>
     <modules>
         <module>nifi-sql-reporting-tasks</module>
         <module>nifi-sql-reporting-nar</module>
@@ -37,6 +40,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>1.23.0</version>
+            </dependency>
+            <!-- Override Guava 31.1. from calcite-core -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
