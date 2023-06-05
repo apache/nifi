@@ -20,7 +20,6 @@
 
     <properties>
         <accumulo.version>2.0.1</accumulo.version>
-        <accumulo.version>2.1.0</accumulo.version>
         <guava.version>32.0.0-jre</guava.version>
     </properties>
 
