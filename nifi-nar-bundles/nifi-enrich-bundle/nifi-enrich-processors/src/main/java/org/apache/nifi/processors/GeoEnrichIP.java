@@ -31,7 +31,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -67,11 +66,6 @@ import java.util.concurrent.locks.Lock;
         @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
         @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
 public class GeoEnrichIP extends AbstractEnrichIP {
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
-        super.onScheduled(context);
-    }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
