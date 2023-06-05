@@ -44,7 +44,7 @@ public interface FlowRegistryClientNode extends ComponentNode {
     RegisteredFlow getFlow(FlowRegistryClientUserContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
     Set<RegisteredFlow> getFlows(FlowRegistryClientUserContext context, String bucketId) throws FlowRegistryException, IOException;
 
-    RegisteredFlowSnapshot getFlowContents(FlowRegistryClientUserContext context, String bucketId, String flowId, int version, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
+    FlowSnapshotContainer getFlowContents(FlowRegistryClientUserContext context, String bucketId, String flowId, int version, boolean fetchRemoteFlows) throws FlowRegistryException, IOException;
     RegisteredFlowSnapshot registerFlowSnapshot(
             FlowRegistryClientUserContext context,
             RegisteredFlow flow,
