@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.AmazonSNSException;
-import com.amazonaws.services.sns.model.PublishRequest;
-import com.amazonaws.services.sns.model.PublishResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -29,6 +25,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.PublishResponse;
+import software.amazon.awssdk.services.sns.model.SnsException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,14 +42,14 @@ public class TestPutSNS {
 
     private TestRunner runner = null;
     private PutSNS mockPutSNS = null;
-    private AmazonSNSClient mockSNSClient = null;
+    private SnsClient mockSNSClient = null;
 
     @BeforeEach
     public void setUp() {
-        mockSNSClient = Mockito.mock(AmazonSNSClient.class);
+        mockSNSClient = Mockito.mock(SnsClient.class);
         mockPutSNS = new PutSNS() {
             @Override
-            protected AmazonSNSClient getClient(ProcessContext context) {
+            protected SnsClient getClient(ProcessContext context) {
                 return mockSNSClient;
             }
         };
@@ -67,18 +67,18 @@ public class TestPutSNS {
         ffAttributes.put("eval.subject", "test-subject");
         runner.enqueue("Test Message Content", ffAttributes);
 
-        PublishResult mockPublishResult = new PublishResult();
-        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenReturn(mockPublishResult);
+        final PublishResponse mockPublishResponse = PublishResponse.builder().build();
+        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenReturn(mockPublishResponse);
 
         runner.run();
 
         ArgumentCaptor<PublishRequest> captureRequest = ArgumentCaptor.forClass(PublishRequest.class);
         Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
         PublishRequest request = captureRequest.getValue();
-        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.getTopicArn());
-        assertEquals("Test Message Content", request.getMessage());
-        assertEquals("test-subject", request.getSubject());
-        assertEquals("hello!", request.getMessageAttributes().get("DynamicProperty").getStringValue());
+        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1", request.topicArn());
+        assertEquals("Test Message Content", request.message());
+        assertEquals("test-subject", request.subject());
+        assertEquals("hello!", request.messageAttributes().get("DynamicProperty").stringValue());
 
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);
@@ -100,20 +100,20 @@ public class TestPutSNS {
         ffAttributes.put("myuuid", "fb0dfed8-092e-40ee-83ce-5b576cd26236");
         runner.enqueue("Test Message Content", ffAttributes);
 
-        PublishResult mockPublishResult = new PublishResult();
-        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenReturn(mockPublishResult);
+        final PublishResponse mockPublishResponse = PublishResponse.builder().build();
+        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenReturn(mockPublishResponse);
 
         runner.run();
 
         ArgumentCaptor<PublishRequest> captureRequest = ArgumentCaptor.forClass(PublishRequest.class);
         Mockito.verify(mockSNSClient, Mockito.times(1)).publish(captureRequest.capture());
         PublishRequest request = captureRequest.getValue();
-        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo", request.getTopicArn());
-        assertEquals("Test Message Content", request.getMessage());
-        assertEquals("test-subject", request.getSubject());
-        assertEquals("test1234", request.getMessageGroupId());
-        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.getMessageDeduplicationId());
-        assertEquals("hello!", request.getMessageAttributes().get("DynamicProperty").getStringValue());
+        assertEquals("arn:aws:sns:us-west-2:123456789012:test-topic-1.fifo", request.topicArn());
+        assertEquals("Test Message Content", request.message());
+        assertEquals("test-subject", request.subject());
+        assertEquals("test1234", request.messageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.messageDeduplicationId());
+        assertEquals("hello!", request.messageAttributes().get("DynamicProperty").stringValue());
 
         runner.assertAllFlowFilesTransferred(PutSNS.REL_SUCCESS, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutSNS.REL_SUCCESS);
@@ -127,7 +127,7 @@ public class TestPutSNS {
         final Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put("filename", "1.txt");
         runner.enqueue("Test Message Content", ffAttributes);
-        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenThrow(new AmazonSNSException("Fail"));
+        Mockito.when(mockSNSClient.publish(Mockito.any(PublishRequest.class))).thenThrow(SnsException.builder().build());
 
         runner.run();
 
