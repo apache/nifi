@@ -50,6 +50,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class TestExcelSchemaInference {
+    private static final String EXPECTED_FIRST_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "0";
+    private static final String EXPECTED_SECOND_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "1";
+    private static final String EXPECTED_THIRD_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "2";
+    private static final String EXPECTED_FOURTH_FIELD_NAME = ExcelSchemaInference.FIELD_NAME_PREFIX + "3";
     private final TimeValueInference timestampInference = new TimeValueInference("MM/dd/yyyy", "HH:mm:ss.SSS", "yyyy/MM/dd/ HH:mm");
 
     @Mock
@@ -69,13 +73,13 @@ public class TestExcelSchemaInference {
                     new ExcelSchemaInference(timestampInference, locale), logger);
             schema = accessStrategy.getSchema(null, inputStream, null);
             final List<String> fieldNames = schema.getFieldNames();
-            assertEquals(Collections.singletonList("0"), fieldNames);
+            assertEquals(Collections.singletonList(EXPECTED_FIRST_FIELD_NAME), fieldNames);
 
             if (Locale.FRENCH.equals(locale)) {
-                assertEquals(RecordFieldType.STRING, schema.getDataType("0").get().getFieldType());
+                assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get().getFieldType());
             } else {
                 assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.FLOAT.getDataType(), RecordFieldType.STRING.getDataType()),
-                        schema.getDataType("0").get());
+                        schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
             }
         }
     }
@@ -106,14 +110,15 @@ public class TestExcelSchemaInference {
         }
 
         final List<String> fieldNames = schema.getFieldNames();
-        assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
+        assertEquals(Arrays.asList(EXPECTED_FIRST_FIELD_NAME, EXPECTED_SECOND_FIELD_NAME,
+                EXPECTED_THIRD_FIELD_NAME, EXPECTED_FOURTH_FIELD_NAME), fieldNames);
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.INT.getDataType(),
-                RecordFieldType.STRING.getDataType()), schema.getDataType("0").get());
+                RecordFieldType.STRING.getDataType()), schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.TIMESTAMP.getDataType("yyyy/MM/dd/ HH:mm"), RecordFieldType.STRING.getDataType()),
-                schema.getDataType("1").get());
-        assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
+                schema.getDataType(EXPECTED_SECOND_FIELD_NAME).get());
+        assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.BOOLEAN.getDataType(),
-                RecordFieldType.STRING.getDataType()), schema.getDataType("3").get());
+                RecordFieldType.STRING.getDataType()), schema.getDataType(EXPECTED_FOURTH_FIELD_NAME).get());
     }
 
     @Test
@@ -137,11 +142,12 @@ public class TestExcelSchemaInference {
         }
 
         final List<String> fieldNames = schema.getFieldNames();
-        assertEquals(Arrays.asList("0", "1", "2", "3"), fieldNames);
-        assertEquals(RecordFieldType.INT.getDataType(), schema.getDataType("0").get());
+        assertEquals(Arrays.asList(EXPECTED_FIRST_FIELD_NAME, EXPECTED_SECOND_FIELD_NAME,
+                EXPECTED_THIRD_FIELD_NAME, EXPECTED_FOURTH_FIELD_NAME), fieldNames);
+        assertEquals(RecordFieldType.INT.getDataType(), schema.getDataType(EXPECTED_FIRST_FIELD_NAME).get());
         assertEquals(RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.TIMESTAMP.getDataType("yyyy/MM/dd/ HH:mm"), RecordFieldType.STRING.getDataType()),
-                schema.getDataType("1").get());
-        assertEquals(RecordFieldType.STRING, schema.getDataType("2").get().getFieldType());
-        assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType("3").get());
+                schema.getDataType(EXPECTED_SECOND_FIELD_NAME).get());
+        assertEquals(RecordFieldType.STRING, schema.getDataType(EXPECTED_THIRD_FIELD_NAME).get().getFieldType());
+        assertEquals(RecordFieldType.BOOLEAN.getDataType(), schema.getDataType(EXPECTED_FOURTH_FIELD_NAME).get());
     }
 }

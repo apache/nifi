@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
+    static final String FIELD_NAME_PREFIX = "column_";
     private final TimeValueInference timeValueInference;
     private final DataFormatter dataFormatter;
 
@@ -65,7 +66,7 @@ public class ExcelSchemaInference implements SchemaInferenceEngine<Row> {
             IntStream.range(0, row.getLastCellNum())
                     .forEach(index -> {
                         final Cell cell = row.getCell(index);
-                        final String fieldName = Integer.toString(index);
+                        final String fieldName = FIELD_NAME_PREFIX + index;
                         final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
                         final String formattedCellValue = dataFormatter.formatCellValue(cell);
                         final DataType dataType = SchemaInferenceUtil.getDataType(formattedCellValue, timeValueInference);

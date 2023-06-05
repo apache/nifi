@@ -41,6 +41,6 @@ public class ExcelRecordSource implements RecordSource<Row> {
 
     @Override
     public Row next() throws IOException {
-        return rowIterator.hasNext() ? rowIterator.next() : null;
+        return rowIterator.next();
     }
 }

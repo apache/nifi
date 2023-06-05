@@ -191,7 +191,7 @@ public class TestExcelRecordReader {
     }
 
     @Test
-    public void testSelectSpecificSheetNotFound() throws IOException, MalformedRecordException {
+    public void testSelectSpecificSheetNotFound() {
         RecordSchema schema = getSpecificSheetSchema();
         List<String> requiredSheets = Collections.singletonList("notExistingSheet");
         ExcelRecordReaderConfiguration configuration = new ExcelRecordReaderConfiguration.Builder()
@@ -200,9 +200,8 @@ public class TestExcelRecordReader {
                 .withRequiredSheets(requiredSheets)
                 .build();
 
-        ExcelRecordReader recordReader = new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger);
-        MalformedRecordException mre = assertThrows(MalformedRecordException.class, () -> getRecords(recordReader, false, false));
-        assertTrue(mre.getMessage().startsWith("Error while getting next record"));
+        MalformedRecordException mre = assertThrows(MalformedRecordException.class,
+                () -> new ExcelRecordReader(configuration, getInputStream(MULTI_SHEET_FILE), logger));
         assertInstanceOf(ProcessException.class, mre.getCause());
         assertTrue(mre.getCause().getMessage().startsWith("Required Excel Sheets not found"));
     }

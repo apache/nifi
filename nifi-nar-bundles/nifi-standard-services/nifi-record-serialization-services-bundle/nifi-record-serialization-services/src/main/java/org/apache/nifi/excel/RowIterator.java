@@ -26,50 +26,60 @@ import org.apache.poi.ss.usermodel.Workbook;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class RowIterator implements Iterator<Row>, Closeable {
+class RowIterator implements Iterator<Row>, Closeable {
     private final Workbook workbook;
     private final Iterator<Sheet> sheets;
-    private final Map<String, Boolean> requiredSheets;
     private final int firstRow;
     private final ComponentLog logger;
     private Sheet currentSheet;
     private Iterator<Row> currentRows;
     private Row currentRow;
 
-    public RowIterator(InputStream in, List<String> requiredSheets, int firstRow, ComponentLog logger) {
+    RowIterator(InputStream in, List<String> requiredSheets, int firstRow, ComponentLog logger) {
         this.workbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
                 .open(in);
-        this.sheets = this.workbook.iterator();
-        this.requiredSheets = requiredSheets != null ? requiredSheets.stream()
-                .collect(Collectors.toMap(key -> key, value -> Boolean.FALSE)) : new HashMap<>();
+
+        if(requiredSheets == null || requiredSheets.isEmpty()) {
+            this.sheets = this.workbook.iterator();
+        } else {
+            Map<String, Integer> requiredSheetsMap = requiredSheets.stream()
+                    .collect(Collectors.toMap(key -> key, this.workbook::getSheetIndex));
+            String requiredSheetsNotFoundMessage = requiredSheetsMap.entrySet().stream()
+                    .filter(entry -> entry.getValue() == -1)
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.joining(","));
+            if (!requiredSheetsNotFoundMessage.isEmpty()) {
+                throw new ProcessException("Required Excel Sheets not found " + requiredSheetsNotFoundMessage);
+            }
+
+            this.sheets = requiredSheetsMap.values().stream()
+                    .map(this.workbook::getSheetAt)
+                    .collect(Collectors.toList()).iterator();
+        }
+
         this.firstRow = firstRow;
         this.logger = logger;
+        setCurrent();
     }
 
     @Override
     public boolean hasNext() {
-        setCurrent();
-        boolean next = currentRow != null;
-        if(!next) {
-            String requiredSheetsNotFoundMessage = getRequiredSheetsNotFoundMessage();
-            if (!requiredSheetsNotFoundMessage.isEmpty()) {
-                throw new ProcessException("Required Excel Sheets not found " + requiredSheetsNotFoundMessage);
-            }
-        }
-        return next;
+        return currentRow != null;
     }
 
     @Override
     public Row next() {
-        return currentRow;
+        Row next = currentRow;
+        setCurrent();
+
+        return next;
     }
 
     @Override
@@ -83,16 +93,12 @@ public class RowIterator implements Iterator<Row>, Closeable {
             return;
         }
 
-        currentSheet = null;
-        currentRows = null;
         while (sheets.hasNext()) {
             currentSheet = sheets.next();
-            if (isIterateOverAllSheets() || hasSheet(currentSheet.getSheetName())) {
-                currentRows = currentSheet.iterator();
-                currentRow = getNextRow();
-                if (currentRow != null) {
-                    return;
-                }
+            currentRows = currentSheet.iterator();
+            currentRow = getNextRow();
+            if (currentRow != null) {
+                return;
             }
         }
     }
@@ -117,31 +123,5 @@ public class RowIterator implements Iterator<Row>, Closeable {
 
     private boolean isSkip(Row row) {
         return row.getRowNum() < firstRow;
-    }
-
-    private boolean isIterateOverAllSheets() {
-        boolean iterateAllSheets = requiredSheets.isEmpty();
-        if (iterateAllSheets) {
-            logger.debug("Advanced to sheet {}", currentSheet.getSheetName());
-        }
-        return iterateAllSheets;
-    }
-
-    private boolean hasSheet(String name) {
-        boolean sheetByName = !requiredSheets.isEmpty()
-                && requiredSheets.keySet().stream()
-                .anyMatch(requiredSheet -> requiredSheet.equals(name));
-        if (sheetByName) {
-            requiredSheets.put(name, Boolean.TRUE);
-        }
-
-        return sheetByName;
-    }
-
-    private String getRequiredSheetsNotFoundMessage() {
-        return requiredSheets.entrySet().stream()
-                .filter(entry -> !entry.getValue())
-                .map(Map.Entry::getKey)
-                .collect(Collectors.joining(","));
     }
 }
