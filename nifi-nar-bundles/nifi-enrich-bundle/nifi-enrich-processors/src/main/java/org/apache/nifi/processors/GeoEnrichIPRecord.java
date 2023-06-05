@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"geo", "enrich", "ip", "maxmind", "record"})
@@ -194,7 +196,26 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
         FlowFile output = session.create(input);
         FlowFile notFound = splitOutput ? session.create(input) : null;
-        final DatabaseReader dbReader = databaseReaderRef.get();
+        try {
+            if (isNeedsReload() || getWatcher().checkAndReset()) {
+                Lock dbWriteLock = getDbWriteLock();
+                dbWriteLock.lock();
+                try {
+                    loadDatabaseFile();
+                    setNeedsReload(false);
+                } catch (InternalError | InvalidDatabaseException ie) {
+                    // The database was likely changed out while being read, rollback and try again
+                    setNeedsReload(true);
+                    session.rollback();
+                    return;
+                } finally {
+                    dbWriteLock.unlock();
+                }
+            }
+        } catch (final IllegalStateException | IOException e) {
+            throw new ProcessException(e.getMessage(), e);
+        }
+        DatabaseReader dbReader = databaseReaderRef.get();
         try (InputStream is = session.read(input);
              OutputStream os = session.write(output);
              OutputStream osNotFound = splitOutput ? session.write(notFound) : null) {
@@ -227,12 +248,13 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             int foundCount = 0;
             int notFoundCount = 0;
             while ((record = reader.nextRecord()) != null) {
-                CityResponse response = geocode(ipPath, record, dbReader);
+                CityResponse response;
+                response = geocode(ipPath, record, dbReader);
                 boolean wasEnriched = enrichRecord(response, record, paths);
                 if (wasEnriched) {
                     targetRelationship = REL_FOUND;
                 }
-                if (!splitOutput || (splitOutput && wasEnriched)) {
+                if (!splitOutput || wasEnriched) {
                     writer.write(record);
                     foundCount++;
                 } else {
@@ -270,6 +292,13 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
                 session.getProvenanceReporter().modifyContent(notFound);
             }
             session.getProvenanceReporter().modifyContent(output);
+        } catch (InvalidDatabaseException | InternalError idbe) {
+            // The database was likely changed out while being read, rollback and try again
+            setNeedsReload(true);
+            getLogger().warn("Failure while trying to load enrichment data due to {}, rolling back session "
+                    + "and will reload the database on the next run", idbe.getMessage());
+            session.rollback();
+            return;
         } catch (Exception ex) {
             getLogger().error("Error enriching records.", ex);
             session.rollback();

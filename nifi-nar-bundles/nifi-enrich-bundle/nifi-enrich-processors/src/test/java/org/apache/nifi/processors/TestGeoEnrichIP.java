@@ -282,5 +282,9 @@ public class TestGeoEnrichIP {
         public void onScheduled(ProcessContext context) {
             databaseReaderRef.set(databaseReader);
         }
+
+        protected void loadDatabaseFile() {
+            //  Do nothing, the mock database reader is used
+        }
     }
 }

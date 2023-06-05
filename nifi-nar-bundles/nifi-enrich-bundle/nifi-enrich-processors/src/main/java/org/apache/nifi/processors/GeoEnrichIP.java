@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.db.InvalidDatabaseException;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
@@ -41,6 +42,7 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 @EventDriven
 @SideEffectFree
@@ -52,17 +54,17 @@ import java.util.concurrent.TimeUnit;
         + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
         + "will take the form X.geo.<fieldName>")
 @WritesAttributes({
-    @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
-    @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
-    @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database (in Kilometers)"),
-    @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.subdivision.N",
-            description = "Each subdivision that is identified for this IP address is added with a one-up number appended to the attribute name, starting with 0"),
-    @WritesAttribute(attribute = "X.geo.subdivision.isocode.N", description = "The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
-    @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
-    @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
-    @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
+        @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
+        @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
+        @WritesAttribute(attribute = "X.geo.accuracy", description = "The accuracy radius if provided by the database (in Kilometers)"),
+        @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
+        @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
+        @WritesAttribute(attribute = "X.geo.subdivision.N",
+                description = "Each subdivision that is identified for this IP address is added with a one-up number appended to the attribute name, starting with 0"),
+        @WritesAttribute(attribute = "X.geo.subdivision.isocode.N", description = "The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
+        @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
+        @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
+        @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
 public class GeoEnrichIP extends AbstractEnrichIP {
 
     @Override
@@ -72,14 +74,34 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             return;
         }
 
-        final DatabaseReader dbReader = databaseReaderRef.get();
+        try {
+            if (isNeedsReload() || getWatcher().checkAndReset()) {
+                Lock dbWriteLock = getDbWriteLock();
+                dbWriteLock.lock();
+                try {
+                    loadDatabaseFile();
+                    setNeedsReload(false);
+                } catch (InternalError | InvalidDatabaseException ie) {
+                    // The database was likely changed out while being read, rollback and try again
+                    setNeedsReload(true);
+                    session.rollback();
+                    return;
+                } finally {
+                    dbWriteLock.unlock();
+                }
+            }
+        } catch (final IllegalStateException | IOException e) {
+            throw new ProcessException(e.getMessage(), e);
+        }
+
+        DatabaseReader dbReader = databaseReaderRef.get();
         final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
 
         if (StringUtils.isEmpty(ipAttributeName)) {
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("FlowFile '{}' attribute '{}' was empty. Routing to failure",
-                    new Object[]{flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName()});
+                    flowFile, IP_ADDRESS_ATTRIBUTE.getDisplayName());
             return;
         }
 
@@ -93,14 +115,24 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             getLogger().warn("Could not resolve the IP for value '{}', contained within the attribute '{}' in " +
                             "FlowFile '{}'. This is usually caused by issue resolving the appropriate DNS record or " +
                             "providing the processor with an invalid IP address ",
-                            new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
+                    new Object[]{ipAttributeValue, IP_ADDRESS_ATTRIBUTE.getDisplayName(), flowFile}, ioe);
             return;
         }
 
-        final StopWatch stopWatch = new StopWatch(true);
+        StopWatch stopWatch = new StopWatch(true);
         try {
+            getDbReadLock().lock();
             response = dbReader.city(inetAddress);
-            stopWatch.stop();
+        } catch (InternalError ie) {
+            // The database was likely changed out while being read, rollback and try again
+            setNeedsReload(true);
+            session.rollback();
+            return;
+        } catch (InvalidDatabaseException idbe) {
+            getLogger().warn("Failure while trying to load enrichment data for {} due to {}, rolling back session "
+                    + "and will reload the database on the next run", flowFile, idbe.getMessage());
+            session.rollback();
+            return;
         } catch (GeoIp2Exception | IOException ex) {
             // Note IOException is captured again as dbReader also makes InetAddress.getByName() calls.
             // Most name or IP resolutions failure should have been triggered in the try loop above but
@@ -108,6 +140,9 @@ public class GeoEnrichIP extends AbstractEnrichIP {
             session.transfer(flowFile, REL_NOT_FOUND);
             getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
             return;
+        } finally {
+            stopWatch.stop();
+            getDbReadLock().unlock();
         }
 
         if (response == null) {
@@ -147,5 +182,4 @@ public class GeoEnrichIP extends AbstractEnrichIP {
 
         session.transfer(flowFile, REL_FOUND);
     }
-
 }
