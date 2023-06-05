@@ -1722,20 +1722,25 @@
                                                 // Get the current property value to compare with the dependent value
                                                 var propertyValue = property.value;
 
-                                                var referencingParameter = null;
-
                                                 // check if the property references a parameter
                                                 if (!_.isEmpty(currentParameters)) {
                                                     const paramReference = getExistingParametersReferenced(propertyValue);
+                                                    // if parameter references exist, loop through all and interpolate the value in the propertyValue string
                                                     if (paramReference.length > 0) {
-                                                        referencingParameter = paramReference[0].value;
+                                                        paramReference.forEach(function (param) {
+                                                            // handle null values by replacing with an empty string instead
+                                                            propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
+                                                        });
                                                     }
                                                 }
 
                                                 // Test the dependentValues array against the current value of the property
-                                                // If not, then mark the current property hidden attribute is true
-                                                if (propertyValue != null && dependency.hasOwnProperty("dependentValues")) {
-                                                    hidden = !dependency.dependentValues.includes(referencingParameter || propertyValue);
+                                                if (propertyValue) {
+                                                    if (dependency.dependentValues) {
+                                                        hidden = !dependency.dependentValues.includes(propertyValue);
+                                                    } else {
+                                                        hidden = false;
+                                                    }
                                                 } else {
                                                     hidden = true;
                                                 }
@@ -1748,7 +1753,7 @@
                                                 return false;
                                             }
                                         }
-                                    })
+                                    });
                                 });
                             }
                         } else {
@@ -1955,22 +1960,28 @@
                             if (property.property === dependency.propertyName) {
                                 dependent = true;
                                 if (property.hidden === false) {
-                                    // Get the property value by propertyName
-                                    var propertyValue = properties[dependency.propertyName];
-                                    var referencingParameter = null;
+                                    // Get the current property value to compare with the dependent value
+                                    var propertyValue = property.value;
 
                                     // check if the property references a parameter
                                     if (!_.isEmpty(currentParameters)) {
                                         const paramReference = getExistingParametersReferenced(propertyValue);
+                                        // if parameter references exist, loop through all and interpolate the value in the propertyValue string
                                         if (paramReference.length > 0) {
-                                            referencingParameter = paramReference[0].value;
+                                            paramReference.forEach(function (param) {
+                                                // handle null values by replacing with an empty string instead
+                                                propertyValue = propertyValue.replace('#{' + param.name + '}', nfCommon.isDefinedAndNotNull(param.value) ? param.value : '');
+                                            });
                                         }
                                     }
 
-                                    // Test the dependentValues against the current value of the property
-                                    // If not, then mark the current property hidden attribute is true
-                                    if (propertyValue != null && dependency.hasOwnProperty("dependentValues")) {
-                                        hidden = !dependency.dependentValues.includes(referencingParameter || propertyValue);
+                                    // Test the dependentValues array against the current value of the property
+                                    if (propertyValue) {
+                                        if (dependency.dependentValues) {
+                                            hidden = !dependency.dependentValues.includes(propertyValue);
+                                        } else {
+                                            hidden = false;
+                                        }
                                     } else {
                                         hidden = true;
                                     }
@@ -1978,10 +1989,12 @@
                                     hidden = true;
                                 }
                                 if (hidden) {
+                                    // It is sufficient to have found a single instance of not meeting the
+                                    // requirement for a dependent value in order to hide a property
                                     return false;
                                 }
                             }
-                        })
+                        });
                     });
                 }
 
