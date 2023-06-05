@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sns;
 
-import com.amazonaws.services.sns.AmazonSNSClient;
-import com.amazonaws.services.sns.model.MessageAttributeValue;
-import com.amazonaws.services.sns.model.PublishRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -35,11 +32,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.sqs.GetSQS;
 import org.apache.nifi.processors.aws.sqs.PutSQS;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.MessageAttributeValue;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -137,55 +138,59 @@ public class PutSNS extends AbstractSNSProcessor {
         session.exportTo(flowFile, baos);
         final String message = new String(baos.toByteArray(), charset);
 
-        final AmazonSNSClient client = getClient(context);
-        final PublishRequest request = new PublishRequest();
-        request.setMessage(message);
+        final SnsClient client = getClient(context);
+
+        final PublishRequest.Builder requestBuilder = PublishRequest.builder();
+        requestBuilder.message(message);
 
         if (context.getProperty(MESSAGEGROUPID).isSet()) {
-            request.setMessageGroupId(context.getProperty(MESSAGEGROUPID)
+            requestBuilder.messageGroupId(context.getProperty(MESSAGEGROUPID)
                     .evaluateAttributeExpressions(flowFile)
                     .getValue());
         }
 
         if (context.getProperty(MESSAGEDEDUPLICATIONID).isSet()) {
-            request.setMessageDeduplicationId(context.getProperty(MESSAGEDEDUPLICATIONID)
+            requestBuilder.messageDeduplicationId(context.getProperty(MESSAGEDEDUPLICATIONID)
                     .evaluateAttributeExpressions(flowFile)
                     .getValue());
         }
 
         if (context.getProperty(USE_JSON_STRUCTURE).asBoolean()) {
-            request.setMessageStructure("json");
+            requestBuilder.messageStructure("json");
         }
 
         final String arn = context.getProperty(ARN).evaluateAttributeExpressions(flowFile).getValue();
         final String arnType = context.getProperty(ARN_TYPE).getValue();
         if (arnType.equalsIgnoreCase(ARN_TYPE_TOPIC.getValue())) {
-            request.setTopicArn(arn);
+            requestBuilder.topicArn(arn);
         } else {
-            request.setTargetArn(arn);
+            requestBuilder.targetArn(arn);
         }
 
         final String subject = context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue();
         if (subject != null) {
-            request.setSubject(subject);
+            requestBuilder.subject(subject);
         }
 
+        final Map<String, MessageAttributeValue> messageAttributes = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             if (entry.getKey().isDynamic() && !StringUtils.isEmpty(entry.getValue())) {
-                final MessageAttributeValue value = new MessageAttributeValue();
-                value.setStringValue(context.getProperty(entry.getKey()).evaluateAttributeExpressions(flowFile).getValue());
-                value.setDataType("String");
-                request.addMessageAttributesEntry(entry.getKey().getName(), value);
+                final MessageAttributeValue.Builder messageAttributeValueBuilder = MessageAttributeValue.builder();
+                messageAttributeValueBuilder.stringValue(context.getProperty(entry.getKey()).evaluateAttributeExpressions(flowFile).getValue());
+                messageAttributeValueBuilder.dataType("String");
+
+                messageAttributes.put(entry.getKey().getName(), messageAttributeValueBuilder.build());
             }
         }
+        requestBuilder.messageAttributes(messageAttributes);
 
         try {
-            client.publish(request);
+            client.publish(requestBuilder.build());
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, arn);
-            getLogger().info("Successfully published notification for {}", new Object[]{flowFile});
+            getLogger().info("Successfully published notification for {}", flowFile);
         } catch (final Exception e) {
-            getLogger().error("Failed to publish Amazon SNS message for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to publish Amazon SNS message for {} due to {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

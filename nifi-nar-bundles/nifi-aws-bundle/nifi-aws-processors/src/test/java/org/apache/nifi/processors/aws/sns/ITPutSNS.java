@@ -35,12 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ITPutSNS {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
+    private final String TOPIC_ARN = "Add SNS ARN here";
 
     @Test
     public void testPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
         runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:100515378163:test-topic-1");
+        runner.setProperty(PutSNS.ARN, TOPIC_ARN);
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
 
         final Map<String, String> attrs = new HashMap<>();
@@ -54,8 +55,7 @@ public class ITPutSNS {
     @Test
     public void testPublishWithCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
-        String snsArn = "Add Sns arn here";
-        runner.setProperty(PutSNS.ARN, snsArn);
+        runner.setProperty(PutSNS.ARN, TOPIC_ARN);
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
 
