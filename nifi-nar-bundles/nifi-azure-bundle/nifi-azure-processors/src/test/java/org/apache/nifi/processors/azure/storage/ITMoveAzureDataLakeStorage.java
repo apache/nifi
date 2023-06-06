@@ -18,8 +18,6 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.google.common.collect.Sets;
-import com.google.common.net.UrlEscapers;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -331,14 +329,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, destinationDirectory);
         flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
 
-        String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(destinationDirectory);
-        String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
-        String urlEscapedPathSeparator = UrlEscapers.urlPathSegmentEscaper().escape("/");
-        String primaryUri = StringUtils.isNotEmpty(destinationDirectory)
-                ? String.format("https://%s.dfs.core.windows.net/%s/%s%s%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedPathSeparator, urlEscapedFileName)
-                : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
-        flowFile.assertAttributeEquals(ATTR_NAME_PRIMARY_URI, primaryUri);
-
+        flowFile.assertAttributeExists(ATTR_NAME_PRIMARY_URI);
         flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, Integer.toString(fileData.length));
     }
 
@@ -368,7 +359,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     private void assertProvenanceEvents() {
-        Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.SEND);
+        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(ProvenanceEventType.SEND);
 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)

@@ -27,7 +27,6 @@
 
     <properties>
         <azure.sdk.bom.version>1.2.13</azure.sdk.bom.version>
-        <microsoft.azure-storage.version>8.6.6</microsoft.azure-storage.version>
         <msal4j.version>1.13.8</msal4j.version>
         <qpid.proton.version>0.34.1</qpid.proton.version>
     </properties>
@@ -50,11 +49,6 @@
                 <version>${azure.sdk.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.microsoft.azure</groupId>
-                <artifactId>azure-storage</artifactId>
-                <version>${microsoft.azure-storage.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>

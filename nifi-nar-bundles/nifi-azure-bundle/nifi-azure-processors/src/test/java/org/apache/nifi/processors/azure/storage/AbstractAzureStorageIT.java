@@ -16,15 +16,10 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.proxy.StandardProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
-import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
@@ -114,29 +109,6 @@ public abstract class AbstractAzureStorageIT {
     }
 
     protected abstract Class<? extends Processor> getProcessorClass();
-
-    protected CloudStorageAccount getStorageAccount() throws Exception {
-        StorageCredentials storageCredentials = new StorageCredentialsAccountAndKey(getAccountName(), getAccountKey());
-        return new CloudStorageAccount(storageCredentials, true);
-    }
-
-    protected void configureCredentialsService() throws Exception {
-        runner.removeProperty(AzureStorageUtils.ACCOUNT_NAME);
-        runner.removeProperty(AzureStorageUtils.ACCOUNT_KEY);
-
-        AzureStorageCredentialsService credentialsService = new AzureStorageCredentialsControllerService();
-
-        runner.addControllerService("credentials-service", credentialsService);
-
-        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_NAME, getAccountName());
-        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_KEY, getAccountKey());
-
-        runner.assertValid(credentialsService);
-
-        runner.enableControllerService(credentialsService);
-
-        runner.setProperty(AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, credentialsService.getIdentifier());
-    }
 
     protected void configureProxyService() throws InitializationException {
         final StandardProxyConfigurationService proxyConfigurationService = new StandardProxyConfigurationService();

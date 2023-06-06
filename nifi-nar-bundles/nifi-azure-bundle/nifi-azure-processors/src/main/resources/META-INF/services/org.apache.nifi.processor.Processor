@@ -15,8 +15,6 @@
 org.apache.nifi.processors.azure.eventhub.PutAzureEventHub
 org.apache.nifi.processors.azure.eventhub.GetAzureEventHub
 org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub
-org.apache.nifi.processors.azure.storage.queue.PutAzureQueueStorage
-org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage
 org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage
 org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage
 org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage

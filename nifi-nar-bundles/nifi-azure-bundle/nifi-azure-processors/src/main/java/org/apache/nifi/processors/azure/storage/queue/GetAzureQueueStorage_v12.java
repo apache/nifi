@@ -55,7 +55,7 @@ import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueS
 import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.POP_RECEIPT_ATTRIBUTE;
 import static org.apache.nifi.processors.azure.storage.queue.AbstractAzureQueueStorage_v12.URI_ATTRIBUTE;
 
-@SeeAlso({PutAzureQueueStorage.class})
+@SeeAlso({PutAzureQueueStorage_v12.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"azure", "queue", "microsoft", "storage", "dequeue", "cloud"})
 @CapabilityDescription("Retrieves the messages from an Azure Queue Storage. The retrieved messages will be deleted from the queue by default. If the requirement is " +
