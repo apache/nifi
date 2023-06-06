@@ -31,7 +31,7 @@
     </modules>
 
     <properties>
-        <jolt.version>0.1.7</jolt.version>
+        <jolt.version>0.1.8</jolt.version>
     </properties>
 
     <dependencyManagement>
