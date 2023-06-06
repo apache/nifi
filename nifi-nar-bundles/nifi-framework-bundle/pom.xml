@@ -249,7 +249,7 @@
             <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
-                <version>72.1</version>
+                <version>73.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>
