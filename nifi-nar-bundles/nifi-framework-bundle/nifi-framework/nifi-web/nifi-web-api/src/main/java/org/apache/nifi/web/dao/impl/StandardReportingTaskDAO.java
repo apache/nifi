@@ -267,7 +267,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final ReportingTaskNode taskNode = locateReportingTask(reportingTaskId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository, new StandardLoggingContext<>(null));
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository, new StandardLoggingContext(null));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;

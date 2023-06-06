@@ -19,21 +19,21 @@ package org.apache.nifi.logging;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class StandardLoggingContext<T extends PerProcessGroupLoggable> implements LoggingContext {
+
+
+public class StandardLoggingContext implements LoggingContext {
     private static final String KEY = "logFileSuffix";
-    private final AtomicReference<T> component = new AtomicReference<>();
+    private volatile PerProcessGroupLoggable component;
 
-    public StandardLoggingContext(final T component) {
-        this.component.set(component);
+    public StandardLoggingContext(final PerProcessGroupLoggable component) {
+        this.component = component;
     }
 
     @Override
     public Optional<String> getLogFileSuffix() {
-        final T componentNode = component.get();
-        if (componentNode != null) {
-            return getSuffix(componentNode.getProcessGroup());
+        if (component != null) {
+            return getSuffix(component.getProcessGroup());
         } else {
             return Optional.empty();
         }
@@ -56,7 +56,7 @@ public class StandardLoggingContext<T extends PerProcessGroupLoggable> implement
         }
     }
 
-    public void setComponent(final T component) {
-        this.component.set(component);
+    public void setComponent(final PerProcessGroupLoggable component) {
+        this.component = component;
     }
 }

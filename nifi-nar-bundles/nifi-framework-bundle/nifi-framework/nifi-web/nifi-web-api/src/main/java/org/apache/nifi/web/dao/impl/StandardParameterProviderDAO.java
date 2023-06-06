@@ -234,7 +234,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository, new StandardLoggingContext<>(null));
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository, new StandardLoggingContext(null));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;

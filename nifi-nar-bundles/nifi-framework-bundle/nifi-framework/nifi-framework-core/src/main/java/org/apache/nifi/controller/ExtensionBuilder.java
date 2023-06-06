@@ -423,7 +423,7 @@ public class ExtensionBuilder {
         if (stateManagerProvider == null) {
             throw new IllegalStateException("State Manager Provider must be specified");
         }
-        final StandardLoggingContext loggingContext = new StandardLoggingContext<>(null);
+        final StandardLoggingContext loggingContext = new StandardLoggingContext(null);
         try {
             return createControllerServiceNode(loggingContext);
         } catch (final Exception e) {
@@ -595,7 +595,7 @@ public class ExtensionBuilder {
             }
 
             logger.info("Created Controller Service of type {} with identifier {}", type, identifier);
-            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext<>(null));
+            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
@@ -730,7 +730,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<ReportingTask> createLoggableReportingTask() throws ReportingTaskInstantiationException {
         try {
-            final LoggableComponent<ReportingTask> taskComponent = createLoggableComponent(ReportingTask.class, new StandardLoggingContext<>(null));
+            final LoggableComponent<ReportingTask> taskComponent = createLoggableComponent(ReportingTask.class, new StandardLoggingContext(null));
 
             final String taskName = taskComponent.getComponent().getClass().getSimpleName();
             final ReportingInitializationContext config = new StandardReportingInitializationContext(identifier, taskName,
@@ -749,7 +749,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class, new StandardLoggingContext<>(null));
+            final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class, new StandardLoggingContext(null));
 
             final FlowRegistryClientInitializationContext context = new StandardFlowRegistryClientInitializationContext(
                     identifier, clientComponent.getLogger(), systemSslContext);
@@ -765,7 +765,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
         try {
-            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class, new StandardLoggingContext<>(null));
+            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class, new StandardLoggingContext(null));
 
             final String taskName = providerComponent.getComponent().getClass().getSimpleName();
             final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
@@ -799,7 +799,7 @@ public class ExtensionBuilder {
             final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
             final Processor processor = processorBridge.getProcessorProxy();
 
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext<>(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {

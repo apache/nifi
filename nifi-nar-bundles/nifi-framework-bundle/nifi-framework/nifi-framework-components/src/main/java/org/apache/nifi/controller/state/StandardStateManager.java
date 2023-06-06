@@ -53,7 +53,7 @@ public class StandardStateManager implements StateManager {
         final LogRepository repo = LogRepositoryFactory.getRepository(componentId);
         final ComponentLog logger = (repo == null) ? null : repo.getLogger();
         if (repo == null || logger == null) {
-            return new SimpleProcessLogger(componentId, this, new StandardLoggingContext<>(null));
+            return new SimpleProcessLogger(componentId, this, new StandardLoggingContext(null));
         }
 
         return logger;

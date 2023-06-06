@@ -215,8 +215,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
 
-    private Boolean logToOwnFile = Boolean.FALSE;
-    private String logFileSuffix;
+    private volatile Boolean logToOwnFile = Boolean.FALSE;
+    private volatile String logFileSuffix;
 
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,

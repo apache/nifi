@@ -20,7 +20,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
-import org.apache.nifi.logging.PerProcessGroupLoggable;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -99,7 +98,7 @@ public class TestSimpleProcessLogger {
     LoggingEventBuilder loggingEventBuilder;
 
     @Mock
-    StandardLoggingContext<PerProcessGroupLoggable> loggingContext;
+    StandardLoggingContext loggingContext;
 
     private Object[] componentArguments;
 
@@ -492,19 +491,84 @@ public class TestSimpleProcessLogger {
 
             switch (logLevel) {
                 case TRACE:
-                    verify(logger).trace(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION));
+                    verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.TRACE));
+                    verify(loggingEventBuilder, times(1))
+                            .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
+                    verify(loggingEventBuilder
+                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(4, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[3]);
+
+                    reset(loggingEventBuilder);
                     break;
                 case DEBUG:
-                    verify(logger).debug(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION));
+                    verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.DEBUG));
+                    verify(loggingEventBuilder, times(1))
+                            .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
+                    verify(loggingEventBuilder
+                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(4, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[3]);
+
+                    reset(loggingEventBuilder);
                     break;
                 case INFO:
-                    verify(logger).info(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION));
+                    verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.INFO));
+                    verify(loggingEventBuilder, times(1))
+                            .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
+                    verify(loggingEventBuilder
+                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(4, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[3]);
+
+                    reset(loggingEventBuilder);
                     break;
                 case WARN:
-                    verify(logger).warn(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION));
+                    verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.WARN));
+                    verify(loggingEventBuilder, times(1))
+                            .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
+                    verify(loggingEventBuilder
+                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(4, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[3]);
+
+                    reset(loggingEventBuilder);
                     break;
                 case ERROR:
-                    verify(logger).error(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION));
+                    verify(logger, times(1)).makeLoggingEventBuilder(eq(Level.ERROR));
+                    verify(loggingEventBuilder, times(1))
+                            .addKeyValue(eq(DISCRIMINATOR_KEY), eq(LOG_FILE_SUFFIX));
+                    verify(loggingEventBuilder
+                            .addKeyValue(DISCRIMINATOR_KEY, LOG_FILE_SUFFIX), times(1))
+                            .log(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), argumentCaptor.capture());
+
+                    assertEquals(4, argumentCaptor.getValue().length);
+                    assertEquals(component, argumentCaptor.getValue()[0]);
+                    assertEquals(FIRST, argumentCaptor.getValue()[1]);
+                    assertEquals(SECOND, argumentCaptor.getValue()[2]);
+                    assertEquals(EXCEPTION, argumentCaptor.getValue()[3]);
+
+                    reset(loggingEventBuilder);
                     break;
                 default:
                     continue;

@@ -414,7 +414,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ControllerServiceNode serviceNode = locateControllerService(controllerServiceId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(serviceNode.getControllerServiceImplementation(), logRepository, new StandardLoggingContext<>(serviceNode));
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(serviceNode.getControllerServiceImplementation(), logRepository, new StandardLoggingContext(serviceNode));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();

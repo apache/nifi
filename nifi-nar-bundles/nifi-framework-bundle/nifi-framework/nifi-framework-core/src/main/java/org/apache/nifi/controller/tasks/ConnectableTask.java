@@ -287,7 +287,7 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext<>(connectable));
+                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
 
                     try {
                         rawSession.commitAsync(null, t -> {
@@ -378,7 +378,7 @@ public class ConnectableTask {
     }
 
     private ComponentLog getComponentLog() {
-        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext<>(connectable));
+        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent(), new StandardLoggingContext(connectable));
     }
 
     private static class SampledMetrics {

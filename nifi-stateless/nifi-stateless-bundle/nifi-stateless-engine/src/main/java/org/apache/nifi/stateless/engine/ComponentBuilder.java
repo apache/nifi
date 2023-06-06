@@ -166,7 +166,7 @@ public class ComponentBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance(), new StandardLoggingContext<>(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, InMemoryFlowRegistry.class.newInstance(), new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
             final InMemoryFlowRegistry registryClient = new InMemoryFlowRegistry();
             final LoggableComponent<FlowRegistryClient> nodeComponent = new LoggableComponent<>(registryClient, bundleCoordinate, terminationAwareLogger);
@@ -289,7 +289,7 @@ public class ComponentBuilder {
             }
 
             logger.info("Created Controller Service of type {} with identifier {}", type, identifier);
-            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext<>(null));
+            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
@@ -353,7 +353,7 @@ public class ComponentBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Object extensionInstance = rawClass.newInstance();
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, new StandardLoggingContext<>(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final T cast = nodeType.cast(extensionInstance);

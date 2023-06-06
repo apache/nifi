@@ -46,7 +46,7 @@ public class ReportingTaskWrapper implements Runnable {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
-            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext<>(null));
+            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext(null));
             componentLog.error("Error running task {} due to {}", new Object[]{taskNode.getReportingTask(), t.toString()});
             if (componentLog.isDebugEnabled()) {
                 componentLog.error("", t);
