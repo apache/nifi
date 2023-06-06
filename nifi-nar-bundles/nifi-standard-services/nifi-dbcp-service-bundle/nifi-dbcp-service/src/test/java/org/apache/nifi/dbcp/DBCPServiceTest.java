@@ -57,6 +57,8 @@ public class DBCPServiceTest {
 
     private static final String DERBY_SHUTDOWN_STATE = "XJ015";
 
+    private static final String INVALID_CONNECTION_URL = "jdbc:h2";
+
     private TestRunner runner;
 
     private File databaseDirectory;
@@ -97,6 +99,14 @@ public class DBCPServiceTest {
             assertEquals(DERBY_SHUTDOWN_STATE, exception.getSQLState());
             FileUtils.deleteFile(databaseDirectory, true);
         }
+    }
+
+    @Test
+    public void testConnectionUrlInvalid() {
+        runner.assertValid(service);
+
+        runner.setProperty(service, DBCPProperties.DATABASE_URL, INVALID_CONNECTION_URL);
+        runner.assertNotValid(service);
     }
 
     @Test
