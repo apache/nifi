@@ -76,7 +76,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
                     + " The exact syntax of a database connection URL is specified by your DBMS.")
             .defaultValue(null)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new ConnectionUrlValidator())
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();

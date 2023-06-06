@@ -33,11 +33,25 @@ import static org.mockito.Mockito.mock;
 public class HikariCPConnectionPoolTest {
     private final static String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
 
+    private static final String INVALID_CONNECTION_URL = "jdbc:h2";
+
     private TestRunner runner;
 
     @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
+    }
+
+    @Test
+    public void testConnectionUrlInvalid() throws InitializationException {
+        final HikariCPConnectionPool service = new HikariCPConnectionPool();
+
+        runner.addControllerService(SERVICE_ID, service);
+        setDatabaseProperties(service);
+        runner.assertValid(service);
+
+        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, INVALID_CONNECTION_URL);
+        runner.assertNotValid(service);
     }
 
     @Test
