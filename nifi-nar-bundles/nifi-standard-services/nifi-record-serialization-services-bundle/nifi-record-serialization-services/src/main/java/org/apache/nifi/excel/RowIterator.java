@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 class RowIterator implements Iterator<Row>, Closeable {
@@ -76,6 +77,10 @@ class RowIterator implements Iterator<Row>, Closeable {
 
     @Override
     public Row next() {
+        if(currentRow == null) {
+            throw new NoSuchElementException();
+        }
+
         Row next = currentRow;
         setCurrent();
 
