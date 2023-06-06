@@ -52,7 +52,6 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -93,7 +92,6 @@ import java.util.concurrent.atomic.AtomicReference;
     "The processor is record based so the used schema is driven by the RecordReader. Attributes that are not matched to the target schema" +
     "are skipped. Exactly once delivery semantics are achieved via stream offsets. The Storage Write API is more efficient than the older " +
     "insertAll method because it uses gRPC streaming rather than REST over HTTP")
-@SeeAlso({PutBigQueryBatch.class, PutBigQueryStreaming.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttributes({
     @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
