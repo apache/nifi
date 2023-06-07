@@ -294,6 +294,13 @@ Assuming Docker is running on the system where the build is running, then the fo
 
 For a full list of the available DataSource factories, consult the `nifi-registry-test` module.
 
+### Running Oracle DB tests on ARM based MacOS
+As of writing the tests for Oracle DB, Oracle DB is not built for ARM processors. Because of this Oracle DB tests will fail when running them on Apple Silicon machines.
+One solution is to install `colima`, a Docker runtime that can run x86-64 based Docker images in a lightweight VM.
+See https://github.com/abiosoft/colima on how to install it.
+
+Additionally, you will need to setup testcontainers to use the `colima` runtime. Details on how to set it up can be found [here](https://www.testcontainers.org/supported_docker_environment/#using-colima)
+
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
 ([archive](https://lists.apache.org/list.html?dev@nifi.apache.org)). For more interactive discussions, community members can often be found in the following locations:

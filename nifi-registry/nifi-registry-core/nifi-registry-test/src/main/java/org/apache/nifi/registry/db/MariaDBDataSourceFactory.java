@@ -27,12 +27,12 @@ import java.sql.SQLException;
 
 public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {
 
-    protected abstract MariaDBContainer mariaDBContainer();
+    protected abstract MariaDBContainer<?> mariaDBContainer();
 
     @Override
     protected DataSource createDataSource() {
         try {
-            final MariaDBContainer container = mariaDBContainer();
+            final MariaDBContainer<?> container = mariaDBContainer();
             final MariaDbDataSource dataSource = new MariaDbDataSource();
             dataSource.setUrl(container.getJdbcUrl());
             dataSource.setUser(container.getUsername());

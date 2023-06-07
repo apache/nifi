@@ -20,8 +20,17 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.PostConstruct;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
-import org.apache.nifi.registry.db.DatabaseProfileValueSource;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
@@ -29,26 +38,36 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
-
-import javax.annotation.PostConstruct;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * A base class to simplify creating integration tests against an API application running with an embedded server and volatile DB.
  */
-@ProfileValueSourceConfiguration(DatabaseProfileValueSource.class)
 public abstract class IntegrationTestBase {
+
+    private static final String H2 = "h2";
+    private static final String MYSQL = "mysql";
+    private static final String MARIADB = "mariadb";
+    private static final String POSTGRES = "postgres";
+    private static final String ORACLE = "oracle";
+
+    @DynamicPropertySource
+    static void dynamicProperties(DynamicPropertyRegistry registry) {
+        final String activeProfiles = System.getProperty("spring.profiles.active", H2);
+        registry.add("current.database.is.h2", () -> activeProfiles.contains(H2));
+        registry.add("current.database.is.mysql", () -> activeProfiles.contains(MYSQL));
+        registry.add("current.database.is.mariadb", () -> activeProfiles.contains(MARIADB));
+        registry.add("current.database.is.postgres", () -> activeProfiles.contains(POSTGRES));
+        registry.add("current.database.is.oracle", () -> activeProfiles.contains(ORACLE));
+        registry.add("current.database.is.not.h2", () -> !activeProfiles.contains(H2));
+        registry.add("current.database.is.not.mysql", () -> !activeProfiles.contains(MYSQL));
+        registry.add("current.database.is.not.mariadb", () -> !activeProfiles.contains(MARIADB));
+        registry.add("current.database.is.not.postgres", () -> !activeProfiles.contains(POSTGRES));
+        registry.add("current.database.is.not.oracle", () -> !activeProfiles.contains(ORACLE));
+    }
 
     private static final String CONTEXT_PATH = "/nifi-registry-api";
 
@@ -144,14 +163,10 @@ public abstract class IntegrationTestBase {
      *
      * @return a string containing the base url which includes the scheme, host, and port
      */
-    String createBaseURL() {
+    public String createBaseURL() {
         final boolean isSecure = this.properties.getSslPort() != null;
         final String protocolSchema = isSecure ? "https" : "http";
-
-        final StringBuilder baseUriBuilder = new StringBuilder()
-                .append(protocolSchema).append("://localhost:").append(port);
-
-        return baseUriBuilder.toString();
+        return protocolSchema + "://localhost:" + port;
     }
 
     NiFiRegistryClientConfig createClientConfig(String baseUrl) {
@@ -211,7 +226,7 @@ public abstract class IntegrationTestBase {
         JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
         mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
         // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

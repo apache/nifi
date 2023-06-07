@@ -29,6 +29,7 @@ import org.apache.nifi.registry.revision.standard.StandardRevisionClaim;
 import org.apache.nifi.registry.revision.standard.StandardUpdateResult;
 import org.flywaydb.core.internal.database.DatabaseType;
 import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.flywaydb.database.mysql.MySQLDatabaseType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,21 +66,26 @@ public class TestJdbcRevisionManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestJdbcRevisionManager.class);
 
-    private static final String CREATE_TABLE_SQL_DEFAULT =
-            "CREATE TABLE REVISION (\n" +
-                    "    ENTITY_ID VARCHAR(50) NOT NULL,\n" +
-                    "    VERSION BIGINT NOT NULL DEFAULT (0),\n" +
-                    "    CLIENT_ID VARCHAR(100),\n" +
-                    "    CONSTRAINT PK__REVISION_ENTITY_ID PRIMARY KEY (ENTITY_ID)\n" +
-                    ")";
+    private static final String CREATE_TABLE_SQL_DEFAULT = "CREATE TABLE REVISION (\n" +
+            "    ENTITY_ID VARCHAR(50) NOT NULL,\n" +
+            "    VERSION BIGINT NOT NULL DEFAULT (0),\n" +
+            "    CLIENT_ID VARCHAR(100),\n" +
+            "    CONSTRAINT PK__REVISION_ENTITY_ID PRIMARY KEY (ENTITY_ID)\n" +
+            ")";
 
-    private static final String CREATE_TABLE_SQL_MYSQL =
-            "CREATE TABLE REVISION (\n" +
-                    "    ENTITY_ID VARCHAR(50) NOT NULL,\n" +
-                    "    VERSION BIGINT NOT NULL DEFAULT 0,\n" +
-                    "    CLIENT_ID VARCHAR(100),\n" +
-                    "    CONSTRAINT PK__REVISION_ENTITY_ID PRIMARY KEY (ENTITY_ID)\n" +
-                    ")";
+    private static final String CREATE_TABLE_SQL_MYSQL = "CREATE TABLE REVISION (\n" +
+            "    ENTITY_ID VARCHAR(50) NOT NULL,\n" +
+            "    VERSION BIGINT NOT NULL DEFAULT 0,\n" +
+            "    CLIENT_ID VARCHAR(100),\n" +
+            "    CONSTRAINT PK__REVISION_ENTITY_ID PRIMARY KEY (ENTITY_ID)\n" +
+            ")";
+
+    private static final String CREATE_TABLE_SQL_ORACLE = "CREATE TABLE REVISION (\n" +
+            "    ENTITY_ID VARCHAR(50) NOT NULL,\n" +
+            "    VERSION NUMBER(19) DEFAULT 0 NOT NULL,\n" +
+            "    CLIENT_ID VARCHAR(100),\n" +
+            "    CONSTRAINT PK__REVISION_ENTITY_ID PRIMARY KEY (ENTITY_ID)\n" +
+            ")";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -92,13 +98,15 @@ public class TestJdbcRevisionManager {
 
         // Create the REVISION table if it does not exist
         final DataSource dataSource = jdbcTemplate.getDataSource();
-        LOGGER.info("#### DataSource class is {}", new Object[]{dataSource.getClass().getCanonicalName()});
+        LOGGER.info("#### DataSource class is {}", dataSource.getClass().getCanonicalName());
 
         try (final Connection connection = dataSource.getConnection()) {
             final String createTableSql;
             final DatabaseType databaseType = DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
-            if (databaseType.equals(new MySQLDatabaseType())) {
+            if (databaseType instanceof MySQLDatabaseType) {
                 createTableSql = CREATE_TABLE_SQL_MYSQL;
+            } else if (databaseType instanceof OracleDatabaseType) {
+                createTableSql = CREATE_TABLE_SQL_ORACLE;
             } else {
                 createTableSql = CREATE_TABLE_SQL_DEFAULT;
             }
@@ -125,7 +133,7 @@ public class TestJdbcRevisionManager {
     @Test
     public void testGetRevisionWhenExists() {
         final String entityId = "entity1";
-        final Long version = new Long(99);
+        final Long version = 99L;
         createRevision(entityId, version, null);
 
         final Revision revision = revisionManager.getRevision(entityId);
@@ -151,7 +159,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 100 since it was 99 before
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(100), null);
+        verifyRevisionUpdate(entityId, revisionUpdate, 100L, null);
     }
 
     @Test
@@ -186,7 +194,7 @@ public class TestJdbcRevisionManager {
 
         // client in 99 which was not latest version, but since client id was the same the update was allowed
         // and the incremented version should be based on the version in the DB which was 100, so it goes to 101
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(101), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, 101L, clientId);
     }
 
     @Test
@@ -203,7 +211,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 1 and client id should be updated to client-new
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(1), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, 1L, clientId);
     }
 
     @Test
@@ -223,7 +231,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 100 and client id should be updated to client-new
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(100), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, 100L, clientId);
     }
 
     @Test
@@ -295,8 +303,8 @@ public class TestJdbcRevisionManager {
 
     @Test
     public void testGetAllAndReset() {
-        createRevision("entity1", new Long(1), null);
-        createRevision("entity2", new Long(1), null);
+        createRevision("entity1", 1L, null);
+        createRevision("entity2", 1L, null);
 
         final List<Revision> allRevisions = revisionManager.getAllRevisions();
         assertNotNull(allRevisions);
@@ -318,8 +326,8 @@ public class TestJdbcRevisionManager {
 
     @Test
     public void testGetRevisionMap() {
-        createRevision("entity1", new Long(1), null);
-        createRevision("entity2", new Long(1), null);
+        createRevision("entity1", 1L, null);
+        createRevision("entity2", 1L, null);
 
         final Map<String,Revision> revisions = revisionManager.getRevisionMap();
         assertNotNull(revisions);

@@ -24,14 +24,14 @@ import org.testcontainers.containers.MariaDBContainer;
 @Profile("mariadb-10")
 public class MariaDB10DataSourceFactory extends MariaDBDataSourceFactory {
 
-    private static final MariaDBContainer MARIA_DB_CONTAINER = new MariaDBCustomContainer("mariadb:10.0");
+    private static final MariaDBContainer<?> MARIA_DB_CONTAINER = new MariaDBCustomContainer<>("mariadb:10.0");
 
     static {
         MARIA_DB_CONTAINER.start();
     }
 
     @Override
-    protected MariaDBContainer mariaDBContainer() {
+    protected MariaDBContainer<?> mariaDBContainer() {
         return MARIA_DB_CONTAINER;
     }
 }

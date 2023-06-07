@@ -17,22 +17,19 @@
 package org.apache.nifi.registry.db;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
+import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 
-import javax.annotation.PostConstruct;
-import javax.script.ScriptException;
-import javax.sql.DataSource;
-import java.sql.SQLException;
-
 public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
 
-    protected abstract MySQLContainer mysqlContainer();
+    protected abstract MySQLContainer<?> mysqlContainer();
 
     @Override
     protected DataSource createDataSource() {
-        final MySQLContainer container = mysqlContainer();
+        final MySQLContainer<?> container = mysqlContainer();
         final MysqlDataSource dataSource = new MysqlDataSource();
         dataSource.setUrl(container.getJdbcUrl());
         dataSource.setUser(container.getUsername());
@@ -42,7 +39,7 @@ public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
     }
 
     @PostConstruct
-    public void initDatabase() throws SQLException, ScriptException {
+    public void initDatabase() {
         DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mysqlContainer(), "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }

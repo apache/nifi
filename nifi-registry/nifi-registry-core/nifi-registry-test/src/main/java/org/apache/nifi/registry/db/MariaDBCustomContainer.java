@@ -27,7 +27,7 @@ import org.testcontainers.containers.MariaDBContainer;
  *
  * The work around is to add the useMysqlMetadata=true to the URL.
  */
-public class MariaDBCustomContainer extends MariaDBContainer {
+public class MariaDBCustomContainer<SELF extends MariaDBCustomContainer<SELF>> extends MariaDBContainer<SELF> {
 
     public MariaDBCustomContainer(String dockerImageName) {
         super(dockerImageName);

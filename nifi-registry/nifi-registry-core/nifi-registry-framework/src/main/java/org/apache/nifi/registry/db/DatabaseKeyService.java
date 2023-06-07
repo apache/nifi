@@ -41,7 +41,7 @@ public class DatabaseKeyService implements KeyService {
     private final Lock readLock = lock.readLock();
     private final Lock writeLock = lock.writeLock();
 
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public DatabaseKeyService(final JdbcTemplate jdbcTemplate) {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
+import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.nifi.registry.db.DatabaseBaseTest;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.authorization.AbstractConfigurableAccessPolicyProvider;
@@ -167,7 +168,12 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
     }
 
     private void createPolicy(final String identifier, final String resource, final RequestAction action) {
-        final String policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        final String policySql;
+        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
+            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
+        } else {
+            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        }
         final int rowsUpdated = jdbcTemplate.update(policySql, identifier, resource, action.toString());
         assertEquals(1, rowsUpdated);
     }

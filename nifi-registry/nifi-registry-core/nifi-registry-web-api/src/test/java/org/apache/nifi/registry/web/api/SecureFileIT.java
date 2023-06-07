@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.util.UUID;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
 import org.apache.nifi.registry.authorization.ResourcePermissions;
 import org.apache.nifi.registry.authorization.Tenant;
@@ -29,14 +36,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Deploy the Web API Application using an embedded Jetty Server for local integration testing, with the follow characteristics:
@@ -59,7 +58,7 @@ public class SecureFileIT extends IntegrationTestBase {
     public void testAccessStatus() throws Exception {
 
         // Given: the client and server have been configured correctly for two-way TLS
-        String expectedJson = "{" +
+        final String expectedJson = "{" +
                 "\"identity\":\"CN=user1, OU=nifi\"," +
                 "\"anonymous\":false," +
                 "\"resourcePermissions\":{" +
@@ -106,27 +105,29 @@ public class SecureFileIT extends IntegrationTestBase {
     }
 
     @Test
-    public void testCreateUser() throws Exception {
+    public void testCreateUser() {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = new Long(0);
-        String clientId = UUID.randomUUID().toString();
-        RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
+        final Long initialVersion = 0L;
+        final String clientId = UUID.randomUUID().toString();
+        final RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 
-        Tenant tenant = new Tenant();
+        final Tenant tenant = new Tenant();
         tenant.setIdentity("New User");
         tenant.setRevision(revisionInfo);
 
         // When: the POST /tenants/users endpoint is accessed
-        final Response createUserResponse = client
+        final User actualUser;
+        try (final Response createUserResponse = client
                 .target(createURL("tenants/users"))
                 .request()
-                .post(Entity.entity(tenant, MediaType.APPLICATION_JSON_TYPE), Response.class);
+                .post(Entity.entity(tenant, MediaType.APPLICATION_JSON_TYPE), Response.class)) {
 
-        // Then: "201 created" is returned with the expected user
-        assertEquals(201, createUserResponse.getStatus());
-        User actualUser = createUserResponse.readEntity(User.class);
+            // Then: "201 created" is returned with the expected user
+            assertEquals(201, createUserResponse.getStatus());
+            actualUser = createUserResponse.readEntity(User.class);
+        }
         assertNotNull(actualUser.getIdentifier());
         assertNotNull(actualUser.getRevision());
         assertNotNull(actualUser.getRevision().getVersion());
@@ -142,7 +143,8 @@ public class SecureFileIT extends IntegrationTestBase {
             final long version = actualUser.getRevision().getVersion();
             client.target(createURL("tenants/users/" + actualUser.getIdentifier() + "?version=" + version))
                     .request()
-                    .delete();
+                    .delete()
+                    .close();
         }
 
     }
@@ -152,7 +154,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = new Long(0);
+        Long initialVersion = 0L;
         String clientId = UUID.randomUUID().toString();
         RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 
@@ -161,14 +163,16 @@ public class SecureFileIT extends IntegrationTestBase {
         tenant.setRevision(revisionInfo);
 
         // When: the POST /tenants/user-groups endpoint is used
-        final Response createUserGroupResponse = client
+        final UserGroup actualUserGroup;
+        try (final Response createUserGroupResponse = client
                 .target(createURL("tenants/user-groups"))
                 .request()
-                .post(Entity.entity(tenant, MediaType.APPLICATION_JSON_TYPE), Response.class);
+                .post(Entity.entity(tenant, MediaType.APPLICATION_JSON_TYPE), Response.class)) {
 
-        // Then: 201 created is returned with the expected group
-        assertEquals(201, createUserGroupResponse.getStatus());
-        UserGroup actualUserGroup = createUserGroupResponse.readEntity(UserGroup.class);
+            // Then: 201 created is returned with the expected group
+            assertEquals(201, createUserGroupResponse.getStatus());
+            actualUserGroup = createUserGroupResponse.readEntity(UserGroup.class);
+        }
         assertNotNull(actualUserGroup.getIdentifier());
         assertNotNull(actualUserGroup.getRevision());
         assertNotNull(actualUserGroup.getRevision().getVersion());
@@ -184,7 +188,8 @@ public class SecureFileIT extends IntegrationTestBase {
             final long version = actualUserGroup.getRevision().getVersion();
             client.target(createURL("tenants/user-groups/" + actualUserGroup.getIdentifier() + "?version=" + version))
                     .request()
-                    .delete();
+                    .delete()
+                    .close();
         }
 
     }

@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import javax.servlet.http.HttpServletRequest;
 import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.event.EventFactory;
@@ -26,16 +35,6 @@ import org.apache.nifi.registry.revision.web.LongParameter;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import javax.servlet.http.HttpServletRequest;
-import java.net.URI;
-import java.net.URISyntaxException;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class TenantResourceTest {
 
@@ -75,7 +74,7 @@ public class TenantResourceTest {
 
         when(serviceFacade.createUser(user)).thenReturn(result);
 
-        tenantResource.createUser(request, user);
+        tenantResource.createUser(request, user).close();
 
         verify(serviceFacade).createUser(user);
         verify(eventService).publish(eq(EventFactory.userCreated(result)));
@@ -91,7 +90,7 @@ public class TenantResourceTest {
 
         when(serviceFacade.updateUser(user)).thenReturn(user);
 
-        tenantResource.updateUser(request, user.getIdentifier(), user);
+        tenantResource.updateUser(request, user.getIdentifier(), user).close();
 
         verify(serviceFacade).updateUser(user);
         verify(eventService).publish(eq(EventFactory.userUpdated(user)));
@@ -99,14 +98,15 @@ public class TenantResourceTest {
 
     @Test
     public void testDeleteUser() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        User user = new User("identifier", "identity");
-        Long version = new Long(0);
-        ClientIdParameter clientId = new ClientIdParameter();
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final User user = new User("identifier", "identity");
+        final long version = 0L;
+        final ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUser(eq(user.getIdentifier()), any(RevisionInfo.class))).thenReturn(user);
 
-        tenantResource.removeUser(request, new LongParameter(version.toString()), clientId, user.getIdentifier());
+        tenantResource.removeUser(request, new LongParameter(Long.toString(version)), clientId, user.getIdentifier())
+                .close();
 
         verify(serviceFacade).deleteUser(eq(user.getIdentifier()), any(RevisionInfo.class));
         verify(eventService).publish(eq(EventFactory.userDeleted(user)));
@@ -114,19 +114,19 @@ public class TenantResourceTest {
 
     @Test
     public void testCreateUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
-        UserGroup userGroup = new UserGroup(null, "identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 0L);
+        final UserGroup userGroup = new UserGroup(null, "identity");
         userGroup.setRevision(revisionInfo);
 
-        RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
-        UserGroup result = new UserGroup("identifier", userGroup.getIdentity());
+        final RevisionInfo resultRevisionInfo = new RevisionInfo("client1", 1L);
+        final UserGroup result = new UserGroup("identifier", userGroup.getIdentity());
         result.setRevision(resultRevisionInfo);
 
         when(serviceFacade.createUserGroup(userGroup)).thenReturn(result);
 
-        tenantResource.createUserGroup(request, userGroup);
+        tenantResource.createUserGroup(request, userGroup).close();
 
         verify(serviceFacade).createUserGroup(userGroup);
         verify(eventService).publish(eq(EventFactory.userGroupCreated(result)));
@@ -134,15 +134,15 @@ public class TenantResourceTest {
 
     @Test
     public void testUpdateUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
+        final HttpServletRequest request = mock(HttpServletRequest.class);
 
-        RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
-        UserGroup userGroup = new UserGroup("identifier", "new-identity");
+        final RevisionInfo revisionInfo = new RevisionInfo("client1", 1L);
+        final UserGroup userGroup = new UserGroup("identifier", "new-identity");
         userGroup.setRevision(revisionInfo);
 
         when(serviceFacade.updateUserGroup(userGroup)).thenReturn(userGroup);
 
-        tenantResource.updateUserGroup(request, userGroup.getIdentifier(), userGroup);
+        tenantResource.updateUserGroup(request, userGroup.getIdentifier(), userGroup).close();
 
         verify(serviceFacade).updateUserGroup(userGroup);
         verify(eventService).publish(eq(EventFactory.userGroupUpdated(userGroup)));
@@ -150,14 +150,15 @@ public class TenantResourceTest {
 
     @Test
     public void testDeleteUserGroup() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        UserGroup userGroup = new UserGroup("identifier", "identity");
-        Long version = new Long(0);
-        ClientIdParameter clientId = new ClientIdParameter();
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        final UserGroup userGroup = new UserGroup("identifier", "identity");
+        final long version = 0L;
+        final ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUserGroup(eq(userGroup.getIdentifier()), any(RevisionInfo.class))).thenReturn(userGroup);
 
-        tenantResource.removeUserGroup(request, new LongParameter(version.toString()), clientId, userGroup.getIdentifier());
+        tenantResource.removeUserGroup(request, new LongParameter(Long.toString(version)), clientId, userGroup.getIdentifier())
+                .close();
 
         verify(serviceFacade).deleteUserGroup(eq(userGroup.getIdentifier()), any(RevisionInfo.class));
         verify(eventService).publish(eq(EventFactory.userGroupDeleted(userGroup)));

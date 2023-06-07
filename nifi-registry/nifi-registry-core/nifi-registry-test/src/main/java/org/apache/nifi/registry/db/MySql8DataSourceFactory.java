@@ -24,14 +24,14 @@ import org.testcontainers.containers.MySQLContainer;
 @Profile({"mysql", "mysql-8"})
 public class MySql8DataSourceFactory extends MySqlDataSourceFactory {
 
-    private static final MySQLContainer MYSQL_CONTAINER = new MySqlCustomContainer("mysql:8.0");
+    private static final MySQLContainer<?> MYSQL_CONTAINER = new MySqlCustomContainer("mysql:8.0");
 
     static {
         MYSQL_CONTAINER.start();
     }
 
     @Override
-    protected MySQLContainer mysqlContainer() {
+    protected MySQLContainer<?> mysqlContainer() {
         return MYSQL_CONTAINER;
     }
 }

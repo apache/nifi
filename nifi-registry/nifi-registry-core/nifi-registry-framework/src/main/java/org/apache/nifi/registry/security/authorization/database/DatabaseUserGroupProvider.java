@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.sql.DataSource;
+import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.registry.security.authorization.ConfigurableUserGroupProvider;
@@ -39,14 +47,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-
-import javax.sql.DataSource;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of {@link org.apache.nifi.registry.security.authorization.ConfigurableUserGroupProvider} backed by a relational database.
@@ -191,19 +191,30 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         if (user == null) {
             groups = null;
         } else {
-            final String userGroupSql =
-                    "SELECT " +
-                            "G.IDENTIFIER AS IDENTIFIER, " +
-                            "G.IDENTITY AS IDENTITY " +
-                    "FROM " +
-                            "UGP_GROUP AS G, " +
-                            "UGP_USER_GROUP AS UG " +
-                    "WHERE " +
-                            "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
-                            "UG.USER_IDENTIFIER = ?";
+            final String userGroupSql;
+            if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
+                userGroupSql = "SELECT " +
+                        "G.IDENTIFIER AS IDENTIFIER, " +
+                        "G.IDENTITY AS IDENTITY " +
+                        "FROM " +
+                        "UGP_GROUP G, " +
+                        "UGP_USER_GROUP UG " +
+                        "WHERE " +
+                        "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
+                        "UG.USER_IDENTIFIER = ?";
+            } else {
+                userGroupSql = "SELECT " +
+                        "G.IDENTIFIER AS IDENTIFIER, " +
+                        "G.IDENTITY AS IDENTITY " +
+                        "FROM " +
+                        "UGP_GROUP AS G, " +
+                        "UGP_USER_GROUP AS UG " +
+                        "WHERE " +
+                        "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
+                        "UG.USER_IDENTIFIER = ?";
+            }
 
-            final Object[] args = {user.getIdentifier()};
-            final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, args, new DatabaseGroupRowMapper());
+            final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, new DatabaseGroupRowMapper(), user.getIdentifier());
 
             groups = new HashSet<>();
             databaseGroups.forEach(g -> {

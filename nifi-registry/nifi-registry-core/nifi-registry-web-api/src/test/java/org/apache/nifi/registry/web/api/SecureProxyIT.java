@@ -83,7 +83,7 @@ public class SecureProxyIT extends IntegrationTestBase {
         try {
             registryClient.close();
         } catch (final Exception e) {
-            // do nothing
+            LOGGER.warn("Failed to close Nifi Registry client", e);
         }
     }
 

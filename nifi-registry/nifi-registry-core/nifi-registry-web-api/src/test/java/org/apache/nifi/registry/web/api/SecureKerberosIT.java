@@ -17,8 +17,17 @@
 package org.apache.nifi.registry.web.api;
 
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Base64;
+import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,16 +43,6 @@ import org.springframework.security.kerberos.authentication.KerberosTicketValida
 import org.springframework.security.kerberos.authentication.KerberosTicketValidator;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import javax.ws.rs.core.Response;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Base64;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Deploy the Web API Application using an embedded Jetty Server for local integration testing, with the follow characteristics:
@@ -69,11 +68,7 @@ public class SecureKerberosIT extends IntegrationTestBase {
         public KerberosTicketValidation validateTicket(byte[] token) throws BadCredentialsException {
 
             boolean validTicket;
-            try {
-                 validTicket = Arrays.equals(validKerberosTicket.getBytes("UTF-8"), token);
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException(e);
-            }
+            validTicket = Arrays.equals(validKerberosTicket.getBytes(StandardCharsets.UTF_8), token);
 
             if (!validTicket) {
                 throw new BadCredentialsException(MockKerberosTicketValidator.class.getSimpleName() + " does not validate token");
@@ -104,69 +99,78 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
     @BeforeEach
     public void generateAuthToken() {
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
-        final String token = client
+        final String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+        adminAuthToken = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
                 .header("Authorization", "Negotiate " + validTicket)
                 .post(null, String.class);
-        adminAuthToken = token;
     }
 
     @Test
-    public void testTokenGenerationAndAccessStatus() throws Exception {
+    public void testTokenGenerationAndAccessWithNoCredentials() {
+        // Given:
+        // When: the /access/token/kerberos endpoint is accessed with no credentials
+        try (final Response tokenResponse = client
+                .target(createURL("/access/token/kerberos"))
+                .request()
+                .post(null, Response.class)) {
 
-        // Note: this test intentionally does not use the token generated
-        // for nifiadmin by the @Before method
+            // Then: the server returns 401 Unauthorized with an authenticate challenge header
+            assertEquals(401, tokenResponse.getStatus());
+            assertNotNull(tokenResponse.getHeaders().get("www-authenticate"));
+            assertEquals(1, tokenResponse.getHeaders().get("www-authenticate").size());
+            assertEquals("Negotiate", tokenResponse.getHeaders().get("www-authenticate").get(0));
+        }
+    }
 
-        // Given: the client and server have been configured correctly for Kerberos SPNEGO authentication
-        String expectedJwtPayloadJson = "{" +
+    @Test
+    public void testTokenGenerationAndAccessWithInvalidToken() {
+        // Given: invalid kerberos ticket
+        final String invalidTicket = new String(Base64.getEncoder().encode(invalidKerberosTicket.getBytes(StandardCharsets.UTF_8)));
+
+        // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
+        try (final Response tokenResponse = client
+                .target(createURL("/access/token/kerberos"))
+                .request()
+                .header("Authorization", "Negotiate " + invalidTicket)
+                .post(null, Response.class)) {
+
+            // Then: the server returns 401 Unauthorized
+            assertEquals(401, tokenResponse.getStatus());
+        }
+    }
+
+    @Test
+    public void testTokenGenerationAndAccessWithValidToken() throws JSONException {
+        final String expectedJwtPayloadJson = "{" +
                 "\"sub\":\"kerberosUser@LOCALHOST\"," +
                 "\"preferred_username\":\"kerberosUser@LOCALHOST\"," +
                 "\"iss\":\"KerberosSpnegoIdentityProvider\"" +
                 "}";
-        String expectedAccessStatusJson = "{" +
+        final String expectedAccessStatusJson = "{" +
                 "\"identity\":\"kerberosUser@LOCALHOST\"," +
                 "\"anonymous\":false}";
 
-        // When: the /access/token/kerberos endpoint is accessed with no credentials
-        final Response tokenResponse1 = client
-                .target(createURL("/access/token/kerberos"))
-                .request()
-                .post(null, Response.class);
-
-        // Then: the server returns 401 Unauthorized with an authenticate challenge header
-        assertEquals(401, tokenResponse1.getStatus());
-        assertNotNull(tokenResponse1.getHeaders().get("www-authenticate"));
-        assertEquals(1, tokenResponse1.getHeaders().get("www-authenticate").size());
-        assertEquals("Negotiate", tokenResponse1.getHeaders().get("www-authenticate").get(0));
-
-        // When: the /access/token/kerberos endpoint is accessed again with an invalid ticket
-        String invalidTicket = new String(java.util.Base64.getEncoder().encode(invalidKerberosTicket.getBytes(Charset.forName("UTF-8"))));
-        final Response tokenResponse2 = client
-                .target(createURL("/access/token/kerberos"))
-                .request()
-                .header("Authorization", "Negotiate " + invalidTicket)
-                .post(null, Response.class);
-
-        // Then: the server returns 401 Unauthorized
-        assertEquals(401, tokenResponse2.getStatus());
+        // Given: valid kerberos ticket
+        final String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(StandardCharsets.UTF_8)));
 
         // When: the /access/token/kerberos endpoint is accessed with a valid ticket
-        String validTicket = new String(Base64.getEncoder().encode(validKerberosTicket.getBytes(Charset.forName("UTF-8"))));
-        final Response tokenResponse3 = client
+        final String token;
+        try (final Response tokenResponse = client
                 .target(createURL("/access/token/kerberos"))
                 .request()
                 .header("Authorization", "Negotiate " + validTicket)
-                .post(null, Response.class);
+                .post(null, Response.class)) {
 
-        // Then: the server returns 200 OK with a JWT in the body
-        assertEquals(201, tokenResponse3.getStatus());
-        String token = tokenResponse3.readEntity(String.class);
+            // Then: the server returns 200 OK with a JWT in the body
+            assertEquals(201, tokenResponse.getStatus());
+            token = tokenResponse.readEntity(String.class);
+        }
         assertTrue(StringUtils.isNotEmpty(token));
-        String[] jwtParts = token.split("\\.");
+        final String[] jwtParts = token.split("\\.");
         assertEquals(3, jwtParts.length);
-        String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), "UTF-8");
+        final String jwtPayload = new String(Base64.getDecoder().decode(jwtParts[1]), StandardCharsets.UTF_8);
         JSONAssert.assertEquals(expectedJwtPayloadJson, jwtPayload, false);
 
         // When: the token is returned in the Authorization header
@@ -178,16 +182,15 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
         // Then: the server acknowledges the client has access
         assertEquals(200, accessResponse.getStatus());
-        String accessStatus = accessResponse.readEntity(String.class);
+        final String accessStatus = accessResponse.readEntity(String.class);
         JSONAssert.assertEquals(expectedAccessStatusJson, accessStatus, false);
-
     }
 
     @Test
     public void testGetCurrentUser() throws Exception {
 
         // Given: the client is connected to an unsecured NiFi Registry
-        String expectedJson = "{" +
+        final String expectedJson = "{" +
                 "\"identity\":\"kerberosUser@LOCALHOST\"," +
                 "\"anonymous\":false," +
                 "\"resourcePermissions\":{" +
@@ -207,10 +210,8 @@ public class SecureKerberosIT extends IntegrationTestBase {
 
         // Then: the server returns a 200 OK with the expected current user
         assertEquals(200, response.getStatus());
-        String actualJson = response.readEntity(String.class);
+        final String actualJson = response.readEntity(String.class);
         JSONAssert.assertEquals(expectedJson, actualJson, false);
 
     }
-
-
 }

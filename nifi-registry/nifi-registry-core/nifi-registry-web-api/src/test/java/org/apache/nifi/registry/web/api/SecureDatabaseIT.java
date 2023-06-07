@@ -85,7 +85,7 @@ public class SecureDatabaseIT extends IntegrationTestBase {
         try {
             client.close();
         } catch (Exception e) {
-
+            LOGGER.warn("Failed to close Nifi Registry client", e);
         }
     }
 

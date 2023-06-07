@@ -27,7 +27,7 @@ import org.testcontainers.containers.MySQLContainer;
  *
  * The work around is to add the allowPublicKeyRetrieval=true to the URL.
  */
-public class MySqlCustomContainer extends MySQLContainer {
+public class MySqlCustomContainer<SELF extends MySqlCustomContainer<SELF>> extends MySQLContainer<SELF> {
 
     public MySqlCustomContainer(String dockerImageName) {
         super(dockerImageName);

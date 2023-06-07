@@ -31,7 +31,7 @@ import java.sql.SQLException;
 @Profile("postgres-11")
 public class Postgres11DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:11");
+    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:11");
 
     static {
         POSTGRESQL_CONTAINER.start();

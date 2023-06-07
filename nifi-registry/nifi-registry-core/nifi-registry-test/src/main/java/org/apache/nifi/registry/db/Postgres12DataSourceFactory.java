@@ -15,6 +15,8 @@ package org.apache.nifi.registry.db;/*
  * limitations under the License.
  */
 
+import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -22,16 +24,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 
-import javax.annotation.PostConstruct;
-import javax.script.ScriptException;
-import javax.sql.DataSource;
-import java.sql.SQLException;
-
 @Configuration
 @Profile("postgres-12")
 public class Postgres12DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:12");
+    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:12");
 
     static {
         POSTGRESQL_CONTAINER.start();
@@ -47,7 +44,7 @@ public class Postgres12DataSourceFactory extends TestDataSourceFactory {
     }
 
     @PostConstruct
-    public void initDatabase() throws SQLException, ScriptException {
+    public void initDatabase() {
         DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(POSTGRESQL_CONTAINER, "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }

@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.sql.DataSource;
+import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.authorization.AbstractConfigurableAccessPolicyProvider;
@@ -42,13 +49,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.CollectionUtils;
-
-import javax.sql.DataSource;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of {@link org.apache.nifi.registry.security.authorization.ConfigurableAccessPolicyProvider} backed by a relational database.
@@ -161,7 +161,12 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         Validate.notNull(accessPolicy);
 
         // insert to the policy table
-        final String policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        final String policySql;
+        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
+            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
+        } else {
+            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        }
         jdbcTemplate.update(policySql, accessPolicy.getIdentifier(), accessPolicy.getResource(), accessPolicy.getAction().toString());
 
         // insert to the policy-user and policy groups table
@@ -187,7 +192,6 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         // delete any policy-group associations
         final String deletePolicyGroupsSql = "DELETE FROM APP_POLICY_GROUP WHERE POLICY_IDENTIFIER = ?";
         jdbcTemplate.update(deletePolicyGroupsSql, accessPolicy.getIdentifier());
-
 
         // re-create the associations
         createPolicyUserAndGroups(accessPolicy);
@@ -252,7 +256,12 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         Validate.notBlank(resourceIdentifier);
         Validate.notNull(action);
 
-        final String policySql = "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
+        final String policySql;
+        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
+            policySql = "SELECT * FROM APP_POLICY WHERE \"RESOURCE\" = ? AND ACTION = ?";
+        } else{
+            policySql = "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
+        }
         final Object[] args = new Object[]{resourceIdentifier, action.toString()};
         final DatabaseAccessPolicy databaseAccessPolicy = queryForObject(policySql, args, new DatabaseAccessPolicyRowMapper());
         if (databaseAccessPolicy == null) {
