@@ -18,7 +18,13 @@
           }, {
             "name": "Name",
             "type": ["null", "string"]
-          }]
+          }, {
+              "name": "TestFloat",
+              "type": ["null", "float"]
+          }, {
+              "name": "TestDouble",
+              "type": ["null", "double"]
+            }]
         }]
       }, {
         "name": "EventID",
