@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.geohash;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
@@ -29,7 +30,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
