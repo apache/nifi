@@ -93,6 +93,8 @@ public class PutDatabaseRecordTest {
     private static final String createPersonsSchema2 = "CREATE TABLE SCHEMA2.PERSONS (id2 integer primary key, name varchar(100)," +
             " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000), dt date)";
 
+    private static final String createUUIDSchema = "CREATE TABLE UUID_TEST (id integer primary key, name VARCHAR(100))";
+
     private final static String DB_LOCATION = "target/db_pdr";
 
     TestRunner runner;
@@ -1798,6 +1800,46 @@ public class PutDatabaseRecordTest {
         assertEquals("hearts", rs.getString(2));
         assertFalse(rs.next());
 
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    void testInsertUUIDColumn() throws InitializationException, ProcessException, SQLException {
+        // Manually create and drop the tables and schemas
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        stmt.execute(createUUIDSchema);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.UUID);
+
+        parser.addRecord(1, "425085a0-03ef-11ee-be56-0242ac120002");
+        parser.addRecord(2, "56a000e4-03ef-11ee-be56-0242ac120002");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "UUID_TEST");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM UUID_TEST");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("425085a0-03ef-11ee-be56-0242ac120002", rs.getString(2));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("56a000e4-03ef-11ee-be56-0242ac120002", rs.getString(2));
+        assertFalse(rs.next());
+
+        // Drop the schemas here so as not to interfere with other tests
+        stmt.execute("drop table UUID_TEST");
         stmt.close();
         conn.close();
     }

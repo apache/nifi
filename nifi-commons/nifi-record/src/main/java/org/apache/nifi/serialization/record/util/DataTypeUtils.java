@@ -2150,6 +2150,7 @@ public class DataTypeUtils {
             case SHORT:
                 return Types.SMALLINT;
             case STRING:
+            case UUID:
                 return Types.VARCHAR;
             case ENUM:
                 return Types.OTHER;
