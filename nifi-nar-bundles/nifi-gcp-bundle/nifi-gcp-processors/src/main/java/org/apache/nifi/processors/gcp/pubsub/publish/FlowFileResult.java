@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -48,7 +48,7 @@ public class FlowFileResult {
     public FlowFileResult(final FlowFile flowFile, final List<ApiFuture<String>> futures,
                           final List<String> successes, final List<Throwable> failures) {
         this.flowFile = flowFile;
-        this.attributes = new HashMap<>();
+        this.attributes = new LinkedHashMap<>();
         this.futures = futures;
         this.successes = successes;
         this.failures = failures;
@@ -62,7 +62,7 @@ public class FlowFileResult {
             try {
                 ApiFutures.allAsList(futures).get();
             } catch (InterruptedException | ExecutionException e) {
-                logger.error("Error while reconciling PublishGCPubSub send", e);
+                logger.error("Failed to reconcile PubSub send operation status", e);
             }
         }
         if (futures.size() == successes.size()) {
@@ -86,7 +86,7 @@ public class FlowFileResult {
     /**
      * Logic to derive an appropriate {@link Relationship} from the feedback provided by the client library.
      * <p>
-     * Each {@link com.google.pubsub.v1.PubsubMessage} is associated with a {@link NiFiApiFutureCallback} at time of
+     * Each {@link com.google.pubsub.v1.PubsubMessage} is associated with a {@link TrackedApiFutureCallback} at time of
      * submission to the client library.  This callback allows the client library to convey information to the caller
      * about the result of the (asynchronous) send.  If a send fails, an appropriate exception is conveyed, providing
      * detail about the send failure; otherwise a message id (provided by the service) is supplied.

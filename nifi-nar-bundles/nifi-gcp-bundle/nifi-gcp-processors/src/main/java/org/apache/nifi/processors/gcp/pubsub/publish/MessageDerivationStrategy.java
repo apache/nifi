@@ -21,7 +21,7 @@ import org.apache.nifi.components.DescribedValue;
 /**
  * Strategy for publishing data to GCP via <code>PublishGCPubSub</code> processor.
  */
-public enum ContentInputStrategy implements DescribedValue {
+public enum MessageDerivationStrategy implements DescribedValue {
     FLOWFILE_ORIENTED("FlowFile Oriented",
             "Each incoming FlowFile is sent as a Google Cloud PubSub message"),
     RECORD_ORIENTED("Record Oriented",
@@ -31,7 +31,7 @@ public enum ContentInputStrategy implements DescribedValue {
 
     private final String description;
 
-    ContentInputStrategy(final String displayName, final String description) {
+    MessageDerivationStrategy(final String displayName, final String description) {
         this.displayName = displayName;
         this.description = description;
     }

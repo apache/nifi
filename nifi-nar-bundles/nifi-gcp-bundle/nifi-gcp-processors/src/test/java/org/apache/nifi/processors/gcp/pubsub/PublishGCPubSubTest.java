@@ -29,8 +29,8 @@ import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
-import org.apache.nifi.processors.gcp.pubsub.publish.ContentInputStrategy;
-import org.apache.nifi.processors.gcp.pubsub.publish.NiFiApiFutureCallback;
+import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
+import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -49,6 +49,9 @@ import static org.mockito.Mockito.when;
 
 public class PublishGCPubSubTest {
 
+    private static final String TOPIC = "my-topic";
+    private static final String PROJECT = "my-project";
+
     private Throwable throwable;
     private Publisher publisherMock;
     private TestRunner runner;
@@ -66,12 +69,12 @@ public class PublishGCPubSubTest {
 
             @Override
             protected void addCallback(ApiFuture<String> apiFuture, ApiFutureCallback<? super String> callback, Executor executor) {
-                if (callback instanceof NiFiApiFutureCallback) {
-                    final NiFiApiFutureCallback niFiApiFutureCallback = (NiFiApiFutureCallback) callback;
+                if (callback instanceof TrackedApiFutureCallback) {
+                    final TrackedApiFutureCallback apiFutureCallback = (TrackedApiFutureCallback) callback;
                     if (throwable == null) {
-                        niFiApiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
+                        apiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
                     } else {
-                        niFiApiFutureCallback.onFailure(throwable);
+                        apiFutureCallback.onFailure(throwable);
                     }
                 }
             }
@@ -85,10 +88,10 @@ public class PublishGCPubSubTest {
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
         runner.assertNotValid();
 
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
         runner.assertNotValid();
 
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
         runner.assertValid();
 
         runner.setProperty(PublishGCPubSub.API_ENDPOINT, "localhost");
@@ -113,37 +116,37 @@ public class PublishGCPubSubTest {
     }
 
     @Test
-    void testSendOne_Success_FlowFileStrategy() throws InitializationException {
+    void testSendOneSuccessFlowFileStrategy() throws InitializationException {
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
 
         runner.enqueue("text");
-        runner.run(1, true, true);
+        runner.run(1);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).iterator().next();
         assertNotNull(flowFile.getAttribute(PubSubAttributes.MESSAGE_ID_ATTRIBUTE));
     }
 
     @Test
-    void testSendOne_Retry_FlowFileStrategy() throws InitializationException {
+    void testSendOneRetryFlowFileStrategy() throws InitializationException {
         throwable = new UnavailableException(null, GrpcStatusCode.of(Status.Code.UNAVAILABLE), true);
 
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
 
         runner.enqueue("text");
-        runner.run(1, true, true);
+        runner.run(1);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_RETRY, 1);
     }
 
 
     @Test
-    void testSendOne_Failure_FlowFileStrategy() throws InitializationException {
+    void testSendOneFailureFlowFileStrategy() throws InitializationException {
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(PublishGCPubSub.MAX_MESSAGE_SIZE, "16 B");
         runner.enqueue("some really long text");
 
@@ -152,13 +155,13 @@ public class PublishGCPubSubTest {
     }
 
     @Test
-    void testSendOne_Success_RecordStrategy() throws InitializationException, IOException {
+    void testSendOneSuccessRecordStrategy() throws InitializationException, IOException {
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(PublishGCPubSub.RECORD_READER, getReaderServiceId(runner));
         runner.setProperty(PublishGCPubSub.RECORD_WRITER, getWriterServiceId(runner));
-        runner.setProperty(PublishGCPubSub.CONTENT_INPUT_STRATEGY, ContentInputStrategy.RECORD_ORIENTED.getValue());
+        runner.setProperty(PublishGCPubSub.MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue());
 
         runner.enqueue(IOUtils.toByteArray(Objects.requireNonNull(
                 getClass().getClassLoader().getResource("pubsub/records.json"))));
@@ -169,15 +172,15 @@ public class PublishGCPubSubTest {
     }
 
     @Test
-    void testSendOne_Retry_RecordStrategy() throws InitializationException, IOException {
+    void testSendOneRetryRecordStrategy() throws InitializationException, IOException {
         throwable = new UnavailableException(null, GrpcStatusCode.of(Status.Code.UNAVAILABLE), true);
 
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(PublishGCPubSub.RECORD_READER, getReaderServiceId(runner));
         runner.setProperty(PublishGCPubSub.RECORD_WRITER, getWriterServiceId(runner));
-        runner.setProperty(PublishGCPubSub.CONTENT_INPUT_STRATEGY, ContentInputStrategy.RECORD_ORIENTED.getValue());
+        runner.setProperty(PublishGCPubSub.MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue());
 
         runner.enqueue(IOUtils.toByteArray(Objects.requireNonNull(
                 getClass().getClassLoader().getResource("pubsub/records.json"))));
@@ -186,15 +189,15 @@ public class PublishGCPubSubTest {
     }
 
     @Test
-    void testSendOne_Failure_RecordStrategy() throws InitializationException, IOException {
+    void testSendOneFailureRecordStrategy() throws InitializationException, IOException {
         throwable = new IllegalStateException("testSendOne_Failure_RecordStrategy");
 
         runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
-        runner.setProperty(PublishGCPubSub.TOPIC_NAME, "my-topic");
-        runner.setProperty(PublishGCPubSub.PROJECT_ID, "my-project");
+        runner.setProperty(PublishGCPubSub.TOPIC_NAME, TOPIC);
+        runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(PublishGCPubSub.RECORD_READER, getReaderServiceId(runner));
         runner.setProperty(PublishGCPubSub.RECORD_WRITER, getWriterServiceId(runner));
-        runner.setProperty(PublishGCPubSub.CONTENT_INPUT_STRATEGY, ContentInputStrategy.RECORD_ORIENTED.getValue());
+        runner.setProperty(PublishGCPubSub.MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue());
 
         runner.enqueue(IOUtils.toByteArray(Objects.requireNonNull(
                 getClass().getClassLoader().getResource("pubsub/records.json"))));

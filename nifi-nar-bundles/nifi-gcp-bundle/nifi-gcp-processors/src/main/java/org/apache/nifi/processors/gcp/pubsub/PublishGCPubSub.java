@@ -56,9 +56,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.gcp.pubsub.publish.ContentInputStrategy;
 import org.apache.nifi.processors.gcp.pubsub.publish.FlowFileResult;
-import org.apache.nifi.processors.gcp.pubsub.publish.NiFiApiFutureCallback;
+import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
+import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -120,13 +120,13 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .defaultValue("100")
             .build();
 
-    public static final PropertyDescriptor CONTENT_INPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Content Input Strategy")
-            .displayName("Content Input Strategy")
+    public static final PropertyDescriptor MESSAGE_DERIVATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Message Derivation Strategy")
+            .displayName("Message Derivation Strategy")
             .description("The strategy used to publish the incoming FlowFile to the Google Cloud PubSub endpoint.")
             .required(true)
-            .defaultValue(ContentInputStrategy.FLOWFILE_ORIENTED.getValue())
-            .allowableValues(ContentInputStrategy.class)
+            .defaultValue(MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
+            .allowableValues(MessageDerivationStrategy.class)
             .build();
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -135,7 +135,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("The Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CONTENT_INPUT_STRATEGY, ContentInputStrategy.RECORD_ORIENTED.getValue())
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue())
             .required(true)
             .build();
 
@@ -145,7 +145,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .description("The Record Writer to use in order to serialize the data before sending to GCPubSub endpoint")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(CONTENT_INPUT_STRATEGY, ContentInputStrategy.RECORD_ORIENTED.getValue())
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.RECORD_ORIENTED.getValue())
             .required(true)
             .build();
 
@@ -153,7 +153,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             .name("Maximum Message Size")
             .displayName("Maximum Message Size")
             .description("The maximum size of a Google PubSub message in bytes. Defaults to 1 MB (1048576 bytes)")
-            .dependsOn(CONTENT_INPUT_STRATEGY, ContentInputStrategy.FLOWFILE_ORIENTED.getValue())
+            .dependsOn(MESSAGE_DERIVATION_STRATEGY, MessageDerivationStrategy.FLOWFILE_ORIENTED.getValue())
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
@@ -179,7 +179,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
         descriptors.add(MAX_BATCH_SIZE);
-        descriptors.add(CONTENT_INPUT_STRATEGY);
+        descriptors.add(MESSAGE_DERIVATION_STRATEGY);
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
         descriptors.add(MAX_MESSAGE_SIZE);
@@ -291,14 +291,14 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final StopWatch stopWatch = new StopWatch(true);
-        final ContentInputStrategy inputStrategy = ContentInputStrategy.valueOf(context.getProperty(CONTENT_INPUT_STRATEGY).getValue());
+        final MessageDerivationStrategy inputStrategy = MessageDerivationStrategy.valueOf(context.getProperty(MESSAGE_DERIVATION_STRATEGY).getValue());
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         final List<FlowFile> flowFileBatch = session.get(maxBatchSize);
         if (flowFileBatch.isEmpty()) {
             context.yield();
-        } else if (ContentInputStrategy.FLOWFILE_ORIENTED.equals(inputStrategy)) {
+        } else if (MessageDerivationStrategy.FLOWFILE_ORIENTED.equals(inputStrategy)) {
             onTriggerFlowFileStrategy(context, session, stopWatch, flowFileBatch);
-        } else if (ContentInputStrategy.RECORD_ORIENTED.equals(inputStrategy)) {
+        } else if (MessageDerivationStrategy.RECORD_ORIENTED.equals(inputStrategy)) {
             onTriggerRecordStrategy(context, session, stopWatch, flowFileBatch);
         } else {
             throw new IllegalStateException(inputStrategy.getValue());
@@ -331,7 +331,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
                 final ApiFuture<String> apiFuture = publishOneMessage(context, flowFile, baos.toByteArray());
                 futures.add(apiFuture);
-                addCallback(apiFuture, new NiFiApiFutureCallback(successes, failures), executor);
+                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
                 flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
             }
         }
@@ -344,13 +344,13 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             final StopWatch stopWatch,
             final List<FlowFile> flowFileBatch) throws ProcessException {
         try {
-            onTriggerRecordStrategyInner(context, session, stopWatch, flowFileBatch);
+            onTriggerRecordStrategyPublishRecords(context, session, stopWatch, flowFileBatch);
         } catch (IOException | SchemaNotFoundException | MalformedRecordException e) {
             throw new ProcessException("Record publishing failed", e);
         }
     }
 
-    private void onTriggerRecordStrategyInner(
+    private void onTriggerRecordStrategyPublishRecords(
             final ProcessContext context,
             final ProcessSession session,
             final StopWatch stopWatch,
@@ -380,7 +380,7 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
             while (pushBackRecordSet.isAnotherRecord()) {
                 final ApiFuture<String> apiFuture = publishOneRecord(context, flowFile, baos, writer, pushBackRecordSet.next());
                 futures.add(apiFuture);
-                addCallback(apiFuture, new NiFiApiFutureCallback(successes, failures), executor);
+                addCallback(apiFuture, new TrackedApiFutureCallback(successes, failures), executor);
             }
             flowFileResults.add(new FlowFileResult(flowFile, futures, successes, failures));
         }
@@ -482,7 +482,6 @@ public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
                 .setElementCountThreshold(batchSizeThreshold)
                 .setRequestByteThreshold(batchBytesThreshold)
                 .setDelayThreshold(Duration.ofMillis(batchDelayThreshold))
-                //.setFlowControlSettings(null)
                 .setIsEnabled(true)
                 .build());
         return publisherBuilder;

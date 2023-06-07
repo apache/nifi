@@ -24,11 +24,11 @@ import java.util.List;
  * Specialization of {@link ApiFutureCallback} used to track Google PubSub send results.  Failure
  * exceptions are captured to facilitate FlowFile routing decisions.
  */
-public class NiFiApiFutureCallback implements ApiFutureCallback<String> {
+public class TrackedApiFutureCallback implements ApiFutureCallback<String> {
     private final List<String> successes;
     private final List<Throwable> failures;
 
-    public NiFiApiFutureCallback(final List<String> successes, final List<Throwable> failures) {
+    public TrackedApiFutureCallback(final List<String> successes, final List<Throwable> failures) {
         this.successes = successes;
         this.failures = failures;
     }
