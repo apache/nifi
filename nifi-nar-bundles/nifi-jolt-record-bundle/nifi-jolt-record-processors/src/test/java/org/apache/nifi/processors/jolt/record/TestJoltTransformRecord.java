@@ -110,8 +110,8 @@ public class TestJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, "Pretty Print JSON", "true");
         runner.enableControllerService(writer);
-        final String spec = "src/test/resources/TestJoltTransformRecord/chainrSpec.json";
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC_FILE, spec);
+        final String spec = "./src/test/resources/TestJoltTransformRecord/chainrSpec.json";
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.enqueue(new byte[0]);
         Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformRecord.REL_FAILURE));
@@ -135,10 +135,6 @@ public class TestJoltTransformRecord {
         final String specLocation = "src/test/resources/TestJoltTransformRecord/chainrSpec.json";
         spec = new String(Files.readAllBytes(Paths.get(specLocation)));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.assertValid();
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC_FILE, specLocation);
-        runner.assertNotValid();
-        runner.removeProperty(JoltTransformRecord.JOLT_SPEC);
         runner.assertValid();
     }
 
@@ -402,8 +398,8 @@ public class TestJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, "Pretty Print JSON", "true");
         runner.enableControllerService(writer);
-        final String spec = "src/test/resources/TestJoltTransformRecord/shiftrSpec.json";
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC_FILE, spec);
+        final String spec = "./src/test/resources/TestJoltTransformRecord/shiftrSpec.json";
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformRecord.SHIFTR);
         runner.enqueue(new byte[0]);
         runner.run();
