@@ -21,6 +21,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
@@ -1820,13 +1821,13 @@ public class FileSystemRepository implements ContentRepository {
 
 
 
-    protected class ContentRepositoryOutputStream extends OutputStream {
-        protected final StandardContentClaim scc;
+    protected class ContentRepositoryOutputStream extends ContentClaimOutputStream {
+        protected StandardContentClaim scc;
 
         protected final ByteCountingOutputStream bcos;
 
-        protected final int initialLength;
-        protected long bytesWritten;
+        protected int initialLength;
+        private long bytesWritten;
         protected boolean recycle;
         protected boolean closed;
 
@@ -1964,6 +1965,16 @@ public class FileSystemRepository implements ContentRepository {
                     LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
                 }
             }
+        }
+
+
+        @Override
+        public synchronized ContentClaim newContentClaim() throws IOException {
+            scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + scc.getLength());
+            initialLength = 0;
+            bytesWritten = 0L;
+            incrementClaimaintCount(scc);
+            return scc;
         }
     }
 }

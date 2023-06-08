@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository.claim;
 
+import org.apache.nifi.controller.repository.io.ContentClaimOutputStream;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.PerformanceTrackingOutputStream;
@@ -31,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     private final ContentRepository contentRepo;
-    private final Map<ResourceClaim, OutputStream> streamMap = new ConcurrentHashMap<>();
+    private final Map<ResourceClaim, MappedOutputStream> streamMap = new ConcurrentHashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
     private final PerformanceTracker performanceTracker;
     private final int bufferSize;
@@ -60,8 +61,15 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     public ContentClaim getContentClaim() throws IOException {
         final ContentClaim contentClaim = queue.poll();
         if (contentClaim != null) {
-            contentRepo.incrementClaimaintCount(contentClaim);
-            return contentClaim;
+            flush(contentClaim);
+
+            final MappedOutputStream mappedOutputStream = streamMap.get(contentClaim.getResourceClaim());
+            if (mappedOutputStream != null) {
+                final OutputStream contentRepoStream = mappedOutputStream.getContentRepoStream();
+                if (contentRepoStream instanceof ContentClaimOutputStream) {
+                    return ((ContentClaimOutputStream) contentRepoStream).newContentClaim();
+                }
+            }
         }
 
         final ContentClaim claim = contentRepo.create(false);
@@ -73,13 +81,24 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
         final OutputStream out = contentRepo.write(contentClaim);
         final OutputStream performanceTrackingOut = new PerformanceTrackingOutputStream(out, performanceTracker);
         final OutputStream buffered = new BufferedOutputStream(performanceTrackingOut, bufferSize);
-        streamMap.put(contentClaim.getResourceClaim(), buffered);
+
+        final MappedOutputStream mappedOutputStream = new MappedOutputStream(out, buffered);
+        streamMap.put(contentClaim.getResourceClaim(), mappedOutputStream);
         return buffered;
+    }
+
+    private OutputStream getWritableStream(final ResourceClaim claim) {
+        final MappedOutputStream mappedOutputStream = streamMap.get(claim);
+        if (mappedOutputStream == null) {
+            return null;
+        }
+
+        return mappedOutputStream.getBufferedStream();
     }
 
     @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
-        OutputStream out = streamMap.get(claim.getResourceClaim());
+        OutputStream out = getWritableStream(claim.getResourceClaim());
         if (out == null) {
             out = registerStream(claim);
         }
@@ -146,9 +165,9 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
 
     @Override
     public void flush(final ResourceClaim claim) throws IOException {
-        final OutputStream out = streamMap.get(claim);
-        if (out != null) {
-            out.flush();
+        final MappedOutputStream mapped = streamMap.get(claim);
+        if (mapped != null) {
+            mapped.getBufferedStream().flush();
         }
     }
 
@@ -160,9 +179,9 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
     private void forEachStream(final StreamProcessor proc) throws IOException {
         IOException exception = null;
 
-        for (final OutputStream out : streamMap.values()) {
+        for (final MappedOutputStream mapped : streamMap.values()) {
             try {
-                proc.process(out);
+                proc.process(mapped.getBufferedStream());
             } catch (final IOException ioe) {
                 if (exception == null) {
                     exception = ioe;
@@ -180,5 +199,23 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
 
     private interface StreamProcessor {
         void process(final OutputStream out) throws IOException;
+    }
+
+    private static class MappedOutputStream {
+        private final OutputStream contentRepoStream;
+        private final OutputStream bufferedStream;
+
+        public MappedOutputStream(final OutputStream contentRepoStream, final OutputStream bufferedStream) {
+            this.contentRepoStream = contentRepoStream;
+            this.bufferedStream = bufferedStream;
+        }
+
+        public OutputStream getContentRepoStream() {
+            return contentRepoStream;
+        }
+
+        public OutputStream getBufferedStream() {
+            return bufferedStream;
+        }
     }
 }
