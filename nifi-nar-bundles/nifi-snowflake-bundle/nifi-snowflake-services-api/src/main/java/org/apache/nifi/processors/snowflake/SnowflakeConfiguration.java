@@ -14,24 +14,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.snowflake;
 
-package org.apache.nifi.snowflake.service.util;
+import java.security.PrivateKey;
 
-public final class AccountIdentifierFormatParameters extends SnowflakeCommonParameters {
+public class SnowflakeConfiguration {
 
     private final String accountUrl;
+    private final String account;
+    private final String username;
+    private final PrivateKey privateKey;
+    private final String role;
 
-    public AccountIdentifierFormatParameters(final String accountUrl,
-            final String organizationName,
-            final String accountName,
-            final String accountLocator,
-            final String cloudRegion,
-            final String cloudType) {
-        super(organizationName, accountName, accountLocator, cloudRegion, cloudType);
+    public SnowflakeConfiguration(String accountUrl, String account, String username, PrivateKey privateKey, String role) {
         this.accountUrl = accountUrl;
+        this.account = account;
+        this.username = username;
+        this.privateKey = privateKey;
+        this.role = role;
     }
 
     public String getAccountUrl() {
         return accountUrl;
+    }
+
+    public String getAccount() {
+        return account;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    public String getRole() {
+        return role;
     }
 }

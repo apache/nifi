@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.snowflake.service.SnowflakeComputingConnectionPool
 org.apache.nifi.snowflake.service.StandardSnowflakeIngestManagerProviderService
+org.apache.nifi.snowflake.service.StandardSnowflakeConfigurationService

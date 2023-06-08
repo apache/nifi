@@ -42,6 +42,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
+import org.apache.nifi.snowflake.service.util.SnowflakeConstants;
 
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -86,16 +87,16 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .description("The format of the connection URL.")
             .allowableValues(ConnectionUrlFormat.class)
             .required(true)
-            .defaultValue(ConnectionUrlFormat.FULL_URL.getValue())
+            .defaultValue(ConnectionUrlFormat.JDBC_URL.getValue())
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(DBCPProperties.DATABASE_URL)
-            .displayName("Snowflake URL")
-            .description("Example connection string: jdbc:snowflake://[account].[region]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX + "/?[connection_params]" +
+            .displayName("Snowflake JDBC URL")
+            .description("Example connection string: jdbc:snowflake://[account].[region]" + SnowflakeConstants.SNOWFLAKE_HOST_SUFFIX + "/?[connection_params]" +
                     " The connection parameters can include db=DATABASE_NAME to avoid using qualified table names such as DATABASE_NAME.PUBLIC.TABLE_NAME")
             .required(true)
-            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.FULL_URL)
+            .dependsOn(CONNECTION_URL_FORMAT, ConnectionUrlFormat.JDBC_URL)
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
@@ -135,6 +136,15 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .description("The password for the Snowflake user.")
             .build();
 
+    public static final PropertyDescriptor SNOWFLAKE_DATABASE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SnowflakeProperties.DATABASE)
+            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
+            .build();
+
+    public static final PropertyDescriptor SNOWFLAKE_SCHEMA = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(SnowflakeProperties.SCHEMA)
+            .build();
+
     public static final PropertyDescriptor SNOWFLAKE_WAREHOUSE = new PropertyDescriptor.Builder()
             .name("warehouse")
             .displayName("Warehouse")
@@ -156,8 +166,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
         props.add(SNOWFLAKE_ACCOUNT_NAME);
         props.add(SNOWFLAKE_USER);
         props.add(SNOWFLAKE_PASSWORD);
-        props.add(SnowflakeProperties.DATABASE);
-        props.add(SnowflakeProperties.SCHEMA);
+        props.add(SNOWFLAKE_DATABASE);
+        props.add(SNOWFLAKE_SCHEMA);
         props.add(SNOWFLAKE_WAREHOUSE);
         props.add(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE);
         props.add(VALIDATION_QUERY);
@@ -245,8 +255,8 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
 
     @Override
     protected Map<String, String> getConnectionProperties(final ConfigurationContext context) {
-        final String database = context.getProperty(SnowflakeProperties.DATABASE).evaluateAttributeExpressions().getValue();
-        final String schema = context.getProperty(SnowflakeProperties.SCHEMA).evaluateAttributeExpressions().getValue();
+        final String database = context.getProperty(SNOWFLAKE_DATABASE).evaluateAttributeExpressions().getValue();
+        final String schema = context.getProperty(SNOWFLAKE_SCHEMA).evaluateAttributeExpressions().getValue();
         final String warehouse = context.getProperty(SNOWFLAKE_WAREHOUSE).evaluateAttributeExpressions().getValue();
 
         final Map<String, String> connectionProperties = super.getConnectionProperties(context);

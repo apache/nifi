@@ -14,24 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.snowflake.service.util;
 
-public final class ConnectionUrlFormatParameters extends SnowflakeCommonParameters {
+public final class SnowflakeConstants {
 
-    private final String jdbcUrl;
+    public static final String SNOWFLAKE_HOST_SUFFIX = ".snowflakecomputing.com";
 
-    public ConnectionUrlFormatParameters(final String jdbcUrl,
-            final String organizationName,
-            final String accountName,
-            final String accountLocator,
-            final String cloudRegion,
-            final String cloudType) {
-        super(organizationName, accountName, accountLocator, cloudRegion, cloudType);
-        this.jdbcUrl = jdbcUrl;
-    }
+    public static final String DEFAULT_SCHEME = "https";
 
-    public String getJdbcUrl() {
-        return jdbcUrl;
+    public static final int DEFAULT_PORT = 443;
+
+    private SnowflakeConstants() {
     }
 }

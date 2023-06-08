@@ -77,11 +77,13 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
 
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SnowflakeProperties.DATABASE)
+            .description("The database to use. If not specified, the default database will be used if it is configured for the connection or the user.")
             .dependsOn(INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED, SnowflakeInternalStageType.TABLE)
             .build();
 
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(SnowflakeProperties.SCHEMA)
+            .description("The schema to use. If not specified, the default schema will be used if it is configured for the connection.")
             .dependsOn(INTERNAL_STAGE_TYPE, SnowflakeInternalStageType.NAMED, SnowflakeInternalStageType.TABLE)
             .build();
 

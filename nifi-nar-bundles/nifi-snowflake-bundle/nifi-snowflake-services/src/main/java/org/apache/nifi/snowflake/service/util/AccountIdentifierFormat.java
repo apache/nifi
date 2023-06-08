@@ -17,16 +17,26 @@
 
 package org.apache.nifi.snowflake.service.util;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.nifi.components.DescribedValue;
 
 public enum AccountIdentifierFormat implements DescribedValue {
-    FULL_URL("full-url", "Full URL", "Provide an account identifier in a single property") {
+    ACCOUNT_URL("full-url", "Account URL", "Provide an account identifier in a single property") {
         @Override
         public String getAccount(final AccountIdentifierFormatParameters parameters) {
-            final String[] hostParts = getHostname(parameters).split("\\.");
+            final String accountUrl = getAccountUrl(parameters);
+            String hostname;
+            try {
+                final URL url = new URL(accountUrl);
+                hostname = url.getHost();
+            } catch (MalformedURLException e) {
+                hostname = accountUrl;
+            }
+            final String[] hostParts = hostname.split("\\.");
             if (hostParts.length == 0) {
                 throw new IllegalArgumentException("Invalid Snowflake host url");
             }
@@ -34,8 +44,8 @@ public enum AccountIdentifierFormat implements DescribedValue {
         }
 
         @Override
-        public String getHostname(final AccountIdentifierFormatParameters parameters) {
-            return Objects.requireNonNull(parameters.getHostUrl());
+        public String getAccountUrl(final AccountIdentifierFormatParameters parameters) {
+            return Objects.requireNonNull(parameters.getAccountUrl());
         }
     },
     ACCOUNT_NAME("account-name", "Account Name", "Provide a Snowflake Account Name") {
@@ -47,8 +57,8 @@ public enum AccountIdentifierFormat implements DescribedValue {
         }
 
         @Override
-        public String getHostname(final AccountIdentifierFormatParameters parameters) {
-            return getAccount(parameters) + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX;
+        public String getAccountUrl(final AccountIdentifierFormatParameters parameters) {
+            return getAccount(parameters) + SnowflakeConstants.SNOWFLAKE_HOST_SUFFIX;
         }
     },
     ACCOUNT_LOCATOR("account-locator", "Account Locator", "Provide a Snowflake Account Locator") {
@@ -58,7 +68,7 @@ public enum AccountIdentifierFormat implements DescribedValue {
         }
 
         @Override
-        public String getHostname(final AccountIdentifierFormatParameters parameters) {
+        public String getAccountUrl(final AccountIdentifierFormatParameters parameters) {
             final String accountLocator = Objects.requireNonNull(parameters.getAccountLocator());
             final String cloudRegion = Objects.requireNonNull(parameters.getCloudRegion());
             final String optCloudType = parameters.getCloudType();
@@ -67,7 +77,7 @@ public enum AccountIdentifierFormat implements DescribedValue {
                     .append(".").append(cloudRegion);
             Optional.ofNullable(optCloudType)
                     .ifPresent(cloudType -> hostBuilder.append(".").append(cloudType));
-            hostBuilder.append(ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX);
+            hostBuilder.append(SnowflakeConstants.SNOWFLAKE_HOST_SUFFIX);
             return hostBuilder.toString();
         }
     };
@@ -98,7 +108,7 @@ public enum AccountIdentifierFormat implements DescribedValue {
     }
 
     public abstract String getAccount(final AccountIdentifierFormatParameters parameters);
-    public abstract String getHostname(final AccountIdentifierFormatParameters parameters);
+    public abstract String getAccountUrl(final AccountIdentifierFormatParameters parameters);
 
     public static AccountIdentifierFormat forName(String provideMethod) {
         return Stream.of(values()).filter(provider -> provider.getValue().equalsIgnoreCase(provideMethod))

@@ -14,24 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.snowflake;
 
-package org.apache.nifi.snowflake.service.util;
+import org.apache.nifi.controller.ControllerService;
 
-public final class ConnectionUrlFormatParameters extends SnowflakeCommonParameters {
+public interface SnowflakeConfigurationService extends ControllerService {
 
-    private final String jdbcUrl;
+    SnowflakeConfiguration getConfiguration();
 
-    public ConnectionUrlFormatParameters(final String jdbcUrl,
-            final String organizationName,
-            final String accountName,
-            final String accountLocator,
-            final String cloudRegion,
-            final String cloudType) {
-        super(organizationName, accountName, accountLocator, cloudRegion, cloudType);
-        this.jdbcUrl = jdbcUrl;
-    }
-
-    public String getJdbcUrl() {
-        return jdbcUrl;
-    }
 }

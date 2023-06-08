@@ -72,7 +72,7 @@ public final class SnowflakeProperties {
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
             .name("database")
             .displayName("Database")
-            .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
+            .description("The database to use by default.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -80,7 +80,7 @@ public final class SnowflakeProperties {
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
-            .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
+            .description("The schema to use by default.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
