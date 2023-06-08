@@ -19,6 +19,7 @@ package org.apache.nifi.processors.compress;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.compress.property.CompressionStrategy;
 import org.apache.nifi.processors.compress.property.FilenameStrategy;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,9 +29,12 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestModifyCompression {
@@ -292,6 +296,12 @@ class TestModifyCompression {
         runner.assertAllFlowFilesTransferred(ModifyCompression.REL_FAILURE, 1);
 
         runner.getFlowFilesForRelationship(ModifyCompression.REL_FAILURE).get(0).assertContentEquals(data);
+
+        final LogMessage errorMessage = runner.getLogger().getErrorMessages().iterator().next();
+        assertNotNull(errorMessage);
+
+        final Optional<Object> exceptionFound = Arrays.stream(errorMessage.getArgs()).filter(Exception.class::isInstance).findFirst();
+        assertTrue(exceptionFound.isPresent());
     }
 
     @Test
