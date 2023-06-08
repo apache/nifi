@@ -225,8 +225,8 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      * to handle streaming encryption operations.
      */
     private class EncryptedContentRepositoryOutputStream extends ContentRepositoryOutputStream {
-        private final CipherOutputStream cipherOutputStream;
-        private final long startingOffset;
+        private CipherOutputStream cipherOutputStream;
+        private long startingOffset;
 
         EncryptedContentRepositoryOutputStream(final StandardContentClaim scc,
                                                final ByteCountingOutputStream byteCountingOutputStream,
@@ -296,14 +296,31 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         public synchronized void close() throws IOException {
             closed = true;
 
+            doFinal();
+            super.close();
+        }
+
+        private void doFinal() throws IOException {
             // Always flush and close (close triggers cipher.doFinal())
             cipherOutputStream.flush();
             cipherOutputStream.close();
 
             // Add the additional bytes written to the scc.length
             scc.setLength(bcos.getBytesWritten() - startingOffset);
+        }
 
-            super.close();
+        @Override
+        public synchronized ContentClaim newContentClaim() throws IOException {
+            doFinal();
+
+            startingOffset = bcos.getBytesWritten();
+            scc = new StandardContentClaim(scc.getResourceClaim(), startingOffset);
+
+            final String newRecordId = getRecordId(scc);
+            this.cipherOutputStream = (CipherOutputStream) repositoryEncryptor.encrypt(new NonCloseableOutputStream(bcos), newRecordId, keyId);
+
+            incrementClaimaintCount(scc);
+            return scc;
         }
     }
 }
