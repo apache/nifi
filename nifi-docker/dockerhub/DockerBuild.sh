@@ -27,7 +27,7 @@ DISTRO_PATH="${5:-}"
 DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
 NIFI_IMAGE_VERSION="$(echo "${DOCKER_IMAGE}" | cut -d : -f 2)"
 if [ -z "${DISTRO_PATH}" ]; then
-  DISTRO_PATH="${NIFI_VERSION}"
+  DISTRO_PATH="${NIFI_IMAGE_VERSION}"
 fi
 
 echo "Building NiFi Image: '${DOCKER_IMAGE}' Version: '${NIFI_IMAGE_VERSION}' Mirror: '${MIRROR}' Base: '${BASE} Path: '${DISTRO_PATH}' User/Group: '${DOCKER_UID}/${DOCKER_GID}'"
