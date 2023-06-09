@@ -20,6 +20,7 @@ package org.apache.nifi.stateless.config;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 
 import javax.net.ssl.SSLContext;
 
@@ -49,6 +50,6 @@ public class SslConfigurationUtil {
             sslContextDefinition.getTruststoreFile(),
             sslContextDefinition.getTruststorePass(),
             sslContextDefinition.getTruststoreType(),
-            TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+            TlsPlatform.getLatestProtocol());
     }
 }

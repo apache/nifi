@@ -20,10 +20,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -49,7 +46,7 @@ public class StandardTlsConfigurationTest {
 
     private static final String TRUST_STORE_TYPE = KeystoreType.JKS.getType();
 
-    private static final String PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
+    private static final String PROTOCOL = TlsPlatform.getLatestProtocol();
 
     private static TlsConfiguration tlsConfiguration;
 
@@ -235,11 +232,11 @@ public class StandardTlsConfigurationTest {
                 TRUST_STORE_PATH,
                 TRUST_STORE_PASSWORD,
                 TRUST_STORE_TYPE,
-                TlsConfiguration.TLS_PROTOCOL
+                StandardTlsConfiguration.TLS_PROTOCOL
         );
 
         final String[] enabledProtocols = configuration.getEnabledProtocols();
-        assertArrayEquals(TlsConfiguration.getCurrentSupportedTlsProtocolVersions(), enabledProtocols);
+        assertArrayEquals(TlsPlatform.getPreferredProtocols().toArray(new String[0]), enabledProtocols);
     }
 
     @Test
@@ -252,14 +249,11 @@ public class StandardTlsConfigurationTest {
                 TRUST_STORE_PATH,
                 TRUST_STORE_PASSWORD,
                 TRUST_STORE_TYPE,
-                TlsConfiguration.SSL_PROTOCOL
+                StandardTlsConfiguration.SSL_PROTOCOL
         );
 
         final String[] enabledProtocols = configuration.getEnabledProtocols();
 
-        final List<String> expectedProtocols = new ArrayList<>();
-        expectedProtocols.addAll(Arrays.asList(TlsConfiguration.LEGACY_TLS_PROTOCOL_VERSIONS));
-        expectedProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
-        assertArrayEquals(expectedProtocols.toArray(), enabledProtocols);
+        assertArrayEquals(TlsPlatform.getSupportedProtocols().toArray(new String[0]), enabledProtocols);
     }
 }

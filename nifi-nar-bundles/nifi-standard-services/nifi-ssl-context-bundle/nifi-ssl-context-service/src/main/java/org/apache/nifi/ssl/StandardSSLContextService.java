@@ -63,6 +63,10 @@ import java.util.Map;
         + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
+    public static final String TLS_PROTOCOL = "TLS";
+
+    public static final String SSL_PROTOCOL = "SSL";
+
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
@@ -120,7 +124,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
+            .defaultValue(TLS_PROTOCOL)
             .required(false)
             .allowableValues(getProtocolAllowableValues())
             .description("SSL or TLS Protocol Version for encrypted connections. Supported versions include insecure legacy options and depend on the specific version of Java used.")
@@ -129,6 +133,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
 
     private static final List<PropertyDescriptor> properties;
+
     protected ConfigurationContext configContext;
     private boolean isValidated;
 
@@ -562,8 +567,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     private static AllowableValue[] getProtocolAllowableValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>();
 
-        allowableValues.add(new AllowableValue(TlsConfiguration.SSL_PROTOCOL, TlsConfiguration.SSL_PROTOCOL, "Negotiate latest SSL or TLS protocol version based on platform supported versions"));
-        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest TLS protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(SSL_PROTOCOL, SSL_PROTOCOL, "Negotiate latest SSL or TLS protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(TLS_PROTOCOL, TLS_PROTOCOL, "Negotiate latest TLS protocol version based on platform supported versions"));
 
         for (final String supportedProtocol : TlsPlatform.getSupportedProtocols()) {
             final String description = String.format("Require %s protocol version", supportedProtocol);

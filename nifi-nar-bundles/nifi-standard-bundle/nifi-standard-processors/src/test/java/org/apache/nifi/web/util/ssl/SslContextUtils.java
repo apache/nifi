@@ -44,8 +44,7 @@ public class SslContextUtils {
                     TLS_CONFIGURATION.getKeystoreType().getType(),
                     TLS_CONFIGURATION.getTruststorePath(),
                     TLS_CONFIGURATION.getTruststorePassword(),
-                    TLS_CONFIGURATION.getTruststoreType().getType(),
-                    TlsConfiguration.TLS_1_2_PROTOCOL
+                    TLS_CONFIGURATION.getTruststoreType().getType()
             );
 
             TRUSTSTORE_TLS_CONFIGURATION = new StandardTlsConfiguration(
@@ -55,8 +54,7 @@ public class SslContextUtils {
                     null,
                     TLS_CONFIGURATION.getTruststorePath(),
                     TLS_CONFIGURATION.getTruststorePassword(),
-                    TLS_CONFIGURATION.getTruststoreType().getType(),
-                    TlsConfiguration.TLS_1_2_PROTOCOL
+                    TLS_CONFIGURATION.getTruststoreType().getType()
             );
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to create TLS configuration for testing", e);

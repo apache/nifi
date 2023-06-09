@@ -152,7 +152,7 @@ public class HttpNotificationService extends AbstractNotificationService {
         supportedProperties.add(PROP_KEYSTORE_PASSWORD);
         supportedProperties.add(PROP_KEYSTORE_TYPE);
         supportedProperties.add(PROP_KEY_PASSWORD);
-
+        supportedProperties.add(SSL_ALGORITHM);
     }
 
     @Override
@@ -224,7 +224,8 @@ public class HttpNotificationService extends AbstractNotificationService {
         String truststorePath = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue();
         String truststorePassword = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue();
         String truststoreType = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue();
-        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, TlsConfiguration.TLS_PROTOCOL);
+        String protocol = context.getProperty(HttpNotificationService.SSL_ALGORITHM).getValue();
+        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, protocol);
     }
 
     @Override

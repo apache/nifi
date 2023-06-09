@@ -24,8 +24,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import org.apache.nifi.logging.NiFiLog;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,8 +65,8 @@ public final class SocketUtils {
              */
             Socket tempSocket = sslContext.getSocketFactory().createSocket(address.getHostName(), address.getPort());
             final SSLSocket sslSocket = (SSLSocket) tempSocket;
-            // Enforce custom protocols on socket
-            sslSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
+            // Set Preferred TLS Protocol Versions
+            sslSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
             socket = sslSocket;
         }
 
@@ -128,8 +128,8 @@ public final class SocketUtils {
             serverSocket = sslContext.getServerSocketFactory().createServerSocket(port);
             final SSLServerSocket sslServerSocket = (SSLServerSocket) serverSocket;
             sslServerSocket.setNeedClientAuth(config.getNeedClientAuth());
-            // Enforce custom protocols on socket
-            sslServerSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
+            // Set Preferred TLS Protocol Versions
+            sslServerSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
         }
 
         if (config.getSocketTimeout() != null) {
@@ -145,29 +145,6 @@ public final class SocketUtils {
         }
 
         return serverSocket;
-    }
-
-    /**
-     * Returns a {@link SSLServerSocket} for the given port and configuration.
-     *
-     * @param port                      the port for the socket
-     * @param serverSocketConfiguration the {@link ServerSocketConfiguration}
-     * @return the SSL server socket
-     * @throws TlsException if there was a problem creating the socket
-     */
-    public static SSLServerSocket createSSLServerSocket(final int port, final ServerSocketConfiguration serverSocketConfiguration) throws TlsException {
-        try {
-            ServerSocket serverSocket = createServerSocket(port, serverSocketConfiguration);
-            if (serverSocket instanceof SSLServerSocket) {
-                return ((SSLServerSocket) serverSocket);
-            } else {
-                throw new TlsException("Created server socket does not support SSL/TLS");
-            }
-        } catch (IOException e) {
-            logger.error("Encountered an error creating SSLServerSocket: {}", e.getLocalizedMessage());
-            throw new TlsException("Error creating SSLServerSocket", e);
-        }
-
     }
 
     public static void closeQuietly(final Socket socket) {

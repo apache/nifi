@@ -85,8 +85,7 @@ public class KeyStoreUtilsTest {
                 keyStoreType,
                 trustStoreFile.getAbsolutePath(),
                 password,
-                keyStoreType,
-                TlsConfiguration.TLS_PROTOCOL
+                keyStoreType
         );
         final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(requested, 1, new String[] { HOSTNAME });
         final File keystoreFile = new File(configuration.getKeystorePath());

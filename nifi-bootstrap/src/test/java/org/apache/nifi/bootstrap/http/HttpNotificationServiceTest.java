@@ -56,6 +56,7 @@ import static org.apache.nifi.bootstrap.notification.http.HttpNotificationServic
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.PROP_TRUSTSTORE_TYPE;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_SUBJECT_KEY;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_TYPE_KEY;
+import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.SSL_ALGORITHM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -149,6 +150,7 @@ public class HttpNotificationServiceTest {
         properties.put(PROP_TRUSTSTORE, createPropertyValue(tlsConfiguration.getTruststorePath()));
         properties.put(PROP_TRUSTSTORE_PASSWORD, createPropertyValue(tlsConfiguration.getTruststorePassword()));
         properties.put(PROP_TRUSTSTORE_TYPE, createPropertyValue(tlsConfiguration.getTruststoreType().getType()));
+        properties.put(SSL_ALGORITHM, createPropertyValue(tlsConfiguration.getProtocol()));
 
         final HttpNotificationService service = getHttpNotificationService(properties);
         service.notify(getNotificationContext(), NotificationType.NIFI_STARTED, SUBJECT, MESSAGE);

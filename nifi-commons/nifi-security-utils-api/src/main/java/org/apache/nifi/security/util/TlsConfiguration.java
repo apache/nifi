@@ -16,29 +16,12 @@
  */
 package org.apache.nifi.security.util;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * This interface serves as an immutable domain object (acting as an internal DTO) for
  * the various keystore and truststore configuration settings necessary for building
  * {@link javax.net.ssl.SSLContext}s.
  */
 public interface TlsConfiguration {
-    String SSL_PROTOCOL = "SSL";
-    String TLS_PROTOCOL = "TLS";
-
-    String TLS_1_0_PROTOCOL = "TLSv1";
-    String TLS_1_1_PROTOCOL = "TLSv1.1";
-    String TLS_1_2_PROTOCOL = "TLSv1.2";
-    String[] LEGACY_TLS_PROTOCOL_VERSIONS = new String[]{TLS_1_0_PROTOCOL, TLS_1_1_PROTOCOL};
-
-    String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = TLS_1_2_PROTOCOL;
-    String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
-    String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
-    String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
-
-
     /**
      * Returns {@code true} if the provided TlsConfiguration is {@code null} or <em>empty</em>
      * (i.e. neither any of the keystore nor truststore properties are populated).
@@ -171,64 +154,4 @@ public interface TlsConfiguration {
      * @return Enabled TLS Protocols
      */
     String[] getEnabledProtocols();
-
-    /**
-     * Returns the JVM Java major version based on the System properties (e.g. {@code JVM 1.8.0.231} -> {code 8}).
-     *
-     * @return the Java major version
-     */
-    static int getJavaVersion() {
-        String version = System.getProperty("java.version");
-        return parseJavaVersion(version);
-    }
-
-    /**
-     * Returns the major version parsed from the provided Java version string (e.g. {@code "1.8.0.231"} -> {@code 8}).
-     *
-     * @param version the Java version string
-     * @return the major version as an int
-     */
-    static int parseJavaVersion(String version) {
-        String majorVersion;
-        if (version.startsWith("1.")) {
-            majorVersion = version.substring(2, 3);
-        } else {
-            Pattern majorVersion9PlusPattern = Pattern.compile("(\\d+).*");
-            Matcher m = majorVersion9PlusPattern.matcher(version);
-            if (m.find()) {
-                majorVersion = m.group(1);
-            } else {
-                throw new IllegalArgumentException("Could not detect major version of " + version);
-            }
-        }
-        return Integer.parseInt(majorVersion);
-    }
-
-    /**
-     * Returns a {@code String[]} of supported TLS protocol versions based on the current Java platform version.
-     *
-     * @return the supported TLS protocol version(s)
-     */
-    static String[] getCurrentSupportedTlsProtocolVersions() {
-        int javaMajorVersion = getJavaVersion();
-        if (javaMajorVersion < 11) {
-            return JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS;
-        } else {
-            return JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS;
-        }
-    }
-
-    /**
-     * Returns the highest supported TLS protocol version based on the current Java platform version.
-     *
-     * @return the TLS protocol (e.g. {@code "TLSv1.2"})
-     */
-    static String getHighestCurrentSupportedTlsProtocolVersion() {
-        int javaMajorVersion = getJavaVersion();
-        if (javaMajorVersion < 11) {
-            return JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION;
-        } else {
-            return JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION;
-        }
-    }
 }

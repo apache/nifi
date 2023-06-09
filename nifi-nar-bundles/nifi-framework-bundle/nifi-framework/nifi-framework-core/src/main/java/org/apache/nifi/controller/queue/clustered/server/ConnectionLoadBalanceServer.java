@@ -39,7 +39,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,8 +119,8 @@ public class ConnectionLoadBalanceServer {
         } else {
             final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(port, 50, inetAddress);
             serverSocket.setNeedClientAuth(true);
-            // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
+            // Set Preferred TLS Protocol Versions
+            serverSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
             return serverSocket;
         }
     }

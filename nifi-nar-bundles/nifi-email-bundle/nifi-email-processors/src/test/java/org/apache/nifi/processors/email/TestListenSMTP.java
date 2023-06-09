@@ -41,7 +41,6 @@ import java.net.Socket;
 import java.security.GeneralSecurityException;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -66,8 +65,7 @@ public class TestListenSMTP {
                 testTlsConfiguration.getKeystoreType(),
                 testTlsConfiguration.getTruststorePath(),
                 testTlsConfiguration.getTruststorePassword(),
-                testTlsConfiguration.getTruststoreType(),
-                TlsConfiguration.TLS_1_2_PROTOCOL
+                testTlsConfiguration.getTruststoreType()
         );
 
         final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
@@ -117,28 +115,6 @@ public class TestListenSMTP {
 
         runner.shutdown();
         runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, MESSAGES);
-    }
-
-    @Test
-    public void testListenSMTPwithTLSLegacyProtocolException() throws Exception {
-        final TestRunner runner = newTestRunner();
-
-        configureSslContextService(runner);
-        runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, SSL_SERVICE_IDENTIFIER);
-        runner.setProperty(ListenSMTP.CLIENT_AUTH, ClientAuth.NONE.name());
-        runner.assertValid();
-
-        runner.run(1, false);
-
-        final int port = ((ListenSMTP) runner.getProcessor()).getListeningPort();
-        assertPortListening(port);
-
-        final Session session = getSessionTls(port, TlsConfiguration.TLS_1_0_PROTOCOL);
-        final MessagingException exception = assertThrows(MessagingException.class, () -> sendMessage(session, 0));
-        assertEquals(exception.getMessage(), "Could not convert socket to TLS");
-
-        runner.shutdown();
-        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, 0);
     }
 
     @Test

@@ -55,7 +55,7 @@ import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ServerProtocol;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -381,8 +381,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         if (sslContext != null) {
             final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(socketPort);
             serverSocket.setNeedClientAuth(true);
-            // Enforce custom protocols on socket
-            serverSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
+            // Set Preferred TLS Protocol Versions
+            serverSocket.setEnabledProtocols(TlsPlatform.getPreferredProtocols().toArray(new String[0]));
             return serverSocket;
         } else {
             return new ServerSocket(socketPort);

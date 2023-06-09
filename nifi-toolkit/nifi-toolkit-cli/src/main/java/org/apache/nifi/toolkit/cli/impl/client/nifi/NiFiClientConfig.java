@@ -26,7 +26,7 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.security.ssl.StandardKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 
 /**
  * Configuration for a NiFiClient.
@@ -58,7 +58,7 @@ public class NiFiClientConfig {
         this.truststoreFilename = builder.truststoreFilename;
         this.truststorePass = builder.truststorePass;
         this.truststoreType = builder.truststoreType;
-        this.protocol = builder.protocol == null ? TlsConfiguration.TLS_PROTOCOL : builder.protocol;
+        this.protocol = builder.protocol == null ? TlsPlatform.getLatestProtocol() : builder.protocol;
         this.hostnameVerifier = builder.hostnameVerifier;
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
