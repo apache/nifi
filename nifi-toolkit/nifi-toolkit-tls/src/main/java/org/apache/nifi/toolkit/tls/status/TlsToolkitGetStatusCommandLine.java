@@ -23,6 +23,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
@@ -45,7 +46,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
     public static final String TRUSTSTORE_PASSWORD_ARG = "trustStorePassword";
     public static final String PROTOCOL_ARG = "protocol";
 
-    public static final String DEFAULT_PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
+    public static final String DEFAULT_PROTOCOL = TlsPlatform.getLatestProtocol();
     public static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
     public static final String DESCRIPTION = "Checks the status of an HTTPS endpoint by making a GET request using a supplied keystore and truststore.";

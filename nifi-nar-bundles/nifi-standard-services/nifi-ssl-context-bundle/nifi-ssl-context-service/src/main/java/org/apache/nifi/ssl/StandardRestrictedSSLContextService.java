@@ -24,7 +24,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 
 /**
@@ -43,7 +42,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     public static final PropertyDescriptor RESTRICTED_SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
+            .defaultValue(TLS_PROTOCOL)
             .required(false)
             .allowableValues(getRestrictedProtocolAllowableValues())
             .description("TLS Protocol Version for encrypted connections. Supported versions depend on the specific version of Java used.")
@@ -79,7 +78,7 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     private static AllowableValue[] getRestrictedProtocolAllowableValues() {
         final List<AllowableValue> allowableValues = new ArrayList<>();
 
-        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(TLS_PROTOCOL, TLS_PROTOCOL, "Negotiate latest protocol version based on platform supported versions"));
 
         for (final String preferredProtocol : TlsPlatform.getPreferredProtocols()) {
             final String description = String.format("Require %s protocol version", preferredProtocol);

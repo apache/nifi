@@ -22,7 +22,6 @@ import org.apache.nifi.util.StringUtils;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
@@ -35,7 +34,10 @@ import java.net.URL;
  * building {@link javax.net.ssl.SSLContext}s.
  */
 public class StandardTlsConfiguration implements TlsConfiguration {
-    private static final String TLS_PROTOCOL_VERSION = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
+    protected static final String SSL_PROTOCOL = "SSL";
+    protected static final String TLS_PROTOCOL = "TLS";
+
+    private static final String TLS_PROTOCOL_VERSION = TlsPlatform.getLatestProtocol();
     private static final String MASKED_PASSWORD_LOG = "********";
     private static final String NULL_LOG = "null";
 
@@ -419,10 +421,9 @@ public class StandardTlsConfiguration implements TlsConfiguration {
 
         final String configuredProtocol = getProtocol();
         if (TLS_PROTOCOL.equals(configuredProtocol)) {
-            enabledProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+            enabledProtocols.addAll(TlsPlatform.getPreferredProtocols());
         } else if (SSL_PROTOCOL.equals(configuredProtocol)) {
-            enabledProtocols.addAll(Arrays.asList(LEGACY_TLS_PROTOCOL_VERSIONS));
-            enabledProtocols.addAll(Arrays.asList(TlsConfiguration.getCurrentSupportedTlsProtocolVersions()));
+            enabledProtocols.addAll(TlsPlatform.getSupportedProtocols());
         } else if (configuredProtocol != null) {
             enabledProtocols.add(configuredProtocol);
         }
