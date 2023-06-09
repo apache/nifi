@@ -385,7 +385,7 @@ public class SFTPTransfer implements FileTransfer {
      * @return Included file status
      */
     private boolean isIncludedFile(final RemoteResourceInfo remoteResourceInfo, final boolean symlinksEnabled) {
-        return remoteResourceInfo.isRegularFile() || (symlinksEnabled && isSymlink(remoteResourceInfo));
+        return remoteResourceInfo.isRegularFile() || (remoteResourceInfo.getAttributes().getMode().getType() == FileMode.Type.UNKNOWN) || (symlinksEnabled && isSymlink(remoteResourceInfo));
     }
 
     /**

@@ -16,9 +16,15 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import net.schmizz.sshj.sftp.FileAttributes;
+import net.schmizz.sshj.sftp.FileMode;
+import net.schmizz.sshj.sftp.PathComponents;
+import net.schmizz.sshj.sftp.RemoteResourceFilter;
+import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -28,10 +34,15 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -41,6 +52,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestSFTPTransfer {
+    private static final int FILE_MASK_UNKNOWN_777 = Integer.parseInt("000777", 8);
+    private static final int FILE_MASK_REGULAR_777 = Integer.parseInt("100777", 8);
 
     private SFTPTransfer createSftpTransfer(ProcessContext processContext, SFTPClient sftpClient) {
         final ComponentLog componentLog = mock(ComponentLog.class);
@@ -230,5 +243,41 @@ public class TestSFTPTransfer {
         // stat should not be called.
         verify(sftpClient, times(0)).stat(eq("/dir1/dir2/dir3"));
         verify(sftpClient).mkdir(eq("/dir1/dir2/dir3")); // dir3 was created blindly.
+    }
+
+
+    private static final PropertyValue BOOLEAN_FALSE_PROPERTY_VALUE = new MockPropertyValue(Boolean.FALSE.toString());
+    private static final PropertyValue BOOLEAN_TRUE_PROPERTY_VALUE = new MockPropertyValue(Boolean.TRUE.toString());
+
+    @Test
+    public void testFileTypeUnknown() throws IOException {
+        final ProcessContext processContext = mock(ProcessContext.class);
+        when(processContext.getProperty(eq(FileTransfer.REMOTE_PATH))).thenReturn(new MockPropertyValue("."));
+        when(processContext.getProperty(eq(FileTransfer.IGNORE_DOTTED_FILES))).thenReturn(BOOLEAN_TRUE_PROPERTY_VALUE);
+        when(processContext.getProperty(eq(FileTransfer.RECURSIVE_SEARCH))).thenReturn(BOOLEAN_FALSE_PROPERTY_VALUE);
+        when(processContext.getProperty(eq(FileTransfer.FOLLOW_SYMLINK))).thenReturn(BOOLEAN_FALSE_PROPERTY_VALUE);
+        when(processContext.getProperty(eq(FileTransfer.FILE_FILTER_REGEX))).thenReturn(new MockPropertyValue(".*"));
+        when(processContext.getProperty(eq(FileTransfer.PATH_FILTER_REGEX))).thenReturn(new MockPropertyValue(".*"));
+        when(processContext.getProperty(eq(FileTransfer.REMOTE_PATH))).thenReturn(new MockPropertyValue("."));
+
+        try (SFTPClient sftpClient = mock(SFTPClient.class)) {
+            when(sftpClient.ls(any(), any())).then(invocation -> {
+                final Map<String, String> extended = new LinkedHashMap<>();
+                final List<RemoteResourceInfo> list = new ArrayList<>();
+                list.add(new RemoteResourceInfo(
+                        new PathComponents("./", "unknown.txt", "/"),
+                        new FileAttributes(FileAttributes.Flag.MODE.get(), 0, 0, 0, new FileMode(FILE_MASK_UNKNOWN_777), 0, 0, extended)));
+                list.add(new RemoteResourceInfo(
+                        new PathComponents("./", "regular.txt", "/"),
+                        new FileAttributes(FileAttributes.Flag.MODE.get(), 0, 0, 0, new FileMode(FILE_MASK_REGULAR_777), 0, 0, extended)));
+                final RemoteResourceFilter filter = invocation.getArgument(1, RemoteResourceFilter.class);
+                list.forEach(filter::accept);
+                return list;
+            });
+
+            final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
+            final List<FileInfo> listing = sftpTransfer.getListing(false);
+            assertEquals(2, listing.size());
+        }
     }
 }
