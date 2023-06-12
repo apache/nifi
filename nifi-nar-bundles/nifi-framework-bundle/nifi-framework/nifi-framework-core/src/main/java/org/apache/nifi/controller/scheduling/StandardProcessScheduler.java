@@ -436,8 +436,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         LOG.debug("Terminating {}", procNode);
 
-        final int tasksTerminated = procNode.terminate();
         state.terminate();
+        final int tasksTerminated = procNode.terminate();
 
         getSchedulingAgent(procNode).incrementMaxThreadCount(tasksTerminated);
 
