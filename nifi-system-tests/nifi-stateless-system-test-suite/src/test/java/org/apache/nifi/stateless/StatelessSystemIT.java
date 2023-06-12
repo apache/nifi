@@ -120,7 +120,16 @@ public class StatelessSystemIT {
             public String getStatusTaskInterval() {
                 return null;
             }
+
+            @Override
+            public String getComponentEnableTimeout() {
+                return StatelessSystemIT.this.getComponentEnableTimeout();
+            }
         };
+    }
+
+    protected String getComponentEnableTimeout() {
+        return "10 sec";
     }
 
     protected Optional<File> getContentRepoDirectory() {
