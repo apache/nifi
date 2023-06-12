@@ -71,7 +71,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>jakarta.activation</groupId>
             <artifactId>jakarta.activation-api</artifactId>
-            <version>1.2.2</version>
+            <version>2.0.1</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
