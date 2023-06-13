@@ -423,6 +423,11 @@ public class MergeContent extends BinFiles {
     }
 
     @Override
+    protected FlowFile preprocessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
+        return flowFile;
+    }
+
+    @Override
     protected String getGroupId(final ProcessContext context, final FlowFile flowFile, final ProcessSession session) {
         final String correlationAttributeName = context.getProperty(CORRELATION_ATTRIBUTE_NAME)
                 .evaluateAttributeExpressions(flowFile).getValue();
