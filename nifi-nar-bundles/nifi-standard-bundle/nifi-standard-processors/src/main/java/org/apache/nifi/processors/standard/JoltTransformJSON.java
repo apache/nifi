@@ -31,9 +31,11 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -51,11 +53,12 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
+import java.io.BufferedReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,13 +67,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr","cardinality","sort"})
+@Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@WritesAttribute(attribute = "mime.type",description = "Always set to application/json")
+@WritesAttribute(attribute = "mime.type", description = "Always set to application/json")
 @CapabilityDescription("Applies a list of Jolt specifications to the flowfile JSON payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
@@ -99,22 +103,14 @@ public class JoltTransformJSON extends AbstractProcessor {
 
     public static final PropertyDescriptor JOLT_SPEC = new PropertyDescriptor.Builder()
             .name("jolt-spec")
-            .displayName("Jolt Specification")
-            .description("Jolt Specification for transform of JSON data. Only one of 'Jolt Specification' or 'Path To Jolt Specification' may be used. "
-                    + "This value is ignored if the Jolt Sort Transformation is selected.")
+            .displayName("JOLT Specification")
+            .description("JOLT Specification for transformation of JSON data. The value for this property may be the text of a JOLT specification "
+                    + "or the path to a file containing a JOLT specification. 'Jolt Specification' must be set, or "
+                    + "the value is ignored if the JOLT Sort Transformation is selected.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .required(false)
-            .build();
-
-    public static final PropertyDescriptor JOLT_SPEC_FILE = new PropertyDescriptor.Builder()
-            .name("jolt-spec-file")
-            .displayName("Path To Jolt Specification")
-            .description("Path to location of a JOLT specification file. Only one of 'Jolt Specification' or 'Path To Jolt Specification' may be used. "
-                    + "This value is ignored if the Jolt Sort Transformation is selected.")
-            .required(false)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor CUSTOM_CLASS = new PropertyDescriptor.Builder()
@@ -141,7 +137,7 @@ public class JoltTransformJSON extends AbstractProcessor {
     static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Transform Cache Size")
             .description("Compiling a Jolt Transform can be fairly expensive. Ideally, this will be done only once. However, if the Expression Language is used in the transform, we may need "
-                + "a new Transform for each FlowFile. This value controls how many of those Transforms we cache in memory in order to avoid having to compile the Transform each time.")
+                    + "a new Transform for each FlowFile. This value controls how many of those Transforms we cache in memory in order to avoid having to compile the Transform each time.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("1")
@@ -184,7 +180,6 @@ public class JoltTransformJSON extends AbstractProcessor {
         _properties.add(CUSTOM_CLASS);
         _properties.add(MODULES);
         _properties.add(JOLT_SPEC);
-        _properties.add(JOLT_SPEC_FILE);
         _properties.add(TRANSFORM_CACHE_SIZE);
         _properties.add(PRETTY_PRINT);
         properties = Collections.unmodifiableList(_properties);
@@ -210,15 +205,12 @@ public class JoltTransformJSON extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
-        final String modulePath = validationContext.getProperty(MODULES).isSet()? validationContext.getProperty(MODULES).getValue() : null;
+        final String modulePath = validationContext.getProperty(MODULES).isSet() ? validationContext.getProperty(MODULES).getValue() : null;
         final String joltSpecBody = validationContext.getProperty(JOLT_SPEC).getValue();
-        final String joltSpecFile = validationContext.getProperty(JOLT_SPEC_FILE).getValue();
 
-        if (StringUtils.isEmpty(joltSpecBody) == StringUtils.isEmpty(joltSpecFile)) {
-            if(!SORTR.getValue().equals(transform)) {
-                results.add(new ValidationResult.Builder().subject("Spec Body or Spec File").valid(false).explanation(
-                        "exactly one of 'Jolt Specification' or 'Path To Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
-            }
+        if (StringUtils.isEmpty(joltSpecBody) && !SORTR.getValue().equals(transform)) {
+            results.add(new ValidationResult.Builder().subject(JOLT_SPEC.getDisplayName()).valid(false).explanation(
+                    "'Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
         } else {
             final ClassLoader customClassLoader;
 
@@ -226,22 +218,18 @@ public class JoltTransformJSON extends AbstractProcessor {
                 if (modulePath != null && !validationContext.isExpressionLanguagePresent(modulePath)) {
                     customClassLoader = ClassLoaderUtils.getCustomClassLoader(modulePath, this.getClass().getClassLoader(), getJarFilenameFilter());
                 } else {
-                    customClassLoader =  this.getClass().getClassLoader();
+                    customClassLoader = this.getClass().getClassLoader();
                 }
 
                 String specValue = validationContext.getProperty(JOLT_SPEC).getValue();
-                final boolean useBody = !StringUtils.isEmpty(specValue);
-                if (!useBody) {
-                    specValue = validationContext.getProperty(JOLT_SPEC_FILE).getValue();
-                }
-                final PropertyDescriptor pd = useBody ? JOLT_SPEC : JOLT_SPEC_FILE;
+
                 final boolean elPresent = validationContext.isExpressionLanguagePresent(specValue);
 
                 if (elPresent) {
                     final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue, true);
                     if (!StringUtils.isEmpty(invalidExpressionMsg)) {
                         results.add(new ValidationResult.Builder().valid(false)
-                                .subject(pd.getDisplayName())
+                                .subject(JOLT_SPEC.getDisplayName())
                                 .explanation("Invalid Expression Language: " + invalidExpressionMsg)
                                 .build());
                     }
@@ -256,13 +244,8 @@ public class JoltTransformJSON extends AbstractProcessor {
                 } else {
                     if (!SORTR.getValue().equals(transform)) {
 
-                        //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
-                        final String content;
-                        if(useBody) {
-                            content = specValue;
-                        } else {
-                            content = new String(Files.readAllBytes(Paths.get(specValue)), DEFAULT_CHARSET);
-                        }
+                        ///for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
+                        final String content = readTransform(validationContext.getProperty(JOLT_SPEC));
                         final Object specJson = JsonUtils.jsonToObject(content.replaceAll("\\$\\{", "\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
 
                         if (CUSTOMR.getValue().equals(transform)) {
@@ -281,7 +264,7 @@ public class JoltTransformJSON extends AbstractProcessor {
                 }
             } catch (final Exception e) {
                 getLogger().error("processor is not valid: ", e);
-                String message = "Specification not valid for the selected transformation." ;
+                String message = "Specification not valid for the selected transformation.";
                 results.add(new ValidationResult.Builder().valid(false)
                         .explanation(message)
                         .build());
@@ -318,7 +301,7 @@ public class JoltTransformJSON extends AbstractProcessor {
                 Thread.currentThread().setContextClassLoader(customClassLoader);
             }
 
-            final Object transformedJson = TransformUtils.transform(transform,inputJson);
+            final Object transformedJson = TransformUtils.transform(transform, inputJson);
             jsonString = context.getProperty(PRETTY_PRINT).asBoolean() ? JsonUtils.toPrettyJsonString(transformedJson) : JsonUtils.toJsonString(transformedJson);
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", original, ex.toString(), ex);
@@ -335,7 +318,7 @@ public class JoltTransformJSON extends AbstractProcessor {
         final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
         transformed = session.putAttribute(transformed, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(transformed, REL_SUCCESS);
-        session.getProvenanceReporter().modifyContent(transformed,"Modified With " + transformType ,stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         logger.info("Transformed {}", original);
     }
 
@@ -343,18 +326,15 @@ public class JoltTransformJSON extends AbstractProcessor {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
-        } else if (context.getProperty(JOLT_SPEC_FILE).isSet()) {
-            final String specLocation = context.getProperty(JOLT_SPEC_FILE).evaluateAttributeExpressions(flowFile).getValue();
-            specString = Optional.of(new String(Files.readAllBytes(Paths.get(specLocation)), DEFAULT_CHARSET));
         } else if (SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
             specString = Optional.empty();
         } else {
-            throw new IllegalArgumentException("Exactly one of 'Jolt Specification' or 'Path To Jolt Specification' must be set, or the Transformation must be Sort.");
+            throw new IllegalArgumentException("'Jolt Specification' must be set, or the Transformation must be Sort.");
         }
 
         return transformCache.get(specString, currString -> {
             try {
-                return createTransform(context, currString.orElse(null), flowFile);
+                return createTransform(context, flowFile);
             } catch (Exception e) {
                 getLogger().error("Problem getting transform", e);
             }
@@ -384,11 +364,11 @@ public class JoltTransformJSON extends AbstractProcessor {
         }
     }
 
-    private JoltTransform createTransform(final ProcessContext context, final String specString, final FlowFile flowFile) throws Exception {
+    private JoltTransform createTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
         final Object specJson;
-        if ((context.getProperty(JOLT_SPEC).isSet() || context.getProperty(JOLT_SPEC_FILE).isSet())
-                && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
-            specJson = JsonUtils.jsonToObject(specString, DEFAULT_CHARSET);
+        if ((context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue()))) {
+            final String resolvedSpec = readTransform(context.getProperty(JOLT_SPEC), flowFile);
+            specJson = JsonUtils.jsonToObject(resolvedSpec, DEFAULT_CHARSET);
         } else {
             specJson = null;
         }
@@ -400,7 +380,28 @@ public class JoltTransformJSON extends AbstractProcessor {
         }
     }
 
-    protected FilenameFilter getJarFilenameFilter(){
+    private String readTransform(final PropertyValue propertyValue, final FlowFile flowFile) {
+        final String transform;
+
+        if (propertyValue.isExpressionLanguagePresent()) {
+            transform = propertyValue.evaluateAttributeExpressions(flowFile).getValue();
+        } else {
+            transform = readTransform(propertyValue);
+        }
+
+        return transform;
+    }
+
+    private String readTransform(final PropertyValue propertyValue) {
+        final ResourceReference resourceReference = propertyValue.asResource();
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(resourceReference.read()))) {
+            return reader.lines().collect(Collectors.joining());
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Read JOLT Transform failed", e);
+        }
+    }
+
+    protected FilenameFilter getJarFilenameFilter() {
         return (dir, name) -> (name != null && name.endsWith(".jar"));
     }
 }

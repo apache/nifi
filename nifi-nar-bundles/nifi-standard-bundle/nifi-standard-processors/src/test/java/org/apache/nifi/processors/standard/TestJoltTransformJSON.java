@@ -62,8 +62,8 @@ public class TestJoltTransformJSON {
     public void testRelationshipsCreatedFromFile() throws IOException{
         Processor processor= new JoltTransformJSON();
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        final String spec = "src/test/resources/TestJoltTransformJson/chainrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, spec);
+        final String spec = "./src/test/resources/TestJoltTransformJson/chainrSpec.json";
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
         Set<Relationship> relationships = processor.getRelationships();
         assertTrue(relationships.contains(JoltTransformJSON.REL_FAILURE));
@@ -82,10 +82,6 @@ public class TestJoltTransformJSON {
         spec = new String(Files.readAllBytes(Paths.get(specLocation)));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.assertValid();
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, specLocation);
-        runner.assertNotValid();
-        runner.removeProperty(JoltTransformJSON.JOLT_SPEC);
-        runner.assertValid();
     }
 
     @Test
@@ -100,8 +96,8 @@ public class TestJoltTransformJSON {
     @Test
     public void testIncorrectJOLTSpecFromFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
-        final String chainrSpec = "src/test/resources/TestJoltTransformJson/chainrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, chainrSpec);
+        final String chainrSpec = "./src/test/resources/TestJoltTransformJson/chainrSpec.json";
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.SHIFTR);
         runner.assertNotValid();
     }
@@ -152,8 +148,8 @@ public class TestJoltTransformJSON {
     @Test
     public void testInvalidFlowFileContentJsonFromFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
-        final String spec = "src/test/resources/TestJoltTransformJson/chainrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, spec);
+        final String spec = "./src/test/resources/TestJoltTransformJson/chainrSpec.json";
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue("invalid json");
         runner.run();
         runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_FAILURE);
@@ -245,8 +241,8 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithShiftrFromFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
-        final String spec = "src/test/resources/TestJoltTransformJson/shiftrSpec.json";
-        runner.setProperty(JoltTransformJSON.JOLT_SPEC_FILE, spec);
+        final String spec = "./src/test/resources/TestJoltTransformJson/shiftrSpec.json";
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.SHIFTR);
         runner.enqueue(JSON_INPUT);
         runner.run();

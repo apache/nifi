@@ -93,7 +93,7 @@ import java.util.stream.Collectors;
         @WritesAttribute(attribute = "record.count", description = "The number of records in an outgoing FlowFile"),
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type that the configured Record Writer indicates is appropriate"),
 })
-@CapabilityDescription("Applies a list of Jolt specifications to the FlowFile payload. A new FlowFile is created "
+@CapabilityDescription("Applies a JOLT specification to each record in the FlowFile payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
 @RequiresInstanceClassLoading
@@ -251,8 +251,8 @@ public class JoltTransformRecord extends AbstractProcessor {
         final String joltSpecValue = validationContext.getProperty(JOLT_SPEC).getValue();
 
         if (StringUtils.isEmpty(joltSpecValue) && !SORTR.getValue().equals(transform)) {
-                results.add(new ValidationResult.Builder().subject("Spec Body or Spec File").valid(false).explanation(
-                        "exactly one of 'Jolt Specification' or 'Path To Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
+                results.add(new ValidationResult.Builder().subject(JOLT_SPEC.getDisplayName()).valid(false).explanation(
+                        "'Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
         } else {
             final ClassLoader customClassLoader;
 
@@ -457,19 +457,19 @@ public class JoltTransformRecord extends AbstractProcessor {
         return recordList;
     }
 
-    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
+    private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
         final Optional<String> specString;
         if (context.getProperty(JOLT_SPEC).isSet()) {
             specString = Optional.of(context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(flowFile).getValue());
         } else if (SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())) {
             specString = Optional.empty();
         } else {
-            throw new IllegalArgumentException("Exactly one of 'Jolt Specification' or 'Path To Jolt Specification' must be set, or the Transformation must be Sort.");
+            throw new IllegalArgumentException("'Jolt Specification' must be set, or the Transformation must be Sort.");
         }
 
         return transformCache.get(specString, currString -> {
             try {
-                return createTransform(context, currString.orElse(null), flowFile);
+                return createTransform(context, flowFile);
             } catch (Exception e) {
                 getLogger().error("Problem getting transform", e);
             }
@@ -506,7 +506,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                 .build();
     }
 
-    private JoltTransform createTransform(final ProcessContext context, final String specString, final FlowFile flowFile) throws Exception {
+    private JoltTransform createTransform(final ProcessContext context, final FlowFile flowFile) throws Exception {
         final Object specJson;
         if ((context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue()))) {
             final String resolvedSpec = readTransform(context.getProperty(JOLT_SPEC), flowFile);
