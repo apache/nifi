@@ -162,12 +162,13 @@ public class PeerChannel implements Closeable {
         while (plaintext.hasRemaining()) {
             encrypt(plaintext);
 
-            final int bytesRemaining = prepared.capacity() - prepared.position();
-            if (bytesRemaining < destinationBuffer.remaining()) {
-                final ByteBuffer temp = ByteBuffer.allocate(prepared.capacity() + sslEngine.getSession().getApplicationBufferSize());
+            final int destinationBufferRemaining = destinationBuffer.remaining();
+            if (prepared.remaining() < destinationBufferRemaining) {
+                // Expand Prepared Buffer to hold current bytes plus remaining size of Destination Buffer
+                final ByteBuffer expanded = ByteBuffer.allocate(prepared.capacity() + destinationBufferRemaining);
                 prepared.flip();
-                temp.put(prepared);
-                prepared = temp;
+                expanded.put(prepared);
+                prepared = expanded;
             }
 
             prepared.put(destinationBuffer);
@@ -289,11 +290,12 @@ public class PeerChannel implements Closeable {
                 case CLOSED:
                     throw new IOException("Failed to encrypt data to write to Peer " + peerDescription + " because Peer unexpectedly closed connection");
                 case BUFFER_OVERFLOW:
-                    // destinationBuffer is not large enough. Need to increase the size.
-                    final ByteBuffer tempBuffer = ByteBuffer.allocate(destinationBuffer.capacity() + sslEngine.getSession().getApplicationBufferSize());
+                    // Expand Destination Buffer using current capacity plus encrypted Packet Buffer Size
+                    final int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
+                    final ByteBuffer expanded = ByteBuffer.allocate(destinationBuffer.capacity() + packetBufferSize);
                     destinationBuffer.flip();
-                    tempBuffer.put(destinationBuffer);
-                    destinationBuffer = tempBuffer;
+                    expanded.put(destinationBuffer);
+                    destinationBuffer = expanded;
                     break;
                 case BUFFER_UNDERFLOW:
                     // We should never get this result on a call to SSLEngine.wrap(), only on a call to unwrap().
