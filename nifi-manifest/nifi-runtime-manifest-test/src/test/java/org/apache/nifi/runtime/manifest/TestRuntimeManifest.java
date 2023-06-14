@@ -254,6 +254,7 @@ class TestRuntimeManifest {
         assertFalse(executeSqlDef.getReadsAttributes().isEmpty());
         assertNotNull(executeSqlDef.getReadsAttributes().get(0).getName());
         assertNotNull(executeSqlDef.getReadsAttributes().get(0).getDescription());
+        assertTrue(executeSqlDef.getSupportsSensitiveDynamicProperties());
 
         // Verify RouteOnAttribute dynamic relationships and dynamic properties
         final ProcessorDefinition routeOnAttributeDef = getProcessorDefinition(bundles, "nifi-standard-nar",
