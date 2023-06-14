@@ -111,7 +111,7 @@ class RowIterator implements Iterator<Row>, Closeable {
     private Row getNextRow() {
         while (currentRows != null && !hasExhaustedRows()) {
             Row tempCurrentRow = currentRows.next();
-            if (!isSkip(tempCurrentRow)) {
+            if (tempCurrentRow.getRowNum() >= firstRow) {
                 return tempCurrentRow;
             }
         }
@@ -124,9 +124,5 @@ class RowIterator implements Iterator<Row>, Closeable {
             logger.debug("Exhausted all rows from sheet {}", currentSheet.getSheetName());
         }
         return exhausted;
-    }
-
-    private boolean isSkip(Row row) {
-        return row.getRowNum() < firstRow;
     }
 }
