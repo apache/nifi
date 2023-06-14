@@ -59,7 +59,6 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +67,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
@@ -166,13 +166,13 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public static final String LEGACY_EMITTED_TIMESTAMP_KEY = "emitted.timestamp";
     public static final String LEGACY_LISTING_TIMESTAMP_KEY = "listing.timestamp";
     public static final String LATEST_TIMESTAMP_KEY = "latest.timestamp";
-    public static final String LATEST_FILES_KEY = "latest.files";
+    public static final String LATEST_FILES_KEY = "latest.file.%d";
 
     private volatile boolean resetState = false;
 
     private Pattern fileFilterRegexPattern;
-    private long latestModificationTime;
-    private List<String> latestModifiedStatuses;
+    private long latestTimestamp;
+    private List<String> latestFiles;
 
     @Override
     protected void preProcessConfiguration(Configuration config, ProcessContext context) {
@@ -239,10 +239,10 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
-            latestModifiedStatuses = new ArrayList<>();
+            latestTimestamp = 0L;
+            latestFiles = new ArrayList<>();
             StateMap stateMap = session.getState(Scope.CLUSTER);
-            String latestListedTimestampString = stateMap.get(LATEST_TIMESTAMP_KEY);
-            String latestFiles = stateMap.get(LATEST_FILES_KEY);
+            String latestTimestampString = stateMap.get(LATEST_TIMESTAMP_KEY);
 
             final String legacyLatestListingTimestampString = stateMap.get(LEGACY_LISTING_TIMESTAMP_KEY);
             final String legacyLatestEmittedTimestampString = stateMap.get(LEGACY_EMITTED_TIMESTAMP_KEY);
@@ -250,10 +250,13 @@ public class ListHDFS extends AbstractHadoopProcessor {
             if (legacyLatestListingTimestampString != null) {
                 final long legacyLatestListingTimestamp = Long.parseLong(legacyLatestListingTimestampString);
                 final long legacyLatestEmittedTimestamp = Long.parseLong(legacyLatestEmittedTimestampString);
-                latestModificationTime = legacyLatestListingTimestamp == legacyLatestEmittedTimestamp ? legacyLatestListingTimestamp + 1 : legacyLatestListingTimestamp;
-            } else if (latestListedTimestampString != null) {
-                latestModificationTime = Long.parseLong(latestListedTimestampString);
-                latestModifiedStatuses = new ArrayList<>(Arrays.asList(latestFiles.split("\\s")));
+                latestTimestamp = legacyLatestListingTimestamp == legacyLatestEmittedTimestamp ? legacyLatestListingTimestamp + 1 : legacyLatestListingTimestamp;
+            } else if (latestTimestampString != null) {
+                latestTimestamp = Long.parseLong(latestTimestampString);
+                this.latestFiles = stateMap.toMap().entrySet().stream()
+                        .filter(entry -> entry.getKey().startsWith("latest.file"))
+                        .map(Map.Entry::getValue)
+                        .collect(Collectors.toList());
             }
         } catch (IOException e) {
             getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
@@ -284,9 +287,13 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
 
         if (writer.getListedFileCount() > 0) {
-            final Map<String, String> updatedState = new HashMap<>(1);
-            updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLastModificationTime()));
-            updatedState.put(LATEST_FILES_KEY, String.valueOf(fileStatusManager.getLastModifiedStatusesAsString()));
+            final Map<String, String> updatedState = new HashMap<>();
+            updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLatestTimestamp()));
+            final List<String> files = fileStatusManager.getLatestFiles();
+            for (int i = 0; i < files.size(); i++) {
+                final String currentFilePath = files.get(i);
+                updatedState.put(String.format(LATEST_FILES_KEY, i), currentFilePath);
+            }
             getLogger().debug("New state map: {}", updatedState);
             updateState(session, updatedState);
 
@@ -303,10 +310,10 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final HdfsObjectWriter writer;
         if (writerFactory == null) {
             writer = new FlowFileObjectWriter(session, fileStatuses, minimumAge, maximumAge,
-                    pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
+                    pathFilter, fileStatusManager, latestTimestamp, latestFiles);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger(), fileStatuses, minimumAge, maximumAge,
-                    pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
+            writer = new RecordObjectWriter(session, fileStatuses, minimumAge, maximumAge,
+                    pathFilter, fileStatusManager, latestTimestamp, latestFiles, writerFactory, getLogger());
         }
         return writer;
     }

@@ -79,6 +79,6 @@ public enum FilterMode implements DescribedValue {
                 .filter(fm -> fm.getValue().equalsIgnoreCase(filterMode))
                 .findFirst()
                 .orElseThrow(
-                        () -> new IllegalArgumentException("Invalid SnowflakeInternalStageType: " + filterMode));
+                        () -> new IllegalArgumentException("Invalid filter mode: " + filterMode));
     }
 }

@@ -20,8 +20,14 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.processor.exception.ProcessException;
 
+import java.io.IOException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class FileStatusIterable implements Iterable<FileStatus> {
@@ -41,10 +47,64 @@ public class FileStatusIterable implements Iterable<FileStatus> {
 
     @Override
     public Iterator<FileStatus> iterator() {
-        return new FileStatusIterator(path, recursive, hdfs, userGroupInformation, totalFileCount);
+        return new FileStatusIterator();
     }
 
     public long getTotalFileCount() {
         return totalFileCount.get();
+    }
+
+    class FileStatusIterator implements Iterator<FileStatus> {
+
+        private static final String IO_ERROR_MESSAGE = "IO error occurred while iterating HFDS";
+
+        private final Deque<FileStatus> fileStatuses;
+        private final Deque<FileStatus> dirStatuses;
+
+        public FileStatusIterator() {
+            fileStatuses = new ArrayDeque<>();
+            dirStatuses = new ArrayDeque<>();
+            addFileStatuses(path);
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (dirStatuses.isEmpty() && fileStatuses.isEmpty()) {
+                return false;
+            }
+            while (recursive && fileStatuses.isEmpty() && !dirStatuses.isEmpty()) {
+                final FileStatus dirStatus = dirStatuses.pop();
+                addFileStatuses(dirStatus.getPath());
+            }
+            return !fileStatuses.isEmpty();
+        }
+
+        @Override
+        public FileStatus next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            totalFileCount.incrementAndGet();
+            return fileStatuses.pop();
+        }
+
+        final void addFileStatuses(Path path) {
+            FileStatus[] statuses;
+            try {
+                statuses = userGroupInformation.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(path));
+            } catch (IOException e) {
+                throw new ProcessException(IO_ERROR_MESSAGE, e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ProcessException("Thread was interrupted while iterating HDFS", e);
+            }
+            for (FileStatus status : statuses) {
+                if (status.isDirectory()) {
+                    dirStatuses.push(status);
+                } else {
+                    fileStatuses.push(status);
+                }
+            }
+        }
     }
 }

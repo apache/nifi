@@ -17,9 +17,7 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -46,7 +44,7 @@ import java.util.Map;
 
 import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
 
-public class RecordObjectWriter implements HdfsObjectWriter {
+public class RecordObjectWriter extends HdfsObjectWriter {
 
     private static final RecordSchema RECORD_SCHEMA;
 
@@ -81,33 +79,15 @@ public class RecordObjectWriter implements HdfsObjectWriter {
     }
 
 
-    private final ProcessSession session;
     private final RecordSetWriterFactory writerFactory;
     private final ComponentLog logger;
-    private final FileStatusIterable fileStatuses;
-    final long minimumAge;
-    final long maximumAge;
-    final PathFilter pathFilter;
-    final FileStatusManager fileStatusManager;
-    final long latestModificationTime;
-    final List<String> latestModifiedStatuses;
-    long fileCount;
 
-
-    public RecordObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger,
-                              final FileStatusIterable fileStatuses, final long minimumAge, final long maximumAge, final PathFilter pathFilter,
-                              final FileStatusManager fileStatusManager, final long latestModificationTime, final List<String> latestModifiedStatuses) {
-        this.session = session;
+    public RecordObjectWriter(ProcessSession session, FileStatusIterable fileStatuses, long minimumAge, long maximumAge, PathFilter pathFilter,
+                              FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses,
+                              RecordSetWriterFactory writerFactory, ComponentLog logger) {
+        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
         this.writerFactory = writerFactory;
         this.logger = logger;
-        this.fileStatuses = fileStatuses;
-        this.minimumAge = minimumAge;
-        this.maximumAge = maximumAge;
-        this.pathFilter = pathFilter;
-        this.fileStatusManager = fileStatusManager;
-        this.latestModificationTime = latestModificationTime;
-        this.latestModifiedStatuses = latestModifiedStatuses;
-        fileCount = 0;
     }
 
     @Override
@@ -138,12 +118,8 @@ public class RecordObjectWriter implements HdfsObjectWriter {
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (Exception e) {
-            throw new ProcessException("An error occured while writing results", e);
+            throw new ProcessException("An error occurred while writing results", e);
         }
-    }
-
-    public long getListedFileCount() {
-        return fileCount;
     }
 
     private Record createRecordForListing(final FileStatus fileStatus) {
@@ -157,7 +133,7 @@ public class RecordObjectWriter implements HdfsObjectWriter {
         values.put(REPLICATION, fileStatus.getReplication());
 
         final FsPermission permission = fileStatus.getPermission();
-        final String perms = getPerms(permission.getUserAction()) + getPerms(permission.getGroupAction()) + getPerms(permission.getOtherAction());
+        final String perms = getPermissionsString(permission);
         values.put(PERMISSIONS, perms);
 
         values.put(IS_DIRECTORY, fileStatus.isDirectory());
@@ -168,20 +144,5 @@ public class RecordObjectWriter implements HdfsObjectWriter {
         return new MapRecord(RECORD_SCHEMA, values);
     }
 
-    private String getAbsolutePath(final Path path) {
-        final Path parent = path.getParent();
-        final String prefix = (parent == null || parent.getName().equals("")) ? "" : getAbsolutePath(parent);
-        return prefix + "/" + path.getName();
-    }
-
-    private String getPerms(final FsAction action) {
-        final StringBuilder sb = new StringBuilder();
-
-        sb.append(action.implies(FsAction.READ) ? "r" : "-");
-        sb.append(action.implies(FsAction.WRITE) ? "w" : "-");
-        sb.append(action.implies(FsAction.EXECUTE) ? "x" : "-");
-
-        return sb.toString();
-    }
 }
 

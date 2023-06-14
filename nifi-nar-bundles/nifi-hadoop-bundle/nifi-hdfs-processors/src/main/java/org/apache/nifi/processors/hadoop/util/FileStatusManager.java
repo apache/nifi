@@ -23,34 +23,29 @@ import java.util.List;
 
 public class FileStatusManager {
 
-    private final List<String> lastModifiedStatuses;
-    private long lastModificationTime;
+    private final List<String> latestFiles;
+    private long latestTimestamp;
 
     public FileStatusManager() {
-        lastModificationTime = 0L;
-        lastModifiedStatuses = new ArrayList<>();
-    }
-
-    public FileStatusManager(final long lastModificationTime, final List<String> lastModifiedStatuses) {
-        this.lastModificationTime = lastModificationTime;
-        this.lastModifiedStatuses = lastModifiedStatuses;
+        latestTimestamp = 0L;
+        latestFiles = new ArrayList<>();
     }
 
     public void update(final FileStatus status) {
-        if (status.getModificationTime() > lastModificationTime) {
-            lastModificationTime = status.getModificationTime();
-            lastModifiedStatuses.clear();
-            lastModifiedStatuses.add(status.getPath().toString());
-        } else if (status.getModificationTime() == lastModificationTime) {
-            lastModifiedStatuses.add(status.getPath().toString());
+        if (status.getModificationTime() > latestTimestamp) {
+            latestTimestamp = status.getModificationTime();
+            latestFiles.clear();
+            latestFiles.add(status.getPath().toString());
+        } else if (status.getModificationTime() == latestTimestamp) {
+            latestFiles.add(status.getPath().toString());
         }
     }
 
-    public String getLastModifiedStatusesAsString() {
-        return String.join(" ", lastModifiedStatuses);
+    public List<String> getLatestFiles() {
+        return latestFiles;
     }
 
-    public long getLastModificationTime() {
-        return lastModificationTime;
+    public long getLatestTimestamp() {
+        return latestTimestamp;
     }
 }

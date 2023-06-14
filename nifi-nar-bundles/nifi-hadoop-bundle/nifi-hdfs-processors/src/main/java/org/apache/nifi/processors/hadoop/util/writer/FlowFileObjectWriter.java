@@ -17,10 +17,7 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
@@ -32,33 +29,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FlowFileObjectWriter implements HdfsObjectWriter {
+public class FlowFileObjectWriter extends HdfsObjectWriter {
 
     private static final String HDFS_ATTRIBUTE_PREFIX = "hdfs";
 
-    private final ProcessSession session;
-    private final FileStatusIterable fileStatuses;
-    final long minimumAge;
-    final long maximumAge;
-    final PathFilter pathFilter;
-    final FileStatusManager fileStatusManager;
-    final long latestModificationTime;
-    final List<String> latestModifiedStatuses;
-    private long listedFileCount;
-
-
-    public FlowFileObjectWriter(final ProcessSession session, final FileStatusIterable fileStatuses, final long minimumAge,
-                                final long maximumAge, final PathFilter pathFilter, final FileStatusManager fileStatusManager,
-                                final long latestModificationTime, final List<String> latestModifiedStatuses) {
-        this.session = session;
-        this.fileStatuses = fileStatuses;
-        this.minimumAge = minimumAge;
-        this.maximumAge = maximumAge;
-        this.pathFilter = pathFilter;
-        this.fileStatusManager = fileStatusManager;
-        this.latestModificationTime = latestModificationTime;
-        this.latestModifiedStatuses = latestModifiedStatuses;
-        listedFileCount = 0;
+    public FlowFileObjectWriter(ProcessSession session, FileStatusIterable fileStatuses, long minimumAge, long maximumAge, PathFilter pathFilter,
+                                FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses) {
+        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
     }
 
     @Override
@@ -72,13 +49,13 @@ public class FlowFileObjectWriter implements HdfsObjectWriter {
                 session.transfer(flowFile, ListHDFS.REL_SUCCESS);
 
                 fileStatusManager.update(status);
-                listedFileCount++;
+                fileCount++;
             }
         }
     }
 
     public long getListedFileCount() {
-        return listedFileCount;
+        return fileCount;
     }
 
     private Map<String, String> createAttributes(final FileStatus status) {
@@ -92,26 +69,5 @@ public class FlowFileObjectWriter implements HdfsObjectWriter {
         attributes.put(HDFS_ATTRIBUTE_PREFIX + ".replication", String.valueOf(status.getReplication()));
         attributes.put(HDFS_ATTRIBUTE_PREFIX + ".permissions", getPermissionsString(status.getPermission()));
         return attributes;
-    }
-
-    private String getPermissionsString(final FsPermission permission) {
-        return String.format("%s%s%s", getPerms(permission.getUserAction()),
-                getPerms(permission.getGroupAction()), getPerms(permission.getOtherAction()));
-    }
-
-    private String getPerms(final FsAction action) {
-        final StringBuilder sb = new StringBuilder();
-
-        sb.append(action.implies(FsAction.READ) ? "r" : "-");
-        sb.append(action.implies(FsAction.WRITE) ? "w" : "-");
-        sb.append(action.implies(FsAction.EXECUTE) ? "x" : "-");
-
-        return sb.toString();
-    }
-
-    private String getAbsolutePath(final Path path) {
-        final Path parent = path.getParent();
-        final String prefix = (parent == null || parent.getName().equals("")) ? "" : getAbsolutePath(parent);
-        return prefix + "/" + path.getName();
     }
 }
