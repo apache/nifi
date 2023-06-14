@@ -35,7 +35,7 @@ env:
     -Duser.country=GB
     -Duser.timezone=UTC
   MAVEN_COMMAND: >-
-    mvn
+    ./mvnw
     -V
     -nsu
     -ntp
