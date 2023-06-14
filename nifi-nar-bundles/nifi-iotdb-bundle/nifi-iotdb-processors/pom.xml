@@ -82,6 +82,11 @@
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
+                <!-- Exclude IoTDB Consensus to avoid SNAPSHOT versions of Apache Ratis -->
+                <exclusion>
+                    <groupId>org.apache.iotdb</groupId>
+                    <artifactId>iotdb-consensus</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -94,6 +99,11 @@
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <!-- Exclude IoTDB Consensus to avoid SNAPSHOT versions of Apache Ratis -->
+                <exclusion>
+                    <groupId>org.apache.iotdb</groupId>
+                    <artifactId>iotdb-consensus</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
