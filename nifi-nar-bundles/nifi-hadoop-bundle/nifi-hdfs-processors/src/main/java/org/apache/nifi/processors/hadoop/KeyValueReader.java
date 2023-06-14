@@ -29,8 +29,8 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.hadoop.util.io.OutputStreamWritable;
-import org.apache.nifi.processors.hadoop.util.io.SequenceFileReader;
+import org.apache.nifi.processors.hadoop.util.OutputStreamWritable;
+import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

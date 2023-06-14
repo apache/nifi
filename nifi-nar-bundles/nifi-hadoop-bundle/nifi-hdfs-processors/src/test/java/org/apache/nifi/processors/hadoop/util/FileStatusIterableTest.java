@@ -14,11 +14,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.hadoop.util;
-
-import org.apache.hadoop.fs.RemoteIterator;
-
-public interface FileCountRemoteIterator<E> extends RemoteIterator<E> {
-
-    long getFileCount();
+package org.apache.nifi.processors.hadoop.util;public class FileStatusIterableTest {
 }

@@ -33,7 +33,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.hadoop.util.io.SequenceFileWriter;
+import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
 import org.apache.nifi.util.StopWatch;
 
 import java.util.ArrayList;

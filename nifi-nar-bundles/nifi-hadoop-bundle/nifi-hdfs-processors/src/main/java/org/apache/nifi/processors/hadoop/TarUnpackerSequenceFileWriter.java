@@ -24,7 +24,7 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processors.hadoop.util.io.InputStreamWritable;
+import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
 import org.slf4j.LoggerFactory;
 
 public class TarUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
