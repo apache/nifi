@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors;
 
-import org.apache.iotdb.session.SessionDataSet;
+import org.apache.iotdb.isession.SessionDataSet;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.read.common.Field;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
