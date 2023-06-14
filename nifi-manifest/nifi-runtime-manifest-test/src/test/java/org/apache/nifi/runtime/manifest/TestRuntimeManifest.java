@@ -265,7 +265,7 @@ class TestRuntimeManifest {
         assertNotNull(routeOnAttributeDef.getDynamicRelationship().getDescription());
 
         assertTrue(routeOnAttributeDef.getSupportsDynamicProperties());
-        assertTrue(routeOnAttributeDef.getSupportsSensitiveDynamicProperties());
+        assertFalse(routeOnAttributeDef.getSupportsSensitiveDynamicProperties());
         assertNotNull(routeOnAttributeDef.getDynamicProperties());
         assertFalse(routeOnAttributeDef.getDynamicProperties().isEmpty());
         assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getName());
