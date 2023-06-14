@@ -107,6 +107,7 @@ class TestRuntimeManifest {
         assertFalse(listHdfsDefinition.getSideEffectFree());
         assertFalse(listHdfsDefinition.getTriggerWhenAnyDestinationAvailable());
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
+        assertFalse(listHdfsDefinition.getSupportsSensitiveDynamicProperties());
         assertNull(listHdfsDefinition.getDynamicProperties());
         assertFalse(listHdfsDefinition.getSupportsDynamicRelationships());
         assertNull(listHdfsDefinition.getDynamicRelationship());
@@ -264,6 +265,7 @@ class TestRuntimeManifest {
         assertNotNull(routeOnAttributeDef.getDynamicRelationship().getDescription());
 
         assertTrue(routeOnAttributeDef.getSupportsDynamicProperties());
+        assertTrue(routeOnAttributeDef.getSupportsSensitiveDynamicProperties());
         assertNotNull(routeOnAttributeDef.getDynamicProperties());
         assertFalse(routeOnAttributeDef.getDynamicProperties().isEmpty());
         assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getName());

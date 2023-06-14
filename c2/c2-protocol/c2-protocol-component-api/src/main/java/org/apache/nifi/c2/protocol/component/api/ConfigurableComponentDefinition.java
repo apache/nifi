@@ -34,6 +34,10 @@ public interface ConfigurableComponentDefinition {
 
     void setSupportsDynamicProperties(boolean supportsDynamicProperties);
 
+    boolean getSupportsSensitiveDynamicProperties();
+
+    void setSupportsSensitiveDynamicProperties(boolean supportsSensitiveDynamicProperties);
+
     List<DynamicProperty> getDynamicProperties();
 
     void setDynamicProperties(List<DynamicProperty> dynamicProperties);

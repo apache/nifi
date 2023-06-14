@@ -504,6 +504,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         final List<DynamicProperty> dynamicProperties = extension.getDynamicProperties();
         if (isNotEmpty(dynamicProperties)) {
             configurableComponentDefinition.setSupportsDynamicProperties(true);
+            configurableComponentDefinition.setSupportsSensitiveDynamicProperties(extension.getSupportsSensitiveDynamicProperties());
             configurableComponentDefinition.setDynamicProperties(
                     dynamicProperties.stream()
                             .map(this::getDynamicProperty)
