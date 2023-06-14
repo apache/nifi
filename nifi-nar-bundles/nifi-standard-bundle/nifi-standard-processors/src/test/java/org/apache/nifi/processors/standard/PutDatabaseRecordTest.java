@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -94,6 +95,8 @@ public class PutDatabaseRecordTest {
             " code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000), dt date)";
 
     private static final String createUUIDSchema = "CREATE TABLE UUID_TEST (id integer primary key, name VARCHAR(100))";
+
+    private static final String createLongVarBinarySchema = "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)";
 
     private final static String DB_LOCATION = "target/db_pdr";
 
@@ -1840,6 +1843,48 @@ public class PutDatabaseRecordTest {
 
         // Drop the schemas here so as not to interfere with other tests
         stmt.execute("drop table UUID_TEST");
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    void testInsertLongVarBinaryColumn() throws InitializationException, ProcessException, SQLException {
+        // Manually create and drop the tables and schemas
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        stmt.execute(createLongVarBinarySchema);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+
+        byte[] longVarBinaryValue1 = new byte[] {97,98,99};
+        byte[] longVarBinaryValue2 = new byte[] {100,101,102};
+        parser.addRecord(1, longVarBinaryValue1);
+        parser.addRecord(2, longVarBinaryValue2);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "LONGVARBINARY_TEST");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM LONGVARBINARY_TEST");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertArrayEquals(longVarBinaryValue1, rs.getBytes(2));
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertArrayEquals(longVarBinaryValue2, rs.getBytes(2));
+        assertFalse(rs.next());
+
+        // Drop the schemas here so as not to interfere with other tests
+        stmt.execute("drop table LONGVARBINARY_TEST");
         stmt.close();
         conn.close();
     }

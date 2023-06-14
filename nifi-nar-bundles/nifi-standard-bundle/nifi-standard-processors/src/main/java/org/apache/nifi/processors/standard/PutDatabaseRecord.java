@@ -750,13 +750,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                     targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(fieldSqlType);
                                 }
                                 if (targetDataType != null) {
-                                    if (sqlType == Types.BLOB || sqlType == Types.BINARY) {
+                                    if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
                                         if (currentValue instanceof Object[]) {
                                             // Convert Object[Byte] arrays to byte[]
                                             Object[] src = (Object[]) currentValue;
                                             if (src.length > 0) {
                                                 if (!(src[0] instanceof Byte)) {
-                                                    throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
+                                                    throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY/VARBINARY/LONGVARBINARY");
                                                 }
                                             }
                                             byte[] dest = new byte[src.length];
@@ -767,7 +767,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                         } else if (currentValue instanceof String) {
                                             currentValue = ((String) currentValue).getBytes(StandardCharsets.UTF_8);
                                         } else if (currentValue != null && !(currentValue instanceof byte[])) {
-                                            throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
+                                            throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY/VARBINARY/LONGVARBINARY");
                                         }
                                     } else {
                                         currentValue = DataTypeUtils.convertType(
@@ -866,6 +866,35 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     ps.setClob(index, clob);
                 } catch (SQLException e) {
                     throw new IOException("Unable to parse data as CLOB/String " + value, e.getCause());
+                }
+            }
+        } else if (sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
+            if (fieldSqlType == Types.ARRAY || fieldSqlType == Types.VARCHAR) {
+                if (!(value instanceof byte[])) {
+                    if (value == null) {
+                        try {
+                            ps.setNull(index, Types.BLOB);
+                            return;
+                        } catch (SQLException e) {
+                            throw new IOException("Unable to setNull() on prepared statement" , e);
+                        }
+                    } else {
+                        throw new IOException("Expected VARBINARY/LONGVARBINARY to be of type byte[] but is instead " + value.getClass().getName());
+                    }
+                }
+                byte[] byteArray = (byte[]) value;
+                try {
+                    ps.setBytes(index, byteArray);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
+                }
+            } else {
+                byte[] byteArray = new byte[0];
+                try {
+                    byteArray = value.toString().getBytes(StandardCharsets.UTF_8);
+                    ps.setBytes(index, byteArray);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
                 }
             }
         } else {
