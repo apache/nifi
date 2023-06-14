@@ -20,7 +20,6 @@ import org.apache.nifi.repository.encryption.configuration.EncryptionMetadataHea
 import org.apache.nifi.repository.encryption.configuration.RepositoryEncryptionMethod;
 import org.apache.nifi.repository.encryption.metadata.RecordMetadata;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.bouncycastle.util.Arrays;
 
 import javax.crypto.Cipher;
 import java.io.ByteArrayInputStream;
@@ -74,9 +73,17 @@ public class AesGcmByteArrayRepositoryEncryptor extends AesSecretKeyRepositoryEn
         try {
             final byte[] encryptedRecord = cipher.doFinal(record);
             final byte[] serializedMetadata = getMetadata(keyId, cipher.getIV(), encryptedRecord.length);
-            return Arrays.concatenate(serializedMetadata, encryptedRecord);
+            return concatenate(serializedMetadata, encryptedRecord);
         } catch (final GeneralSecurityException e) {
             throw new RepositoryEncryptionException(String.format("Encryption Failed for Record ID [%s]", recordId), e);
         }
+    }
+
+    private byte[] concatenate(final byte[] serializedMetadata, final byte[] encryptedRecord) {
+        final int concatenatedLength = serializedMetadata.length + encryptedRecord.length;
+        final byte[] concatenated = new byte[concatenatedLength];
+        System.arraycopy(serializedMetadata, 0, concatenated, 0, serializedMetadata.length);
+        System.arraycopy(encryptedRecord, 0, concatenated, serializedMetadata.length, encryptedRecord.length);
+        return concatenated;
     }
 }
