@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
+import static org.apache.nifi.registry.db.DataSourceUtils.getDatabaseType;
+
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.sql.DataSource;
-import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.authorization.AbstractConfigurableAccessPolicyProvider;
@@ -43,6 +45,8 @@ import org.apache.nifi.registry.security.authorization.util.ResourceAndAction;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -161,12 +165,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         Validate.notNull(accessPolicy);
 
         // insert to the policy table
-        final String policySql;
-        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
-            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
-        } else {
-            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
-        }
+        final String policySql = getInsertAppPolicySql();
         jdbcTemplate.update(policySql, accessPolicy.getIdentifier(), accessPolicy.getResource(), accessPolicy.getAction().toString());
 
         // insert to the policy-user and policy groups table
@@ -256,12 +255,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         Validate.notBlank(resourceIdentifier);
         Validate.notNull(action);
 
-        final String policySql;
-        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
-            policySql = "SELECT * FROM APP_POLICY WHERE \"RESOURCE\" = ? AND ACTION = ?";
-        } else{
-            policySql = "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
-        }
+        final String policySql = getSelectAppPolicyByResourceAndActionSql();
         final Object[] args = new Object[]{resourceIdentifier, action.toString()};
         final DatabaseAccessPolicy databaseAccessPolicy = queryForObject(policySql, args, new DatabaseAccessPolicyRowMapper());
         if (databaseAccessPolicy == null) {
@@ -407,4 +401,27 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         }
     }
 
+    private String getInsertAppPolicySql() {
+        try  {
+            final DatabaseType databaseType = getDatabaseType(jdbcTemplate.getDataSource());
+            if (databaseType instanceof OracleDatabaseType) {
+                return "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
+            }
+            return "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database connection", e);
+        }
+    }
+
+    private String getSelectAppPolicyByResourceAndActionSql() {
+        try  {
+            final DatabaseType databaseType = getDatabaseType(jdbcTemplate.getDataSource());
+            if (databaseType instanceof OracleDatabaseType) {
+                return "SELECT * FROM APP_POLICY WHERE \"RESOURCE\" = ? AND ACTION = ?";
+            }
+            return "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database connection", e);
+        }
+    }
 }

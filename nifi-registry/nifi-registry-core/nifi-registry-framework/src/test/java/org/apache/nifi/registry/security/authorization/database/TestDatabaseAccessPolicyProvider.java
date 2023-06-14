@@ -16,7 +16,26 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
-import oracle.jdbc.datasource.OracleCommonDataSource;
+import static java.util.Objects.requireNonNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import javax.sql.DataSource;
 import org.apache.nifi.registry.db.DatabaseBaseTest;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.authorization.AbstractConfigurableAccessPolicyProvider;
@@ -35,28 +54,13 @@ import org.apache.nifi.registry.security.exception.SecurityProviderCreationExcep
 import org.apache.nifi.registry.security.identity.DefaultIdentityMapper;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.util.StandardPropertyValue;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import javax.sql.DataSource;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
 
@@ -168,14 +172,21 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
     }
 
     private void createPolicy(final String identifier, final String resource, final RequestAction action) {
-        final String policySql;
-        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
-            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
-        } else {
-            policySql = "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
-        }
+        final String policySql = getAppPolicyInsertSql();
         final int rowsUpdated = jdbcTemplate.update(policySql, identifier, resource, action.toString());
         assertEquals(1, rowsUpdated);
+    }
+
+    private String getAppPolicyInsertSql() {
+        try (final Connection connection = requireNonNull(jdbcTemplate.getDataSource()).getConnection()) {
+            final DatabaseType databaseType = DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+            if (databaseType instanceof OracleDatabaseType) {
+                return "INSERT INTO APP_POLICY(IDENTIFIER, \"RESOURCE\", ACTION) VALUES (?, ?, ?)";
+            }
+            return "INSERT INTO APP_POLICY(IDENTIFIER, RESOURCE, ACTION) VALUES (?, ?, ?)";
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database connection", e);
+        }
     }
 
     private void addUserToPolicy(final String policyIdentifier, final String userIdentifier) {

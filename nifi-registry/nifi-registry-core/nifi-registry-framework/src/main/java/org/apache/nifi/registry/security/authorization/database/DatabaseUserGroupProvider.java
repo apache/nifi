@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.security.authorization.database;
 
+import static org.apache.nifi.registry.db.DataSourceUtils.getDatabaseType;
+
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.sql.DataSource;
-import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.security.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.registry.security.authorization.ConfigurableUserGroupProvider;
@@ -42,6 +44,8 @@ import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUti
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -191,29 +195,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         if (user == null) {
             groups = null;
         } else {
-            final String userGroupSql;
-            if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
-                userGroupSql = "SELECT " +
-                        "G.IDENTIFIER AS IDENTIFIER, " +
-                        "G.IDENTITY AS IDENTITY " +
-                        "FROM " +
-                        "UGP_GROUP G, " +
-                        "UGP_USER_GROUP UG " +
-                        "WHERE " +
-                        "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
-                        "UG.USER_IDENTIFIER = ?";
-            } else {
-                userGroupSql = "SELECT " +
-                        "G.IDENTIFIER AS IDENTIFIER, " +
-                        "G.IDENTITY AS IDENTITY " +
-                        "FROM " +
-                        "UGP_GROUP AS G, " +
-                        "UGP_USER_GROUP AS UG " +
-                        "WHERE " +
-                        "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
-                        "UG.USER_IDENTIFIER = ?";
-            }
-
+            final String userGroupSql = getSelectGroupByUserIdentifierSql();
             final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, new DatabaseGroupRowMapper(), user.getIdentifier());
 
             groups = new HashSet<>();
@@ -393,6 +375,34 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
             return jdbcTemplate.queryForObject(sql, args, rowMapper);
         } catch(final EmptyResultDataAccessException e) {
             return null;
+        }
+    }
+
+    private String getSelectGroupByUserIdentifierSql() {
+        try  {
+            final DatabaseType databaseType = getDatabaseType(jdbcTemplate.getDataSource());
+            if (databaseType instanceof OracleDatabaseType) {
+                return "SELECT " +
+                        "G.IDENTIFIER AS IDENTIFIER, " +
+                        "G.IDENTITY AS IDENTITY " +
+                        "FROM " +
+                        "UGP_GROUP G, " +
+                        "UGP_USER_GROUP UG " +
+                        "WHERE " +
+                        "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
+                        "UG.USER_IDENTIFIER = ?";
+            }
+            return "SELECT " +
+                    "G.IDENTIFIER AS IDENTIFIER, " +
+                    "G.IDENTITY AS IDENTITY " +
+                    "FROM " +
+                    "UGP_GROUP AS G, " +
+                    "UGP_USER_GROUP AS UG " +
+                    "WHERE " +
+                    "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
+                    "UG.USER_IDENTIFIER = ?";
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database connection", e);
         }
     }
 }

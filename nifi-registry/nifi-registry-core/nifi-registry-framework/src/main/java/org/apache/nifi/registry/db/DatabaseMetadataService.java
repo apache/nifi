@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.db;
 
+import static org.apache.nifi.registry.db.DataSourceUtils.getDatabaseType;
+
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import oracle.jdbc.datasource.OracleCommonDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.extension.ExtensionFilterParams;
 import org.apache.nifi.extension.manifest.ExtensionType;
@@ -57,6 +59,8 @@ import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.service.MetadataService;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -391,12 +395,7 @@ public class DatabaseMetadataService implements MetadataService {
 
     @Override
     public FlowSnapshotEntity getLatestSnapshot(final String flowIdentifier) {
-        final String sql;
-        if (jdbcTemplate.getDataSource() instanceof OracleCommonDataSource) {
-            sql = "SELECT * FROM FLOW_SNAPSHOT WHERE flow_id = ? ORDER BY version DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
-        } else {
-            sql = "SELECT * FROM FLOW_SNAPSHOT WHERE flow_id = ? ORDER BY version DESC LIMIT 1";
-        }
+        final String sql = getSelectLatestFlowSnapshotByFlowIdSql();
         try {
             return jdbcTemplate.queryForObject(sql, new FlowSnapshotEntityRowMapper(), flowIdentifier);
         } catch (EmptyResultDataAccessException e) {
@@ -1163,5 +1162,17 @@ public class DatabaseMetadataService implements MetadataService {
         fields.add("ITEM_TYPE");
         fields.add("BUCKET_ID");
         return fields;
+    }
+
+    private String getSelectLatestFlowSnapshotByFlowIdSql() {
+        try {
+            final DatabaseType databaseType = getDatabaseType(jdbcTemplate.getDataSource());
+            if (databaseType instanceof OracleDatabaseType) {
+                return "SELECT * FROM FLOW_SNAPSHOT WHERE flow_id = ? ORDER BY version DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+            }
+            return "SELECT * FROM FLOW_SNAPSHOT WHERE flow_id = ? ORDER BY version DESC LIMIT 1";
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open database connection", e);
+        }
     }
 }

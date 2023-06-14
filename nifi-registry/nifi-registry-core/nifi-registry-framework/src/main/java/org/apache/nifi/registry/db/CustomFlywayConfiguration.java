@@ -16,10 +16,17 @@
  */
 package org.apache.nifi.registry.db;
 
+import static org.apache.nifi.registry.db.DataSourceUtils.getDatabaseType;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
+import javax.sql.DataSource;
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.flywaydb.core.internal.database.DatabaseType;
-import org.flywaydb.core.internal.database.DatabaseTypeRegister;
 import org.flywaydb.core.internal.database.oracle.OracleDatabaseType;
 import org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType;
 import org.flywaydb.core.internal.jdbc.JdbcUtils;
@@ -29,13 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Configuration;
-
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Arrays;
 
 @Configuration
 public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer {
@@ -60,7 +60,13 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
 
     @Override
     public void customize(final FluentConfiguration configuration) {
-        final DatabaseType databaseType = getDatabaseType(configuration.getDataSource());
+        final DatabaseType databaseType;
+        try {
+            databaseType = getDatabaseType(configuration.getDataSource());
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage(), e);
+            throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
+        }
         LOGGER.info("Determined database type is {}", databaseType.getName());
 
         final String[] locations = getDatabaseTypeLocations(databaseType);
@@ -75,21 +81,6 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
             configuration.table(LEGACY_FLYWAY_SCHEMA_TABLE);
         } else {
             LOGGER.info("Using default Flyway configuration table");
-        }
-    }
-
-    /**
-     * Determines the database type from the given data source.
-     *
-     * @param dataSource the data source
-     * @return the database type
-     */
-    private DatabaseType getDatabaseType(final DataSource dataSource) {
-        try (final Connection connection = dataSource.getConnection()) {
-            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
-        } catch (SQLException e) {
-            LOGGER.error(e.getMessage(), e);
-            throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
         }
     }
 
