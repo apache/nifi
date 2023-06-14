@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.repository.encryption.configuration.kms;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyProviderFactory;
@@ -29,8 +31,6 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.util.encoders.DecoderException;
-import org.bouncycastle.util.encoders.Hex;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -140,7 +140,7 @@ public class StandardRepositoryKeyProviderFactory implements RepositoryKeyProvid
     private static SecretKey getRootKey() {
         try {
             String rootKeyHex = NiFiBootstrapUtils.extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decode(rootKeyHex), ROOT_KEY_ALGORITHM);
+            return new SecretKeySpec(Hex.decodeHex(rootKeyHex), ROOT_KEY_ALGORITHM);
         } catch (final IOException | DecoderException e) {
             throw new EncryptedConfigurationException("Read Root Key from Bootstrap Failed", e);
         }
