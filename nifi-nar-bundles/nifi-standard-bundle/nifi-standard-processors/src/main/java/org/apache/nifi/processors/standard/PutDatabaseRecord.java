@@ -886,13 +886,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 try {
                     ps.setBytes(index, byteArray);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
                 }
             } else {
+                byte[] byteArray = new byte[0];
                 try {
-                    ps.setBytes(index, value.toString().getBytes(StandardCharsets.UTF_8));
+                    byteArray = value.toString().getBytes(StandardCharsets.UTF_8);
+                    ps.setBytes(index, byteArray);
                 } catch (SQLException e) {
-                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                    throw new IOException("Unable to parse binary data with size" + byteArray.length, e.getCause());
                 }
             }
         } else {
