@@ -18,6 +18,8 @@ name: ci-workflow
 on: [push, pull_request]
 
 env:
+  MAVEN_COMMAND: ./mvnw
+  MAVEN_COMMAND_WINDOWS: ./mvnw.cmd
   DEFAULT_MAVEN_OPTS: >-
     -Xmx3g
     -XX:ReservedCodeCacheSize=1g
@@ -36,7 +38,7 @@ env:
     -Dmaven.wagon.httpconnectionManager.maxPerRoute=5
     -Dmaven.wagon.httpconnectionManager.ttlSeconds=30
   MAVEN_COMPILE_COMMAND: >-
-    mvn test-compile
+    test-compile
     --show-version
     --no-snapshot-updates
     --no-transfer-progress
@@ -61,7 +63,7 @@ env:
     -pl -:nifi-nar-provider-assembly
     -pl -:nifi-py4j-integration-tests
   MAVEN_VERIFY_COMMAND: >-
-    mvn verify
+    verify
     --show-version
     --no-snapshot-updates
     --no-transfer-progress
@@ -109,7 +111,8 @@ jobs:
           java-version: '17'
       - name: Maven Build
         run: >
-          mvn validate
+          ${{ env.MAVEN_COMMAND }}
+          validate
           --no-snapshot-updates
           --no-transfer-progress
           --fail-fast
@@ -147,6 +150,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
         run: >
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Maven Verify
         env:
@@ -162,6 +166,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
@@ -208,6 +213,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
         run: >
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Maven Verify
         env:
@@ -223,6 +229,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
@@ -269,6 +276,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
         run: >
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Maven Verify
         env:
@@ -284,6 +292,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
+          ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
@@ -332,6 +341,7 @@ jobs:
           MAVEN_OPTS: >-
             ${{ env.COMPILE_MAVEN_OPTS }}
         run: >
+          ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_COMPILE_COMMAND }}
       - name: Maven Verify
         env:
@@ -347,6 +357,7 @@ jobs:
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
         run: >-
+          ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
           ${{ env.MAVEN_BUILD_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
