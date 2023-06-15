@@ -1113,7 +1113,7 @@ public class PutDatabaseRecordTest {
 
     @Test
     void testUpdateSpecifyQuotedUpdateKeys() throws InitializationException, ProcessException, SQLException {
-        recreateTable("CREATE TABLE PERSONS (\"id\" integer, name varchar(100), code integer)");
+        recreateTable("CREATE TABLE PERSONS (\"id\" integer, \"name\" varchar(100), \"code\" integer)");
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
         runner.enableControllerService(parser);

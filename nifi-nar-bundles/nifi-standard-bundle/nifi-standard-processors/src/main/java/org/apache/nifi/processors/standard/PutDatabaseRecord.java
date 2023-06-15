@@ -1112,7 +1112,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
         Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
-        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
+        normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
 
         List<String> usedColumnNames = new ArrayList<>();
         List<Integer> usedColumnIndices = new ArrayList<>();
@@ -1146,7 +1146,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
             }
         }
 
-        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+        final Set<String> literalKeyColumnNames = new HashSet<>(keyColumnNames.size());
+        for (String literalKeyColumnName : keyColumnNames) {
+            if (settings.escapeColumnNames) {
+                literalKeyColumnNames.add(tableSchema.getQuotedIdentifierString() + literalKeyColumnName + tableSchema.getQuotedIdentifierString());
+            } else {
+                literalKeyColumnNames.add(literalKeyColumnName);
+            }
+        }
+        String sql = databaseAdapter.getUpsertStatement(tableName, usedColumnNames, literalKeyColumnNames);
 
         return new SqlAndIncludedColumns(sql, usedColumnIndices);
     }
@@ -1158,7 +1166,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         checkValuesForRequiredColumns(recordSchema, tableSchema, settings);
 
         Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
-        Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
+        normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
 
         List<String> usedColumnNames = new ArrayList<>();
         List<Integer> usedColumnIndices = new ArrayList<>();
@@ -1192,7 +1200,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
             }
         }
 
-        String sql = databaseAdapter.getInsertIgnoreStatement(tableName, usedColumnNames, normalizedKeyColumnNames);
+        final Set<String> literalKeyColumnNames = new HashSet<>(keyColumnNames.size());
+        for (String literalKeyColumnName : keyColumnNames) {
+            if (settings.escapeColumnNames) {
+                literalKeyColumnNames.add(tableSchema.getQuotedIdentifierString() + literalKeyColumnName + tableSchema.getQuotedIdentifierString());
+            } else {
+                literalKeyColumnNames.add(literalKeyColumnName);
+            }
+        }
+
+        String sql = databaseAdapter.getInsertIgnoreStatement(tableName, usedColumnNames, literalKeyColumnNames);
 
         return new SqlAndIncludedColumns(sql, usedColumnIndices);
     }
@@ -1202,7 +1219,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             throws IllegalArgumentException, MalformedRecordException, SQLException {
 
         final Set<String> keyColumnNames = getUpdateKeyColumnNames(tableName, updateKeys, tableSchema);
-        final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames, tableSchema.getQuotedIdentifierString());
+        final Set<String> normalizedKeyColumnNames = normalizeKeyColumnNamesAndCheckForValues(recordSchema, updateKeys, settings, keyColumnNames);
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
@@ -1411,7 +1428,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         return updateKeyColumnNames;
     }
 
-    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames, final String quoteString)
+    private Set<String> normalizeKeyColumnNamesAndCheckForValues(RecordSchema recordSchema, String updateKeys, DMLSettings settings, Set<String> updateKeyColumnNames)
             throws MalformedRecordException {
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
