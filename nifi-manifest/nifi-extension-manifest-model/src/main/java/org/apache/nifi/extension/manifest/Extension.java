@@ -51,6 +51,8 @@ public class Extension {
     @XmlElement(name = "property")
     private List<Property> properties;
 
+    private boolean supportsSensitiveDynamicProperties;
+
     @XmlElementWrapper
     @XmlElement(name = "dynamicProperty")
     private List<DynamicProperty> dynamicProperties;
@@ -152,6 +154,14 @@ public class Extension {
 
     public void setProperties(List<Property> properties) {
         this.properties = properties;
+    }
+
+    public boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
     @ApiModelProperty(value = "The dynamic properties of the extension")

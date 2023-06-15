@@ -105,6 +105,7 @@ class TestRuntimeManifest {
         assertFalse(listHdfsDefinition.getSideEffectFree());
         assertFalse(listHdfsDefinition.getTriggerWhenAnyDestinationAvailable());
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
+        assertFalse(listHdfsDefinition.getSupportsSensitiveDynamicProperties());
         assertNull(listHdfsDefinition.getDynamicProperties());
         assertFalse(listHdfsDefinition.getSupportsDynamicRelationships());
         assertNull(listHdfsDefinition.getDynamicRelationship());
@@ -251,6 +252,7 @@ class TestRuntimeManifest {
         assertFalse(executeSqlDef.getReadsAttributes().isEmpty());
         assertNotNull(executeSqlDef.getReadsAttributes().get(0).getName());
         assertNotNull(executeSqlDef.getReadsAttributes().get(0).getDescription());
+        assertTrue(executeSqlDef.getSupportsSensitiveDynamicProperties());
 
         // Verify RouteOnAttribute dynamic relationships and dynamic properties
         final ProcessorDefinition routeOnAttributeDef = getProcessorDefinition(bundles, "nifi-standard-nar",
@@ -262,6 +264,7 @@ class TestRuntimeManifest {
         assertNotNull(routeOnAttributeDef.getDynamicRelationship().getDescription());
 
         assertTrue(routeOnAttributeDef.getSupportsDynamicProperties());
+        assertFalse(routeOnAttributeDef.getSupportsSensitiveDynamicProperties());
         assertNotNull(routeOnAttributeDef.getDynamicProperties());
         assertFalse(routeOnAttributeDef.getDynamicProperties().isEmpty());
         assertNotNull(routeOnAttributeDef.getDynamicProperties().get(0).getName());
