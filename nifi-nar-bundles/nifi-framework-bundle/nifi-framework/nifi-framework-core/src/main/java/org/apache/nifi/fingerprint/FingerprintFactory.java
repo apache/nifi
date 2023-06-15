@@ -392,7 +392,6 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultFlowFileExpiration"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureObjectThreshold"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "defaultBackPressureDataSizeThreshold"));
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "logToOwnFile"));
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processGroupElem, "logFileSuffix"));
 
         final Element versionControlInfo = DomUtils.getChild(processGroupElem, "versionControlInformation");

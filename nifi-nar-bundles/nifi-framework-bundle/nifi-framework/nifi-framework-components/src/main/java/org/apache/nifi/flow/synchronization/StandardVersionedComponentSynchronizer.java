@@ -317,7 +317,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         group.setDefaultBackPressureObjectThreshold(proposed.getDefaultBackPressureObjectThreshold());
         group.setDefaultBackPressureDataSizeThreshold(proposed.getDefaultBackPressureDataSizeThreshold());
 
-        group.setLogToOwnFile(proposed.isLogToOwnFile());
         group.setLogFileSuffix(proposed.getLogFileSuffix());
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
@@ -1798,7 +1797,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 groupToUpdate.setComments(proposed.getComments());
                 groupToUpdate.setName(proposed.getName());
                 groupToUpdate.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
-                groupToUpdate.setLogToOwnFile(proposed.isLogToOwnFile());
                 groupToUpdate.setLogFileSuffix(proposed.getLogFileSuffix());
 
                 if (processGroup == null) {

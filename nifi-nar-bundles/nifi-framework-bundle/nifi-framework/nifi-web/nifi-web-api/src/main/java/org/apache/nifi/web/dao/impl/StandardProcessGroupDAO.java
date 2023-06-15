@@ -347,7 +347,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final Long defaultBackPressureObjectThreshold = processGroupDTO.getDefaultBackPressureObjectThreshold();
         final String defaultBackPressureDataSizeThreshold = processGroupDTO.getDefaultBackPressureDataSizeThreshold();
 
-        final Boolean logToOwnFile = processGroupDTO.isLogToOwnFile();
         final String logFileSuffix = processGroupDTO.getLogFileSuffix();
 
         final ParameterContextReferenceEntity parameterContextReference = processGroupDTO.getParameterContext();
@@ -394,11 +393,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (defaultBackPressureDataSizeThreshold != null) {
             group.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
         }
-
-        if (logToOwnFile != null) {
-            group.setLogToOwnFile(logToOwnFile);
-        }
-
 
         if (logFileSuffix != null) {
             group.setLogFileSuffix(logFileSuffix);

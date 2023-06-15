@@ -18,6 +18,6 @@ package org.apache.nifi.logging;
 
 import org.apache.nifi.groups.ProcessGroup;
 
-public interface PerProcessGroupLoggable {
+public interface GroupedComponent {
     ProcessGroup getProcessGroup();
 }

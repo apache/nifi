@@ -24,9 +24,9 @@ import java.util.Optional;
 
 public class StandardLoggingContext implements LoggingContext {
     private static final String KEY = "logFileSuffix";
-    private volatile PerProcessGroupLoggable component;
+    private volatile GroupedComponent component;
 
-    public StandardLoggingContext(final PerProcessGroupLoggable component) {
+    public StandardLoggingContext(final GroupedComponent component) {
         this.component = component;
     }
 
@@ -47,7 +47,7 @@ public class StandardLoggingContext implements LoggingContext {
     private Optional<String> getSuffix(final ProcessGroup group) {
         if (group == null) {
             return Optional.empty();
-        } else if (group.isLogToOwnFile()) {
+        } else if (group.getLogFileSuffix() != null) {
             return Optional.of(group.getLogFileSuffix());
         } else if (group.isRootGroup()) {
             return Optional.empty();
@@ -56,7 +56,7 @@ public class StandardLoggingContext implements LoggingContext {
         }
     }
 
-    public void setComponent(final PerProcessGroupLoggable component) {
+    public void setComponent(final GroupedComponent component) {
         this.component = component;
     }
 }

@@ -74,7 +74,8 @@ public class FlowDifferenceFilters {
             || isNewZIndexLabelConfigWithDefaultValue(difference, flowManager)
             || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
             || isRegistryUrlChange(difference)
-            || isParameterContextChange(difference);
+            || isParameterContextChange(difference)
+            || isLogFileSuffixChange(difference);
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {
@@ -528,5 +529,9 @@ public class FlowDifferenceFilters {
 
     private static boolean isParameterContextChange(final FlowDifference flowDifference) {
         return flowDifference.getDifferenceType() == DifferenceType.PARAMETER_CONTEXT_CHANGED;
+    }
+
+    private static boolean isLogFileSuffixChange(final FlowDifference flowDifference) {
+        return flowDifference.getDifferenceType() == DifferenceType.LOG_FILE_SUFFIX_CHANGED;
     }
 }

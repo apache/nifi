@@ -39,7 +39,6 @@ public class ProcessGroupDTO extends ComponentDTO {
     private String defaultFlowFileExpiration;
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
-    private Boolean logToOwnFile;
     private String logFileSuffix;
 
     private Integer runningCount;
@@ -406,16 +405,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
-    @ApiModelProperty(value = "Whether this Process Group should log to a dedicated file.")
-    public Boolean isLogToOwnFile() {
-        return logToOwnFile;
-    }
-
-    public void setLogToOwnFile(final Boolean logToOwnFile) {
-        this.logToOwnFile = logToOwnFile;
-    }
-
-    @ApiModelProperty(value = "`Log file suffix`")
+    @ApiModelProperty(value = "The log file suffix for this Process Group for dedicated logging.")
     public String getLogFileSuffix() {
         return logFileSuffix;
     }

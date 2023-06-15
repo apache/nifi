@@ -101,7 +101,7 @@
         </encoder>
     </appender>
 
-    <appender name="LOG_TO_OWN_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="DEDICATED_LOGGING" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator class="org.apache.nifi.logging.NifiDiscriminator"/>
         <sift>
             <appender name="APP-${logFileSuffix}_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -252,7 +252,7 @@
     </root>
 
     <root level="INFO">
-        <appender-ref ref="LOG_TO_OWN_FILE" />
+        <appender-ref ref="DEDICATED_LOGGING" />
     </root>
 
 </configuration>

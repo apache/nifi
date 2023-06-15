@@ -28,10 +28,10 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TestStandardLoggingContext {
-    private static final String LOG_FILE_Suffix = "myGroup";
+    private static final String LOG_FILE_SUFFIX = "myGroup";
 
     @Mock
-    private PerProcessGroupLoggable processor;
+    private GroupedComponent processor;
 
     @Mock
     private ProcessGroup processGroup;
@@ -48,7 +48,7 @@ class TestStandardLoggingContext {
         //component with pg with no setting returns optional empty
         LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
-        when(processGroup.isLogToOwnFile()).thenReturn(Boolean.FALSE, Boolean.FALSE);
+        when(processGroup.getLogFileSuffix()).thenReturn(null, null);
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE, Boolean.TRUE);
         when(processGroup.getParent()).thenReturn(processGroup);
 
@@ -59,21 +59,19 @@ class TestStandardLoggingContext {
     void testComponentWithProcessGroup_WithPerProcessGroupLogging_ShouldReturnLogFileSuffix() {
         LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
-        when(processGroup.isLogToOwnFile()).thenReturn(Boolean.TRUE);
-        when(processGroup.getLogFileSuffix()).thenReturn(LOG_FILE_Suffix);
+        when(processGroup.getLogFileSuffix()).thenReturn(LOG_FILE_SUFFIX);
 
-        assertEquals(LOG_FILE_Suffix, context.getLogFileSuffix().orElse(null));
+        assertEquals(LOG_FILE_SUFFIX, context.getLogFileSuffix().orElse(null));
     }
 
     @Test
     void testComponentWithProcessGroups_WithPerProcessGroupLoggingSetOnParent_ShouldReturnLogFileSuffix() {
         LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
-        when(processGroup.isLogToOwnFile()).thenReturn(Boolean.FALSE, Boolean.TRUE);
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE);
         when(processGroup.getParent()).thenReturn(processGroup);
-        when(processGroup.getLogFileSuffix()).thenReturn(LOG_FILE_Suffix);
+        when(processGroup.getLogFileSuffix()).thenReturn(null, LOG_FILE_SUFFIX);
 
-        assertEquals(LOG_FILE_Suffix, context.getLogFileSuffix().orElse(null));
+        assertEquals(LOG_FILE_SUFFIX, context.getLogFileSuffix().orElse(null));
     }
 }

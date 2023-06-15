@@ -533,13 +533,10 @@ public class StandardFlowSnippet implements FlowSnippet {
                 childGroup.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
             }
 
-            final Boolean logToOwnFile = groupDTO.isLogToOwnFile();
-            if (logToOwnFile != null) {
-                childGroup.setLogToOwnFile(logToOwnFile);
+            final String logFileSuffix = groupDTO.getLogFileSuffix();
+            if (logFileSuffix != null) {
+                childGroup.setLogFileSuffix(logFileSuffix);
             }
-
-            //To avoid log file name conflict we default the log file suffix to the Process Group's name.
-            childGroup.setLogFileSuffix(groupDTO.getName());
 
             // If this Process Group is 'top level' then we do not set versioned component ID's.
             // We do this only if this component is the child of a Versioned Component.

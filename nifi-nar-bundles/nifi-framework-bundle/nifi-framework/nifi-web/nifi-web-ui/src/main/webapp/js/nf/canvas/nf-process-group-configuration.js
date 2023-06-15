@@ -112,7 +112,6 @@
                 'defaultFlowFileExpiration': $('#process-group-default-flowfile-expiration').val(),
                 'defaultBackPressureObjectThreshold': $('#process-group-default-back-pressure-object-threshold').val(),
                 'defaultBackPressureDataSizeThreshold': $('#process-group-default-back-pressure-data-size-threshold').val(),
-                'logToOwnFile': $('#process-group-log-to-own-file-combo').combo('getSelectedOption').value,
                 'logFileSuffix': $('#process-group-log-file-suffix').val()
             }
         };
@@ -273,26 +272,7 @@
                     $('#process-group-default-flowfile-expiration').removeClass('unset').val(processGroup.defaultFlowFileExpiration);
                     $('#process-group-default-back-pressure-object-threshold').removeClass('unset').val(processGroup.defaultBackPressureObjectThreshold);
                     $('#process-group-default-back-pressure-data-size-threshold').removeClass('unset').val(processGroup.defaultBackPressureDataSizeThreshold);
-
-                    $('#process-group-log-to-own-file-combo').removeClass('unset').combo({
-                        options: [{
-                            text: 'Yes',
-                            value: true,
-                            description: 'Logging will be generated to dedicated log file for the process group.'
-                        }, {
-                            text: 'No',
-                            value: false,
-                            description: 'Normal logging will be followed.'
-                        }],
-                        selectedOption: {
-                            value: processGroup.logToOwnFile
-                        }
-                    });
-                    if (processGroup.logFileSuffix == null) {
-                        $('#process-group-log-file-suffix').removeClass('unset').val(processGroup.name);
-                    } else {
-                        $('#process-group-log-file-suffix').removeClass('unset').val(processGroup.logFileSuffix);
-                    }
+                    $('#process-group-log-file-suffix').removeClass('unset').val(processGroup.logFileSuffix);
 
                     // populate the header
                     $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -337,21 +317,7 @@
                         $('#read-only-process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
                         $('#read-only-process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
                         $('#read-only-process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
-
-                        // Determine the user-friendly name for the selected Log To Own File
-                        var selectedLogToOwnFile;
-                        if (processGroup.logToOwnFile == true) {
-                            selectedLogToOwnFile = "Yes";
-                        } else {
-                            selectedLogToOwnFile = "No";
-                        }
-
-                        $('#read-only-process-group-log-to-own-file').text(selectedLogToOwnFile);
-                        if (processGroup.logFileSuffix == null) {
-                            $('#read-only-process-group-log-file-suffix').text(processGroup.name);
-                        } else {
-                            $('#read-only-process-group-log-file-suffix').text(processGroup.logFileSuffix);
-                        }
+                        $('#read-only-process-group-log-file-suffix').text(processGroup.logFileSuffix);
 
 
                     } else {

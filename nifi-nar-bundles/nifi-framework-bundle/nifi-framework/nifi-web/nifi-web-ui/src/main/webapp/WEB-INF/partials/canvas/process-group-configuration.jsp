@@ -100,16 +100,9 @@
                         </div>
                     </div>
                     <div class="setting">
-                         <div class="setting-name">Log to own file?</div>
-                         <div class="editable setting-field">
-                            <div id="process-group-log-to-own-file-combo"></div>
-                         </div>
-                         <div class="read-only setting-field">
-                            <span id="read-only-process-group-log-to-own-file" class="unset"></span>
-                         </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Log File Suffix</div>
+                        <div class="setting-name">Log File Suffix
+                        <div class="fa fa-question-circle" alt="Info" title="Turns on dedicated logging. When left empty log messages will be logged only to the primary app log. When filled out messages logged by components in this group will be sent to the standard app log, as well as a separate log file, with the provided name, specific to this group."></div>
+                        </div>
                         <div class="editable setting-field">
                             <input type="text" id="process-group-log-file-suffix" class="setting-input"/>
                         </div>

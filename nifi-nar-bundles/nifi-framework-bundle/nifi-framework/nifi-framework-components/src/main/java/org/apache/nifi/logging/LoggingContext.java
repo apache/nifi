@@ -19,6 +19,13 @@ package org.apache.nifi.logging;
 import java.util.Optional;
 
 public interface LoggingContext {
+    /**
+     * @return the log file name suffix. This will be the discriminating value for the dedicated logging.
+     */
     Optional<String> getLogFileSuffix();
+
+    /**
+     * @return The key under which the discriminating value should be exported into the host environment.
+     */
     String getDiscriminatorKey();
 }
