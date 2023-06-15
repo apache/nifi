@@ -118,7 +118,7 @@ public class TableSchema {
 
                     while (pkrs.next()) {
                         final String colName = pkrs.getString("COLUMN_NAME");
-                        primaryKeyColumns.add(ColumnDescription.normalizeColumnName(colName, translateColumnNames));
+                        primaryKeyColumns.add(colName);
                     }
                 }
             } else {
