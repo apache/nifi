@@ -85,7 +85,7 @@ class SnowflakePipeIT implements SnowflakeConfigAware {
                     false);
         }
 
-        final Map<String, String> attributes = Collections.singletonMap(SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + stagedFilePath);
+        final Map<String, String> attributes = Collections.singletonMap(SnowflakeAttributes.ATTRIBUTE_STAGED_FILE_PATH, uuid + "/" + fileName);
         runner.enqueue("", attributes);
 
         runner.run();
@@ -114,7 +114,7 @@ class SnowflakePipeIT implements SnowflakeConfigAware {
                     false);
         }
 
-        final String stagedFilePathAttribute = uuid + "/" + stagedFilePath;
+        final String stagedFilePathAttribute = uuid + "/" + fileName;
 
         final StagedFileWrapper stagedFile = new StagedFileWrapper(stagedFilePathAttribute);
         ingestManagerProviderService.getIngestManager().ingestFile(stagedFile, null);
