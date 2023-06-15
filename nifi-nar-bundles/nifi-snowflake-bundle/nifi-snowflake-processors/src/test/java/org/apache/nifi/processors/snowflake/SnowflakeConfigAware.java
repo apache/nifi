@@ -31,7 +31,6 @@ import org.apache.nifi.util.TestRunner;
 public interface SnowflakeConfigAware {
 
     Path filePath = Paths.get("???");
-    String stagedFilePath = "???";
 
     String organizationName = "???";
     String accountName = "???";
