@@ -35,7 +35,7 @@ set LIB_DIR=%~dp0..\conf;%~dp0..\lib
 
 set C2_SERVER_HOME=%~sdp0..\
 
-SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% -Djava.net.preferIPv4Stack=true org.apache.nifi.minifi.c2.jetty.JettyServer
+SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.minifi.c2.jetty.JettyServer
 
 cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %*
 
