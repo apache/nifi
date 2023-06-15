@@ -21,6 +21,7 @@ import net.snowflake.client.jdbc.SnowflakeDriver;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,6 +31,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.AbstractDBCPConnectionPool;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -49,7 +51,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
@@ -69,15 +70,12 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinit
  */
 @Tags({"snowflake", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Snowflake Connection Pooling Service. Connections can be asked from pool and returned after usage.")
+@SupportsSensitiveDynamicProperties
 @DynamicProperties({
         @DynamicProperty(name = "JDBC property name",
                 value = "Snowflake JDBC property value",
                 expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,
-                description = "Snowflake JDBC driver property name and value applied to JDBC connections."),
-        @DynamicProperty(name = "SENSITIVE.JDBC property name",
-                value = "Snowflake JDBC property value",
-                expressionLanguageScope = ExpressionLanguageScope.NONE,
-                description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
+                description = "Snowflake JDBC driver property name and value applied to JDBC connections.")
 })
 @RequiresInstanceClassLoading
 public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService {
@@ -181,6 +179,19 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR);
+
+        return builder.build();
+    }
+
+    @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         return Collections.emptyList();
     }
@@ -188,7 +199,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     @Override
     protected DataSourceConfiguration getDataSourceConfiguration(final ConfigurationContext context) {
         final String url = getUrl(context);
-        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+        final String driverName = SnowflakeDriver.class.getName();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
@@ -225,7 +236,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
     @Override
     protected Driver getDriver(final String driverName, final String url) {
         try {
-            Class.forName(SnowflakeDriver.class.getName());
+            Class.forName(driverName);
             return DriverManager.getDriver(url);
         } catch (Exception e) {
             throw new ProcessException("Snowflake driver unavailable or incompatible connection URL", e);
