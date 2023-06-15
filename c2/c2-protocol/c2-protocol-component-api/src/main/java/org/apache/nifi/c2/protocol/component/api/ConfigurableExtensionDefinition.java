@@ -28,6 +28,8 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     private Map<String, PropertyDescriptor> propertyDescriptors;
 
     private boolean supportsDynamicProperties;
+    private boolean supportsSensitiveDynamicProperties;
+
     private List<DynamicProperty> dynamicProperties;
 
     @Override
@@ -50,6 +52,17 @@ public abstract class ConfigurableExtensionDefinition extends ExtensionComponent
     @Override
     public void setSupportsDynamicProperties(boolean supportsDynamicProperties) {
         this.supportsDynamicProperties = supportsDynamicProperties;
+    }
+
+    @Override
+    @ApiModelProperty("Whether or not this component makes use of sensitive dynamic (user-set) properties.")
+    public boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    @Override
+    public void setSupportsSensitiveDynamicProperties(boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
     @Override
