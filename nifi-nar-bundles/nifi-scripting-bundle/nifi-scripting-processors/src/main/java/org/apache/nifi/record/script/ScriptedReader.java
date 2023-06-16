@@ -47,7 +47,7 @@ import java.util.Map;
 /**
  * A RecordReader implementation that allows the user to script the RecordReader instance
  */
-@Tags({"record", "recordFactory", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
+@Tags({"record", "recordFactory", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted RecordReaderFactory instance in order to read/parse/generate records from an incoming flow file.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY,

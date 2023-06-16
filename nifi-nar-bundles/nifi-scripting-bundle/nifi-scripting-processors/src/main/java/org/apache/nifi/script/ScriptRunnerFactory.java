@@ -21,7 +21,6 @@ import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.script.impl.ClojureScriptRunner;
 import org.apache.nifi.script.impl.GenericScriptRunner;
 import org.apache.nifi.script.impl.GroovyScriptRunner;
-import org.apache.nifi.script.impl.JavascriptScriptRunner;
 import org.apache.nifi.script.impl.JythonScriptRunner;
 
 import javax.script.ScriptEngine;
@@ -58,9 +57,6 @@ public class ScriptRunnerFactory {
         if ("Clojure".equals(scriptEngineName)) {
             return new ClojureScriptRunner(scriptEngine, scriptToRun, null);
         }
-        if ("ECMAScript".equals(scriptEngineName)) {
-            return new JavascriptScriptRunner(scriptEngine, scriptToRun, null);
-        }
         return new GenericScriptRunner(scriptEngine, scriptToRun, null);
     }
 
@@ -78,8 +74,7 @@ public class ScriptRunnerFactory {
     public URL[] getModuleURLsForClasspath(String scriptEngineName, String[] modulePaths, ComponentLog log) {
 
         if (!"Clojure".equals(scriptEngineName)
-                && !"Groovy".equals(scriptEngineName)
-                && !"ECMAScript".equals(scriptEngineName)) {
+                && !"Groovy".equals(scriptEngineName)) {
             return new URL[0];
         }
 

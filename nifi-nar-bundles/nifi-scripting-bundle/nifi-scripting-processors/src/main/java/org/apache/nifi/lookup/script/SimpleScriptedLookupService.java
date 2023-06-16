@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupAttribute, e.g.)
  */
-@Tags({"lookup", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
+@Tags({"lookup", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from "
         + "an incoming flow file. The script is expected to return an optional string value rather than an arbitrary object (record, e.g.). "
         + "Also the scripted lookup service should implement StringLookupService, otherwise the getValueType() method must be implemented even "

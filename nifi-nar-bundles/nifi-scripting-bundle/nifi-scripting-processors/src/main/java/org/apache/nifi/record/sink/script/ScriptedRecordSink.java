@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"record", "record sink", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
+@Tags({"record", "record sink", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted RecordSinkService instance in order to transmit records to the desired target. The script must set a variable 'recordSink' to an "
         + "implementation of RecordSinkService.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
