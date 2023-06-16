@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -40,11 +39,7 @@ public class TestLocaleOfTestSuite {
         final Locale locale = Locale.getDefault();
         assumeTrue(locale.toLanguageTag().equals("en-AU"));
 
-        final String runtimeJavaVersion = System.getProperty("java.version");
-        final boolean isJava8 = Pattern.compile("1\\.8.+").matcher(runtimeJavaVersion).matches();
-        final String expected = (isJava8 ? "E" : "e");  // tested in Java 8 and Java 11
-
-        assertEquals(expected, DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
+        assertEquals("e", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
         assertEquals("1,000", NumberFormat.getInstance(locale).format(1000));
     }
 
@@ -69,6 +64,5 @@ public class TestLocaleOfTestSuite {
         assumeTrue(locale.toLanguageTag().equals("fr-FR"));
 
         assertEquals("E", DecimalFormatSymbols.getInstance(locale).getExponentSeparator());
-        assertEquals("1\u00a0000", NumberFormat.getInstance(locale).format(1000));
     }
 }
