@@ -29,6 +29,7 @@
 	      <module>nifi-hadoop-record-utils</module>
         <module>nifi-json-record-utils</module>
 	      <module>nifi-mock-record-utils</module>
+        <module>nifi-schema-inference-utils</module>
     </modules>
 
     <dependencyManagement>
