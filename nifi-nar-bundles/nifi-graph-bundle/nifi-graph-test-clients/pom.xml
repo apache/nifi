@@ -26,7 +26,7 @@
     <packaging>jar</packaging>
     <properties>
         <gremlin.version>3.6.4</gremlin.version>
-        <janusgraph.version>0.6.3</janusgraph.version>
+        <janusgraph.version>0.6.4-20230601-093117.385465c</janusgraph.version>
         <guava.version>32.0.0-jre</guava.version>
     </properties>
     <dependencyManagement>
