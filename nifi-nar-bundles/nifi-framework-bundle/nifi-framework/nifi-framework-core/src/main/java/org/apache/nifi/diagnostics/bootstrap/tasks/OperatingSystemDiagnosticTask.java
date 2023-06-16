@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.tasks;
 
-import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticTask;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetPhysicalCpuCoresCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetDiskLayoutCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetTotalPhysicalRamCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +33,7 @@ import java.lang.management.OperatingSystemMXBean;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -69,11 +73,26 @@ public class OperatingSystemDiagnosticTask implements DiagnosticTask {
             }
 
             attributes.forEach((key, value) -> details.add(key + " : " + value));
+            details.addAll(getPhysicalCPUCores());
+            details.addAll(getTotalPhysicalRam());
+            details.addAll(getDiskLayout());
         } catch (final Exception e) {
             logger.error("Failed to obtain Operating System details", e);
             return new StandardDiagnosticsDumpElement("Operating System / Hardware", Collections.singletonList("Failed to obtain Operating System details"));
         }
 
         return new StandardDiagnosticsDumpElement("Operating System / Hardware", details);
+    }
+
+    private Collection<String> getPhysicalCPUCores() {
+        return new GetPhysicalCpuCoresCommand().execute();
+    }
+
+    private Collection<String> getTotalPhysicalRam() {
+        return new GetTotalPhysicalRamCommand().execute();
+    }
+
+    private Collection<String> getDiskLayout() {
+        return new GetDiskLayoutCommand().execute();
     }
 }
