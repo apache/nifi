@@ -14,27 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.diagnostics;
+package org.apache.nifi.diagnostics.bootstrap.shell.results;
 
-/**
- */
-public final class DiagnosticUtils {
-    final private static String OperatingSystem = System.getProperty("os.name").toLowerCase();
+import java.util.Collection;
 
-    public static int getUtilization(final double used, final double total) {
-        return (int) Math.round((used / total) * 100);
-    }
-
-    public static boolean isWindows() {
-        return OperatingSystem.contains("win");
-    }
-
-    public static boolean isMac() {
-        return OperatingSystem.contains("mac");
-    }
-
-    public static boolean isLinuxUnix() {
-        return OperatingSystem.contains("nix") ||OperatingSystem.contains("nux") || OperatingSystem.contains("aix");
-    }
-
+public interface ShellCommandResult {
+    Collection<String> createResult(final Process process);
 }

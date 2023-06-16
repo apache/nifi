@@ -14,27 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.diagnostics;
+package org.apache.nifi.diagnostics.bootstrap.shell;
 
-/**
- */
-public final class DiagnosticUtils {
-    final private static String OperatingSystem = System.getProperty("os.name").toLowerCase();
+import org.apache.nifi.diagnostics.bootstrap.shell.commands.AbstractShellCommand;
 
-    public static int getUtilization(final double used, final double total) {
-        return (int) Math.round((used / total) * 100);
+import java.io.IOException;
+import java.util.Collection;
+
+public class ShellCommandExecutor {
+
+    public static Collection<String> execute(final AbstractShellCommand command) {
+        final ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.command(command.getCommand());
+        try {
+            final Process process = processBuilder.start();
+            return command.getParser().createResult(process);
+        } catch (IOException | NullPointerException | IndexOutOfBoundsException e) {
+            throw new RuntimeException(String.format("Failed to execute command: %s", command.getName()), e);
+        }
     }
-
-    public static boolean isWindows() {
-        return OperatingSystem.contains("win");
-    }
-
-    public static boolean isMac() {
-        return OperatingSystem.contains("mac");
-    }
-
-    public static boolean isLinuxUnix() {
-        return OperatingSystem.contains("nix") ||OperatingSystem.contains("nux") || OperatingSystem.contains("aix");
-    }
-
 }

@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.tasks;
 
-import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticTask;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
+import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetPhysicalCpuCoresCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.ShellCommandExecutor;
+import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetDiskLayoutCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetTotalPhysicalRamCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +34,7 @@ import java.lang.management.OperatingSystemMXBean;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -69,11 +74,26 @@ public class OperatingSystemDiagnosticTask implements DiagnosticTask {
             }
 
             attributes.forEach((key, value) -> details.add(key + " : " + value));
+            details.addAll(getPhysicalCPUCores());
+            details.addAll(getTotalPhysicalRam());
+            details.addAll(getDiskLayout());
         } catch (final Exception e) {
             logger.error("Failed to obtain Operating System details", e);
             return new StandardDiagnosticsDumpElement("Operating System / Hardware", Collections.singletonList("Failed to obtain Operating System details"));
         }
 
         return new StandardDiagnosticsDumpElement("Operating System / Hardware", details);
+    }
+
+    private Collection<String> getPhysicalCPUCores() {
+        return ShellCommandExecutor.execute(new GetPhysicalCpuCoresCommand());
+    }
+
+    private Collection<String> getTotalPhysicalRam() {
+        return ShellCommandExecutor.execute(new GetTotalPhysicalRamCommand());
+    }
+
+    private Collection<String> getDiskLayout() {
+        return ShellCommandExecutor.execute(new GetDiskLayoutCommand());
     }
 }
