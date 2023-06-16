@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * A Controller service that allows the user to script the lookup operation to be performed (by LookupRecord, e.g.)
  */
-@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
+@Tags({"lookup", "record", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
 @CapabilityDescription("Allows the user to provide a scripted LookupService instance in order to enrich records from " +
         "an incoming flow file. Please note, that due to a bug in Jython that remains unresolved, it is not possible to use " +
         "Jython to write a script for this service in Python.")
