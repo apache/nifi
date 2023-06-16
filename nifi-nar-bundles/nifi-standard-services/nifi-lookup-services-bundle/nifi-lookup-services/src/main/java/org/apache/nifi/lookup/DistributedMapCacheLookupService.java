@@ -34,7 +34,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -42,7 +41,6 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 
 @Tags({"lookup", "enrich", "key", "value", "map", "cache", "distributed"})
 @CapabilityDescription("Allows to choose a distributed map cache client to retrieve the value associated to a key. "
@@ -84,18 +82,6 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
 
     private static Set<String> getStandardCharsetNames() {
         return STANDARD_CHARSETS.stream().map(c -> c.displayName()).collect(Collectors.toSet());
-    }
-
-    // TODO remove this at next major release as dynamic properties are not used by this component
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .required(false)
-            .dynamic(true)
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
     }
 
     @OnEnabled
