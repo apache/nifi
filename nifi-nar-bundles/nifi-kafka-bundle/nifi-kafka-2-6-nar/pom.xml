@@ -21,7 +21,7 @@
     </parent>
     <artifactId>nifi-kafka-2-6-nar</artifactId>
     <packaging>nar</packaging>
-    <description>NiFi NAR for interacting with Apache Kafka 2.5</description>
+    <description>NiFi NAR for interacting with Apache Kafka 2.6</description>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
