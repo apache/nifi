@@ -17,10 +17,13 @@
 
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -36,22 +40,32 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class TestRemoveRecordField {
 
     private TestRunner runner;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     @Before
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(RemoveRecordField.class);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(jsonWriter, "suppress-nulls", "never-suppress");
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.enableControllerService(jsonWriter);
+        runner.setProperty(AbstractRecordProcessor.RECORD_WRITER, "writer");
     }
 
     @Test
     public void testNotRootPath() throws InitializationException, IOException {
-        setUpJsonReader("src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc");
-        setUpJsonWriter();
+        setUpJsonReader(null);
 
         runner.setProperty("root_path", "/");
         runner.assertNotValid();
@@ -62,14 +76,13 @@ public class TestRemoveRecordField {
         // must have at least 1 dynamic property to be valid
         runner.assertNotValid();
 
-        setUpJsonReader("src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc");
-        setUpJsonWriter();
+        setUpJsonReader(null);
 
         runner.setProperty("root_path", "${remove.path}");
         runner.assertValid();
 
         runner.enqueue(
-                Paths.get("src/test/resources/TestRemoveRecordField/input/complex-person.json"),
+                "{}".getBytes(StandardCharsets.UTF_8),
                 Collections.singletonMap("remove.path", "/")
         );
 
@@ -80,20 +93,27 @@ public class TestRemoveRecordField {
     }
 
     @Test
-    public void testRemoveSimpleFieldThatIsMissingFromOneRecord() throws InitializationException, IOException {
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-dateOfBirth.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/complex-person-no-dateOfBirth.json";
+    public void testRemoveSimpleFieldWithSchemaInference() throws InitializationException, IOException {
+        final String inputContent = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
+        final String outputContent = "src/test/resources/TestRemoveRecordField/output/complex-person-no-dateOfBirth.json";
         final String fieldToRemove = "/dateOfBirth";
 
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
+        executeRemovalTest(null, inputContent, null, outputContent, fieldToRemove);
+    }
+
+    @Test
+    public void testRemoveSimpleFieldThatIsMissingFromOneRecord() throws InitializationException, IOException {
+        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
+        final String inputContent = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
+        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-dateOfBirth.avsc";
+        final String outputContent = "src/test/resources/TestRemoveRecordField/output/complex-person-no-dateOfBirth.json";
+        final String fieldToRemove = "/dateOfBirth";
+
+        executeRemovalTest(inputSchema, inputContent, outputSchema, outputContent, fieldToRemove);
     }
 
     @Test
     public void testRemoveComplexFieldThatIsMissingFromOneRecord() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress.avsc";
@@ -104,32 +124,7 @@ public class TestRemoveRecordField {
     }
 
     @Test
-    public void testRemoveFieldFromDeepStructure() throws InitializationException, IOException {
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-zip.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress-zip.json";
-        final String fieldToRemove = "/workAddress/zip";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
-    public void testRemoveFieldFromDeepStructureWithRelativePath() throws InitializationException, IOException {
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-zip.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/complex-person-no-zip.json";
-        final String fieldToRemove = "//zip";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
     public void testRemoveFieldFrom3LevelDeepStructure() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-building-letter.avsc";
@@ -141,7 +136,6 @@ public class TestRemoveRecordField {
 
     @Test
     public void testRemoveNestedFieldFromDeepStructureWithRelativePath() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-building-letter.avsc";
@@ -153,7 +147,6 @@ public class TestRemoveRecordField {
 
     @Test
     public void testRemoveFieldFromNonExistentParent() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person.avsc";
@@ -164,20 +157,7 @@ public class TestRemoveRecordField {
     }
 
     @Test
-    public void testRemoveComplexFieldFromDeepStructureWithRelativePath() throws InitializationException, IOException {
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-building.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/complex-person-no-building.json";
-        final String fieldToRemove = "//building";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
     public void testRemoveNonExistentField() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person.avsc";
@@ -188,20 +168,7 @@ public class TestRemoveRecordField {
     }
 
     @Test
-    public void testRemoveNonExistentFieldFromDeepStructure() throws InitializationException, IOException {
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/complex-person.json";
-        final String fieldToRemove = "/workAddress/nonExistentField";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
     public void testRemoveMultipleFields() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/complex-person.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/complex-person-multiple-fields-removed.avsc";
@@ -214,8 +181,16 @@ public class TestRemoveRecordField {
     }
 
     @Test
+    public void testRemoveEntireArrayFieldWithSchemaInference() throws InitializationException, IOException {
+        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
+        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/address-array-removed.json";
+        final String fieldToRemove = "/addresses";
+
+        executeRemovalTest(null, inputFlowFile, null, outputFlowFile, fieldToRemove);
+    }
+
+    @Test
     public void testRemoveEntireArrayField() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array-field-removed.avsc";
@@ -227,7 +202,6 @@ public class TestRemoveRecordField {
 
     @Test
     public void testRemoveOneElementFromArray() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array.avsc";
@@ -239,7 +213,6 @@ public class TestRemoveRecordField {
 
     @Test
     public void testRemoveAllElementsFromArrayAsterisk() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array.avsc";
@@ -251,7 +224,6 @@ public class TestRemoveRecordField {
 
     @Test
     public void testRemoveAllElementsFromArrayIndexRange() throws InitializationException, IOException {
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array.avsc";
@@ -264,7 +236,6 @@ public class TestRemoveRecordField {
     @Test
     public void testRemoveFieldFromOneArrayElement() throws InitializationException, IOException {
         // The schema must not be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array.avsc";
@@ -277,7 +248,6 @@ public class TestRemoveRecordField {
     @Test
     public void testRemoveFieldFromAllArrayElements() throws InitializationException, IOException {
         // The schema must be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-array.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-array.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-array-zip-removed.avsc";
@@ -288,61 +258,8 @@ public class TestRemoveRecordField {
     }
 
     @Test
-    public void testArrayFieldInArrayFieldRemoveFieldFromOneElementInOneGroup() throws InitializationException, IOException {
-        // The schema must not be modified.
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/machinegroups-array.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/machinegroups-array.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-one-element-in-one-group.json";
-        final String fieldToRemove = "/machineGroups[1]/machines[1]/units";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
-    public void testArrayFieldInArrayFieldRemoveFieldFromAllElementsInOneGroup() throws InitializationException, IOException {
-        // The schema must not be modified.
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/machinegroups-array.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/machinegroups-array.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-all-elements-in-one-group.json";
-        final String fieldToRemove = "/machineGroups[1]/machines[*]/units";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
-    public void testArrayFieldInArrayFieldRemoveFieldOneElementInAllGroups() throws InitializationException, IOException {
-        // The schema must not be modified.
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/machinegroups-array.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/machinegroups-array.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-one-element-in-all-groups.json";
-        final String fieldToRemove = "/machineGroups[*]/machines[1]/units";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
-    public void testArrayFieldInArrayFieldRemoveFieldFromAllElementsInAllGroups() throws InitializationException, IOException {
-        // The schema must be modified.
-        // GIVEN
-        final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/machinegroups-array.avsc";
-        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/machinegroups-array.json";
-        final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array-units-field-removed.avsc";
-        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-all-elements-in-all-groups.json";
-        final String fieldToRemove = "/machineGroups[*]/machines[*]/units";
-
-        executeRemovalTest(inputSchema, inputFlowFile, outputSchema, outputFlowFile, fieldToRemove);
-    }
-
-    @Test
     public void testMapRemoveOneItem() throws InitializationException, IOException {
         // The schema must not be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/bookshelf-map.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map.avsc";
@@ -355,7 +272,6 @@ public class TestRemoveRecordField {
     @Test
     public void testMapRemoveFieldFromOneItem() throws InitializationException, IOException {
         // The schema must not be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/bookshelf-map.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map.avsc";
@@ -368,7 +284,6 @@ public class TestRemoveRecordField {
     @Test
     public void testMapRemoveFieldFromAllItems() throws InitializationException, IOException {
         // The schema must be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/bookshelf-map.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map-author-field-removed.avsc";
@@ -381,7 +296,6 @@ public class TestRemoveRecordField {
     @Test
     public void testMapRemoveAllItems() throws InitializationException, IOException {
         // The schema must not be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/bookshelf-map.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map.avsc";
@@ -392,9 +306,17 @@ public class TestRemoveRecordField {
     }
 
     @Test
+    public void testChoiceRemoveFieldFromPossibleSubtypeWithSchemaInference() throws InitializationException, IOException {
+        final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/name-choice.json";
+        final String outputFlowFile = "src/test/resources/TestRemoveRecordField/output/name-choice-firstName-removed.json";
+        final String fieldToRemove = "/name/firstName";
+
+        executeRemovalTest(null, inputFlowFile, null, outputFlowFile, fieldToRemove);
+    }
+
+    @Test
     public void testChoiceRemoveFieldFromPossibleSubtype() throws InitializationException, IOException {
         // The schema must be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/name-choice.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/name-choice.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/name-choice-firstName-removed.avsc";
@@ -407,7 +329,6 @@ public class TestRemoveRecordField {
     @Test
     public void testChoiceRemoveFieldFromChoiceInChoice() throws InitializationException, IOException {
         // The schema must be modified.
-        // GIVEN
         final String inputSchema = "src/test/resources/TestRemoveRecordField/input_schema/address-choice.avsc";
         final String inputFlowFile = "src/test/resources/TestRemoveRecordField/input/address-choice.json";
         final String outputSchema = "src/test/resources/TestRemoveRecordField/output_schema/address-choice-letter-removed-from-building.avsc";
@@ -419,19 +340,15 @@ public class TestRemoveRecordField {
 
     private void executeRemovalTest(final String inputSchema, final String inputFlowFile, final String outputSchema, final String outputFlowFile, final String... fieldsToRemove)
             throws IOException, InitializationException {
-        // GIVEN
         executePreparation(inputSchema, inputFlowFile, fieldsToRemove);
 
-        // WHEN
         runner.run();
 
-        // THEN
         assertOutput(outputSchema, outputFlowFile);
     }
 
     private void executePreparation(final String inputSchema, final String inputFlowFile, final String... fieldsToRemove) throws IOException, InitializationException {
         setUpJsonReader(inputSchema);
-        setUpJsonWriter();
 
         final String fieldName = "field-to-remove-";
         final AtomicInteger counter = new AtomicInteger(0);
@@ -440,35 +357,36 @@ public class TestRemoveRecordField {
         setUpRunner(inputFlowFile, properties);
     }
 
-    private void assertOutput(final String outputSchema, final String outputFlowFile) throws IOException {
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get(outputFlowFile)));
-        final String expectedSchema = new String(Files.readAllBytes(Paths.get(outputSchema)));
-
+    private void assertOutput(final String outputSchema, final String outputContent) throws IOException {
         runner.assertAllFlowFilesTransferred(AbstractRecordProcessor.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(AbstractRecordProcessor.REL_SUCCESS).get(0);
-        // replace Windows line endings in the output to allow tests to pass in Windows
-        assertThat(out.getContent().replace("\r\n", "\n"), is(expectedOutput));
-        assertThat(out.getAttribute("avro.schema"), is(expectedSchema));
+
+        final JsonNode expectedOutput = OBJECT_MAPPER.readTree(Paths.get(outputContent).toFile());
+        final JsonNode output = OBJECT_MAPPER.readTree(out.getContent());
+        assertThat(output, is(expectedOutput));
+
+        if (outputSchema != null) {
+            final JsonNode expectedSchema = OBJECT_MAPPER.readTree(Paths.get(outputSchema).toFile());
+            final JsonNode schema = OBJECT_MAPPER.readTree(out.getAttribute("avro.schema"));
+            assertThat(expectedSchema, is(schema));
+        } else {
+            out.assertAttributeExists("avro.schema");
+            out.assertAttributeNotEquals("avro.schema", "");
+        }
     }
 
     private void setUpJsonReader(final String schemaFilePath) throws IOException, InitializationException {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("reader", jsonReader);
-        final String inputSchemaText = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        if (schemaFilePath == null) {
+            runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        } else {
+            final String inputSchemaText = new String(Files.readAllBytes(Paths.get(schemaFilePath)));
+            runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+            runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
+        }
         runner.enableControllerService(jsonReader);
         runner.setProperty(AbstractRecordProcessor.RECORD_READER, "reader");
-    }
-
-    private void setUpJsonWriter() throws InitializationException {
-        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
-        runner.addControllerService("writer", jsonWriter);
-        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
-        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
-        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
-        runner.enableControllerService(jsonWriter);
-        runner.setProperty(AbstractRecordProcessor.RECORD_WRITER, "writer");
     }
 
     private void setUpRunner(final String flowFilePath, final Map<String, String> properties) throws IOException {

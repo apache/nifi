@@ -624,13 +624,11 @@
                         <exclude>src/test/resources/TestRemoveRecordField/input_schema/address-choice.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input_schema/bookshelf-map.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input_schema/complex-person.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/input_schema/machinegroups-array.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input_schema/name-choice.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input/address-array.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input/address-choice.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input/bookshelf-map.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input/complex-person.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/input/machinegroups-array.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/input/name-choice.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-array-field-removed.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/address-array-zip-removed.avsc</exclude>
@@ -639,15 +637,10 @@
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map-author-field-removed.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/bookshelf-map.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-multiple-fields-removed.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-building.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-dateOfBirth.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-building-letter.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress-zip.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-workAddress.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person-no-zip.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/complex-person.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array-units-field-removed.avsc</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output_schema/machinegroups-array.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output_schema/name-choice-firstName-removed.avsc</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/address-array-empty.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/address-array-one-element-removed.json</exclude>
@@ -660,17 +653,10 @@
                         <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-field-removed-from-one-element.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/bookshelf-map-one-item-removed.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-multiple-fields-removed.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-building.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-dateOfBirth.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress-building-letter.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress-zip.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-workAddress.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/complex-person-no-zip.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/complex-person.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-all-elements-in-all-groups.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-all-elements-in-one-group.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-one-element-in-all-groups.json</exclude>
-                        <exclude>src/test/resources/TestRemoveRecordField/output/machinegroups-array-field-removed-from-one-element-in-one-group.json</exclude>
                         <exclude>src/test/resources/TestRemoveRecordField/output/name-choice-firstName-removed.json</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/[DODO].txt</exclude>
                         <exclude>src/test/resources/TestReplaceTextLineByLine/$1$1.txt</exclude>
