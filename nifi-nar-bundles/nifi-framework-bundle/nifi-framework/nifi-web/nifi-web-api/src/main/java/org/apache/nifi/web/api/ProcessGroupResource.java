@@ -123,6 +123,7 @@ import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.apache.nifi.web.util.ParameterContextReplacementUtil;
 import org.apache.nifi.web.util.Pause;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
@@ -1969,8 +1970,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             @ApiParam(
                     value = "The process group configuration details.",
                     required = true
-        ) final ProcessGroupEntity requestProcessGroupEntity) {
-
+            )
+            final ProcessGroupEntity requestProcessGroupEntity,
+            @QueryParam("keepExistingParameterContext")
+            @DefaultValue("true")
+            final boolean keepExistingParameterContext
+    ) {
         if (requestProcessGroupEntity == null || requestProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
         }
@@ -2024,7 +2029,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 }
             }
 
-            // Step 4: Resolve Bundle info
+            // Step 4: Replace parameter contexts if necessary
+            if (!keepExistingParameterContext) {
+                final ParameterContextReplacementUtil parameterContextReplacementUtil = ParameterContextReplacementUtil.getInstance(serviceFacade);
+                parameterContextReplacementUtil.replaceParameterContexts(flowSnapshot);
+            }
+
+            // Step 5: Resolve Bundle info
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
 
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
@@ -2033,7 +2044,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             // If there are any Parameter Providers referenced by Parameter Contexts, resolve these to point to the appropriate Parameter Provider, if we are able to.
             serviceFacade.resolveParameterProviders(flowSnapshot, NiFiUserUtils.getNiFiUser());
 
-            // Step 5: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
+            // Step 6: Update contents of the ProcessGroupDTO passed in to include the components that need to be added.
             requestProcessGroupEntity.setVersionedFlowSnapshot(flowSnapshot);
         }
 
@@ -2042,7 +2053,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             serviceFacade.verifyImportProcessGroup(versionControlInfo, flowSnapshot.getFlowContents(), groupId);
         }
 
-        // Step 6: Replicate the request or call serviceFacade.updateProcessGroup
+        // Step 7: Replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestProcessGroupEntity);
         } else if (isDisconnectedFromCluster()) {

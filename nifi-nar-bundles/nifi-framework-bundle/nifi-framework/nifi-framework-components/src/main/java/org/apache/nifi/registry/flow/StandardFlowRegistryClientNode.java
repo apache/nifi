@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -225,6 +226,11 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         if (fetchRemoteFlows) {
             final VersionedProcessGroup contents = flowSnapshot.getFlowContents();
             for (final VersionedProcessGroup child : contents.getProcessGroups()) {
+                final Map<String, VersionedParameterContext> childParameterContexts = populateVersionedContentsRecursively(context, child, snapshotContainer);
+
+                for (final Map.Entry<String, VersionedParameterContext> childParameterContext : childParameterContexts.entrySet()) {
+                    flowSnapshot.getParameterContexts().putIfAbsent(childParameterContext.getKey(), childParameterContext.getValue());
+                }
                 populateVersionedContentsRecursively(context, child, snapshotContainer);
             }
         }
@@ -297,10 +303,15 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         return context.getNiFiUserIdentity().orElse(null);
     }
 
-    private void populateVersionedContentsRecursively(final FlowRegistryClientUserContext context, final VersionedProcessGroup group,
-                                                      final FlowSnapshotContainer snapshotContainer) throws FlowRegistryException {
+    private Map<String, VersionedParameterContext> populateVersionedContentsRecursively(
+            final FlowRegistryClientUserContext context,
+            final VersionedProcessGroup group,
+            final FlowSnapshotContainer snapshotContainer
+    ) throws FlowRegistryException {
+        Map<String, VersionedParameterContext> accumulatedParameterContexts = new HashMap<>();
+
         if (group == null) {
-            return;
+            return accumulatedParameterContexts;
         }
 
         final VersionedFlowCoordinates coordinates = group.getVersionedFlowCoordinates();
@@ -329,12 +340,23 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
             coordinates.setLatest(snapshot.isLatest());
 
+            for (final Map.Entry<String, VersionedParameterContext> parameterContext : snapshot.getParameterContexts().entrySet()) {
+                accumulatedParameterContexts.put(parameterContext.getKey(), parameterContext.getValue());
+            }
+
             snapshotContainer.addChildSnapshot(snapshot, group);
         }
 
         for (final VersionedProcessGroup child : group.getProcessGroups()) {
-            populateVersionedContentsRecursively(context, child, snapshotContainer);
+            final Map<String, VersionedParameterContext> childParameterContexts = populateVersionedContentsRecursively(context, child, snapshotContainer);
+
+            for (final Map.Entry<String, VersionedParameterContext> childParameterContext : childParameterContexts.entrySet()) {
+                // We favor the context instance from the enclosing versioned flow
+                accumulatedParameterContexts.putIfAbsent(childParameterContext.getKey(), childParameterContext.getValue());
+            }
         }
+
+        return accumulatedParameterContexts;
     }
 
     private RegisteredFlowSnapshot fetchFlowContents(final FlowRegistryClientUserContext context, final VersionedFlowCoordinates coordinates,

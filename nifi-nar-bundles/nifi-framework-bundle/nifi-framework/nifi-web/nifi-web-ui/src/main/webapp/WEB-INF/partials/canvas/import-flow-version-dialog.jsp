@@ -17,6 +17,11 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="import-flow-version-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
+        <div class="setting keep-parameter-context">
+            <div id="keepExistingParameterContext" class="nf-checkbox checkbox-checked"></div>
+            <div class="nf-checkbox-label">Keep Existing Parameter Contexts</div>
+            <div class="fa fa-question-circle" alt="Info" title="When unchecked, only directly associated Parameter Contexts will be copied, inherited ones with no direct assignment on a Process Group are not subject of this."></div>
+        </div>
         <div class="setting">
             <div class="setting-name">Registry</div>
             <div class="setting-field">
