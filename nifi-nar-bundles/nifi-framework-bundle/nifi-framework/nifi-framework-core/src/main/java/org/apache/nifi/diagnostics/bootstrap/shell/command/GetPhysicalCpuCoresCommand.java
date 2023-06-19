@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.diagnostics.bootstrap.shell.commands;
+package org.apache.nifi.diagnostics.bootstrap.shell.command;
 
-import org.apache.nifi.diagnostics.bootstrap.shell.results.SingleLineResult;
+import org.apache.nifi.diagnostics.bootstrap.shell.result.SingleLineResult;
 
 public class GetPhysicalCpuCoresCommand extends AbstractShellCommand {
     private static final String COMMAND_NAME = "GetPhysicalCpuCores";

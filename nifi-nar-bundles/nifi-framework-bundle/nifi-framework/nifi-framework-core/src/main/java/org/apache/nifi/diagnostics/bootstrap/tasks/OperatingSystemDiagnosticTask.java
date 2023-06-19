@@ -19,10 +19,10 @@ package org.apache.nifi.diagnostics.bootstrap.tasks;
 import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
-import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetPhysicalCpuCoresCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetPhysicalCpuCoresCommand;
 import org.apache.nifi.diagnostics.bootstrap.shell.ShellCommandExecutor;
-import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetDiskLayoutCommand;
-import org.apache.nifi.diagnostics.bootstrap.shell.commands.GetTotalPhysicalRamCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetDiskLayoutCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetTotalPhysicalRamCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.diagnostics.bootstrap.shell.commands;
+package org.apache.nifi.diagnostics.bootstrap.shell.command;
 
-import org.apache.nifi.diagnostics.DiagnosticUtils;
-import org.apache.nifi.diagnostics.bootstrap.shell.results.ShellCommandResult;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.diagnostics.bootstrap.shell.result.ShellCommandResult;
 
 public abstract class AbstractShellCommand {
     private final String name;
@@ -39,11 +39,11 @@ public abstract class AbstractShellCommand {
     }
 
     public String[] getCommand() {
-        if (DiagnosticUtils.isMac()){
+        if (SystemUtils.IS_OS_MAC) {
             return macCommand;
-        } else if (DiagnosticUtils.isLinuxUnix()){
+        } else if (SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX) {
             return linuxCommand;
-        } else if (DiagnosticUtils.isWindows()){
+        } else if (SystemUtils.IS_OS_WINDOWS) {
             return windowsCommand;
         } else {
             return new String[] {};

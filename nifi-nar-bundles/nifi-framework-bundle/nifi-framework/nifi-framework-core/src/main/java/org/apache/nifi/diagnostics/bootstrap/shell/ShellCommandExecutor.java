@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.shell;
 
-import org.apache.nifi.diagnostics.bootstrap.shell.commands.AbstractShellCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.AbstractShellCommand;
 
 import java.io.IOException;
 import java.util.Collection;

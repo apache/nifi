@@ -24,17 +24,4 @@ public final class DiagnosticUtils {
     public static int getUtilization(final double used, final double total) {
         return (int) Math.round((used / total) * 100);
     }
-
-    public static boolean isWindows() {
-        return OperatingSystem.contains("win");
-    }
-
-    public static boolean isMac() {
-        return OperatingSystem.contains("mac");
-    }
-
-    public static boolean isLinuxUnix() {
-        return OperatingSystem.contains("nix") ||OperatingSystem.contains("nux") || OperatingSystem.contains("aix");
-    }
-
 }
