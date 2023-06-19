@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -55,6 +56,7 @@ import java.util.Set;
     @WritesAttribute(attribute = GetRethinkDB.RETHINKDB_ERROR_MESSAGE, description = "RethinkDB error message"),
     })
 @SeeAlso({PutRethinkDB.class,DeleteRethinkDB.class})
+@DeprecationNotice(reason = "RethinkDB 2.4 requires API changes that would alter the configuration and behavior of this Processor")
 public class GetRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue READ_MODE_SINGLE = new AllowableValue("single", "Single", "Read values from memory from primary replica (Default)");
