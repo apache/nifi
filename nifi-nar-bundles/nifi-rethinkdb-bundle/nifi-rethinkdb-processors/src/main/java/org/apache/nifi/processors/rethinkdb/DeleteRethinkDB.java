@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -61,6 +62,7 @@ import java.util.Set;
     @WritesAttribute(attribute = DeleteRethinkDB.RETHINKDB_DELETE_RESULT_UNCHANGED_KEY, description = "Number of documents unchanged since they already existed"),
     })
 @SeeAlso({PutRethinkDB.class,GetRethinkDB.class})
+@DeprecationNotice(reason = "RethinkDB 2.4 requires API changes that would alter the configuration and behavior of this Processor")
 public class DeleteRethinkDB extends AbstractRethinkDBProcessor {
 
     public static AllowableValue RETURN_CHANGES_TRUE = new AllowableValue("true", "True", "Return changed document");
