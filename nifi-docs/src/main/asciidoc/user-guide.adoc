@@ -2440,6 +2440,10 @@ image::import-version-dialog.png["Import Version Dialog"]
 
 Connected registries will appear as options in the Registry drop-down menu.  For the chosen Registry, buckets the user has access to will appear as options in the Bucket drop-down menu.  The names of the flows in the chosen bucket will appear as options in the Name drop-down menu.  Select the desired version of the flow to import and select "Import" for the dataflow to be placed on the canvas.
 
+The import also provides the option to keep or replace existing Parameter Contexts based on name. Keeping the Parameter Contexts (which is the default behaviour) will use the existing Contexts if Contexts with the same name already exists, resulting shared parameter sets between multiple imports.
+
+Unchecking the checkbox named "Keep Existing Parameter Contexts" will result the creation of a new set of Parameter Contexts for the import, making it completely independent of the existing imports. The parameter values of these new Contexts will be set based on the content of the Registry Snapshot.
+
 image::versioned-flow-imported.png["Versioned Flow Imported"]
 
 Since the version imported in this example is the latest version (MySQL CDC, Version 3), the state of the versioned process group is "Up to date" (image:iconUpToDate.png["Up To Date Icon"]).  If the version imported had been an older version, the state would be "Stale" (image:iconStale.png["Stale Icon"]).

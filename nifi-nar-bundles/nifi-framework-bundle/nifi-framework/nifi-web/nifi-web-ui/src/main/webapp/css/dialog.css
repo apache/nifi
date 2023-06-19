@@ -247,11 +247,11 @@ div.progress-label {
 #import-flow-version-table {
     overflow: hidden;
     position: absolute;
-    top: 270px;
+    top: 307px;
     left: 0px;
     right: 0px;
     bottom: 0px;
-    height: 155px;
+    height: 118px;
 }
 
 #import-flow-description-container {
@@ -274,6 +274,24 @@ div.progress-label {
 
 #change-version-percent-complete .ui-progressbar-value {
     border-radius: 0;
+}
+
+#import-flow-version-dialog .keep-parameter-context {
+    align-items: center;
+    display: flex;
+}
+
+.keep-parameter-context .nf-checkbox-label {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+}
+
+.keep-parameter-context .fa {
+    color: #004849;
+    font-size: 12px;
+    line-height: 22px;
+    margin-left: 5px;
 }
 
 /*
