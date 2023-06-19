@@ -39,7 +39,7 @@ language governing permissions and limitations under the License. -->
          Note: the low-level elasticsearch-rest-client remains licensed with Apache 2.0
          (https://www.elastic.co/guide/en/elasticsearch/client/java-rest/current/_license.html) even after the move
          of the main Elasticsearch product and elasticsearch-rest-high-level-client to Elastic 2.0/SSPL 1.0 in v7.11.0+ -->
-        <elasticsearch.client.version>7.13.4</elasticsearch.client.version>
+        <elasticsearch.client.version>7.17.10</elasticsearch.client.version>
     </properties>
 
     <dependencyManagement>
