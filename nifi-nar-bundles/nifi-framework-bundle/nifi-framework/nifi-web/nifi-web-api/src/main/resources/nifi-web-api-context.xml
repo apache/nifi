@@ -381,6 +381,12 @@
         <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
 
+    <bean id="nameCollisionResolver" class="org.apache.nifi.web.util.ParameterContextNameCollisionResolver" />
+
+    <bean id="parameterContextReplacer" class="org.apache.nifi.web.util.ParameterContextReplacer">
+        <constructor-arg ref="nameCollisionResolver" />
+    </bean>
+
     <!-- rest endpoints -->
     <bean id="flowResource" class="org.apache.nifi.web.api.FlowResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -501,6 +507,7 @@
         <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
         <property name="localComponentLifecycle" ref="localComponentLifecycle" />
         <property name="dtoFactory" ref="dtoFactory" />
+        <property name="parameterContextReplacer" ref="parameterContextReplacer" />
     </bean>
     <bean id="versionsResource" class="org.apache.nifi.web.api.VersionsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade" />
