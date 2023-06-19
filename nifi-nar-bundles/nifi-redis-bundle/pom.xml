@@ -26,8 +26,8 @@
     <packaging>pom</packaging>
 
     <properties>
-        <spring.data.redis.version>2.7.13</spring.data.redis.version>
-        <jedis.version>3.9.0</jedis.version>
+        <spring.data.redis.version>2.7.10</spring.data.redis.version>
+        <jedis.version>3.10.0</jedis.version>
     </properties>
 
     <modules>
