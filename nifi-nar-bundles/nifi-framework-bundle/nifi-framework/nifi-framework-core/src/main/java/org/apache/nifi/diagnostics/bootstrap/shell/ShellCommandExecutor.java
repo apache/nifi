@@ -17,11 +17,15 @@
 package org.apache.nifi.diagnostics.bootstrap.shell;
 
 import org.apache.nifi.diagnostics.bootstrap.shell.command.AbstractShellCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 
 public class ShellCommandExecutor {
+    private static final Logger logger = LoggerFactory.getLogger(ShellCommandExecutor.class);
 
     public static Collection<String> execute(final AbstractShellCommand command) {
         final ProcessBuilder processBuilder = new ProcessBuilder();
@@ -29,7 +33,10 @@ public class ShellCommandExecutor {
         try {
             final Process process = processBuilder.start();
             return command.getParser().createResult(process);
-        } catch (IOException | NullPointerException | IndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException e) {
+            logger.warn(String.format("Operating system is not supported, failed to execute command: %s, ", command.getName()));
+            return Collections.EMPTY_LIST;
+        } catch (IOException | NullPointerException e) {
             throw new RuntimeException(String.format("Failed to execute command: %s", command.getName()), e);
         }
     }

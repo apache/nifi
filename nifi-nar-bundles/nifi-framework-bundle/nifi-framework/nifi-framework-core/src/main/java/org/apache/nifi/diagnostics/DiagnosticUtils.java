@@ -19,9 +19,9 @@ package org.apache.nifi.diagnostics;
 /**
  */
 public final class DiagnosticUtils {
-    final private static String OperatingSystem = System.getProperty("os.name").toLowerCase();
 
     public static int getUtilization(final double used, final double total) {
         return (int) Math.round((used / total) * 100);
     }
+
 }
