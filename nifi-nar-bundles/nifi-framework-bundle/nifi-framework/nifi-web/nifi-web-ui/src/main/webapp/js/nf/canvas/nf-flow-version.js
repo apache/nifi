@@ -815,6 +815,9 @@
                 }
             }]).modal('show');
 
+            // resetting the checkbox
+            $('#keepExistingParameterContext').removeClass('checkbox-unchecked').addClass('checkbox-checked');
+
             // hide the new process group dialog
             $('#new-process-group-dialog').modal('hide');
         });
@@ -1045,7 +1048,10 @@
         return $.ajax({
             type: 'POST',
             data: JSON.stringify(processGroupEntity),
-            url: '../nifi-api/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/process-groups',
+            url: '../nifi-api/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/process-groups?'
+                + $.param({
+                    'parameterContextHandlingStrategy' : $('#keepExistingParameterContext').hasClass('checkbox-checked') ? 'KEEP_EXISTING' : 'REPLACE'
+                }),
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
