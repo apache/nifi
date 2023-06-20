@@ -489,6 +489,23 @@ public class ExecuteGroovyScriptTest {
     }
 
     @Test
+    public void test_withInputStreamReturnsClosureValue() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, "import java.util.stream.*\n"
+                + "def ff = session.get(); if(!ff)return;\n"
+                + "def outputBody = ff.withInputStream{inputStream -> '5678'}\n"
+                + "ff.withOutputStream{outputStream -> outputStream.write(outputBody.bytes)}; REL_SUCCESS << ff; ");
+
+        runner.assertValid();
+
+        runner.enqueue("1234".getBytes(StandardCharsets.UTF_8));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals("5678");
+    }
+
+    @Test
     public void test_onStart_onStop() {
         runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onStart_onStop.groovy");
         runner.assertValid();
