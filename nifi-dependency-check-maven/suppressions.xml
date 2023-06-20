@@ -20,16 +20,6 @@
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
     <suppress>
-        <notes>Jetty SSLEngine is incorrectly identified with Jetty Server</notes>
-        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/jetty\-sslengine@.*$</packageUrl>
-        <cpe regex="true">^cpe:.*$</cpe>
-    </suppress>
-    <suppress>
-        <notes>H2 1.4.200 is shaded and repackaged without vulnerable components in nifi-h2-database for migration</notes>
-        <packageUrl>pkg:maven/com.h2database/h2@1.4.200</packageUrl>
-        <vulnerabilityName regex="true">^CVE.*$</vulnerabilityName>
-    </suppress>
-    <suppress>
         <notes>CVE-2022-45868 requires running H2 from a command not applicable to project references</notes>
         <packageUrl regex="true">^pkg:maven/com\.h2database/h2@2.*$</packageUrl>
         <vulnerabilityName>CVE-2022-45868</vulnerabilityName>
@@ -155,11 +145,6 @@
         <cpe regex="true">^cpe:/a:elastic.*$</cpe>
     </suppress>
     <suppress>
-        <notes>CVE-2022-34271 applies to Atlas Server not the Atlas client library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.apache\.atlas/.*$</packageUrl>
-        <cve>CVE-2022-34271</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2022-30187 applies to Azure Blob not the EventHubs Checkpoint Store Blob library</notes>
         <packageUrl regex="true">^pkg:maven/com\.azure/azure\-messaging\-eventhubs\-checkpointstore\-blob@.*$</packageUrl>
         <cve>CVE-2022-30187</cve>
@@ -170,19 +155,9 @@
         <cve>CVE-2022-39135</cve>
     </suppress>
     <suppress>
-        <notes>CVE-2018-8016 applies to Apache Cassandra server not the client library</notes>
-        <packageUrl regex="true">^pkg:maven/com\.datastax\.cassandra/cassandra\-driver\-extras@.*$</packageUrl>
-        <cve>CVE-2018-8016</cve>
-    </suppress>
-    <suppress>
         <notes>CVE-2018-1000873 applies to Jackson Java 8 Time modules not Jackson Annotations</notes>
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-annotations@.*$</packageUrl>
         <cve>CVE-2018-1000873</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2021-34371 applies to Neo4j server not the driver library</notes>
-        <packageUrl regex="true">^pkg:maven/org\.opencypher\.gremlin/cypher\-gremlin\-neo4j\-driver@.*$</packageUrl>
-        <cve>CVE-2021-34371</cve>
     </suppress>
     <suppress>
         <notes>CVE-2010-1151 applies to mod_auth_shadow in Apache HTTP Server not the FTP server library</notes>
@@ -193,21 +168,6 @@
         <notes>CVE-2018-14335 applies to H2 running with a web server console enabled</notes>
         <packageUrl regex="true">^pkg:maven/com\.h2database/h2@.*$</packageUrl>
         <vulnerabilityName>CVE-2018-14335</vulnerabilityName>
-    </suppress>
-    <suppress>
-        <notes>CVE-2022-31160 included in hadoop-client-api is not used</notes>
-        <packageUrl regex="true">^pkg:javascript/jquery\-ui@.*$</packageUrl>
-        <cve>CVE-2022-31160</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2021-37533 applies to the Commons Net FTP Client which is not used in the version bundled with hadoop-client-runtime for Accumulo</notes>
-        <packageUrl regex="true">^pkg:maven/commons\-net/commons\-net@.*$</packageUrl>
-        <cve>CVE-2021-37533</cve>
-    </suppress>
-    <suppress>
-        <notes>CVE-2021-0341 applies to Android not OkHttp</notes>
-        <packageUrl regex="true">^pkg:maven/com\.squareup\.okhttp/okhttp@.*$</packageUrl>
-        <vulnerabilityName>CVE-2021-0341</vulnerabilityName>
     </suppress>
     <suppress>
         <notes>CVE-2023-25613 applies to an LDAP backend class for Apache Kerby not the Token Provider library</notes>
@@ -263,5 +223,40 @@
         <notes>Hadoop vulnerabilities do not apply to HBase Hadoop2 compatibility library</notes>
         <packageUrl regex="true">^pkg:maven/org\.apache\.hbase/hbase\-hadoop2\-compat@.*$</packageUrl>
         <cpe>cpe:/a:apache:hadoop</cpe>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-45688 applies to hutools-json not org.json</notes>
+        <packageUrl regex="true">^pkg:maven/org\.json/json@.*$</packageUrl>
+        <cve>CVE-2022-45688</cve>
+    </suppress>
+    <suppress>
+        <notes>The Jackson maintainers dispute the applicability of CVE-2023-35116 based on cyclic nature of reported concern</notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-35116</vulnerabilityName>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-25194 applies to Kafka Connect workers not client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka.*?@.*$</packageUrl>
+        <cve>CVE-2023-25194</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-34917 applies to Kafka brokers not client libraries</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka.*?@.*$</packageUrl>
+        <cve>CVE-2022-34917</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2023-25613 applies to the LDAP Identity Backend for Kerby Server which is not used in runtime NiFi configurations</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kerby/kerb.*?@.*$</packageUrl>
+        <cve>CVE-2023-25613</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-24823 applies to Netty HTTP decoding which is not applicable to Apache Kudu clients</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*?@.*$</packageUrl>
+        <cve>CVE-2022-24823</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2022-41915 applies to Netty HTTP decoding which is not applicable to Apache Kudu clients</notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty.*?@.*$</packageUrl>
+        <cve>CVE-2022-41915</cve>
     </suppress>
 </suppressions>
