@@ -72,6 +72,12 @@
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>9.31</version>
             </dependency>
+            <!-- Override Guava 27 -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>32.0.1-jre</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

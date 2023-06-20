@@ -22,7 +22,7 @@
     <artifactId>nifi-sql-reporting-bundle</artifactId>
     <packaging>pom</packaging>
     <properties>
-        <guava.version>32.0.0-jre</guava.version>
+        <guava.version>32.0.1-jre</guava.version>
     </properties>
     <modules>
         <module>nifi-sql-reporting-tasks</module>
