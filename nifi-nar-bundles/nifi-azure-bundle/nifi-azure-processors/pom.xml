@@ -97,6 +97,15 @@
             <artifactId>azure-storage-queue</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>4.0.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
