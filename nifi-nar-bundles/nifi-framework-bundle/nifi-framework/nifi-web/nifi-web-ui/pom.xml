@@ -741,6 +741,7 @@
                                                 <include>${staging.dir}/css/processor-configuration.css</include>
                                                 <include>${staging.dir}/css/processor-details.css</include>
                                                 <include>${staging.dir}/css/process-group-configuration.css</include>
+                                                <include>${staging.dir}/css/new-process-group-dialog.css</include>
                                                 <include>${staging.dir}/css/policy-management.css</include>
                                                 <include>${staging.dir}/css/remote-process-group-configuration.css</include>
                                                 <include>${staging.dir}/css/port-configuration.css</include>

@@ -86,58 +86,6 @@
     };
 
     /**
-    *
-    * Gets all process groups of a process group
-    * @param groupId
-    * @returns process groups array
-    **/
-    var allDescendantProcessGroups;
-    var getAllDescendantProcessGroup = function(groupId) {
-        return $.ajax({
-            type: 'GET',
-            data: {
-                includeDescendantGroups: true
-            },
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/process-groups',
-            dataType: 'json'
-        }).done( function(response) {
-            return response;
-        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
-    };
-
-    /**
-    *
-    * Updates parameter context of a process group
-    * @param version
-    * @param groupId
-    * @param parameterContextId
-    **/
-    var updateParameterContext = function(version, groupId, parameterContextId) {
-        var entity = {
-            'revision': nfClient.getRevision({
-                'revision': {
-                    'version': version
-                }
-            }),
-            'component': {
-                'id': groupId,
-                'parameterContext': {
-                    'id': parameterContextId
-                }
-            }
-        };
-
-        $.ajax({
-            type: 'PUT',
-            data: JSON.stringify(entity),
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
-            dataType: 'json',
-            contentType: 'application/json'
-        });
-    };
-
-
-    /**
      * Saves the configuration for the specified group.
      *
      * @param version
@@ -145,6 +93,13 @@
      */
     var saveConfiguration = function (version, groupId) {
         // build the entity
+        var updateStrategy;
+        if ($('#parameter-contexts-recursive').hasClass('checkbox-unchecked')) {
+            updateStrategy = 'UPDATE_PROCESS_GROUP_ONLY';
+        } else {
+            updateStrategy = 'UPDATE_PROCESS_GROUP_WITH_DESCENDANTS';
+        };
+
         var entity = {
             'revision': nfClient.getRevision({
                 'revision': {
@@ -152,6 +107,7 @@
                 }
             }),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'processGroupUpdateStrategy': updateStrategy,
             'component': {
                 'id': groupId,
                 'name': $('#process-group-name').val(),
@@ -176,14 +132,6 @@
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // check parameter context recursive update requirement
-            if ($('#parameter-contexts-recursive').hasClass('checkbox-checked')) {
-                var parameterContextId = $('#process-group-parameter-context-combo').combo('getSelectedOption').value;
-                allDescendantProcessGroups.forEach(function (processGroup) {
-                    updateParameterContext(processGroup.revision.version, processGroup.id, parameterContextId);
-                });
-            }
-
             // refresh the process group if necessary
             if (response.permissions.canRead && response.component.parentGroupId === nfCanvasUtils.getGroupId()) {
                 nfProcessGroup.set(response);
@@ -197,9 +145,6 @@
 
             // update the click listener for the updated revision
             $('#process-group-configuration-save').off('click').on('click', function () {
-                saveConfiguration(response.revision.version, groupId);
-            });
-            $('#process-group-parameter-context-configuration-save').off('click').on('click', function () {
                 saveConfiguration(response.revision.version, groupId);
             });
 
@@ -248,13 +193,10 @@
                 $('#process-group-configuration div.editable').show();
                 $('#process-group-configuration div.read-only').hide();
                 $('#process-group-configuration-save').show();
-                $('#process-group-parameter-context-configuration-save').show();
-                $('#process-group-parameter-context-configuration-save').show();
             } else {
                 $('#process-group-configuration div.editable').hide();
                 $('#process-group-configuration div.read-only').show();
                 $('#process-group-configuration-save').hide();
-                $('#process-group-parameter-context-configuration-save').hide();
             }
         };
 
@@ -347,9 +289,6 @@
 
                     // register the click listener for the save button
                     $('#process-group-configuration-save').off('click').on('click', function () {
-                        saveConfiguration(response.revision.version, response.id);
-                    });
-                    $('#process-group-parameter-context-configuration-save').off('click').on('click', function () {
                         saveConfiguration(response.revision.version, response.id);
                     });
                 } else {
@@ -558,18 +497,8 @@
             $('#process-group-parameter-context-combo').combo('destroy').combo(comboOptions);
 
             // initialize parameter context recursive checkbox
-            getAllDescendantProcessGroup(groupId).then(function (response) {
-                allDescendantProcessGroups = response.processGroups;
-                var unauthorizedProcessGroups = allDescendantProcessGroups.filter(function (processGroup) {
-                    return !processGroup.permissions.canWrite;
-                });
+            $('#parameter-contexts-recursive').removeClass().addClass('nf-checkbox checkbox-unchecked');
 
-                if (unauthorizedProcessGroups.length === 0) {
-                    $('#parameter-contexts-recursive').removeClass().addClass('nf-checkbox checkbox-unchecked');
-                } else {
-                    $('#parameter-contexts-recursive').removeClass().addClass('nf-checkbox checkbox-unchecked disabled');
-                }
-            });
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
@@ -597,7 +526,6 @@
 
         // reset button state
         $('#process-group-configuration-save').mouseout();
-        $('#process-group-parameter-context-configuration-save').mouseout();
 
         // reset the fields
         $('#process-group-id').text('');
@@ -634,30 +562,24 @@
                 }, {
                     name: 'Controller Services',
                     tabContentId: 'process-group-controller-services-tab-content'
-                }, {
-                    name: 'Parameter Contexts',
-                    tabContentId: 'process-group-parameter-contexts-tab-content'
                 }],
                 select: function () {
                     var processGroup = $('#process-group-configuration').data('process-group');
                     var canWrite = nfCommon.isDefinedAndNotNull(processGroup) ? processGroup.permissions.canWrite : false;
 
                     var tab = $(this).text();
-                    if (tab === 'General' || tab === 'Parameter Contexts') {
+                    if (tab === 'General') {
                         $('#flow-cs-availability').hide();
                         $('#add-process-group-configuration-controller-service').hide();
 
                         if (canWrite) {
                             $('#process-group-configuration-save').show();
-                            $('#process-group-parameter-context-configuration-save').show();
                         } else {
                             $('#process-group-configuration-save').hide();
-                            $('#process-group-parameter-context-configuration-save').hide();
                         }
                     } else {
                         $('#flow-cs-availability').show();
                         $('#process-group-configuration-save').hide();
-                        $('#process-group-parameter-context-configuration-save').hide();
 
                         if (canWrite) {
                             $('#add-process-group-configuration-controller-service').show();

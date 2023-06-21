@@ -56,6 +56,8 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     private ParameterContextReferenceEntity parameterContext;
 
+    private String processGroupUpdateStrategy;
+
     /**
      * The ProcessGroupDTO that is being serialized.
      *
@@ -327,5 +329,17 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty(
+            value = "Determines the process group update strategy",
+            allowableValues = "UPDATE_PROCESS_GROUP_ONLY, UPDATE_PROCESS_GROUP_WITH_DESCENDANTS"
+    )
+    public String getProcessGroupUpdateStrategy() {
+        return processGroupUpdateStrategy;
+    }
+
+    public void setProcessGroupUpdateStrategy(String processGroupUpdateStrategy) {
+        this.processGroupUpdateStrategy = processGroupUpdateStrategy;
     }
 }

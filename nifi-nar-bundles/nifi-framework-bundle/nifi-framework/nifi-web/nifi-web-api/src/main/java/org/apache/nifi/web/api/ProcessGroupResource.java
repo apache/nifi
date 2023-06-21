@@ -111,6 +111,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessGroupUploadEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -480,7 +481,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @param httpServletRequest request
      * @param id                 The id of the process group.
      * @param requestProcessGroupEntity A processGroupEntity.
-     * @return A processGroupEntity.
+     * @return A processGroupEntity or the parent processGroupEntity for recursive requests.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -536,6 +537,15 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
         }
 
+        final String processGroupUpdateStrategy = requestProcessGroupEntity.getProcessGroupUpdateStrategy();
+        final ProcessGroupUpdateStrategy updateStrategy;
+        if (processGroupUpdateStrategy == null) {
+            updateStrategy = ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_ONLY;
+        } else {
+            updateStrategy = ProcessGroupUpdateStrategy.valueOf(processGroupUpdateStrategy);
+        }
+
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
         } else if (isDisconnectedFromCluster()) {
@@ -543,22 +553,36 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(requestProcessGroupEntity, id);
+        final ParameterContextReferenceEntity requestParamContext = requestProcessGroupDTO.getParameterContext();
+        final String requestGroupId = requestProcessGroupDTO.getId();
+        final Map<ProcessGroupEntity, Revision> updatableProcessGroups = new HashMap<>();
+
+        updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
+
+        if (updateStrategy == ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_WITH_DESCENDANTS) {
+            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, Boolean.TRUE)) {
+                processGroupEntity.getComponent().setParameterContext(requestParamContext);
+                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, requestGroupId));
+            }
+        }
+
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                requestRevision,
+                new HashSet<>(updatableProcessGroups.values()),
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    Authorizable authorizable = lookup.getProcessGroup(id).getAuthorizable();
+                    for (final ProcessGroupEntity updatableGroupEntity : updatableProcessGroups.keySet()) {
+                        final String groupId = updatableGroupEntity.getComponent().getId();
+
+                    Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
                     // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
-                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupDTO.getParameterContext();
+                    final ParameterContextReferenceEntity referencedParamContext = updatableGroupEntity.getParameterContext();
                     if (referencedParamContext != null) {
                         // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
-                        final String groupId = requestProcessGroupDTO.getId();
                         final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
                         final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
                         final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
@@ -592,19 +616,32 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                             }
                         }
                     }
-                },
-                () -> serviceFacade.verifyUpdateProcessGroup(requestProcessGroupDTO),
-                (revision, processGroupEntity) -> {
-                    // update the process group
-                    final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, processGroupEntity.getComponent());
-                    populateRemainingProcessGroupEntityContent(entity);
-
-                    // prune response as necessary
-                    if (entity.getComponent() != null) {
-                        entity.getComponent().setContents(null);
                     }
+                },
+                () -> {
+                    for (final ProcessGroupEntity entity : updatableProcessGroups.keySet()) {
+                        serviceFacade.verifyUpdateProcessGroup(entity.getComponent());
+                    }
+                },
+                (revisions, entities) -> {
+                    ProcessGroupEntity responseEntity = null;
+                    for (Map.Entry<ProcessGroupEntity, Revision> entry : updatableProcessGroups.entrySet()) {
+                        // update the process group
+                        final Revision revision = entry.getValue();
+                        final ProcessGroupDTO groupDTO = entry.getKey().getComponent();
+                        final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, groupDTO);
 
-                    return generateOkResponse(entity).build();
+                        if (requestGroupId.equals(entity.getId())) {
+                            responseEntity = entity;
+                            populateRemainingProcessGroupEntityContent(responseEntity);
+
+                            // prune response as necessary
+                            if (responseEntity.getComponent() != null) {
+                                responseEntity.getComponent().setContents(null);
+                            }
+                        }
+                    }
+                    return generateOkResponse(responseEntity).build();
                 }
         );
     }
@@ -2162,9 +2199,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     value = "The process group id.",
                     required = true
             )
-            @PathParam("id") final String groupId,
-            @ApiParam("Whether or not to include process groups from descendant process groups")
-            @QueryParam("includeDescendantGroups") @DefaultValue("false") boolean includeDescendantGroups) {
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -2177,7 +2212,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the process groups
-        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, includeDescendantGroups);
+        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, Boolean.FALSE);
 
         // always prune the contents
         for (final ProcessGroupEntity entity : entities) {
