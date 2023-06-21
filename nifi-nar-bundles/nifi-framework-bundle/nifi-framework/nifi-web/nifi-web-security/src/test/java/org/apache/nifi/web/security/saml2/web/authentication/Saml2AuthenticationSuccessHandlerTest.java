@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.util.WebUtils;
@@ -41,8 +39,6 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class Saml2AuthenticationSuccessHandlerTest {
@@ -52,11 +48,7 @@ class Saml2AuthenticationSuccessHandlerTest {
 
     private static final String IDENTITY = Authentication.class.getSimpleName();
 
-    private static final String IDENTITY_UPPER = IDENTITY.toUpperCase();
-
     private static final String AUTHORITY = GrantedAuthority.class.getSimpleName();
-
-    private static final String AUTHORITY_LOWER = AUTHORITY.toLowerCase();
 
     private static final String REQUEST_URI = "/nifi-api";
 
@@ -99,9 +91,6 @@ class Saml2AuthenticationSuccessHandlerTest {
     @Mock
     BearerTokenProvider bearerTokenProvider;
 
-    @Mock
-    IdpUserGroupService idpUserGroupService;
-
     MockHttpServletRequest httpServletRequest;
 
     MockHttpServletResponse httpServletResponse;
@@ -112,7 +101,6 @@ class Saml2AuthenticationSuccessHandlerTest {
     void setHandler() {
         handler = new Saml2AuthenticationSuccessHandler(
                 bearerTokenProvider,
-                idpUserGroupService,
                 Collections.singletonList(UPPER_IDENTITY_MAPPING),
                 Collections.singletonList(LOWER_IDENTITY_MAPPING),
                 EXPIRATION,
@@ -129,7 +117,6 @@ class Saml2AuthenticationSuccessHandlerTest {
 
         assertTargetUrlEquals(TARGET_URL);
         assertBearerCookieAdded(ROOT_PATH);
-        assertReplaceUserGroupsInvoked();
     }
 
     @Test
@@ -142,11 +129,6 @@ class Saml2AuthenticationSuccessHandlerTest {
 
         assertTargetUrlEquals(FORWARDED_TARGET_URL);
         assertBearerCookieAdded(FORWARDED_COOKIE_PATH);
-        assertReplaceUserGroupsInvoked();
-    }
-
-    void assertReplaceUserGroupsInvoked() {
-        verify(idpUserGroupService).replaceUserGroups(eq(IDENTITY_UPPER), eq(IdpType.SAML), eq(Collections.singleton(AUTHORITY_LOWER)));
     }
 
     void assertTargetUrlEquals(final String expectedTargetUrl) {

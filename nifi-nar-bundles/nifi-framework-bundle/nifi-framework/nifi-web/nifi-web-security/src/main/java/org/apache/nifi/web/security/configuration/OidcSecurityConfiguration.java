@@ -19,7 +19,6 @@ package org.apache.nifi.web.security.configuration;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import okhttp3.OkHttpClient;
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -129,8 +128,6 @@ public class OidcSecurityConfiguration {
 
     private final BearerTokenResolver bearerTokenResolver;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     private final JwtDecoder jwtDecoder;
 
     private final LogoutRequestManager logoutRequestManager;
@@ -142,7 +139,6 @@ public class OidcSecurityConfiguration {
             final PropertyEncryptor propertyEncryptor,
             final BearerTokenProvider bearerTokenProvider,
             final BearerTokenResolver bearerTokenResolver,
-            final IdpUserGroupService idpUserGroupService,
             final JwtDecoder jwtDecoder,
             final LogoutRequestManager logoutRequestManager
     ) {
@@ -151,7 +147,6 @@ public class OidcSecurityConfiguration {
         this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.bearerTokenResolver = Objects.requireNonNull(bearerTokenResolver, "Bearer Token Resolver required");
-        this.idpUserGroupService = Objects.requireNonNull(idpUserGroupService, "User Group Service required");
         this.jwtDecoder = Objects.requireNonNull(jwtDecoder, "JWT Decoder required");
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
         this.keyRotationPeriod = properties.getSecurityUserJwsKeyRotationPeriod();
@@ -261,7 +256,6 @@ public class OidcSecurityConfiguration {
     public LogoutSuccessHandler oidcLogoutSuccessHandler() {
         return new OidcLogoutSuccessHandler(
                 logoutRequestManager,
-                idpUserGroupService,
                 clientRegistrationRepository(),
                 authorizedClientRepository(),
                 tokenRevocationResponseClient()
@@ -480,7 +474,6 @@ public class OidcSecurityConfiguration {
 
         return new OidcAuthenticationSuccessHandler(
                 bearerTokenProvider,
-                idpUserGroupService,
                 IdentityMappingUtil.getIdentityMappings(properties),
                 IdentityMappingUtil.getGroupMappings(properties),
                 userClaimNames,

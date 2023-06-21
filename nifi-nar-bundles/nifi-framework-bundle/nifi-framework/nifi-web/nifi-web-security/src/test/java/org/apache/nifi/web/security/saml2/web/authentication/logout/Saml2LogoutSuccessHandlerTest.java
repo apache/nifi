@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication.logout;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
@@ -34,9 +33,6 @@ import java.io.IOException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class Saml2LogoutSuccessHandlerTest {
@@ -49,9 +45,6 @@ class Saml2LogoutSuccessHandlerTest {
     private static final int SERVER_PORT = 8080;
 
     private static final String REDIRECTED_URL = "http://localhost:8080/nifi/logout-complete";
-
-    @Mock
-    IdpUserGroupService idpUserGroupService;
 
     @Mock
     Authentication authentication;
@@ -67,7 +60,7 @@ class Saml2LogoutSuccessHandlerTest {
     @BeforeEach
     void setHandler() {
         logoutRequestManager = new LogoutRequestManager();
-        handler = new Saml2LogoutSuccessHandler(logoutRequestManager, idpUserGroupService);
+        handler = new Saml2LogoutSuccessHandler(logoutRequestManager);
         httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setServerPort(SERVER_PORT);
         httpServletResponse = new MockHttpServletResponse();
@@ -84,8 +77,6 @@ class Saml2LogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(REDIRECTED_URL, redirectedUrl);
-
-        verifyNoInteractions(idpUserGroupService);
     }
 
     @Test
@@ -102,6 +93,5 @@ class Saml2LogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(REDIRECTED_URL, redirectedUrl);
-        verify(idpUserGroupService).deleteUserGroups(eq(USER_IDENTITY));
     }
 }

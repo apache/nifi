@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.web.security.oidc.web.authentication;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
-import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
@@ -28,6 +26,8 @@ import org.apache.nifi.web.security.oidc.OidcConfigurationException;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.util.RequestUriBuilder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2Token;
@@ -59,8 +59,6 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
 
     private final BearerTokenProvider bearerTokenProvider;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     private final List<IdentityMapping> userIdentityMappings;
 
     private final List<IdentityMapping> groupIdentityMappings;
@@ -73,7 +71,6 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
      * OpenID Connect Authentication Success Handler requires Bearer Token Provider and expiration for generated tokens
      *
      * @param bearerTokenProvider Bearer Token Provider
-     * @param idpUserGroupService User Group Service for persisting groups from the Identity Provider
      * @param userIdentityMappings User Identity Mappings
      * @param groupIdentityMappings Group Identity Mappings
      * @param userClaimNames Claim Names for User Identity
@@ -81,14 +78,12 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
      */
     public OidcAuthenticationSuccessHandler(
             final BearerTokenProvider bearerTokenProvider,
-            final IdpUserGroupService idpUserGroupService,
             final List<IdentityMapping> userIdentityMappings,
             final List<IdentityMapping> groupIdentityMappings,
             final List<String> userClaimNames,
             final String groupsClaimName
     ) {
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
-        this.idpUserGroupService = Objects.requireNonNull(idpUserGroupService, "User Group Service required");
         this.userIdentityMappings = Objects.requireNonNull(userIdentityMappings, "User Identity Mappings required");
         this.groupIdentityMappings = Objects.requireNonNull(groupIdentityMappings, "Group Identity Mappings required");
         this.userClaimNames = Objects.requireNonNull(userClaimNames, "User Claim Names required");
@@ -117,17 +112,17 @@ public class OidcAuthenticationSuccessHandler extends SimpleUrlAuthenticationSuc
         final OidcUser oidcUser = getOidcUser(authenticationToken);
         final String identity = getIdentity(oidcUser);
         final Set<String> groups = getGroups(oidcUser);
-        idpUserGroupService.replaceUserGroups(identity, IdpType.OIDC, groups);
 
         final OAuth2AccessToken accessToken = getAccessToken(authenticationToken);
-        final String bearerToken = getBearerToken(identity, oidcUser, accessToken);
+        final String bearerToken = getBearerToken(identity, oidcUser, accessToken, groups);
         applicationCookieService.addSessionCookie(resourceUri, response, ApplicationCookieName.AUTHORIZATION_BEARER, bearerToken);
     }
 
-    private String getBearerToken(final String identity, final OidcUser oidcUser, final OAuth2AccessToken accessToken) {
+    private String getBearerToken(final String identity, final OidcUser oidcUser, final OAuth2AccessToken accessToken, final Set<String> groups) {
         final long sessionExpiration = getSessionExpiration(accessToken);
         final String issuer = oidcUser.getIssuer().toString();
-        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, identity, sessionExpiration, issuer);
+        final Set<? extends GrantedAuthority> authorities = groups.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, identity, sessionExpiration, issuer, authorities);
         return bearerTokenProvider.getBearerToken(loginAuthenticationToken);
     }
 

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.oidc.logout;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
@@ -71,8 +70,6 @@ public class OidcLogoutSuccessHandler implements LogoutSuccessHandler {
 
     private final LogoutRequestManager logoutRequestManager;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     private final OAuth2AuthorizedClientRepository authorizedClientRepository;
@@ -83,20 +80,17 @@ public class OidcLogoutSuccessHandler implements LogoutSuccessHandler {
      * OpenID Connect Logout Success Handler with RP-Initiated Logout 1.0 and RFC 7009 Token Revocation
      *
      * @param logoutRequestManager Application Logout Request Manager
-     * @param idpUserGroupService User Group Service for clearing cached groups
      * @param clientRegistrationRepository OIDC Client Registry Repository for configuration information
      * @param authorizedClientRepository OIDC Authorized Client Repository for cached tokens
      * @param tokenRevocationResponseClient OIDC Revocation Response Client for revoking Refresh Tokens
      */
     public OidcLogoutSuccessHandler(
             final LogoutRequestManager logoutRequestManager,
-            final IdpUserGroupService idpUserGroupService,
             final ClientRegistrationRepository clientRegistrationRepository,
             final OAuth2AuthorizedClientRepository authorizedClientRepository,
             final TokenRevocationResponseClient tokenRevocationResponseClient
     ) {
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
-        this.idpUserGroupService = Objects.requireNonNull(idpUserGroupService, "User Group Service required");
         this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Client Registration Repository required");
         this.authorizedClientRepository = Objects.requireNonNull(authorizedClientRepository, "Authorized Client Repository required");
         this.tokenRevocationResponseClient = Objects.requireNonNull(tokenRevocationResponseClient, "Revocation Response Client required");
@@ -123,7 +117,6 @@ public class OidcLogoutSuccessHandler implements LogoutSuccessHandler {
                 targetUrl = getPostLogoutRedirectUri(request);
             } else {
                 final String mappedUserIdentity = logoutRequest.getMappedUserIdentity();
-                idpUserGroupService.deleteUserGroups(mappedUserIdentity);
                 targetUrl = processLogoutRequest(request, response, requestIdentifier, mappedUserIdentity);
             }
 
