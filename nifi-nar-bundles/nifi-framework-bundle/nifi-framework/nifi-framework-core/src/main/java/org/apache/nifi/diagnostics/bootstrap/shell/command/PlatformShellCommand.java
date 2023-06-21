@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.diagnostics.bootstrap.shell.result;
+package org.apache.nifi.diagnostics.bootstrap.shell.command;
 
-import java.io.InputStream;
 import java.util.Collection;
 
-public interface ShellCommandResult {
-    Collection<String> createResult(final InputStream inputStream);
+public interface PlatformShellCommand {
+    Collection<String> execute();
 }

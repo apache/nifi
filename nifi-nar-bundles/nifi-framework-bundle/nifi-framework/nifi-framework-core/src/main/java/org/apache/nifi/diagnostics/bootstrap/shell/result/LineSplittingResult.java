@@ -23,28 +23,27 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class LineSplittingResult implements ShellCommandResult {
-    private final String regexStringForSplitting;
+    private final Pattern regexForSplitting;
     private final List<String> labels;
     private final String commandName;
 
     public LineSplittingResult(final String regexStringForSplitting, final List<String> labels, final String commandName) {
-        this.regexStringForSplitting = regexStringForSplitting;
+        this.regexForSplitting = Pattern.compile(regexStringForSplitting);
         this.labels = labels;
         this.commandName = commandName;
     }
 
     @Override
-    public Collection<String> createResult(final Process process) {
+    public Collection<String> createResult(final InputStream inputStream) {
         final List<String> result = new ArrayList<>();
-        try (final InputStream in = process.getInputStream();
-             final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.isEmpty()) {
-                    String[] splitResults = line.split(regexStringForSplitting);
+                    String[] splitResults = regexForSplitting.split(line);
                     for (int i = 0; i < labels.size(); i++) {
                         result.add(String.format("%s : %s", labels.get(i), splitResults[i]));
                     }

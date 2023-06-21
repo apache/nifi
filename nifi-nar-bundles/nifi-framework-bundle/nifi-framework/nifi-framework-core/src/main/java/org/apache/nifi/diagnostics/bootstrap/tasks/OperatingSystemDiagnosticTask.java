@@ -20,7 +20,6 @@ import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.bootstrap.shell.command.GetPhysicalCpuCoresCommand;
-import org.apache.nifi.diagnostics.bootstrap.shell.ShellCommandExecutor;
 import org.apache.nifi.diagnostics.bootstrap.shell.command.GetDiskLayoutCommand;
 import org.apache.nifi.diagnostics.bootstrap.shell.command.GetTotalPhysicalRamCommand;
 import org.slf4j.Logger;
@@ -86,14 +85,14 @@ public class OperatingSystemDiagnosticTask implements DiagnosticTask {
     }
 
     private Collection<String> getPhysicalCPUCores() {
-        return ShellCommandExecutor.execute(new GetPhysicalCpuCoresCommand());
+        return new GetPhysicalCpuCoresCommand().execute();
     }
 
     private Collection<String> getTotalPhysicalRam() {
-        return ShellCommandExecutor.execute(new GetTotalPhysicalRamCommand());
+        return new GetTotalPhysicalRamCommand().execute();
     }
 
     private Collection<String> getDiskLayout() {
-        return ShellCommandExecutor.execute(new GetDiskLayoutCommand());
+        return new GetDiskLayoutCommand().execute();
     }
 }

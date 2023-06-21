@@ -34,11 +34,9 @@ public class SingleLineResult implements ShellCommandResult {
         this.commandName = commandName;
     }
 
-    public Collection<String> createResult(final Process process) {
+    public Collection<String> createResult(final InputStream inputStream) {
         final List<String> result = new ArrayList<>();
-        try (final InputStream in = process.getInputStream();
-             final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-
+        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!line.isEmpty()) {

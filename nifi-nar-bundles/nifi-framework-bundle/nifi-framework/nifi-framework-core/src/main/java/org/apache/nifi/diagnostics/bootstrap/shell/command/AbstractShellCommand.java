@@ -18,20 +18,26 @@ package org.apache.nifi.diagnostics.bootstrap.shell.command;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.diagnostics.bootstrap.shell.result.ShellCommandResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class AbstractShellCommand {
+import java.util.Collection;
+import java.util.Collections;
+
+public abstract class AbstractShellCommand implements PlatformShellCommand {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractShellCommand.class);
     private final String name;
     private final String[] windowsCommand;
     private final String[] linuxCommand;
     private final String[] macCommand;
-    private final ShellCommandResult parser;
+    private final ShellCommandResult result;
 
-    public AbstractShellCommand(final String name, final String[] windowsCommand, final String[] linuxCommand, final String[] macCommand, final ShellCommandResult parser) {
+    public AbstractShellCommand(final String name, final String[] windowsCommand, final String[] linuxCommand, final String[] macCommand, final ShellCommandResult result) {
         this.name = name;
         this.windowsCommand = windowsCommand;
         this.linuxCommand = linuxCommand;
         this.macCommand = macCommand;
-        this.parser = parser;
+        this.result = result;
     }
 
     public String getName() {
@@ -46,11 +52,22 @@ public abstract class AbstractShellCommand {
         } else if (SystemUtils.IS_OS_WINDOWS) {
             return windowsCommand;
         } else {
-            return new String[] {};
+            throw new UnsupportedOperationException("Operating system not supported.");
         }
     }
 
-    public ShellCommandResult getParser() {
-        return parser;
+    @Override
+    public Collection<String> execute() {
+        final ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.command(getCommand());
+        try {
+            final Process process = processBuilder.start();
+            return result.createResult(process.getInputStream());
+        } catch (UnsupportedOperationException e) {
+            logger.warn(String.format("Operating system is not supported, failed to execute command: %s, ", name));
+            return Collections.EMPTY_LIST;
+        } catch (Exception e) {
+            throw new RuntimeException(String.format("Failed to execute command: %s", name), e);
+        }
     }
 }
