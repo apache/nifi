@@ -1872,7 +1872,7 @@
                 return !parameterContext.permissions.canRead;
             });
 
-            //sort alphabetically
+            // sort alphabetically
             var sortedAuthorizedParameterContexts = authorizedParameterContexts.sort(function (a, b) {
                 if (a.component.name < b.component.name) {
                     return -1;
@@ -1883,7 +1883,7 @@
                 return 0;
             });
 
-            //sort alphabetically
+            // sort alphabetically
             var sortedUnauthorizedParameterContexts = unauthorizedParameterContexts.sort(function (a, b) {
                 if (a.id < b.id) {
                     return -1;

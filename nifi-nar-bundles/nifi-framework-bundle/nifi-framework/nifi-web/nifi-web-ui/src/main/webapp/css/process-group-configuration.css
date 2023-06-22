@@ -83,6 +83,21 @@
 
 #process-group-parameter-context-combo {
     width: 328px;
+    float: left;
+}
+
+#parameter-contexts-recursive-container {
+    float: left;
+    margin-left: 10px;
+}
+
+#parameter-contexts-recursive-container > div {
+    float: left;
+    line-height: 30px;
+}
+
+#parameter-contexts-recursive {
+    margin-top: 8px;
 }
 
 #process-group-flowfile-concurrency-combo {

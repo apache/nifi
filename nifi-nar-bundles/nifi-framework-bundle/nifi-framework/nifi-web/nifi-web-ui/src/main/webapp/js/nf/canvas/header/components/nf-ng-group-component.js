@@ -63,11 +63,17 @@
         var cancelFileBtn = $('#file-cancel-button');
         var submitFileContainer = $('#submit-file-container');
 
+        var noParameterContext = {
+            text: 'No parameter context',
+            value: null
+        };
+
         /**
          * Create the group and add to the graph.
          *
          * @argument {string} groupName The name of the group.
          * @argument {object} pt        The point that the group was dropped.
+         * @argument {string} parameterContextId Option parameter context reference
          */
         var createGroup = function (groupName, pt, parameterContextId) {
             var processGroupEntity = {
@@ -82,12 +88,16 @@
                     'position': {
                         'x': pt.x,
                         'y': pt.y
-                    },
-                    'parameterContext': {
-                        'id': parameterContextId
                     }
                 }
             };
+
+            // include the parameter context if specified
+            if (nf.Common.isDefinedAndNotNull(parameterContextId)) {
+                processGroupEntity.component.parameterContext = {
+                    'id': parameterContextId
+                };
+            }
 
             // create a new processor of the defined type
             return $.ajax({
@@ -130,65 +140,48 @@
             return filepath.replace(/^.*[\\\/]/, '').replace(/\..*/, '');
         };
 
-        /**
-        * parameter context
-        */
-        var parameterContextOptions = [];
-        var noParameterContext = {
-            text: 'No parameter context',
-            value: null
-            };
-        var selectedOption = noParameterContext;
-        var parentParameterContextUrl = '../nifi-api/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId());
-        var parameterContextsUrl = '../nifi-api/flow/parameter-contexts';
+        var setParameterContextOptions = function () {
+            return new $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/flow/parameter-contexts',
+                    dataType: 'json'
+                }).done(function (response) {
+                    var selectedOption = noParameterContext;
+                    var parameterContextOptions = [noParameterContext];
+                    var parentParameterContext = nf.CanvasUtils.getParameterContext();
 
-        var fetchUrl = function(url) {
-            return $.ajax({
-                type: 'GET',
-                url: url,
-                dataType: 'json'
-            });
-        };
+                    // prepare the options
+                    var sortedParameterContexts = nfCommon.sortParameterContextsAlphabeticallyBasedOnAuthorization(response.parameterContexts);
+                    sortedParameterContexts.forEach(function (parameterContext) {
+                        if (parameterContext.permissions.canRead) {
+                            var option = {
+                                text: parameterContext.component.name,
+                                value: parameterContext.id,
+                                description: parameterContext.component.description
+                            };
 
-        var getParameterContextOptions = function () {
-            $.when(fetchUrl(parentParameterContextUrl), fetchUrl(parameterContextsUrl))
-            .done(function (processGroupResponse, parameterContextsResponse) {
-                var parentParameterContext = processGroupResponse[0].processGroupFlow.parameterContext;
-                var parameterContexts = parameterContextsResponse[0].parameterContexts;
+                            if (nfCommon.isDefinedAndNotNull(parentParameterContext) && parentParameterContext.id === parameterContext.id) {
+                                selectedOption = option;
+                            }
 
-                parameterContextOptions.push(noParameterContext);
+                            parameterContextOptions.push(option);
+                        }
+                    });
 
-                var sortedParameterContexts = nfCommon.sortParameterContextsAlphabeticallyBasedOnAuthorization(parameterContexts);
+                    // set the combo options
+                    $('#new-pg-parameter-context-combo').combo({
+                        selectedOption: {
+                            value: selectedOption.value
+                        },
+                        options: parameterContextOptions
+                    });
 
-                sortedParameterContexts.forEach(function (parameterContext) {
-                var option;
-                if (parameterContext.permissions.canRead) {
-                    option = {
-                        text: parameterContext.component.name,
-                        value: parameterContext.id,
-                        description: parameterContext.component.description
-                    };
-                } else {
-                    option = {
-                        disabled: true,
-                        text: parameterContext.id,
-                        value: parameterContext.id
-                    };
-                }
-                if (!nfCommon.isUndefinedOrNull(parentParameterContext) && parentParameterContext.id === parameterContext.id && parentParameterContext.permissions.canRead) {
-                    selectedOption = option;
-                }
-
-                parameterContextOptions.push(option);
-                });
-
-                $('#new-pg-parameter-context-combo').combo({
-                    selectedOption: {
-                        value: selectedOption.value
-                    },
-                    options: parameterContextOptions
-                });
-            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
+                }).fail(nfErrorHandler.handleAjaxError);
+            }).promise();
         };
 
         function GroupComponent() {
@@ -234,8 +227,6 @@
                         selectedFilename.text('');
                         uploadFileField.val('');
                         self.fileToBeUploaded = null;
-                        parameterContextOptions.length = 0;
-                        selectedOption = noParameterContext;
                     }
 
 
@@ -416,8 +407,6 @@
                     }
                 });
 
-                getParameterContextOptions();
-
                 return $.Deferred(function (deferred) {
                     var addGroup = function () {
                         // get the name of the group and clear the textfield
@@ -520,74 +509,77 @@
                         }
                     };
 
-                    groupComponent.modal.update('setButtonModel', [{
-                        buttonText: 'Add',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        disabled: function () {
-                            if (nfCommon.isBlank($('#new-process-group-name').val())) {
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        },
-                        handler: {
-                            click: addGroup
-                        }
-                    },
-                        {
-                            buttonText: 'Cancel',
+                    // set the parameter context options and then proceed with showing the new pg dialog
+                    setParameterContextOptions().done(function () {
+                        groupComponent.modal.update('setButtonModel', [{
+                            buttonText: 'Add',
                             color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
+                            disabled: function () {
+                                if (nfCommon.isBlank($('#new-process-group-name').val())) {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
                             },
                             handler: {
-                                click: function () {
-                                    // reject the deferred
-                                    deferred.reject();
-
-                                    // close the dialog
-                                    groupComponent.modal.hide();
-                                }
+                                click: addGroup
                             }
-                        }]);
+                        },
+                            {
+                                buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        // reject the deferred
+                                        deferred.reject();
 
-                    // hide the selected file to upload title
-                    submitFileContainer.hide();
+                                        // close the dialog
+                                        groupComponent.modal.hide();
+                                    }
+                                }
+                            }]);
 
-                    // hide file cancel button
-                    cancelFileBtn.hide();
+                        // hide the selected file to upload title
+                        submitFileContainer.hide();
 
-                    // determine if import from registry link should show
-                    var importProcessGroupLink = $('#import-process-group-link');
+                        // hide file cancel button
+                        cancelFileBtn.hide();
 
-                    if (showImportLink === true && nfCommon.canVersionFlows()) {
-                        importProcessGroupLink.show();
-                    } else {
-                        importProcessGroupLink.hide();
-                    }
+                        // determine if import from registry link should show
+                        var importProcessGroupLink = $('#import-process-group-link');
 
-                    // determine if Upload File button should show
-                    if (showUploadFileButton === true) {
-                        uploadFileBtn.show();
-                    } else {
-                        uploadFileBtn.hide();
-                    }
-
-                    // show the dialog
-                    groupComponent.modal.storePt(pt);
-                    groupComponent.modal.show();
-
-                    // set up the focus and key handlers
-                    $('#new-process-group-name').focus().off('keyup').on('keyup', function (e) {
-                        var code = e.keyCode ? e.keyCode : e.which;
-                        if (code === $.ui.keyCode.ENTER) {
-                            addGroup();
+                        if (showImportLink === true && nfCommon.canVersionFlows()) {
+                            importProcessGroupLink.show();
+                        } else {
+                            importProcessGroupLink.hide();
                         }
+
+                        // determine if Upload File button should show
+                        if (showUploadFileButton === true) {
+                            uploadFileBtn.show();
+                        } else {
+                            uploadFileBtn.hide();
+                        }
+
+                        // show the dialog
+                        groupComponent.modal.storePt(pt);
+                        groupComponent.modal.show();
+
+                        // set up the focus and key handlers
+                        $('#new-process-group-name').focus().off('keyup').on('keyup', function (e) {
+                            var code = e.keyCode ? e.keyCode : e.which;
+                            if (code === $.ui.keyCode.ENTER) {
+                                addGroup();
+                            }
+                        });
                     });
                 }).promise();
             }

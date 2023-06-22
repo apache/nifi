@@ -561,8 +561,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         if (updateStrategy == ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_WITH_DESCENDANTS) {
             for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, Boolean.TRUE)) {
-                processGroupEntity.getComponent().setParameterContext(requestParamContext);
-                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, requestGroupId));
+                final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
+                processGroupDTO.setParameterContext(requestParamContext);
+                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, processGroupDTO.getId()));
             }
         }
 
@@ -574,13 +575,14 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
                     for (final ProcessGroupEntity updatableGroupEntity : updatableProcessGroups.keySet()) {
-                        final String groupId = updatableGroupEntity.getComponent().getId();
+                        final ProcessGroupDTO updatableGroupDto = updatableGroupEntity.getComponent();
+                        final String groupId = updatableGroupDto.getId();
 
                     Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
                     // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
-                    final ParameterContextReferenceEntity referencedParamContext = updatableGroupEntity.getParameterContext();
+                    final ParameterContextReferenceEntity referencedParamContext = updatableGroupDto.getParameterContext();
                     if (referencedParamContext != null) {
                         // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
                         final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
