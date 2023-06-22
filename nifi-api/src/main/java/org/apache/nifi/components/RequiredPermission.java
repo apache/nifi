@@ -30,7 +30,8 @@ public enum RequiredPermission {
     ACCESS_KEYTAB("access-keytab", "access keytab"),
     ACCESS_TICKET_CACHE("access-ticket-cache", "access ticket cache"),
     ACCESS_ENVIRONMENT_CREDENTIALS("access-environment-credentials", "access environment credentials"),
-    EXPORT_NIFI_DETAILS("export-nifi-details", "export nifi details");
+    EXPORT_NIFI_DETAILS("export-nifi-details", "export nifi details"),
+    REFERENCE_REMOTE_RESOURCES("reference-remote-resources", "reference remote resources");
 
     private String permissionIdentifier;
     private String permissionLabel;

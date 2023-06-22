@@ -21,11 +21,14 @@ import io.krakens.grok.api.Grok;
 import io.krakens.grok.api.GrokCompiler;
 import io.krakens.grok.api.GrokUtils;
 import io.krakens.grok.api.exception.GrokException;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -73,6 +76,14 @@ import java.util.stream.Collectors;
     + "a log message is considered to be part of the previous message but is added to the 'stackTrace' field of the Record. If a record has "
     + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String). "
     + "Assuming that the schema includes a '_raw' field of type String, the raw message will be included in the Record.")
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES,
+                        explanation = "Patterns and Expressions can reference resources over HTTP"
+                )
+        }
+)
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
     private volatile List<Grok> groks;
     private volatile NoMatchStrategy noMatchStrategy;
