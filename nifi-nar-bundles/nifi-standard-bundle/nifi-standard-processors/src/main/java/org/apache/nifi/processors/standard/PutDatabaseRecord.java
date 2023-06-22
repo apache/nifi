@@ -793,6 +793,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             sql, flowFile, fieldIndexes, batchIndex, currentBatchSize);
                         session.adjustCounter("Batches Executed", 1, false);
                         ps.executeBatch();
+                        con.commit();
                         currentBatchSize = 0;
                     }
                 }
