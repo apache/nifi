@@ -65,6 +65,7 @@
                 <include>org.slf4j:slf4j-api</include>
                 <include>org.slf4j:jcl-over-slf4j</include>
                 <include>org.apache.commons:commons-lang3</include>
+                <include>com.google.guava:guava</include>
             </includes>
         </dependencySet>
         <!-- Write out scripts from nifi-ranger-resources to ext/ranger/scripts -->
