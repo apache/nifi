@@ -55,7 +55,7 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
 
         // Create a flow that is GenerateFlowFile -> RPG, connected to the input port
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
-        RemoteProcessGroupEntity rpg = getClientUtil().createRPG("root", protocol);
+        RemoteProcessGroupEntity rpg = getClientUtil().createRPG("root", getClientApiPort(), protocol);
 
         util.updateProcessorProperties(generateFlowFile, Collections.singletonMap("File Size", "1 KB"));
         util.updateProcessorProperties(generateFlowFile, Collections.singletonMap("Batch Size", "3"));

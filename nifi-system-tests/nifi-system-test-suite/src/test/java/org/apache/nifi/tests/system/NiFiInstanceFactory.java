@@ -20,4 +20,6 @@ import java.io.IOException;
 
 public interface NiFiInstanceFactory {
     NiFiInstance createInstance() throws IOException;
+
+    boolean isClusteredInstance();
 }

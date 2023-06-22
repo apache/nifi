@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class SpawnedClusterNiFiInstanceFactory implements NiFiInstanceFactory {
     private final List<InstanceConfiguration> instanceConfigs = new ArrayList<>();
@@ -62,5 +63,29 @@ public class SpawnedClusterNiFiInstanceFactory implements NiFiInstanceFactory {
         }
 
         return new AggregateNiFiInstance(instances);
+    }
+
+    @Override
+    public boolean isClusteredInstance() {
+        return true;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+
+        final SpawnedClusterNiFiInstanceFactory that = (SpawnedClusterNiFiInstanceFactory) other;
+        return Objects.equals(instanceConfigs, that.instanceConfigs);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(instanceConfigs);
     }
 }

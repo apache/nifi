@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class JoinClusterAdjustStateIT extends NiFiSystemIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
+        // Create a factory explicitly because we want the second instance not to be auto-started
         return new SpawnedClusterNiFiInstanceFactory(
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
@@ -46,6 +47,11 @@ public class JoinClusterAdjustStateIT extends NiFiSystemIT {
                 .autoStart(false)
                 .build()
         );
+    }
+
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        return false; // Do not allow reuse because this test requires that Node 1 be auto-started and Node 2 not be.
     }
 
     @Test

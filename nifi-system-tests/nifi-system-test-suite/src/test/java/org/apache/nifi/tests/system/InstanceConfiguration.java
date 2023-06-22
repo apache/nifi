@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class InstanceConfiguration {
     private final File bootstrapConfigFile;
@@ -60,6 +61,27 @@ public class InstanceConfiguration {
 
     public Map<String, String> getNifiPropertiesOverrides() {
         return nifiPropertiesOverrides;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+
+        final InstanceConfiguration that = (InstanceConfiguration) other;
+        return autoStart == that.autoStart && unpackPythonExtensions == that.unpackPythonExtensions && Objects.equals(bootstrapConfigFile, that.bootstrapConfigFile)
+            && Objects.equals(instanceDirectory, that.instanceDirectory) && Objects.equals(flowXmlGz, that.flowXmlGz)
+            && Objects.equals(stateDirectory, that.stateDirectory) && Objects.equals(nifiPropertiesOverrides, that.nifiPropertiesOverrides);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(bootstrapConfigFile, instanceDirectory, flowXmlGz, stateDirectory, autoStart, nifiPropertiesOverrides, unpackPythonExtensions);
     }
 
     public static class Builder {

@@ -1285,9 +1285,9 @@ public class NiFiClientUtil {
         return requestEntity;
     }
 
-    public RemoteProcessGroupEntity createRPG(final String parentGroupId, final SiteToSiteTransportProtocol transportProtocol) throws NiFiClientException, IOException {
+    public RemoteProcessGroupEntity createRPG(final String parentGroupId, final int httpPort, final SiteToSiteTransportProtocol transportProtocol) throws NiFiClientException, IOException {
         final RemoteProcessGroupDTO component = new RemoteProcessGroupDTO();
-        component.setTargetUri("http://localhost:5671");
+        component.setTargetUri("http://localhost:" + httpPort);
         component.setName(component.getTargetUri());
         component.setTransportProtocol(transportProtocol.name());
 
@@ -1296,7 +1296,7 @@ public class NiFiClientUtil {
         entity.setRevision(createNewRevision());
 
         final RemoteProcessGroupEntity rpg = nifiClient.getRemoteProcessGroupClient().createRemoteProcessGroup(parentGroupId, entity);
-        logger.info("Created Remote Process Group [id={}, protocol={}, url={}, parentGroupId={}] for Test [{}]", rpg.getId(), transportProtocol, parentGroupId, testName);
+        logger.info("Created Remote Process Group [id={}, protocol={}, url={}, parentGroupId={}] for Test [{}]", rpg.getId(), transportProtocol, component.getTargetUri(), parentGroupId, testName);
         return rpg;
     }
 
