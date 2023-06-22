@@ -22,7 +22,4 @@ package org.apache.nifi.admin.dao;
 public interface DAOFactory {
 
     ActionDAO getActionDAO();
-
-    IdpUserGroupDAO getIdpUserGroupDAO();
-
 }
