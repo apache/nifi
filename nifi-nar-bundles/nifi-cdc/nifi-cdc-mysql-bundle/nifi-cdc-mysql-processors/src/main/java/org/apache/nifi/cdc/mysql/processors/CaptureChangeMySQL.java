@@ -31,6 +31,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -65,6 +67,7 @@ import org.apache.nifi.cdc.mysql.processors.ssl.StandardConnectionPropertiesProv
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -151,6 +154,14 @@ import static org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy.MAX_EVENTS
                 + "application/json")
 })
 @RequiresInstanceClassLoading
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.REFERENCE_REMOTE_RESOURCES,
+                        explanation = "Database Driver Location can reference resources over HTTP"
+                )
+        }
+)
 public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
 
     // Random invalid constant used as an indicator to not set the binlog position on the client (thereby using the latest available)
