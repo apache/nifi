@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.web.authentication;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.util.IdentityMapping;
-import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
@@ -66,9 +64,6 @@ class OidcAuthenticationSuccessHandlerTest {
     @Mock
     BearerTokenProvider bearerTokenProvider;
 
-    @Mock
-    IdpUserGroupService idpUserGroupService;
-
     @Captor
     ArgumentCaptor<LoginAuthenticationToken> authenticationTokenCaptor;
 
@@ -98,11 +93,7 @@ class OidcAuthenticationSuccessHandlerTest {
 
     private static final String IDENTITY = Authentication.class.getSimpleName();
 
-    private static final String IDENTITY_UPPER = IDENTITY.toUpperCase();
-
     private static final String AUTHORITY = GrantedAuthority.class.getSimpleName();
-
-    private static final String AUTHORITY_LOWER = AUTHORITY.toLowerCase();
 
     private static final String ACCESS_TOKEN = "access-token";
 
@@ -142,7 +133,6 @@ class OidcAuthenticationSuccessHandlerTest {
     void setHandler() {
         handler = new OidcAuthenticationSuccessHandler(
                 bearerTokenProvider,
-                idpUserGroupService,
                 Collections.singletonList(UPPER_IDENTITY_MAPPING),
                 Collections.singletonList(LOWER_IDENTITY_MAPPING),
                 Collections.singletonList(USER_NAME_CLAIM),
@@ -159,7 +149,6 @@ class OidcAuthenticationSuccessHandlerTest {
 
         assertTargetUrlEquals(TARGET_URL);
         assertBearerCookieAdded(ROOT_PATH);
-        assertReplaceUserGroupsInvoked();
     }
 
     @Test
@@ -172,11 +161,6 @@ class OidcAuthenticationSuccessHandlerTest {
 
         assertTargetUrlEquals(FORWARDED_TARGET_URL);
         assertBearerCookieAdded(FORWARDED_COOKIE_PATH);
-        assertReplaceUserGroupsInvoked();
-    }
-
-    void assertReplaceUserGroupsInvoked() {
-        verify(idpUserGroupService).replaceUserGroups(eq(IDENTITY_UPPER), eq(IdpType.OIDC), eq(Collections.singleton(AUTHORITY_LOWER)));
     }
 
     void assertTargetUrlEquals(final String expectedTargetUrl) {

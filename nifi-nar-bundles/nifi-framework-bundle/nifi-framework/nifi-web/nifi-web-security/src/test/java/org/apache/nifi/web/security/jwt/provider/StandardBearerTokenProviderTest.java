@@ -27,11 +27,14 @@ import com.nimbusds.jwt.SignedJWT;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerContainer;
 import org.apache.nifi.web.security.jwt.jws.JwsSignerProvider;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -40,9 +43,12 @@ import java.security.interfaces.RSAPublicKey;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -71,6 +77,10 @@ public class StandardBearerTokenProviderTest {
 
     private static final JWSAlgorithm JWS_ALGORITHM = JWSAlgorithm.PS512;
 
+    private static final String GROUP = "ProviderGroup";
+
+    private static KeyPair keyPair;
+
     @Mock
     private JwsSignerProvider jwsSignerProvider;
 
@@ -78,49 +88,50 @@ public class StandardBearerTokenProviderTest {
 
     private JWSVerifier jwsVerifier;
 
-    private JWSSigner jwsSigner;
-
-    @BeforeEach
-    public void setProvider() throws NoSuchAlgorithmException {
-        provider = new StandardBearerTokenProvider(jwsSignerProvider);
-
+    @BeforeAll
+    public static void setKeyPair() throws NoSuchAlgorithmException {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
         keyPairGenerator.initialize(KEY_SIZE);
-        final KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        keyPair = keyPairGenerator.generateKeyPair();
+    }
+
+    @BeforeEach
+    public void setProvider() {
+        provider = new StandardBearerTokenProvider(jwsSignerProvider);
+
         jwsVerifier = new RSASSAVerifier((RSAPublicKey) keyPair.getPublic());
-        jwsSigner = new RSASSASigner(keyPair.getPrivate());
+        final JWSSigner jwsSigner = new RSASSASigner(keyPair.getPrivate());
+
+        final String keyIdentifier = UUID.randomUUID().toString();
+        final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
+        when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
     }
 
     @Test
     public void testGetBearerToken() throws ParseException, JOSEException {
         final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER);
-        setSignerProvider();
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
-        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
-        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
-        assertNotNull(claims.getIssueTime(), "Issue Time not found");
-        assertNotNull(claims.getNotBeforeTime(), "Not Before Time not found");
+        assertTokenMatched(bearerToken, loginAuthenticationToken);
+    }
 
-        final Date claimExpirationTime = claims.getExpirationTime();
-        assertNotNull(claimExpirationTime, "Expiration Time not found");
+    @Test
+    public void testGetBearerTokenGroups() throws ParseException, JOSEException {
+        final GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(GROUP);
+        final Collection<GrantedAuthority> authorities = Collections.singletonList(grantedAuthority);
 
-        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
-        assertEquals(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time not matched");
+        final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, EXPIRATION.toMillis(), ISSUER, authorities);
 
-        assertEquals(ISSUER, claims.getIssuer());
-        assertEquals(Collections.singletonList(ISSUER), claims.getAudience());
-        assertEquals(IDENTITY, claims.getSubject());
-        assertEquals(USERNAME, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
-        assertNotNull("JSON Web Token Identifier not found", claims.getJWTID());
+        final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
+
+        assertTokenMatched(bearerToken, loginAuthenticationToken);
     }
 
     @Test
     public void testGetBearerTokenExpirationMaximum() throws ParseException, JOSEException {
         final long expiration = MAXIMUM_DURATION_EXCEEDED.toMillis();
         final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
-        setSignerProvider();
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -139,7 +150,6 @@ public class StandardBearerTokenProviderTest {
     public void testGetBearerTokenExpirationMinimum() throws ParseException, JOSEException {
         final long expiration = MINIMUM_DURATION_EXCEEDED.toMillis();
         final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(IDENTITY, USERNAME, expiration, ISSUER);
-        setSignerProvider();
 
         final String bearerToken = provider.getBearerToken(loginAuthenticationToken);
 
@@ -154,15 +164,36 @@ public class StandardBearerTokenProviderTest {
         assertTrue(claimExpirationTime.toInstant().isAfter(loginExpirationTime.toInstant()), "Claim Expiration before Login Expiration");
     }
 
-    private void setSignerProvider() {
-        final String keyIdentifier = UUID.randomUUID().toString();
-        final JwsSignerContainer jwsSignerContainer = new JwsSignerContainer(keyIdentifier, JWS_ALGORITHM, jwsSigner);
-        when(jwsSignerProvider.getJwsSignerContainer(isA(Instant.class))).thenReturn(jwsSignerContainer);
-    }
-
     private SignedJWT assertTokenVerified(final String bearerToken) throws ParseException, JOSEException {
         final SignedJWT signedJwt = SignedJWT.parse(bearerToken);
         assertTrue(signedJwt.verify(jwsVerifier), "Verification Failed");
         return signedJwt;
+    }
+
+    private void assertTokenMatched(final String bearerToken, final LoginAuthenticationToken loginAuthenticationToken) throws ParseException, JOSEException {
+        final SignedJWT signedJwt = assertTokenVerified(bearerToken);
+        final JWTClaimsSet claims = signedJwt.getJWTClaimsSet();
+        assertNotNull(claims.getIssueTime(), "Issue Time not found");
+        assertNotNull(claims.getNotBeforeTime(), "Not Before Time not found");
+
+        final Date claimExpirationTime = claims.getExpirationTime();
+        assertNotNull(claimExpirationTime, "Expiration Time not found");
+
+        final Date loginExpirationTime = new Date(loginAuthenticationToken.getExpiration());
+        assertEquals(loginExpirationTime.toString(), claimExpirationTime.toString(), "Expiration Time not matched");
+
+        assertEquals(ISSUER, claims.getIssuer());
+        assertEquals(Collections.singletonList(ISSUER), claims.getAudience());
+        assertEquals(IDENTITY, claims.getSubject());
+        assertEquals(USERNAME, claims.getClaim(SupportedClaim.PREFERRED_USERNAME.getClaim()));
+        assertNotNull(claims.getJWTID(), "JSON Web Token Identifier not found");
+
+        final List<String> groups = claims.getStringListClaim(SupportedClaim.GROUPS.getClaim());
+        assertNotNull(groups);
+
+        final Collection<GrantedAuthority> grantedAuthorities = loginAuthenticationToken.getAuthorities();
+        final List<String> authorities = grantedAuthorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+
+        assertEquals(authorities, groups);
     }
 }

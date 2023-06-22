@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication.logout;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
@@ -47,14 +46,10 @@ public class Saml2LogoutSuccessHandler implements LogoutSuccessHandler {
 
     private final LogoutRequestManager logoutRequestManager;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     public Saml2LogoutSuccessHandler(
-            final LogoutRequestManager logoutRequestManager,
-            final IdpUserGroupService idpUserGroupService
+            final LogoutRequestManager logoutRequestManager
     ) {
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
-        this.idpUserGroupService = Objects.requireNonNull(idpUserGroupService, "User Group Service required");
     }
 
     /**
@@ -76,8 +71,6 @@ public class Saml2LogoutSuccessHandler implements LogoutSuccessHandler {
                 logger.warn("Logout Request [{}] not found", requestIdentifier);
             } else {
                 final String mappedUserIdentity = logoutRequest.getMappedUserIdentity();
-
-                idpUserGroupService.deleteUserGroups(mappedUserIdentity);
                 logger.info("Logout Request [{}] Identity [{}] completed", requestIdentifier, mappedUserIdentity);
             }
 

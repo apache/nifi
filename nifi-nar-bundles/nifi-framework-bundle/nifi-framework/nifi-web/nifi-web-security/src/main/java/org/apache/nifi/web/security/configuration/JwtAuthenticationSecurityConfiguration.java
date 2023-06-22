@@ -22,7 +22,6 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import com.nimbusds.jwt.proc.JWTClaimsSetVerifier;
 import com.nimbusds.jwt.proc.JWTProcessor;
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -79,14 +78,13 @@ public class JwtAuthenticationSecurityConfiguration {
             SupportedClaim.EXPIRATION.getClaim(),
             SupportedClaim.NOT_BEFORE.getClaim(),
             SupportedClaim.ISSUED_AT.getClaim(),
-            SupportedClaim.JWT_ID.getClaim()
+            SupportedClaim.JWT_ID.getClaim(),
+            SupportedClaim.GROUPS.getClaim()
     ));
 
     private final NiFiProperties niFiProperties;
 
     private final Authorizer authorizer;
-
-    private final IdpUserGroupService idpUserGroupService;
 
     private final StateManagerProvider stateManagerProvider;
 
@@ -96,12 +94,10 @@ public class JwtAuthenticationSecurityConfiguration {
     public JwtAuthenticationSecurityConfiguration(
             final NiFiProperties niFiProperties,
             final Authorizer authorizer,
-            final IdpUserGroupService idpUserGroupService,
             final StateManagerProvider stateManagerProvider
     ) {
         this.niFiProperties = niFiProperties;
         this.authorizer = authorizer;
-        this.idpUserGroupService = idpUserGroupService;
         this.stateManagerProvider = stateManagerProvider;
         this.keyRotationPeriod = niFiProperties.getSecurityUserJwsKeyRotationPeriod();
     }
@@ -180,7 +176,7 @@ public class JwtAuthenticationSecurityConfiguration {
 
     @Bean
     public StandardJwtAuthenticationConverter jwtAuthenticationConverter() {
-        return new StandardJwtAuthenticationConverter(authorizer, idpUserGroupService, niFiProperties);
+        return new StandardJwtAuthenticationConverter(authorizer, niFiProperties);
     }
 
     @Bean

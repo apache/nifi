@@ -23,29 +23,14 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- initialize the idp data source -->
-    <bean id="idpDataSource" class="org.apache.nifi.admin.IdpDataSourceFactoryBean" destroy-method="shutdown">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
-
     <!-- initialize the audit transaction builder -->
     <bean id="auditTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
         <property name="dataSource" ref="auditDataSource"/>
     </bean>
 
-    <!-- initialize the idp transaction builder -->
-    <bean id="idpTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
-        <property name="dataSource" ref="idpDataSource"/>
-    </bean>
-
     <!-- audit service -->
     <bean id="auditService" class="org.apache.nifi.admin.service.impl.StandardAuditService">
         <property name="transactionBuilder" ref="auditTransactionBuilder"/>
-    </bean>
-
-    <!-- idp user group service -->
-    <bean id="idpUserGroupService" class="org.apache.nifi.admin.service.impl.StandardIdpUserGroupService">
-        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
     </bean>
 
 </beans>

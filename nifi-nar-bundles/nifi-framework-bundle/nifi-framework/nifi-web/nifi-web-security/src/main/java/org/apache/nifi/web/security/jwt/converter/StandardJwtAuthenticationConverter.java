@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.jwt.converter;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -24,15 +23,16 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.authorization.util.UserGroupUtil;
-import org.apache.nifi.idp.IdpUserGroup;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Standard Converter from JSON Web Token to NiFi Authentication Token
@@ -40,13 +40,10 @@ import java.util.stream.Collectors;
 public class StandardJwtAuthenticationConverter implements Converter<Jwt, NiFiAuthenticationToken> {
     private final Authorizer authorizer;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     private final List<IdentityMapping> identityMappings;
 
-    public StandardJwtAuthenticationConverter(final Authorizer authorizer, final IdpUserGroupService idpUserGroupService, final NiFiProperties properties) {
+    public StandardJwtAuthenticationConverter(final Authorizer authorizer, final NiFiProperties properties) {
         this.authorizer = authorizer;
-        this.idpUserGroupService = idpUserGroupService;
         this.identityMappings = IdentityMappingUtil.getIdentityMappings(properties);
     }
 
@@ -65,16 +62,23 @@ public class StandardJwtAuthenticationConverter implements Converter<Jwt, NiFiAu
     private NiFiUser getUser(final Jwt jwt) {
         final String identity = IdentityMappingUtil.mapIdentity(jwt.getSubject(), identityMappings);
 
+        final Set<String> providedGroups = getProvidedGroups(jwt);
         return new StandardNiFiUser.Builder()
                 .identity(identity)
                 .groups(UserGroupUtil.getUserGroups(authorizer, identity))
-                .identityProviderGroups(getIdentityProviderGroups(identity))
+                .identityProviderGroups(providedGroups)
                 .build();
     }
 
-    private Set<String> getIdentityProviderGroups(final String identity) {
-        return idpUserGroupService.getUserGroups(identity).stream()
-                .map(IdpUserGroup::getGroupName)
-                .collect(Collectors.toSet());
+    private Set<String> getProvidedGroups(final Jwt jwt) {
+        final List<String> claimGroups = jwt.getClaimAsStringList(SupportedClaim.GROUPS.getClaim());
+
+        final Set<String> providedGroups;
+        if (claimGroups == null) {
+            providedGroups = Collections.emptySet();
+        } else {
+            providedGroups = new LinkedHashSet<>(claimGroups);
+        }
+        return providedGroups;
     }
 }

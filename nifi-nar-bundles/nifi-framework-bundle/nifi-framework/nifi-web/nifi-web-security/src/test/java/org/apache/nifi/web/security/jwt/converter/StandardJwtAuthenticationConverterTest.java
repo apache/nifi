@@ -18,7 +18,6 @@ package org.apache.nifi.web.security.jwt.converter;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.PlainJWT;
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.ManagedAuthorizer;
@@ -26,9 +25,9 @@ import org.apache.nifi.authorization.UserAndGroups;
 import org.apache.nifi.authorization.UserGroupProvider;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.idp.IdpUserGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +38,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -71,16 +71,13 @@ public class StandardJwtAuthenticationConverterTest {
     @Mock
     private UserAndGroups userAndGroups;
 
-    @Mock
-    private IdpUserGroupService idpUserGroupService;
-
     private StandardJwtAuthenticationConverter converter;
 
     @BeforeEach
     public void setConverter() {
         final Map<String, String> properties = new HashMap<>();
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(StringUtils.EMPTY, properties);
-        converter = new StandardJwtAuthenticationConverter(authorizer, idpUserGroupService, niFiProperties);
+        converter = new StandardJwtAuthenticationConverter(authorizer, niFiProperties);
 
         when(authorizer.getAccessPolicyProvider()).thenReturn(accessPolicyProvider);
         when(accessPolicyProvider.getUserGroupProvider()).thenReturn(userGroupProvider);
@@ -88,21 +85,21 @@ public class StandardJwtAuthenticationConverterTest {
 
         final Group group = new Group.Builder().name(AUTHORIZER_GROUP).identifier(AUTHORIZER_GROUP).build();
         when(userAndGroups.getGroups()).thenReturn(Collections.singleton(group));
-
-        final IdpUserGroup idpUserGroup = new IdpUserGroup();
-        idpUserGroup.setGroupName(PROVIDER_GROUP);
-        when(idpUserGroupService.getUserGroups(eq(USERNAME))).thenReturn(Collections.singletonList(idpUserGroup));
     }
 
     @Test
     public void testConvert() {
+        final List<String> providerGroups = Collections.singletonList(PROVIDER_GROUP);
+
         final JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(USERNAME)
+                .claim(SupportedClaim.GROUPS.getClaim(), providerGroups)
                 .build();
         final String token = new PlainJWT(claimsSet).serialize();
         final Jwt jwt = Jwt.withTokenValue(token)
                 .header(TYPE_FIELD, JWT_TYPE)
                 .subject(USERNAME)
+                .claim(SupportedClaim.GROUPS.getClaim(), providerGroups)
                 .build();
 
         final NiFiAuthenticationToken authenticationToken = converter.convert(jwt);

@@ -18,7 +18,6 @@ package org.apache.nifi.web.security.configuration;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -93,19 +92,15 @@ public class SamlAuthenticationSecurityConfiguration {
 
     private final LogoutRequestManager logoutRequestManager;
 
-    private final IdpUserGroupService idpUserGroupService;
-
     @Autowired
     public SamlAuthenticationSecurityConfiguration(
             final NiFiProperties properties,
             final BearerTokenProvider bearerTokenProvider,
-            final LogoutRequestManager logoutRequestManager,
-            final IdpUserGroupService idpUserGroupService
+            final LogoutRequestManager logoutRequestManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
         this.logoutRequestManager = Objects.requireNonNull(logoutRequestManager, "Logout Request Manager required");
-        this.idpUserGroupService = Objects.requireNonNull(idpUserGroupService, "User Group Service required");
     }
 
     /**
@@ -340,7 +335,7 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public Saml2LogoutSuccessHandler saml2LogoutSuccessHandler() {
-        return new Saml2LogoutSuccessHandler(logoutRequestManager, idpUserGroupService);
+        return new Saml2LogoutSuccessHandler(logoutRequestManager);
     }
 
     /**
@@ -377,7 +372,6 @@ public class SamlAuthenticationSecurityConfiguration {
         final String issuer = entityId == null ? Saml2RegistrationProperty.REGISTRATION_ID.getProperty() : entityId;
         final Saml2AuthenticationSuccessHandler handler = new Saml2AuthenticationSuccessHandler(
                 bearerTokenProvider,
-                idpUserGroupService,
                 IdentityMappingUtil.getIdentityMappings(properties),
                 IdentityMappingUtil.getGroupMappings(properties),
                 expiration,

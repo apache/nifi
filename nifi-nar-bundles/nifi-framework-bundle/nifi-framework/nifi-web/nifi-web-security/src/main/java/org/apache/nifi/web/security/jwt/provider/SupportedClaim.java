@@ -42,7 +42,10 @@ public enum SupportedClaim {
     JWT_ID("jti"),
 
     /** Preferred Username defined in OpenID Connect Core 1.0 Standard Claims */
-    PREFERRED_USERNAME("preferred_username");
+    PREFERRED_USERNAME("preferred_username"),
+
+    /** RFC 7643 Section 4.1.2 */
+    GROUPS("groups");
 
     private final String claim;
 

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.security.oidc.logout;
 
-import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
@@ -58,7 +57,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -90,9 +88,6 @@ class OidcLogoutSuccessHandlerTest {
     private static final String ID_TOKEN = "oidc-id-token";
 
     private static final String END_SESSION_REDIRECT_URL = String.format("%s?id_token_hint=%s&post_logout_redirect_uri=%s", END_SESSION_URI, ID_TOKEN, REDIRECTED_URL);
-
-    @Mock
-    IdpUserGroupService idpUserGroupService;
 
     @Mock
     ClientRegistrationRepository clientRegistrationRepository;
@@ -131,7 +126,6 @@ class OidcLogoutSuccessHandlerTest {
         logoutRequestManager = new LogoutRequestManager();
         handler = new OidcLogoutSuccessHandler(
                 logoutRequestManager,
-                idpUserGroupService,
                 clientRegistrationRepository,
                 authorizedClientRepository,
                 tokenRevocationResponseClient
@@ -150,8 +144,6 @@ class OidcLogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(REDIRECTED_URL, redirectedUrl);
-
-        verifyNoInteractions(idpUserGroupService);
     }
 
     @Test
@@ -167,7 +159,6 @@ class OidcLogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(REDIRECTED_URL, redirectedUrl);
-        assertUserGroupAuthorizedClientRemoved();
     }
 
     @Test
@@ -184,7 +175,6 @@ class OidcLogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(REDIRECTED_URL, redirectedUrl);
-        assertUserGroupAuthorizedClientRemoved();
     }
 
     @Test
@@ -220,7 +210,6 @@ class OidcLogoutSuccessHandlerTest {
         final String redirectedUrl = httpServletResponse.getRedirectedUrl();
 
         assertEquals(END_SESSION_REDIRECT_URL, redirectedUrl);
-        assertUserGroupAuthorizedClientRemoved();
         verify(authorizedClientRepository).removeAuthorizedClient(eq(OidcRegistrationProperty.REGISTRATION_ID.getProperty()), any(), eq(httpServletRequest), eq(httpServletResponse));
         verify(tokenRevocationResponseClient, times(2)).getRevocationResponse(revocationRequestCaptor.capture());
 
@@ -233,10 +222,6 @@ class OidcLogoutSuccessHandlerTest {
         final TokenRevocationRequest secondRevocationRequest = revocationRequests.next();
         assertEquals(TokenTypeHint.ACCESS_TOKEN.getHint(), secondRevocationRequest.getTokenTypeHint());
         assertEquals(ACCESS_TOKEN, secondRevocationRequest.getToken());
-    }
-
-    void assertUserGroupAuthorizedClientRemoved() {
-        verify(idpUserGroupService).deleteUserGroups(eq(USER_IDENTITY));
     }
 
     void setRequestCookie() {

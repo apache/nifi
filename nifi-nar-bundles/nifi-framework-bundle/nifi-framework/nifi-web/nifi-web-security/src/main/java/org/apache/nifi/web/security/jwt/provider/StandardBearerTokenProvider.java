@@ -28,15 +28,19 @@ import org.apache.nifi.web.security.jwt.jws.JwsSignerProvider;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Standard Bearer Token Provider supports returning serialized and signed JSON Web Tokens
@@ -68,6 +72,7 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
         final String subject = Objects.requireNonNull(loginAuthenticationToken.getPrincipal(), "Principal required").toString();
         final String username = loginAuthenticationToken.getName();
 
+        final List<String> groups = getGroups(loginAuthenticationToken.getAuthorities());
         final String issuer = getUrlEncoded(loginAuthenticationToken.getIssuer());
         final Date now = new Date();
         final Date expirationTime = getExpirationTime(loginAuthenticationToken);
@@ -80,6 +85,7 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
                 .issueTime(now)
                 .expirationTime(expirationTime)
                 .claim(SupportedClaim.PREFERRED_USERNAME.getClaim(), username)
+                .claim(SupportedClaim.GROUPS.getClaim(), groups)
                 .build();
         return getSignedBearerToken(claims);
     }
@@ -130,5 +136,9 @@ public class StandardBearerTokenProvider implements BearerTokenProvider {
         } catch (final UnsupportedEncodingException e) {
             throw new IllegalArgumentException(String.format("URL Encoding [%s] Failed", string), e);
         }
+    }
+
+    private List<String> getGroups(final Collection<? extends GrantedAuthority> authorities) {
+        return authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
     }
 }
