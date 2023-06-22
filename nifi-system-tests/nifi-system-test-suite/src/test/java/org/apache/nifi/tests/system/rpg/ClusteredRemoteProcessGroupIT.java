@@ -17,14 +17,11 @@
 package org.apache.nifi.tests.system.rpg;
 
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
-import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 
 public class ClusteredRemoteProcessGroupIT extends RemoteProcessGroupIT {
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
-        return new SpawnedClusterNiFiInstanceFactory(
-            "src/test/resources/conf/clustered/node1/bootstrap.conf",
-            "src/test/resources/conf/clustered/node2/bootstrap.conf");
+        return createTwoNodeInstanceFactory();
     }
 
 }

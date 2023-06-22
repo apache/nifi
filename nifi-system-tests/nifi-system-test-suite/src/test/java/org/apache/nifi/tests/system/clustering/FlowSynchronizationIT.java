@@ -25,11 +25,9 @@ import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
-import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
@@ -84,16 +82,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
-        return new SpawnedClusterNiFiInstanceFactory(
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")
-                .instanceDirectory("target/node1")
-                .build(),
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/clustered/node2/bootstrap.conf")
-                .instanceDirectory("target/node2")
-                .build()
-        );
+        return createTwoNodeInstanceFactory();
     }
 
 
@@ -979,7 +968,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
     private NodeEntity getNodeEntity(final int nodeIndex) throws NiFiClientException, IOException {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        final int expectedPort = CLIENT_API_BASE_PORT + nodeIndex;
+        final int expectedPort = CLUSTERED_CLIENT_API_BASE_PORT + nodeIndex - 1;
 
         for (final NodeDTO nodeDto : clusterEntity.getCluster().getNodes()) {
             if (nodeDto.getApiPort() == expectedPort) {
