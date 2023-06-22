@@ -25,6 +25,7 @@ import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.schema.SchemaWithPartnerVisitor;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -33,6 +34,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+
+import static org.apache.nifi.processors.iceberg.PutIceberg.UnmatchedColumnBehavior;
 
 import java.util.HashMap;
 import java.util.List;
@@ -46,19 +49,29 @@ import java.util.stream.Collectors;
 public class IcebergRecordConverter {
 
     private final DataConverter<Record, GenericRecord> converter;
+    public final UnmatchedColumnBehavior unmatchedColumnBehavior;
+    public ComponentLog logger;
+
     public GenericRecord convert(Record record) {
         return converter.convert(record);
     }
 
-    @SuppressWarnings("unchecked")
     public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat) {
-        this.converter = (DataConverter<Record, GenericRecord>) IcebergSchemaVisitor.visit(schema, new RecordDataType(recordSchema), fileFormat);
+        this(schema, recordSchema, fileFormat, UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public IcebergRecordConverter(Schema schema, RecordSchema recordSchema, FileFormat fileFormat, UnmatchedColumnBehavior unmatchedColumnBehavior, ComponentLog logger) {
+        this.converter = (DataConverter<Record, GenericRecord>) IcebergSchemaVisitor.visit(schema, new RecordDataType(recordSchema), fileFormat, unmatchedColumnBehavior, logger);
+        this.unmatchedColumnBehavior = unmatchedColumnBehavior;
+        this.logger = logger;
     }
 
     private static class IcebergSchemaVisitor extends SchemaWithPartnerVisitor<DataType, DataConverter<?, ?>> {
 
-        public static DataConverter<?, ?> visit(Schema schema, RecordDataType recordDataType, FileFormat fileFormat) {
-            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(), new IcebergPartnerAccessors(schema, fileFormat));
+        public static DataConverter<?, ?> visit(Schema schema, RecordDataType recordDataType, FileFormat fileFormat, UnmatchedColumnBehavior unmatchedColumnBehavior, ComponentLog logger) {
+            return visit(schema, new RecordTypeWithFieldNameMapper(schema, recordDataType), new IcebergSchemaVisitor(),
+                    new IcebergPartnerAccessors(schema, fileFormat, unmatchedColumnBehavior, logger));
         }
 
         @Override
@@ -123,8 +136,10 @@ public class IcebergRecordConverter {
             // set NiFi schema field names (sourceFieldName) in the data converters
             for (DataConverter<?, ?> converter : converters) {
                 final Optional<String> mappedFieldName = recordType.getNameMapping(converter.getTargetFieldName());
-                final Optional<RecordField> recordField = recordSchema.getField(mappedFieldName.get());
-                converter.setSourceFieldName(recordField.get().getFieldName());
+                if (mappedFieldName.isPresent()) {
+                    final Optional<RecordField> recordField = recordSchema.getField(mappedFieldName.get());
+                    converter.setSourceFieldName(recordField.get().getFieldName());
+                }
             }
 
             return new GenericDataConverters.RecordConverter(converters, recordSchema, type);
@@ -144,10 +159,14 @@ public class IcebergRecordConverter {
     public static class IcebergPartnerAccessors implements SchemaWithPartnerVisitor.PartnerAccessors<DataType> {
         private final Schema schema;
         private final FileFormat fileFormat;
+        private final UnmatchedColumnBehavior unmatchedColumnBehavior;
+        private final ComponentLog logger;
 
-        IcebergPartnerAccessors(Schema schema, FileFormat fileFormat) {
+        IcebergPartnerAccessors(Schema schema, FileFormat fileFormat, UnmatchedColumnBehavior unmatchedColumnBehavior, ComponentLog logger) {
             this.schema = schema;
             this.fileFormat = fileFormat;
+            this.unmatchedColumnBehavior = unmatchedColumnBehavior;
+            this.logger = logger;
         }
 
         @Override
@@ -156,8 +175,18 @@ public class IcebergRecordConverter {
             final RecordTypeWithFieldNameMapper recordType = (RecordTypeWithFieldNameMapper) dataType;
 
             final Optional<String> mappedFieldName = recordType.getNameMapping(name);
-            Validate.isTrue(mappedFieldName.isPresent(), String.format("Cannot find field with name '%s' in the record schema", name));
-
+            if (UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.equals(unmatchedColumnBehavior)) {
+                Validate.isTrue(mappedFieldName.isPresent(), String.format("Cannot find field with name '%s' in the record schema", name));
+            }
+            if (mappedFieldName.isEmpty()) {
+                if (UnmatchedColumnBehavior.WARNING_UNMATCHED_COLUMN.equals(unmatchedColumnBehavior)) {
+                    if (logger != null) {
+                        logger.warn("Cannot find field with name '" + name + "' in the record schema, using the target schema for datatype and a null value");
+                    }
+                }
+                // If the field is missing, use the expected type from the schema (converted to a DataType)
+                return GenericDataConverters.convertSchemaTypeToDataType(schema.findField(fieldId).type());
+            }
             final Optional<RecordField> recordField = recordType.getChildSchema().getField(mappedFieldName.get());
             final RecordField field = recordField.get();
 
