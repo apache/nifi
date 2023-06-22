@@ -21,9 +21,11 @@ import org.apache.commons.lang3.Validate;
 import org.apache.iceberg.data.GenericRecord;
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
@@ -265,9 +267,16 @@ public class GenericDataConverters {
 
             for (DataConverter<?, ?> converter : converters) {
                 final Optional<RecordField> recordField = recordSchema.getField(converter.getSourceFieldName());
-                final RecordField field = recordField.get();
-                // creates a record field accessor for every data converter
-                getters.put(converter.getTargetFieldName(), createFieldGetter(field.getDataType(), field.getFieldName(), field.isNullable()));
+                if (recordField.isEmpty()) {
+                    final Types.NestedField missingField = schema.field(converter.getTargetFieldName());
+                    if (missingField != null) {
+                        getters.put(converter.getTargetFieldName(), createFieldGetter(convertSchemaTypeToDataType(missingField.type()), missingField.name(), missingField.isOptional()));
+                    }
+                } else {
+                    final RecordField field = recordField.get();
+                    // creates a record field accessor for every data converter
+                    getters.put(converter.getTargetFieldName(), createFieldGetter(field.getDataType(), field.getFieldName(), field.isNullable()));
+                }
             }
         }
 
@@ -289,5 +298,55 @@ public class GenericDataConverters {
         private <S, T> T convert(Record record, DataConverter<S, T> converter) {
             return converter.convert((S) getters.get(converter.getTargetFieldName()).getFieldOrNull(record));
         }
+    }
+
+    public static DataType convertSchemaTypeToDataType(Type schemaType) {
+        switch (schemaType.typeId()) {
+            case BOOLEAN:
+                return RecordFieldType.BOOLEAN.getDataType();
+            case INTEGER:
+                return RecordFieldType.INT.getDataType();
+            case LONG:
+                return RecordFieldType.LONG.getDataType();
+            case FLOAT:
+                return RecordFieldType.FLOAT.getDataType();
+            case DOUBLE:
+                return RecordFieldType.DOUBLE.getDataType();
+            case DATE:
+                return RecordFieldType.DATE.getDataType();
+            case TIME:
+                return RecordFieldType.TIME.getDataType();
+            case TIMESTAMP:
+                return RecordFieldType.TIMESTAMP.getDataType();
+            case STRING:
+                return RecordFieldType.STRING.getDataType();
+            case UUID:
+                return RecordFieldType.UUID.getDataType();
+            case FIXED:
+            case BINARY:
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case DECIMAL:
+                return RecordFieldType.DECIMAL.getDataType();
+            case STRUCT:
+                // Build a record type from the struct type
+                Types.StructType structType = schemaType.asStructType();
+                List<Types.NestedField> fields = structType.fields();
+                List<RecordField> recordFields = new ArrayList<>(fields.size());
+                for (Types.NestedField field : fields) {
+                    DataType dataType = convertSchemaTypeToDataType(field.type());
+                    recordFields.add(new RecordField(field.name(), dataType, field.isOptional()));
+                }
+                RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
+                return RecordFieldType.RECORD.getRecordDataType(recordSchema);
+            case LIST:
+                // Build a list type from the elements
+                Types.ListType listType = schemaType.asListType();
+                return RecordFieldType.ARRAY.getArrayDataType(convertSchemaTypeToDataType(listType.elementType()), listType.isElementOptional());
+            case MAP:
+                // Build a map type from the elements
+                Types.MapType mapType = schemaType.asMapType();
+                return RecordFieldType.MAP.getMapDataType(convertSchemaTypeToDataType(mapType.valueType()), mapType.isValueOptional());
+        }
+        throw new IllegalArgumentException("Invalid or unsupported type: " + schemaType);
     }
 }

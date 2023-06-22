@@ -108,6 +108,14 @@ public class PutIceberg extends AbstractIcebergProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new PropertyDescriptor.Builder()
+            .name("unmatched-column-behavior")
+            .displayName("Unmatched Column Behavior")
+            .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation.")
+            .allowableValues(UnmatchedColumnBehavior.class)
+            .defaultValue(UnmatchedColumnBehavior.FAIL_UNMATCHED_COLUMN.getValue())
+            .required(true)
+            .build();
     static final PropertyDescriptor FILE_FORMAT = new PropertyDescriptor.Builder()
             .name("file-format")
             .displayName("File Format")
@@ -178,6 +186,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
             CATALOG,
             CATALOG_NAMESPACE,
             TABLE_NAME,
+            UNMATCHED_COLUMN_BEHAVIOR,
             FILE_FORMAT,
             MAXIMUM_FILE_SIZE,
             KERBEROS_USER_SERVICE,
@@ -256,8 +265,10 @@ public class PutIceberg extends AbstractIcebergProcessor {
             final FileFormat format = getFileFormat(table.properties(), fileFormat);
             final IcebergTaskWriterFactory taskWriterFactory = new IcebergTaskWriterFactory(table, flowFile.getId(), format, maximumFileSize);
             taskWriter = taskWriterFactory.create();
+            final UnmatchedColumnBehavior unmatchedColumnBehavior =
+                    UnmatchedColumnBehavior.valueOf(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
-            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format);
+            final IcebergRecordConverter recordConverter = new IcebergRecordConverter(table.schema(), reader.getSchema(), format, unmatchedColumnBehavior, getLogger());
 
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -353,5 +364,4 @@ public class PutIceberg extends AbstractIcebergProcessor {
                 .retry(3)
                 .run(file -> table.io().deleteFile(file.path().toString()));
     }
-
 }

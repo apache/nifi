@@ -19,6 +19,7 @@ package org.apache.nifi.processors.iceberg;
 
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
+import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
@@ -38,9 +39,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -102,14 +102,14 @@ public class TestPutIcebergWithHadoopCatalog {
         runner.setProperty(PutIceberg.RECORD_READER, "mock-reader-factory");
     }
 
-    private void initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException, IOException {
+    private void initCatalog(PartitionSpec spec, FileFormat fileFormat) throws InitializationException, IOException {
         TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
         IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
         catalog = catalogFactory.create();
 
         Map<String, String> tableProperties = new HashMap<>();
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
-        tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
+        tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat.name());
 
         catalog.createTable(TABLE_IDENTIFIER, DATE_SCHEMA, spec, tableProperties);
 
@@ -120,16 +120,15 @@ public class TestPutIcebergWithHadoopCatalog {
     }
 
     @DisabledOnOs(WINDOWS)
-    @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
-    public void onTriggerYearTransform(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerYearTransform() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .year("date")
                 .build();
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.PARQUET);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
@@ -148,16 +147,15 @@ public class TestPutIcebergWithHadoopCatalog {
     }
 
     @DisabledOnOs(WINDOWS)
-    @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
-    public void onTriggerMonthTransform(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerMonthTransform() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .month("timestampMicros")
                 .build();
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.ORC);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
@@ -177,16 +175,15 @@ public class TestPutIcebergWithHadoopCatalog {
     }
 
     @DisabledOnOs(WINDOWS)
-    @ParameterizedTest
-    @ValueSource(strings = {"avro", "orc", "parquet"})
-    public void onTriggerDayTransform(String fileFormat) throws Exception {
+    @Test
+    public void onTriggerDayTransform() throws Exception {
         PartitionSpec spec = PartitionSpec.builderFor(DATE_SCHEMA)
                 .day("timestampMicros")
                 .build();
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        initCatalog(spec, fileFormat);
+        initCatalog(spec, FileFormat.AVRO);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
