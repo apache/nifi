@@ -87,11 +87,6 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
 
         final UserAndGroups userAndGroups = userGroupProvider.getUserAndGroups(request.getIdentity());
 
-        final User user = userAndGroups.getUser();
-        if (user == null) {
-            return AuthorizationResult.denied(String.format("Unknown user with identity '%s'.", request.getIdentity()));
-        }
-
         // combine groups from incoming request with groups from UserAndGroups because the request may contain groups from
         // an external identity provider and the membership may not be maintained with in any of the UserGroupProviders
 
@@ -100,9 +95,9 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
 
         final Set<Group> allGroups = new HashSet<>();
         allGroups.addAll(userGroups == null ? Collections.emptySet() : userGroups);
-        allGroups.addAll(requestGroups == null ? Collections.emptySet() : requestGroups);
+        allGroups.addAll(requestGroups);
 
-        if (policy.getUsers().contains(user.getIdentifier()) || containsGroup(allGroups, policy)) {
+        if (containsUser(userAndGroups.getUser(), policy) || containsGroup(allGroups, policy)) {
             return AuthorizationResult.approved();
         }
 
@@ -145,6 +140,20 @@ public class StandardManagedAuthorizer implements ManagedAuthorizer {
         }
 
         return false;
+    }
+
+    /**
+     * Determines if the policy contains the user's identifier.
+     *
+     * @param user the user
+     * @param policy the policy
+     * @return true if the user is non-null and the user's identifies is contained in the policy's users
+     */
+    private boolean containsUser(final User user, final AccessPolicy policy) {
+        if (user == null || policy.getUsers().isEmpty()) {
+            return false;
+        }
+        return policy.getUsers().contains(user.getIdentifier());
     }
 
     @Override
