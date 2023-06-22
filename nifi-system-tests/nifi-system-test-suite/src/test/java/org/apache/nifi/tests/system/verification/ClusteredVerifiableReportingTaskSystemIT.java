@@ -19,7 +19,6 @@ package org.apache.nifi.tests.system.verification;
 
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
-import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -36,9 +35,7 @@ public class ClusteredVerifiableReportingTaskSystemIT extends VerifiableReportin
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
-        return new SpawnedClusterNiFiInstanceFactory(
-            "src/test/resources/conf/clustered/node1/bootstrap.conf",
-            "src/test/resources/conf/clustered/node2/bootstrap.conf");
+        return createTwoNodeInstanceFactory();
     }
 
     @Test

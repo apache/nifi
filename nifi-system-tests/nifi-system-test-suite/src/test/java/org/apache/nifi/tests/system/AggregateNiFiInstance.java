@@ -134,12 +134,6 @@ public class AggregateNiFiInstance implements NiFiInstance {
         }
     }
 
-    @Override
-    public void setFlowXmlGz(final File flowXmlGz) throws IOException {
-        for (final NiFiInstance instance : instances) {
-            instance.setFlowXmlGz(flowXmlGz);
-        }
-    }
 
     @Override
     public void setProperties(final Map<String, String> properties) throws IOException {
@@ -155,5 +149,16 @@ public class AggregateNiFiInstance implements NiFiInstance {
             final File nodeDirectory = new File(directory, "node-" + (++i));
             instance.quarantineTroubleshootingInfo(nodeDirectory, cause);
         }
+    }
+
+    @Override
+    public boolean isAccessible() {
+        for (final NiFiInstance instance : instances) {
+            if (!instance.isAccessible()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

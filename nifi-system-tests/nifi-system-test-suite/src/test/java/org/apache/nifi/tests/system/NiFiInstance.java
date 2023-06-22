@@ -98,12 +98,6 @@ public interface NiFiInstance {
     void setProperty(String propertyName, String propertyValue) throws IOException;
 
     /**
-     * Change the value of the flow that should be loaded on startup
-     * @param flowXmlGz the file that contains the flow that should be loaded on startup
-     */
-    void setFlowXmlGz(final File flowXmlGz) throws IOException;
-
-    /**
      * Change the values of the given properties in nifi.properties. Any property that is not present in the given map will remain unchanged. If the node is already running, this change will not take
      * effect until the instance is stopped and started again.
      *
@@ -118,4 +112,11 @@ public interface NiFiInstance {
      * @throws IOException if unable to write the information
      */
     void quarantineTroubleshootingInfo(final File directory, final Throwable failureCause) throws IOException;
+
+    /**
+     * Checks if able to communicate with the instance
+     *
+     * @return <code>true</code> if the instance is started and the REST API can be accessed, false otherwise
+     */
+    boolean isAccessible();
 }

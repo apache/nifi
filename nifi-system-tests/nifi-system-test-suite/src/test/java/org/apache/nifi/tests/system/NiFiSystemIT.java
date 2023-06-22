@@ -66,8 +66,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     public static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("X-Request-Replicated", "value");
 
-    public static final int CLIENT_API_PORT = 5671;
-    public static final int CLIENT_API_BASE_PORT = 5670;
+    public static final int CLUSTERED_CLIENT_API_BASE_PORT = 5671;
+    public static final int STANDALONE_CLIENT_API_BASE_PORT = 5670;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
     public static final String TEST_PYTHON_EXTENSIONS_ARTIFACT_ID = "python-extensions";
@@ -83,6 +83,11 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
     private static final AtomicReference<NiFiInstance> nifiRef = new AtomicReference<>();
+    private static final NiFiInstanceCache instanceCache = new NiFiInstanceCache();
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> instanceCache.shutdown()));
+    }
 
     private TestInfo testInfo;
 
@@ -90,23 +95,29 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public void setup(final TestInfo testInfo) throws IOException {
         this.testInfo = testInfo;
         final String testClassName = testInfo.getTestClass().map(Class::getSimpleName).orElse("<Unknown Test Class>");
-        logger.info("Beginning Test {}:{}", testClassName, testInfo.getDisplayName());
+        final String friendlyTestName = testClassName + ":" + testInfo.getDisplayName();
+        logger.info("Beginning Test {}", friendlyTestName);
 
         Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
+
+        final NiFiInstanceFactory instanceFactory = getInstanceFactory();
+        final NiFiInstance instance = instanceCache.createInstance(instanceFactory, friendlyTestName, isAllowFactoryReuse());
+        nifiRef.set(instance);
+
+        instance.createEnvironment();
+        instance.start();
+
         setupClient();
 
-        if (nifiRef.get() == null) {
-            final NiFiInstance instance = getInstanceFactory().createInstance();
-            nifiRef.set(instance);
-            instance.createEnvironment();
-            instance.start();
+        Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
 
-            Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
-
-            if (instance.isClustered()) {
-                waitForAllNodesConnected();
-            }
+        if (instance.isClustered()) {
+            waitForAllNodesConnected();
         }
+    }
+
+    protected boolean isAllowFactoryReuse() {
+        return true;
     }
 
     protected TestInfo getTestInfo() {
@@ -118,7 +129,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         final NiFiInstance nifi = nifiRef.get();
         nifiRef.set(null);
         if (nifi != null) {
-            nifi.stop();
+            instanceCache.stopOrRecycle(nifi);
         }
     }
 
@@ -137,12 +148,14 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
 
             if (isDestroyEnvironmentAfterEachTest()) {
+                instanceCache.poison(nifiRef.get());
                 cleanup();
             } else if (destroyFlowFailure != null) {
                 // If unable to destroy the flow, we need to shutdown the instance and delete the flow and completely recreate the environment.
                 // Otherwise, we will be left in an unknown state for the next test, and that can cause cascading failures that are very difficult
                 // to understand and troubleshoot.
                 logger.info("Because there was a failure when destroying the flow, will completely tear down the environments and start with a clean environment for the next test.");
+                instanceCache.poison(nifiRef.get());
                 cleanup();
             }
 
@@ -217,6 +230,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
         final NiFiClient client = getNifiClient();
 
+        int attemptedNodeIndex = 0;
         final long maxTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60);
         while (true) {
             int connectedNodeCount = -1;
@@ -230,7 +244,9 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
                 logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
             } catch (final Exception e) {
-                e.printStackTrace();
+                logger.error("Failed to determine how many nodes are currently connected", e);
+                final int nodeIndexToAttempt = attemptedNodeIndex++ % expectedNumberOfNodes;
+                setupClient(CLUSTERED_CLIENT_API_BASE_PORT + nodeIndexToAttempt);
             }
 
             if (System.currentTimeMillis() > maxTime) {
@@ -247,7 +263,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected void switchClientToNode(final int nodeIndex) {
-        setupClient(CLIENT_API_BASE_PORT + nodeIndex);
+        setupClient(CLUSTERED_CLIENT_API_BASE_PORT + nodeIndex - 1);
     }
 
     protected void setupClient() {
@@ -276,7 +292,12 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     }
 
     protected int getClientApiPort() {
-        return CLIENT_API_PORT;
+        NiFiInstance nifiInstance = nifiRef.get();
+        if (nifiInstance.getNumberOfNodes() > 1) {
+            return CLUSTERED_CLIENT_API_BASE_PORT;
+        }
+
+        return STANDALONE_CLIENT_API_BASE_PORT;
     }
 
     protected NiFiClient getNifiClient() {

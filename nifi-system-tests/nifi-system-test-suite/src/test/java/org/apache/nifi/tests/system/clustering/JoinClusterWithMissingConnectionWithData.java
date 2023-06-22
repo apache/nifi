@@ -58,6 +58,12 @@ public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
         return false;
     }
 
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        // Do not allow reuse of the factory because we expect the node to be in a disconnected state at the end.
+        return false;
+    }
+
     @Test
     public void testFailsToJoinWithMissingConnectionThatHasData() throws NiFiClientException, IOException, InterruptedException {
         // Create the flow
