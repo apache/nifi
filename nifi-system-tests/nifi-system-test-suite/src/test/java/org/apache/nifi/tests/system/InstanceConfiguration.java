@@ -74,14 +74,14 @@ public class InstanceConfiguration {
         }
 
         final InstanceConfiguration that = (InstanceConfiguration) other;
-        return autoStart == that.autoStart && unpackPythonExtensions == that.unpackPythonExtensions && Objects.equals(bootstrapConfigFile, that.bootstrapConfigFile)
+        return autoStart == that.autoStart && Objects.equals(bootstrapConfigFile, that.bootstrapConfigFile)
             && Objects.equals(instanceDirectory, that.instanceDirectory) && Objects.equals(flowXmlGz, that.flowXmlGz)
             && Objects.equals(stateDirectory, that.stateDirectory) && Objects.equals(nifiPropertiesOverrides, that.nifiPropertiesOverrides);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(bootstrapConfigFile, instanceDirectory, flowXmlGz, stateDirectory, autoStart, nifiPropertiesOverrides, unpackPythonExtensions);
+        return Objects.hash(bootstrapConfigFile, instanceDirectory, flowXmlGz, stateDirectory, autoStart, nifiPropertiesOverrides);
     }
 
     public static class Builder {
