@@ -317,7 +317,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         group.setDefaultBackPressureObjectThreshold(proposed.getDefaultBackPressureObjectThreshold());
         group.setDefaultBackPressureDataSizeThreshold(proposed.getDefaultBackPressureDataSizeThreshold());
 
-        group.setLogFileSuffix(proposed.getLogFileSuffix());
+        if (group.getLogFileSuffix() == null || group.getLogFileSuffix().isEmpty()) {
+            group.setLogFileSuffix(proposed.getLogFileSuffix());
+        }
 
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {

@@ -214,7 +214,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
     private static final long DEFAULT_BACKPRESSURE_OBJECT = 10_000L;
     private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "1 GB";
-    private static final String VALID_DIRECTORY_NAME_REGEX = "[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]";
+    private static final Pattern INVALID_DIRECTORY_NAME_CHARACTERS = Pattern.compile("[\\s\\<\\>:\\'\\\"\\/\\\\\\|\\?\\*]");
     private volatile String logFileSuffix;
 
 
@@ -4432,8 +4432,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void setLogFileSuffix(final String logFileSuffix) {
-        final Pattern pattern = Pattern.compile(VALID_DIRECTORY_NAME_REGEX);
-        if (logFileSuffix != null && pattern.matcher(logFileSuffix).find()) {
+        if (logFileSuffix != null && INVALID_DIRECTORY_NAME_CHARACTERS.matcher(logFileSuffix).find()) {
             throw new IllegalArgumentException("Log file suffix can not contain the following characters: space, <, >, :, \', \", /, \\, |, ?, *");
         } else {
             this.logFileSuffix = logFileSuffix;

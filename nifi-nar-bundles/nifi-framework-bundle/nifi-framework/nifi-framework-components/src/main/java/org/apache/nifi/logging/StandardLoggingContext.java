@@ -47,7 +47,7 @@ public class StandardLoggingContext implements LoggingContext {
     private Optional<String> getSuffix(final ProcessGroup group) {
         if (group == null) {
             return Optional.empty();
-        } else if (group.getLogFileSuffix() != null) {
+        } else if (group.getLogFileSuffix() != null && !group.getLogFileSuffix().isEmpty()) {
             return Optional.of(group.getLogFileSuffix());
         } else if (group.isRootGroup()) {
             return Optional.empty();
