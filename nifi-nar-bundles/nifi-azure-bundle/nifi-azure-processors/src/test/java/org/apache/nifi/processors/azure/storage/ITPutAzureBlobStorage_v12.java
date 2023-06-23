@@ -23,6 +23,8 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
+import org.apache.nifi.processors.dataupload.DataUploadProperties;
+import org.apache.nifi.processors.dataupload.DataUploadSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
@@ -30,7 +32,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -245,6 +250,29 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.setProperty(ClientSideEncryptionSupport.CSE_LOCAL_KEY, KEY_512B_VALUE);
         runProcessor(BLOB_DATA);
         assertSuccessForCSE(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
+    public void testPutBlobFromLocalFile() throws Exception {
+        String variableName = "local.file.path";
+        runner.setProperty(DataUploadProperties.DATA_TO_UPLOAD, DataUploadSource.LOCAL_FILE.getValue());
+        runner.setProperty(DataUploadProperties.LOCAL_FILE_PATH, String.format("${%s}", variableName));
+
+        Path tempFilePath = Files.createTempFile("ITPutAzureBlobStorage_v12_testPutBlobFromLocalFile_", "");
+        Files.write(tempFilePath, BLOB_DATA);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(variableName, tempFilePath.toString());
+
+        runProcessor(EMPTY_CONTENT, attributes);
+
+        runner.assertAllFlowFilesTransferred(PutAzureBlobStorage_v12.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutAzureBlobStorage_v12.REL_SUCCESS).get(0);
+        assertFlowFileCommonBlobAttributes(flowFile, getContainerName(), BLOB_NAME);
+        assertFlowFileResultBlobAttributes(flowFile, BLOB_DATA.length);
+
+        assertAzureBlob(getContainerName(), BLOB_NAME, BLOB_DATA);
+        assertProvenanceEvents();
     }
 
 

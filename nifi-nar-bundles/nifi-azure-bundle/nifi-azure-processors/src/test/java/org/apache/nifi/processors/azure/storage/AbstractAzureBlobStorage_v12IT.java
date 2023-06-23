@@ -67,8 +67,6 @@ public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorag
     protected static final String EL_CONTAINER_NAME = "az.containername";
     protected static final String EL_BLOB_NAME = "az.blobname";
 
-    protected static final byte[] EMPTY_CONTENT = new byte[0];
-
     private static final String TEST_CONTAINER_NAME_PREFIX = "nifi-test-container";
 
     private BlobServiceClient storageClient;

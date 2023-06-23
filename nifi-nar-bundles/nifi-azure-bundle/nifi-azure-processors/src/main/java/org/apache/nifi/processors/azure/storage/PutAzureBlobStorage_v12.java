@@ -27,6 +27,7 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.blob.models.BlockBlobItem;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
+import com.azure.storage.blob.options.BlobUploadFromFileOptions;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -46,9 +47,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.dataupload.DataUploadSource;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,6 +86,8 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_MIME_TYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_TIMESTAMP;
+import static org.apache.nifi.processors.dataupload.DataUploadProperties.DATA_TO_UPLOAD;
+import static org.apache.nifi.processors.dataupload.DataUploadProperties.LOCAL_FILE_PATH;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class})
@@ -129,6 +135,8 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             CREATE_CONTAINER,
             CONFLICT_RESOLUTION,
             BLOB_NAME,
+            DATA_TO_UPLOAD,
+            LOCAL_FILE_PATH,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             CSE_KEY_TYPE,
             CSE_KEY_ID,
@@ -157,6 +165,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
         final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(CONFLICT_RESOLUTION).getValue());
+        final DataUploadSource dataUploadSource = DataUploadSource.valueOf(context.getProperty(DATA_TO_UPLOAD).getValue());
 
         long startNanos = System.nanoTime();
         try {
@@ -183,17 +192,35 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                     blobRequestConditions.setIfNoneMatch("*");
                 }
 
-                try (InputStream rawIn = session.read(flowFile)) {
-                    final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(rawIn));
-                    blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
-                    Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
-                    BlockBlobItem blob = response.getValue();
-                    long length = flowFile.getSize();
-                    applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, length);
-                    applyBlobMetadata(attributes, blobClient);
-                    if (ignore) {
-                        attributes.put(ATTR_NAME_IGNORED, "false");
-                    }
+                final BlockBlobItem blob;
+                final long length;
+
+                switch (dataUploadSource) {
+                    case FLOWFILE_CONTENT:
+                        try (InputStream rawIn = session.read(flowFile)) {
+                            final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(rawIn));
+                            blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
+                            final Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
+                            blob = response.getValue();
+                            length = flowFile.getSize();
+                        }
+                        break;
+                    case LOCAL_FILE:
+                        final String filePath = context.getProperty(LOCAL_FILE_PATH).evaluateAttributeExpressions(flowFile).getValue();
+                        final BlobUploadFromFileOptions blobUploadFromFileOptions = new BlobUploadFromFileOptions(filePath);
+                        blobUploadFromFileOptions.setRequestConditions(blobRequestConditions);
+                        final Response<BlockBlobItem> response = blobClient.uploadFromFileWithResponse(blobUploadFromFileOptions, null, Context.NONE);
+                        blob = response.getValue();
+                        length = Files.size(Path.of(filePath));
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unhandled DataUploadSource: " + dataUploadSource);
+                }
+
+                applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, length);
+                applyBlobMetadata(attributes, blobClient);
+                if (ignore) {
+                    attributes.put(ATTR_NAME_IGNORED, "false");
                 }
             } catch (BlobStorageException e) {
                 final BlobErrorCode errorCode = e.getErrorCode();

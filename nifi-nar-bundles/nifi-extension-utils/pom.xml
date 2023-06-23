@@ -28,6 +28,7 @@
 
     <modules>
         <module>nifi-bin-manager</module>
+        <module>nifi-data-upload</module>
         <module>nifi-database-utils</module>
         <module>nifi-database-test-utils</module>
         <module>nifi-dbcp-base</module>

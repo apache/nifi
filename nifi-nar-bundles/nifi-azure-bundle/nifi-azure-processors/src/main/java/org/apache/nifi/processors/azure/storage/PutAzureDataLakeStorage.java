@@ -38,11 +38,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.dataupload.DataUploadSource;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,6 +64,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
+import static org.apache.nifi.processors.dataupload.DataUploadProperties.DATA_TO_UPLOAD;
+import static org.apache.nifi.processors.dataupload.DataUploadProperties.LOCAL_FILE_PATH;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -106,6 +111,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             FILE,
             BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
+            DATA_TO_UPLOAD,
+            LOCAL_FILE_PATH,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
@@ -135,14 +142,29 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final String tempFilePrefix = UUID.randomUUID().toString();
             final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
+            final DataUploadSource dataUploadSource = DataUploadSource.valueOf(context.getProperty(DATA_TO_UPLOAD).getValue());
 
             final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
-            appendContent(flowFile, tempFileClient, session);
+            final long length;
+            switch (dataUploadSource) {
+                case FLOWFILE_CONTENT:
+                    appendContent(flowFile, tempFileClient, session);
+                    length = flowFile.getSize();
+                    break;
+                case LOCAL_FILE:
+                    final String filePath = context.getProperty(LOCAL_FILE_PATH).evaluateAttributeExpressions(flowFile).getValue();
+                    length = Files.size(Path.of(filePath));
+                    uploadFile(tempFileClient, filePath, length);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unhandled DataUploadSource: " + dataUploadSource);
+            }
+
             createDirectoryIfNotExists(directoryClient);
 
             final String fileUrl = renameFile(tempFileClient, directoryClient.getDirectoryPath(), fileName, conflictResolution);
             if (fileUrl != null) {
-                final Map<String, String> attributes = createAttributeMap(flowFile, fileSystem, originalDirectory, fileName, fileUrl);
+                final Map<String, String> attributes = createAttributeMap(fileSystem, originalDirectory, fileName, fileUrl, length);
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -162,13 +184,13 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         return storageClient.getFileSystemClient(fileSystem);
     }
 
-    private Map<String, String> createAttributeMap(FlowFile flowFile, String fileSystem, String originalDirectory, String fileName, String fileUrl) {
+    private Map<String, String> createAttributeMap(String fileSystem, String originalDirectory, String fileName, String fileUrl, long length) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
         attributes.put(ATTR_NAME_DIRECTORY, originalDirectory);
         attributes.put(ATTR_NAME_FILENAME, fileName);
         attributes.put(ATTR_NAME_PRIMARY_URI, fileUrl);
-        attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
+        attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
         return attributes;
     }
 
@@ -210,6 +232,17 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
         // use overwrite mode due to https://github.com/Azure/azure-sdk-for-java/issues/31248
         fileClient.flush(length, true);
+    }
+
+    private void uploadFile(DataLakeFileClient fileClient, String filePath, long length) {
+        if (length > 0) {
+            try {
+                fileClient.uploadFromFile(filePath, true);
+            } catch (Exception e) {
+                removeTempFile(fileClient);
+                throw e;
+            }
+        }
     }
 
     /**
