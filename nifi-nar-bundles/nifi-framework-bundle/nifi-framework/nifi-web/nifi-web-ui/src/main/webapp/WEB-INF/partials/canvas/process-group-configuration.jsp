@@ -43,7 +43,7 @@
                             <div id="parameter-contexts-recursive-container">
                                 <div id="parameter-contexts-recursive" class="nf-checkbox checkbox-unchecked"></div>
                                 <div class="nf-checkbox-label">Apply recursively</div>
-                                <div class="fa fa-question-circle" alt="Info" title="When checked Parameter Context will be applied to the Process Group and all the embedded Process Groups recursively if the user has the proper permissions on all the respective components."></div>
+                                <div class="fa fa-question-circle" alt="Info" title="When checked Parameter Context will be applied to the Process Group and all the embedded Process Groups recursively, if the user has the proper permissions on all the respective components. If the user does not have the proper permissions on any embedded Process Group, then the Parameter Context will not be applied for any components."></div>
                             </div>
                             <div class="clear"></div>
                         </div>

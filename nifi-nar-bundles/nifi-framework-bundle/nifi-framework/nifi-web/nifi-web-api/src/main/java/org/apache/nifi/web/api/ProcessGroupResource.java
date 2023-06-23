@@ -562,8 +562,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         if (updateStrategy == ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_WITH_DESCENDANTS) {
             for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, Boolean.TRUE)) {
                 final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
-                processGroupDTO.setParameterContext(requestParamContext);
-                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, processGroupDTO.getId()));
+                final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
+                if (processGroupDTO != null) {
+                    processGroupDTO.setParameterContext(requestParamContext);
+                }
+                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, processGroupId));
             }
         }
 
@@ -576,7 +579,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                     for (final ProcessGroupEntity updatableGroupEntity : updatableProcessGroups.keySet()) {
                         final ProcessGroupDTO updatableGroupDto = updatableGroupEntity.getComponent();
-                        final String groupId = updatableGroupDto.getId();
+                        final String groupId = updatableGroupDto == null ? updatableGroupEntity.getId() : updatableGroupDto.getId();
 
                     Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, user);
