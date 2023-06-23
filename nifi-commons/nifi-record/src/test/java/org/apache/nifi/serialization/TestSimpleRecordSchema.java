@@ -82,7 +82,6 @@ class TestSimpleRecordSchema {
 
     @Test
     void testEqualsSimpleSchema() {
-        // GIVEN
         final String nameOfField1 = "field1";
         final String nameOfField2 = "field2";
         final DataType typeOfField1 = RecordFieldType.INT.getDataType();
@@ -93,13 +92,11 @@ class TestSimpleRecordSchema {
         final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
         final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
 
-        // WHEN, THEN
         assertEquals(schema1, schema2);
     }
 
     @Test
     void testEqualsSimpleSchemaEvenIfSchemaNameAndNameSpaceAreDifferent() {
-        // GIVEN
         final String nameOfField1 = "field1";
         final String nameOfField2 = "field2";
         final DataType typeOfField1 = RecordFieldType.INT.getDataType();
@@ -112,13 +109,11 @@ class TestSimpleRecordSchema {
         final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName1, namespace1);
         final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName2, namespace2);
 
-        // WHEN, THEN
         assertEquals(schema1, schema2);
     }
 
     @Test
     void testNotEqualsSimpleSchemaDifferentTypes() {
-        // GIVEN
         final String nameOfField1 = "field1";
         final String nameOfField2 = "field2";
         final DataType typeOfField1 = RecordFieldType.INT.getDataType();
@@ -129,13 +124,11 @@ class TestSimpleRecordSchema {
         final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField1, schemaName, namespace);
         final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
 
-        // WHEN, THEN
         assertNotEquals(schema1, schema2);
     }
 
     @Test
     void testNotEqualsSimpleSchemaDifferentFieldNames() {
-        // GIVEN
         final String nameOfField1 = "fieldA";
         final String nameOfField2 = "fieldB";
         final String nameOfField3 = "fieldC";
@@ -147,7 +140,6 @@ class TestSimpleRecordSchema {
         final SimpleRecordSchema schema1 = createSchemaWithTwoFields(nameOfField1, nameOfField2, typeOfField1, typeOfField2, schemaName, namespace);
         final SimpleRecordSchema schema2 = createSchemaWithTwoFields(nameOfField1, nameOfField3, typeOfField1, typeOfField2, schemaName, namespace);
 
-        // WHEN, THEN
         assertNotEquals(schema1, schema2);
     }
 

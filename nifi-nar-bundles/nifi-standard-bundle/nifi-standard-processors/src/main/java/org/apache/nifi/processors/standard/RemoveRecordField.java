@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -47,7 +46,6 @@ import java.util.Collections;
 import java.util.List;
 
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -68,6 +66,8 @@ import java.util.List;
 public class RemoveRecordField extends AbstractRecordProcessor {
     private volatile RecordPathCache recordPathCache;
     private volatile List<RecordFieldRemover.RecordPathRemovalProperties> recordPathsToRemove;
+
+    private static final String ROOT_PATH = "/";
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -91,7 +91,7 @@ public class RemoveRecordField extends AbstractRecordProcessor {
             validationContext.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
                     .forEach(property -> {
                         final String path = validationContext.getProperty(property).evaluateAttributeExpressions().getValue();
-                        if ("/".equals(path)) {
+                        if (ROOT_PATH.equals(path)) {
                             validationResults.add(new ValidationResult.Builder()
                                     .subject(property.getDisplayName()).valid(false)
                                     .explanation("the root RecordPath cannot be removed").build()
@@ -123,8 +123,8 @@ public class RemoveRecordField extends AbstractRecordProcessor {
                 if (property.isDynamic()) {
                     // validate RecordPath from Expression Language (if applicable)
                     final String recordPath = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-                    if ("/".equals(recordPath)) {
-                        throw new ProcessException("The root Record Path / cannot be removed for " + property.getDisplayName());
+                    if (ROOT_PATH.equals(recordPath)) {
+                        throw new ProcessException(String.format("The root Record Path %s cannot be removed for %s", ROOT_PATH, property.getDisplayName()));
                     }
                     recordPathsToRemove.add(new RecordFieldRemover.RecordPathRemovalProperties(recordPath));
                 }
