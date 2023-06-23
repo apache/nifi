@@ -110,6 +110,7 @@
         <kotlin.version>1.8.20</kotlin.version>
         <okhttp.version>4.11.0</okhttp.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
+        <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
         <org.apache.commons.net.version>3.9.0</org.apache.commons.net.version>
         <org.apache.commons.io.version>2.13.0</org.apache.commons.io.version>
@@ -252,6 +253,11 @@
                 <version>${org.apache.commons.cli.version}</version>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>${org.apache.commons.codec.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${org.apache.commons.io.version}</version>
@@ -298,14 +304,6 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-
-            <!-- Commons Codec -->
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>1.15</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
