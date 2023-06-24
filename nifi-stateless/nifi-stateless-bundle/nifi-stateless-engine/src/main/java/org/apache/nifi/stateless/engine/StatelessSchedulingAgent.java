@@ -25,6 +25,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +93,7 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
             }
 
         } catch (final Throwable t) {
-            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask());
+            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask(), new StandardLoggingContext(null));
             componentLog.error("Error running task {} due to {}", new Object[]{taskNode.getReportingTask(), t.toString()});
             if (componentLog.isDebugEnabled()) {
                 componentLog.error("", t);

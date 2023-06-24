@@ -317,6 +317,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         group.setDefaultBackPressureObjectThreshold(proposed.getDefaultBackPressureObjectThreshold());
         group.setDefaultBackPressureDataSizeThreshold(proposed.getDefaultBackPressureDataSizeThreshold());
 
+        if (group.getLogFileSuffix() == null || group.getLogFileSuffix().isEmpty()) {
+            group.setLogFileSuffix(proposed.getLogFileSuffix());
+        }
+
         final VersionedFlowCoordinates remoteCoordinates = proposed.getVersionedFlowCoordinates();
         if (remoteCoordinates == null) {
             group.disconnectVersionControl(false);
@@ -1795,6 +1799,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 groupToUpdate.setComments(proposed.getComments());
                 groupToUpdate.setName(proposed.getName());
                 groupToUpdate.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+                groupToUpdate.setLogFileSuffix(proposed.getLogFileSuffix());
 
                 if (processGroup == null) {
                     LOG.info("Successfully synchronized {} by adding it to the flow", groupToUpdate);

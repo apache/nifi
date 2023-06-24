@@ -38,6 +38,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -266,7 +267,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final ReportingTaskNode taskNode = locateReportingTask(reportingTaskId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository);
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(taskNode.getReportingTask(), logRepository, new StandardLoggingContext(null));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;

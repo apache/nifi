@@ -296,6 +296,7 @@ public class FlowFromDOMFactory {
         dto.setDefaultFlowFileExpiration(getString(element, "defaultFlowFileExpiration"));
         dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
         dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
+        dto.setLogFileSuffix(getString(element, "logFileSuffix"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");

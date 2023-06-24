@@ -327,6 +327,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
             group.setDefaultFlowFileExpiration(contents.getDefaultFlowFileExpiration());
             group.setDefaultBackPressureObjectThreshold(contents.getDefaultBackPressureObjectThreshold());
             group.setDefaultBackPressureDataSizeThreshold(contents.getDefaultBackPressureDataSizeThreshold());
+            group.setLogFileSuffix(contents.getLogFileSuffix());
             coordinates.setLatest(snapshot.isLatest());
 
             snapshotContainer.addChildSnapshot(snapshot, group);

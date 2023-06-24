@@ -258,6 +258,7 @@ public class NiFiRegistryFlowMapper {
         versionedGroup.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
         versionedGroup.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
         versionedGroup.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
+        versionedGroup.setLogFileSuffix(group.getLogFileSuffix());
 
         final ParameterContext parameterContext = group.getParameterContext();
         versionedGroup.setParameterContextName(parameterContext == null ? null : parameterContext.getName());
