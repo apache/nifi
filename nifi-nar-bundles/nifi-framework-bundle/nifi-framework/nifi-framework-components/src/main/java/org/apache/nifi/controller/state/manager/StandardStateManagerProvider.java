@@ -51,6 +51,7 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -341,7 +342,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
-        final ComponentLog logger = new SimpleProcessLogger(providerConfig.getId(), provider);
+        final ComponentLog logger = new SimpleProcessLogger(providerConfig.getId(), provider, new StandardLoggingContext(null));
         final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerConfig.getId(), propertyMap, sslContext, logger);
 
         synchronized (provider) {

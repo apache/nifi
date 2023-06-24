@@ -2686,6 +2686,7 @@ public final class DtoFactory {
         dto.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
         dto.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
         dto.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
+        dto.setLogFileSuffix(group.getLogFileSuffix());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4599,6 +4600,7 @@ public final class DtoFactory {
         copy.setDefaultFlowFileExpiration(original.getDefaultFlowFileExpiration());
         copy.setDefaultBackPressureObjectThreshold(original.getDefaultBackPressureObjectThreshold());
         copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
+        copy.setLogFileSuffix(original.getLogFileSuffix());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

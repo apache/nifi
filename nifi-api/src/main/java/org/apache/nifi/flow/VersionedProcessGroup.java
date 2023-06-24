@@ -47,6 +47,8 @@ public class VersionedProcessGroup extends VersionedComponent {
     private Long defaultBackPressureObjectThreshold;
     private String defaultBackPressureDataSizeThreshold;
 
+    private String logFileSuffix;
+
 
     @ApiModelProperty("The child Process Groups")
     public Set<VersionedProcessGroup> getProcessGroups() {
@@ -204,5 +206,14 @@ public class VersionedProcessGroup extends VersionedComponent {
 
     public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
         this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
+    }
+
+    @ApiModelProperty(value = "The log file suffix for this Process Group for dedicated logging.")
+    public String getLogFileSuffix() {
+        return logFileSuffix;
+    }
+
+    public void setLogFileSuffix(final String logFileSuffix) {
+        this.logFileSuffix = logFileSuffix;
     }
 }

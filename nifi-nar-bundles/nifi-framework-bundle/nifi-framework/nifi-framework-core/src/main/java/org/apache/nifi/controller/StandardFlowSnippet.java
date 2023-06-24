@@ -533,6 +533,11 @@ public class StandardFlowSnippet implements FlowSnippet {
                 childGroup.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
             }
 
+            final String logFileSuffix = groupDTO.getLogFileSuffix();
+            if (logFileSuffix != null) {
+                childGroup.setLogFileSuffix(logFileSuffix);
+            }
+
             // If this Process Group is 'top level' then we do not set versioned component ID's.
             // We do this only if this component is the child of a Versioned Component.
             if (!topLevel) {

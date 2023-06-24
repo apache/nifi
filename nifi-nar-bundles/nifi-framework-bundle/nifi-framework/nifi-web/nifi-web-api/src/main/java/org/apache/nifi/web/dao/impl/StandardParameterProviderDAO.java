@@ -36,6 +36,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -233,7 +234,7 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository);
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(parameterProviderNode.getParameterProvider(), logRepository, new StandardLoggingContext(null));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;

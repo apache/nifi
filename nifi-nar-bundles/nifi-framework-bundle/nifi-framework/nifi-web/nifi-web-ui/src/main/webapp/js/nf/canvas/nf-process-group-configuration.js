@@ -111,7 +111,8 @@
                 'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value,
                 'defaultFlowFileExpiration': $('#process-group-default-flowfile-expiration').val(),
                 'defaultBackPressureObjectThreshold': $('#process-group-default-back-pressure-object-threshold').val(),
-                'defaultBackPressureDataSizeThreshold': $('#process-group-default-back-pressure-data-size-threshold').val()
+                'defaultBackPressureDataSizeThreshold': $('#process-group-default-back-pressure-data-size-threshold').val(),
+                'logFileSuffix': $('#process-group-log-file-suffix').val()
             }
         };
 
@@ -271,7 +272,7 @@
                     $('#process-group-default-flowfile-expiration').removeClass('unset').val(processGroup.defaultFlowFileExpiration);
                     $('#process-group-default-back-pressure-object-threshold').removeClass('unset').val(processGroup.defaultBackPressureObjectThreshold);
                     $('#process-group-default-back-pressure-data-size-threshold').removeClass('unset').val(processGroup.defaultBackPressureDataSizeThreshold);
-
+                    $('#process-group-log-file-suffix').removeClass('unset').val(processGroup.logFileSuffix);
 
                     // populate the header
                     $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -316,6 +317,9 @@
                         $('#read-only-process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
                         $('#read-only-process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
                         $('#read-only-process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
+                        $('#read-only-process-group-log-file-suffix').text(processGroup.logFileSuffix);
+
+
                     } else {
                         setUnauthorizedText();
                     }

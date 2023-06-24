@@ -859,6 +859,16 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public String getLogFileSuffix() {
+        return null;
+    }
+
+    @Override
+    public void setLogFileSuffix(String logFileSuffix) {
+
+    }
+
+    @Override
     public void terminateProcessor(ProcessorNode processor) {
     }
 }

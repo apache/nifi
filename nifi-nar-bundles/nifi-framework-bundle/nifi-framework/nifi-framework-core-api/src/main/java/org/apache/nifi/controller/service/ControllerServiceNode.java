@@ -27,6 +27,7 @@ import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.GroupedComponent;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.util.List;
@@ -36,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public interface ControllerServiceNode extends ComponentNode, VersionedComponent {
+public interface ControllerServiceNode extends ComponentNode, VersionedComponent, GroupedComponent {
 
     /**
      * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service

@@ -461,6 +461,28 @@ public final class SnippetUtils {
                 groupNames.add(groupDTO.getName());
             }
         }
+
+        // get a list of all log file suffix
+        final List<String> existingLogFileSuffixes = new ArrayList<>();
+        for (final ProcessGroup processGroup : group.getProcessGroups()) {
+            if (processGroup.getLogFileSuffix() != null) {
+                existingLogFileSuffixes.add(processGroup.getLogFileSuffix());
+            }
+        }
+
+        // rename log file suffixes
+        if (snippetContents.getProcessGroups() != null) {
+            for (final ProcessGroupDTO processGroupDTO : snippetContents.getProcessGroups()) {
+                String logFileSuffix = processGroupDTO.getLogFileSuffix();
+                if (logFileSuffix != null) {
+                    while (existingLogFileSuffixes.contains(logFileSuffix)) {
+                        logFileSuffix = "Copy_of_" + logFileSuffix;
+                    }
+                    processGroupDTO.setLogFileSuffix(logFileSuffix);
+                    existingLogFileSuffixes.add(processGroupDTO.getLogFileSuffix());
+                }
+            }
+        }
     }
 
     private FlowSnippetDTO copyContentsForGroup(final FlowSnippetDTO snippetContents, final String groupId, final Map<String, ConnectableDTO> parentConnectableMap,

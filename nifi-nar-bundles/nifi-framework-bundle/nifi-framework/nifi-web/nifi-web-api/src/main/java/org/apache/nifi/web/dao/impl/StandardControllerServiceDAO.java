@@ -40,6 +40,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
@@ -413,7 +414,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         final ControllerServiceNode serviceNode = locateControllerService(controllerServiceId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(serviceNode.getControllerServiceImplementation(), logRepository);
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(serviceNode.getControllerServiceImplementation(), logRepository, new StandardLoggingContext(serviceNode));
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = serviceNode.getProcessGroup() == null ? ParameterLookup.EMPTY : serviceNode.getProcessGroup().getParameterContext();

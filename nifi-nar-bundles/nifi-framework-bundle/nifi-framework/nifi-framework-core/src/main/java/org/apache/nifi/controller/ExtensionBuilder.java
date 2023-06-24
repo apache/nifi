@@ -44,6 +44,8 @@ import org.apache.nifi.controller.service.StandardControllerServiceInitializatio
 import org.apache.nifi.controller.service.StandardControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LoggingContext;
+import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.PythonBundle;
@@ -228,9 +230,10 @@ public class ExtensionBuilder {
         }
 
         boolean creationSuccessful = true;
+        final StandardLoggingContext loggingContext = new StandardLoggingContext(null);
         LoggableComponent<Processor> loggableComponent;
         try {
-            loggableComponent = createLoggableProcessor();
+            loggableComponent = createLoggableProcessor(loggingContext);
         } catch (final ProcessorInstantiationException pie) {
             logger.error("Could not create Processor of type {} for ID {} due to: {}; creating \"Ghost\" implementation", type, identifier, pie.getMessage(), pie);
 
@@ -252,6 +255,7 @@ public class ExtensionBuilder {
         }
 
         final ProcessorNode processorNode = createProcessorNode(loggableComponent, componentType, !creationSuccessful);
+        loggingContext.setComponent(processorNode);
         return processorNode;
     }
 
@@ -419,9 +423,9 @@ public class ExtensionBuilder {
         if (stateManagerProvider == null) {
             throw new IllegalStateException("State Manager Provider must be specified");
         }
-
+        final StandardLoggingContext loggingContext = new StandardLoggingContext(null);
         try {
-            return createControllerServiceNode();
+            return createControllerServiceNode(loggingContext);
         } catch (final Exception e) {
             logger.error("Could not create Controller Service of type " + type + " for ID " + identifier + " due to: " + e.getMessage() + "; creating \"Ghost\" implementation");
             if (logger.isDebugEnabled()) {
@@ -561,7 +565,8 @@ public class ExtensionBuilder {
         }
     }
 
-    private ControllerServiceNode createControllerServiceNode() throws ClassNotFoundException, IllegalAccessException, InstantiationException, InitializationException {
+    private ControllerServiceNode createControllerServiceNode(final StandardLoggingContext loggingContext)
+            throws ClassNotFoundException, IllegalAccessException, InstantiationException, InitializationException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -590,7 +595,7 @@ public class ExtensionBuilder {
             }
 
             logger.info("Created Controller Service of type {} with identifier {}", type, identifier);
-            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl);
+            final ComponentLog serviceLogger = new SimpleProcessLogger(identifier, serviceImpl, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(serviceLogger);
 
             final StateManager stateManager = stateManagerProvider.getStateManager(identifier);
@@ -608,6 +613,7 @@ public class ExtensionBuilder {
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
                     identifier, validationContextFactory, serviceProvider, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
+            loggingContext.setComponent(serviceNode);
 
             invocationHandler.setServiceNode(serviceNode);
             return serviceNode;
@@ -697,13 +703,13 @@ public class ExtensionBuilder {
         return serviceNode;
     }
 
-    private LoggableComponent<Processor> createLoggableProcessor() throws ProcessorInstantiationException {
+    private LoggableComponent<Processor> createLoggableProcessor(final LoggingContext loggingContext) throws ProcessorInstantiationException {
         try {
             final LoggableComponent<Processor> processorComponent;
             if (PythonBundle.isPythonCoordinate(bundleCoordinate)) {
                 processorComponent = createLoggablePythonProcessor();
             } else {
-                processorComponent = createLoggableComponent(Processor.class);
+                processorComponent = createLoggableComponent(Processor.class, loggingContext);
             }
 
             final Processor processor = processorComponent.getComponent();
@@ -724,7 +730,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<ReportingTask> createLoggableReportingTask() throws ReportingTaskInstantiationException {
         try {
-            final LoggableComponent<ReportingTask> taskComponent = createLoggableComponent(ReportingTask.class);
+            final LoggableComponent<ReportingTask> taskComponent = createLoggableComponent(ReportingTask.class, new StandardLoggingContext(null));
 
             final String taskName = taskComponent.getComponent().getClass().getSimpleName();
             final ReportingInitializationContext config = new StandardReportingInitializationContext(identifier, taskName,
@@ -743,7 +749,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<FlowRegistryClient> createLoggableFlowRegistryClient() throws FlowRepositoryClientInstantiationException {
         try {
-            final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class);
+            final LoggableComponent<FlowRegistryClient> clientComponent = createLoggableComponent(FlowRegistryClient.class, new StandardLoggingContext(null));
 
             final FlowRegistryClientInitializationContext context = new StandardFlowRegistryClientInitializationContext(
                     identifier, clientComponent.getLogger(), systemSslContext);
@@ -759,7 +765,7 @@ public class ExtensionBuilder {
 
     private LoggableComponent<ParameterProvider> createLoggableParameterProvider() throws ParameterProviderInstantiationException {
         try {
-            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class);
+            final LoggableComponent<ParameterProvider> providerComponent = createLoggableComponent(ParameterProvider.class, new StandardLoggingContext(null));
 
             final String taskName = providerComponent.getComponent().getClass().getSimpleName();
             final ParameterProviderInitializationContext config = new StandardParameterProviderInitializationContext(identifier, taskName,
@@ -793,7 +799,7 @@ public class ExtensionBuilder {
             final PythonProcessorBridge processorBridge = pythonBridge.createProcessor(identifier, processorType, bundleCoordinate.getVersion(), true);
             final Processor processor = processorBridge.getProcessorProxy();
 
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor);
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, processor, new StandardLoggingContext(null));
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final PythonProcessorInitializationContext initContext = new PythonProcessorInitializationContext() {
@@ -817,7 +823,8 @@ public class ExtensionBuilder {
         }
     }
 
-    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType, LoggingContext loggingContext)
+            throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -832,7 +839,7 @@ public class ExtensionBuilder {
 
             final Object extensionInstance = rawClass.newInstance();
 
-            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance);
+            final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance, loggingContext);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
             final T cast = nodeType.cast(extensionInstance);

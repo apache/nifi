@@ -30,6 +30,7 @@
                 <include>*:logback-core</include>
                 <include>*:nifi-api</include>
                 <include>*:nifi-property-protection-api</include>
+                <include>*:nifi-per-process-group-logging</include>
             </includes>
         </dependencySet>
 

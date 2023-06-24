@@ -368,7 +368,12 @@ public enum DifferenceType {
     /**
      * The Process Group's Default value for connections' FlowFile Expiration is different in each of the flows
      */
-    DEFAULT_FLOWFILE_EXPIRATION_CHANGED("Default FlowFile Expiration Changed")
+    DEFAULT_FLOWFILE_EXPIRATION_CHANGED("Default FlowFile Expiration Changed"),
+
+    /**
+     * The Process Group's Log File Suffix value is different in each of the flows
+     */
+    LOG_FILE_SUFFIX_CHANGED("Log File Suffix Changed")
     ;
 
     private final String description;

@@ -101,6 +101,31 @@
         </encoder>
     </appender>
 
+    <appender name="DEDICATED_LOGGING" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator class="org.apache.nifi.logging.NifiDiscriminator"/>
+        <sift>
+            <appender name="APP-${logFileSuffix}_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app-${logFileSuffix}.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <!--
+                    For daily rollover, use 'app_%d.log'.
+                    For hourly rollover, use 'app_%d{yyyy-MM-dd_HH}.log'.
+                    To GZIP rolled files, replace '.log' with '.log.gz'.
+                    To ZIP rolled files, replace '.log' with '.log.zip'.
+                    -->
+                    <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app-${logFileSuffix}_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
+                    <maxFileSize>100MB</maxFileSize>
+                    <!-- keep 30 log files worth of history -->
+                    <maxHistory>30</maxHistory>
+                </rollingPolicy>
+                <immediateFlush>true</immediateFlush>
+                <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
@@ -224,6 +249,10 @@
 
     <root level="INFO">
         <appender-ref ref="APP_FILE" />
+    </root>
+
+    <root level="INFO">
+        <appender-ref ref="DEDICATED_LOGGING" />
     </root>
 
 </configuration>
