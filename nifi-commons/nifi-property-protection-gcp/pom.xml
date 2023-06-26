@@ -22,7 +22,7 @@
     </parent>
     <artifactId>nifi-property-protection-gcp</artifactId>
     <properties>
-        <gcp.sdk.version>26.15.0</gcp.sdk.version>
+        <gcp.sdk.version>26.17.0</gcp.sdk.version>
         <guava.version>32.0.1-jre</guava.version>
     </properties>
     <dependencyManagement>
