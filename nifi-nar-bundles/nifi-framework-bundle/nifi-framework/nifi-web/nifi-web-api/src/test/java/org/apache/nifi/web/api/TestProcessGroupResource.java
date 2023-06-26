@@ -18,47 +18,96 @@ package org.apache.nifi.web.api;
 
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestProcessGroupResource {
 
     @InjectMocks
-    private ProcessGroupResource processGroupResource = new ProcessGroupResource();
+    private ProcessGroupResource processGroupResource;
 
     @Mock
     private NiFiServiceFacade serviceFacade;
 
     @Test
-    public void testExportProcessGroup() {
+    public void testExportProcessGroup(@Mock RegisteredFlowSnapshot versionedFlowSnapshot, @Mock VersionedProcessGroup versionedProcessGroup) {
         final String groupId = UUID.randomUUID().toString();
-        final RegisteredFlowSnapshot versionedFlowSnapshot = mock(RegisteredFlowSnapshot.class);
-
         when(serviceFacade.getCurrentFlowSnapshotByGroupId(groupId)).thenReturn(versionedFlowSnapshot);
-
-        final String flowName = "flowname";
-        final VersionedProcessGroup versionedProcessGroup = mock(VersionedProcessGroup.class);
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
-        when(versionedProcessGroup.getName()).thenReturn(flowName);
+        when(versionedProcessGroup.getName()).thenReturn("flowname");
 
-        final Response response = processGroupResource.exportProcessGroup(groupId, false);
-
-        final RegisteredFlowSnapshot resultEntity = (RegisteredFlowSnapshot)response.getEntity();
-
-        assertEquals(200, response.getStatus());
-        assertEquals(versionedFlowSnapshot, resultEntity);
+        try(Response response = processGroupResource.exportProcessGroup(groupId, false)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(versionedFlowSnapshot, response.getEntity());
+        }
     }
 
+    /** This test creates a malformed template upload request to exercise error handling and sanitization */
+    @Test
+    public void testUploadShouldHandleMalformedTemplate(@Mock HttpServletRequest request, @Mock UriInfo uriInfo) throws Exception {
+        final String templateWithXssPlain = "<?xml version=\"1.0\" encoding='><script xmlns=\"http://www.w3.org/1999/xhtml\">alert(JSON.stringify(localstorage));</script><errorResponse test='?>";
+        Response response = processGroupResource.uploadTemplate(request, uriInfo, "1",
+                false, new ByteArrayInputStream(templateWithXssPlain.getBytes()));
+
+        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+        assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
+    }
+
+    /** This test creates a malformed template import request to exercise error handling and sanitization */
+    @Test
+    public void testImportShouldHandleMalformedTemplate(@Mock NiFiProperties niFiProperties, @Mock TemplateResource templateResource,
+                                                        @Mock TemplateDTO mockIAETemplate, @Mock TemplateDTO mockExceptionTemplate,
+                                                        @Mock TemplateEntity mockIAETemplateEntity, @Mock TemplateEntity mockExceptionTemplateEntity,
+                                                        @Mock HttpServletRequest mockRequest) {
+        when(niFiProperties.isNode()).thenReturn(false);
+        when(serviceFacade.importTemplate(any(TemplateDTO.class), anyString(), any())).thenAnswer((Answer<TemplateDTO>) invocationOnMock -> invocationOnMock.getArgument(0));
+        when(mockIAETemplate.getName()).thenReturn("mockIAETemplate");
+        when(mockIAETemplate.getUri()).thenThrow(new IllegalArgumentException("Expected exception with <script> element"));
+        when(mockIAETemplate.getSnippet()).thenReturn(new FlowSnippetDTO());
+        when(mockExceptionTemplate.getName()).thenReturn("mockExceptionTemplate");
+        when(mockExceptionTemplate.getUri()).thenThrow(new RuntimeException("Expected exception with <script> element"));
+        when(mockExceptionTemplate.getSnippet()).thenReturn(new FlowSnippetDTO());
+        when(mockIAETemplateEntity.getTemplate()).thenReturn(mockIAETemplate);
+        when(mockExceptionTemplateEntity.getTemplate()).thenReturn(mockExceptionTemplate);
+
+        processGroupResource.properties = niFiProperties;
+        processGroupResource.serviceFacade = serviceFacade;
+        processGroupResource.setTemplateResource(templateResource);
+        processGroupResource.httpServletRequest = mockRequest;
+
+        List<Response> responses = Stream.of(mockIAETemplateEntity, mockExceptionTemplateEntity)
+                .map(templateEntity -> processGroupResource.importTemplate(mockRequest, "1", templateEntity))
+                .collect(Collectors.toList());
+
+        responses.forEach(response -> {
+            assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+            assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
+        });
+    }
 }
