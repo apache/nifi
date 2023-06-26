@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"rules", "rules engine", "script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
+@Tags({"rules", "rules engine", "script", "invoke", "groovy", "python", "jython"})
 @CapabilityDescription("Allows the user to provide a scripted RulesEngineService for custom firing of rules depending on the supplied facts. The script must set a variable 'rulesEngine' to an "
         + "implementation of RulesEngineService.")
 @DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",

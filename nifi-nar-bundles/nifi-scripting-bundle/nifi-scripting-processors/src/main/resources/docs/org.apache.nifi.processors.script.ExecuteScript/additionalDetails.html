@@ -46,7 +46,6 @@ td {text-align: left}
     <b>Notes:</b>
 <ul>
     <li>The engine listed as "python" in the list of available script engines is actually Jython, not Python. When using Jython, you cannot import pure (CPython) modules such as pandas</li>
-    <li>Lua does not allow for referencing static members of a class, so the REL_SUCCESS and REL_FAILURE relationships are made available via script bindings (aka variables), see the Variable Bindings section for more details</li>
     <li>ExecuteScript uses the JSR-223 Script Engine API to evaluate scripts, so the use of idiomatic language structure is sometimes limited. For example, in the case of Groovy, there is a separate ExecuteGroovyScript processor that allows you to do many more idiomatic Groovy tasks. For example, it's easier to interact with Controller Services via ExecuteGroovyScript vs. ExecuteScript (see the ExecuteGroovyScript documentation for more details)</li>
 </ul>
 </p>
@@ -77,12 +76,12 @@ td {text-align: left}
     </tr>
     <tr>
         <td><b>REL_SUCCESS</b></td>
-        <td>This is a reference to the "success" relationship defined for the processor. It could also be inherited by referencing the static member of the parent class (ExecuteScript), but some engines such as Lua do not allow for referencing static members, so this is a convenience variable. It also saves having to use the fully-qualified name for the relationship.</td>
+        <td>This is a reference to the "success" relationship defined for the processor. It could also be inherited by referencing the static member of the parent class (ExecuteScript), this is a convenience variable. It also saves having to use the fully-qualified name for the relationship.</td>
         <td><a href="https://www.javadoc.io/doc/org.apache.nifi/nifi-api/latest/org/apache/nifi/processor/Relationship.html">Relationship</a></td>
     </tr>
     <tr>
         <td><b>REL_FAILURE</b></td>
-        <td>This is a reference to the "failure" relationship defined for the processor. As with REL_SUCCESS, it could also be inherited by referencing the static member of the parent class (ExecuteScript), but some engines such as Lua do not allow for referencing static members, so this is a convenience variable. It also saves having to use the fully-qualified name for the relationship.</td>
+        <td>This is a reference to the "failure" relationship defined for the processor. As with REL_SUCCESS, it could also be inherited by referencing the static member of the parent class (ExecuteScript), this is a convenience variable. It also saves having to use the fully-qualified name for the relationship.</td>
         <td><a href="https://www.javadoc.io/doc/org.apache.nifi/nifi-api/latest/org/apache/nifi/processor/Relationship.html">Relationship</a></td>
     </tr>
     <tr>
@@ -108,12 +107,6 @@ if (flowFile != None):
     # All processing code starts at this indent
 # implicit return at the end
 </pre>
-<p><em> JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-   # All processing code goes here
-end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Get multiple incoming FlowFiles from the session</strong>:</p>
@@ -134,14 +127,6 @@ if not flowFileList.isEmpty():
     for flowFile in flowFileList:
          # Process each FlowFile here
 </pre>
-<p><em>JRuby</em></p>
-<pre>flowFileList = session.get(100)
-if !(flowFileList.isEmpty())
-   flowFileList.each { |flowFile|
-       # Process each FlowFile here
-   }
-end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Create a new FlowFile</strong></p>
@@ -153,10 +138,6 @@ end
 // Additional processing here
 </pre>
 <p><em>Jython</em></p>
-<pre>flowFile = session.create()
-# Additional processing here
-</pre>
-<p><em>JRuby</em></p>
 <pre>flowFile = session.create()
 # Additional processing here
 </pre>
@@ -178,13 +159,6 @@ if (flowFile != None):
     newFlowFile = session.create(flowFile)
     # Additional processing here
 </pre>
-<p><em>JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-  newFlowFile = session.create(flowFile)
-  # Additional processing here
-end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Add an attribute to a FlowFile</strong></p>
@@ -203,18 +177,12 @@ if (flowFile != None):
     flowFile = session.putAttribute(flowFile, 'myAttr', 'myValue')
 # implicit return at the end
 </pre>
-<p><em>JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-   flowFile = session.putAttribute(flowFile, 'myAttr', 'myValue')
-end
-</pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Add multiple attributes to a FlowFile</strong></p>
 <p><strong>Use Case</strong>: You have a FlowFile to which you'd like to add custom attributes.</p>
 <p><strong>Approach</strong>: Use the putAllAttributes(<em>flowFile</em>, <em>attributeMap</em>) method from the session object. This method updates the given FlowFile's attributes with the key/value pairs from the given Map. NOTE: The "uuid" attribute is fixed for a FlowFile and cannot be modified; if the key is named "uuid", it will be ignored.</p>
-<p>The technique here is to create a Map (aka dictionary in Jython, hash in JRuby) of the attribute key/value pairs you'd like to update, then call putAllAttributes() on it. This is much more efficient than calling putAttribute() for each key/value pair, as the latter case will cause the framework to create a temporary version of the FlowFile for each attribute added (see above recipe for discussion on FlowFile immutability). The examples show a map of two entries myAttr1 and myAttr2, set to '1' and the language-specific coercion of the number 2 as a String (to adhere to the method signature of requiring String values for both key and value). Note that a session.transfer() is not specified here (so the code snippets below do not work as-is), see the following recipe for that.</p>
+<p>The technique here is to create a Map (aka dictionary in Jython) of the attribute key/value pairs you'd like to update, then call putAllAttributes() on it. This is much more efficient than calling putAttribute() for each key/value pair, as the latter case will cause the framework to create a temporary version of the FlowFile for each attribute added (see above recipe for discussion on FlowFile immutability). The examples show a map of two entries myAttr1 and myAttr2, set to '1' and the language-specific coercion of the number 2 as a String (to adhere to the method signature of requiring String values for both key and value). Note that a session.transfer() is not specified here (so the code snippets below do not work as-is), see the following recipe for that.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>attrMap = ['myAttr1': '1', 'myAttr2': Integer.toString(2)]
@@ -228,13 +196,6 @@ flowFile = session.get()
 if (flowFile != None):
     flowFile = session.putAllAttributes(flowFile, attrMap)
 # implicit return at the end
-</pre>
-<p><em>JRuby</em></p>
-<pre>attrMap = {'myAttr1' =&gt; '1', 'myAttr2' =&gt; 2.to_s}
-flowFile = session.get()
-if flowFile != nil
-    flowFile = session.putAllAttributes(flowFile, attrMap)
-end
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -252,12 +213,6 @@ myAttr = flowFile.getAttribute('filename')
 if (flowFile != None):
     myAttr = flowFile.getAttribute('filename')
 # implicit return at the end
-</pre>
-<p><em>JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-    myAttr = flowFile.getAttribute('filename')
-end
 </pre>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
@@ -278,14 +233,6 @@ if (flowFile != None):
     for key,value in flowFile.getAttributes().iteritems():
        # Do something with key and/or value
 # implicit return at the end
-</pre>
-<p><em>JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-    flowFile.getAttributes().each { |key,value|
-       # Do something with key and/or value
-   }
-end
 </pre>
 <p>&nbsp;</p>
 <p><strong>Transfer a FlowFile to a relationship</strong></p>
@@ -314,17 +261,6 @@ if (flowFile != None):
         session.transfer(flowFile, REL_SUCCESS)
 # implicit return at the end
 </pre>
-<p><em>JRuby</em></p>
-<pre>flowFile = session.get()
-if flowFile != nil
-   # All processing code goes here
-   if errorOccurred
-     session.transfer(flowFile, REL_FAILURE)
-   else
-     session.transfer(flowFile, REL_SUCCESS)
-   end
-end
-</pre>
 <p>&nbsp;</p>
 <p><strong>Send a message to the log at a specified logging level</strong></p>
 <p><strong>Use Case</strong>: You want to report some event that has occurred during processing to the logging framework.</p>
@@ -340,9 +276,7 @@ objArray = ['Hello',1,True]
 javaArray = array(objArray, Object)
 log.info('Found these things: {} {} {}', javaArray)
 </pre>
-<p><em>JRuby</em></p>
-<pre>log.info('Found these things: {} {} {}', ['Hello',1,true].to_java)
-</pre>
+<p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Read the contents of an incoming FlowFile using a callback</strong></p>
 <p><strong>Use Case</strong>: You have incoming connection(s) to ExecuteScript and want to retrieve the contents of a FlowFile from the queue(s) for processing.</p>
@@ -376,26 +310,9 @@ class PyInputStreamCallback(InputStreamCallback):
 flowFile = session.get()
 if(flowFile != None):
     session.read(flowFile, PyInputStreamCallback())
-# implicit return at the end</pre>
-
-<p><em>JRuby</em></p>
-
-<pre>java_import org.apache.commons.io.IOUtils
-java_import org.apache.nifi.processor.io.InputStreamCallback
-
-# Define a subclass of InputStreamCallback for use in session.read()
-class JRubyInputStreamCallback
-  include InputStreamCallback
-  def process(inputStream)
-    text = IOUtils.toString(inputStream)
-    # Do something with text here
-  end
-end
-jrubyInputStreamCallback = JRubyInputStreamCallback.new
-flowFile = session.get()
-if flowFile != nil
-  session.read(flowFile, jrubyInputStreamCallback)
-end</pre>
+# implicit return at the end
+</pre>
+<p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Write content to an outgoing FlowFile using a callback</strong></p>
 <p><strong>Use Case</strong>: You want to generate content for an outgoing FlowFile.</p>
@@ -429,26 +346,9 @@ class PyOutputStreamCallback(OutputStreamCallback):
 flowFile = session.get()
 if(flowFile != None):
     flowFile = session.write(flowFile, PyOutputStreamCallback())
-# implicit return at the end</pre>
-
-<p><em>JRuby</em></p>
-
-<pre>java_import org.apache.commons.io.IOUtils
-java_import java.nio.charset.StandardCharsets
-java_import org.apache.nifi.processor.io.OutputStreamCallback
-
-# Define a subclass of OutputStreamCallback for use in session.write()
-class JRubyOutputStreamCallback
-  include OutputStreamCallback
-  def process(outputStream)
-    outputStream.write("Hello World!".to_java.getBytes(StandardCharsets::UTF_8))
-  end
-end
-jrubyOutputStreamCallback = JRubyOutputStreamCallback.new
-flowFile = session.get()
-if flowFile != nil
-  flowFile = session.write(flowFile, jrubyOutputStreamCallback)
-end</pre>
+# implicit return at the end
+</pre>
+<p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Overwrite an incoming FlowFile with updated content using a callback</strong></p>
 <p><strong>Use Case</strong>: You want to reuse the incoming FlowFile but want to modify its content for the outgoing FlowFile.</p>
@@ -488,27 +388,9 @@ class PyStreamCallback(StreamCallback):
 flowFile = session.get()
 if(flowFile != None):
     flowFile = session.write(flowFile, PyStreamCallback())
-# implicit return at the end</pre>
-
-<p><em>JRuby</em></p>
-
-<pre>java_import org.apache.commons.io.IOUtils
-java_import java.nio.charset.StandardCharsets
-java_import org.apache.nifi.processor.io.StreamCallback
-
-# Define a subclass of StreamCallback for use in session.write()
-class JRubyStreamCallback
-  include StreamCallback
-  def process(inputStream, outputStream)
-    text = IOUtils.toString(inputStream)
-    outputStream.write((text.reverse!).to_java.getBytes(StandardCharsets::UTF_8))
-  end
-end
-jrubyStreamCallback = JRubyStreamCallback.new
-flowFile = session.get()
-if flowFile != nil
-  flowFile = session.write(flowFile, jrubyStreamCallback)
-end</pre>
+# implicit return at the end
+</pre>
+<p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Handle errors during script processing</strong></p>
 <p><strong>Use Case</strong>: An error occurs in the script (either by data validation or a thrown exception), and you want the script to handle it gracefully.</p>
@@ -541,22 +423,7 @@ if(flowFile != None):
     except:
         log.error('Something went wrong', e)
         session.transfer(flowFile, REL_FAILURE)
-# implicit return at the end</pre>
-
-<p><em>JRuby</em></p>
-
-<pre>flowFile = session.get()
-if flowFile != nil
-  begin
-    # Something that might raise an exception here
-
-    # Last operation is transfer to success (failures handled in the rescue block)
-    session.transfer(flowFile, REL_SUCCESS)
-  rescue Exception =&gt; e
-    log.error('Something went wrong', e)
-    session.transfer(flowFile, REL_FAILURE)
-  end
-end</pre>
-
+# implicit return at the end
+</pre>
 </body>
 </html>

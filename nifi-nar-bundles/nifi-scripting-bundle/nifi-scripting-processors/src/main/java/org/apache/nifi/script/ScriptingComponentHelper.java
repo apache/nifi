@@ -145,10 +145,6 @@ public class ScriptingComponentHelper {
      */
     public void createResources(final boolean requireInvocable) {
         descriptors = new ArrayList<>();
-        // The following is required for JRuby, should be transparent to everything else.
-        // Note this is not done in a ScriptRunner, as it is too early in the lifecycle. The
-        // setting must be there before the factories/engines are loaded.
-        System.setProperty("org.jruby.embed.localvariable.behavior", "persistent");
 
         // Create list of available engines
         ScriptEngineManager scriptEngineManager = new ScriptEngineManager();
