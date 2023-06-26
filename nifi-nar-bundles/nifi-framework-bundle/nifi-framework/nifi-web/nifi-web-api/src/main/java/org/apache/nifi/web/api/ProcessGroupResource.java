@@ -581,46 +581,46 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         final ProcessGroupDTO updatableGroupDto = updatableGroupEntity.getComponent();
                         final String groupId = updatableGroupDto == null ? updatableGroupEntity.getId() : updatableGroupDto.getId();
 
-                    Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
-                    authorizable.authorize(authorizer, RequestAction.WRITE, user);
+                        Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
+                        authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
-                    // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
-                    final ParameterContextReferenceEntity referencedParamContext = updatableGroupDto.getParameterContext();
-                    if (referencedParamContext != null) {
-                        // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
-                        final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
-                        final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
-                        final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
-                        final String currentParamContextId = currentParamContext == null ? null : currentParamContext.getId();
-                        final boolean parameterContextChanging = !Objects.equals(referencedParamContext.getId(), currentParamContextId);
+                        // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
+                        final ParameterContextReferenceEntity referencedParamContext = updatableGroupDto.getParameterContext();
+                        if (referencedParamContext != null) {
+                            // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
+                            final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
+                            final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
+                            final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
+                            final String currentParamContextId = currentParamContext == null ? null : currentParamContext.getId();
+                            final boolean parameterContextChanging = !Objects.equals(referencedParamContext.getId(), currentParamContextId);
 
-                        // If Parameter Context is changing...
-                        if (parameterContextChanging) {
-                            // In order to bind to a Parameter Context, the user must have the READ policy to that Parameter Context.
-                            if (referencedParamContext.getId() != null) {
-                                lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
-                            }
+                            // If Parameter Context is changing...
+                            if (parameterContextChanging) {
+                                // In order to bind to a Parameter Context, the user must have the READ policy to that Parameter Context.
+                                if (referencedParamContext.getId() != null) {
+                                    lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
+                                }
 
-                            // If currently referencing a Parameter Context, we must authorize that the user has READ permissions on the Parameter Context in order to un-bind to it.
-                            if (currentParamContextId != null) {
-                                lookup.getParameterContext(currentParamContextId).authorize(authorizer, RequestAction.READ, user);
-                            }
+                                // If currently referencing a Parameter Context, we must authorize that the user has READ permissions on the Parameter Context in order to un-bind to it.
+                                if (currentParamContextId != null) {
+                                    lookup.getParameterContext(currentParamContextId).authorize(authorizer, RequestAction.READ, user);
+                                }
 
-                            // Because the user will be changing the behavior of any component in this group that is currently referencing any Parameter, we must ensure that the user has
-                            // both READ and WRITE policies for each of those components.
-                            for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getProcessorsReferencingParameter(groupId)) {
-                                final Authorizable processorAuthorizable = lookup.getProcessor(affectedComponentEntity.getId()).getAuthorizable();
-                                processorAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                processorAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                            }
+                                // Because the user will be changing the behavior of any component in this group that is currently referencing any Parameter, we must ensure that the user has
+                                // both READ and WRITE policies for each of those components.
+                                for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getProcessorsReferencingParameter(groupId)) {
+                                    final Authorizable processorAuthorizable = lookup.getProcessor(affectedComponentEntity.getId()).getAuthorizable();
+                                    processorAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                    processorAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                }
 
-                            for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getControllerServicesReferencingParameter(groupId)) {
-                                final Authorizable serviceAuthorizable = lookup.getControllerService(affectedComponentEntity.getId()).getAuthorizable();
-                                serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getControllerServicesReferencingParameter(groupId)) {
+                                    final Authorizable serviceAuthorizable = lookup.getControllerService(affectedComponentEntity.getId()).getAuthorizable();
+                                    serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                    serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                }
                             }
                         }
-                    }
                     }
                 },
                 () -> {
