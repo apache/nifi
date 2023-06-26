@@ -16,35 +16,17 @@
  */
 package org.apache.nifi.controller.status.history.questdb;
 
-import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
-import io.questdb.griffin.SqlCompiler;
+import io.questdb.cairo.security.AllowAllSecurityContext;
 import io.questdb.griffin.SqlExecutionContext;
+import io.questdb.griffin.SqlExecutionContextImpl;
 
-public class QuestDbContext {
-    private final CairoEngine engine;
-
-    public QuestDbContext(final CairoEngine engine) {
-        this.engine = engine;
+final class SqlExecutionContextFactory {
+    private SqlExecutionContextFactory() {
+        // Not to be instantiated
     }
 
-    public CairoEngine getEngine() {
-        return engine;
-    }
-
-    public CairoConfiguration getConfiguration() {
-        return engine.getConfiguration();
-    }
-
-    public SqlExecutionContext getSqlExecutionContext() {
-        return SqlExecutionContextFactory.getInstance(engine);
-    }
-
-    public SqlCompiler getCompiler() {
-        return new SqlCompiler(engine);
-    }
-
-    public void close() {
-        engine.close();
+    public static SqlExecutionContext getInstance(final CairoEngine engine) {
+        return new SqlExecutionContextImpl(engine, 1).with(AllowAllSecurityContext.INSTANCE, null);
     }
 }

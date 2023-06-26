@@ -182,7 +182,7 @@
         <dependency>
             <groupId>org.questdb</groupId>
             <artifactId>questdb</artifactId>
-            <version>6.7-jdk8</version>
+            <version>7.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
