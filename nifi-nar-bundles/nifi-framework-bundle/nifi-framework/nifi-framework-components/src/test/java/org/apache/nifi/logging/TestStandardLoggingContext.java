@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +40,7 @@ class TestStandardLoggingContext {
     void testNullComponent_ShouldReturnOptionalEmpty() {
         LoggingContext context = new StandardLoggingContext(null);
 
-        assertTrue(context.getLogFileSuffix().isEmpty());
+        assertFalse(context.getLogFileSuffix().isPresent());
     }
 
     @Test
@@ -52,7 +52,7 @@ class TestStandardLoggingContext {
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE, Boolean.TRUE);
         when(processGroup.getParent()).thenReturn(processGroup);
 
-        assertTrue(context.getLogFileSuffix().isEmpty());
+        assertFalse(context.getLogFileSuffix().isPresent());
     }
 
     @Test
