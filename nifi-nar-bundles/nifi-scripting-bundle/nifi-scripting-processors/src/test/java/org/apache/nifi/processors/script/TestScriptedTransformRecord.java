@@ -61,11 +61,6 @@ public class TestScriptedTransformRecord {
         testPassThrough("python", "_ = record");
     }
 
-    @Test
-    public void testSimpleRubyScript() throws InitializationException {
-        testPassThrough("ruby", "record");
-    }
-
 
     private void testPassThrough(final String language, final String script) throws InitializationException {
         final RecordSchema schema = createSimpleNumberSchema();

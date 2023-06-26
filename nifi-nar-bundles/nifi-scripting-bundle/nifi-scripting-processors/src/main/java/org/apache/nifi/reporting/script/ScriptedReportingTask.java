@@ -56,7 +56,7 @@ import java.util.Map;
  * A Reporting task whose body is provided by a script (via supported JSR-223 script engines)
  */
 @SupportsSensitiveDynamicProperties
-@Tags({"reporting", "script", "execute", "groovy", "python", "jython", "jruby", "ruby", "lua", "luaj"})
+@Tags({"reporting", "script", "execute", "groovy", "python", "jython"})
 @CapabilityDescription("Provides reporting and status information to a script. ReportingContext, ComponentLog, and VirtualMachineMetrics objects are made available "
         + "as variables (context, log, and vmMetrics, respectively) to the script for further processing. The context makes various information available such "
         + "as events, provenance, bulletins, controller services, process groups, Java Virtual Machine metrics, etc.")
