@@ -21,11 +21,6 @@ import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
 import io.questdb.griffin.SqlCompiler;
 import io.questdb.griffin.SqlExecutionContext;
-import io.questdb.griffin.SqlExecutionContextImpl;
-import org.apache.nifi.util.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -33,6 +28,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.nifi.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The database manager is responsible for checking and maintaining the health of the database during startup.
@@ -149,7 +147,7 @@ public final class QuestDbDatabaseManager {
             final CairoEngine engine = new CairoEngine(configuration);
             final SqlCompiler compiler = new SqlCompiler(engine)
         ) {
-            final SqlExecutionContext context = new SqlExecutionContextImpl(engine, 1);
+            final SqlExecutionContext context = SqlExecutionContextFactory.getInstance(engine);
 
             // Node status tables
             compiler.compile(QuestDbQueries.CREATE_GARBAGE_COLLECTION_STATUS, context);
