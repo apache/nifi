@@ -126,10 +126,42 @@ class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
         "status" : 400,
         "error" : {
           "type" : "mapper_parsing_exception",
-          "reason" : "failed to parse field [field2] of type [integer] in document with id '4'",
+          "reason" : "failed to parse field [field2] of type [integer] in document with id '5'",
           "caused_by" : {
             "type" : "number_format_exception",
             "reason" : "For input string: 20abc"
+          }
+        }
+      }
+    },
+    {
+      "index" : {
+        "_index" : "test",
+        "_type" : "_doc",
+        "_id" : "6",
+        "status" : 400,
+        "error" : {
+          "type" : "mapper_parsing_exception",
+          "reason" : "failed to parse field [field3] of type [geopoint] in document with id '6'",
+          "caused_by" : {
+            "type" : "number_format_exception",
+            "reason" : "For input string: 213,456.9"
+          }
+        }
+      }
+    },
+    {
+      "index" : {
+        "_index" : "test",
+        "_type" : "_doc",
+        "_id" : "7",
+        "status" : 400,
+        "error" : {
+          "type" : "some_other_exception",
+          "reason" : "failed to index document with id '7' due to some other reason",
+          "caused_by" : {
+            "type" : "random_exception",
+            "reason" : "For input string: unit test"
           }
         }
       }

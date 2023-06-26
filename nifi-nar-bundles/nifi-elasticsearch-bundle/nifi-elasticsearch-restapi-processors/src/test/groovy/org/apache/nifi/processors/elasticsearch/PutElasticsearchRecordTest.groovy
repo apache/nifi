@@ -868,21 +868,24 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
                 [ name: "field2", type: "string"]
             ]
         ]))
+        registry.addSchema("errorTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)))
 
         def values = [
             [ id: "1", field1: 'value1', field2: '20' ],
             [ id: "2", field1: 'value1', field2: '20' ],
             [ id: "2", field1: 'value1', field2: '20' ],
-            [ id: "3", field1: 'value1', field2: 'not_found' ],
-            [ id: "4", field1: 'value1', field2: '20abcd' ]
+            [ id: "4", field1: 'value1', field2: 'not_found' ],
+            [ id: "5", field1: 'value1', field2: '20abcd' ],
+            [ id: "6", field1: 'value1', field2: '213,456.9' ],
+            [ id: "7", field1: 'value1', field2: 'unit test' ]
         ]
 
         clientService.response = IndexOperationResponse.fromJsonResponse(MockBulkLoadClientService.SAMPLE_ERROR_RESPONSE)
 
-        registry.addSchema("errorTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)))
-        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
+        // failed records output
         runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true")
         runner.assertValid()
+        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
         runner.run()
 
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
@@ -893,21 +896,57 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
-                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "3")
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "4")
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
-                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [3 error(s), 4 success(es)]"
                 }).count()
         )
 
 
+        // failed record output grouped by Elasticsearch _bulk error.type
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true")
+        runner.assertValid()
+        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
+        runner.run()
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 2)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2")
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[1]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[1]
+                .getAttribute("elasticsearch.bulk.error"), containsString("some_other_exception"))
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "4")
+
+        assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [3 error(s), 4 success(es)]"
+                }).count()
+        )
+
+
+        // not_found responses treated as failed records
         runner.clearTransferState()
         runner.clearProvenanceEvents()
 
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false")
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false")
         runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
         runner.assertValid()
         runner.run()
@@ -920,23 +959,63 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
-                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2")
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "4")
         runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
                 .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "3")
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
-                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [4 error(s), 3 success(es)]"
                 }).count()
         )
 
 
+        // not_found failed records grouped as an error.type
         runner.clearTransferState()
         runner.clearProvenanceEvents()
 
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false")
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "true")
+        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
+        runner.assertValid()
+        runner.run()
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 3)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2")
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[1]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[1]
+                .getAttribute("elasticsearch.bulk.error"), containsString("some_other_exception"))
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[2]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[2]
+                .getAttribute("elasticsearch.bulk.error"), containsString("not_found"))
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "3")
+
+        assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [4 error(s), 3 success(es)]"
+                }).count()
+        )
+
+
         // errors still counted/logged even if not outputting to the error relationship
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
         runner.removeProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER)
         runner.setProperty(PutElasticsearchRecord.OUTPUT_ERROR_RESPONSES, "true")
+        runner.setProperty(PutElasticsearchRecord.GROUP_BULK_ERRORS_BY_TYPE, "false")
         runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
         runner.assertValid()
         runner.run()
@@ -951,10 +1030,12 @@ class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<PutElastic
         final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES)[0].getContent()
         assertThat(errorResponses, containsString("not_found"))
         assertThat(errorResponses, containsString("For input string: 20abc"))
+        assertThat(errorResponses, containsString("For input string: 213,456.9"))
+        assertThat(errorResponses, containsString("For input string: unit test"))
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter({
-                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [4 error(s), 3 success(es)]"
                 }).count()
         )
     }
