@@ -61,9 +61,12 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * Decides if the given location is applicable by the repository instance. The format depends on the implementation.
      *
      * @param context Configuration context.
-     * @param location The location to check.
+     * @param location The location of versioned flow to check.
      *
-     * @return True in case of the given storage location is applicable, false otherwise.
+     * @return True in case of the given storage location is applicable, false otherwise. An applicable location does not
+     * mean that the flow specified by the location is stored in the registry. Depending on the implementation it might be
+     * merely a static check on the format of the location string. In case of uncertainty, NiFi tries to load the versioned
+     * flow from registries with true return value first.
      */
     boolean isStorageLocationApplicable(FlowRegistryClientConfigurationContext context, String location);
 
@@ -72,7 +75,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      *
      * @param context Configuration context.
      *
-     * @return Buckets for this user.
+     * @return Buckets for this user. In case there are no available buckets for the user the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
@@ -106,7 +109,6 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      */
     RegisteredFlow registerFlow(FlowRegistryClientConfigurationContext context, RegisteredFlow flow) throws FlowRegistryException, IOException;
 
-
     /**
      * Deletes the specified flow from the Flow Registry.
      *
@@ -120,7 +122,6 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
      */
     RegisteredFlow deregisterFlow(FlowRegistryClientConfigurationContext context, String bucketId, String flowId) throws FlowRegistryException, IOException;
-
 
     /**
      * Retrieves a flow by bucket id and Flow id.
@@ -143,7 +144,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @param context Configuration context.
      * @param bucketId The id of the bucket.
      *
-     * @return The set of all Flows from the specified bucket.
+     * @return The set of all Flows from the specified bucket. In case there are no available flows in the bucket the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
@@ -151,7 +152,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
     Set<RegisteredFlow> getFlows(FlowRegistryClientConfigurationContext context, String bucketId) throws FlowRegistryException, IOException;
 
     /**
-     * Retrieves the contents of the flow with the given Bucket id, Flow id, and version, from the Registry.
+     * Retrieves the contents of the flow snaphot with the given Bucket id, Flow id, and version, from the Registry.
      *
      * @param context Configuration context.
      * @param bucketId The id of the bucket.
@@ -179,7 +180,6 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      */
     RegisteredFlowSnapshot registerFlowSnapshot(FlowRegistryClientConfigurationContext context, RegisteredFlowSnapshot flowSnapshot) throws FlowRegistryException, IOException;
 
-
     /**
      * Retrieves the set of all versions of the specified flow.
      *
@@ -187,7 +187,7 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      * @param bucketId The id of the bucket.
      * @param flowId The id of the flow.
      *
-     * @return The set of all versions of the specified flow.
+     * @return The set of all versions of the specified flow. In case there are no available versions for the specified flow the result will be an empty set.
      *
      * @throws FlowRegistryException If an issue happens during processing the request.
      * @throws IOException If there is issue with the communication between NiFi and the Flow Registry.
@@ -199,7 +199,9 @@ public interface FlowRegistryClient extends ConfigurableComponent {
      *
      * @param context Configuration context.
      * @param bucketId The id of the bucket.
-     * @param flowId The id of the flow.
+     * @param flowId The id of the flow. The result must be a positive number and the first version expected to have the version id of 1.
+     *               If by some reason the specified flow has no versions, the result will be 0, signing the lack of versions. 0 is not
+     *               directly assigned to any actual version.
      *
      * @return The latest version of the Flow.
      *
