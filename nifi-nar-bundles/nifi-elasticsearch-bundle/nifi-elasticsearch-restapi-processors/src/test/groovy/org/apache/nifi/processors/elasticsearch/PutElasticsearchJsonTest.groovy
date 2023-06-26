@@ -316,8 +316,10 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
                 [ id: "1", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
-                [ id: "3", field1: 'value1', field2: 'not_found' ],
-                [ id: "4", field1: 'value1', field2: '20abcd' ]
+                [ id: "4", field1: 'value1', field2: 'not_found' ],
+                [ id: "5", field1: 'value1', field2: '20abcd' ],
+                [ id: "6", field1: 'value1', field2: '213,456.9' ],
+                [ id: "7", field1: 'value1', field2: 'unit test' ]
         ]
 
         for (final def val : values) {
@@ -329,15 +331,28 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 4)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
-        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
+        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 3)
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0)
 
-        def failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0];
+        def failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0]
         assertThat(failedDoc.getContent(), containsString("20abcd"))
         failedDoc.assertAttributeExists("elasticsearch.bulk.error")
         failedDoc.assertAttributeNotExists("elasticsearch.put.error")
         assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
-        assertEquals(1,
+
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1]
+        assertThat(failedDoc.getContent(), containsString("213,456.9"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
+
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[2]
+        assertThat(failedDoc.getContent(), containsString("unit test"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("some_other_exception"))
+
+        assertEquals(3,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
                 }).count()
@@ -359,26 +374,40 @@ class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutElasticse
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 3)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
-        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 2)
+        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 4)
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 1)
 
-        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0];
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0]
         assertThat(failedDoc.getContent(), containsString("not_found"))
         failedDoc.assertAttributeExists("elasticsearch.bulk.error")
         failedDoc.assertAttributeNotExists("elasticsearch.put.error")
         assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("not_found"))
 
-        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1];
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1]
         assertThat(failedDoc.getContent(), containsString("20abcd"))
         failedDoc.assertAttributeExists("elasticsearch.bulk.error")
         failedDoc.assertAttributeNotExists("elasticsearch.put.error")
         assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("number_format_exception"))
 
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[2]
+        assertThat(failedDoc.getContent(), containsString("213,456.9"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("mapper_parsing_exception"))
+
+        failedDoc = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[3]
+        assertThat(failedDoc.getContent(), containsString("unit test"))
+        failedDoc.assertAttributeExists("elasticsearch.bulk.error")
+        failedDoc.assertAttributeNotExists("elasticsearch.put.error")
+        assertThat(failedDoc.getAttribute("elasticsearch.bulk.error"), containsString("some_other_exception"))
+
         final String errorResponses = runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_ERROR_RESPONSES)[0].getContent()
         assertThat(errorResponses, containsString("not_found"))
         assertThat(errorResponses, containsString("For input string: 20abc"))
+        assertThat(errorResponses, containsString("For input string: 213,456.9"))
+        assertThat(errorResponses, containsString("For input string: unit test"))
 
-        assertEquals(2,
+        assertEquals(4,
                 runner.getProvenanceEvents().stream().filter({
                     e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
                 }).count()
