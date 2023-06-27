@@ -20,17 +20,17 @@ import org.apache.nifi.jetty.configuration.connector.alpn.ALPNServerConnectionFa
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.server.util.TrustStoreScanner;
+import org.apache.nifi.web.server.util.StoreScanner;
 import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.util.ssl.KeyStoreScanner;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collection;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -182,11 +182,8 @@ class FrameworkServerConnectorFactoryTest {
 
     private void assertAutoReloadEnabled(final ServerConnector serverConnector) {
         final Server server = serverConnector.getServer();
-        final KeyStoreScanner keyStoreScanner = server.getBean(KeyStoreScanner.class);
-        assertNotNull(keyStoreScanner);
-
-        final TrustStoreScanner trustStoreScanner = server.getBean(TrustStoreScanner.class);
-        assertNotNull(trustStoreScanner);
+        final Collection<StoreScanner> scanners = server.getBeans(StoreScanner.class);
+        assertEquals(2, scanners.size());
     }
 
     private NiFiProperties getProperties(final Properties serverProperties) {
