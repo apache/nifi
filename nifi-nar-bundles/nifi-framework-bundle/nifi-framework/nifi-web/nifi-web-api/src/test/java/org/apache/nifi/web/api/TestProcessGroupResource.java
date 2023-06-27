@@ -38,13 +38,10 @@ import org.mockito.stubbing.Answer;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
-import java.util.HashSet;
-import java.util.Set;
 import javax.ws.rs.core.UriInfo;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,16 +50,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestProcessGroupResource {
@@ -72,12 +64,6 @@ public class TestProcessGroupResource {
 
     @Mock
     private NiFiServiceFacade serviceFacade;
-
-    @Mock
-    private NiFiProperties properties;
-
-    @Mock
-    private HttpServletRequest httpServletRequest;
 
     @Test
     public void testExportProcessGroup(@Mock RegisteredFlowSnapshot versionedFlowSnapshot, @Mock VersionedProcessGroup versionedProcessGroup) {
@@ -135,9 +121,13 @@ public class TestProcessGroupResource {
         });
     }
     @Test
-    public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized() {
+    public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized(@Mock HttpServletRequest httpServletRequest, @Mock NiFiProperties properties) {
         when(httpServletRequest.getHeader(any())).thenReturn(null);
         when(properties.isNode()).thenReturn(Boolean.FALSE);
+
+        processGroupResource.properties = properties;
+        processGroupResource.serviceFacade = serviceFacade;
+        processGroupResource.httpServletRequest = httpServletRequest;
 
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
         final ProcessGroupDTO groupDTO = new ProcessGroupDTO();
