@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.riemann;
 
-import com.aphyr.riemann.Proto;
-import com.aphyr.riemann.Proto.Event;
-import com.aphyr.riemann.client.RiemannClient;
+import io.riemann.riemann.Proto;
+import io.riemann.riemann.Proto.Event;
+import io.riemann.riemann.client.RiemannClient;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
