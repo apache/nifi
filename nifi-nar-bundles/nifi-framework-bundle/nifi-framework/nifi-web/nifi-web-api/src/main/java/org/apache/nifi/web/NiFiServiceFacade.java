@@ -1210,10 +1210,10 @@ public interface NiFiServiceFacade {
      * Gets all process groups in the specified parent group.
      *
      * @param parentGroupId The id of the parent group
-     * @param includeChildren if process groups with its child groups should be included
+     * @param processGroupUpdateStrategy if process groups with its child groups should be included
      * @return List of process groups
      */
-    Set<ProcessGroupEntity> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy includeChildren);
+    Set<ProcessGroupEntity> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy processGroupUpdateStrategy);
 
     /**
      * Verifies the contents of the specified process group can be scheduled or unscheduled.

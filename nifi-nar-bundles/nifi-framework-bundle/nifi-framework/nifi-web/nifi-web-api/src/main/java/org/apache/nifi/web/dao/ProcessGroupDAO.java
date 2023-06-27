@@ -60,10 +60,10 @@ public interface ProcessGroupDAO {
      * Gets all of the process groups.
      *
      * @param parentGroupId The parent group id
-     * @param includeChildren if process groups with its child groups should be included
+     * @param processGroupUpdateStrategy if process groups with its child groups should be included
      * @return The process groups
      */
-    Set<ProcessGroup> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy includeChildren);
+    Set<ProcessGroup> getProcessGroups(String parentGroupId, ProcessGroupUpdateStrategy processGroupUpdateStrategy);
 
     /**
      * Verifies the specified process group can be modified.
