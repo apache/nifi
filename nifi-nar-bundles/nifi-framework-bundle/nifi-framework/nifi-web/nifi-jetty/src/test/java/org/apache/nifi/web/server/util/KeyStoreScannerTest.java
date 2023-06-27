@@ -33,32 +33,31 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
 
-public class TrustStoreScannerTest {
-
-    private TrustStoreScanner scanner;
+public class KeyStoreScannerTest {
+    private KeyStoreScanner scanner;
     private SslContextFactory sslContextFactory;
     private static TlsConfiguration tlsConfiguration;
-    private static File trustStoreFile;
+    private static File keyStoreFile;
 
     @BeforeAll
     public static void initClass() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
-        trustStoreFile = Paths.get(tlsConfiguration.getTruststorePath()).toFile();
+        keyStoreFile = Paths.get(tlsConfiguration.getKeystorePath()).toFile();
     }
 
     @BeforeEach
     public void init() throws IOException {
         sslContextFactory = Mockito.mock(SslContextFactory.class);
-        Resource trustStoreResource = Mockito.mock(Resource.class);
-        Mockito.when(trustStoreResource.getFile()).thenReturn(trustStoreFile);
-        Mockito.when(sslContextFactory.getTrustStoreResource()).thenReturn(trustStoreResource);
+        Resource keyStoreResource = Mockito.mock(Resource.class);
+        Mockito.when(keyStoreResource.getFile()).thenReturn(keyStoreFile);
+        Mockito.when(sslContextFactory.getKeyStoreResource()).thenReturn(keyStoreResource);
 
-        scanner = new TrustStoreScanner(sslContextFactory, tlsConfiguration);
+        scanner = new KeyStoreScanner(sslContextFactory, tlsConfiguration);
     }
 
     @Test
     public void testFileAdded() throws Exception {
-        scanner.fileAdded(trustStoreFile.getAbsolutePath());
+        scanner.fileAdded(keyStoreFile.getAbsolutePath());
 
         final ArgumentCaptor<Consumer> consumerArgumentCaptor = ArgumentCaptor.forClass(Consumer.class);
         Mockito.verify(sslContextFactory).reload(consumerArgumentCaptor.capture());
@@ -70,7 +69,7 @@ public class TrustStoreScannerTest {
 
     @Test
     public void testFileChanged() throws Exception {
-        scanner.fileChanged(trustStoreFile.getAbsolutePath());
+        scanner.fileChanged(keyStoreFile.getAbsolutePath());
 
         final ArgumentCaptor<Consumer> consumerArgumentCaptor = ArgumentCaptor.forClass(Consumer.class);
         Mockito.verify(sslContextFactory).reload(consumerArgumentCaptor.capture());
@@ -82,7 +81,7 @@ public class TrustStoreScannerTest {
 
     @Test
     public void testFileRemoved() throws Exception {
-        scanner.fileRemoved(trustStoreFile.getAbsolutePath());
+        scanner.fileRemoved(keyStoreFile.getAbsolutePath());
 
         final ArgumentCaptor<Consumer> consumerArgumentCaptor = ArgumentCaptor.forClass(Consumer.class);
         Mockito.verify(sslContextFactory).reload(consumerArgumentCaptor.capture());

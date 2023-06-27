@@ -1,0 +1,175 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.server.util;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.eclipse.jetty.util.Scanner;
+import org.eclipse.jetty.util.annotation.ManagedAttribute;
+import org.eclipse.jetty.util.annotation.ManagedOperation;
+import org.eclipse.jetty.util.component.ContainerLifeCycle;
+import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+
+import static org.apache.nifi.security.util.SslContextFactory.createSslContext;
+
+public abstract class AbstractStoreScanner extends ContainerLifeCycle implements Scanner.DiscreteListener {
+    private final SslContextFactory sslContextFactory;
+    private final TlsConfiguration tlsConfiguration;
+    private final File file;
+    private final Scanner _scanner;
+
+    protected AbstractStoreScanner(final SslContextFactory sslContextFactory,
+                                   final TlsConfiguration tlsConfiguration) {
+        this.sslContextFactory = sslContextFactory;
+        this.tlsConfiguration = tlsConfiguration;
+        try {
+            final Resource resource = getResource();
+            File monitoredFile = resource.getFile();
+            if (monitoredFile == null || !monitoredFile.exists()) {
+                throw new IllegalArgumentException(String.format("%s file does not exist", getFileType()));
+            }
+            if (monitoredFile.isDirectory()) {
+                throw new IllegalArgumentException(String.format("expected %s file not directory", getFileType()));
+            }
+
+            if (resource.getAlias() != null) {
+                // this resource has an alias, use the alias, as that's what's returned in the Scanner
+                monitoredFile = new File(resource.getAlias());
+            }
+
+            file = monitoredFile;
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Monitored {} file: {}", getFileType(), monitoredFile);
+            }
+        } catch (final IOException e) {
+            throw new IllegalArgumentException(String.format("could not obtain %s file", getFileType()), e);
+        }
+
+        File parentFile = file.getParentFile();
+        if (!parentFile.exists() || !parentFile.isDirectory()) {
+            throw new IllegalArgumentException(String.format("error obtaining %s dir", getFileType()));
+        }
+
+        _scanner = new Scanner();
+        _scanner.setScanDirs(Collections.singletonList(parentFile));
+        _scanner.setScanInterval(1);
+        _scanner.setReportDirs(false);
+        _scanner.setReportExistingFilesOnStartup(false);
+        _scanner.setScanDepth(1);
+        _scanner.addListener(this);
+        addBean(_scanner);
+    }
+
+    @Override
+    public void fileAdded(final String filename) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("added {}", filename);
+        }
+
+        if (this.file.toPath().toString().equals(filename)) {
+            this.reload();
+        }
+
+    }
+
+    @Override
+    public void fileChanged(final String filename) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("changed {}", filename);
+        }
+
+        if (this.file.toPath().toString().equals(filename)) {
+            this.reload();
+        }
+
+    }
+
+    @Override
+    public void fileRemoved(final String filename) {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("removed {}", filename);
+        }
+
+        if (this.file.toPath().toString().equals(filename)) {
+            this.reload();
+        }
+
+    }
+
+    @ManagedOperation(
+            value = "Scan for changes in the SSL Keystore/Truststore",
+            impact = "ACTION"
+    )
+    public void scan() {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("scanning");
+        }
+
+        this._scanner.scan();
+        this._scanner.scan();
+    }
+
+    @ManagedOperation(
+            value = "Reload the SSL Keystore/Truststore",
+            impact = "ACTION"
+    )
+    public void reload() {
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("reloading {} file {}", getFileType(), this.file);
+        }
+
+        try {
+            this.sslContextFactory.reload((scf) -> scf.setSslContext(createSSLContext(tlsConfiguration)));
+        } catch (final Throwable t) {
+            getLogger().warn("{} Reload Failed", StringUtils.capitalize(getFileType()), t);
+        }
+
+    }
+
+    @ManagedAttribute("scanning interval to detect changes which need reloaded")
+    public int getScanInterval() {
+        return this._scanner.getScanInterval();
+    }
+
+    public void setScanInterval(int scanInterval) {
+        this._scanner.setScanInterval(scanInterval);
+    }
+
+    protected SslContextFactory getSslContextFactory() {
+        return sslContextFactory;
+    }
+
+    protected abstract String getFileType();
+    protected abstract Resource getResource();
+    protected abstract Logger getLogger();
+
+    private SSLContext createSSLContext(final TlsConfiguration tlsConfiguration) {
+        try {
+            return createSslContext(tlsConfiguration);
+        } catch (final TlsException e) {
+            throw new IllegalArgumentException("Failed to create SSL context with the given TLS configuration", e);
+        }
+    }
+}

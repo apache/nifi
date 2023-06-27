@@ -23,18 +23,16 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
- * <p>The {@link TrustStoreScanner} is used to monitor the TrustStore file used by the {@link SslContextFactory}.
- * It will reload the {@link SslContextFactory} if it detects that the TrustStore file has been modified.</p>
- * <p>
- * Though it would have been more ideal to simply extend KeyStoreScanner and override the keystore resource
- * with the truststore resource, KeyStoreScanner's constructor was written in a way that doesn't make this possible.
+ * <p>The {@link KeyStoreScanner} is used to monitor the KeyStore file used by the {@link SslContextFactory}.
+ * It will recreate the {@code SSLContext} and reload the {@link SslContextFactory} if it detects that the KeyStore
+ * file has been modified.</p>
  */
-public class TrustStoreScanner extends AbstractStoreScanner {
-    private static final String FILE_TYPE = "truststore";
-    private static final Logger LOG = Log.getLogger(TrustStoreScanner.class);
+public class KeyStoreScanner extends AbstractStoreScanner {
+    private static final String FILE_TYPE = "keystore";
+    private static final Logger LOG = Log.getLogger(KeyStoreScanner.class);
 
-    public TrustStoreScanner(final SslContextFactory sslContextFactory,
-                             final TlsConfiguration tlsConfiguration) {
+    public KeyStoreScanner(final SslContextFactory sslContextFactory,
+                           final TlsConfiguration tlsConfiguration) {
         super(sslContextFactory, tlsConfiguration);
     }
 
@@ -45,7 +43,7 @@ public class TrustStoreScanner extends AbstractStoreScanner {
 
     @Override
     protected Resource getResource() {
-        return getSslContextFactory().getTrustStoreResource();
+        return getSslContextFactory().getKeyStoreResource();
     }
 
     @Override
