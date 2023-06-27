@@ -25,10 +25,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
@@ -44,7 +40,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,11 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.hadoop.ListHDFS.FILTER_DIRECTORIES_AND_FILES_VALUE;
@@ -843,78 +834,5 @@ public class TestListHDFS {
             return null;
         }
 
-    }
-
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
-        private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
-        private boolean failOnCalls = false;
-
-        private void verifyNotFail() throws IOException {
-            if ( failOnCalls ) {
-                throw new IOException("Could not call to remote service because Unit Test marked service unavailable");
-            }
-        }
-
-        @Override
-        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            final Object retValue = values.putIfAbsent(key, value);
-            return (retValue == null);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) throws IOException {
-            verifyNotFail();
-            return (V) values.putIfAbsent(key, value);
-        }
-
-        @Override
-        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            verifyNotFail();
-            return values.containsKey(key);
-        }
-
-        @Override
-        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            values.put(key, value);
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            verifyNotFail();
-            return (V) values.get(key);
-        }
-
-        @Override
-        public void close() throws IOException {
-        }
-
-        @Override
-        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-            verifyNotFail();
-            values.remove(key);
-            return true;
-        }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            verifyNotFail();
-            final List<Object> removedRecords = new ArrayList<>();
-            Pattern p = Pattern.compile(regex);
-            for (Object key : values.keySet()) {
-                // Key must be backed by something that array() returns a byte[] that can be converted into a String via the default charset
-                Matcher m = p.matcher(key.toString());
-                if (m.matches()) {
-                    removedRecords.add(values.get(key));
-                }
-            }
-            final long numRemoved = removedRecords.size();
-            removedRecords.forEach(values::remove);
-            return numRemoved;
-        }
     }
 }

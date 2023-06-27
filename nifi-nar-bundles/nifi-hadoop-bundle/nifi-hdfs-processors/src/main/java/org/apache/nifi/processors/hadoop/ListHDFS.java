@@ -44,7 +44,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.deprecation.log.DeprecationLogger;
 import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -145,14 +144,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         recordFields.add(new RecordField(IS_ERASURE_CODED, RecordFieldType.BOOLEAN.getDataType()));
         RECORD_SCHEMA = new SimpleRecordSchema(recordFields);
     }
-
-    @Deprecated
-    public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-        .name("Distributed Cache Service")
-        .description("This property is ignored.  State will be stored in the " + Scope.LOCAL + " or " + Scope.CLUSTER + " scope by the State Manager based on NiFi's configuration.")
-        .required(false)
-        .identifiesControllerService(DistributedMapCacheClient.class)
-        .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
         .name("Recurse Subdirectories")
@@ -264,7 +255,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.add(DISTRIBUTED_CACHE_SERVICE);
         props.add(DIRECTORY);
         props.add(RECURSE_SUBDIRS);
         props.add(RECORD_WRITER);
@@ -284,13 +274,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        if (context.getProperty(DISTRIBUTED_CACHE_SERVICE).isSet()) {
-            deprecationLogger.warn("{}[id={}] [{}] Property is not used",
-                    getClass().getSimpleName(),
-                    getIdentifier(),
-                    DISTRIBUTED_CACHE_SERVICE.getDisplayName()
-            );
-        }
 
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
