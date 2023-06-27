@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.riemann;
 
-import com.aphyr.riemann.Proto;
-import com.aphyr.riemann.client.IPromise;
-import com.aphyr.riemann.client.RiemannClient;
+import io.riemann.riemann.Proto;
+import io.riemann.riemann.client.IPromise;
+import io.riemann.riemann.client.RiemannClient;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
