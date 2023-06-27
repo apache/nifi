@@ -333,7 +333,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
 
     @ApiModelProperty(
             value = "Determines the process group update strategy",
-            allowableValues = "UPDATE_PROCESS_GROUP_ONLY, UPDATE_PROCESS_GROUP_WITH_DESCENDANTS"
+            allowableValues = "CURRENT_GROUP, CURRENT_GROUP_WITH_CHILDREN"
     )
     public String getProcessGroupUpdateStrategy() {
         return processGroupUpdateStrategy;

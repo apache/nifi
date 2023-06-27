@@ -17,6 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 public enum ProcessGroupUpdateStrategy {
-    UPDATE_PROCESS_GROUP_ONLY,
-    UPDATE_PROCESS_GROUP_WITH_DESCENDANTS
+    CURRENT_GROUP,
+    CURRENT_GROUP_WITH_CHILDREN
 }

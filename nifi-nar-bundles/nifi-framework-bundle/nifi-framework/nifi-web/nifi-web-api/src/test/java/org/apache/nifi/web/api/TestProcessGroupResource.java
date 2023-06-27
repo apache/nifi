@@ -148,7 +148,7 @@ public class TestProcessGroupResource {
         revisionDTO.setVersion(1L);
 
         processGroupEntity.setRevision(revisionDTO);
-        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_ONLY.name());
+        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupUpdateStrategy.CURRENT_GROUP.name());
         processGroupEntity.setComponent(groupDTO);
 
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));

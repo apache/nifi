@@ -300,6 +300,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
@@ -4542,8 +4543,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final boolean includeDescendants) {
-        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, includeDescendants);
+    public Set<ProcessGroupEntity> getProcessGroups(final String parentGroupId, final ProcessGroupUpdateStrategy includeChildren) {
+        final Set<ProcessGroup> groups = processGroupDAO.getProcessGroups(parentGroupId, includeChildren);
         return groups.stream()
             .map(group -> createProcessGroupEntity(group))
             .collect(Collectors.toSet());

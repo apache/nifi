@@ -540,7 +540,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         final String processGroupUpdateStrategy = requestProcessGroupEntity.getProcessGroupUpdateStrategy();
         final ProcessGroupUpdateStrategy updateStrategy;
         if (processGroupUpdateStrategy == null) {
-            updateStrategy = ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_ONLY;
+            updateStrategy = ProcessGroupUpdateStrategy.CURRENT_GROUP;
         } else {
             updateStrategy = ProcessGroupUpdateStrategy.valueOf(processGroupUpdateStrategy);
         }
@@ -559,8 +559,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
 
-        if (updateStrategy == ProcessGroupUpdateStrategy.UPDATE_PROCESS_GROUP_WITH_DESCENDANTS) {
-            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, Boolean.TRUE)) {
+        if (updateStrategy == ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN) {
+            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
                 final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
                 final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
                 if (processGroupDTO != null) {
@@ -2217,7 +2217,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the process groups
-        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, Boolean.FALSE);
+        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, ProcessGroupUpdateStrategy.CURRENT_GROUP);
 
         // always prune the contents
         for (final ProcessGroupEntity entity : entities) {

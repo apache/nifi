@@ -95,9 +95,9 @@
         // build the entity
         var updateStrategy;
         if ($('#parameter-contexts-recursive').hasClass('checkbox-unchecked')) {
-            updateStrategy = 'UPDATE_PROCESS_GROUP_ONLY';
+            updateStrategy = 'CURRENT_GROUP';
         } else {
-            updateStrategy = 'UPDATE_PROCESS_GROUP_WITH_DESCENDANTS';
+            updateStrategy = 'CURRENT_GROUP_WITH_CHILDREN';
         };
 
         var entity = {
