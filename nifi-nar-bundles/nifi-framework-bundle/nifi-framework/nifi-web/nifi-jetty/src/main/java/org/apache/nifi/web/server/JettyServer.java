@@ -77,6 +77,7 @@ import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
@@ -598,6 +599,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webappContext.setServerClasses(serverClasses.toArray(new String[0]));
         webappContext.setDefaultsDescriptor(WEB_DEFAULTS_XML);
         webappContext.getMimeTypes().addMimeMapping("ttf", "font/ttf");
+        webappContext.setErrorHandler(getErrorHandler());
 
         // get the temp directory for this webapp
         File tempDir = new File(props.getWebWorkingDirectory(), warFile.getName());
@@ -1095,6 +1097,13 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     }
 
+    private ErrorPageErrorHandler getErrorHandler() {
+        final ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
+        errorHandler.setShowServlet(false);
+        errorHandler.setShowStacks(false);
+        errorHandler.setShowMessageInTitle(false);
+        return errorHandler;
+    }
 
     /**
      * Holds the result of loading WARs for custom UIs.
