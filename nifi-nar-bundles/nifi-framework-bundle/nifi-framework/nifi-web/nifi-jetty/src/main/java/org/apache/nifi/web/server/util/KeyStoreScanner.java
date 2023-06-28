@@ -17,9 +17,6 @@
 package org.apache.nifi.web.server.util;
 
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
@@ -27,27 +24,11 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
  * It will recreate the {@code SSLContext} and reload the {@link SslContextFactory} if it detects that the KeyStore
  * file has been modified.</p>
  */
-public class KeyStoreScanner extends AbstractStoreScanner {
+public class KeyStoreScanner extends StoreScanner {
     private static final String FILE_TYPE = "keystore";
-    private static final Logger LOG = Log.getLogger(KeyStoreScanner.class);
 
     public KeyStoreScanner(final SslContextFactory sslContextFactory,
                            final TlsConfiguration tlsConfiguration) {
-        super(sslContextFactory, tlsConfiguration);
-    }
-
-    @Override
-    protected String getFileType() {
-        return FILE_TYPE;
-    }
-
-    @Override
-    protected Resource getResource() {
-        return getSslContextFactory().getKeyStoreResource();
-    }
-
-    @Override
-    protected Logger getLogger() {
-        return LOG;
+        super(sslContextFactory, tlsConfiguration, sslContextFactory.getKeyStoreResource(), FILE_TYPE);
     }
 }

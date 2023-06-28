@@ -17,9 +17,6 @@
 package org.apache.nifi.web.server.util;
 
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.eclipse.jetty.util.log.Log;
-import org.eclipse.jetty.util.log.Logger;
-import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
@@ -29,27 +26,11 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
  * Though it would have been more ideal to simply extend KeyStoreScanner and override the keystore resource
  * with the truststore resource, KeyStoreScanner's constructor was written in a way that doesn't make this possible.
  */
-public class TrustStoreScanner extends AbstractStoreScanner {
+public class TrustStoreScanner extends StoreScanner {
     private static final String FILE_TYPE = "truststore";
-    private static final Logger LOG = Log.getLogger(TrustStoreScanner.class);
 
     public TrustStoreScanner(final SslContextFactory sslContextFactory,
                              final TlsConfiguration tlsConfiguration) {
-        super(sslContextFactory, tlsConfiguration);
-    }
-
-    @Override
-    protected String getFileType() {
-        return FILE_TYPE;
-    }
-
-    @Override
-    protected Resource getResource() {
-        return getSslContextFactory().getTrustStoreResource();
-    }
-
-    @Override
-    protected Logger getLogger() {
-        return LOG;
+        super(sslContextFactory, tlsConfiguration, sslContextFactory.getTrustStoreResource(), FILE_TYPE);
     }
 }
