@@ -326,23 +326,23 @@ run() {
     fi
 
     if [ "$1" = "run" ]; then
-      # Use exec to handover PID to RunMiNiFi java process, instead of foking it as a child process
+      # Use exec to handover PID to RunMiNiFi java process, instead of forking it as a child process
       RUN_MINIFI_CMD="exec ${RUN_MINIFI_CMD}"
     fi
 
     # run 'start' in the background because the process will continue to run, monitoring MiNiFi.
     # all other commands will terminate quickly so want to just wait for them
-    if [ "$1" = "start" ]; then
+    if [ "$1" = "start" ] || [ "$1" = "restart" ]; then
         (eval "cd ${MINIFI_HOME} && ${RUN_MINIFI_CMD}" &)
     else
         eval "cd ${MINIFI_HOME} && ${RUN_MINIFI_CMD}"
     fi
     EXIT_STATUS=$?
 
-    # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
+    # Wait just a bit (5 secs) to wait for the logging to finish and then echo a new-line.
     # We do this to avoid having logs spewed on the console after running the command and then not giving
     # control back to the user
-    sleep 3
+    sleep 5
     echo
 }
 
