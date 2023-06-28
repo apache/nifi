@@ -131,7 +131,7 @@
         <groovy.eclipse.compiler.version>3.9.0</groovy.eclipse.compiler.version>
         <groovy.eclipse.batch.version>3.0.9-03</groovy.eclipse.batch.version>
         <surefire.version>3.0.0</surefire.version>
-        <hadoop.version>3.3.5</hadoop.version>
+        <hadoop.version>3.3.6</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.19</aspectj.version>
