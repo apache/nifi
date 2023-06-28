@@ -45,7 +45,7 @@ public class StopRunner implements CommandRunner {
     private final ProcessUtils processUtils;
 
     public StopRunner(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters, MiNiFiCommandSender miNiFiCommandSender,
-        CurrentPortProvider currentPortProvider, GracefulShutdownParameterProvider gracefulShutdownParameterProvider, ProcessUtils processUtils) {
+                      CurrentPortProvider currentPortProvider, GracefulShutdownParameterProvider gracefulShutdownParameterProvider, ProcessUtils processUtils) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiCommandSender = miNiFiCommandSender;
@@ -56,6 +56,7 @@ public class StopRunner implements CommandRunner {
 
     /**
      * Shutdown the MiNiFi and the managing bootstrap process as well.
+     *
      * @param args the input arguments
      * @return status code
      */
@@ -94,6 +95,7 @@ public class StopRunner implements CommandRunner {
                 status = ERROR.getStatusCode();
             }
         } catch (IOException e) {
+            CMD_LOGGER.warn("An error has occurred while stopping MiNiFi. Force killing process with pid=" + minifiPid, e);
             killProcessTree(minifiPid);
         } finally {
             if (lockFile.exists() && !lockFile.delete()) {
@@ -112,6 +114,19 @@ public class StopRunner implements CommandRunner {
         if (minifiPid != UNINITIALIZED) {
             processUtils.shutdownProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds. Killing process.",
                 gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
+            int maxRetry = 5;
+            while (processUtils.isProcessRunning(minifiPid)) {
+                if (maxRetry == 0) {
+                    throw new IOException("Failed to stop MiNiFi process. MiNiFi process is still running after graceful shutdown has completed");
+                }
+                CMD_LOGGER.debug("MiNiFi process is still running after shutdown has completed");
+                maxRetry--;
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    CMD_LOGGER.debug("Waiting for process shutdown is interrupted");
+                }
+            }
 
             if (statusFile.exists() && !statusFile.delete()) {
                 CMD_LOGGER.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
