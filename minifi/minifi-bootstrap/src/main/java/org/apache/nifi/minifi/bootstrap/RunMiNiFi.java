@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.nifi.minifi.bootstrap;
 
 import static java.util.Collections.singleton;
@@ -76,6 +77,8 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     private static final String STATUS_FILE_PORT_KEY = "port";
     private static final String STATUS_FILE_SECRET_KEY = "secret.key";
     private static final String ACKNOWLEDGE_OPERATION = "ACKNOWLEDGE_OPERATION";
+    private static final String PROCESS_KILL_SUCCESS_CHECK_RETRIES_KEY = "process.kill.success.check.retries";
+    private static final String PROCESS_KILL_SUCCESS_CHECK_RETRIES_DEFAULT = "30";
 
     private final BootstrapFileProvider bootstrapFileProvider;
     private final ConfigurationChangeCoordinator configurationChangeCoordinator;
@@ -98,18 +101,20 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         bootstrapFileProvider = new BootstrapFileProvider(bootstrapConfigFile);
         objectMapper = getObjectMapper();
         Properties properties = bootstrapFileProvider.getStatusProperties();
+        Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
 
         miNiFiParameters = new MiNiFiParameters(
             Optional.ofNullable(properties.getProperty(STATUS_FILE_PORT_KEY)).map(Integer::parseInt).orElse(UNINITIALIZED),
             Optional.ofNullable(properties.getProperty(STATUS_FILE_PID_KEY)).map(Integer::parseInt).orElse(UNINITIALIZED),
             properties.getProperty(STATUS_FILE_SECRET_KEY)
         );
-        ProcessUtils processUtils = new UnixProcessUtils();
+        ProcessUtils processUtils = new UnixProcessUtils(Integer.parseInt(
+            bootstrapProperties.getProperty(PROCESS_KILL_SUCCESS_CHECK_RETRIES_KEY, PROCESS_KILL_SUCCESS_CHECK_RETRIES_DEFAULT)));
 
         miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters, objectMapper);
         MiNiFiStatusProvider miNiFiStatusProvider = new MiNiFiStatusProvider(miNiFiCommandSender, processUtils);
         periodicStatusReporterManager =
-            new PeriodicStatusReporterManager(bootstrapFileProvider.getBootstrapProperties(), miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
+            new PeriodicStatusReporterManager(bootstrapProperties, miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
         MiNiFiConfigurationChangeListener configurationChangeListener = new MiNiFiConfigurationChangeListener(this, DEFAULT_LOGGER, bootstrapFileProvider);
         configurationChangeCoordinator = new ConfigurationChangeCoordinator(bootstrapFileProvider, this, singleton(configurationChangeListener));
 

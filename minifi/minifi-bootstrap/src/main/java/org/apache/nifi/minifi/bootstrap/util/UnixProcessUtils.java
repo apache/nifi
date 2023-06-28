@@ -37,6 +37,12 @@ import org.slf4j.LoggerFactory;
 public class UnixProcessUtils implements ProcessUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(UnixProcessUtils.class);
 
+    private final int processKillCheckRetries;
+
+    public UnixProcessUtils(int processKillCheckRetries) {
+        this.processKillCheckRetries = processKillCheckRetries;
+    }
+
     @Override
     public boolean isProcessRunning(Long pid) {
         if (pid == null) {
@@ -55,8 +61,8 @@ public class UnixProcessUtils implements ProcessUtils {
             boolean running = false;
             String line;
             try (InputStream in = proc.getInputStream();
-                Reader streamReader = new InputStreamReader(in);
-                BufferedReader reader = new BufferedReader(streamReader)) {
+                 Reader streamReader = new InputStreamReader(in);
+                 BufferedReader reader = new BufferedReader(streamReader)) {
 
                 while ((line = reader.readLine()) != null) {
                     if (line.trim().startsWith(pidString)) {
@@ -113,14 +119,28 @@ public class UnixProcessUtils implements ProcessUtils {
             killProcessTree(childPid);
         }
 
-        Runtime.getRuntime().exec(new String[]{"kill", "-9", String.valueOf(pid)});
+        Runtime.getRuntime().exec(new String[] {"kill", "-9", String.valueOf(pid)});
+
+        int retries = processKillCheckRetries;
+        while (isProcessRunning(pid)) {
+            if (retries == 0) {
+                throw new IOException("Failed to stop process. Process is still running after killing attempt with pid=" + pid);
+            }
+            LOGGER.warn("Process is still running after killing attempt with pid=" + pid);
+            retries--;
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                DEFAULT_LOGGER.warn("Thread interrupted while waiting for killing process with pid=" + pid);
+            }
+        }
     }
 
     private List<Long> getChildProcesses(Long ppid) throws IOException {
-        Process proc = Runtime.getRuntime().exec(new String[]{"ps", "-o", "pid", "--no-headers", "--ppid", String.valueOf(ppid)});
+        Process proc = Runtime.getRuntime().exec(new String[] {"ps", "-o", "pid", "--no-headers", "--ppid", String.valueOf(ppid)});
         List<Long> childPids = new ArrayList<>();
         try (InputStream in = proc.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 
             String line;
             while ((line = reader.readLine()) != null) {
