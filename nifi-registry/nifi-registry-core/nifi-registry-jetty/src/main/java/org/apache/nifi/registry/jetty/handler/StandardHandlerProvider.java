@@ -22,6 +22,7 @@ import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppClassLoader;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -152,6 +153,7 @@ public class StandardHandlerProvider implements HandlerProvider {
         webAppContext.setDefaultsDescriptor(DEFAULTS_DESCRIPTOR);
         webAppContext.setMaxFormContentSize(MAX_FORM_CONTENT_SIZE);
         webAppContext.setAttribute(WEB_INF_JAR_PATTERN_ATTRIBUTE, WEB_INF_JAR_PATTERN);
+        webAppContext.setErrorHandler(getErrorHandler());
 
         final File tempDirectory = getTempDirectory(workDirectory, applicationFile.getName());
         webAppContext.setTempDirectory(tempDirectory);
@@ -172,6 +174,14 @@ public class StandardHandlerProvider implements HandlerProvider {
             throw new IllegalStateException(String.format("Required Application matching [%s] not found in directory [%s]", filenamePattern, directory));
         }
         return applicationFiles[0];
+    }
+
+    private ErrorPageErrorHandler getErrorHandler() {
+        final ErrorPageErrorHandler errorHandler = new ErrorPageErrorHandler();
+        errorHandler.setShowServlet(false);
+        errorHandler.setShowStacks(false);
+        errorHandler.setShowMessageInTitle(false);
+        return errorHandler;
     }
 
     private File getTempDirectory(final File webWorkingDirectory, final String filename) {
