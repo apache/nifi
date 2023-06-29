@@ -43,13 +43,13 @@ class ParameterContextNameCollisionResolverTest {
 
     @ParameterizedTest(name = "\"{0}\" into \"{1}\"")
     @MethodSource("testDataSet")
-    public void testResolveNameCollusion(
+    public void testResolveNameCollision(
             final String oldName,
             final String expectedResult,
             final Supplier<Collection<ParameterContextEntity>> parameterContextSource
     ) {
-        final ParameterContextNameCollusionResolver testSubject = new ParameterContextNameCollusionResolver(parameterContextSource);
-        final String result = testSubject.resolveNameCollusion(oldName);
+        final ParameterContextNameCollisionResolver testSubject = new ParameterContextNameCollisionResolver(parameterContextSource);
+        final String result = testSubject.resolveNameCollision(oldName);
         Assertions.assertEquals(expectedResult, result);
     }
 

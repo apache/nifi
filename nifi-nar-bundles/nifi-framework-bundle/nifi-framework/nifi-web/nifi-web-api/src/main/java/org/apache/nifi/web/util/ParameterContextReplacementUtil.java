@@ -43,14 +43,14 @@ import java.util.Optional;
 public class ParameterContextReplacementUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(ParameterContextReplacementUtil.class);
 
-    private final ParameterContextNameCollusionResolver nameCollusionResolver;
+    private final ParameterContextNameCollisionResolver nameCollisionResolver;
 
-    ParameterContextReplacementUtil(final ParameterContextNameCollusionResolver nameCollusionResolver) {
-        this.nameCollusionResolver = nameCollusionResolver;
+    ParameterContextReplacementUtil(final ParameterContextNameCollisionResolver nameCollisionResolver) {
+        this.nameCollisionResolver = nameCollisionResolver;
     }
 
     /**
-     * Goes through the Process Group structure and replaces Parameter Contexts to avoid collusion with the ones
+     * Goes through the Process Group structure and replaces Parameter Contexts to avoid collision with the ones
      * existing in the flow, based on name. The method disregards if the given Parameter Context has no matching
      * counterpart in the existing flow, it replaces all with newly created contexts.
      *
@@ -111,7 +111,7 @@ public class ParameterContextReplacementUtil {
 
     private VersionedParameterContext createReplacementContext(final VersionedParameterContext existing)  {
         final VersionedParameterContext replacement = new VersionedParameterContext();
-        replacement.setName(nameCollusionResolver.resolveNameCollusion(existing.getName()));
+        replacement.setName(nameCollisionResolver.resolveNameCollision(existing.getName()));
         replacement.setParameters(new HashSet<>(existing.getParameters()));
         replacement.setInheritedParameterContexts(Optional.ofNullable(existing.getInheritedParameterContexts()).orElse(new ArrayList<>()));
         replacement.setDescription(existing.getDescription());
@@ -122,6 +122,6 @@ public class ParameterContextReplacementUtil {
     }
 
     public static ParameterContextReplacementUtil getInstance(final NiFiServiceFacade serviceFacade) {
-        return new ParameterContextReplacementUtil(new ParameterContextNameCollusionResolver(() -> serviceFacade.getParameterContexts()));
+        return new ParameterContextReplacementUtil(new ParameterContextNameCollisionResolver(() -> serviceFacade.getParameterContexts()));
     }
 }
