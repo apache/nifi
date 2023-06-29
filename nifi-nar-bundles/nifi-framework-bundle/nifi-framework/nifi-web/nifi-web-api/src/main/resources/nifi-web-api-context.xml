@@ -381,6 +381,10 @@
         <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
 
+    <bean id="parameterContextReplacementUtil" class="org.apache.nifi.web.util.ParameterContextReplacementUtil" factory-method="getInstance">
+        <constructor-arg ref="serviceFacade" />
+    </bean>
+
     <!-- rest endpoints -->
     <bean id="flowResource" class="org.apache.nifi.web.api.FlowResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -501,6 +505,7 @@
         <property name="clusterComponentLifecycle" ref="clusterComponentLifecycle" />
         <property name="localComponentLifecycle" ref="localComponentLifecycle" />
         <property name="dtoFactory" ref="dtoFactory" />
+        <property name="parameterContextReplacementUtil" ref="parameterContextReplacementUtil" />
     </bean>
     <bean id="versionsResource" class="org.apache.nifi.web.api.VersionsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade" />
