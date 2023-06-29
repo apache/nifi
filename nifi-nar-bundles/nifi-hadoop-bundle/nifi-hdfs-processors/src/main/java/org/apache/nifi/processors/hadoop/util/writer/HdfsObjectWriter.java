@@ -66,6 +66,7 @@ public abstract class HdfsObjectWriter {
 
     boolean determineListable(final FileStatus status, final long minimumAge, final long maximumAge, final PathFilter filter,
                                       final long latestModificationTime, final List<String> latestModifiedStatuses) {
+
         final boolean isCopyInProgress = status.getPath().getName().endsWith("_COPYING_");
         final boolean isFilterAccepted = filter.accept(status.getPath());
         if (isCopyInProgress || !isFilterAccepted) {

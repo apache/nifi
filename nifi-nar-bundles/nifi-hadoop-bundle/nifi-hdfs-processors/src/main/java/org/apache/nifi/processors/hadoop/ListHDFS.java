@@ -38,11 +38,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.deprecation.log.DeprecationLogger;
-import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -59,9 +54,10 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,19 +156,16 @@ public class ListHDFS extends AbstractHadoopProcessor {
             .name("success")
             .description("All FlowFiles are transferred to this relationship")
             .build();
-
-    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(ListHDFS.class);
-
     public static final String LEGACY_EMITTED_TIMESTAMP_KEY = "emitted.timestamp";
     public static final String LEGACY_LISTING_TIMESTAMP_KEY = "listing.timestamp";
     public static final String LATEST_TIMESTAMP_KEY = "latest.timestamp";
     public static final String LATEST_FILES_KEY = "latest.file.%d";
 
-    private volatile boolean resetState = false;
-
+    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     private Pattern fileFilterRegexPattern;
-    private long latestTimestamp;
-    private List<String> latestFiles;
+    private volatile boolean resetState = false;
+    private volatile long latestTimestamp;
+    private volatile List<String> latestFiles;
 
     @Override
     protected void preProcessConfiguration(Configuration config, ProcessContext context) {
@@ -184,21 +177,13 @@ public class ListHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.add(DIRECTORY);
-        props.add(RECURSE_SUBDIRS);
-        props.add(RECORD_WRITER);
-        props.add(FILE_FILTER);
-        props.add(FILE_FILTER_MODE);
-        props.add(MIN_AGE);
-        props.add(MAX_AGE);
+        props.addAll(Arrays.asList(DIRECTORY, RECURSE_SUBDIRS, RECORD_WRITER, FILE_FILTER, FILE_FILTER_MODE, MIN_AGE, MAX_AGE));
         return props;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -222,7 +207,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         if (isConfigurationRestored() && (descriptor.equals(DIRECTORY) || descriptor.equals(FILE_FILTER))) {
-            this.resetState = true;
+            resetState = true;
         }
     }
 
@@ -231,7 +216,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         if (resetState) {
             getLogger().debug("Property has been modified. Resetting the state values.");
             context.getStateManager().clear(Scope.CLUSTER);
-            this.resetState = false;
+            resetState = false;
         }
     }
 
@@ -251,6 +236,8 @@ public class ListHDFS extends AbstractHadoopProcessor {
                 final long legacyLatestListingTimestamp = Long.parseLong(legacyLatestListingTimestampString);
                 final long legacyLatestEmittedTimestamp = Long.parseLong(legacyLatestEmittedTimestampString);
                 latestTimestamp = legacyLatestListingTimestamp == legacyLatestEmittedTimestamp ? legacyLatestListingTimestamp + 1 : legacyLatestListingTimestamp;
+                getLogger().debug("Transitioned from legacy state to new state. 'legacyLatestListingTimestamp': {}, 'legacyLatestEmittedTimeStamp': {}'," +
+                        "'latestTimestamp': {}", legacyLatestListingTimestamp, legacyLatestEmittedTimestamp, latestTimestamp);
             } else if (latestTimestampString != null) {
                 latestTimestamp = Long.parseLong(latestTimestampString);
                 this.latestFiles = stateMap.toMap().entrySet().stream()
@@ -265,55 +252,56 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
 
         // Pull in any file that is newer than the timestamp that we have.
-        final FileSystem hdfs = getFileSystem();
-        final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
-        final PathFilter pathFilter = createPathFilter(context);
-        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        try (final FileSystem hdfs = getFileSystem()) {
+            final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
+            final PathFilter pathFilter = createPathFilter(context);
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final FileStatusManager fileStatusManager = new FileStatusManager();
-        final Path rootPath = getNormalizedPath(context, DIRECTORY);
-        final FileStatusIterable fileStatuses = new FileStatusIterable(rootPath, recursive, hdfs, getUserGroupInformation());
+            final FileStatusManager fileStatusManager = new FileStatusManager();
+            final Path rootPath = getNormalizedPath(context, DIRECTORY);
+            final FileStatusIterable fileStatuses = new FileStatusIterable(rootPath, recursive, hdfs, getUserGroupInformation());
 
-        final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
-        final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
+            final Long minAgeProp = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+            final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
+            final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+            final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
-        final HdfsObjectWriter writer = getHdfsObjectWriter(session, writerFactory, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager);
+            final HdfsObjectWriter writer = getHdfsObjectWriter(session, writerFactory, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager);
 
-        writer.write();
+            writer.write();
 
-        getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatuses.getTotalFileCount(), writer.getListedFileCount());
+            getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatuses.getTotalFileCount(), writer.getListedFileCount());
 
 
-        if (writer.getListedFileCount() > 0) {
-            final Map<String, String> updatedState = new HashMap<>();
-            updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLatestTimestamp()));
-            final List<String> files = fileStatusManager.getLatestFiles();
-            for (int i = 0; i < files.size(); i++) {
-                final String currentFilePath = files.get(i);
-                updatedState.put(String.format(LATEST_FILES_KEY, i), currentFilePath);
+            if (writer.getListedFileCount() > 0) {
+                final Map<String, String> updatedState = new HashMap<>();
+                updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLatestTimestamp()));
+                final List<String> files = fileStatusManager.getLatestFiles();
+                for (int i = 0; i < files.size(); i++) {
+                    final String currentFilePath = files.get(i);
+                    updatedState.put(String.format(LATEST_FILES_KEY, i), currentFilePath);
+                }
+                getLogger().debug("New state map: {}", updatedState);
+                updateState(session, updatedState);
+
+                getLogger().info("Successfully created listing with {} new files from HDFS", writer.getListedFileCount());
+            } else {
+                getLogger().debug("There is no data to list. Yielding.");
+                context.yield();
             }
-            getLogger().debug("New state map: {}", updatedState);
-            updateState(session, updatedState);
-
-            getLogger().info("Successfully created listing with {} new files from HDFS", writer.getListedFileCount());
-        } else {
-            getLogger().debug("There is no data to list. Yielding.");
-            context.yield();
+        } catch (IOException e) {
+            throw new ProcessException("IO error occurred when closing HDFS file system", e);
         }
     }
 
-    private HdfsObjectWriter getHdfsObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory,
-                                                 FileStatusIterable fileStatuses, long minimumAge, long maximumAge,
-                                                 PathFilter pathFilter, FileStatusManager fileStatusManager) {
+    private HdfsObjectWriter getHdfsObjectWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, FileStatusIterable fileStatuses,
+                                                 long minimumAge, long maximumAge, PathFilter pathFilter, FileStatusManager fileStatusManager) {
         final HdfsObjectWriter writer;
         if (writerFactory == null) {
-            writer = new FlowFileObjectWriter(session, fileStatuses, minimumAge, maximumAge,
-                    pathFilter, fileStatusManager, latestTimestamp, latestFiles);
+            writer = new FlowFileObjectWriter(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestTimestamp, latestFiles);
         } else {
-            writer = new RecordObjectWriter(session, fileStatuses, minimumAge, maximumAge,
-                    pathFilter, fileStatusManager, latestTimestamp, latestFiles, writerFactory, getLogger());
+            writer = new RecordObjectWriter(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestTimestamp,
+                    latestFiles, writerFactory, getLogger());
         }
         return writer;
     }

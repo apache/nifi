@@ -143,6 +143,5 @@ public class RecordObjectWriter extends HdfsObjectWriter {
 
         return new MapRecord(RECORD_SCHEMA, values);
     }
-
 }
 

@@ -30,7 +30,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +45,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.hadoop.ListHDFS.LATEST_TIMESTAMP_KEY;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
@@ -62,11 +60,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class TestListHDFS {
 
@@ -76,8 +72,6 @@ class TestListHDFS {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        final NiFiProperties mockNiFiProperties = mock(NiFiProperties.class);
-        when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
         final KerberosProperties kerberosProperties = new KerberosProperties(null);
 
         proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
@@ -725,8 +719,15 @@ class TestListHDFS {
         }
 
         @Override
-        public FileStatus getFileStatus(final Path f) {
-            return null;
+        public FileStatus getFileStatus(final Path path) {
+            Optional<FileStatus> fileStatus = fileStatuses.values().stream()
+                    .flatMap(Set::stream)
+                    .filter(fs -> fs.getPath().equals(path))
+                    .findFirst();
+            if (fileStatus.isEmpty()) {
+                throw new IllegalArgumentException("Could not find FileStatus");
+            }
+            return fileStatus.get();
         }
     }
 }

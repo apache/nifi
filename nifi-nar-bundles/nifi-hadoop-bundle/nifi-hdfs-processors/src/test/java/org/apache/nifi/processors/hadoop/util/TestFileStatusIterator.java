@@ -19,14 +19,20 @@ package org.apache.nifi.processors.hadoop.util;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -40,10 +46,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class FileStatusIterableTest {
+class TestFileStatusIterator {
 
+    public static final Path MOCK_FILE_STATUS_1_PATH = new Path("/test/mock/file/status/1");
+    public static final Path MOCK_FILE_STATUS_2_PATH = new Path("/test/mock/file/status/2");
+    public static final Path MOCK_FILE_STATUS_3_PATH = new Path("/test/mock/file/status/3");
     @Mock
-    private FileSystem mockFileSystem;
+    private FileSystem mockHdfs;
 
     @Mock
     private UserGroupInformation mockUserGroupInformation;
@@ -57,12 +66,16 @@ class FileStatusIterableTest {
     @Mock
     private FileStatus mockFileStatus3;
 
+    private FileStatusIterable fileStatusIterable;
+
+    @BeforeEach
+    void setup() throws Exception {
+        fileStatusIterable = new FileStatusIterable(new Path("/path/to/files"), false, mockHdfs, mockUserGroupInformation);
+    }
+
     @Test
     void pathWithNoFilesShouldReturnEmptyIterator() throws Exception {
-        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenReturn(new FileStatus[0]);
-
-        final FileStatusIterable fileStatusIterable = new FileStatusIterable(
-                new Path("/path/to/files"), false, mockFileSystem, mockUserGroupInformation);
+        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenReturn(new MockRemoteIterator());
 
         final Iterator<FileStatus> iterator = fileStatusIterable.iterator();
 
@@ -73,14 +86,12 @@ class FileStatusIterableTest {
     @Test
     void pathWithMultipleFilesShouldReturnIteratorWithCorrectFiles() throws Exception {
         final FileStatus[] fileStatuses = {mockFileStatus1, mockFileStatus2, mockFileStatus3};
-        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenReturn(fileStatuses);
+        setupFileStatusMocks(fileStatuses);
 
-        final FileStatusIterable fileStatusIterable = new FileStatusIterable(
-                new Path("/path/to/files"), false, mockFileSystem, mockUserGroupInformation);
 
+        final Iterator<FileStatus> iterator = fileStatusIterable.iterator();
         final Set<FileStatus> expectedFileStatuses = new HashSet<>(Arrays.asList(fileStatuses));
         final Set<FileStatus> actualFileStatuses = new HashSet<>();
-        final Iterator<FileStatus> iterator = fileStatusIterable.iterator();
 
         assertTrue(iterator.hasNext());
         actualFileStatuses.add(iterator.next());
@@ -98,17 +109,55 @@ class FileStatusIterableTest {
     @Test
     void getTotalFileCountWithMultipleFilesShouldReturnCorrectCount() throws Exception {
         final FileStatus[] fileStatuses = {mockFileStatus1, mockFileStatus2, mockFileStatus3};
-        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenReturn(fileStatuses);
-
-        final FileStatusIterable fileStatusIterable = new FileStatusIterable(
-                new Path("/path/to/files"), false, mockFileSystem, mockUserGroupInformation);
+        setupFileStatusMocks(fileStatuses);
 
         assertEquals(0, fileStatusIterable.getTotalFileCount());
 
         for (FileStatus ignored : fileStatusIterable) {
+            // count files
         }
 
         assertEquals(3, fileStatusIterable.getTotalFileCount());
+    }
+
+    private void setupFileStatusMocks(FileStatus[] fileStatuses) throws IOException, InterruptedException {
+        when(mockFileStatus1.getPath()).thenReturn(MOCK_FILE_STATUS_1_PATH);
+        when(mockFileStatus2.getPath()).thenReturn(MOCK_FILE_STATUS_2_PATH);
+        when(mockFileStatus3.getPath()).thenReturn(MOCK_FILE_STATUS_3_PATH);
+
+        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_1_PATH)).thenReturn(mockFileStatus1);
+        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_2_PATH)).thenReturn(mockFileStatus2);
+        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_3_PATH)).thenReturn(mockFileStatus3);
+
+        when(mockHdfs.listStatusIterator(any(Path.class))).thenReturn(new MockRemoteIterator(fileStatuses));
+
+        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {
+            // Get the provided lambda expression
+            PrivilegedExceptionAction action = invocation.getArgument(0);
+
+            // Invoke the lambda expression and return the result
+            return action.run();
+        });
+    }
+
+    private static class MockRemoteIterator implements RemoteIterator<FileStatus> {
+
+        final Deque<FileStatus> deque;
+
+        public MockRemoteIterator(FileStatus... fileStatuses) {
+            deque = new ArrayDeque<>();
+            Collections.addAll(deque, fileStatuses);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !deque.isEmpty();
+        }
+
+        @Override
+        public FileStatus next() {
+            return deque.pop();
+        }
     }
 }
 
