@@ -38,8 +38,8 @@ class ParameterContextReplacementUtilTest {
 
     @Test
     public void testReplacementWithoutSubgroups() {
-        final ParameterContextNameCollusionResolver collusionResolver = new ParameterContextNameCollusionResolver(() -> new HashSet<>());
-        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collusionResolver);
+        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver(() -> new HashSet<>());
+        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collisionResolver);
         final RegisteredFlowSnapshot snapshot = getSimpleSnapshot();
 
         testSubject.replaceParameterContexts(snapshot);
@@ -63,8 +63,8 @@ class ParameterContextReplacementUtilTest {
 
     @Test
     public void testReplacementWithSubgroups() {
-        final ParameterContextNameCollusionResolver collusionResolver = new ParameterContextNameCollusionResolver(() -> new HashSet<>());
-        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collusionResolver);
+        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver(() -> new HashSet<>());
+        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collisionResolver);
         final RegisteredFlowSnapshot snapshot = getMultiLevelSnapshot();
 
         testSubject.replaceParameterContexts(snapshot);

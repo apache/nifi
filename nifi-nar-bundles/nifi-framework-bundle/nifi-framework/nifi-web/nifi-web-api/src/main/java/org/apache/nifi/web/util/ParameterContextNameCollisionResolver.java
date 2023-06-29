@@ -26,7 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-class ParameterContextNameCollusionResolver {
+class ParameterContextNameCollisionResolver {
     private static final String PATTERN_GROUP_NAME = "name";
     private static final String PATTERN_GROUP_INDEX = "index";
 
@@ -37,11 +37,11 @@ class ParameterContextNameCollusionResolver {
 
     private final Supplier<Collection<ParameterContextEntity>> parameterContextSource;
 
-    ParameterContextNameCollusionResolver(final Supplier<Collection<ParameterContextEntity>> parameterContextSource) {
+    ParameterContextNameCollisionResolver(final Supplier<Collection<ParameterContextEntity>> parameterContextSource) {
         this.parameterContextSource = parameterContextSource;
     }
 
-    public String resolveNameCollusion(final String originalParameterContextName) {
+    public String resolveNameCollision(final String originalParameterContextName) {
         final Matcher lineageMatcher = LINEAGE_PATTERN.matcher(originalParameterContextName);
 
         if (!lineageMatcher.matches()) {
