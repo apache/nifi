@@ -17,35 +17,40 @@
  */
 package org.apache.nifi.processors.iceberg.catalog;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.iceberg.catalog.Catalog;
-import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.services.iceberg.IcebergCatalogProperty;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
+import org.apache.nifi.services.iceberg.IcebergCatalogType;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.nio.file.Files.createTempDirectory;
 
 public class TestHadoopCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    private final HadoopCatalog catalog;
+    private final Map<IcebergCatalogProperty, String> catalogProperties = new HashMap<>();
 
     public TestHadoopCatalogService() throws IOException {
         File warehouseLocation = createTempDirectory("metastore").toFile();
-
-        catalog =  new HadoopCatalog(new Configuration(), warehouseLocation.getAbsolutePath());
+        catalogProperties.put(IcebergCatalogProperty.WAREHOUSE_LOCATION, warehouseLocation.getAbsolutePath());
     }
 
     @Override
-    public Catalog getCatalog() {
-        return catalog;
+    public IcebergCatalogType getCatalogType() {
+        return IcebergCatalogType.HADOOP;
     }
 
     @Override
-    public Configuration getConfiguration() {
-        return catalog.getConf();
+    public Map<IcebergCatalogProperty, String> getCatalogProperties() {
+        return catalogProperties;
     }
 
+    @Override
+    public List<String> getConfigFilePaths() {
+        return null;
+    }
 }

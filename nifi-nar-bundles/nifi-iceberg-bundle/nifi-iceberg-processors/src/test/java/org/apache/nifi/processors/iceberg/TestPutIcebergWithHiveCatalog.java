@@ -22,12 +22,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableProperties;
+import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.hive.metastore.ThriftMetastore;
+import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHiveCatalogService;
 import org.apache.nifi.processors.iceberg.util.IcebergTestUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -66,7 +68,7 @@ public class TestPutIcebergWithHiveCatalog {
     private TestRunner runner;
     private PutIceberg processor;
     private Schema inputSchema;
-    private TestHiveCatalogService catalogService;
+    private Catalog catalog;
 
     @RegisterExtension
     public static ThriftMetastore metastore = new ThriftMetastore();
@@ -90,16 +92,11 @@ public class TestPutIcebergWithHiveCatalog {
         inputSchema = new Schema.Parser().parse(avroSchema);
 
         processor = new PutIceberg();
-
-        catalogService = new TestHiveCatalogService.Builder()
-                .withMetastoreUri(metastore.getThriftConnectionUri())
-                .withWarehouseLocation(metastore.getWarehouseLocation())
-                .build();
     }
 
     @AfterEach
     public void tearDown() {
-        catalogService.getCatalog().dropTable(TABLE_IDENTIFIER);
+        catalog.dropTable(TABLE_IDENTIFIER);
     }
 
     private void initRecordReader() throws InitializationException {
@@ -126,7 +123,15 @@ public class TestPutIcebergWithHiveCatalog {
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
         tableProperties.put(TableProperties.DEFAULT_FILE_FORMAT, fileFormat);
 
-        catalogService.getCatalog().createTable(TABLE_IDENTIFIER, USER_SCHEMA, spec, tableProperties);
+        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder()
+                .withMetastoreUri(metastore.getThriftConnectionUri())
+                .withWarehouseLocation(metastore.getWarehouseLocation())
+                .build();
+
+        IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
+        catalog = catalogFactory.create();
+
+        catalog.createTable(TABLE_IDENTIFIER, USER_SCHEMA, spec, tableProperties);
 
         runner.addControllerService("catalog-service", catalogService);
         runner.enableControllerService(catalogService);
@@ -150,7 +155,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -187,7 +192,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -225,7 +230,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0]);
         runner.run();
 
-        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
@@ -266,7 +271,7 @@ public class TestPutIcebergWithHiveCatalog {
         runner.enqueue(new byte[0], attributes);
         runner.run();
 
-        Table table = catalogService.getCatalog().loadTable(TABLE_IDENTIFIER);
+        Table table = catalog.loadTable(TABLE_IDENTIFIER);
 
         List<Record> expectedRecords = IcebergTestUtils.RecordsBuilder.newInstance(USER_SCHEMA)
                 .add(0, "John", "Finance")
