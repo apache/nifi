@@ -17,7 +17,6 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processors.iceberg.catalog.TestHiveCatalogService;
 import org.apache.nifi.reporting.InitializationException;
@@ -56,8 +55,8 @@ public class TestPutIcebergCustomValidation {
         runner.setProperty(PutIceberg.RECORD_READER, RECORD_READER_NAME);
     }
 
-    private void initCatalogService(Configuration configuration) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder().withConfig(configuration).build();
+    private void initCatalogService(String configFilePath) throws InitializationException {
+        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder().withConfig(configFilePath).build();
 
         runner.addControllerService(CATALOG_SERVICE_NAME, catalogService);
         runner.enableControllerService(catalogService);
@@ -78,10 +77,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndWithoutKerberosUserService() throws InitializationException {
         initRecordReader();
-
-        Configuration config = new Configuration();
-        config.set("hadoop.security.authentication", "kerberos");
-        initCatalogService(config);
+        initCatalogService("src/test/resources/secured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -91,10 +87,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-
-        Configuration config = new Configuration();
-        config.set("hadoop.security.authentication", "kerberos");
-        initCatalogService(config);
+        initCatalogService("src/test/resources/secured-core-site.xml");
 
         initKerberosUserService();
 
@@ -106,8 +99,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-
-        initCatalogService(new Configuration());
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -117,8 +109,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndWithKerberosUserService() throws InitializationException {
         initRecordReader();
-
-        initCatalogService(new Configuration());
+        initCatalogService("src/test/resources/unsecured-core-site.xml");
 
         initKerberosUserService();
 

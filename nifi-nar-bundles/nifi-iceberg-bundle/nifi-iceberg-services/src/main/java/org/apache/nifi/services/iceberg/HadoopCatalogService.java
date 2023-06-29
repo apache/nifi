@@ -17,9 +17,6 @@
  */
 package org.apache.nifi.services.iceberg;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.iceberg.catalog.Catalog;
-import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -53,25 +50,18 @@ public class HadoopCatalogService extends AbstractCatalogService {
         return PROPERTIES;
     }
 
-    private HadoopCatalog catalog;
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final String warehousePath = context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue();
-
         if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
-            final String configFiles = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-
-            configuration = getConfigurationFromFiles(configFiles);
-            catalog = new HadoopCatalog(configuration, warehousePath);
-        } else {
-            catalog = new HadoopCatalog(new Configuration(), warehousePath);
+            configuration = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
         }
+
+        additionalProperties.put(IcebergCatalogProperties.WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue());
     }
 
     @Override
-    public Catalog getCatalog() {
-        return catalog;
+    public IcebergCatalogServiceType getCatalogServiceType() {
+        return IcebergCatalogServiceType.HadoopCatalogService;
     }
 
 }

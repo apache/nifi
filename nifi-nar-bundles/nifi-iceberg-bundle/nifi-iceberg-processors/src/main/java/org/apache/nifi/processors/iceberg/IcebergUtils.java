@@ -15,20 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.iceberg;
+package org.apache.nifi.processors.iceberg;
 
-import org.apache.nifi.controller.ControllerService;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 
-import java.util.Map;
+public class IcebergUtils {
 
-/**
- * Provides a basic connector to Iceberg catalog services.
- */
-public interface IcebergCatalogService extends ControllerService {
-
-    IcebergCatalogServiceType getCatalogServiceType();
-
-    Map<String, String> getAdditionalParameters();
-
-    String getConfigFiles();
+    /**
+     * Loads configuration files from the provided paths.
+     *
+     * @param configFiles list of config file paths separated with comma
+     * @return merged configuration
+     */
+    public static Configuration getConfigurationFromFiles(String configFiles) {
+        final Configuration conf = new Configuration();
+        if (StringUtils.isNotBlank(configFiles)) {
+            for (final String configFile : configFiles.split(",")) {
+                conf.addResource(new Path(configFile.trim()));
+            }
+        }
+        return conf;
+    }
 }

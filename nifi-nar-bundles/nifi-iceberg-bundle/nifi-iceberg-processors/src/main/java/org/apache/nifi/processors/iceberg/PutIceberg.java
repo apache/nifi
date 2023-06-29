@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
 import org.apache.nifi.serialization.RecordReader;
@@ -66,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT;
 import static org.apache.iceberg.TableProperties.DEFAULT_FILE_FORMAT_DEFAULT;
+import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 
 @Tags({"iceberg", "put", "table", "store", "record", "parse", "orc", "parquet", "avro"})
 @CapabilityDescription("This processor uses Iceberg API to parse and load records into Iceberg tables. " +
@@ -208,7 +210,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
         if (catalogServiceEnabled) {
             final boolean kerberosUserServiceIsSet = context.getProperty(KERBEROS_USER_SERVICE).isSet();
-            final boolean securityEnabled = SecurityUtil.isSecurityEnabled(catalogService.getConfiguration());
+            final boolean securityEnabled = SecurityUtil.isSecurityEnabled(getConfigurationFromFiles(catalogService.getConfigFiles()));
 
             if (securityEnabled && !kerberosUserServiceIsSet) {
                 problems.add(new ValidationResult.Builder()
@@ -293,7 +295,8 @@ public class PutIceberg extends AbstractIcebergProcessor {
         final String catalogNamespace = context.getProperty(CATALOG_NAMESPACE).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
-        final Catalog catalog = catalogService.getCatalog();
+        final IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
+        final Catalog catalog = catalogFactory.create();
 
         final Namespace namespace = Namespace.of(catalogNamespace);
         final TableIdentifier tableIdentifier = TableIdentifier.of(namespace, tableName);

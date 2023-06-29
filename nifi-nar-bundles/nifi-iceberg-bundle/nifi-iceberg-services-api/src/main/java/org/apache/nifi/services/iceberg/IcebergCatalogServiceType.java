@@ -17,18 +17,7 @@
  */
 package org.apache.nifi.services.iceberg;
 
-import org.apache.nifi.controller.ControllerService;
-
-import java.util.Map;
-
-/**
- * Provides a basic connector to Iceberg catalog services.
- */
-public interface IcebergCatalogService extends ControllerService {
-
-    IcebergCatalogServiceType getCatalogServiceType();
-
-    Map<String, String> getAdditionalParameters();
-
-    String getConfigFiles();
+public enum IcebergCatalogServiceType {
+    HiveCatalogService,
+    HadoopCatalogService
 }

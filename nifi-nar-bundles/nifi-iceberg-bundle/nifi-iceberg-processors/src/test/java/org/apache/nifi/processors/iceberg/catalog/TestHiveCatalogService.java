@@ -17,28 +17,43 @@
  */
 package org.apache.nifi.processors.iceberg.catalog;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.iceberg.CatalogProperties;
-import org.apache.iceberg.catalog.Catalog;
-import org.apache.iceberg.hive.HiveCatalog;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.services.iceberg.IcebergCatalogProperties;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
+import org.apache.nifi.services.iceberg.IcebergCatalogServiceType;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class TestHiveCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    private final HiveCatalog catalog;
+    private final String configFiles;
+    private final Map<String, String> additionalParameters;
 
-    public TestHiveCatalogService(HiveCatalog catalog) {
-        this.catalog = catalog;
+    public TestHiveCatalogService(Map<String, String> additionalParameters, String configFiles) {
+        this.additionalParameters = additionalParameters;
+        this.configFiles = configFiles;
+    }
+
+    @Override
+    public IcebergCatalogServiceType getCatalogServiceType() {
+        return IcebergCatalogServiceType.HiveCatalogService;
+    }
+
+    @Override
+    public Map<String, String> getAdditionalParameters() {
+        return additionalParameters;
+    }
+
+    @Override
+    public String getConfigFiles() {
+        return configFiles;
     }
 
     public static class Builder {
         private String metastoreUri;
         private String warehouseLocation;
-        private Configuration config;
+        private String configFiles;
 
         public Builder withMetastoreUri(String metastoreUri) {
             this.metastoreUri = metastoreUri;
@@ -50,40 +65,23 @@ public class TestHiveCatalogService extends AbstractControllerService implements
             return this;
         }
 
-        public Builder withConfig(Configuration config) {
-            this.config = config;
+        public Builder withConfig(String configFiles) {
+            this.configFiles = configFiles;
             return this;
         }
 
         public TestHiveCatalogService build() {
-            HiveCatalog catalog = new HiveCatalog();
             Map<String, String> properties = new HashMap<>();
 
             if (metastoreUri != null) {
-                properties.put(CatalogProperties.URI, metastoreUri);
+                properties.put(IcebergCatalogProperties.METASTORE_URI, metastoreUri);
             }
 
             if (warehouseLocation != null) {
-                properties.put(CatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);
+                properties.put(IcebergCatalogProperties.WAREHOUSE_LOCATION, warehouseLocation);
             }
 
-            if (config != null) {
-                catalog.setConf(config);
-            }
-
-            catalog.initialize("hive-catalog", properties);
-            return new TestHiveCatalogService(catalog);
+            return new TestHiveCatalogService(properties, configFiles);
         }
     }
-
-    @Override
-    public Catalog getCatalog() {
-        return catalog;
-    }
-
-    @Override
-    public Configuration getConfiguration() {
-        return catalog.getConf();
-    }
-
 }

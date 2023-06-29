@@ -17,18 +17,8 @@
  */
 package org.apache.nifi.services.iceberg;
 
-import org.apache.nifi.controller.ControllerService;
+public class IcebergCatalogProperties {
 
-import java.util.Map;
-
-/**
- * Provides a basic connector to Iceberg catalog services.
- */
-public interface IcebergCatalogService extends ControllerService {
-
-    IcebergCatalogServiceType getCatalogServiceType();
-
-    Map<String, String> getAdditionalParameters();
-
-    String getConfigFiles();
+    public static final String METASTORE_URI = "metastoreUri";
+    public static final String WAREHOUSE_LOCATION = "warehouseLocation";
 }
