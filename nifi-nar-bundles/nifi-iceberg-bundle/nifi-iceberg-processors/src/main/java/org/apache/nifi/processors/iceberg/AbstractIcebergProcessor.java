@@ -18,9 +18,12 @@
 package org.apache.nifi.processors.iceberg;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -36,11 +39,13 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 import static org.apache.nifi.hadoop.SecurityUtil.getUgiForKerberosUser;
+import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
 
 /**
  * Base Iceberg processor class.
  */
-public abstract class AbstractIcebergProcessor extends AbstractProcessor {
+@RequiresInstanceClassLoading(cloneAncestorResources = true)
+public abstract class AbstractIcebergProcessor extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
 
     public static final PropertyDescriptor CATALOG = new PropertyDescriptor.Builder()
             .name("catalog-service")
@@ -66,14 +71,14 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
     private volatile UserGroupInformation ugi;
 
     @OnScheduled
-    public final void onScheduled(final ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();
             try {
-                this.ugi = getUgiForKerberosUser(catalogService.getConfiguration(), kerberosUser);
+                this.ugi = getUgiForKerberosUser(getConfigurationFromFiles(catalogService.getConfigFilePaths()), kerberosUser);
             } catch (IOException e) {
                 throw new ProcessException("Kerberos Authentication failed", e);
             }
@@ -81,7 +86,7 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
     }
 
     @OnStopped
-    public final void onStopped() {
+    public void onStopped() {
         if (kerberosUser != null) {
             try {
                 kerberosUser.logout();
@@ -115,6 +120,15 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor {
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
         }
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(PropertyContext context) {
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            return kerberosUserService.getIdentifier();
+        }
+        return null;
     }
 
     private UserGroupInformation getUgi() {

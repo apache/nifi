@@ -33,6 +33,7 @@ import org.apache.iceberg.io.WriteResult;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
 import org.apache.nifi.processors.iceberg.converter.IcebergRecordConverter;
 import org.apache.nifi.processors.iceberg.writer.IcebergTaskWriterFactory;
@@ -193,7 +194,8 @@ public class TestDataFileActions {
 
     private Table initCatalog() throws IOException {
         TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
-        Catalog catalog = catalogService.getCatalog();
+        IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
+        Catalog catalog = catalogFactory.create();
 
         return catalog.createTable(TABLE_IDENTIFIER, ABORT_SCHEMA, PartitionSpec.unpartitioned());
     }

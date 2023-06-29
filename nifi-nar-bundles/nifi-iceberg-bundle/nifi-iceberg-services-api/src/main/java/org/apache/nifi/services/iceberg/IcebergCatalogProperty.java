@@ -17,19 +17,19 @@
  */
 package org.apache.nifi.services.iceberg;
 
-import org.apache.nifi.controller.ControllerService;
+public enum IcebergCatalogProperty {
 
-import java.util.List;
-import java.util.Map;
+    METASTORE_URI("hive.metastore.uris"),
+    WAREHOUSE_LOCATION("hive.metastore.warehouse.dir");
 
-/**
- * Provides a basic connector to Iceberg catalog services.
- */
-public interface IcebergCatalogService extends ControllerService {
+    private final String hadoopPropertyName;
 
-    IcebergCatalogType getCatalogType();
+    IcebergCatalogProperty(String hadoopPropertyName) {
+        this.hadoopPropertyName = hadoopPropertyName;
+    }
 
-    Map<IcebergCatalogProperty, String> getCatalogProperties();
+    public String getHadoopPropertyName() {
+        return hadoopPropertyName;
+    }
 
-    List<String> getConfigFilePaths();
 }

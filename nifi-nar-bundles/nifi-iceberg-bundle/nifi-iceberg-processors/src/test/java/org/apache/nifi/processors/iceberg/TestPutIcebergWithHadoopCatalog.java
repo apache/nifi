@@ -27,6 +27,7 @@ import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.processors.iceberg.catalog.IcebergCatalogFactory;
 import org.apache.nifi.processors.iceberg.catalog.TestHadoopCatalogService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -62,6 +63,7 @@ public class TestPutIcebergWithHadoopCatalog {
     private TestRunner runner;
     private PutIceberg processor;
     private Schema inputSchema;
+    private Catalog catalog;
 
     private static final Namespace NAMESPACE = Namespace.of("default");
 
@@ -100,9 +102,10 @@ public class TestPutIcebergWithHadoopCatalog {
         runner.setProperty(PutIceberg.RECORD_READER, "mock-reader-factory");
     }
 
-    private Catalog initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException, IOException {
+    private void initCatalog(PartitionSpec spec, String fileFormat) throws InitializationException, IOException {
         TestHadoopCatalogService catalogService = new TestHadoopCatalogService();
-        Catalog catalog = catalogService.getCatalog();
+        IcebergCatalogFactory catalogFactory = new IcebergCatalogFactory(catalogService);
+        catalog = catalogFactory.create();
 
         Map<String, String> tableProperties = new HashMap<>();
         tableProperties.put(TableProperties.FORMAT_VERSION, "2");
@@ -114,8 +117,6 @@ public class TestPutIcebergWithHadoopCatalog {
         runner.enableControllerService(catalogService);
 
         runner.setProperty(PutIceberg.CATALOG, "catalog-service");
-
-        return catalog;
     }
 
     @DisabledOnOs(WINDOWS)
@@ -128,7 +129,7 @@ public class TestPutIcebergWithHadoopCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
+        initCatalog(spec, fileFormat);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
@@ -156,7 +157,7 @@ public class TestPutIcebergWithHadoopCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
+        initCatalog(spec, fileFormat);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
@@ -185,7 +186,7 @@ public class TestPutIcebergWithHadoopCatalog {
 
         runner = TestRunners.newTestRunner(processor);
         initRecordReader();
-        Catalog catalog = initCatalog(spec, fileFormat);
+        initCatalog(spec, fileFormat);
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, "default");
         runner.setProperty(PutIceberg.TABLE_NAME, "date");
         runner.setValidateExpressionUsage(false);
