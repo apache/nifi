@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 public class KeyStoreScannerTest {
-    private KeyStoreScanner scanner;
+    private StoreScanner scanner;
     private SslContextFactory sslContextFactory;
     private static TlsConfiguration tlsConfiguration;
     private static File keyStoreFile;
@@ -52,7 +52,7 @@ public class KeyStoreScannerTest {
         Mockito.when(keyStoreResource.getFile()).thenReturn(keyStoreFile);
         Mockito.when(sslContextFactory.getKeyStoreResource()).thenReturn(keyStoreResource);
 
-        scanner = new KeyStoreScanner(sslContextFactory, tlsConfiguration);
+        scanner = new StoreScanner(sslContextFactory, tlsConfiguration, sslContextFactory.getKeyStoreResource());
     }
 
     @Test

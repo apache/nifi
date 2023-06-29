@@ -39,24 +39,23 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
     private final SslContextFactory sslContextFactory;
     private final TlsConfiguration tlsConfiguration;
     private final File file;
-    private final String fileType;
     private final Scanner scanner;
+    private final String resourceName;
     private final Logger LOG = Log.getLogger(getClass());
 
-    protected StoreScanner(final SslContextFactory sslContextFactory,
+    public StoreScanner(final SslContextFactory sslContextFactory,
                            final TlsConfiguration tlsConfiguration,
-                           final Resource resource,
-                           final String fileType) {
+                           final Resource resource) {
         this.sslContextFactory = sslContextFactory;
         this.tlsConfiguration = tlsConfiguration;
-        this.fileType = fileType;
+        this.resourceName = resource.getName();
         try {
             File monitoredFile = resource.getFile();
             if (monitoredFile == null || !monitoredFile.exists()) {
-                throw new IllegalArgumentException(String.format("%s file does not exist", fileType));
+                throw new IllegalArgumentException(String.format("%s file does not exist", resourceName));
             }
             if (monitoredFile.isDirectory()) {
-                throw new IllegalArgumentException(String.format("expected %s file not directory", fileType));
+                throw new IllegalArgumentException(String.format("expected %s file not directory", resourceName));
             }
 
             if (resource.getAlias() != null) {
@@ -66,15 +65,15 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
 
             file = monitoredFile;
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Monitored {} file: {}", fileType, monitoredFile);
+                LOG.debug("Monitored {} file: {}", resourceName, monitoredFile);
             }
         } catch (final IOException e) {
-            throw new IllegalArgumentException(String.format("could not obtain %s file", fileType), e);
+            throw new IllegalArgumentException(String.format("could not obtain %s file", resourceName), e);
         }
 
         File parentFile = file.getParentFile();
         if (!parentFile.exists() || !parentFile.isDirectory()) {
-            throw new IllegalArgumentException(String.format("error obtaining %s dir", fileType));
+            throw new IllegalArgumentException(String.format("error obtaining %s dir", resourceName));
         }
 
         scanner = new Scanner();
@@ -142,13 +141,13 @@ public class StoreScanner extends ContainerLifeCycle implements Scanner.Discrete
     )
     public void reload() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("reloading {} file {}", fileType, this.file);
+            LOG.debug("reloading {} file {}", resourceName, this.file);
         }
 
         try {
             this.sslContextFactory.reload((scf) -> scf.setSslContext(createSSLContext(tlsConfiguration)));
         } catch (final Throwable t) {
-            LOG.warn("{} Reload Failed", StringUtils.capitalize(fileType), t);
+            LOG.warn("{} Reload Failed", StringUtils.capitalize(resourceName), t);
         }
 
     }

@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 
 public class TrustStoreScannerTest {
 
-    private TrustStoreScanner scanner;
+    private StoreScanner scanner;
     private SslContextFactory sslContextFactory;
     private static TlsConfiguration tlsConfiguration;
     private static File trustStoreFile;
@@ -53,7 +53,7 @@ public class TrustStoreScannerTest {
         Mockito.when(trustStoreResource.getFile()).thenReturn(trustStoreFile);
         Mockito.when(sslContextFactory.getTrustStoreResource()).thenReturn(trustStoreResource);
 
-        scanner = new TrustStoreScanner(sslContextFactory, tlsConfiguration);
+        scanner = new StoreScanner(sslContextFactory, tlsConfiguration, sslContextFactory.getTrustStoreResource());
     }
 
     @Test

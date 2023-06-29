@@ -27,8 +27,7 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.server.util.KeyStoreScanner;
-import org.apache.nifi.web.server.util.TrustStoreScanner;
+import org.apache.nifi.web.server.util.StoreScanner;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -149,12 +148,12 @@ public class FrameworkServerConnectorFactory extends StandardServerConnectorFact
 
             if (storeScanInterval != null) {
                 sslContextFactory.setKeyStorePath(tlsConfiguration.getKeystorePath());
-                final KeyStoreScanner keyStoreScanner = new KeyStoreScanner(sslContextFactory, tlsConfiguration);
+                final StoreScanner keyStoreScanner = new StoreScanner(sslContextFactory, tlsConfiguration, sslContextFactory.getKeyStoreResource());
                 keyStoreScanner.setScanInterval(storeScanInterval);
                 getServer().addBean(keyStoreScanner);
 
                 sslContextFactory.setTrustStorePath(tlsConfiguration.getTruststorePath());
-                final TrustStoreScanner trustStoreScanner = new TrustStoreScanner(sslContextFactory, tlsConfiguration);
+                final StoreScanner trustStoreScanner = new StoreScanner(sslContextFactory, tlsConfiguration, sslContextFactory.getTrustStoreResource());
                 trustStoreScanner.setScanInterval(storeScanInterval);
                 getServer().addBean(trustStoreScanner);
             }
