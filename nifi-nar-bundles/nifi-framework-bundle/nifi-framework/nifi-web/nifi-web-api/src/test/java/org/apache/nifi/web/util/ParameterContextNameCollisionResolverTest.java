@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 
-class ParameterContextNameCollusionResolverTest {
+class ParameterContextNameCollisionResolverTest {
     private final static Supplier<Collection<ParameterContextEntity>> EMPTY_PARAMETER_CONTEXT_SOURCE = () -> Collections.emptySet();
     private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_FIRST = () -> Arrays.asList(getTestContext("test"));
     private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_SOME =

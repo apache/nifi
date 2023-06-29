@@ -40,7 +40,7 @@ import java.util.Optional;
  * Note: if multiple (sub)groups refer to the same Parameter Context, only one replacement will be created and all
  * Process Groups referred to the original Parameter Context will refer to this replacement.
  */
-public final class ParameterContextReplacementUtil {
+public class ParameterContextReplacementUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(ParameterContextReplacementUtil.class);
 
     private final ParameterContextNameCollusionResolver nameCollusionResolver;
