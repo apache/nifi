@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.standard.faker;
 
-import com.github.javafaker.Faker;
-import com.github.javafaker.service.files.EnFile;
+import net.datafaker.Faker;
+import net.datafaker.service.files.EnFile;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.record.DataType;
@@ -42,6 +42,8 @@ public class FakerUtils {
     private static final int RANDOM_DATE_DAYS = 365;
     private static final Map<String, FakerMethodHolder> datatypeFunctionMap = new LinkedHashMap<>();
 
+    private static final List<String> providerPackages = Arrays.asList("base", "entertainment", "food", "sport", "videogame");
+
 
     // Additional Faker datatypes that don't use predetermined data files (i.e. they generate data or have non-String types)
     static final AllowableValue FT_BOOL = new AllowableValue("Boolean.bool", "Boolean - bool (true/false)", "A value of 'true' or 'false'");
@@ -54,7 +56,7 @@ public class FakerUtils {
     static final AllowableValue FT_SHA256 = new AllowableValue("Crypto.SHA-256", "Crypto - SHA-256", "A SHA-256 hash");
     static final AllowableValue FT_SHA512 = new AllowableValue("Crypto.SHA-512", "Crypto - SHA-512", "A SHA-512 hash");
 
-    private static final String PACKAGE_PREFIX = "com.github.javafaker";
+    private static final String PACKAGE_PREFIX = "net.datafaker.providers";
 
     public static AllowableValue[] createFakerPropertyList() {
         final List<EnFile> fakerFiles = EnFile.getFiles();
@@ -62,7 +64,20 @@ public class FakerUtils {
         for (EnFile fakerFile : fakerFiles) {
             String className = normalizeClassName(fakerFile.getFile().substring(0, fakerFile.getFile().indexOf('.')));
             try {
-                possibleFakerTypeMap.put(className, Class.forName(PACKAGE_PREFIX + '.' + className));
+                // The providers are in different sub-packages, try them all until one succeeds
+                Class<?> fakerTypeClass = null;
+                for (String subPackage : providerPackages) {
+                    try {
+                        fakerTypeClass = Class.forName(PACKAGE_PREFIX + '.' + subPackage + "." + className);
+                        break;
+                    } catch (ClassNotFoundException cnfe) {
+                        // Ignore, check the other subpackages
+                    }
+                }
+
+                if (fakerTypeClass != null) {
+                    possibleFakerTypeMap.put(className, fakerTypeClass);
+                }
             } catch (Exception e) {
                 // Ignore, these are the ones we want to filter out
             }
@@ -78,7 +93,7 @@ public class FakerUtils {
                                     && method.getReturnType() == String.class)
                     .collect(Collectors.toList());
             try {
-                final Object methodObject = faker.getClass().getDeclaredMethod(normalizeMethodName(entry.getKey())).invoke(faker);
+                final Object methodObject = faker.getClass().getMethod(normalizeMethodName(entry.getKey())).invoke(faker);
                 for (Method method : fakerMethods) {
                     final String allowableValueName = normalizeClassName(entry.getKey()) + "." + method.getName();
                     final String allowableValueDisplayName = normalizeDisplayName(entry.getKey()) + " - " + normalizeDisplayName(method.getName());
@@ -122,10 +137,10 @@ public class FakerUtils {
 
         // Handle Crypto methods not discovered by programmatically getting methods from the Faker objects
         if (FT_SHA256.getValue().equals(type)) {
-            return faker.crypto().sha256();
+            return faker.hashing().sha256();
         }
         if (FT_SHA512.getValue().equals(type)) {
-            return faker.crypto().sha512();
+            return faker.hashing().sha512();
         }
 
         // If not a special circumstance, use the map to call the associated Faker method and return the value

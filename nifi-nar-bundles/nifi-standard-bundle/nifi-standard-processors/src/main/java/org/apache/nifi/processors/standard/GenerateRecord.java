@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.github.javafaker.Faker;
+import net.datafaker.Faker;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
