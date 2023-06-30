@@ -22,11 +22,14 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
 @Tags({"iceberg", "catalog", "service", "hadoop", "hdfs"})
 @CapabilityDescription("Catalog service that can use HDFS or similar file systems that support atomic rename.")
@@ -36,6 +39,7 @@ public class HadoopCatalogService extends AbstractCatalogService {
             .name("warehouse-path")
             .displayName("Warehouse Path")
             .description("Path to the location of the warehouse.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -53,15 +57,15 @@ public class HadoopCatalogService extends AbstractCatalogService {
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
-            configuration = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+            configFilePaths = createFilePathList(context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue());
         }
 
-        additionalProperties.put(IcebergCatalogProperties.WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue());
+        catalogProperties.put(WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_PATH).evaluateAttributeExpressions().getValue());
     }
 
     @Override
-    public IcebergCatalogServiceType getCatalogServiceType() {
-        return IcebergCatalogServiceType.HadoopCatalogService;
+    public IcebergCatalogType getCatalogType() {
+        return IcebergCatalogType.HADOOP;
     }
 
 }

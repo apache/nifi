@@ -43,7 +43,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .name("hive-metastore-uri")
             .displayName("Hive Metastore URI")
             .description("The URI location(s) for the Hive metastore; note that this is not the location of the Hive Server. The default port for the Hive metastore is 9043.")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .build();
 
@@ -51,6 +51,7 @@ public class HiveCatalogService extends AbstractCatalogService {
             .name("warehouse-location")
             .displayName("Default Warehouse Location")
             .description("Location of default database for the warehouse. This field sets or overrides the 'hive.metastore.warehouse.dir' configuration property.")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -78,7 +79,7 @@ public class HiveCatalogService extends AbstractCatalogService {
         // Load the configurations for validation only if any config resource is provided and if either the metastore URI or the warehouse location property is missing
         if (validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet() && (propertyMetastoreUri == null || propertyWarehouseLocation == null)) {
             final String configFiles = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-            final List<Document> documents = parseConfigFile(configFiles);
+            final List<Document> documents = parseConfigFilePaths(configFiles);
 
             for (Document document : documents) {
                 final NodeList nameNodeList = document.getElementsByTagName("name");
@@ -86,11 +87,11 @@ public class HiveCatalogService extends AbstractCatalogService {
                 for (int i = 0; i < nameNodeList.getLength(); i++) {
                     final String nodeValue = nameNodeList.item(i).getFirstChild().getNodeValue();
 
-                    if (nodeValue.equals("hive.metastore.uris")) {
+                    if (nodeValue.equals(IcebergCatalogProperty.METASTORE_URI.getHadoopPropertyName())) {
                         configMetastoreUriPresent = true;
                     }
 
-                    if (nodeValue.equals("hive.metastore.warehouse.dir")) {
+                    if (nodeValue.equals(IcebergCatalogProperty.WAREHOUSE_LOCATION.getHadoopPropertyName())) {
                         configWarehouseLocationPresent = true;
                     }
 
@@ -125,18 +126,20 @@ public class HiveCatalogService extends AbstractCatalogService {
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         if (context.getProperty(METASTORE_URI).isSet()) {
-            additionalProperties.put(IcebergCatalogProperties.METASTORE_URI, context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue());
+            catalogProperties.put(IcebergCatalogProperty.METASTORE_URI, context.getProperty(METASTORE_URI).evaluateAttributeExpressions().getValue());
         }
 
         if (context.getProperty(WAREHOUSE_LOCATION).isSet()) {
-            additionalProperties.put(IcebergCatalogProperties.WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue());
+            catalogProperties.put(IcebergCatalogProperty.WAREHOUSE_LOCATION, context.getProperty(WAREHOUSE_LOCATION).evaluateAttributeExpressions().getValue());
         }
 
-        configuration = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+        if (context.getProperty(HADOOP_CONFIGURATION_RESOURCES).isSet()) {
+            configFilePaths = createFilePathList(context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue());
+        }
     }
 
     @Override
-    public IcebergCatalogServiceType getCatalogServiceType() {
-        return IcebergCatalogServiceType.HiveCatalogService;
+    public IcebergCatalogType getCatalogType() {
+        return IcebergCatalogType.HIVE;
     }
 }

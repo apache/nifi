@@ -26,6 +26,9 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.List;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,8 +58,8 @@ public class TestPutIcebergCustomValidation {
         runner.setProperty(PutIceberg.RECORD_READER, RECORD_READER_NAME);
     }
 
-    private void initCatalogService(String configFilePath) throws InitializationException {
-        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder().withConfig(configFilePath).build();
+    private void initCatalogService(List<String> configFilePaths) throws InitializationException {
+        TestHiveCatalogService catalogService = new TestHiveCatalogService.Builder().withConfigFilePaths(configFilePaths).build();
 
         runner.addControllerService(CATALOG_SERVICE_NAME, catalogService);
         runner.enableControllerService(catalogService);
@@ -77,7 +80,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndWithoutKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService("src/test/resources/secured-core-site.xml");
+        initCatalogService(Collections.singletonList("src/test/resources/secured-core-site.xml"));
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -87,7 +90,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService("src/test/resources/secured-core-site.xml");
+        initCatalogService(Collections.singletonList("src/test/resources/secured-core-site.xml"));
 
         initKerberosUserService();
 
@@ -99,7 +102,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService("src/test/resources/unsecured-core-site.xml");
+        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
 
         runner.setProperty(PutIceberg.CATALOG_NAMESPACE, CATALOG_NAMESPACE);
         runner.setProperty(PutIceberg.TABLE_NAME, TABLE_NAME);
@@ -109,7 +112,7 @@ public class TestPutIcebergCustomValidation {
     @Test
     public void testCustomValidateWithoutKerberosSecurityConfigAndWithKerberosUserService() throws InitializationException {
         initRecordReader();
-        initCatalogService("src/test/resources/unsecured-core-site.xml");
+        initCatalogService(Collections.singletonList("src/test/resources/unsecured-core-site.xml"));
 
         initKerberosUserService();
 

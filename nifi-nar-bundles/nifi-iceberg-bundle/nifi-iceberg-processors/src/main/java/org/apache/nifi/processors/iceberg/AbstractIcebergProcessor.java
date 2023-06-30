@@ -71,14 +71,14 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor impleme
     private volatile UserGroupInformation ugi;
 
     @OnScheduled
-    public final void onScheduled(final ProcessContext context) {
+    public void onScheduled(final ProcessContext context) {
         final IcebergCatalogService catalogService = context.getProperty(CATALOG).asControllerService(IcebergCatalogService.class);
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
 
         if (kerberosUserService != null) {
             this.kerberosUser = kerberosUserService.createKerberosUser();
             try {
-                this.ugi = getUgiForKerberosUser(getConfigurationFromFiles(catalogService.getConfigFiles()), kerberosUser);
+                this.ugi = getUgiForKerberosUser(getConfigurationFromFiles(catalogService.getConfigFilePaths()), kerberosUser);
             } catch (IOException e) {
                 throw new ProcessException("Kerberos Authentication failed", e);
             }
@@ -86,7 +86,7 @@ public abstract class AbstractIcebergProcessor extends AbstractProcessor impleme
     }
 
     @OnStopped
-    public final void onStopped() {
+    public void onStopped() {
         if (kerberosUser != null) {
             try {
                 kerberosUser.logout();

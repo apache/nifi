@@ -22,13 +22,15 @@ import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.hadoop.HadoopCatalog;
 import org.apache.iceberg.hive.HiveCatalog;
-import org.apache.nifi.services.iceberg.IcebergCatalogProperties;
+import org.apache.nifi.services.iceberg.IcebergCatalogProperty;
 import org.apache.nifi.services.iceberg.IcebergCatalogService;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.nifi.processors.iceberg.IcebergUtils.getConfigurationFromFiles;
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.METASTORE_URI;
+import static org.apache.nifi.services.iceberg.IcebergCatalogProperty.WAREHOUSE_LOCATION;
 
 public class IcebergCatalogFactory {
 
@@ -39,30 +41,33 @@ public class IcebergCatalogFactory {
     }
 
     public Catalog create() {
-        return switch (catalogService.getCatalogServiceType()) {
-            case HiveCatalogService -> initHiveCatalog(catalogService);
-            case HadoopCatalogService -> initHadoopCatalog(catalogService);
-            default -> throw new IllegalArgumentException("Unknown catalog type: " + catalogService.getCatalogServiceType());
-        };
+        switch (catalogService.getCatalogType()) {
+            case HIVE:
+                return initHiveCatalog(catalogService);
+            case HADOOP:
+                return initHadoopCatalog(catalogService);
+            default:
+                throw new IllegalArgumentException("Unknown catalog type: " + catalogService.getCatalogType());
+        }
     }
 
     private Catalog initHiveCatalog(IcebergCatalogService catalogService) {
         HiveCatalog catalog = new HiveCatalog();
 
-        if (catalogService.getConfigFiles() != null) {
-            final Configuration configuration = getConfigurationFromFiles(catalogService.getConfigFiles());
+        if (catalogService.getConfigFilePaths() != null) {
+            final Configuration configuration = getConfigurationFromFiles(catalogService.getConfigFilePaths());
             catalog.setConf(configuration);
         }
 
-        final Map<String, String> additionalParameters = catalogService.getAdditionalParameters();
+        final Map<IcebergCatalogProperty, String> catalogProperties = catalogService.getCatalogProperties();
         final Map <String, String> properties = new HashMap<>();
 
-        if (additionalParameters.containsKey(IcebergCatalogProperties.METASTORE_URI)) {
-            properties.put(CatalogProperties.URI, additionalParameters.get(IcebergCatalogProperties.METASTORE_URI));
+        if (catalogProperties.containsKey(METASTORE_URI)) {
+            properties.put(CatalogProperties.URI, catalogProperties.get(METASTORE_URI));
         }
 
-        if (additionalParameters.containsKey(IcebergCatalogProperties.WAREHOUSE_LOCATION)) {
-            properties.put(CatalogProperties.WAREHOUSE_LOCATION, additionalParameters.get(IcebergCatalogProperties.WAREHOUSE_LOCATION));
+        if (catalogProperties.containsKey(WAREHOUSE_LOCATION)) {
+            properties.put(CatalogProperties.WAREHOUSE_LOCATION, catalogProperties.get(WAREHOUSE_LOCATION));
         }
 
         catalog.initialize("hive-catalog", properties);
@@ -70,11 +75,11 @@ public class IcebergCatalogFactory {
     }
 
     private Catalog initHadoopCatalog(IcebergCatalogService catalogService) {
-        final Map<String, String> properties = catalogService.getAdditionalParameters();
-        final String warehousePath = properties.get(IcebergCatalogProperties.WAREHOUSE_LOCATION);
+        final Map<IcebergCatalogProperty, String> catalogProperties = catalogService.getCatalogProperties();
+        final String warehousePath = catalogProperties.get(WAREHOUSE_LOCATION);
 
-        if (catalogService.getConfigFiles() != null) {
-            return new HadoopCatalog(getConfigurationFromFiles(catalogService.getConfigFiles()), warehousePath);
+        if (catalogService.getConfigFilePaths() != null) {
+            return new HadoopCatalog(getConfigurationFromFiles(catalogService.getConfigFilePaths()), warehousePath);
         } else {
             return new HadoopCatalog(new Configuration(), warehousePath);
         }

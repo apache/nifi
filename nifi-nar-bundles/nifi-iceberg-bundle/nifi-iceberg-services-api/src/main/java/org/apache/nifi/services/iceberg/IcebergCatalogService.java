@@ -19,6 +19,7 @@ package org.apache.nifi.services.iceberg;
 
 import org.apache.nifi.controller.ControllerService;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,9 +27,9 @@ import java.util.Map;
  */
 public interface IcebergCatalogService extends ControllerService {
 
-    IcebergCatalogServiceType getCatalogServiceType();
+    IcebergCatalogType getCatalogType();
 
-    Map<String, String> getAdditionalParameters();
+    Map<IcebergCatalogProperty, String> getCatalogProperties();
 
-    String getConfigFiles();
+    List<String> getConfigFilePaths();
 }

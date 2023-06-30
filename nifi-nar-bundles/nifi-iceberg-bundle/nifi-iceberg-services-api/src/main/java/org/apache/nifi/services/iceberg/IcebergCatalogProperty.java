@@ -17,8 +17,19 @@
  */
 package org.apache.nifi.services.iceberg;
 
-public class IcebergCatalogProperties {
+public enum IcebergCatalogProperty {
 
-    public static final String METASTORE_URI = "metastoreUri";
-    public static final String WAREHOUSE_LOCATION = "warehouseLocation";
+    METASTORE_URI("hive.metastore.uris"),
+    WAREHOUSE_LOCATION("hive.metastore.warehouse.dir");
+
+    private final String hadoopPropertyName;
+
+    IcebergCatalogProperty(String hadoopPropertyName) {
+        this.hadoopPropertyName = hadoopPropertyName;
+    }
+
+    public String getHadoopPropertyName() {
+        return hadoopPropertyName;
+    }
+
 }

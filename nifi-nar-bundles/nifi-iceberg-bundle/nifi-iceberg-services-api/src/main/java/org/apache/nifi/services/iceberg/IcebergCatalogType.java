@@ -17,7 +17,7 @@
  */
 package org.apache.nifi.services.iceberg;
 
-public enum IcebergCatalogServiceType {
-    HiveCatalogService,
-    HadoopCatalogService
+public enum IcebergCatalogType {
+    HIVE,
+    HADOOP
 }

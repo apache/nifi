@@ -17,22 +17,23 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+
+import java.util.List;
 
 public class IcebergUtils {
 
     /**
      * Loads configuration files from the provided paths.
      *
-     * @param configFiles list of config file paths separated with comma
+     * @param configFilePaths list of config file paths separated with comma
      * @return merged configuration
      */
-    public static Configuration getConfigurationFromFiles(String configFiles) {
+    public static Configuration getConfigurationFromFiles(List<String> configFilePaths) {
         final Configuration conf = new Configuration();
-        if (StringUtils.isNotBlank(configFiles)) {
-            for (final String configFile : configFiles.split(",")) {
+        if (configFilePaths != null) {
+            for (final String configFile : configFilePaths) {
                 conf.addResource(new Path(configFile.trim()));
             }
         }

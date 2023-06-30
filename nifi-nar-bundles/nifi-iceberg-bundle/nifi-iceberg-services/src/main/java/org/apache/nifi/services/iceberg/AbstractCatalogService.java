@@ -22,6 +22,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 
@@ -41,9 +42,9 @@ import java.util.Map;
  */
 public abstract class AbstractCatalogService extends AbstractControllerService implements IcebergCatalogService {
 
-    protected Map<String, String> additionalProperties = new HashMap<>();
+    protected Map<IcebergCatalogProperty, String> catalogProperties = new HashMap<>();
 
-    protected String configuration;
+    protected List<String> configFilePaths;
 
     static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("hadoop-config-resources")
@@ -55,30 +56,38 @@ public abstract class AbstractCatalogService extends AbstractControllerService i
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    protected List<Document> parseConfigFile(String configFiles) {
+    protected List<Document> parseConfigFilePaths(String configFilePaths) {
         List<Document> documentList = new ArrayList<>();
-        if (configFiles != null && !configFiles.trim().isEmpty()) {
-            for (final String configFile : configFiles.split(",")) {
-                File file = new File(configFile.trim());
-                try (final InputStream fis = new FileInputStream(file);
-                     final InputStream in = new BufferedInputStream(fis)) {
-                    final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
-                    documentList.add(documentProvider.parse(in));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+        for (final String configFile : createFilePathList(configFilePaths)) {
+            File file = new File(configFile.trim());
+            try (final InputStream fis = new FileInputStream(file);
+                 final InputStream in = new BufferedInputStream(fis)) {
+                final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+                documentList.add(documentProvider.parse(in));
+            } catch (IOException e) {
+                throw new ProcessException("Failed to load config files", e);
             }
         }
         return documentList;
     }
 
-    @Override
-    public Map<String, String> getAdditionalParameters() {
-        return additionalProperties;
+    protected List<String> createFilePathList(String configFilePaths) {
+        List<String> filePathList = new ArrayList<>();
+        if (configFilePaths != null && !configFilePaths.trim().isEmpty()) {
+            for (final String configFile : configFilePaths.split(",")) {
+                filePathList.add(configFile.trim());
+            }
+        }
+        return filePathList;
     }
 
     @Override
-    public String getConfigFiles() {
-        return configuration;
+    public Map<IcebergCatalogProperty, String> getCatalogProperties() {
+        return catalogProperties;
+    }
+
+    @Override
+    public List<String> getConfigFilePaths() {
+        return configFilePaths;
     }
 }

@@ -210,7 +210,7 @@ public class PutIceberg extends AbstractIcebergProcessor {
 
         if (catalogServiceEnabled) {
             final boolean kerberosUserServiceIsSet = context.getProperty(KERBEROS_USER_SERVICE).isSet();
-            final boolean securityEnabled = SecurityUtil.isSecurityEnabled(getConfigurationFromFiles(catalogService.getConfigFiles()));
+            final boolean securityEnabled = SecurityUtil.isSecurityEnabled(getConfigurationFromFiles(catalogService.getConfigFilePaths()));
 
             if (securityEnabled && !kerberosUserServiceIsSet) {
                 problems.add(new ValidationResult.Builder()
