@@ -33,6 +33,7 @@
                 <div class="setting-name">Parameter Context</div>
                 <div class="setting-field">
                     <div id="new-pg-parameter-context-combo"></div>
+                    <div id="parameters-from-uploaded-flow">Parameters will be imported from the uploaded Flow Definition.</div>
                 </div>
         </div>
         <div id="file-cancel-button-container">
@@ -49,12 +50,6 @@
                 </div>
                 <div id="selected-file-name"></div>
             </div>
-        </div>
-        <div class="setting">
-            <span id="import-process-group-link" class="link" title="Import a flow from a registry">
-                <i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>
-                Import from Registry...
-            </span>
         </div>
     </div>
 </div>

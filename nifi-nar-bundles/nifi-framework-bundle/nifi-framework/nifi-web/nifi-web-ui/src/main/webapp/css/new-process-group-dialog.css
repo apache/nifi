@@ -22,4 +22,16 @@
 #new-process-group-dialog {
     min-height:320px;
     height: 320px;
+    width: 540px;
+    min-width: 500px;
+}
+
+div.fa-cloud-download.button-icon {
+    width: 160px;
+}
+
+#parameters-from-uploaded-flow {
+    color: #888;
+    font-weight: 400;
+    display: none;
 }
