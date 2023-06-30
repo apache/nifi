@@ -2030,6 +2030,22 @@
                 formatter: descriptionFormatter,
                 sortable: true,
                 resizable: true
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'type',
+                formatter: nfCommon.instanceTypeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'bundle',
+                name: 'Bundle',
+                field: 'bundle',
+                formatter: nfCommon.instanceBundleFormatter,
+                sortable: true,
+                resizable: true
             }
         ];
 
@@ -2661,7 +2677,7 @@
             var regTypeOptions = [];
             response.flowRegistryClientTypes.forEach(function (type) {
                 regTypeOptions.push({
-                    text: nfCommon.substringAfterLast(type.type, '.'),
+                    text: nfCommon.substringAfterLast(type.type, '.') + ' (' + type.bundle.version + ')',
                     value: type.type,
                     description: type.description || ''
                 });
@@ -2998,6 +3014,10 @@
             var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
             if (nfCommon.isDefinedAndNotNull(parameterProvidersGrid)) {
                 parameterProvidersGrid.resizeCanvas();
+            }
+            var registriesGrid = $('#registries-table').data('gridInstance');
+            if (nfCommon.isDefinedAndNotNull(registriesGrid)) {
+                registriesGrid.resizeCanvas();
             }
         },
 
