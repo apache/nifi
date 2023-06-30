@@ -175,7 +175,7 @@ import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.util.ParameterContextReplacementUtil;
+import org.apache.nifi.web.util.ParameterContextReplacer;
 import org.apache.nifi.web.util.Pause;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
@@ -206,7 +206,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     private ConnectionResource connectionResource;
     private TemplateResource templateResource;
     private ControllerServiceResource controllerServiceResource;
-    private ParameterContextReplacementUtil parameterContextReplacementUtil;
+    private ParameterContextReplacer parameterContextReplacer;
 
     private final ConcurrentMap<String, VariableRegistryUpdateRequest> varRegistryUpdateRequests = new ConcurrentHashMap<>();
     private static final int MAX_VARIABLE_REGISTRY_UPDATE_REQUESTS = 100;
@@ -2032,7 +2032,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
             // Step 4: Replace parameter contexts if necessary
             if (ParameterContextHandlingStrategy.REPLACE.equals(parameterContextHandlingStrategy)) {
-                parameterContextReplacementUtil.replaceParameterContexts(flowSnapshot);
+                parameterContextReplacer.replaceParameterContexts(flowSnapshot, serviceFacade.getParameterContexts());
             }
 
             // Step 5: Resolve Bundle info
@@ -4798,8 +4798,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         this.controllerServiceResource = controllerServiceResource;
     }
 
-    public void setParameterContextReplacementUtil(ParameterContextReplacementUtil parameterContextReplacementUtil) {
-        this.parameterContextReplacementUtil = parameterContextReplacementUtil;
+    public void setParameterContextReplacementUtil(ParameterContextReplacer parameterContextReplacer) {
+        this.parameterContextReplacer = parameterContextReplacer;
     }
 
     private static class DropEntity extends Entity {

@@ -21,7 +21,6 @@ import org.apache.nifi.web.api.entity.ParameterContextEntity;
 
 import java.util.Collection;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -35,13 +34,7 @@ class ParameterContextNameCollisionResolver {
 
     private static final String NAME_FORMAT = "%s (%d)";
 
-    private final Supplier<Collection<ParameterContextEntity>> parameterContextSource;
-
-    ParameterContextNameCollisionResolver(final Supplier<Collection<ParameterContextEntity>> parameterContextSource) {
-        this.parameterContextSource = parameterContextSource;
-    }
-
-    public String resolveNameCollision(final String originalParameterContextName) {
+    public String resolveNameCollision(final String originalParameterContextName, final Collection<ParameterContextEntity> existingContexts) {
         final Matcher lineageMatcher = LINEAGE_PATTERN.matcher(originalParameterContextName);
 
         if (!lineageMatcher.matches()) {
@@ -52,7 +45,7 @@ class ParameterContextNameCollisionResolver {
         final String originalIndex = lineageMatcher.group(PATTERN_GROUP_INDEX);
 
         // Candidates cannot be cached because new context might be added between calls
-        final Set<ParameterContextDTO> candidates = parameterContextSource.get()
+        final Set<ParameterContextDTO> candidates = existingContexts
                 .stream()
                 .map(pc -> pc.getComponent())
                 .filter(dto -> dto.getName().startsWith(lineName))
