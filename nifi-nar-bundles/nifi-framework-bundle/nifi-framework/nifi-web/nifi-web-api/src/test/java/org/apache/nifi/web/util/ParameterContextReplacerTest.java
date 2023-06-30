@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class ParameterContextReplacementUtilTest {
+class ParameterContextReplacerTest {
     private static final String CONTEXT_ONE_NAME = "contextOne";
     private static final String CONTEXT_TWO_NAME = "contextTwo (1)";
     private static final String CONTEXT_ONE_NAME_AFTER_REPLACE = "contextOne (1)";
@@ -38,11 +38,11 @@ class ParameterContextReplacementUtilTest {
 
     @Test
     public void testReplacementWithoutSubgroups() {
-        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver(() -> new HashSet<>());
-        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collisionResolver);
+        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver();
+        final ParameterContextReplacer testSubject = new ParameterContextReplacer(collisionResolver);
         final RegisteredFlowSnapshot snapshot = getSimpleSnapshot();
 
-        testSubject.replaceParameterContexts(snapshot);
+        testSubject.replaceParameterContexts(snapshot, new HashSet<>());
 
         final Map<String, VersionedParameterContext> parameterContexts = snapshot.getParameterContexts();
         Assertions.assertEquals(1, parameterContexts.size());
@@ -63,11 +63,11 @@ class ParameterContextReplacementUtilTest {
 
     @Test
     public void testReplacementWithSubgroups() {
-        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver(() -> new HashSet<>());
-        final ParameterContextReplacementUtil testSubject = new ParameterContextReplacementUtil(collisionResolver);
+        final ParameterContextNameCollisionResolver collisionResolver = new ParameterContextNameCollisionResolver();
+        final ParameterContextReplacer testSubject = new ParameterContextReplacer(collisionResolver);
         final RegisteredFlowSnapshot snapshot = getMultiLevelSnapshot();
 
-        testSubject.replaceParameterContexts(snapshot);
+        testSubject.replaceParameterContexts(snapshot, new HashSet<>());
 
         final Map<String, VersionedParameterContext> parameterContexts = snapshot.getParameterContexts();
         Assertions.assertEquals(2, parameterContexts.size());

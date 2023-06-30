@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.util;
 
+import java.util.Collection;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,12 +41,12 @@ import java.util.Optional;
  * Note: if multiple (sub)groups refer to the same Parameter Context, only one replacement will be created and all
  * Process Groups referred to the original Parameter Context will refer to this replacement.
  */
-public class ParameterContextReplacementUtil {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ParameterContextReplacementUtil.class);
+public class ParameterContextReplacer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ParameterContextReplacer.class);
 
     private final ParameterContextNameCollisionResolver nameCollisionResolver;
 
-    ParameterContextReplacementUtil(final ParameterContextNameCollisionResolver nameCollisionResolver) {
+    ParameterContextReplacer(final ParameterContextNameCollisionResolver nameCollisionResolver) {
         this.nameCollisionResolver = nameCollisionResolver;
     }
 
@@ -56,10 +57,10 @@ public class ParameterContextReplacementUtil {
      *
      * @param flowSnapshot Snapshot from the Registry. Modification will be applied on this object!
      */
-    public void replaceParameterContexts(final RegisteredFlowSnapshot flowSnapshot) {
+    public void replaceParameterContexts(final RegisteredFlowSnapshot flowSnapshot, final Collection<ParameterContextEntity> existingContexts) {
         // We do not want to have double replacements: within the snapshot we keep the identical names identical.
         final Map<String, VersionedParameterContext> parameterContexts = flowSnapshot.getParameterContexts();
-        final Map<String, VersionedParameterContext> replacements = replaceParameterContexts(flowSnapshot.getFlowContents(), parameterContexts, new HashMap<>());
+        final Map<String, VersionedParameterContext> replacements = replaceParameterContexts(flowSnapshot.getFlowContents(), parameterContexts, new HashMap<>(), existingContexts);
 
         // This is needed because if a PC is used for both assignments and inheritance (parent) then we would both change it
         // but without updating the inheritance reference.  {@see NIFI-11706 TC#8}
@@ -80,48 +81,45 @@ public class ParameterContextReplacementUtil {
      */
     private Map<String, VersionedParameterContext> replaceParameterContexts(
         final VersionedProcessGroup group,
-        final Map<String, VersionedParameterContext> parameterContexts,
-        final Map<String, VersionedParameterContext> replacements
+        final Map<String, VersionedParameterContext> flowParameterContexts,
+        final Map<String, VersionedParameterContext> replacements,
+        final Collection<ParameterContextEntity> existingContexts
     ) {
         if (group.getParameterContextName() != null) {
             final String oldParameterContextName = group.getParameterContextName();
-            final VersionedParameterContext oldParameterContext = parameterContexts.get(oldParameterContextName);
+            final VersionedParameterContext oldParameterContext = flowParameterContexts.get(oldParameterContextName);
 
             if (replacements.containsKey(oldParameterContextName)) {
                 final String replacementContextName = replacements.get(oldParameterContextName).getName();
                 group.setParameterContextName(replacementContextName);
                 LOGGER.debug("Replacing Parameter Context in Group {} from {} into {}", group.getIdentifier(), oldParameterContext, replacementContextName);
             } else {
-                final VersionedParameterContext replacementContext = createReplacementContext(oldParameterContext);
+                final VersionedParameterContext replacementContext = createReplacementContext(oldParameterContext, existingContexts);
                 group.setParameterContextName(replacementContext.getName());
 
-                parameterContexts.remove(oldParameterContextName);
-                parameterContexts.put(replacementContext.getName(), replacementContext);
+                flowParameterContexts.remove(oldParameterContextName);
+                flowParameterContexts.put(replacementContext.getName(), replacementContext);
                 replacements.put(oldParameterContextName, replacementContext);
                 LOGGER.debug("Replacing Parameter Context in Group {} from {} into the newly created {}", group.getIdentifier(), oldParameterContext, replacementContext.getName());
             }
         }
 
         for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
-            replaceParameterContexts(childGroup, parameterContexts, replacements);
+            replaceParameterContexts(childGroup, flowParameterContexts, replacements, existingContexts);
         }
 
         return replacements;
     }
 
-    private VersionedParameterContext createReplacementContext(final VersionedParameterContext existing)  {
+    private VersionedParameterContext createReplacementContext(final VersionedParameterContext original, final Collection<ParameterContextEntity> existingContexts)  {
         final VersionedParameterContext replacement = new VersionedParameterContext();
-        replacement.setName(nameCollisionResolver.resolveNameCollision(existing.getName()));
-        replacement.setParameters(new HashSet<>(existing.getParameters()));
-        replacement.setInheritedParameterContexts(Optional.ofNullable(existing.getInheritedParameterContexts()).orElse(new ArrayList<>()));
-        replacement.setDescription(existing.getDescription());
-        replacement.setSynchronized(existing.isSynchronized());
-        replacement.setParameterProvider(existing.getParameterProvider());
-        replacement.setParameterGroupName(existing.getParameterGroupName());
+        replacement.setName(nameCollisionResolver.resolveNameCollision(original.getName(), existingContexts));
+        replacement.setParameters(new HashSet<>(original.getParameters()));
+        replacement.setInheritedParameterContexts(Optional.ofNullable(original.getInheritedParameterContexts()).orElse(new ArrayList<>()));
+        replacement.setDescription(original.getDescription());
+        replacement.setSynchronized(original.isSynchronized());
+        replacement.setParameterProvider(original.getParameterProvider());
+        replacement.setParameterGroupName(original.getParameterGroupName());
         return replacement;
-    }
-
-    public static ParameterContextReplacementUtil getInstance(final NiFiServiceFacade serviceFacade) {
-        return new ParameterContextReplacementUtil(new ParameterContextNameCollisionResolver(() -> serviceFacade.getParameterContexts()));
     }
 }

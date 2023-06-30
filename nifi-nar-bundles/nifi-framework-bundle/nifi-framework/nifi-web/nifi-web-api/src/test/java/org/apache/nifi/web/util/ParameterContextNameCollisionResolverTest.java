@@ -27,29 +27,27 @@ import org.mockito.Mockito;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-
 class ParameterContextNameCollisionResolverTest {
-    private final static Supplier<Collection<ParameterContextEntity>> EMPTY_PARAMETER_CONTEXT_SOURCE = () -> Collections.emptySet();
-    private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_FIRST = () -> Arrays.asList(getTestContext("test"));
-    private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_SOME =
-            () -> Arrays.asList(getTestContext("test"), getTestContext("test (1)"), getTestContext("test (2)"));
-    private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_NON_CONTINUOUS =
-            () -> Arrays.asList(getTestContext("test (3)"), getTestContext("test (9)"));
-    private final static Supplier<Collection<ParameterContextEntity>> PARAMETER_CONTEXT_SOURCE_WITH_OTHER_LINEAGES =
-            () -> Arrays.asList(getTestContext("test"), getTestContext("test2 (3)"), getTestContext("other"));
+    private final static Collection<ParameterContextEntity> EMPTY_PARAMETER_CONTEXT_SOURCE = Collections.emptySet();
+    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_FIRST = Arrays.asList(getTestContext("test"));
+    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_SOME =
+            Arrays.asList(getTestContext("test"), getTestContext("test (1)"), getTestContext("test (2)"));
+    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_NON_CONTINUOUS =
+            Arrays.asList(getTestContext("test (3)"), getTestContext("test (9)"));
+    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_OTHER_LINEAGES =
+            Arrays.asList(getTestContext("test"), getTestContext("test2 (3)"), getTestContext("other"));
 
     @ParameterizedTest(name = "\"{0}\" into \"{1}\"")
     @MethodSource("testDataSet")
     public void testResolveNameCollision(
             final String oldName,
             final String expectedResult,
-            final Supplier<Collection<ParameterContextEntity>> parameterContextSource
+            final Collection<ParameterContextEntity> parameterContexts
     ) {
-        final ParameterContextNameCollisionResolver testSubject = new ParameterContextNameCollisionResolver(parameterContextSource);
-        final String result = testSubject.resolveNameCollision(oldName);
+        final ParameterContextNameCollisionResolver testSubject = new ParameterContextNameCollisionResolver();
+        final String result = testSubject.resolveNameCollision(oldName, parameterContexts);
         Assertions.assertEquals(expectedResult, result);
     }
 
