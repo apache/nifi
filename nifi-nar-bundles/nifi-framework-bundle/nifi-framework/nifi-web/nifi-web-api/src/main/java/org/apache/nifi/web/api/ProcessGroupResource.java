@@ -4798,7 +4798,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         this.controllerServiceResource = controllerServiceResource;
     }
 
-    public void setParameterContextReplacementUtil(ParameterContextReplacer parameterContextReplacer) {
+    public void setParameterContextReplacer(ParameterContextReplacer parameterContextReplacer) {
         this.parameterContextReplacer = parameterContextReplacer;
     }
 
