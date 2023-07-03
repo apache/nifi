@@ -19,7 +19,11 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.fileresource.service.StandardFileResourceService;
+import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.dataupload.DataUploadProperties;
+import org.apache.nifi.processors.dataupload.DataUploadSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -27,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -246,6 +252,33 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
+    @Test
+    public void testPutFileFromLocalFile() throws Exception {
+        String attributeName = "file.path";
+
+        String serviceId = FileResourceService.class.getSimpleName();
+        FileResourceService service = new StandardFileResourceService();
+        runner.addControllerService(serviceId, service);
+        runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
+        runner.enableControllerService(service);
+
+        runner.setProperty(DataUploadProperties.DATA_TO_UPLOAD, DataUploadSource.LOCAL_FILE.getValue());
+        runner.setProperty(DataUploadProperties.FILE_RESOURCE_SERVICE, serviceId);
+
+        Path tempFilePath = Files.createTempFile("ITPutAzureDataLakeStorage_testPutFileFromLocalFile_", "");
+        Files.write(tempFilePath, FILE_DATA);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(attributeName, tempFilePath.toString());
+
+        runProcessor(EMPTY_CONTENT, attributes);
+
+        MockFlowFile flowFile = assertFlowFile(EMPTY_CONTENT);
+        assertFlowFileAttributes(flowFile, DIRECTORY, FILE_NAME, FILE_DATA.length);
+        assertAzureFile(DIRECTORY, FILE_NAME, FILE_DATA);
+        assertProvenanceEvents();
+    }
+
     private Map<String, String> createAttributesMap() {
         Map<String, String> attributes = new HashMap<>();
 
@@ -286,11 +319,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private void assertFlowFile(byte[] fileData, String fileName, String directory) throws Exception {
         MockFlowFile flowFile = assertFlowFile(fileData);
 
-        flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
-        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, directory);
-        flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
-
-        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, Integer.toString(fileData.length));
+        assertFlowFileAttributes(flowFile, directory, fileName, fileData.length);
     }
 
     private MockFlowFile assertFlowFile(byte[] fileData) throws Exception {
@@ -301,6 +330,14 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertContentEquals(fileData);
 
         return flowFile;
+    }
+
+    private void assertFlowFileAttributes(MockFlowFile flowFile, String directory, String fileName, int fileLength) {
+        flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
+        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, directory);
+        flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
+
+        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, Integer.toString(fileLength));
     }
 
     private void assertAzureFile(String directory, String fileName, byte[] fileData) {

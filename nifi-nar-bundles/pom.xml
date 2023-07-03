@@ -368,6 +368,12 @@
                 <version>2.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-file-resource-service-api</artifactId>
+                <version>2.0.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
             <!-- Managed dependency versions applicable to all modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>

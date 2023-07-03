@@ -57,7 +57,7 @@ public class TestPutAzureDataLakeStorage {
         when(flowFile.getSize()).thenReturn(1L);
         doThrow(IllegalArgumentException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
 
-        assertThrows(IllegalArgumentException.class, () -> processor.appendContent(flowFile, fileClient, session));
+        assertThrows(IllegalArgumentException.class, () -> processor.appendContent(flowFile, fileClient, session, null));
         verify(fileClient).delete();
     }
 
