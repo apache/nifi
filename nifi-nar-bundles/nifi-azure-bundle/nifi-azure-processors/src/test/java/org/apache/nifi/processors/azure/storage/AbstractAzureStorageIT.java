@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public abstract class AbstractAzureStorageIT {
 
+    protected static final byte[] EMPTY_CONTENT = new byte[0];
+
     private static final Properties CREDENTIALS_CONFIG;
     private static final Properties PROXY_CONFIG;
 

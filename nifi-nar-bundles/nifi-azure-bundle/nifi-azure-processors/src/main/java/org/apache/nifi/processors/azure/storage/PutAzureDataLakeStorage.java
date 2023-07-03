@@ -32,22 +32,24 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -61,6 +63,9 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -106,6 +111,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             FILE,
             BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
+            RESOURCE_TRANSFER_SOURCE,
+            FILE_RESOURCE_SERVICE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
@@ -135,14 +142,30 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final String tempFilePrefix = UUID.randomUUID().toString();
             final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
+            final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
+            final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
+            final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
 
             final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
-            appendContent(flowFile, tempFileClient, session);
+            if (transferSize > 0) {
+                final FlowFile sourceFlowFile = flowFile;
+                try (
+                        final InputStream inputStream = new BufferedInputStream(
+                                fileResourceFound.map(FileResource::getInputStream)
+                                        .orElseGet(() -> session.read(sourceFlowFile))
+                        )
+                ) {
+                    uploadContent(tempFileClient, inputStream, transferSize);
+                } catch (final Exception e) {
+                    removeTempFile(tempFileClient);
+                    throw e;
+                }
+            }
             createDirectoryIfNotExists(directoryClient);
 
             final String fileUrl = renameFile(tempFileClient, directoryClient.getDirectoryPath(), fileName, conflictResolution);
             if (fileUrl != null) {
-                final Map<String, String> attributes = createAttributeMap(flowFile, fileSystem, originalDirectory, fileName, fileUrl);
+                final Map<String, String> attributes = createAttributeMap(fileSystem, originalDirectory, fileName, fileUrl, transferSize);
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -162,32 +185,19 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         return storageClient.getFileSystemClient(fileSystem);
     }
 
-    private Map<String, String> createAttributeMap(FlowFile flowFile, String fileSystem, String originalDirectory, String fileName, String fileUrl) {
+    private Map<String, String> createAttributeMap(String fileSystem, String originalDirectory, String fileName, String fileUrl, long length) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
         attributes.put(ATTR_NAME_DIRECTORY, originalDirectory);
         attributes.put(ATTR_NAME_FILENAME, fileName);
         attributes.put(ATTR_NAME_PRIMARY_URI, fileUrl);
-        attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
+        attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
         return attributes;
     }
 
     private void createDirectoryIfNotExists(DataLakeDirectoryClient directoryClient) {
         if (!directoryClient.getDirectoryPath().isEmpty() && !directoryClient.exists()) {
             directoryClient.create();
-        }
-    }
-
-    //Visible for testing
-    void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
-        final long length = flowFile.getSize();
-        if (length > 0) {
-            try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
-                uploadContent(fileClient, bufferedIn, length);
-            } catch (Exception e) {
-                removeTempFile(fileClient);
-                throw e;
-            }
         }
     }
 
