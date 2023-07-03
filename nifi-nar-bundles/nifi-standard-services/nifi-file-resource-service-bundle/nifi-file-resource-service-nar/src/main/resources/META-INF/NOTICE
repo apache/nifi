@@ -1,0 +1,12 @@
+nifi-file-resource-service-nar
+Copyright 2023 The Apache Software Foundation
+
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.1)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)

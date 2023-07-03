@@ -1001,6 +1001,12 @@ language governing permissions and limitations under the License. -->
             <version>1.23.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-file-resource-service-nar</artifactId>
+            <version>1.23.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
         <!-- AspectJ library needed by the Java Agent used for native library loading (see bootstrap.conf) -->
         <dependency>
             <groupId>org.aspectj</groupId>

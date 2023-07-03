@@ -41,6 +41,7 @@
         <module>nifi-put-pattern</module>
         <module>nifi-record-utils</module>
         <module>nifi-reporting-utils</module>
+        <module>nifi-resource-transfer</module>
         <module>nifi-service-utils</module>
         <module>nifi-syslog-utils</module>
         <module>nifi-conflict-resolution</module>
