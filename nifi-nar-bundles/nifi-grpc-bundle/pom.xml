@@ -33,8 +33,8 @@
     </modules>
 
     <properties>
-        <grpc.version>1.55.1</grpc.version>
-        <protoc.version>3.22.2</protoc.version>
+        <grpc.version>1.56.1</grpc.version>
+        <protoc.version>3.22.5</protoc.version>
     </properties>
 
     <dependencyManagement>
