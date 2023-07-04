@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import java.util.Set
 
+import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.controller.ControllerServiceInitializationContext
 import org.apache.nifi.reporting.InitializationException
 
@@ -28,6 +28,15 @@ class GroovyLookupService implements LookupService<String> {
             'World': 'there'
     ]
 
+    ComponentLog logger;
+
+    void setLogger(ComponentLog logger) {
+        this.logger = logger
+    }
+
+    void onEnabled(final ConfigurationContext context) {
+        logger.info("in onEnabled")
+    }
 
     @Override
     Optional<String> lookup(Map<String, String> coordinates) {
