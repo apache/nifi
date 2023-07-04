@@ -18,6 +18,7 @@
 import groovy.xml.MarkupBuilder
 
 import org.apache.nifi.controller.AbstractControllerService
+import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.flowfile.FlowFile
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.schema.access.SchemaNotFoundException
@@ -97,6 +98,16 @@ class GroovyRecordSetWriter implements RecordSetWriter {
 }
 
 class GroovyRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
+
+    ComponentLog logger;
+
+    void setLogger(ComponentLog logger) {
+        this.logger = logger
+    }
+
+    void onEnabled(final ConfigurationContext context) {
+        logger.info("in onEnabled")
+    }
 
     @Override
     RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
