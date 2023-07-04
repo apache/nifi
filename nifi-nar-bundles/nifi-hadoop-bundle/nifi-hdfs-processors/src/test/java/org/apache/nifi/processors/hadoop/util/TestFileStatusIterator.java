@@ -69,7 +69,7 @@ class TestFileStatusIterator {
     private FileStatusIterable fileStatusIterable;
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         fileStatusIterable = new FileStatusIterable(new Path("/path/to/files"), false, mockHdfs, mockUserGroupInformation);
     }
 
@@ -121,14 +121,6 @@ class TestFileStatusIterator {
     }
 
     private void setupFileStatusMocks(FileStatus[] fileStatuses) throws IOException, InterruptedException {
-        when(mockFileStatus1.getPath()).thenReturn(MOCK_FILE_STATUS_1_PATH);
-        when(mockFileStatus2.getPath()).thenReturn(MOCK_FILE_STATUS_2_PATH);
-        when(mockFileStatus3.getPath()).thenReturn(MOCK_FILE_STATUS_3_PATH);
-
-        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_1_PATH)).thenReturn(mockFileStatus1);
-        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_2_PATH)).thenReturn(mockFileStatus2);
-        when(mockHdfs.getFileStatus(MOCK_FILE_STATUS_3_PATH)).thenReturn(mockFileStatus3);
-
         when(mockHdfs.listStatusIterator(any(Path.class))).thenReturn(new MockRemoteIterator(fileStatuses));
 
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {

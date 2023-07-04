@@ -33,7 +33,7 @@ import java.util.List;
 public abstract class HdfsObjectWriter {
 
     protected final ProcessSession session;
-    protected final FileStatusIterable fileStatuses;
+    protected final FileStatusIterable fileStatusIterable;
     final long minimumAge;
     final long maximumAge;
     final PathFilter pathFilter;
@@ -44,10 +44,10 @@ public abstract class HdfsObjectWriter {
     long fileCount;
 
 
-    HdfsObjectWriter(ProcessSession session, FileStatusIterable fileStatuses, long minimumAge, long maximumAge, PathFilter pathFilter,
+    HdfsObjectWriter(ProcessSession session, FileStatusIterable fileStatusIterable, long minimumAge, long maximumAge, PathFilter pathFilter,
                      FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses) {
         this.session = session;
-        this.fileStatuses = fileStatuses;
+        this.fileStatusIterable = fileStatusIterable;
         this.minimumAge = minimumAge;
         this.maximumAge = maximumAge;
         this.pathFilter = pathFilter;

@@ -59,56 +59,60 @@ public class FileStatusIterable implements Iterable<FileStatus> {
 
         private static final String IO_ERROR_MESSAGE = "IO error occurred while iterating HFDS";
 
-        private final Deque<Path> fileStatuses;
         private final Deque<Path> dirStatuses;
 
+        private FileStatus nextFileStatus;
+        private RemoteIterator<FileStatus> hdfsIterator;
+
         public FileStatusIterator() {
-            fileStatuses = new ArrayDeque<>();
             dirStatuses = new ArrayDeque<>();
-            addFileStatuses(path);
+            hdfsIterator = getHdfsIterator(path);
         }
 
         @Override
         public boolean hasNext() {
-            if (dirStatuses.isEmpty() && fileStatuses.isEmpty()) {
+            if (nextFileStatus != null) {
+                return true;
+            }
+            try {
+                while (hdfsIterator.hasNext() || !dirStatuses.isEmpty()) {
+                    if (hdfsIterator.hasNext()) {
+                        FileStatus fs = hdfsIterator.next();
+                        if (fs.isDirectory()) {
+                            if (recursive) {
+                                dirStatuses.push(fs.getPath());
+                            }
+                            // if not recursive, continue
+                        } else {
+                            nextFileStatus = fs;
+                            return true;
+                        }
+                    } else {
+                        hdfsIterator = getHdfsIterator(dirStatuses.pop());
+                    }
+                }
                 return false;
+            } catch (IOException e) {
+                throw new ProcessException(IO_ERROR_MESSAGE, e);
             }
-            while (recursive && fileStatuses.isEmpty() && !dirStatuses.isEmpty()) {
-                final Path dirStatus = dirStatuses.pop();
-                addFileStatuses(dirStatus);
-            }
-            return !fileStatuses.isEmpty();
         }
 
         @Override
         public FileStatus next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
+            if (nextFileStatus == null) {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
             }
             totalFileCount.incrementAndGet();
-            try {
-                return userGroupInformation.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(fileStatuses.pop()));
-            } catch (IOException e) {
-                throw new ProcessException(IO_ERROR_MESSAGE, e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new ProcessException("Thread was interrupted while iterating HDFS", e);
-            }
+            final FileStatus nextFileStatus = this.nextFileStatus;
+            this.nextFileStatus = null;
+            return nextFileStatus;
         }
 
-        final void addFileStatuses(Path path) {
-            RemoteIterator<FileStatus> iterator;
+        private RemoteIterator<FileStatus> getHdfsIterator(final Path hdfsPath) {
             try {
-                iterator = userGroupInformation.doAs((PrivilegedExceptionAction<RemoteIterator<FileStatus>>) () -> hdfs.listStatusIterator(path));
-                FileStatus status;
-                while (iterator.hasNext()) {
-                    status = iterator.next();
-                    if (status.isDirectory()) {
-                        dirStatuses.push(status.getPath());
-                    } else {
-                        fileStatuses.push(status.getPath());
-                    }
-                }
+                return userGroupInformation.doAs((PrivilegedExceptionAction<RemoteIterator<FileStatus>>) () -> hdfs.listStatusIterator(hdfsPath));
             } catch (IOException e) {
                 throw new ProcessException(IO_ERROR_MESSAGE, e);
             } catch (InterruptedException e) {

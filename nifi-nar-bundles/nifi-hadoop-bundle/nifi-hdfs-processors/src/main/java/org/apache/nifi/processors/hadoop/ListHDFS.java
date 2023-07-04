@@ -272,7 +272,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
             getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatuses.getTotalFileCount(), writer.getListedFileCount());
 
-
             if (writer.getListedFileCount() > 0) {
                 final Map<String, String> updatedState = new HashMap<>();
                 updatedState.put(LATEST_TIMESTAMP_KEY, String.valueOf(fileStatusManager.getLatestTimestamp()));

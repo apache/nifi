@@ -40,7 +40,7 @@ public class FlowFileObjectWriter extends HdfsObjectWriter {
 
     @Override
     public void write() {
-        for (FileStatus status : fileStatuses) {
+        for (FileStatus status : fileStatusIterable) {
             if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
 
                 final Map<String, String> attributes = createAttributes(status);
@@ -52,10 +52,6 @@ public class FlowFileObjectWriter extends HdfsObjectWriter {
                 fileCount++;
             }
         }
-    }
-
-    public long getListedFileCount() {
-        return fileCount;
     }
 
     private Map<String, String> createAttributes(final FileStatus status) {

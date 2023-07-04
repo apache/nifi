@@ -98,7 +98,7 @@ public class RecordObjectWriter extends HdfsObjectWriter {
         try (RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)) {
             recordWriter.beginRecordSet();
 
-            for (FileStatus status : fileStatuses) {
+            for (FileStatus status : fileStatusIterable) {
                 if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
                     recordWriter.write(createRecordForListing(status));
                     fileStatusManager.update(status);
