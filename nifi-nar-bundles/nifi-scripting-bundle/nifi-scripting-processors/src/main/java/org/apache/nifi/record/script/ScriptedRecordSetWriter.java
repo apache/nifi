@@ -64,7 +64,40 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
     @Override
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
+            }
+        }
         super.onEnabled(context);
+
+        // Call an non-interface method onEnabled(context), to allow a scripted LookupService the chance to set up as necessary
+        if (scriptRunner != null) {
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final Invocable invocable = (Invocable) scriptEngine;
+            if (configurationContext != null) {
+                try {
+                    // Get the actual object from the script engine, versus the proxy stored in lookupService. The object may have additional methods,
+                    // where lookupService is a proxied interface
+                    final Object obj = scriptEngine.get("writer");
+                    if (obj != null) {
+                        try {
+                            invocable.invokeMethod(obj, "onEnabled", context);
+                        } catch (final NoSuchMethodException nsme) {
+                            if (getLogger().isDebugEnabled()) {
+                                getLogger().debug("Configured script for ScriptedRecordSetWriter does not contain an onEnabled() method.");
+                            }
+                        }
+                    } else {
+                        throw new ScriptException("No ScriptedRecordSetWriter was defined by the script.");
+                    }
+                } catch (ScriptException se) {
+                    throw new ProcessException("Error executing onEnabled(context) method", se);
+                }
+            }
+        } else {
+            throw new ProcessException("Error creating ScriptRunner");
+        }
     }
 
 

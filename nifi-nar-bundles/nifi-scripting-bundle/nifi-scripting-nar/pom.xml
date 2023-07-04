@@ -50,6 +50,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- nifi-avro-record-utils dependency to include in the NAR for processor to use at runtime -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-avro-record-utils</artifactId>
+            <type>jar</type>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
