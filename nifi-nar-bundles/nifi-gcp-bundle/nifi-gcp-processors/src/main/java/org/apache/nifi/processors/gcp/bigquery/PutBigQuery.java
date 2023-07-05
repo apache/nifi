@@ -41,6 +41,7 @@ import com.google.cloud.bigquery.storage.v1.StorageError;
 import com.google.cloud.bigquery.storage.v1.StreamWriter;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
+import com.google.cloud.bigquery.storage.v1.stub.BigQueryWriteStubSettings;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
@@ -116,12 +117,25 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private BigQueryWriteClient writeClient = null;
     private StreamWriter streamWriter = null;
     private String transferType;
+    private String endpoint;
     private int maxRetryCount;
     private int recordBatchCount;
 
     public static final PropertyDescriptor PROJECT_ID = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(AbstractBigQueryProcessor.PROJECT_ID)
         .required(true)
+        .build();
+
+    public static final PropertyDescriptor BIGQUERY_API_ENDPOINT = new PropertyDescriptor.Builder()
+        .name("bigquery-api-endpoint")
+        .displayName("BigQuery API Endpoint")
+        .description("Can be used to override the default BigQuery endpoint. Default is "
+                + BigQueryWriteStubSettings.getDefaultEndpoint() + ". "
+                + "Format must be hostname:port.")
+        .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .required(true)
+        .defaultValue(BigQueryWriteStubSettings.getDefaultEndpoint())
         .build();
 
     static final PropertyDescriptor TRANSFER_TYPE = new PropertyDescriptor.Builder()
@@ -163,6 +177,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     private static final List<PropertyDescriptor> DESCRIPTORS = Stream.of(
         GCP_CREDENTIALS_PROVIDER_SERVICE,
         PROJECT_ID,
+        BIGQUERY_API_ENDPOINT,
         DATASET,
         TABLE_NAME,
         RECORD_READER,
@@ -184,6 +199,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         transferType = context.getProperty(TRANSFER_TYPE).getValue();
         maxRetryCount = context.getProperty(RETRY_COUNT).asInteger();
         recordBatchCount = context.getProperty(APPEND_RECORD_COUNT).asInteger();
+        endpoint = context.getProperty(BIGQUERY_API_ENDPOINT).evaluateAttributeExpressions().getValue();
         writeClient = createWriteClient(getGoogleCredentials(context));
     }
 
@@ -382,7 +398,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     protected BigQueryWriteClient createWriteClient(GoogleCredentials credentials) {
         BigQueryWriteClient client;
         try {
-            client = BigQueryWriteClient.create(BigQueryWriteSettings.newBuilder().setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build());
+            BigQueryWriteSettings.Builder builder = BigQueryWriteSettings.newBuilder();
+            builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+            builder.setEndpoint(endpoint);
+
+            client = BigQueryWriteClient.create(builder.build());
         } catch (Exception e) {
             throw new ProcessException("Failed to create Big Query Write Client for writing", e);
         }
@@ -392,9 +412,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
     protected StreamWriter createStreamWriter(String streamName, Descriptors.Descriptor descriptor, GoogleCredentials credentials) throws IOException {
         ProtoSchema protoSchema = ProtoSchemaConverter.convert(descriptor);
-        return StreamWriter.newBuilder(streamName)
-            .setWriterSchema(protoSchema)
-            .setCredentialsProvider(FixedCredentialsProvider.create(credentials)).build();
+
+        StreamWriter.Builder builder = StreamWriter.newBuilder(streamName);
+        builder.setWriterSchema(protoSchema);
+        builder.setCredentialsProvider(FixedCredentialsProvider.create(credentials));
+        builder.setEndpoint(endpoint);
+
+        return builder.build();
     }
 
     private boolean isBatch() {
