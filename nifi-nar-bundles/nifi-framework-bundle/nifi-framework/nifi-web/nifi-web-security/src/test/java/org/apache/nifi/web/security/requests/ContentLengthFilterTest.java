@@ -48,11 +48,11 @@ class ContentLengthFilterTest {
 
     // These variables hold data for content small enough to be allowed
     private static final int SMALL_CLAIM_SIZE_BYTES = 150;
-    private static final String SMALL_PAYLOAD = "1".repeat(SMALL_CLAIM_SIZE_BYTES);
+    private static final String SMALL_PAYLOAD = StringUtils.repeat("1", SMALL_CLAIM_SIZE_BYTES);
 
     // These variables hold data for content too large to be allowed
     private static final int LARGE_CLAIM_SIZE_BYTES = 2000;
-    private static final String LARGE_PAYLOAD = "1".repeat(LARGE_CLAIM_SIZE_BYTES);
+    private static final String LARGE_PAYLOAD = StringUtils.repeat("1", LARGE_CLAIM_SIZE_BYTES);
 
     private Server serverUnderTest;
     private LocalConnector localConnector;
@@ -92,7 +92,7 @@ class ContentLengthFilterTest {
      */
     @Test
     public void testShouldRejectRequestWithLongContentLengthHeaderAndSmallPayload() throws Exception {
-        String incompletePayload = "1".repeat(SMALL_CLAIM_SIZE_BYTES / 2);
+        String incompletePayload = StringUtils.repeat("1", SMALL_CLAIM_SIZE_BYTES / 2);
         final String requestBody = String.format(POST_REQUEST, LARGE_CLAIM_SIZE_BYTES, incompletePayload);
         String response = localConnector.getResponse(requestBody);
 
@@ -172,7 +172,7 @@ class ContentLengthFilterTest {
         }, FORM_CONTENT_SIZE);
 
         // Test to catch a form submission that exceeds the FORM_CONTENT_SIZE limit
-        String form = "a=" + "1".repeat(FORM_CONTENT_SIZE);
+        String form = "a=" + StringUtils.repeat("1", FORM_CONTENT_SIZE);
         final String formRequest = "POST / HTTP/1.1\r\nContent-Length: %d\r\nHost: h\r\nContent-Type: application/x-www-form-urlencoded\r\nAccept-Charset: UTF-8\r\n\r\n%s";
         String response = localConnector.getResponse(String.format(formRequest, form.length(), form));
 

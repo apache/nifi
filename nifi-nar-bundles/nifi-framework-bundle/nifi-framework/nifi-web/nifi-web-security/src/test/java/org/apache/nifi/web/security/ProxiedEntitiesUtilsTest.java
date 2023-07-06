@@ -17,6 +17,7 @@
 package org.apache.nifi.web.security;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -180,7 +181,7 @@ public class ProxiedEntitiesUtilsTest {
 
     @Test
     public void testShouldTokenizeDoubleAnonymous() {
-        assertEquals(Arrays.asList(ANONYMOUS_USER, ANONYMOUS_USER), ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(ANONYMOUS_PROXIED_ENTITY_CHAIN.repeat(2)));
+        assertEquals(Arrays.asList(ANONYMOUS_USER, ANONYMOUS_USER), ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(StringUtils.repeat(ANONYMOUS_PROXIED_ENTITY_CHAIN, 2)));
     }
 
     @Test
