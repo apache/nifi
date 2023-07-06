@@ -454,6 +454,13 @@ div.lineage-view-event:before {
     color: #004849;
 }
 
+div.lineage-go-to:before {
+    font-family: FontAwesome;
+    content: "\f178";
+    font-size: 16px;
+    color: #004849;
+}
+
 div.lineage-view-parents:before {
     font-family: FontAwesome;
     content: "\f1e5";

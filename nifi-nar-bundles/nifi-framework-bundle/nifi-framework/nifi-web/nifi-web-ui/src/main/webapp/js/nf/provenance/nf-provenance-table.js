@@ -704,6 +704,7 @@
             var provenanceData = new Slick.Data.DataView({
                 inlineFilters: false
             });
+            provenanceTableCtrl.provenanceData = provenanceData;
             provenanceData.setItems([]);
             provenanceData.setFilterArgs({
                 searchString: '',
@@ -743,7 +744,7 @@
                     if (target.hasClass('show-lineage')) {
                         provenanceLineageCtrl.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId, provenanceTableCtrl);
                     } else if (target.hasClass('go-to')) {
-                        goTo(item);
+                        provenanceTableCtrl.goTo(item);
                     }
                 } else if (provenanceGrid.getColumns()[args.cell].id === 'moreDetails') {
                     if (target.hasClass('show-event-details')) {
@@ -1002,25 +1003,6 @@
             }
         };
 
-        /**
-         * Goes to the specified component if possible.
-         *
-         * @argument {object} item       The event it
-         */
-        var goTo = function (item) {
-            // ensure the component is still present in the flow
-            if (nfCommon.isDefinedAndNotNull(item.groupId)) {
-                // only attempt this if we're within a frame
-                if (top !== window) {
-                    // and our parent has canvas utils and shell defined
-                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && nfCommon.isDefinedAndNotNull(parent.nf.Shell)) {
-                        parent.nf.CanvasUtils.showComponent(item.groupId, item.componentId);
-                        parent.$('#shell-close-button').click();
-                    }
-                }
-            }
-        };
-
         function ProvenanceTableCtrl() {
 
             /**
@@ -1213,6 +1195,9 @@
                     }
                 };
 
+                // used to access provenance data when outside of scope
+                var provenanceData;
+
                 // once the query is submitted wait until its finished
                 submitProvenance(query).done(function (response) {
                     // update the provenance
@@ -1244,6 +1229,29 @@
                     url: url,
                     dataType: 'json'
                 }).fail(nfErrorHandler.handleAjaxError);
+            },
+
+            /**
+             * Goes to the specified component if possible.
+             *
+             * @argument {object} item       The event it
+            */
+            goTo: function (item) {
+                // if being called by context menu
+                if (!Object.hasOwn(item, 'componentId') && Object.hasOwn(item, 'id')) {
+                    item = this.provenanceData.getItemById(item.id);
+                }
+                // ensure the component is still present in the flow
+                if (nfCommon.isDefinedAndNotNull(item.groupId)) {
+                    // only attempt this if we're within a frame
+                    if (top !== window) {
+                        // and our parent has canvas utils and shell defined
+                        if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && nfCommon.isDefinedAndNotNull(parent.nf.Shell)) {
+                            parent.nf.CanvasUtils.showComponent(item.groupId, item.componentId);
+                            parent.$('#shell-close-button').click();
+                        }
+                    }
+                }
             },
 
             /**
