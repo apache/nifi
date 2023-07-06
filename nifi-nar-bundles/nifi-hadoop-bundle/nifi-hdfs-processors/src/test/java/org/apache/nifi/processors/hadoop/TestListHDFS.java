@@ -444,13 +444,13 @@ class TestListHDFS {
         runner.getStateManager().clear(Scope.CLUSTER);
 
         // invalid min_age > max_age
-        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
-        runner.setProperty(ListHDFS.MAX_AGE, "1 sec");
+        runner.setProperty(ListHDFS.MINIMUM_FILE_AGE, "30 sec");
+        runner.setProperty(ListHDFS.MAXIMUM_FILE_AGE, "1 sec");
         runner.assertNotValid();
 
         // only one file (one hour ago)
-        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
-        runner.setProperty(ListHDFS.MAX_AGE, "90 min");
+        runner.setProperty(ListHDFS.MINIMUM_FILE_AGE, "30 sec");
+        runner.setProperty(ListHDFS.MAXIMUM_FILE_AGE, "90 min");
         runner.assertValid();
 
         runner.run();
@@ -461,8 +461,8 @@ class TestListHDFS {
         runner.getStateManager().clear(Scope.CLUSTER);
 
         // two files (one hour ago and two hours ago)
-        runner.setProperty(ListHDFS.MIN_AGE, "30 sec");
-        runner.removeProperty(ListHDFS.MAX_AGE);
+        runner.setProperty(ListHDFS.MINIMUM_FILE_AGE, "30 sec");
+        runner.removeProperty(ListHDFS.MAXIMUM_FILE_AGE);
         runner.assertValid();
 
         runner.run();
@@ -472,8 +472,8 @@ class TestListHDFS {
         runner.getStateManager().clear(Scope.CLUSTER);
 
         // two files (now and one hour ago)
-        runner.setProperty(ListHDFS.MIN_AGE, "0 sec");
-        runner.setProperty(ListHDFS.MAX_AGE, "90 min");
+        runner.setProperty(ListHDFS.MINIMUM_FILE_AGE, "0 sec");
+        runner.setProperty(ListHDFS.MAXIMUM_FILE_AGE, "90 min");
         runner.assertValid();
 
         runner.run();

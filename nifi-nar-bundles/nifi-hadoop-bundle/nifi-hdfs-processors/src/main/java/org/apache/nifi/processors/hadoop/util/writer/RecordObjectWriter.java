@@ -44,7 +44,7 @@ import java.util.Map;
 
 import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
 
-public class RecordObjectWriter extends HdfsObjectWriter {
+public class RecordObjectWriter extends HadoopFileStatusWriter {
 
     private static final RecordSchema RECORD_SCHEMA;
 
@@ -82,10 +82,17 @@ public class RecordObjectWriter extends HdfsObjectWriter {
     private final RecordSetWriterFactory writerFactory;
     private final ComponentLog logger;
 
-    public RecordObjectWriter(ProcessSession session, FileStatusIterable fileStatuses, long minimumAge, long maximumAge, PathFilter pathFilter,
-                              FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses,
-                              RecordSetWriterFactory writerFactory, ComponentLog logger) {
-        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
+    public RecordObjectWriter(final ProcessSession session,
+                              final FileStatusIterable fileStatuses,
+                              final long minimumAge,
+                              final long maximumAge,
+                              final PathFilter pathFilter,
+                              final FileStatusManager fileStatusManager,
+                              final long previousLatestModificationTime,
+                              final List<String> previousLatestFiles,
+                              final  RecordSetWriterFactory writerFactory,
+                              final ComponentLog logger) {
+        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, previousLatestModificationTime, previousLatestFiles);
         this.writerFactory = writerFactory;
         this.logger = logger;
     }
@@ -99,7 +106,7 @@ public class RecordObjectWriter extends HdfsObjectWriter {
             recordWriter.beginRecordSet();
 
             for (FileStatus status : fileStatusIterable) {
-                if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
+                if (determineListable(status)) {
                     recordWriter.write(createRecordForListing(status));
                     fileStatusManager.update(status);
                 }

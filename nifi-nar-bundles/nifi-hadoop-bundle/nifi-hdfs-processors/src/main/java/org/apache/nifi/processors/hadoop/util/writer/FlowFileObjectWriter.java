@@ -29,19 +29,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FlowFileObjectWriter extends HdfsObjectWriter {
+public class FlowFileObjectWriter extends HadoopFileStatusWriter {
 
     private static final String HDFS_ATTRIBUTE_PREFIX = "hdfs";
 
-    public FlowFileObjectWriter(ProcessSession session, FileStatusIterable fileStatuses, long minimumAge, long maximumAge, PathFilter pathFilter,
-                                FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses) {
-        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestModificationTime, latestModifiedStatuses);
+    public FlowFileObjectWriter(final ProcessSession session,
+                                final FileStatusIterable fileStatuses,
+                                final long minimumAge,
+                                final long maximumAge,
+                                final PathFilter pathFilter,
+                                final FileStatusManager fileStatusManager,
+                                final long previousLatestModificationTime,
+                                final List<String> previousLatestFiles) {
+        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, previousLatestModificationTime, previousLatestFiles);
     }
 
     @Override
     public void write() {
         for (FileStatus status : fileStatusIterable) {
-            if (determineListable(status, minimumAge, maximumAge, pathFilter, latestModificationTime, latestModifiedStatuses)) {
+            if (determineListable(status)) {
 
                 final Map<String, String> attributes = createAttributes(status);
                 FlowFile flowFile = session.create();

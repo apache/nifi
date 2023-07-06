@@ -47,10 +47,6 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TestFileStatusIterator {
-
-    public static final Path MOCK_FILE_STATUS_1_PATH = new Path("/test/mock/file/status/1");
-    public static final Path MOCK_FILE_STATUS_2_PATH = new Path("/test/mock/file/status/2");
-    public static final Path MOCK_FILE_STATUS_3_PATH = new Path("/test/mock/file/status/3");
     @Mock
     private FileSystem mockHdfs;
 

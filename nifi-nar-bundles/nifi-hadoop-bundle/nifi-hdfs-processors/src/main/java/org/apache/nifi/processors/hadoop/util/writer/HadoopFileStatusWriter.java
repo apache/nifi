@@ -28,32 +28,38 @@ import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import java.util.List;
 
 /**
- * Interface for common management of writing to records and to flowfiles.
+ * Interface for common management of writing to records and to FlowFiles.
  */
-public abstract class HdfsObjectWriter {
+public abstract class HadoopFileStatusWriter {
 
     protected final ProcessSession session;
     protected final FileStatusIterable fileStatusIterable;
-    final long minimumAge;
-    final long maximumAge;
-    final PathFilter pathFilter;
-    final FileStatusManager fileStatusManager;
-    final long latestModificationTime;
-    final List<String> latestModifiedStatuses;
-    final long currentTimeMillis;
-    long fileCount;
+    protected final long minimumAge;
+    protected final long maximumAge;
+    protected final PathFilter pathFilter;
+    protected final FileStatusManager fileStatusManager;
+    protected final long previousLatestTimestamp;
+    protected final List<String> previousLatestFiles;
+    protected long fileCount;
+    private final long currentTimeMillis;
 
 
-    HdfsObjectWriter(ProcessSession session, FileStatusIterable fileStatusIterable, long minimumAge, long maximumAge, PathFilter pathFilter,
-                     FileStatusManager fileStatusManager, long latestModificationTime, List<String> latestModifiedStatuses) {
+    HadoopFileStatusWriter(final ProcessSession session,
+                           final FileStatusIterable fileStatusIterable,
+                           final long minimumAge,
+                           final long maximumAge,
+                           final PathFilter pathFilter,
+                           final FileStatusManager fileStatusManager,
+                           final long previousLatestTimestamp,
+                           final List<String> previousLatestFiles) {
         this.session = session;
         this.fileStatusIterable = fileStatusIterable;
         this.minimumAge = minimumAge;
         this.maximumAge = maximumAge;
         this.pathFilter = pathFilter;
         this.fileStatusManager = fileStatusManager;
-        this.latestModificationTime = latestModificationTime;
-        this.latestModifiedStatuses = latestModifiedStatuses;
+        this.previousLatestTimestamp = previousLatestTimestamp;
+        this.previousLatestFiles = previousLatestFiles;
         currentTimeMillis = System.currentTimeMillis();
         fileCount = 0L;
     }
@@ -64,17 +70,16 @@ public abstract class HdfsObjectWriter {
         return fileCount;
     }
 
-    boolean determineListable(final FileStatus status, final long minimumAge, final long maximumAge, final PathFilter filter,
-                                      final long latestModificationTime, final List<String> latestModifiedStatuses) {
+    protected boolean determineListable(final FileStatus status) {
 
         final boolean isCopyInProgress = status.getPath().getName().endsWith("_COPYING_");
-        final boolean isFilterAccepted = filter.accept(status.getPath());
+        final boolean isFilterAccepted = pathFilter.accept(status.getPath());
         if (isCopyInProgress || !isFilterAccepted) {
             return false;
         }
         // If the file was created during the processor's last iteration we have to check if it was already listed
-        if (status.getModificationTime() == latestModificationTime) {
-            return !latestModifiedStatuses.contains(status.getPath().toString());
+        if (status.getModificationTime() == previousLatestTimestamp) {
+            return !previousLatestFiles.contains(status.getPath().toString());
         }
 
         final long fileAge = currentTimeMillis - status.getModificationTime();
@@ -82,7 +87,7 @@ public abstract class HdfsObjectWriter {
             return false;
         }
 
-        return status.getModificationTime() > latestModificationTime;
+        return status.getModificationTime() > previousLatestTimestamp;
     }
 
     String getAbsolutePath(final Path path) {

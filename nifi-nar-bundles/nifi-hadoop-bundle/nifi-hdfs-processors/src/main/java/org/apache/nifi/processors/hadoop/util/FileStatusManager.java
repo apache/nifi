@@ -19,33 +19,37 @@ package org.apache.nifi.processors.hadoop.util;
 import org.apache.hadoop.fs.FileStatus;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * Keeps a list of the latest modified file paths and the latest modified timestamp of the current run.
+ */
 public class FileStatusManager {
 
-    private final List<String> latestFiles;
-    private long latestTimestamp;
+    private final List<String> currentLatestFiles;
+    private long currentLatestTimestamp;
 
-    public FileStatusManager() {
-        latestTimestamp = 0L;
-        latestFiles = new ArrayList<>();
+    public FileStatusManager(final long initialLatestTimestamp, final List<String> initialLatestFiles) {
+        currentLatestTimestamp = initialLatestTimestamp;
+        currentLatestFiles = new ArrayList<>(initialLatestFiles);
     }
 
     public void update(final FileStatus status) {
-        if (status.getModificationTime() > latestTimestamp) {
-            latestTimestamp = status.getModificationTime();
-            latestFiles.clear();
-            latestFiles.add(status.getPath().toString());
-        } else if (status.getModificationTime() == latestTimestamp) {
-            latestFiles.add(status.getPath().toString());
+        if (status.getModificationTime() > currentLatestTimestamp) {
+            currentLatestTimestamp = status.getModificationTime();
+            currentLatestFiles.clear();
+            currentLatestFiles.add(status.getPath().toString());
+        } else if (status.getModificationTime() == currentLatestTimestamp) {
+            currentLatestFiles.add(status.getPath().toString());
         }
     }
 
-    public List<String> getLatestFiles() {
-        return latestFiles;
+    public List<String> getCurrentLatestFiles() {
+        return Collections.unmodifiableList(currentLatestFiles);
     }
 
-    public long getLatestTimestamp() {
-        return latestTimestamp;
+    public long getCurrentLatestTimestamp() {
+        return currentLatestTimestamp;
     }
 }

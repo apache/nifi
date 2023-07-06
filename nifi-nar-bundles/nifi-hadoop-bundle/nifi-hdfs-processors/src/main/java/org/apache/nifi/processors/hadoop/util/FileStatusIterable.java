@@ -29,20 +29,18 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class FileStatusIterable implements Iterable<FileStatus> {
-
     private final Path path;
     private final boolean recursive;
-    private final FileSystem hdfs;
+    private final FileSystem fileSystem;
     private final UserGroupInformation userGroupInformation;
-    private final AtomicLong totalFileCount = new AtomicLong();
+    private long totalFileCount;
 
-    public FileStatusIterable(final Path path, final boolean recursive, final FileSystem hdfs, final UserGroupInformation userGroupInformation) {
+    public FileStatusIterable(final Path path, final boolean recursive, final FileSystem fileSystem, final UserGroupInformation userGroupInformation) {
         this.path = path;
         this.recursive = recursive;
-        this.hdfs = hdfs;
+        this.fileSystem = fileSystem;
         this.userGroupInformation = userGroupInformation;
     }
 
@@ -52,21 +50,21 @@ public class FileStatusIterable implements Iterable<FileStatus> {
     }
 
     public long getTotalFileCount() {
-        return totalFileCount.get();
+        return totalFileCount;
     }
 
     class FileStatusIterator implements Iterator<FileStatus> {
 
-        private static final String IO_ERROR_MESSAGE = "IO error occurred while iterating HFDS";
+        private static final String IO_ERROR_MESSAGE = "IO error occurred while iterating Hadoop File System";
+        private static final String THREAD_INTERRUPT_ERROR_MESSAGE = "Thread was interrupted while iterating Hadoop File System";
 
-        private final Deque<Path> dirStatuses;
-
+        private final Deque<Path> dirPaths;
         private FileStatus nextFileStatus;
-        private RemoteIterator<FileStatus> hdfsIterator;
+        private RemoteIterator<FileStatus> remoteIterator;
 
         public FileStatusIterator() {
-            dirStatuses = new ArrayDeque<>();
-            hdfsIterator = getHdfsIterator(path);
+            dirPaths = new ArrayDeque<>();
+            remoteIterator = getRemoteIterator(path);
         }
 
         @Override
@@ -75,12 +73,12 @@ public class FileStatusIterable implements Iterable<FileStatus> {
                 return true;
             }
             try {
-                while (hdfsIterator.hasNext() || !dirStatuses.isEmpty()) {
-                    if (hdfsIterator.hasNext()) {
-                        FileStatus fs = hdfsIterator.next();
+                while (remoteIterator.hasNext() || !dirPaths.isEmpty()) {
+                    if (remoteIterator.hasNext()) {
+                        FileStatus fs = remoteIterator.next();
                         if (fs.isDirectory()) {
                             if (recursive) {
-                                dirStatuses.push(fs.getPath());
+                                dirPaths.push(fs.getPath());
                             }
                             // if not recursive, continue
                         } else {
@@ -88,7 +86,7 @@ public class FileStatusIterable implements Iterable<FileStatus> {
                             return true;
                         }
                     } else {
-                        hdfsIterator = getHdfsIterator(dirStatuses.pop());
+                        remoteIterator = getRemoteIterator(dirPaths.pop());
                     }
                 }
                 return false;
@@ -104,20 +102,20 @@ public class FileStatusIterable implements Iterable<FileStatus> {
                     throw new NoSuchElementException();
                 }
             }
-            totalFileCount.incrementAndGet();
+            totalFileCount++;
             final FileStatus nextFileStatus = this.nextFileStatus;
             this.nextFileStatus = null;
             return nextFileStatus;
         }
 
-        private RemoteIterator<FileStatus> getHdfsIterator(final Path hdfsPath) {
+        private RemoteIterator<FileStatus> getRemoteIterator(final Path currentPath) {
             try {
-                return userGroupInformation.doAs((PrivilegedExceptionAction<RemoteIterator<FileStatus>>) () -> hdfs.listStatusIterator(hdfsPath));
+                return userGroupInformation.doAs((PrivilegedExceptionAction<RemoteIterator<FileStatus>>) () -> fileSystem.listStatusIterator(currentPath));
             } catch (IOException e) {
                 throw new ProcessException(IO_ERROR_MESSAGE, e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new ProcessException("Thread was interrupted while iterating HDFS", e);
+                throw new ProcessException(THREAD_INTERRUPT_ERROR_MESSAGE, e);
             }
         }
     }
