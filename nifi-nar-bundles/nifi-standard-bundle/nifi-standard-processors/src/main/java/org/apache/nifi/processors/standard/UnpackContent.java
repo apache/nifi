@@ -162,6 +162,19 @@ public class UnpackContent extends AbstractProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR = new PropertyDescriptor.Builder()
+            .name("allow-stored-entries-wdd")
+            .displayName("Allow Stored Entries With Data Descriptor")
+            .description("Some zip archives contain stored entries with data descriptors which by spec should not " +
+                    "happen.  If this property is true they will be read anyway.  If false and such an entry is discovered " +
+                    "the zip will fail to process.")
+            .required(true)
+            .sensitive(false)
+            .allowableValues("true", "false")
+            .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT.toString())
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Unpacked FlowFiles are sent to this relationship")
@@ -195,6 +208,7 @@ public class UnpackContent extends AbstractProcessor {
         properties.add(PACKAGING_FORMAT);
         properties.add(FILE_FILTER);
         properties.add(PASSWORD);
+        properties.add(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -224,7 +238,9 @@ public class UnpackContent extends AbstractProcessor {
             if (passwordProperty.isSet()) {
                 password = passwordProperty.getValue().toCharArray();
             }
-            zipUnpacker = new ZipUnpacker(fileFilter, password);
+            final PropertyValue allowStoredEntriesWithDataDescriptorVal = context.getProperty(ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR);
+            final boolean allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptorVal.isSet() ? allowStoredEntriesWithDataDescriptorVal.asBoolean() : false;
+            zipUnpacker = new ZipUnpacker(fileFilter, password, allowStoredEntriesWithDataDescriptor);
         }
     }
 
@@ -390,17 +406,19 @@ public class UnpackContent extends AbstractProcessor {
 
     private static class ZipUnpacker extends Unpacker {
         private final char[] password;
+        private final boolean allowStoredEntriesWithDataDescriptor;
 
-        public ZipUnpacker(final Pattern fileFilter, final char[] password) {
+        public ZipUnpacker(final Pattern fileFilter, final char[] password, final boolean allowStoredEntriesWithDataDescriptor) {
             super(fileFilter);
             this.password = password;
+            this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
         }
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             if (password == null) {
-                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId));
+                session.read(source, new CompressedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, allowStoredEntriesWithDataDescriptor));
             } else {
                 session.read(source, new EncryptedZipInputStreamCallback(fileFilter, session, source, unpacked, fragmentId, password));
             }
@@ -466,19 +484,24 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         private static class CompressedZipInputStreamCallback extends ZipInputStreamCallback {
+
+            private boolean allowStoredEntriesWithDataDescriptor;
+
             private CompressedZipInputStreamCallback(
                     final Pattern fileFilter,
                     final ProcessSession session,
                     final FlowFile sourceFlowFile,
                     final List<FlowFile> unpacked,
-                    final String fragmentId
+                    final String fragmentId,
+                    final boolean allowStoredEntriesWithDataDescriptor
             ) {
                 super(fileFilter, session, sourceFlowFile, unpacked, fragmentId);
+                this.allowStoredEntriesWithDataDescriptor = allowStoredEntriesWithDataDescriptor;
             }
 
             @Override
             public void process(final InputStream inputStream) throws IOException {
-                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream))) {
+                try (final ZipArchiveInputStream zipInputStream = new ZipArchiveInputStream(new BufferedInputStream(inputStream), null, true, allowStoredEntriesWithDataDescriptor)) {
                     ZipArchiveEntry zipEntry;
                     while ((zipEntry = zipInputStream.getNextZipEntry()) != null) {
                         processEntry(zipInputStream, zipEntry.isDirectory(), zipEntry.getName(), EncryptionMethod.NONE);

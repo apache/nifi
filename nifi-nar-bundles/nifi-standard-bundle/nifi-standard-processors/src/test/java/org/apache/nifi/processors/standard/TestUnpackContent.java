@@ -155,6 +155,7 @@ public class TestUnpackContent {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "true"); //just forces this to be exercised
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
