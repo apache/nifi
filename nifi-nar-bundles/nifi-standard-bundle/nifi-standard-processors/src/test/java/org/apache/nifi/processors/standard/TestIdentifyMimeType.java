@@ -35,6 +35,26 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestIdentifyMimeType {
 
+    private static final String CONFIG_FILE = "src/test/resources/TestIdentifyMimeType/.customConfig.xml";
+    private static final String CONFIG_BODY =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+            "<mime-info>\n" +
+            "  <mime-type type=\"custom/abcd\">\n" +
+            "    <magic priority=\"50\">\n" +
+            "      <match value=\"abcd\" type=\"string\" offset=\"0\"/>\n" +
+            "    </magic>\n" +
+            "    <glob pattern=\"*.abcd\" />\n" +
+            "  </mime-type>\n" +
+            "  <mime-type type=\"image/png\">\n" +
+            "    <acronym>PNG</acronym>\n" +
+            "    <_comment>Portable Network Graphics</_comment>\n" +
+            "    <magic priority=\"50\">\n" +
+            "      <match value=\"\\x89PNG\\x0d\\x0a\\x1a\\x0a\" type=\"string\" offset=\"0\"/>\n" +
+            "    </magic>\n" +
+            "    <glob pattern=\"*.customPng\"/>\n" +
+            "  </mime-type>\n" +
+            "</mime-info>";
+
     @Test
     public void testFiles() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
@@ -56,50 +76,16 @@ public class TestIdentifyMimeType {
 
         runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
 
-        final Map<String, String> expectedMimeTypes = new HashMap<>();
-        expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
-        expectedMimeTypes.put("1.mdb", "application/x-msaccess");
-        expectedMimeTypes.put("1.txt", "text/plain");
-        expectedMimeTypes.put("1.csv", "text/csv");
-        expectedMimeTypes.put("1.txt.bz2", "application/x-bzip2");
-        expectedMimeTypes.put("1.txt.gz", "application/gzip");
-        expectedMimeTypes.put("1.zip", "application/zip");
+        final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
         expectedMimeTypes.put("bgBannerFoot.png", "image/png");
         expectedMimeTypes.put("blueBtnBg.jpg", "image/jpeg");
-        expectedMimeTypes.put("1.pdf", "application/pdf");
         expectedMimeTypes.put("grid.gif", "image/gif");
-        expectedMimeTypes.put("1.tar", "application/x-tar");
-        expectedMimeTypes.put("1.tar.gz", "application/gzip");
-        expectedMimeTypes.put("1.jar", "application/java-archive");
-        expectedMimeTypes.put("1.xml", "application/xml");
-        expectedMimeTypes.put("1.xhtml", "application/xhtml+xml");
-        expectedMimeTypes.put("flowfilev3", StandardFlowFileMediaType.VERSION_3.getMediaType());
-        expectedMimeTypes.put("flowfilev3WithXhtml", StandardFlowFileMediaType.VERSION_3.getMediaType());
-        expectedMimeTypes.put("flowfilev1.tar", StandardFlowFileMediaType.VERSION_1.getMediaType());
-        expectedMimeTypes.put("fake.csv", "text/csv");
         expectedMimeTypes.put("2.custom", "text/plain");
 
-        final Map<String, String> expectedExtensions = new HashMap<>();
-        expectedExtensions.put("1.7z", ".7z");
-        expectedExtensions.put("1.mdb", ".mdb");
-        expectedExtensions.put("1.txt", ".txt");
-        expectedExtensions.put("1.csv", ".csv");
-        expectedExtensions.put("1.txt.bz2", ".bz2");
-        expectedExtensions.put("1.txt.gz", ".gz");
-        expectedExtensions.put("1.zip", ".zip");
+        final Map<String, String> expectedExtensions = getCommonExpectedExtensions();
         expectedExtensions.put("bgBannerFoot.png", ".png");
         expectedExtensions.put("blueBtnBg.jpg", ".jpg");
-        expectedExtensions.put("1.pdf", ".pdf");
         expectedExtensions.put("grid.gif", ".gif");
-        expectedExtensions.put("1.tar", ".tar");
-        expectedExtensions.put("1.tar.gz", ".gz");
-        expectedExtensions.put("1.jar", ".jar");
-        expectedExtensions.put("1.xml", ".xml");
-        expectedExtensions.put("1.xhtml", ".xhtml");
-        expectedExtensions.put("flowfilev3", "");
-        expectedExtensions.put("flowfilev3WithXhtml", "");
-        expectedExtensions.put("flowfilev1.tar", "");
-        expectedExtensions.put("fake.csv", ".csv");
         expectedExtensions.put("2.custom", ".txt");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
@@ -131,7 +117,7 @@ public class TestIdentifyMimeType {
     }
 
     @Test
-    public void testConfigBody() throws IOException {
+    public void testReplaceWithConfigBody() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
 
@@ -148,24 +134,7 @@ public class TestIdentifyMimeType {
         }
 
 
-        String configBody = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                            "<mime-info>\n" +
-                            "  <mime-type type=\"custom/abcd\">\n" +
-                            "    <magic priority=\"50\">\n" +
-                            "      <match value=\"abcd\" type=\"string\" offset=\"0\"/>\n" +
-                            "    </magic>\n" +
-                            "    <glob pattern=\"*.abcd\" />\n" +
-                            "  </mime-type>\n" +
-                            "  <mime-type type=\"image/png\">\n" +
-                            "    <acronym>PNG</acronym>\n" +
-                            "    <_comment>Portable Network Graphics</_comment>\n" +
-                            "    <magic priority=\"50\">\n" +
-                            "      <match value=\"\\x89PNG\\x0d\\x0a\\x1a\\x0a\" type=\"string\" offset=\"0\"/>\n" +
-                            "    </magic>\n" +
-                            "    <glob pattern=\"*.customPng\"/>\n" +
-                            "  </mime-type>\n" +
-                            "</mime-info>";
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
@@ -234,7 +203,7 @@ public class TestIdentifyMimeType {
     }
 
     @Test
-    public void testConfigFile() throws IOException {
+    public void testReplaceWithConfigFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
 
@@ -250,9 +219,7 @@ public class TestIdentifyMimeType {
             fileCount++;
         }
 
-
-        String configFile = "src/test/resources/TestIdentifyMimeType/.customConfig.xml";
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, configFile);
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
         runner.setThreadCount(1);
         runner.run(fileCount);
@@ -321,11 +288,102 @@ public class TestIdentifyMimeType {
     }
 
     @Test
+    public void testAddWithConfigBody() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+
+        final File dir = new File("src/test/resources/TestIdentifyMimeType");
+        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
+        int fileCount = 0;
+        for (final File file : files) {
+            runner.enqueue(file.toPath());
+            fileCount++;
+        }
+
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, CONFIG_BODY);
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.ADD);
+
+        runner.setThreadCount(1);
+        runner.run(fileCount);
+
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+
+        final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
+        expectedMimeTypes.put("bgBannerFoot.png", "image/png");
+        expectedMimeTypes.put("blueBtnBg.jpg", "image/jpeg");
+        expectedMimeTypes.put("grid.gif", "image/gif");
+        expectedMimeTypes.put("2.custom", "custom/abcd");
+
+        final Map<String, String> expectedExtensions = getCommonExpectedExtensions();
+        expectedExtensions.put("bgBannerFoot.png", ".customPng");
+        expectedExtensions.put("blueBtnBg.jpg", ".jpg");
+        expectedExtensions.put("grid.gif", ".gif");
+        expectedExtensions.put("2.custom", ".abcd");
+
+        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
+        for (final MockFlowFile file : filesOut) {
+            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
+            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
+            final String expected = expectedMimeTypes.get(filename);
+
+            final String extension = file.getAttribute("mime.extension");
+            final String expectedExtension = expectedExtensions.get(filename);
+
+            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+        }
+    }
+
+    @Test
+    public void testAddWithConfigFile() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+
+        final File dir = new File("src/test/resources/TestIdentifyMimeType");
+        final File[] files = dir.listFiles((ldir,name)-> name != null && !name.startsWith(".") && new File(ldir, name).isFile());
+        int fileCount = 0;
+        for (final File file : files) {
+            runner.enqueue(file.toPath());
+            fileCount++;
+        }
+
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
+        runner.setProperty(IdentifyMimeType.CONFIG_STRATEGY, IdentifyMimeType.ADD);
+
+        runner.setThreadCount(1);
+        runner.run(fileCount);
+
+        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+
+        final Map<String, String> expectedMimeTypes = getCommonExpectedMimeTypes();
+        expectedMimeTypes.put("bgBannerFoot.png", "my/png");
+        expectedMimeTypes.put("blueBtnBg.jpg", "my/jpeg");
+        expectedMimeTypes.put("grid.gif", "my/gif");
+        expectedMimeTypes.put("2.custom", "text/plain");
+
+        final Map<String, String> expectedExtensions = getCommonExpectedExtensions();
+        expectedExtensions.put("bgBannerFoot.png", ".mypng");
+        expectedExtensions.put("blueBtnBg.jpg", ".myjpg");
+        expectedExtensions.put("grid.gif", ".mygif");
+        expectedExtensions.put("2.custom", ".txt");
+
+        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
+        for (final MockFlowFile file : filesOut) {
+            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
+            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
+            final String expected = expectedMimeTypes.get(filename);
+
+            final String extension = file.getAttribute("mime.extension");
+            final String expectedExtension = expectedExtensions.get(filename);
+
+            assertEquals(expected, mimeType, "Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType);
+            assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
+        }
+    }
+
+    @Test
     public void testOnlyOneCustomMimeConfigSpecified() {
         final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
 
-        String configFile = "src/test/resources/TestIdentifyMimeType/.customConfig.xml";
-        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, configFile);
+        runner.setProperty(IdentifyMimeType.MIME_CONFIG_FILE, CONFIG_FILE);
 
         String configBody = "foo";
         runner.setProperty(IdentifyMimeType.MIME_CONFIG_BODY, configBody);
@@ -334,6 +392,54 @@ public class TestIdentifyMimeType {
         assertThrows(AssertionError.class, () -> {
             runner.run();
         });
+    }
+
+    private Map<String, String> getCommonExpectedMimeTypes() {
+        Map<String, String> expectedMimeTypes = new HashMap<>();
+
+        expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
+        expectedMimeTypes.put("1.mdb", "application/x-msaccess");
+        expectedMimeTypes.put("1.txt", "text/plain");
+        expectedMimeTypes.put("1.csv", "text/csv");
+        expectedMimeTypes.put("1.txt.bz2", "application/x-bzip2");
+        expectedMimeTypes.put("1.txt.gz", "application/gzip");
+        expectedMimeTypes.put("1.zip", "application/zip");
+        expectedMimeTypes.put("1.pdf", "application/pdf");
+        expectedMimeTypes.put("1.tar", "application/x-tar");
+        expectedMimeTypes.put("1.tar.gz", "application/gzip");
+        expectedMimeTypes.put("1.jar", "application/java-archive");
+        expectedMimeTypes.put("1.xml", "application/xml");
+        expectedMimeTypes.put("1.xhtml", "application/xhtml+xml");
+        expectedMimeTypes.put("flowfilev3", StandardFlowFileMediaType.VERSION_3.getMediaType());
+        expectedMimeTypes.put("flowfilev3WithXhtml", StandardFlowFileMediaType.VERSION_3.getMediaType());
+        expectedMimeTypes.put("flowfilev1.tar", StandardFlowFileMediaType.VERSION_1.getMediaType());
+        expectedMimeTypes.put("fake.csv", "text/csv");
+
+        return expectedMimeTypes;
+    }
+
+    private Map<String, String> getCommonExpectedExtensions() {
+        Map<String, String> expectedExtensions = new HashMap<>();
+
+        expectedExtensions.put("1.7z", ".7z");
+        expectedExtensions.put("1.mdb", ".mdb");
+        expectedExtensions.put("1.txt", ".txt");
+        expectedExtensions.put("1.csv", ".csv");
+        expectedExtensions.put("1.txt.bz2", ".bz2");
+        expectedExtensions.put("1.txt.gz", ".gz");
+        expectedExtensions.put("1.zip", ".zip");
+        expectedExtensions.put("1.pdf", ".pdf");
+        expectedExtensions.put("1.tar", ".tar");
+        expectedExtensions.put("1.tar.gz", ".gz");
+        expectedExtensions.put("1.jar", ".jar");
+        expectedExtensions.put("1.xml", ".xml");
+        expectedExtensions.put("1.xhtml", ".xhtml");
+        expectedExtensions.put("flowfilev3", "");
+        expectedExtensions.put("flowfilev3WithXhtml", "");
+        expectedExtensions.put("flowfilev1.tar", "");
+        expectedExtensions.put("fake.csv", ".csv");
+
+        return expectedExtensions;
     }
 
 }

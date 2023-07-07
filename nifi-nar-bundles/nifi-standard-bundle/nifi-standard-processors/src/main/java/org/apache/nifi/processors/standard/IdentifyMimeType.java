@@ -36,8 +36,10 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.ValidationContext;
@@ -99,6 +101,9 @@ import org.apache.tika.mime.MimeTypeException;
 }
 )
 public class IdentifyMimeType extends AbstractProcessor {
+    static final AllowableValue REPLACE = new AllowableValue("replace", "replace", "Use config MIME Types only.");
+    static final AllowableValue ADD = new AllowableValue("add", "add",
+            "Use config in addition to default NiFi MIME Types.  If match is found among config MIME Types, default NiFi Mime Types will not be checked.");
 
     public static final PropertyDescriptor USE_FILENAME_IN_DETECTION = new PropertyDescriptor.Builder()
            .displayName("Use Filename In Detection")
@@ -127,6 +132,16 @@ public class IdentifyMimeType extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    public static final PropertyDescriptor CONFIG_STRATEGY = new PropertyDescriptor.Builder()
+            .displayName("Config Strategy")
+            .name("config-strategy")
+            .description("Replace default NiFi MIME Types or add to them.  "
+                    + "Only applicable if Config File or Config Body is used.")
+            .required(false)
+            .allowableValues(REPLACE, ADD)
+            .defaultValue(REPLACE.getDisplayName())
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to success")
@@ -136,8 +151,11 @@ public class IdentifyMimeType extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
 
     private final TikaConfig config;
-    private Detector detector;
-    private MimeTypes mimeTypes;
+    private volatile Detector defaultDetector;
+    private volatile MimeTypes defaultMimeTypes;
+
+    private volatile Detector customDetector;
+    private volatile MimeTypes customMimeTypes;
 
     public IdentifyMimeType() {
         this.config = TikaConfig.getDefaultConfig();
@@ -150,6 +168,7 @@ public class IdentifyMimeType extends AbstractProcessor {
         properties.add(USE_FILENAME_IN_DETECTION);
         properties.add(MIME_CONFIG_BODY);
         properties.add(MIME_CONFIG_FILE);
+        properties.add(CONFIG_STRATEGY);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> rels = new HashSet<>();
@@ -161,31 +180,42 @@ public class IdentifyMimeType extends AbstractProcessor {
     public void setup(final ProcessContext context) {
         String configBody = context.getProperty(MIME_CONFIG_BODY).getValue();
         String configFile = context.getProperty(MIME_CONFIG_FILE).evaluateAttributeExpressions().getValue();
+        String configStrategy = context.getProperty(CONFIG_STRATEGY).getValue();
 
-        if (configBody == null && configFile == null){
-            this.detector = config.getDetector();
-            this.mimeTypes = config.getMimeRepository();
-        } else if (configBody != null) {
-            try {
-                this.detector = MimeTypesFactory.create(new ByteArrayInputStream(configBody.getBytes()));
-                this.mimeTypes = (MimeTypes)this.detector;
-            } catch (Exception e) {
-                context.yield();
-                throw new ProcessException("Failed to load config body", e);
-            }
-
+        if (configBody == null && configFile == null) {
+            setDefaultMimeTypes();
+        } else if (configStrategy.equals(ADD.getValue())) {
+            setDefaultMimeTypes();
+            setCustomMimeTypes(configBody, configFile, context);
         } else {
-            try (final FileInputStream fis = new FileInputStream(configFile);
-                 final InputStream bis = new BufferedInputStream(fis)) {
-                this.detector = MimeTypesFactory.create(bis);
-                this.mimeTypes = (MimeTypes)this.detector;
-            } catch (Exception e) {
-                context.yield();
-                throw new ProcessException("Failed to load config file", e);
-            }
+            setCustomMimeTypes(configBody, configFile, context);
         }
     }
 
+    private void setDefaultMimeTypes() {
+        this.defaultDetector = config.getDetector();
+        this.defaultMimeTypes = config.getMimeRepository();
+    }
+
+    private void setCustomMimeTypes(String configBody, String configFile, ProcessContext context) {
+        try (final InputStream customInputStream = configBody != null ? new ByteArrayInputStream(configBody.getBytes()) : new FileInputStream(configFile)) {
+            this.customDetector = MimeTypesFactory.create(customInputStream);
+            this.customMimeTypes = (MimeTypes) this.customDetector;
+        } catch (Exception e) {
+            context.yield();
+            String configSource = configBody != null ? "body" : "file";
+            throw new ProcessException("Failed to load config " + configSource, e);
+        }
+    }
+
+    @OnStopped
+    public void onStopped() {
+        defaultDetector = null;
+        defaultMimeTypes = null;
+
+        customDetector = null;
+        customMimeTypes = null;
+    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -206,6 +236,7 @@ public class IdentifyMimeType extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
         final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
+        final AtomicReference<String> extensionRef = new AtomicReference<>(null);
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         session.read(flowFile, new InputStreamCallback() {
@@ -213,27 +244,42 @@ public class IdentifyMimeType extends AbstractProcessor {
             public void process(final InputStream stream) throws IOException {
                 try (final InputStream in = new BufferedInputStream(stream);
                      final TikaInputStream tikaStream = TikaInputStream.get(in)) {
-                    Metadata metadata = new Metadata();
 
-                    if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
-                        metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
+                    if (customDetector != null) {
+                        detectMimeType(customDetector, customMimeTypes, tikaStream);
                     }
-                    // Get mime type
-                    MediaType mediatype = detector.detect(tikaStream, metadata);
-                    mimeTypeRef.set(mediatype.toString());
+
+                    String mimeType = mimeTypeRef.get();
+
+                    if (defaultDetector != null && (mimeType == null || mimeType.equals(MediaType.OCTET_STREAM.toString()) || mimeType.equals(MediaType.TEXT_PLAIN.toString()))) {
+                        detectMimeType(defaultDetector, defaultMimeTypes, tikaStream);
+                    }
                 }
+            }
+
+            private void detectMimeType(Detector detector, MimeTypes mimeTypes, TikaInputStream tikaStream) throws IOException {
+                Metadata metadata = new Metadata();
+                if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
+                    metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
+                }
+
+                MediaType mediatype = detector.detect(tikaStream, metadata);
+                String extension = "";
+
+                try {
+                    MimeType mimetype = mimeTypes.forName(mediatype.toString());
+                    extension = mimetype.getExtension();
+                } catch (MimeTypeException ex) {
+                    logger.warn("MIME type extension lookup failed: {}", new Object[]{ex});
+                }
+
+                mimeTypeRef.set(mediatype.toString());
+                extensionRef.set(extension);
             }
         });
 
         String mimeType = mimeTypeRef.get();
-        String extension = "";
-        try {
-            MimeType mimetype;
-            mimetype = mimeTypes.forName(mimeType);
-            extension = mimetype.getExtension();
-        } catch (MimeTypeException ex) {
-            logger.warn("MIME type extension lookup failed: {}", new Object[]{ex});
-        }
+        String extension = extensionRef.get();
 
         // Workaround for bug in Tika - https://issues.apache.org/jira/browse/TIKA-1563
         if (mimeType != null && mimeType.equals("application/gzip") && extension.equals(".tgz")) {
