@@ -41,6 +41,7 @@ import com.google.cloud.bigquery.storage.v1.StorageError;
 import com.google.cloud.bigquery.storage.v1.StreamWriter;
 import com.google.cloud.bigquery.storage.v1.TableName;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
+import com.google.cloud.bigquery.storage.v1.stub.BigQueryWriteStubSettings;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
@@ -128,12 +129,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
     public static final PropertyDescriptor BIGQUERY_API_ENDPOINT = new PropertyDescriptor.Builder()
         .name("bigquery-api-endpoint")
         .displayName("BigQuery API Endpoint")
-        .description("Can be used to override the default BigQuery endpoint. Default is bigquerystorage.googleapis.com:443. "
+        .description("Can be used to override the default BigQuery endpoint. Default is "
+                + BigQueryWriteStubSettings.getDefaultEndpoint() + ". "
                 + "Format must be hostname:port.")
         .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(true)
-        .defaultValue("bigquerystorage.googleapis.com:443")
+        .defaultValue(BigQueryWriteStubSettings.getDefaultEndpoint())
         .build();
 
     static final PropertyDescriptor TRANSFER_TYPE = new PropertyDescriptor.Builder()
