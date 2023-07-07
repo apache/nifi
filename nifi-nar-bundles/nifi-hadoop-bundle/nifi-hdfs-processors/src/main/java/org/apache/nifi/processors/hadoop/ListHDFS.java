@@ -315,7 +315,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
                         || fileFilterRegexPattern.matcher(Path.getPathWithoutSchemeAndAuthority(path).toString()).matches();
             // FILTER_DIRECTORIES_AND_FILES
             default:
-                return path -> Stream.of(path.toString().split("/"))
+                return path -> Stream.of(Path.getPathWithoutSchemeAndAuthority(path).toString().split("/"))
                         .skip(getPathSegmentsToSkip(recursive))
                         .allMatch(v -> fileFilterRegexPattern.matcher(v).matches());
         }

@@ -84,7 +84,7 @@ class TestListHDFS {
 
     @Test
     void testListingWithValidELFunction() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", "testFile.txt", false);
 
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
 
@@ -98,7 +98,7 @@ class TestListHDFS {
 
     @Test
     void testListingWithFilter() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", "testFile.txt", false);
 
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
         runner.setProperty(ListHDFS.FILE_FILTER, "[^test].*");
@@ -116,7 +116,7 @@ class TestListHDFS {
 
     @Test
     void testListingWithUnrecognizedELFunction() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", "testFile.txt", false);
 
         runner.setProperty(ListHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
 
@@ -128,7 +128,7 @@ class TestListHDFS {
 
     @Test
     void testListingHasCorrectAttributes() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", "testFile.txt", false);
 
         runner.run();
 
@@ -141,12 +141,11 @@ class TestListHDFS {
 
     @Test
     void testRecursiveWithDefaultFilterAndFilterMode() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/.testFile.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", ".testFile.txt", false);
+        addFileStatus("/test", "testFile.txt", false);
 
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
-
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
@@ -172,19 +171,16 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.FILE_FILTER, ".*txt.*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_DIRECTORIES_AND_FILES.getValue());
 
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/txtDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/txtDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/txtDir/3.out")));
-        proc.fileSystem.addFileStatus(new Path("/test/txtDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/txtDir/3.txt")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir", "anotherDir", true);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test", "txtDir", true);
+        addFileStatus("/test/txtDir", "3.out", false);
+        addFileStatus("/test/txtDir", "3.txt", false);
 
         runner.run();
 
@@ -211,17 +207,15 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.FILE_FILTER, "[^\\.].*\\.txt");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FILES_ONLY.getValue());
 
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/.partfile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir/anotherDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/anotherDir/2.txt")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", ".partfile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir", "anotherDir", true);
+        addFileStatus("/test/testDir/anotherDir", ".txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
 
         runner.run();
 
@@ -255,31 +249,17 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.FILE_FILTER, "(/.*/)*anotherDir/1\\..*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
 
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.txt")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir", "anotherDir", true);
+        addFileStatus("/test/testDir/anotherDir", "1.out", false);
+        addFileStatus("/test/testDir/anotherDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test/testDir", "someDir", true);
+        addFileStatus("/test/testDir/someDir", "1.out", false);
 
         runner.run();
 
@@ -306,31 +286,17 @@ class TestListHDFS {
         runner.setProperty(ListHDFS.FILE_FILTER, "hdfs://hdfscluster:8020(/.*/)*anotherDir/1\\..*");
         runner.setProperty(ListHDFS.FILE_FILTER_MODE, FILTER_MODE_FULL_PATH.getValue());
 
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.txt")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir", "anotherDir", true);
+        addFileStatus("/test/testDir/anotherDir", "1.out", false);
+        addFileStatus("/test/testDir/anotherDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test/testDir", "someDir", true);
+        addFileStatus("/test/testDir/someDir", "1.out", false);
 
         runner.run();
 
@@ -354,11 +320,9 @@ class TestListHDFS {
     @Test
     void testNotRecursive() {
         runner.setProperty(ListHDFS.RECURSE_SUBDIRS, "false");
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
-
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
@@ -371,7 +335,8 @@ class TestListHDFS {
 
     @Test
     void testNoListUntilUpdateFromRemoteOnPrimaryNodeChange() throws IOException {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 1999L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+        addFileStatus("/test", "testFile.txt", false, 1999L, 0L);
+
 
         runner.run();
 
@@ -384,7 +349,7 @@ class TestListHDFS {
         runner.clearTransferState();
 
         // add new file to pull
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 2000L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
+        addFileStatus("/test", "testFile2.txt", false, 2000L, 0L);
 
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
 
@@ -409,20 +374,20 @@ class TestListHDFS {
 
     @Test
     void testEntriesWithSameTimestampOnlyAddedOnce() {
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 8L, 0L, create777(), "owner", "group", new Path("/test/testFile2.txt")));
+        addFileStatus("/test", "testFile.txt", false, 1L, 0L);
+        addFileStatus("/test", "testFile2.txt", false, 1L, 8L);
 
         // this is a directory, so it won't be counted toward the entries
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, true, 1, 1L, 8L, 0L, create777(), "owner", "group", new Path("/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/1.txt")));
+        addFileStatus("/test", "testDir", true, 1L, 8L);
+        addFileStatus("/test/testDir", "1.txt", false, 1L, 100L);
 
         // The first iteration should pick up 3 files with the smaller timestamps.
         runner.run();
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 3);
 
-        proc.fileSystem.addFileStatus(new Path("/test/testDir"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test/testDir/2.txt")));
-        runner.run();
+        addFileStatus("/test/testDir", "2.txt", false, 1L, 100L);
 
+        runner.run();
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 4);
     }
 
@@ -432,9 +397,10 @@ class TestListHDFS {
         long now = new Date().getTime();
         long oneHourAgo = now - 3600000;
         long twoHoursAgo = now - 2 * 3600000;
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, now - 5, now - 5, create777(), "owner", "group", new Path("/test/testFile.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, oneHourAgo, oneHourAgo, create777(), "owner", "group", new Path("/test/testFile1.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, twoHoursAgo, twoHoursAgo, create777(), "owner", "group", new Path("/test/testFile2.txt")));
+
+        addFileStatus("/test", "testFile.txt", false, now - 5, now - 5);
+        addFileStatus("/test", "testFile1.txt", false, oneHourAgo, oneHourAgo);
+        addFileStatus("/test", "testFile2.txt", false, twoHoursAgo, twoHoursAgo);
 
         // all files
         runner.run();
@@ -483,9 +449,9 @@ class TestListHDFS {
 
     @Test
     void testListAfterDirectoryChange() {
-        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 100L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_1.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test1"), new FileStatus(1L, false, 1, 1L, 200L, 0L, create777(), "owner", "group", new Path("/test1/testFile-1_2.txt")));
-        proc.fileSystem.addFileStatus(new Path("/test2"), new FileStatus(1L, false, 1, 1L, 150L, 0L, create777(), "owner", "group", new Path("/test2/testFile-2_1.txt")));
+        addFileStatus("/test1", "testFile-1_1.txt", false, 100L, 0L);
+        addFileStatus("/test1", "testFile-1_2.txt", false, 200L, 0L);
+        addFileStatus("/test2", "testFile-2_1.txt", false, 150L, 0L);
 
         runner.setProperty(ListHDFS.DIRECTORY, "/test1");
 
@@ -503,39 +469,16 @@ class TestListHDFS {
     void testListingEmptyDir() {
         runner.setProperty(ListHDFS.DIRECTORY, "/test/emptyDir");
 
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.txt")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "emptyDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "1.out", false);
+        addFileStatus("/test/testDir/anotherDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test/testDir/someDir", "1.out", false);
 
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/emptyDir")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.txt")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
-
-        // first iteration will not pick up files because it has to instead check timestamps.
-        // We must then wait long enough to ensure that the listing can be performed safely and
-        // run the Processor again.
-        runner.run();
         runner.run();
 
         // verify that no messages were logged at the error level
@@ -560,34 +503,15 @@ class TestListHDFS {
         String nonExistingPath = "/test/nonExistingDir";
         runner.setProperty(ListHDFS.DIRECTORY, nonExistingPath);
 
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testFile.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/emptyDir")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/1.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/1.txt")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.out")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/anotherDir/2.txt")));
-
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir"),
-                new FileStatus(1L, true, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir")));
-        proc.fileSystem.addFileStatus(new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir"),
-                new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("hdfs", "hdfscluster:8020", "/test/testDir/someDir/1.out")));
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "emptyDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "1.out", false);
+        addFileStatus("/test/testDir/anotherDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test/testDir/someDir", "1.out", false);
 
         final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run());
         assertEquals(ProcessException.class, assertionError.getCause().getClass());
@@ -729,5 +653,16 @@ class TestListHDFS {
             }
             return fileStatus.get();
         }
+    }
+
+    private void addFileStatus(String path, String filename, boolean isDirectory, long modificationTime, long accessTime) {
+        Path fullPath = new Path("hdfs", "hdfscluster:8020", path);
+        Path filePath = new Path(fullPath, filename);
+        FileStatus fileStatus = new FileStatus(1L, isDirectory, 1, 1L, modificationTime, accessTime, create777(), "owner", "group", filePath);
+        proc.fileSystem.addFileStatus(fullPath, fileStatus);
+    }
+
+    private void addFileStatus(String path, String filename, boolean isDirectory) {
+        addFileStatus(path, filename, isDirectory, 0L, 0L);
     }
 }
