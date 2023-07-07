@@ -41,6 +41,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -124,6 +125,18 @@ public class ConvertExcelToCSVProcessor
             .required(true)
             .build();
 
+    public static final PropertyDescriptor MIN_INFLATE_RATIO = new PropertyDescriptor.Builder()
+            .name("min-inflate-ratio")
+            .displayName("Minimum Inflate Ratio")
+            .description("Specifies the threshold that should be used when decompressing Excel data. As an Excel 'Zip Bomb' can occur when the compressed "
+                    + "data decompresses into such a large size that it can cause memory errors, denial-of-service, etc. The default value should be used "
+                    + "unless the incoming files are trusted and are very sparse (such that they decompress into a much larger size).")
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("0.01")
+            .required(true)
+            .build();
+
     public static final Relationship ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("Original Excel document received by this processor")
@@ -150,6 +163,7 @@ public class ConvertExcelToCSVProcessor
         descriptors.add(ROWS_TO_SKIP);
         descriptors.add(COLUMNS_TO_SKIP);
         descriptors.add(FORMAT_VALUES);
+        descriptors.add(MIN_INFLATE_RATIO);
 
         descriptors.add(CSVUtils.CSV_FORMAT);
         descriptors.add(CSVUtils.VALUE_SEPARATOR);
@@ -198,6 +212,10 @@ public class ConvertExcelToCSVProcessor
         //Switch to 0 based index
         final int firstRow = context.getProperty(ROWS_TO_SKIP).evaluateAttributeExpressions(flowFile).asInteger() - 1;
         final List<Integer> columnsToSkip = getColumnsToSkip(context, flowFile);
+
+        // Set min inflate ratio before loading documents
+        final float minInflateRatio = context.getProperty(MIN_INFLATE_RATIO).evaluateAttributeExpressions(flowFile).asFloat();
+        ZipSecureFile.setMinInflateRatio(minInflateRatio);
 
         try {
             session.read(flowFile, inputStream -> {
@@ -317,6 +335,7 @@ public class ConvertExcelToCSVProcessor
             session.transfer(ff, SUCCESS);
 
         } catch (RuntimeException e) {
+            getLogger().error("Failed to process Excel sheet: " + e.getMessage(), e);
             ff = session.putAttribute(ff, ConvertExcelToCSVProcessor.class.getName() + ".error", e.getMessage());
             session.transfer(ff, FAILURE);
         }

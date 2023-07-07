@@ -19,6 +19,7 @@ package org.apache.nifi.processors.poi;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -481,6 +482,40 @@ public class ConvertExcelToCSVProcessorTest {
         ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(1);
         l = Long.parseLong(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
         assertEquals(3, l);
+    }
+
+    /**
+     * Validates that the Min Inflate Ratio can be configured to accept/reject files with high
+     * compression ratios
+     *
+     * @throws Exception
+     *  Any exception thrown during execution.
+     */
+    @Test
+    public void testProcessAllSheetsWithMinInflateRatioExceeded() throws Exception {
+
+        // Verify the processor works with the default Min Inflate Ratio
+        final Path zipBombFilePath = new File("src/test/resources/zip-bomb.xlsx").toPath();
+        testRunner.enqueue(zipBombFilePath);
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+        testRunner.clearTransferState();
+
+        // Set Min Inflate Ratio to something larger than the compression ratio of the test file
+        testRunner.setProperty(ConvertExcelToCSVProcessor.MIN_INFLATE_RATIO, ".1");
+        testRunner.enqueue(zipBombFilePath);
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 0);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 1);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.FAILURE).get(0);
+        assertEquals("Error reading XML stream", ff.getAttribute(ConvertExcelToCSVProcessor.class.getName() + ".error"));
     }
 
     /**
