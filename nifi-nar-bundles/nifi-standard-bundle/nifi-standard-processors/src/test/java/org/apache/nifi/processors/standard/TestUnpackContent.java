@@ -193,6 +193,7 @@ public class TestUnpackContent {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
         unpackRunner.enqueue(dataPath.resolve("invalid_data.zip"));
@@ -254,6 +255,8 @@ public class TestUnpackContent {
         final TestRunner autoUnpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/date.txt$");
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
+
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
@@ -388,6 +391,7 @@ public class TestUnpackContent {
     public void testZipThenMerge() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.run();
@@ -425,6 +429,7 @@ public class TestUnpackContent {
     public void testZipHandlesBadData() throws IOException {
         final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+        unpackRunner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
 
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         unpackRunner.run();
@@ -481,7 +486,7 @@ public class TestUnpackContent {
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
-
+        runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
         final String password = String.class.getSimpleName();
         runner.setProperty(UnpackContent.PASSWORD, password);
 

@@ -169,6 +169,7 @@ public class UnpackContent extends AbstractProcessor {
                     "happen.  If this property is true they will be read anyway.  If false and such an entry is discovered " +
                     "the zip will fail to process.")
             .required(true)
+            .defaultValue("false")
             .sensitive(false)
             .allowableValues("true", "false")
             .dependsOn(PACKAGING_FORMAT, PackageFormat.ZIP_FORMAT.toString())
