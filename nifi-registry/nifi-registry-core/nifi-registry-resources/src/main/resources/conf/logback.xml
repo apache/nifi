@@ -33,6 +33,8 @@
             <maxHistory>30</maxHistory>
             <!-- keep 10GB total of log files -->
             <totalSizeCap>10GB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -52,6 +54,10 @@
             <fileNamePattern>${org.apache.nifi.registry.bootstrap.config.log.dir}/nifi-registry-bootstrap_%d.log</fileNamePattern>
             <!-- keep 5 log files worth of history -->
             <maxHistory>5</maxHistory>
+
+            <totalSizeCap>10MB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
@@ -70,6 +76,9 @@
             <fileNamePattern>${org.apache.nifi.registry.bootstrap.config.log.dir}/nifi-registry-event_%d.log</fileNamePattern>
             <!-- keep 5 log files worth of history -->
             <maxHistory>5</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date ## %msg%n</pattern>

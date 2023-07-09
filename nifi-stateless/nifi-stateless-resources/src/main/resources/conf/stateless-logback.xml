@@ -32,6 +32,9 @@
             <maxFileSize>100MB</maxFileSize>
             <!-- keep 30 log files worth of history -->
             <maxHistory>30</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">

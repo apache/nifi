@@ -35,6 +35,8 @@
             <maxFileSize>1MB</maxFileSize>
             <!-- Provide a cap of 10 MB across all archive files -->
             <totalSizeCap>10MB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -54,6 +56,9 @@
             <fileNamePattern>${org.apache.nifi.minifi.bootstrap.config.log.dir}/${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.name}_%d.${org.apache.nifi.minifi.bootstrap.config.log.bootstrap.file.extension}.gz</fileNamePattern>
             <!-- Keep 5 rolling periods worth of logs-->
             <maxHistory>5</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+            <!-- This is supposed to force log cleanup when the service starts/restarts -->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
