@@ -25,10 +25,12 @@ module.exports = {
             "ignoreAtRules": ["/include/", "/mixin/"]
         }],
         "declaration-empty-line-before": null,
+        "declaration-block-no-redundant-longhand-properties": null,
+        "function-no-unknown": null,
+        "import-notation": null,
         "selector-type-no-unknown": [true, {
             "ignoreTypes": ["/mat-/", "/flow-designer-/", "/fds-/", "/td-/"]
         }],
-        "font-family-no-missing-generic-family-keyword": null,
-        "string-quotes": "single"
+        "font-family-no-missing-generic-family-keyword": null
     }
 };
