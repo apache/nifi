@@ -101,31 +101,31 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
     public void write() {
         FlowFile flowFile = session.create();
 
-        final OutputStream out = session.write(flowFile);
-        try (RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)) {
+        final WriteResult writeResult;
+        try (
+                final OutputStream out = session.write(flowFile);
+                final RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)
+        ) {
             recordWriter.beginRecordSet();
-
             for (FileStatus status : fileStatusIterable) {
                 if (determineListable(status)) {
                     recordWriter.write(createRecordForListing(status));
                     fileStatusManager.update(status);
                 }
             }
-
-            WriteResult writeResult = recordWriter.finishRecordSet();
-            fileCount = writeResult.getRecordCount();
-
-            if (fileCount == 0) {
-                session.remove(flowFile);
-            } else {
-                final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
-                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                flowFile = session.putAllAttributes(flowFile, attributes);
-
-                session.transfer(flowFile, REL_SUCCESS);
-            }
+            writeResult = recordWriter.finishRecordSet();
         } catch (Exception e) {
             throw new ProcessException("An error occurred while writing results", e);
+        }
+
+        fileCount = writeResult.getRecordCount();
+        if (fileCount == 0) {
+            session.remove(flowFile);
+        } else {
+            final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+            attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, REL_SUCCESS);
         }
     }
 

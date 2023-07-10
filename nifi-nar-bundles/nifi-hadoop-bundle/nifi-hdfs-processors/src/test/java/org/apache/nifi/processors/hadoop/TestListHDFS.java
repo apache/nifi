@@ -28,6 +28,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -50,6 +51,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.nifi.processors.hadoop.ListHDFS.LATEST_TIMESTAMP_KEY;
+import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORIES_AND_FILES;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FILES_ONLY;
 import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_MODE_FULL_PATH;
@@ -394,9 +396,9 @@ class TestListHDFS {
     @Test
     void testMinAgeMaxAge() throws IOException {
 
-        long now = new Date().getTime();
-        long oneHourAgo = now - 3600000;
-        long twoHoursAgo = now - 2 * 3600000;
+        final long now = new Date().getTime();
+        final long oneHourAgo = now - 3600000;
+        final long twoHoursAgo = now - 2 * 3600000;
 
         addFileStatus("/test", "testFile.txt", false, now - 5, now - 5);
         addFileStatus("/test", "testFile1.txt", false, oneHourAgo, oneHourAgo);
@@ -500,7 +502,7 @@ class TestListHDFS {
 
     @Test
     void testListingNonExistingDir() {
-        String nonExistingPath = "/test/nonExistingDir";
+        final String nonExistingPath = "/test/nonExistingDir";
         runner.setProperty(ListHDFS.DIRECTORY, nonExistingPath);
 
         addFileStatus("/test", "testFile.out", false);
@@ -520,6 +522,35 @@ class TestListHDFS {
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
         // assert that no files were penalized
         runner.assertPenalizeCount(0);
+    }
+
+    @Test
+    void testRecordWriter() throws InitializationException {
+        runner.setProperty(ListHDFS.DIRECTORY, "/test");
+
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
+        runner.addControllerService("record-writer", recordWriter);
+        runner.enableControllerService(recordWriter);
+        runner.setProperty(ListHDFS.RECORD_WRITER, "record-writer");
+
+        addFileStatus("/test", "testFile.out", false);
+        addFileStatus("/test", "testFile.txt", false);
+        addFileStatus("/test", "testDir", true);
+        addFileStatus("/test/testDir", "1.txt", false);
+        addFileStatus("/test/testDir", "anotherDir", true);
+        addFileStatus("/test/testDir/anotherDir", "1.out", false);
+        addFileStatus("/test/testDir/anotherDir", "1.txt", false);
+        addFileStatus("/test/testDir/anotherDir", "2.out", false);
+        addFileStatus("/test/testDir/anotherDir", "2.txt", false);
+        addFileStatus("/test/testDir", "someDir", true);
+        addFileStatus("/test/testDir/someDir", "1.out", false);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(REL_SUCCESS);
+        final MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        flowFile.assertAttributeEquals("record.count", "8");
     }
 
     private FsPermission create777() {
@@ -555,7 +586,7 @@ class TestListHDFS {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
 
         public void addFileStatus(final Path parent, final FileStatus child) {
-            Set<FileStatus> children = fileStatuses.computeIfAbsent(parent, k -> new HashSet<>());
+            final Set<FileStatus> children = fileStatuses.computeIfAbsent(parent, k -> new HashSet<>());
 
             children.add(child);
 
@@ -644,7 +675,7 @@ class TestListHDFS {
 
         @Override
         public FileStatus getFileStatus(final Path path) {
-            Optional<FileStatus> fileStatus = fileStatuses.values().stream()
+            final Optional<FileStatus> fileStatus = fileStatuses.values().stream()
                     .flatMap(Set::stream)
                     .filter(fs -> fs.getPath().equals(path))
                     .findFirst();
@@ -655,14 +686,14 @@ class TestListHDFS {
         }
     }
 
-    private void addFileStatus(String path, String filename, boolean isDirectory, long modificationTime, long accessTime) {
-        Path fullPath = new Path("hdfs", "hdfscluster:8020", path);
-        Path filePath = new Path(fullPath, filename);
-        FileStatus fileStatus = new FileStatus(1L, isDirectory, 1, 1L, modificationTime, accessTime, create777(), "owner", "group", filePath);
+    private void addFileStatus(final String path, final String filename, final boolean isDirectory, final long modificationTime, final long accessTime) {
+        final Path fullPath = new Path("hdfs", "hdfscluster:8020", path);
+        final Path filePath = new Path(fullPath, filename);
+        final FileStatus fileStatus = new FileStatus(1L, isDirectory, 1, 1L, modificationTime, accessTime, create777(), "owner", "group", filePath);
         proc.fileSystem.addFileStatus(fullPath, fileStatus);
     }
 
-    private void addFileStatus(String path, String filename, boolean isDirectory) {
+    private void addFileStatus(final String path, final String filename, final boolean isDirectory) {
         addFileStatus(path, filename, isDirectory, 0L, 0L);
     }
 }
