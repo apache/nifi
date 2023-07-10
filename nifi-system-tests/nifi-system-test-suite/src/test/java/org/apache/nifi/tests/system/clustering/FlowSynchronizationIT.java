@@ -30,7 +30,6 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
-import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -73,7 +72,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FlowSynchronizationIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(FlowSynchronizationIT.class);
-    private static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("X-Request-Replicated", "value");
     private static final String RUNNING_STATE = "RUNNING";
     private static final String ENABLED_STATE = "ENABLED";
     private static final String SENSITIVE_VALUE_MASK = "********";
@@ -577,12 +575,13 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
     @Test
     public void testComponentsRecreatedOnRestart() throws NiFiClientException, IOException, InterruptedException {
         // Build dataflow with processors at root level and an inner group that contains an input port, output port, and a processor, as well as a Controller Service that the processor will use.
-        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
-        final ProcessGroupEntity group = getClientUtil().createProcessGroup("Inner Group", "root");
+        final ProcessGroupEntity topLevelGroup = getClientUtil().createProcessGroup("testComponentsRecreatedOnRestart", "root");
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile", topLevelGroup.getId());
+        final ProcessGroupEntity group = getClientUtil().createProcessGroup("Inner Group", topLevelGroup.getId());
         final PortEntity inPort = getClientUtil().createInputPort("In", group.getId());
         final PortEntity outPort = getClientUtil().createOutputPort("Out", group.getId());
         final ProcessorEntity count = getClientUtil().createProcessor("CountFlowFiles", group.getId());
-        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile", topLevelGroup.getId());
         getClientUtil().updateProcessorSchedulingPeriod(generate, "60 sec");
 
         final ControllerServiceEntity countService = getClientUtil().createControllerService("StandardCountService", group.getId());
@@ -622,7 +621,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         // is on Node 2.
         switchClientToNode(2);
 
-        final ProcessGroupFlowEntity flow = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getProcessGroup("root");
+        final ProcessGroupFlowEntity flow = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getProcessGroup(topLevelGroup.getId());
         final FlowDTO flowDto = flow.getProcessGroupFlow().getFlow();
         assertEquals(2, flowDto.getConnections().size());
         assertEquals(2, flowDto.getProcessors().size());
