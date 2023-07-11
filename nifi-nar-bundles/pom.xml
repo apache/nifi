@@ -120,7 +120,6 @@
         <module>nifi-box-bundle</module>
         <module>nifi-flow-registry-client-bundle</module>
         <module>nifi-shopify-bundle</module>
-        <module>nifi-iceberg-bundle</module>
         <module>nifi-jslt-bundle</module>
         <module>nifi-iotdb-bundle</module>
         <module>nifi-cipher-bundle</module>
