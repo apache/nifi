@@ -873,6 +873,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
         int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
 
+        final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_DEBUG_CONTROLLER_ENABLE, "false"));
+        final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_DEBUG_CONTROLLER_PORT, 5678);
+        final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_DEBUG_CONTROLLER_HOST, "localhost");
+        final String debugLogs = nifiProperties.getProperty(NiFiProperties.PYTHON_DEBUG_CONTROLLER_LOGS_DIR, "logs");
+
         // Validate configuration for max numbers of processes.
         if (maxProcessesPerType < 1) {
             LOG.warn("Configured value for {} in nifi.properties is {}, which is invalid. Defaulting to 2.", NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, maxProcessesPerType);
@@ -903,6 +908,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
             .maxPythonProcessesPerType(maxProcessesPerType)
+            .enableControllerDebug(enableControllerDebug)
+            .debugPort(debugPort)
+            .debugHost(debugHost)
+            .debugLogsDirectory(new File(debugLogs))
             .build();
 
         final ControllerServiceTypeLookup serviceTypeLookup = serviceProvider::getControllerServiceType;
