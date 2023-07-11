@@ -541,3 +541,83 @@ appropriate environment directory, and restarting NiFi.
 
 While you may delete the entire `work` directory while NiFi is stopped, doing so may result in NiFi taking significantly longer to startup
 the next time, as it must source all extensions' dependencies from PyPI, as well as expand all Java extensions' NAR files.
+
+
+[[debugging]]
+== Debugging
+
+It's often helpful to attach a remote debugger to the Python process so that we can step through the code, examine variables,
+and execute code snippets, etc.
+
+The method used will vary based on the IDE used. However, here we will look at how to enable remote debugging using VSCode.
+VSCode comes with a debugger named DebugPy.
+
+It is important to note that every instance of a Processor and even each concurrent task in a Processor may end up
+using a separate Python process. Because of this, it is difficult to enable the Python process to listen for incoming
+connections because there may be many different processes. Instead, it is recommended to enable listening in VSCode
+and then allow the Processor itself to connect to the debugger.
+
+To enable listening in VSCode, we must first create a `launch.json` launch configuration. The `launch.json` should have a
+`listen` section to tell it to listen on a particular port. Additionally, the `pathMappings` must be setup to indicate the
+local directory in which VSCode should find the Python code, and the `remoteRoot` which is the directory in which NiFi should find
+the Python code.
+
+For example:
+
+[source]
+----
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Remote Attach",
+            "type": "python",
+            "request": "attach",
+            "listen": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/nifi-python-test-extensions/src/main/resources/extensions",
+                    "remoteRoot": "./python/extensions"
+                }
+            ],
+            "justMyCode": true
+        }
+    ]
+}
+----
+
+We can then launch this using VSCode.
+
+Next, we must tell the Processor to connect to the debugger. This requires updating the Processor's code.
+
+Firstly, the DebugPy module must be added as a dependency. Then the Processor needs to connect to the debugger.
+
+To enable remote debugging on Processors themselves, it is necessary to update the Processor's code to implement something
+akin to:
+
+[source]
+----
+class MyProcessor(FlowFileTransform):
+    class Java:
+        implements = ['org.apache.nifi.python.processor.FlowFileTransform']
+    class ProcessorDetails:
+        version = '0.0.1-SNAPSHOT'
+        dependencies = ['debugpy']
+
+    def onScheduled(context):
+        try:
+            import debugpy
+            debugpy.connect(6688)
+        except e:
+            self.logger.error("Failed to connect to python debug listener")
+----
+
+It is important to note, however, that the code available to VSCode must exactly match the code that NiFi is using in order
+to ensure that breakpoints line up correctly. As a result, the code should be updated in VSCode and then copied into NiFi's directory.
+At that point, NiFi does not require a restart, but the Processor must be stopped and started again.
+
+Now, when the Processor is scheduled, it will connect to the VSCode debugger, and you can set breakpoints in the VSCode
+in order to debug the Processor.

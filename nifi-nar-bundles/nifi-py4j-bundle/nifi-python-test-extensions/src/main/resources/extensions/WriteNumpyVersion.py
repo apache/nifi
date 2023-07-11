@@ -21,7 +21,7 @@ class WriteNumpyVersion(FlowFileTransform):
         implements = ['org.apache.nifi.python.processor.FlowFileTransform']
 
     class ProcessorDetails:
-        dependencies = ['numpy==1.20.0']
+        dependencies = ['numpy==1.25.0']
         version = '0.0.1-SNAPSHOT'
 
     def __init__(self, jvm):
