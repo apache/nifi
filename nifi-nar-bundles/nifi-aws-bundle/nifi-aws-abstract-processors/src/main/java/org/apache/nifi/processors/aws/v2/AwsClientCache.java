@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.v2;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import software.amazon.awssdk.core.SdkClient;
 
@@ -25,8 +26,8 @@ public class AwsClientCache<T extends SdkClient> {
 
     private final Cache<AwsClientDetails, T> clientCache = Caffeine.newBuilder().build();
 
-    public T getOrCreateClient(final ProcessContext context, final AwsClientDetails clientDetails, final AwsClientProvider<T> provider) {
-        return clientCache.get(clientDetails, ignored -> provider.createClient(context));
+    public T getOrCreateClient(final ProcessContext context, final AwsClientDetails clientDetails, final AwsClientProvider<T> provider, FlowFile flowFile) {
+        return clientCache.get(clientDetails, ignored -> provider.createClient(context, flowFile));
     }
 
     public void clearCache() {

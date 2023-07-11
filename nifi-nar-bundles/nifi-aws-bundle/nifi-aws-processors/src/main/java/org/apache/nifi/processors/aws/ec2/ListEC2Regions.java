@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.ec2;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -29,15 +30,19 @@ import org.apache.nifi.processor.exception.ProcessException;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeRegionsRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeRegionsResponse;
+import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 import software.amazon.awssdk.services.ec2.model.Region;
 
+import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+
 @Tags({"Amazon", "EC2", "AWS", "list"})
 @CapabilityDescription("List EC2 regions visible to the user. " +
         "The processor will create a single FlowFile with the list of regions as JSON.")
+@WritesAttribute(attribute = "aws.ec2.regions.count", description = "The number of EC2 regions returned in the flow file")
 public class ListEC2Regions extends AbstractEC2Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
@@ -50,27 +55,40 @@ public class ListEC2Regions extends AbstractEC2Processor {
         return properties;
     }
 
+    private static final Set<Relationship> relationships = Collections.unmodifiableSet(
+            new LinkedHashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE))
+    );
+
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return relationships;
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         // Fetch the list of regions
         final Ec2Client client = getClient(context);
-        DescribeRegionsRequest request = DescribeRegionsRequest.builder().build();
-        DescribeRegionsResponse response = client.describeRegions(request);
-        List<Region> regions = response.regions();
+        try {
+            DescribeRegionsRequest request = DescribeRegionsRequest.builder().build();
+            DescribeRegionsResponse response = client.describeRegions(request);
+            List<Region> regions = response.regions();
 
-        // Write the results to an output flowfile
-        if(!regions.isEmpty()){
-            String json = toJson(regions);
-            FlowFile flowFile = session.create();
-            session.write(flowFile, (outputStream) -> {
-                outputStream.write(json.getBytes());
-            });
-            session.transfer(flowFile, REL_SUCCESS);
+            // Write the results to an output flowfile
+            if(!regions.isEmpty()){
+                String json = toJson(regions);
+                FlowFile flowFile = session.create();
+                session.write(flowFile, (outputStream) -> {
+                    outputStream.write(json.getBytes());
+                });
+                session.putAttribute(flowFile, "aws.ec2.regions.count", String.valueOf(regions.size()));
+                session.transfer(flowFile, REL_SUCCESS);
+            } else {
+                getLogger().warn("No EC2 regions found");
+                session.transfer(session.create(), REL_FAILURE);
+            }
+        } catch (Ec2Exception e) {
+            getLogger().error("Failed to list EC2 regions due to {}", new Object[]{e.getMessage()}, e);
+            session.transfer(session.create(), REL_FAILURE);
         }
     }
 
