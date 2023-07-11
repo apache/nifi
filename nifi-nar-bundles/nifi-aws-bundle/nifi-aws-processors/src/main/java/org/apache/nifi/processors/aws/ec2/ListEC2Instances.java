@@ -23,12 +23,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import software.amazon.awssdk.services.ec2.Ec2ClientBuilder;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesRequest;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Ec2Exception;
@@ -46,12 +44,7 @@ import java.util.Collections;
 @Tags({"Amazon", "EC2", "AWS", "list"})
 @CapabilityDescription("List EC2 instances in a given region. The processor will create a FlowFile for each page of results." +
         "Use Batch Size to control the number of instances per FlowFile.")
-public class ListEC2 extends AbstractAwsProcessor<Ec2Client, Ec2ClientBuilder> {
-
-    @Override
-    protected Ec2ClientBuilder createClientBuilder(ProcessContext context) {
-        return Ec2Client.builder();
-    }
+public class ListEC2Instances extends AbstractEC2Processor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -104,7 +97,8 @@ public class ListEC2 extends AbstractAwsProcessor<Ec2Client, Ec2ClientBuilder> {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,TIMEOUT,
-                    AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, BATCH_SIZE));
+                    AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, BATCH_SIZE, PROXY_HOST, PROXY_HOST_PORT,
+                    PROXY_USERNAME, PROXY_PASSWORD));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
