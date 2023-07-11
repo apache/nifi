@@ -29,6 +29,7 @@ import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.web.client.RestOperations;
 
@@ -85,8 +86,6 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
         final List<String> additionalScopes = properties.getOidcAdditionalScopes();
         scope.addAll(additionalScopes);
 
-        final String userNameAttributeName = properties.getOidcClaimIdentifyingUser();
-
         return ClientRegistration.withRegistrationId(OidcRegistrationProperty.REGISTRATION_ID.getProperty())
                 .clientId(clientId)
                 .clientSecret(clientSecret)
@@ -99,7 +98,8 @@ public class StandardClientRegistrationProvider implements ClientRegistrationPro
                 .providerConfigurationMetadata(configurationMetadata)
                 .redirectUri(REGISTRATION_REDIRECT_URI)
                 .scope(scope)
-                .userNameAttributeName(userNameAttributeName)
+                // OpenID Connect 1.0 requires the sub claim and other components handle application username mapping
+                .userNameAttributeName(IdTokenClaimNames.SUB)
                 .clientAuthenticationMethod(clientAuthenticationMethod)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .build();
