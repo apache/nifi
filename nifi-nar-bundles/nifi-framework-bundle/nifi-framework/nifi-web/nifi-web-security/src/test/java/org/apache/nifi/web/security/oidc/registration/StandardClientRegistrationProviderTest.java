@@ -63,7 +63,7 @@ class StandardClientRegistrationProviderTest {
 
     private static final String CLIENT_SECRET = "client-secret";
 
-    private static final String USER_NAME_ATTRIBUTE_NAME = "email";
+    private static final String USER_NAME_ATTRIBUTE_NAME = "sub";
 
     private static final Set<String> EXPECTED_SCOPES = new LinkedHashSet<>(Arrays.asList(OidcScopes.OPENID, OidcScopes.EMAIL, OidcScopes.PROFILE));
 

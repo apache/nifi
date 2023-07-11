@@ -50,6 +50,7 @@ import org.apache.nifi.web.security.oidc.registration.DisabledClientRegistration
 import org.apache.nifi.web.security.oidc.registration.StandardClientRegistrationProvider;
 import org.apache.nifi.web.security.oidc.revocation.StandardTokenRevocationResponseClient;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponseClient;
+import org.apache.nifi.web.security.oidc.userinfo.StandardOidcUserService;
 import org.apache.nifi.web.security.oidc.web.authentication.OidcAuthenticationSuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -296,7 +297,10 @@ public class OidcSecurityConfiguration {
      */
     @Bean
     public OidcUserService oidcUserService() {
-        final OidcUserService oidcUserService = new OidcUserService();
+        final StandardOidcUserService oidcUserService = new StandardOidcUserService(
+                getUserClaimNames(),
+                IdentityMappingUtil.getIdentityMappings(properties)
+        );
         final DefaultOAuth2UserService userService = new DefaultOAuth2UserService();
         userService.setRestOperations(oidcRestOperations());
         oidcUserService.setOauth2UserService(userService);
@@ -468,9 +472,7 @@ public class OidcSecurityConfiguration {
     }
 
     private OidcAuthenticationSuccessHandler getAuthenticationSuccessHandler() {
-        final List<String> userClaimNames = new ArrayList<>();
-        userClaimNames.add(properties.getOidcClaimIdentifyingUser());
-        userClaimNames.addAll(properties.getOidcFallbackClaimsIdentifyingUser());
+        final List<String> userClaimNames = getUserClaimNames();
 
         return new OidcAuthenticationSuccessHandler(
                 bearerTokenProvider,
@@ -479,5 +481,12 @@ public class OidcSecurityConfiguration {
                 userClaimNames,
                 properties.getOidcClaimGroups()
         );
+    }
+
+    private List<String> getUserClaimNames() {
+        final List<String> userClaimNames = new ArrayList<>();
+        userClaimNames.add(properties.getOidcClaimIdentifyingUser());
+        userClaimNames.addAll(properties.getOidcFallbackClaimsIdentifyingUser());
+        return userClaimNames;
     }
 }
