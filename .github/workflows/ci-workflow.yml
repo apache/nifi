@@ -182,73 +182,10 @@ jobs:
       - name: Post Disk Usage
         run: df
 
-  ubuntu-build-hi:
-    timeout-minutes: 120
-    runs-on: ubuntu-latest
-    name: Ubuntu Zulu JDK 11 HI
-    steps:
-      - name: System Information
-        run: |
-          hostname
-          cat /proc/cpuinfo
-          cat /proc/meminfo
-          df
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Cache Node Modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-      - name: Set up Java 11
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '11'
-          cache: 'maven'
-      - name: Maven Compile
-        env:
-          MAVEN_OPTS: >-
-            ${{ env.COMPILE_MAVEN_OPTS }}
-        run: >
-          ${{ env.MAVEN_COMMAND }}
-          ${{ env.MAVEN_COMPILE_COMMAND }}
-      - name: Maven Verify
-        env:
-          NIFI_CI_LOCALE: >-
-            -Duser.language=hi
-            -Duser.country=IN
-          SUREFIRE_OPTS: >-
-            -Duser.language=hi
-            -Duser.country=IN
-            -Duser.region=IN
-            -Duser.timezone=Asia/Kolkata
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
-            -DargLine=${env.SUREFIRE_OPTS}
-        run: >
-          ${{ env.MAVEN_COMMAND }}
-          ${{ env.MAVEN_VERIFY_COMMAND }}
-          ${{ env.MAVEN_BUILD_PROFILES }}
-          ${{ env.MAVEN_PROJECTS }}
-      - name: Upload Test Reports
-        uses: actions/upload-artifact@v3
-        with:
-          name: surefire-reports-ubuntu-en
-          path: |
-            ./**/target/surefire-reports/*.txt
-            ./**/target/surefire-reports/*.xml
-          retention-days: 3
-        if: failure()
-      - name: Post Disk Usage
-        run: df
-
-  macos-build-jp:
+  macos-build-jdk-17:
     timeout-minutes: 150
     runs-on: macos-latest
-    name: MacOS Temurin JDK 8 JP
+    name: MacOS Temurin JDK 17
     steps:
       - name: System Information
         run: |
@@ -265,11 +202,11 @@ jobs:
             ~/.npm
             **/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-      - name: Set up Java 8
+      - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '17'
           cache: 'maven'
       - name: Maven Compile
         env:
@@ -281,13 +218,13 @@ jobs:
       - name: Maven Verify
         env:
           NIFI_CI_LOCALE: >-
-            -Duser.language=ja
-            -Duser.country=JP
+            -Duser.language=en
+            -Duser.country=US
           SUREFIRE_OPTS: >-
-            -Duser.language=ja
-            -Duser.country=JP
-            -Duser.region=JP
-            -Duser.timezone=Asia/Tokyo
+            -Duser.language=en
+            -Duser.country=US
+            -Duser.region=US
+            -Duser.timezone=America/Los_Angeles
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
             -DargLine=${env.SUREFIRE_OPTS}
@@ -308,67 +245,4 @@ jobs:
       - name: Post Disk Usage
         run: df
 
-  windows-build:
-    timeout-minutes: 150
-    runs-on: windows-latest
-    name: Windows Zulu JDK 8 FR
-    steps:
-      - name: System Information
-        run: |
-          systeminfo
-          df
-      - name: Setup Git
-        run:  |
-          git config --global core.autocrlf false
-          git config --global core.longpaths true
-      - name: Checkout Code
-        uses: actions/checkout@v3
-      - name: Cache Node Modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~\AppData\npm-cache
-            **\node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-      - name: Set up Java 8
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '8'
-          cache: 'maven'
-      - name: Maven Compile
-        env:
-          MAVEN_OPTS: >-
-            ${{ env.COMPILE_MAVEN_OPTS }}
-        run: >
-          ${{ env.MAVEN_COMMAND_WINDOWS }}
-          ${{ env.MAVEN_COMPILE_COMMAND }}
-      - name: Maven Verify
-        env:
-          NIFI_CI_LOCALE: >-
-            -Duser.language=fr
-            -Duser.country=FR
-          SUREFIRE_OPTS: >-
-            -Duser.language=fr
-            -Duser.country=FR
-            -Duser.region=FR
-            -Duser.timezone=Europe/Paris
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
-            -DargLine=${env.SUREFIRE_OPTS}
-        run: >-
-          ${{ env.MAVEN_COMMAND_WINDOWS }}
-          ${{ env.MAVEN_VERIFY_COMMAND }}
-          ${{ env.MAVEN_BUILD_PROFILES }}
-          ${{ env.MAVEN_PROJECTS }}
-      - name: Upload Test Reports
-        uses: actions/upload-artifact@v3
-        with:
-          name: surefire-reports-windows-fr
-          path: |
-            ./**/target/surefire-reports/*.txt
-            ./**/target/surefire-reports/*.xml
-          retention-days: 3
-        if: failure()
-      - name: Post Disk Usage
-        run: df
+
