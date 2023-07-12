@@ -602,24 +602,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-services-api-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-cassandra-services-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-spring-nar</artifactId>
             <version>1.23.0-SNAPSHOT</version>
             <type>nar</type>
@@ -1154,20 +1136,6 @@ language governing permissions and limitations under the License. -->
                     <name>allProfiles</name>
                 </property>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-hive3-nar</artifactId>
-                    <version>1.23.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-hive-services-api-nar</artifactId>
-                    <version>1.23.0-SNAPSHOT</version>
-                    <type>nar</type>
-                </dependency>
-            </dependencies>
         </profile>
         <profile>
             <id>include-iotdb</id>
