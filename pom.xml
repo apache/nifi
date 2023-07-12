@@ -145,7 +145,7 @@
         <spring.version>5.3.28</spring.version>
         <spring.security.version>5.8.4</spring.security.version>
         <swagger.annotations.version>1.6.11</swagger.annotations.version>
-        <h2.version>2.1.214</h2.version>
+        <h2.version>2.2.220</h2.version>
         <zookeeper.version>3.8.1</zookeeper.version>
         <caffeine.version>2.9.3</caffeine.version>
     </properties>
