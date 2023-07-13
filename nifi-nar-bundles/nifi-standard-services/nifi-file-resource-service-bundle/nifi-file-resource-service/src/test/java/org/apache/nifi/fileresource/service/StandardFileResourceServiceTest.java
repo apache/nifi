@@ -27,6 +27,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -122,6 +124,7 @@ class StandardFileResourceServiceTest {
         assertThrows(ProcessException.class, () -> service.getFileResource(attributes));
     }
 
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     void testNonReadableFile() throws IOException {
         final Path filePath = createTestFile("nonReadableFile");
