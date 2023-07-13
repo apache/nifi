@@ -51,6 +51,7 @@ public class UpdateAttributeModelFactory {
         final Rule rule = new Rule();
         rule.setId(dto.getId());
         rule.setName(dto.getName());
+        rule.setComments(dto.getComments());
         rule.setConditions(createConditions(dto.getConditions()));
         rule.setActions(createActions(dto.getActions()));
         return rule;

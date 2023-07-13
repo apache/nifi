@@ -27,6 +27,7 @@ public class RuleDTO {
 
     private String id;
     private String name;
+    private String comments;
     private Set<ConditionDTO> conditions;
     private Set<ActionDTO> actions;
 
@@ -44,6 +45,14 @@ public class RuleDTO {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
     }
 
     public Set<ConditionDTO> getConditions() {
