@@ -25,8 +25,8 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.ClientSideEncryptionSupport;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.ClientSideEncryptionMethod;
-import org.apache.nifi.processors.dataupload.DataUploadProperties;
-import org.apache.nifi.processors.dataupload.DataUploadSource;
+import org.apache.nifi.processors.transfer.ResourceTransferProperties;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
@@ -264,8 +264,8 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
-        runner.setProperty(DataUploadProperties.DATA_TO_UPLOAD, DataUploadSource.LOCAL_FILE.getValue());
-        runner.setProperty(DataUploadProperties.FILE_RESOURCE_SERVICE, serviceId);
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
 
         Path tempFilePath = Files.createTempFile("ITPutAzureBlobStorage_v12_testPutBlobFromLocalFile_", "");
         Files.write(tempFilePath, BLOB_DATA);

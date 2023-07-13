@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.dataupload;
+package org.apache.nifi.processors.transfer;
 
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.fileresource.service.api.FileResource;
@@ -30,19 +30,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.InputStream;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 @ExtendWith(MockitoExtension.class)
-class DataUploadUtilTest {
+class ResourceTransferUtilsTest {
 
     private static final long FLOW_FILE_SIZE = 2;
     private static final long FILE_RESOURCE_SIZE = 5;
@@ -82,49 +83,50 @@ class DataUploadUtilTest {
         when(property.isSet()).thenReturn(true);
         when(property.asControllerService(FileResourceService.class)).thenReturn(service);
 
-        when(context.getProperty(DataUploadProperties.FILE_RESOURCE_SERVICE)).thenReturn(property);
+        when(context.getProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE)).thenReturn(property);
 
-        final FileResource result = DataUploadUtil.getFileResource(DataUploadSource.LOCAL_FILE, context, flowFile);
+        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, flowFile);
 
-        assertSame(fileResource, result);
+        assertFalse(fileResourceFound.isEmpty());
+        assertSame(fileResource, fileResourceFound.get());
     }
 
     @Test
     void testGetFileResourceWhenDataUploadSourceIsLocalFileButNoServiceConfigured() {
-        assertThrows(ProcessException.class, () -> DataUploadUtil.getFileResource(DataUploadSource.LOCAL_FILE, context, flowFile));
+        assertThrows(ProcessException.class, () -> ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, flowFile));
     }
 
     @Test
     void testGetFileResourceWhenDataUploadSourceIsFlowFileContent() {
-        final FileResource result = DataUploadUtil.getFileResource(DataUploadSource.FLOWFILE_CONTENT, context, flowFile);
+        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FLOWFILE_CONTENT, context, flowFile);
 
-        assertNull(result);
+        assertTrue(fileResourceFound.isEmpty());
     }
 
     @Test
     void testGetUploadInputStreamWithFlowFile() {
-        final InputStream inputStream = DataUploadUtil.getUploadInputStream(session, flowFile, null);
+        final InputStream inputStream = ResourceTransferUtils.getTransferInputStream(session, flowFile, null);
 
         assertSame(flowFileInputstream, inputStream);
     }
 
     @Test
     void testGetUploadInputStreamWithFileResource() {
-        final InputStream inputStream = DataUploadUtil.getUploadInputStream(session, flowFile, fileResource);
+        final InputStream inputStream = ResourceTransferUtils.getTransferInputStream(session, flowFile, fileResource);
 
         assertSame(fileRessourceInputstream, inputStream);
     }
 
     @Test
     void testGetUploadSizeWithFlowFile() {
-        final long size = DataUploadUtil.getUploadSize(flowFile, null);
+        final long size = ResourceTransferUtils.getTransferSize(flowFile, null);
 
         assertEquals(FLOW_FILE_SIZE, size);
     }
 
     @Test
     void testGetUploadSizeWithFileResource() {
-        final long size = DataUploadUtil.getUploadSize(flowFile, fileResource);
+        final long size = ResourceTransferUtils.getTransferSize(flowFile, fileResource);
 
         assertEquals(FILE_RESOURCE_SIZE, size);
     }

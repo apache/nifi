@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.dataupload;
+package org.apache.nifi.processors.transfer;
 
 import org.apache.nifi.components.DescribedValue;
 
-public enum DataUploadSource implements DescribedValue {
+public enum ResourceTransferSource implements DescribedValue {
 
-    FLOWFILE_CONTENT("FlowFile Content", "The content of the incoming FlowFile will be uploaded."),
-    LOCAL_FILE("Local File", "The content of a local file will be uploaded.");
+    FLOWFILE_CONTENT("FlowFile Content", "The content of the incoming FlowFile provides the source for transfer"),
+    FILE_RESOURCE_SERVICE("File Resource Service", "The File Resource Service provides the source for transfer");
 
     private final String displayName;
     private final String description;
 
-    DataUploadSource(String displayName, String description) {
+    ResourceTransferSource(String displayName, String description) {
         this.displayName = displayName;
         this.description = description;
     }

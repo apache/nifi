@@ -14,32 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.dataupload;
+package org.apache.nifi.processors.transfer;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 
-import static org.apache.nifi.processors.dataupload.DataUploadSource.FLOWFILE_CONTENT;
+import static org.apache.nifi.processors.transfer.ResourceTransferSource.FLOWFILE_CONTENT;
 
-public class DataUploadProperties {
+public class ResourceTransferProperties {
 
-    public static final PropertyDescriptor DATA_TO_UPLOAD = new PropertyDescriptor.Builder()
-            .name("data-to-upload")
-            .displayName("Data to Upload")
-            .description("The source of the content to be uploaded.")
+    public static final PropertyDescriptor RESOURCE_TRANSFER_SOURCE = new PropertyDescriptor.Builder()
+            .name("Resource Transfer Source")
+            .displayName("Resource Transfer Source")
+            .description("The source of the content to be transferred")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
-            .allowableValues(DataUploadSource.class)
+            .allowableValues(ResourceTransferSource.class)
             .defaultValue(FLOWFILE_CONTENT.getValue())
             .build();
 
     public static final PropertyDescriptor FILE_RESOURCE_SERVICE = new PropertyDescriptor.Builder()
-            .name("file-resource-service")
+            .name("File Resource Service")
             .displayName("File Resource Service")
-            .description("File Resource Service providing a local file to be uploaded.")
+            .description("File Resource Service providing access to the local resource to be transferred")
             .identifiesControllerService(FileResourceService.class)
             .required(true)
-            .dependsOn(DATA_TO_UPLOAD, DataUploadSource.LOCAL_FILE)
+            .dependsOn(RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE)
             .build();
 }

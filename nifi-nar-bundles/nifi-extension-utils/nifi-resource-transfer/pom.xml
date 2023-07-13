@@ -23,7 +23,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-data-upload</artifactId>
+    <artifactId>nifi-resource-transfer</artifactId>
 
     <dependencies>
         <dependency>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.dataupload;
+package org.apache.nifi.processors.transfer;
 
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.fileresource.service.api.FileResource;
@@ -25,33 +25,39 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.InputStream;
+import java.util.Optional;
 
-import static org.apache.nifi.processors.dataupload.DataUploadProperties.FILE_RESOURCE_SERVICE;
+import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 
-public final class DataUploadUtil {
+public final class ResourceTransferUtils {
 
-    private DataUploadUtil() {}
+    private ResourceTransferUtils() {}
 
     /**
-     * If DataUploadSource is LOCAL_FILE, looks up FILE_RESOURCE_SERVICE property from the process context, retrieves FileResource from the service and returns it.
-     * If DataUploadSource is not LOCAL_FILE, it returns null.
+     * Get File Resource from File Resource Service based on provided Source otherwise return empty
      *
-     * @param dataUploadSource type of the data upload
+     * @param resourceTransferSource type of the data upload
      * @param context process context with properties
      * @param flowFile FlowFile with attributes to use in expression language
-     * @return FileResource retrieved from FileResourceService if DataUploadSource is LOCAL_FILE, otherwise null
-     * @throws ProcessException if DataUploadSource is LOCAL_FILE but FileResourceService is not provided in the context
+     * @return Optional FileResource retrieved from FileResourceService if Source is File Resource Service, otherwise empty
+     * @throws ProcessException Thrown if Source is File Resource but FileResourceService is not provided in the context
      */
-    public static FileResource getFileResource(final DataUploadSource dataUploadSource, final ProcessContext context, final FlowFile flowFile) {
-        if (dataUploadSource == DataUploadSource.LOCAL_FILE) {
+    public static Optional<FileResource> getFileResource(final ResourceTransferSource resourceTransferSource, final ProcessContext context, final FlowFile flowFile) {
+        final Optional<FileResource> resource;
+
+        if (resourceTransferSource == ResourceTransferSource.FILE_RESOURCE_SERVICE) {
             final PropertyValue property = context.getProperty(FILE_RESOURCE_SERVICE);
             if (property == null || !property.isSet()) {
-                throw new ProcessException("DataUploadSource is LOCAL_FILE but no FileResourceService found");
+                throw new ProcessException("File Resource Service required but not configured");
             }
             final FileResourceService fileResourceService = property.asControllerService(FileResourceService.class);
-            return fileResourceService.getFileResource(flowFile.getAttributes());
+            final FileResource fileResource = fileResourceService.getFileResource(flowFile.getAttributes());
+            resource = Optional.ofNullable(fileResource);
+        } else {
+            resource = Optional.empty();
         }
-        return null;
+
+        return resource;
     }
 
     /**
@@ -62,7 +68,7 @@ public final class DataUploadUtil {
      * @param fileResource the FileResource
      * @return input stream of the FileResource or the FlowFile
      */
-    public static InputStream getUploadInputStream(final ProcessSession session, final FlowFile flowFile, final FileResource fileResource) {
+    public static InputStream getTransferInputStream(final ProcessSession session, final FlowFile flowFile, final FileResource fileResource) {
         return fileResource == null ? session.read(flowFile) : fileResource.getInputStream();
     }
 
@@ -71,9 +77,9 @@ public final class DataUploadUtil {
      *
      * @param flowFile the FlowFile which is used when no FileResource is provided
      * @param fileResource the FileResource
-     * @return size of the FileResource or the FlowFile
+     * @return size of the FileResource or the FlowFile in bytes
      */
-    public static long getUploadSize(final FlowFile flowFile, final FileResource fileResource) {
+    public static long getTransferSize(final FlowFile flowFile, final FileResource fileResource) {
         return fileResource == null ? flowFile.getSize() : fileResource.getSize();
     }
 }

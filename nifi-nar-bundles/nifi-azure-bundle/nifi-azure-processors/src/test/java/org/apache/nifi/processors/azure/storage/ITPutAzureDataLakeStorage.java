@@ -22,8 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.fileresource.service.StandardFileResourceService;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processors.dataupload.DataUploadProperties;
-import org.apache.nifi.processors.dataupload.DataUploadSource;
+import org.apache.nifi.processors.transfer.ResourceTransferProperties;
+import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -262,8 +262,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.setProperty(service, StandardFileResourceService.FILE_PATH, String.format("${%s}", attributeName));
         runner.enableControllerService(service);
 
-        runner.setProperty(DataUploadProperties.DATA_TO_UPLOAD, DataUploadSource.LOCAL_FILE.getValue());
-        runner.setProperty(DataUploadProperties.FILE_RESOURCE_SERVICE, serviceId);
+        runner.setProperty(ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE, ResourceTransferSource.FILE_RESOURCE_SERVICE.getValue());
+        runner.setProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE, serviceId);
 
         Path tempFilePath = Files.createTempFile("ITPutAzureDataLakeStorage_testPutFileFromLocalFile_", "");
         Files.write(tempFilePath, FILE_DATA);
