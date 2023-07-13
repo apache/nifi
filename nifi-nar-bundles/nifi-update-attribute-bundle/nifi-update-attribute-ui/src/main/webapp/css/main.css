@@ -221,6 +221,14 @@ div.large-label-container {
     height: 200px;
 }
 
+#selected-rule-comments-container {
+    margin-top: 75px;
+}
+
+#selected-rule-comments {
+    height: 50px;
+}
+
 #selected-rule-actions-container {
     padding-top: 20px;
 }
@@ -230,7 +238,7 @@ div.large-label-container {
 }
 
 #selected-rule-conditions-container {
-    padding-top: 68px;
+    padding-top: 8px;
 }
 
 #selected-rule-conditions-container div.slick-viewport {
