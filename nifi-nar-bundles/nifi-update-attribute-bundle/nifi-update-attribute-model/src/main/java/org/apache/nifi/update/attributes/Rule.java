@@ -27,6 +27,7 @@ public class Rule {
 
     private String id;
     private String name;
+    private String comments;
     private Set<Condition> conditions;
     private Set<Action> actions;
 
@@ -44,6 +45,14 @@ public class Rule {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
     }
 
     public Set<Condition> getConditions() {

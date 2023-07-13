@@ -377,6 +377,8 @@ var ua = {
 
                                 // if we are copying from another rule load the details
                                 if (typeof copyFromRule !== 'undefined' && copyFromRule !== null) {
+                                    var commentsData = $('#selected-rule-comments').val(copyFromRule.comments);
+
                                     var conditionsGrid = $('#selected-rule-conditions').data('gridInstance');
                                     var conditionsData = conditionsGrid.getData();
                                     conditionsData.setItems(copyFromRule.conditions);
@@ -1095,6 +1097,9 @@ var ua = {
         $('#selected-rule-name').val('').hide();
         $('#no-rule-selected-label').show();
 
+        // clear comments
+        $('#selected-rule-comments').val('');
+
         // clear the grids
         var conditionsData = conditionsGrid.getData();
         conditionsData.setItems([]);
@@ -1212,6 +1217,7 @@ var ua = {
             // populate the rule details
             $('#selected-rule-id').text(selectedRule.id);
             $('#selected-rule-name').val(selectedRule.name).show();
+            $('#selected-rule-comments').val(selectedRule.comments).show();
             $('#no-rule-selected-label').hide();
 
             // populate the rule conditions
@@ -1328,6 +1334,7 @@ var ua = {
         // marshal the rule
         var rule = {
             name: $('#selected-rule-name').val(),
+            comments: $('#selected-rule-comments').val(),
             conditions: conditionsData.getItems(),
             actions: actionsData.getItems()
         };

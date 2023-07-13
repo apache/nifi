@@ -31,6 +31,7 @@ public class DtoFactory {
         final RuleDTO dto = new RuleDTO();
         dto.setId(rule.getId());
         dto.setName(rule.getName());
+        dto.setComments(rule.getComments());
 
         if (rule.getConditions() != null) {
             final Set<ConditionDTO> conditions = new TreeSet<>();
