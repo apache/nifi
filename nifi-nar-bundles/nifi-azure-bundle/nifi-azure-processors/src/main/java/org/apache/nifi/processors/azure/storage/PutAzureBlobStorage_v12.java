@@ -88,8 +88,6 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
-import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getTransferInputStream;
-import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getTransferSize;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, DeleteAzureBlobStorage_v12.class})
@@ -168,7 +166,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
         final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final AzureStorageConflictResolutionStrategy conflictResolution = AzureStorageConflictResolutionStrategy.valueOf(context.getProperty(CONFLICT_RESOLUTION).getValue());
         final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
-        final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile);
+        final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
 
         long startNanos = System.nanoTime();
         try {
@@ -195,14 +193,16 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                     blobRequestConditions.setIfNoneMatch("*");
                 }
 
-                final FileResource fileResource = fileResourceFound.orElse(null);
-                try (InputStream rawIn = getTransferInputStream(session, flowFile, fileResource)) {
-                    final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(rawIn));
+                final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
+                try (InputStream sourceInputStream = fileResourceFound
+                        .map(FileResource::getInputStream)
+                        .orElse(session.read(flowFile))
+                ) {
+                    final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(sourceInputStream));
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
                     Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
                     BlockBlobItem blob = response.getValue();
-                    long length = getTransferSize(flowFile, fileResource);
-                    applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, length);
+                    applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, transferSize);
                     applyBlobMetadata(attributes, blobClient);
                     if (ignore) {
                         attributes.put(ATTR_NAME_IGNORED, "false");

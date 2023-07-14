@@ -20,24 +20,18 @@ import com.azure.core.http.rest.Response;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.Test;
-
-import java.io.InputStream;
 
 import static org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage.FAIL_RESOLUTION;
 import static org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage.IGNORE_RESOLUTION;
 import static org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage.REPLACE_RESOLUTION;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,20 +40,6 @@ import static org.mockito.Mockito.when;
 public class TestPutAzureDataLakeStorage {
 
     private static final String FILE_NAME = "file1";
-
-    @Test
-    public void testPutFileButFailedToAppend() {
-        final PutAzureDataLakeStorage processor = new PutAzureDataLakeStorage();
-        final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
-        final ProcessSession session = mock(ProcessSession.class);
-        final FlowFile flowFile = mock(FlowFile.class);
-
-        when(flowFile.getSize()).thenReturn(1L);
-        doThrow(IllegalArgumentException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
-
-        assertThrows(IllegalArgumentException.class, () -> processor.appendContent(flowFile, fileClient, session, null));
-        verify(fileClient).delete();
-    }
 
     @Test
     public void testPutFileButFailedToRenameWithUnrecoverableError() {

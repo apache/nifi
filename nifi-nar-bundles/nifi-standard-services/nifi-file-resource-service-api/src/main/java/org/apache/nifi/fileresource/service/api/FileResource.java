@@ -17,14 +17,25 @@
 package org.apache.nifi.fileresource.service.api;
 
 import java.io.InputStream;
+import java.util.Objects;
 
+/**
+ * File Resource abstraction wraps an InputStream provides associated size in bytes
+ */
 public class FileResource {
 
     private final InputStream inputStream;
+
     private final long size;
 
+    /**
+     * File Resource constructor with required Input Stream and associated size in bytes
+     *
+     * @param inputStream Input Stream required
+     * @param size Size of stream in bytes
+     */
     public FileResource(final InputStream inputStream, final long size) {
-        this.inputStream = inputStream;
+        this.inputStream = Objects.requireNonNull(inputStream, "Input Stream required");
         this.size = size;
     }
 

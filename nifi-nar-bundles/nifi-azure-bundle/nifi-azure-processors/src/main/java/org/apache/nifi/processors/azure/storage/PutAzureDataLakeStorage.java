@@ -43,7 +43,6 @@ import org.apache.nifi.processors.transfer.ResourceTransferSource;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,8 +66,6 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FILE_RESOURCE_SERVICE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
-import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getTransferInputStream;
-import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getTransferSize;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -146,17 +143,27 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
             final ResourceTransferSource resourceTransferSource = ResourceTransferSource.valueOf(context.getProperty(RESOURCE_TRANSFER_SOURCE).getValue());
-            final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile);
-            final FileResource fileResource = fileResourceFound.orElse(null);
+            final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
+            final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
 
             final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
-            appendContent(flowFile, tempFileClient, session, fileResource);
+            if (transferSize > 0) {
+                try (
+                        final InputStream inputStream = new BufferedInputStream(
+                                fileResourceFound.map(FileResource::getInputStream).orElse(session.read(flowFile))
+                        )
+                ) {
+                    uploadContent(tempFileClient, inputStream, transferSize);
+                } catch (final Exception e) {
+                    removeTempFile(tempFileClient);
+                    throw e;
+                }
+            }
             createDirectoryIfNotExists(directoryClient);
 
             final String fileUrl = renameFile(tempFileClient, directoryClient.getDirectoryPath(), fileName, conflictResolution);
             if (fileUrl != null) {
-                final long length = getTransferSize(flowFile, fileResource);
-                final Map<String, String> attributes = createAttributeMap(fileSystem, originalDirectory, fileName, fileUrl, length);
+                final Map<String, String> attributes = createAttributeMap(fileSystem, originalDirectory, fileName, fileUrl, transferSize);
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
@@ -189,19 +196,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     private void createDirectoryIfNotExists(DataLakeDirectoryClient directoryClient) {
         if (!directoryClient.getDirectoryPath().isEmpty() && !directoryClient.exists()) {
             directoryClient.create();
-        }
-    }
-
-    //Visible for testing
-    void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session, FileResource fileResource) throws IOException {
-        final long length = getTransferSize(flowFile, fileResource);
-        if (length > 0) {
-            try (final InputStream rawIn = getTransferInputStream(session, flowFile, fileResource); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
-                 uploadContent(fileClient, bufferedIn, length);
-            } catch (Exception e) {
-                removeTempFile(fileClient);
-                throw e;
-            }
         }
     }
 

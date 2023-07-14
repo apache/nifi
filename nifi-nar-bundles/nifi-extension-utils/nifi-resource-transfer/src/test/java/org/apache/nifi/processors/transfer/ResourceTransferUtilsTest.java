@@ -30,9 +30,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -85,7 +85,7 @@ class ResourceTransferUtilsTest {
 
         when(context.getProperty(ResourceTransferProperties.FILE_RESOURCE_SERVICE)).thenReturn(property);
 
-        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, flowFile);
+        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, Collections.emptyMap());
 
         assertFalse(fileResourceFound.isEmpty());
         assertSame(fileResource, fileResourceFound.get());
@@ -93,41 +93,13 @@ class ResourceTransferUtilsTest {
 
     @Test
     void testGetFileResourceWhenDataUploadSourceIsLocalFileButNoServiceConfigured() {
-        assertThrows(ProcessException.class, () -> ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, flowFile));
+        assertThrows(ProcessException.class, () -> ResourceTransferUtils.getFileResource(ResourceTransferSource.FILE_RESOURCE_SERVICE, context, Collections.emptyMap()));
     }
 
     @Test
     void testGetFileResourceWhenDataUploadSourceIsFlowFileContent() {
-        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FLOWFILE_CONTENT, context, flowFile);
+        final Optional<FileResource> fileResourceFound = ResourceTransferUtils.getFileResource(ResourceTransferSource.FLOWFILE_CONTENT, context, Collections.emptyMap());
 
         assertTrue(fileResourceFound.isEmpty());
-    }
-
-    @Test
-    void testGetUploadInputStreamWithFlowFile() {
-        final InputStream inputStream = ResourceTransferUtils.getTransferInputStream(session, flowFile, null);
-
-        assertSame(flowFileInputstream, inputStream);
-    }
-
-    @Test
-    void testGetUploadInputStreamWithFileResource() {
-        final InputStream inputStream = ResourceTransferUtils.getTransferInputStream(session, flowFile, fileResource);
-
-        assertSame(fileRessourceInputstream, inputStream);
-    }
-
-    @Test
-    void testGetUploadSizeWithFlowFile() {
-        final long size = ResourceTransferUtils.getTransferSize(flowFile, null);
-
-        assertEquals(FLOW_FILE_SIZE, size);
-    }
-
-    @Test
-    void testGetUploadSizeWithFileResource() {
-        final long size = ResourceTransferUtils.getTransferSize(flowFile, fileResource);
-
-        assertEquals(FILE_RESOURCE_SIZE, size);
     }
 }
