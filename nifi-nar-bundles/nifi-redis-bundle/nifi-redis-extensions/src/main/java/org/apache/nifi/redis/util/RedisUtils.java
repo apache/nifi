@@ -34,6 +34,7 @@ import org.springframework.data.redis.connection.RedisSentinelConfiguration;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.lang.Nullable;
 import redis.clients.jedis.JedisPoolConfig;
 
 import javax.net.ssl.SSLContext;
@@ -114,7 +115,16 @@ public class RedisUtils {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .displayName("Password")
-            .description("The password used to authenticate to the Redis server. See the requirepass property in redis.conf.")
+            .description("The password used to authenticate to the Redis server. See the 'requirepass' property in redis.conf.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor SENTINEL_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Sentinel Password")
+            .displayName("Sentinel Password")
+            .description("The password used to authenticate to the Redis Sentinel server. See the 'requirepass' and 'sentinel sentinel-pass' properties in sentinel.conf.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .sensitive(true)
@@ -255,6 +265,7 @@ public class RedisUtils {
         props.add(RedisUtils.CLUSTER_MAX_REDIRECTS);
         props.add(RedisUtils.SENTINEL_MASTER);
         props.add(RedisUtils.PASSWORD);
+        props.add(RedisUtils.SENTINEL_PASSWORD);
         props.add(RedisUtils.SSL_CONTEXT_SERVICE);
         props.add(RedisUtils.POOL_MAX_TOTAL);
         props.add(RedisUtils.POOL_MAX_IDLE);
@@ -277,6 +288,7 @@ public class RedisUtils {
         final String connectionString = context.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
         final Integer dbIndex = context.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger();
         final String password = context.getProperty(RedisUtils.PASSWORD).evaluateAttributeExpressions().getValue();
+        final String sentinelPassword = context.getProperty(RedisUtils.SENTINEL_PASSWORD).evaluateAttributeExpressions().getValue();
         final Integer timeout = context.getProperty(RedisUtils.COMMUNICATION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final JedisPoolConfig poolConfig = createJedisPoolConfig(context);
 
@@ -303,7 +315,7 @@ public class RedisUtils {
             final String host = hostAndPortSplit[0].trim();
             final Integer port = Integer.parseInt(hostAndPortSplit[1].trim());
             final RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration(host, port);
-            enrichRedisConfiguration(redisStandaloneConfiguration, dbIndex, password);
+            enrichRedisConfiguration(redisStandaloneConfiguration, dbIndex, password, sentinelPassword);
 
             connectionFactory = new JedisConnectionFactory(redisStandaloneConfiguration, jedisClientConfiguration);
 
@@ -311,7 +323,7 @@ public class RedisUtils {
             final String[] sentinels = connectionString.split("[,]");
             final String sentinelMaster = context.getProperty(RedisUtils.SENTINEL_MASTER).evaluateAttributeExpressions().getValue();
             final RedisSentinelConfiguration sentinelConfiguration = new RedisSentinelConfiguration(sentinelMaster, new HashSet<>(getTrimmedValues(sentinels)));
-            enrichRedisConfiguration(sentinelConfiguration, dbIndex, password);
+            enrichRedisConfiguration(sentinelConfiguration, dbIndex, password, sentinelPassword);
 
             logger.info("Connecting to Redis in sentinel mode...");
             logger.info("Redis master = " + sentinelMaster);
@@ -327,7 +339,7 @@ public class RedisUtils {
             final Integer maxRedirects = context.getProperty(RedisUtils.CLUSTER_MAX_REDIRECTS).asInteger();
 
             final RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration(getTrimmedValues(clusterNodes));
-            enrichRedisConfiguration(clusterConfiguration, dbIndex, password);
+            enrichRedisConfiguration(clusterConfiguration, dbIndex, password, sentinelPassword);
             clusterConfiguration.setMaxRedirects(maxRedirects);
 
             logger.info("Connecting to Redis in clustered mode...");
@@ -353,12 +365,16 @@ public class RedisUtils {
 
     private static void enrichRedisConfiguration(final RedisConfiguration redisConfiguration,
                                                  final Integer dbIndex,
-                                                 final String password) {
+                                                 @Nullable final String password,
+                                                 @Nullable final String sentinelPassword) {
         if (redisConfiguration instanceof RedisConfiguration.WithDatabaseIndex) {
             ((RedisConfiguration.WithDatabaseIndex) redisConfiguration).setDatabase(dbIndex);
         }
         if (redisConfiguration instanceof RedisConfiguration.WithPassword) {
             ((RedisConfiguration.WithPassword) redisConfiguration).setPassword(RedisPassword.of(password));
+        }
+        if (redisConfiguration instanceof RedisConfiguration.SentinelConfiguration) {
+            ((RedisConfiguration.SentinelConfiguration) redisConfiguration).setSentinelPassword(RedisPassword.of(sentinelPassword));
         }
     }
 
