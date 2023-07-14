@@ -73,12 +73,22 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
+    public static final PropertyDescriptor MAX_ATTEMPTS = new PropertyDescriptor.Builder()
+            .name("Max Attempts")
+            .displayName("Max Attempts")
+            .description("Maximum number of attempts when setting/clearing the state for a component. This number should be higher than the number of nodes "
+                    + "in the NiFi cluster to account for the case where each node may concurrently try to clear a state with a local scope.")
+            .required(true)
+            .defaultValue("20")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     static final List<PropertyDescriptor> STATE_PROVIDER_PROPERTIES;
     static {
         final List<PropertyDescriptor> props = new ArrayList<>(RedisUtils.REDIS_CONNECTION_PROPERTY_DESCRIPTORS);
         props.add(KEY_PREFIX);
         props.add(ENABLE_TLS);
+        props.add(MAX_ATTEMPTS);
         STATE_PROVIDER_PROPERTIES = Collections.unmodifiableList(props);
     }
 
@@ -90,6 +100,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
 
     private String identifier;
     private String keyPrefix;
+    private int maxAttempts;
     private ComponentLog logger;
     private PropertyContext context;
     private SSLContext sslContext;
@@ -113,6 +124,8 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             keyPrefix = keyPrefix + "/";
         }
         this.keyPrefix = keyPrefix;
+
+        this.maxAttempts = context.getProperty(MAX_ATTEMPTS).asInteger();
     }
 
     @Override
@@ -184,7 +197,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         int attempted = 0;
         boolean updated = false;
 
-        while (!updated && attempted < 20) {
+        while (!updated && attempted < this.maxAttempts) {
             updated = replace(currStateMap, state, componentId, true);
             attempted++;
         }
@@ -257,7 +270,8 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             final List<Object> results = redisConnection.exec();
 
             // if we have a result then the replace succeeded
-            if (results.size() > 0) {
+            // results can be null if the transaction has been aborted
+            if (results != null && results.size() > 0) {
                 replaced = true;
             }
 
@@ -270,7 +284,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         int attempted = 0;
         boolean updated = false;
 
-        while (!updated && attempted < 20) {
+        while (!updated && attempted < this.maxAttempts) {
             final StateMap currStateMap = getState(componentId);
             updated = replace(currStateMap, Collections.emptyMap(), componentId, true);
 
