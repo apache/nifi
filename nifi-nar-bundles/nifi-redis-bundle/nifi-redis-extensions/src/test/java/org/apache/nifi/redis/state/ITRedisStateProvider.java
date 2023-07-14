@@ -23,18 +23,18 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.redis.service.ITRedisDistributedMapCacheClientService;
+import org.apache.nifi.redis.testcontainers.RedisContainer;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import redis.embedded.RedisServer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.StandardSocketOptions;
-import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,22 +51,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * NOTE: These test cases should be kept in-sync with AbstractTestStateProvider which is in the framework
  * and couldn't be extended here.
  */
+@Testcontainers
 public class ITRedisStateProvider {
 
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
 
-    private RedisServer redisServer;
+    @Container
+    public RedisContainer redisContainer = new RedisContainer(ITRedisDistributedMapCacheClientService.CONTAINER_IMAGE_TAG)
+            .withExposedPorts(6379);
+
     private RedisStateProvider provider;
 
     @BeforeEach
-    public void setup() throws Exception {
-        final int redisPort = getAvailablePort();
-
-        this.redisServer = new RedisServer(redisPort);
-        redisServer.start();
-
+    public void setup() {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(RedisUtils.CONNECTION_STRING, "localhost:" + redisPort);
+        properties.put(RedisUtils.CONNECTION_STRING, redisContainer.getHost() + ":" + redisContainer.getFirstMappedPort());
         this.provider = createProvider(properties);
     }
 
@@ -79,10 +78,6 @@ public class ITRedisStateProvider {
             }
             provider.disable();
             provider.shutdown();
-        }
-
-        if (redisServer != null) {
-            redisServer.stop();
         }
     }
 
@@ -173,7 +168,7 @@ public class ITRedisStateProvider {
         assertEquals(1, map.size());
         assertEquals("value", map.get(key));
 
-        provider.setState(Collections.<String, String> emptyMap(), componentId);
+        provider.setState(Collections.<String, String>emptyMap(), componentId);
 
         final StateMap stateMap = provider.getState(componentId);
         map = stateMap.toMap();
@@ -284,8 +279,8 @@ public class ITRedisStateProvider {
             }
 
             @Override
-            public Map<String,String> getAllProperties() {
-                final Map<String,String> propValueMap = new LinkedHashMap<>();
+            public Map<String, String> getAllProperties() {
+                final Map<String, String> propValueMap = new LinkedHashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
                     propValueMap.put(entry.getKey().getName(), entry.getValue());
                 }
@@ -321,13 +316,4 @@ public class ITRedisStateProvider {
         provider.enable();
         return provider;
     }
-
-    private int getAvailablePort() throws IOException {
-        try (SocketChannel socket = SocketChannel.open()) {
-            socket.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-            socket.bind(new InetSocketAddress("localhost", 0));
-            return socket.socket().getLocalPort();
-        }
-    }
-
 }

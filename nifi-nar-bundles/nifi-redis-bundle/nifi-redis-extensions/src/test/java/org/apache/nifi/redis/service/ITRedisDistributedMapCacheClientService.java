@@ -30,14 +30,19 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.redis.RedisConnectionPool;
+import org.apache.nifi.redis.testcontainers.RedisContainer;
+import org.apache.nifi.redis.testcontainers.RedisReplicaContainer;
+import org.apache.nifi.redis.testcontainers.RedisSentinelContainer;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import redis.embedded.RedisServer;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,6 +51,8 @@ import java.net.InetSocketAddress;
 import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,8 +60,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
+import static org.apache.nifi.redis.util.RedisUtils.REDIS_MODE_SENTINEL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,22 +73,156 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ITRedisDistributedMapCacheClientService {
 
-    private TestRedisProcessor proc;
-    private TestRunner testRunner;
-    private RedisServer redisServer;
+    public static final String CONTAINER_IMAGE_TAG = "redis:7.0.12-alpine";
+
+    private static final String masterName = "redisLeader";
+    @TempDir
+
+    private Path testDirectory;
+
+    private final TestRedisProcessor proc = new TestRedisProcessor();
+    private final TestRunner testRunner = TestRunners.newTestRunner(proc);
+
+    private final List<RedisContainer> redisContainers = new ArrayList<>();
     private RedisConnectionPoolService redisConnectionPool;
-    private RedisDistributedMapCacheClientService redisMapCacheClientService;
-    private int redisPort;
 
-    @BeforeEach
-    public void setup() throws IOException {
-        this.redisPort = getAvailablePort();
+    @Test
+    public void testStandaloneRedis() throws InitializationException, IOException {
+        int redisPort = setupStandaloneRedis(null).port;
+        setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
+            // uncomment this to test using a different database index than the default 0
+            //  testRunner.setProperty(pool, RedisUtils.DATABASE, "1");
+        });
+        setupRedisMapCacheClientService();
 
-        this.redisServer = new RedisServer(redisPort);
-        redisServer.start();
+        executeProcessor();
+    }
 
-        proc = new TestRedisProcessor();
-        testRunner = TestRunners.newTestRunner(proc);
+    @Test
+    public void testStandaloneRedisWithAuthentication() throws InitializationException, IOException {
+        final String redisPassword = "foobared";
+        final int redisPort = setupStandaloneRedis(redisPassword).port;
+        setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
+            testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
+        });
+        setupRedisMapCacheClientService();
+
+        executeProcessor();
+    }
+
+    @Test
+    public void testSentinelRedis() throws InitializationException, IOException {
+        RedisContainer redisMasterContainer = setupStandaloneRedis(null);
+        String masterHost = "127.0.0.1";
+        int masterPort = redisMasterContainer.port;
+        setUpRedisReplica(masterHost, masterPort, null);
+        setUpRedisReplica(masterHost, masterPort, null);
+
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+
+        setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
+            testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_MASTER, masterName);
+        });
+
+        setupRedisMapCacheClientService();
+
+        executeProcessor();
+    }
+
+    @Test
+    public void testSentinelRedisWithAuthentication() throws InitializationException, IOException {
+        String redisPassword = "t0p_53cr35";
+        String sentinelPassword = "otherPassword";
+
+        RedisContainer redisMasterContainer = setupStandaloneRedis(redisPassword);
+        String masterHost = "127.0.0.1";
+        int masterPort = redisMasterContainer.port;
+        setUpRedisReplica(masterHost, masterPort, redisPassword);
+        setUpRedisReplica(masterHost, masterPort, redisPassword);
+
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+
+        setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
+            testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_MASTER, masterName);
+
+            testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
+            testRunner.setProperty(redisConnectionPool, RedisUtils.SENTINEL_PASSWORD, sentinelPassword);
+        });
+        setupRedisMapCacheClientService();
+
+        executeProcessor();
+    }
+
+    @AfterEach
+    public void teardown() {
+        if (redisConnectionPool != null) {
+            redisConnectionPool.onDisabled();
+        }
+
+        redisContainers.forEach(RedisContainer::stop);
+    }
+
+    private RedisContainer setupStandaloneRedis(final @Nullable String redisPassword) throws IOException {
+        int redisPort = getAvailablePort();
+
+        RedisContainer redisContainer = new RedisContainer(CONTAINER_IMAGE_TAG);
+        redisContainer.mountConfigurationFrom(testDirectory);
+        redisContainer.setPort(redisPort);
+        redisContainer.addPortBinding(redisPort, redisPort);
+        redisContainer.setPassword(redisPassword);
+
+        redisContainers.add(redisContainer);
+        redisContainer.start();
+
+        return redisContainer;
+    }
+
+    private RedisReplicaContainer setUpRedisReplica(final @NonNull String masterHost,
+                                                    final int masterPort,
+                                                    final @Nullable String redisPassword) throws IOException {
+        int replicaPort = getAvailablePort();
+
+        RedisReplicaContainer redisReplicaContainer = new RedisReplicaContainer(CONTAINER_IMAGE_TAG);
+        redisReplicaContainer.mountConfigurationFrom(testDirectory);
+        redisReplicaContainer.setPort(replicaPort);
+        redisReplicaContainer.addPortBinding(replicaPort, replicaPort);
+        redisReplicaContainer.setReplicaOf(masterHost, masterPort);
+        redisReplicaContainer.setPassword(redisPassword);
+
+        redisContainers.add(redisReplicaContainer);
+        redisReplicaContainer.start();
+
+        return redisReplicaContainer;
+    }
+
+    private RedisSentinelContainer setUpSentinel(final @NonNull String masterHost,
+                                                 final int masterPort,
+                                                 final @Nullable String redisPassword,
+                                                 final int quorumSize,
+                                                 final @Nullable String sentinelPassword) throws IOException {
+        int sentinelPort = getAvailablePort();
+
+        RedisSentinelContainer redisSentinelContainer = new RedisSentinelContainer(CONTAINER_IMAGE_TAG);
+        redisSentinelContainer.mountConfigurationFrom(testDirectory);
+        redisSentinelContainer.setPort(sentinelPort);
+        redisSentinelContainer.addPortBinding(sentinelPort, sentinelPort);
+        redisSentinelContainer.setMasterHost(masterHost);
+        redisSentinelContainer.setMasterPort(masterPort);
+        redisSentinelContainer.setMasterName(masterName);
+        redisSentinelContainer.setQuorumSize(quorumSize);
+        redisSentinelContainer.setPassword(redisPassword);
+        redisSentinelContainer.setSentinelPassword(sentinelPassword);
+
+        redisContainers.add(redisSentinelContainer);
+        redisSentinelContainer.start();
+
+        return redisSentinelContainer;
     }
 
     private int getAvailablePort() throws IOException {
@@ -90,41 +233,37 @@ public class ITRedisDistributedMapCacheClientService {
         }
     }
 
-    @AfterEach
-    public void teardown() throws IOException {
-        if (redisServer != null) {
-            redisServer.stop();
+    private String portsToConnectionString(int... ports) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        for (int i = 0; i < ports.length; i++) {
+            if (i > 0) {
+                stringBuilder.append(',');
+            }
+            stringBuilder.append("localhost");
+            stringBuilder.append(':');
+            stringBuilder.append(ports[i]);
         }
+
+        return stringBuilder.toString();
     }
 
-    @Test
-    public void testStandaloneRedis() throws InitializationException {
-        try {
-            // create, configure, and enable the RedisConnectionPool service
-            redisConnectionPool = new RedisConnectionPoolService();
-            testRunner.addControllerService("redis-connection-pool", redisConnectionPool);
-            testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING, "localhost:" + redisPort);
+    public void setUpRedisConnectionPool(String connectionString, Consumer<RedisConnectionPool> initializer) throws InitializationException {
+        // create, configure, and enable the RedisConnectionPool service
+        redisConnectionPool = new RedisConnectionPoolService();
+        testRunner.addControllerService("redis-connection-pool", redisConnectionPool);
+        testRunner.setProperty(redisConnectionPool, RedisUtils.CONNECTION_STRING, connectionString);
 
-            // uncomment this to test using a different database index than the default 0
-            //testRunner.setProperty(redisConnectionPool, RedisUtils.DATABASE, "1");
-
-            // uncomment this to test using a password to authenticate to redis
-            //testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, "foobared");
-
-            testRunner.enableControllerService(redisConnectionPool);
-
-            setupRedisMapCacheClientService();
-            executeProcessor();
-        } finally {
-            if (redisConnectionPool != null) {
-                redisConnectionPool.onDisabled();
-            }
+        if (initializer != null) {
+            initializer.accept(redisConnectionPool);
         }
+
+        testRunner.enableControllerService(redisConnectionPool);
     }
 
     private void setupRedisMapCacheClientService() throws InitializationException {
         // create, configure, and enable the RedisDistributedMapCacheClient service
-        redisMapCacheClientService = new RedisDistributedMapCacheClientService();
+        RedisDistributedMapCacheClientService redisMapCacheClientService = new RedisDistributedMapCacheClientService();
         testRunner.addControllerService("redis-map-cache-client", redisMapCacheClientService);
         testRunner.setProperty(redisMapCacheClientService, REDIS_CONNECTION_POOL, "redis-connection-pool");
         testRunner.enableControllerService(redisMapCacheClientService);
@@ -218,12 +357,12 @@ public class ITRedisDistributedMapCacheClientService {
                 assertEquals(value, cacheClient.get(keyThatDoesntExist, stringSerializer, stringDeserializer));
 
                 // verify atomic fetch returns the correct entry
-                final AtomicCacheEntry<String,String,byte[]> entry = cacheClient.fetch(key, stringSerializer, stringDeserializer);
+                final AtomicCacheEntry<String, String, byte[]> entry = cacheClient.fetch(key, stringSerializer, stringDeserializer);
                 assertEquals(key, entry.getKey());
                 assertEquals(value, entry.getValue());
                 assertTrue(Arrays.equals(value.getBytes(StandardCharsets.UTF_8), entry.getRevision().orElse(null)));
 
-                final AtomicCacheEntry<String,String,byte[]> notLatestEntry = new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), "not previous".getBytes(StandardCharsets.UTF_8));
+                final AtomicCacheEntry<String, String, byte[]> notLatestEntry = new AtomicCacheEntry<>(entry.getKey(), entry.getValue(), "not previous".getBytes(StandardCharsets.UTF_8));
 
                 // verify atomic replace does not replace when previous value is not equal
                 assertFalse(cacheClient.replace(notLatestEntry, stringSerializer, stringSerializer));
@@ -237,12 +376,12 @@ public class ITRedisDistributedMapCacheClientService {
 
                 // verify atomic replace does replace no value previous existed
                 final String replaceKeyDoesntExist = key + "_REPLACE_DOES_NOT_EXIST";
-                final AtomicCacheEntry<String,String,byte[]> entryDoesNotExist = new AtomicCacheEntry<>(replaceKeyDoesntExist, replacementValue, null);
+                final AtomicCacheEntry<String, String, byte[]> entryDoesNotExist = new AtomicCacheEntry<>(replaceKeyDoesntExist, replacementValue, null);
                 assertTrue(cacheClient.replace(entryDoesNotExist, stringSerializer, stringSerializer));
                 assertEquals(replacementValue, cacheClient.get(replaceKeyDoesntExist, stringSerializer, stringDeserializer));
 
                 final int numToDelete = 2000;
-                for (int i=0; i < numToDelete; i++) {
+                for (int i = 0; i < numToDelete; i++) {
                     cacheClient.put(key + "-" + i, value, stringSerializer, stringSerializer);
                 }
 
@@ -294,3 +433,4 @@ public class ITRedisDistributedMapCacheClientService {
         }
     }
 }
+
