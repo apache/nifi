@@ -45,6 +45,7 @@ public class TestRedisStateProvider {
 
         // Set up mock state provider init context
         Mockito.when(context.getProperty(RedisStateProvider.KEY_PREFIX)).thenReturn(new MockPropertyValue("/nifi/components/"));
+        Mockito.when(context.getProperty(RedisStateProvider.MAX_ATTEMPTS)).thenReturn(new MockPropertyValue("20"));
 
         // Set up mock validation context
         Mockito.when(validationContext.getProperty(RedisUtils.CONNECTION_STRING)).thenReturn(new MockPropertyValue("localhost:6379"));
