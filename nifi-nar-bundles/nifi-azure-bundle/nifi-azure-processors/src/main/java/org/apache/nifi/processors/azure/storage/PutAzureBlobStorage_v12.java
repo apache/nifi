@@ -194,9 +194,10 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                 }
 
                 final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
+                final FlowFile sourceFlowFile = flowFile;
                 try (InputStream sourceInputStream = fileResourceFound
                         .map(FileResource::getInputStream)
-                        .orElse(session.read(flowFile))
+                        .orElseGet(() -> session.read(sourceFlowFile))
                 ) {
                     final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(sourceInputStream));
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);

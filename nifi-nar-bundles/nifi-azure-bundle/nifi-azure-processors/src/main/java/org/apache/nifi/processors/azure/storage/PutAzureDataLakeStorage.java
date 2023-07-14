@@ -148,9 +148,11 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
             final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
             if (transferSize > 0) {
+                final FlowFile sourceFlowFile = flowFile;
                 try (
                         final InputStream inputStream = new BufferedInputStream(
-                                fileResourceFound.map(FileResource::getInputStream).orElse(session.read(flowFile))
+                                fileResourceFound.map(FileResource::getInputStream)
+                                        .orElseGet(() -> session.read(sourceFlowFile))
                         )
                 ) {
                     uploadContent(tempFileClient, inputStream, transferSize);
