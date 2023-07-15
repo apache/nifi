@@ -31,22 +31,18 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisConnectionPool;
+import org.apache.nifi.redis.testcontainers.RedisContainer;
+import org.apache.nifi.redis.testcontainers.RedisReplicaContainer;
+import org.apache.nifi.redis.testcontainers.RedisSentinelContainer;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
-import redis.embedded.Redis;
-import redis.embedded.RedisExecProvider;
-import redis.embedded.RedisSentinel;
-import redis.embedded.RedisSentinelBuilder;
-import redis.embedded.RedisServer;
-import redis.embedded.RedisServerBuilder;
-import redis.embedded.util.Architecture;
-import redis.embedded.util.OS;
-import redis.embedded.util.OsArchitecture;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -56,7 +52,6 @@ import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -72,24 +67,26 @@ import static org.apache.nifi.redis.util.RedisUtils.REDIS_MODE_SENTINEL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * This is an integration test that is meant to be run against a real Redis instance.
  */
 public class ITRedisDistributedMapCacheClientService {
 
+    @TempDir
+    private Path testDirectory;
+
     private static final String masterName = "redisLeader";
 
     private final TestRedisProcessor proc = new TestRedisProcessor();
     private final TestRunner testRunner = TestRunners.newTestRunner(proc);
 
-    private final List<Redis> redisInstances = new ArrayList<>();
+    private final List<RedisContainer> redisContainers = new ArrayList<>();
     private RedisConnectionPoolService redisConnectionPool;
 
     @Test
     public void testStandaloneRedis() throws InitializationException, IOException {
-        int redisPort = setupStandaloneRedis(null);
+        int redisPort = setupStandaloneRedis(null).port;
         setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
             // uncomment this to test using a different database index than the default 0
             //  testRunner.setProperty(pool, RedisUtils.DATABASE, "1");
@@ -102,7 +99,7 @@ public class ITRedisDistributedMapCacheClientService {
     @Test
     public void testStandaloneRedisWithAuthentication() throws InitializationException, IOException {
         final String redisPassword = "foobared";
-        final int redisPort = setupStandaloneRedis(redisPassword);
+        final int redisPort = setupStandaloneRedis(redisPassword).port;
         setUpRedisConnectionPool(portsToConnectionString(redisPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.PASSWORD, redisPassword);
         });
@@ -113,13 +110,15 @@ public class ITRedisDistributedMapCacheClientService {
 
     @Test
     public void testSentinelRedis() throws InitializationException, IOException {
-        int masterPort = setupStandaloneRedis(null);
-        setUpRedisReplica(masterPort, null);
-        setUpRedisReplica(masterPort, null);
+        RedisContainer redisMasterContainer = setupStandaloneRedis(null);
+        String masterHost = "127.0.0.1";
+        int masterPort = redisMasterContainer.port;
+        setUpRedisReplica(masterHost, masterPort, null);
+        setUpRedisReplica(masterHost, masterPort, null);
 
-        int sentinelAPort = setUpSentinel(masterPort, null, 2, null, null);
-        int sentinelBPort = setUpSentinel(masterPort, null, 2, null, null);
-        int sentinelCPort = setUpSentinel(masterPort, null, 2, null, null);
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, null, 2, null).port;
 
         setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
@@ -133,23 +132,18 @@ public class ITRedisDistributedMapCacheClientService {
 
     @Test
     public void testSentinelRedisWithAuthentication() throws InitializationException, IOException {
-        boolean isUnix_x86_64 = OsArchitecture.detect().equals(OsArchitecture.UNIX_x86_64);
-        assumeTrue(isUnix_x86_64, "Binary for Sentinel with support for 'sentinel auth-pass', required for this test, is only provided for Unix x86 64!");
-        Path redisServerExecutablePath = Paths.get("./src/test/resources/redis-server-7.0.12").toAbsolutePath();
-        RedisExecProvider customRedisExecProvider = RedisExecProvider
-                .defaultProvider()
-                .override(OS.UNIX, Architecture.x86_64, redisServerExecutablePath.toString());
-
         String redisPassword = "t0p_53cr35";
         String sentinelPassword = "otherPassword";
 
-        int masterPort = setupStandaloneRedis(redisPassword);
-        setUpRedisReplica(masterPort, redisPassword);
-        setUpRedisReplica(masterPort, redisPassword);
+        RedisContainer redisMasterContainer = setupStandaloneRedis(redisPassword);
+        String masterHost = "127.0.0.1";
+        int masterPort = redisMasterContainer.port;
+        setUpRedisReplica(masterHost, masterPort, redisPassword);
+        setUpRedisReplica(masterHost, masterPort, redisPassword);
 
-        int sentinelAPort = setUpSentinel(masterPort, redisPassword, 2, sentinelPassword, customRedisExecProvider);
-        int sentinelBPort = setUpSentinel(masterPort, redisPassword, 2, sentinelPassword, customRedisExecProvider);
-        int sentinelCPort = setUpSentinel(masterPort, redisPassword, 2, sentinelPassword, customRedisExecProvider);
+        int sentinelAPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+        int sentinelBPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
+        int sentinelCPort = setUpSentinel(masterHost, masterPort, redisPassword, 2, sentinelPassword).port;
 
         setUpRedisConnectionPool(portsToConnectionString(sentinelAPort, sentinelBPort, sentinelCPort), pool -> {
             testRunner.setProperty(redisConnectionPool, RedisUtils.REDIS_MODE, REDIS_MODE_SENTINEL);
@@ -169,81 +163,64 @@ public class ITRedisDistributedMapCacheClientService {
             redisConnectionPool.onDisabled();
         }
 
-        redisInstances.forEach(Redis::stop);
+        redisContainers.forEach(RedisContainer::stop);
     }
 
-    private int setupStandaloneRedis(final @Nullable String redisPassword) throws IOException {
+    private RedisContainer setupStandaloneRedis(final @Nullable String redisPassword) throws IOException {
         int redisPort = getAvailablePort();
 
-        RedisServerBuilder redisServerBuilder = RedisServer.builder()
-                .port(redisPort);
+        RedisContainer redisContainer = new RedisContainer("redis:7.0.12-alpine");
+        redisContainer.mountConfigurationFrom(testDirectory);
+        redisContainer.setPort(redisPort);
+        redisContainer.addPortBinding(redisPort, redisPort);
+        redisContainer.setPassword(redisPassword);
 
-        if (redisPassword != null) {
-            redisServerBuilder.setting("requirepass " + redisPassword);
-        }
+        redisContainers.add(redisContainer);
+        redisContainer.start();
 
-        RedisServer redisServer = redisServerBuilder.build();
-        redisInstances.add(redisServer);
-
-        redisServer.start();
-
-        return redisPort;
+        return redisContainer;
     }
 
-    private int setUpRedisReplica(final int masterPort,
-                                  final @Nullable String redisPassword) throws IOException {
-        int redisPort = getAvailablePort();
+    private RedisReplicaContainer setUpRedisReplica(final @NonNull String masterHost,
+                                                    final int masterPort,
+                                                    final @Nullable String redisPassword) throws IOException {
+        int replicaPort = getAvailablePort();
 
-        RedisServerBuilder redisServerBuilder = RedisServer.builder()
-                .port(redisPort)
-                .slaveOf("localhost", masterPort);
+        RedisReplicaContainer redisReplicaContainer = new RedisReplicaContainer("redis:7.0.12-alpine");
+        redisReplicaContainer.mountConfigurationFrom(testDirectory);
+        redisReplicaContainer.setPort(replicaPort);
+        redisReplicaContainer.addPortBinding(replicaPort, replicaPort);
+        redisReplicaContainer.setReplicaOf(masterHost, masterPort);
+        redisReplicaContainer.setPassword(redisPassword);
 
-        if (redisPassword != null) {
-            redisServerBuilder.setting("requirepass " + redisPassword);
-            redisServerBuilder.setting("masterauth " + redisPassword);
-        }
+        redisContainers.add(redisReplicaContainer);
+        redisReplicaContainer.start();
 
-        RedisServer redisServer = redisServerBuilder.build();
-        redisInstances.add(redisServer);
-
-        redisServer.start();
-
-        return redisPort;
+        return redisReplicaContainer;
     }
 
-    private int setUpSentinel(final int masterPort,
-                              final @Nullable String redisPassword,
-                              final int quorumSize,
-                              final @Nullable String sentinelPassword,
-                              final @Nullable RedisExecProvider redisExecProvider) throws IOException {
+    private RedisSentinelContainer setUpSentinel(final @NonNull String masterHost,
+                                                 final int masterPort,
+                                                 final @Nullable String redisPassword,
+                                                 final int quorumSize,
+                                                 final @Nullable String sentinelPassword) throws IOException {
         int sentinelPort = getAvailablePort();
 
-        RedisSentinelBuilder redisSentinelBuilder = RedisSentinel.builder()
-                .port(sentinelPort)
-                .masterPort(masterPort)
-                .masterName(masterName)
-                .quorumSize(quorumSize);
+        RedisSentinelContainer redisSentinelContainer = new RedisSentinelContainer("redis:7.0.12-alpine");
+        redisSentinelContainer.mountConfigurationFrom(testDirectory);
+        redisSentinelContainer.setPort(sentinelPort);
+        redisSentinelContainer.addPortBinding(sentinelPort, sentinelPort);
+        redisSentinelContainer.setMasterHost(masterHost);
+        redisSentinelContainer.setMasterPort(masterPort);
+        redisSentinelContainer.setMasterName(masterName);
+        redisSentinelContainer.setQuorumSize(quorumSize);
+        redisSentinelContainer.setPassword(redisPassword);
+        redisSentinelContainer.setSentinelPassword(sentinelPassword);
 
-        if (redisExecProvider != null) {
-            redisSentinelBuilder.redisExecProvider(redisExecProvider);
-        }
+        redisContainers.add(redisSentinelContainer);
+        redisSentinelContainer.start();
 
-        redisSentinelBuilder.addDefaultReplicationGroup();
-
-        if (redisPassword != null) {
-            redisSentinelBuilder.setting("sentinel auth-pass " + masterName + " " + redisPassword);
-        }
-        if (sentinelPassword != null) {
-            redisSentinelBuilder.setting("requirepass " + sentinelPassword);
-            redisSentinelBuilder.setting("sentinel sentinel-pass " + sentinelPassword);
-        }
-
-        RedisSentinel redisSentinel = redisSentinelBuilder.build();
-        redisInstances.add(redisSentinel);
-
-        redisSentinel.start();
-
-        return sentinelPort;
+        return redisSentinelContainer;
     }
 
     private int getAvailablePort() throws IOException {
