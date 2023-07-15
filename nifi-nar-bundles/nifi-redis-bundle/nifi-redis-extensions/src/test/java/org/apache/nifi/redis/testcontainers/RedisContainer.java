@@ -107,7 +107,7 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
 
             return configFile;
         } catch (IOException ioException) {
-            throw new IllegalStateException("Cannot start container because configuration could not be written!", ioException);
+            throw new IllegalStateException("Cannot start container because configuration could not be written", ioException);
         }
     }
 }

@@ -105,8 +105,6 @@ public class RedisSentinelContainer extends RedisContainer {
     protected void configure() {
         super.configure();
 
-        System.err.println("SENTINEL AT PORT " + port);
-        System.err.println(configurationOptions);
 
         List<String> commandParts = new ArrayList<>(Arrays.asList(getCommandParts()));
         commandParts.add("--sentinel");

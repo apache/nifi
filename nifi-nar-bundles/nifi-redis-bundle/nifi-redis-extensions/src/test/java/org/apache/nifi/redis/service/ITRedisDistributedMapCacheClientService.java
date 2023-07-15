@@ -169,7 +169,7 @@ public class ITRedisDistributedMapCacheClientService {
     private RedisContainer setupStandaloneRedis(final @Nullable String redisPassword) throws IOException {
         int redisPort = getAvailablePort();
 
-        RedisContainer redisContainer = new RedisContainer("redis:7.0.12-alpine");
+        RedisContainer redisContainer = new RedisContainer(CONTAINER_IMAGE_TAG);
         redisContainer.mountConfigurationFrom(testDirectory);
         redisContainer.setPort(redisPort);
         redisContainer.addPortBinding(redisPort, redisPort);
