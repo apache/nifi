@@ -73,10 +73,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ITRedisDistributedMapCacheClientService {
 
-    @TempDir
-    private Path testDirectory;
+    public static final String CONTAINER_IMAGE_TAG = "redis:7.0.12-alpine";
 
     private static final String masterName = "redisLeader";
+    @TempDir
+
+    private Path testDirectory;
 
     private final TestRedisProcessor proc = new TestRedisProcessor();
     private final TestRunner testRunner = TestRunners.newTestRunner(proc);
@@ -186,7 +188,7 @@ public class ITRedisDistributedMapCacheClientService {
                                                     final @Nullable String redisPassword) throws IOException {
         int replicaPort = getAvailablePort();
 
-        RedisReplicaContainer redisReplicaContainer = new RedisReplicaContainer("redis:7.0.12-alpine");
+        RedisReplicaContainer redisReplicaContainer = new RedisReplicaContainer(CONTAINER_IMAGE_TAG);
         redisReplicaContainer.mountConfigurationFrom(testDirectory);
         redisReplicaContainer.setPort(replicaPort);
         redisReplicaContainer.addPortBinding(replicaPort, replicaPort);
@@ -206,7 +208,7 @@ public class ITRedisDistributedMapCacheClientService {
                                                  final @Nullable String sentinelPassword) throws IOException {
         int sentinelPort = getAvailablePort();
 
-        RedisSentinelContainer redisSentinelContainer = new RedisSentinelContainer("redis:7.0.12-alpine");
+        RedisSentinelContainer redisSentinelContainer = new RedisSentinelContainer(CONTAINER_IMAGE_TAG);
         redisSentinelContainer.mountConfigurationFrom(testDirectory);
         redisSentinelContainer.setPort(sentinelPort);
         redisSentinelContainer.addPortBinding(sentinelPort, sentinelPort);
