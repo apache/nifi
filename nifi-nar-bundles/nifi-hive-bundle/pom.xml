@@ -80,7 +80,7 @@
             <dependency>
                 <groupId>org.apache.derby</groupId>
                 <artifactId>derby</artifactId>
-                <version>10.14.2.0</version>
+                <version>${derby.version}</version>
             </dependency>
             <!-- Override zookeeper -->
             <dependency>

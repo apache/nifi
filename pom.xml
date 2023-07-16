@@ -120,6 +120,7 @@
         <org.bouncycastle.version>1.75</org.bouncycastle.version>
         <testcontainers.version>1.18.3</testcontainers.version>
         <org.slf4j.version>2.0.7</org.slf4j.version>
+        <derby.version>10.16.1.1</derby.version>
         <ranger.version>2.4.0</ranger.version>
         <jetty.version>9.4.51.v20230217</jetty.version>
         <jackson.bom.version>2.15.2</jackson.bom.version>
