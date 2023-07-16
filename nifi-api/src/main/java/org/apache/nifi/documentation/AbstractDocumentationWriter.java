@@ -19,7 +19,6 @@ package org.apache.nifi.documentation;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -151,7 +150,6 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
             writeTriggerWhenEmpty(processor.getClass().getAnnotation(TriggerWhenEmpty.class));
             writeTriggerWhenAnyDestinationAvailable(processor.getClass().getAnnotation(TriggerWhenAnyDestinationAvailable.class));
             writeSupportsBatching(processor.getClass().getAnnotation(SupportsBatching.class));
-            writeEventDriven(processor.getClass().getAnnotation(EventDriven.class));
             writePrimaryNodeOnly(processor.getClass().getAnnotation(PrimaryNodeOnly.class));
             writeSideEffectFree(processor.getClass().getAnnotation(SideEffectFree.class));
             writeDefaultSettings(processor.getClass().getAnnotation(DefaultSettings.class));
@@ -316,8 +314,6 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
     protected abstract void writeSupportsBatching(SupportsBatching supportsBatching) throws IOException;
 
     protected abstract void writeSupportsSensitiveDynamicProperties(SupportsSensitiveDynamicProperties supportsSensitiveDynamicProperties) throws IOException;
-
-    protected abstract void writeEventDriven(EventDriven eventDriven) throws IOException;
 
     protected abstract void writePrimaryNodeOnly(PrimaryNodeOnly primaryNodeOnly) throws IOException;
 

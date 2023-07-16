@@ -297,11 +297,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                         validationErrors.add("Concurrent tasks must be greater than 0.");
                     }
                     break;
-                case EVENT_DRIVEN:
-                    if (config.getConcurrentlySchedulableTaskCount() < 0) {
-                        validationErrors.add("Concurrent tasks must be greater or equal to 0.");
-                    }
-                    break;
             }
         }
 

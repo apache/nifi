@@ -27,7 +27,6 @@ import javax.xml.bind.annotation.XmlType;
 public class ControllerConfigurationDTO {
 
     private Integer maxTimerDrivenThreadCount;
-    private Integer maxEventDrivenThreadCount;
 
     /**
      * @return maximum number of timer driven threads this NiFi has available
@@ -43,17 +42,4 @@ public class ControllerConfigurationDTO {
         this.maxTimerDrivenThreadCount = maxTimerDrivenThreadCount;
     }
 
-    /**
-     * @return maximum number of event driven thread this NiFi has available
-     */
-    @ApiModelProperty(
-            value = "The maximum number of event driven threads the NiFi has available."
-    )
-    public Integer getMaxEventDrivenThreadCount() {
-        return maxEventDrivenThreadCount;
-    }
-
-    public void setMaxEventDrivenThreadCount(Integer maxEventDrivenThreadCount) {
-        this.maxEventDrivenThreadCount = maxEventDrivenThreadCount;
-    }
 }

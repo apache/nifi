@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.Range;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -62,7 +61,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"record", "sample", "reservoir", "range", "interval"})

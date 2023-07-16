@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -53,7 +52,6 @@ import java.util.Collections;
 import java.util.Arrays;
 import java.util.ArrayList;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"csv", "attributes", "flowfile"})

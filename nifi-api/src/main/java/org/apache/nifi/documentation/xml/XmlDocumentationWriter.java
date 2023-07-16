@@ -18,7 +18,6 @@ package org.apache.nifi.documentation.xml;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -469,14 +468,6 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
             return;
         }
         writeBooleanElement("supportsSensitiveDynamicProperties", true);
-    }
-
-    @Override
-    protected void writeEventDriven(EventDriven eventDriven) throws IOException {
-        if (eventDriven == null) {
-            return;
-        }
-        writeBooleanElement("eventDriven", true);
     }
 
     @Override

@@ -540,9 +540,6 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
                 throw new RequestExpiredException();
             }
 
-            // Trigger this port to run.
-            scheduler.registerEvent(this);
-
             // Get a response from the response queue but don't wait forever if the port is stopped
             ProcessingResult result = null;
 
@@ -609,9 +606,6 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
             if (!this.requestQueue.offer(request)) {
                 throw new RequestExpiredException();
             }
-
-            // Trigger this port to run
-            scheduler.registerEvent(this);
 
             // Get a response from the response queue but don't wait forever if the port is stopped
             ProcessingResult result;

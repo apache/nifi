@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.influxdb;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -57,7 +56,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@EventDriven
 @SupportsBatching
 @Tags({"influxdb", "measurement", "get", "read", "query", "timeseries"})
 @CapabilityDescription("Processor to execute InfluxDB query from the content of a FlowFile (preferred) or a scheduled query.  Please check details of the supported queries in InfluxDB documentation (https://www.influxdb.com/).")

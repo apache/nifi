@@ -28,7 +28,6 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -38,7 +37,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,7 +56,7 @@ import java.util.stream.Collectors;
  * one or more relationships that map the source component to the destination
  * component.
  */
-public final class StandardConnection implements Connection, ConnectionEventListener {
+public final class StandardConnection implements Connection {
     public static final long DEFAULT_Z_INDEX = 0;
 
     private final String id;
@@ -86,7 +84,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
 
-        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this, processGroup.get());
+        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, processGroup.get());
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -144,20 +142,6 @@ public final class StandardConnection implements Connection, ConnectionEventList
                 return "Connection " + StandardConnection.this.getIdentifier();
             }
         };
-    }
-
-    @Override
-    public void triggerDestinationEvent() {
-        if (getDestination().getSchedulingStrategy() == SchedulingStrategy.EVENT_DRIVEN) {
-            scheduler.registerEvent(getDestination());
-        }
-    }
-
-    @Override
-    public void triggerSourceEvent() {
-        if (getSource().getSchedulingStrategy() == SchedulingStrategy.EVENT_DRIVEN) {
-            scheduler.registerEvent(getSource());
-        }
     }
 
     @Override
@@ -322,9 +306,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
             previousDestination.removeConnection(this);
             this.destination.set(newDestination);
             getSource().updateConnection(this);
-
             newDestination.addConnection(this);
-            scheduler.registerEvent(newDestination);
         } catch (final RuntimeException e) {
             this.destination.set(previousDestination);
             throw e;

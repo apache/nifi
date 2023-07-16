@@ -24,7 +24,6 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
-import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.status.FlowFileAvailability;
@@ -103,7 +102,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             .thenComparing(NodeIdentifier::getLoadBalancePort);
 
     private final List<FlowFilePrioritizer> prioritizers = new ArrayList<>();
-    private final ConnectionEventListener eventListener;
     private final AtomicReference<QueueSize> totalSize = new AtomicReference<>(new QueueSize(0, 0L));
     private final LocalQueuePartition localPartition;
     private final RebalancingPartition rebalancingPartition;
@@ -126,13 +124,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private volatile boolean offloaded = false;
 
 
-    public SocketLoadBalancedFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
+    public SocketLoadBalancedFlowFileQueue(final String identifier, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
                                            final ProvenanceEventRepository provRepo, final ContentRepository contentRepo, final ResourceClaimManager resourceClaimManager,
                                            final ClusterCoordinator clusterCoordinator, final AsyncLoadBalanceClientRegistry clientRegistry, final FlowFileSwapManager swapManager,
                                            final int swapThreshold, final EventReporter eventReporter) {
 
         super(identifier, scheduler, flowFileRepo, provRepo, resourceClaimManager);
-        this.eventListener = eventListener;
         this.eventReporter = eventReporter;
         this.swapManager = swapManager;
         this.flowFileRepo = flowFileRepo;
@@ -827,7 +824,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionReadLock.unlock();
         }
 
-        eventListener.triggerDestinationEvent();
         return partition;
     }
 
@@ -893,8 +889,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             return partitionMap;
         } finally {
             partitionReadLock.unlock();
-
-            eventListener.triggerDestinationEvent();
         }
     }
 
@@ -984,7 +978,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         localPartition.acknowledge(flowFile);
 
         adjustSize(-1, -flowFile.getSize());
-        eventListener.triggerSourceEvent();
     }
 
     @Override
@@ -995,8 +988,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             final long bytes = flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
             adjustSize(-flowFiles.size(), -bytes);
         }
-
-        eventListener.triggerSourceEvent();
     }
 
     @Override

@@ -26,7 +26,6 @@ import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.status.FlowFileAvailability;
-import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -128,7 +127,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
 
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
-        queue = new SocketLoadBalancedFlowFileQueue("unit-test", new NopConnectionEventListener(), scheduler, flowFileRepo, provRepo,
+        queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
             contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
     }
 
@@ -223,7 +222,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
 
-        queue = new SocketLoadBalancedFlowFileQueue("unit-test", new NopConnectionEventListener(), scheduler, flowFileRepo, provRepo,
+        queue = new SocketLoadBalancedFlowFileQueue("unit-test", scheduler, flowFileRepo, provRepo,
             contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
         queue.setPriorities(Collections.singletonList(iValuePrioritizer));
 
@@ -563,7 +562,7 @@ public class TestSocketLoadBalancedFlowFileQueue {
         when(clusterCoordinator.getLocalNodeIdentifier()).thenReturn(null);
 
         final AsyncLoadBalanceClientRegistry registry = mock(AsyncLoadBalanceClientRegistry.class);
-        queue = new SocketLoadBalancedFlowFileQueue("unit-test", new NopConnectionEventListener(), mock(ProcessScheduler.class), flowFileRepo, provRepo,
+        queue = new SocketLoadBalancedFlowFileQueue("unit-test", mock(ProcessScheduler.class), flowFileRepo, provRepo,
             contentRepo, claimManager, clusterCoordinator, registry, swapManager, 10000, eventReporter);
 
         queue.setFlowFilePartitioner(new RoundRobinPartitioner());

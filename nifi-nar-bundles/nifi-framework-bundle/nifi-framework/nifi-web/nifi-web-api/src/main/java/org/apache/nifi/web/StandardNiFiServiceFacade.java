@@ -1744,9 +1744,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     if (controllerConfigurationDTO.getMaxTimerDrivenThreadCount() != null) {
                         controllerFacade.setMaxTimerDrivenThreadCount(controllerConfigurationDTO.getMaxTimerDrivenThreadCount());
                     }
-                    if (controllerConfigurationDTO.getMaxEventDrivenThreadCount() != null) {
-                        controllerFacade.setMaxEventDrivenThreadCount(controllerConfigurationDTO.getMaxEventDrivenThreadCount());
-                    }
 
                     return controllerConfigurationDTO;
                 },

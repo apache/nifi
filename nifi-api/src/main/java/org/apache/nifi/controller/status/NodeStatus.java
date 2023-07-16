@@ -116,14 +116,6 @@ public class NodeStatus implements Cloneable {
         this.totalThreads = totalThreads;
     }
 
-    public long getEventDrivenThreads() {
-        return eventDrivenThreads;
-    }
-
-    public void setEventDrivenThreads(final long eventDrivenThreads) {
-        this.eventDrivenThreads = eventDrivenThreads;
-    }
-
     public long getTimerDrivenThreads() {
         return timerDrivenThreads;
     }

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.cybersecurity;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -56,7 +55,6 @@ import java.util.Objects;
 import java.util.Set;
 
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

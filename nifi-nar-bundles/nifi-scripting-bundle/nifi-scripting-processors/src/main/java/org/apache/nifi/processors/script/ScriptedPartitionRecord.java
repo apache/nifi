@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -57,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@EventDriven
 @SideEffectFree
 @Tags({"record", "partition", "script", "groovy", "jython", "python", "segment", "split", "group", "organize"})
 @CapabilityDescription("Receives Record-oriented data (i.e., data that can be read by the configured Record Reader) and evaluates the user provided script against "

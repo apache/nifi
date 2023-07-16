@@ -142,9 +142,6 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
     public void testSearchBasedOnScheduling() {
         // given
         givenRootProcessGroup()
-                .withProcessor(getProcessorNode("processor1", "processor1name", SchedulingStrategy.EVENT_DRIVEN, ExecutionNode.ALL, ScheduledState.RUNNING, ValidationStatus.VALID, AUTHORIZED))
-                .withProcessor(getProcessorNode("processor2", "processor2name", SchedulingStrategy.EVENT_DRIVEN, ExecutionNode.ALL, ScheduledState.DISABLED, ValidationStatus.INVALID, AUTHORIZED))
-                .withProcessor(getProcessorNode("processor3", "processor3name", SchedulingStrategy.EVENT_DRIVEN, ExecutionNode.ALL, ScheduledState.RUNNING, ValidationStatus.VALID, NOT_AUTHORIZED))
                 .withProcessor(getProcessorNode("processor4", "processor4name", SchedulingStrategy.TIMER_DRIVEN, ExecutionNode.ALL, ScheduledState.STOPPED, ValidationStatus.VALID, AUTHORIZED))
                 .withProcessor(getProcessorNode("processor5", "eventHandlerProcessor", SchedulingStrategy.CRON_DRIVEN, ExecutionNode.PRIMARY, ScheduledState.RUNNING, ValidationStatus.VALID,
                         AUTHORIZED));
@@ -154,8 +151,6 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
 
         // then
         thenResultConsists()
-                .ofProcessor(getSimpleResultFromRoot("processor1", "processor1name", "Scheduling strategy: Event driven"))
-                .ofProcessor(getSimpleResultFromRoot("processor2", "processor2name", "Scheduling strategy: Event driven"))
                 .ofProcessor(getSimpleResultFromRoot("processor5", "eventHandlerProcessor", "Name: eventHandlerProcessor"))
                 .validate(results);
 

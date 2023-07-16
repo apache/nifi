@@ -128,24 +128,24 @@ class StandardHttpResponseMapperSpec extends Specification {
                 expectedEntity
         'nifi-api/controller/config'                               | 'get'      | [
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10)),
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10)),
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: false),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10)),
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10)),
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))]                                                      ||
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10))]                                                      ||
                 // expectedEntity
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: false),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10))
         'nifi-api/controller/config'                               | 'put'      | [
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10)),
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10)),
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: false),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10)),
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10)),
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))]                                                      ||
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10))]                                                      ||
                 // expectedEntity
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: false),
-                        component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))
+                        component: new ControllerConfigurationDTO(maxTimerDrivenThreadCount: 10))
         "nifi-api/process-groups/${UUID.randomUUID()}/connections" | 'get'      | [
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
                         ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO())] as Set),

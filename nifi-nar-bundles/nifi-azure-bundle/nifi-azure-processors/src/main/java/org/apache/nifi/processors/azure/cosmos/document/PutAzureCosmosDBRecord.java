@@ -20,7 +20,6 @@ import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.implementation.ConflictException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -55,7 +54,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@EventDriven
 @Tags({ "azure", "cosmos", "insert", "record", "put" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor is a record-aware processor for inserting data into Cosmos DB with Core SQL API. It uses a configured record reader and " +

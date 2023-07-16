@@ -92,12 +92,6 @@ public enum NodeStatusDescriptor {
             "The current number of live threads in the Java virtual machine (both daemon and non-daemon threads).",
             MetricDescriptor.Formatter.COUNT,
             s -> s.getTotalThreads()),
-    EVENT_DRIVEN_THREADS(
-            "eventDrivenThreads",
-            "Number of event driven threads",
-            "The current number of active threads in the event driven thread pool.",
-            MetricDescriptor.Formatter.COUNT,
-            s -> s.getEventDrivenThreads()),
     TIME_DRIVEN_THREADS(
             "timeDrivenThreads",
             "Number of time driven threads",

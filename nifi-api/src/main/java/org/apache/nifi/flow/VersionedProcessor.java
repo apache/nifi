@@ -52,7 +52,7 @@ public class VersionedProcessor extends VersionedConfigurableExtension {
         this.schedulingPeriod = setSchedulingPeriod;
     }
 
-    @ApiModelProperty("Indicates whether the processor should be scheduled to run in event or timer driven mode.")
+    @ApiModelProperty("Indicates how the processor should be scheduled to run.")
     public String getSchedulingStrategy() {
         return schedulingStrategy;
     }

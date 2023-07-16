@@ -47,7 +47,6 @@ import com.google.protobuf.DynamicMessage;
 import io.grpc.Status;
 import java.time.LocalTime;
 import java.util.stream.Stream;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -87,7 +86,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @TriggerSerially
-@EventDriven
 @Tags({"google", "google cloud", "bq", "bigquery"})
 @CapabilityDescription("Unified processor for batch and stream flow files content to a Google BigQuery table via the Storage Write API." +
     "The processor is record based so the used schema is driven by the RecordReader. Attributes that are not matched to the target schema" +

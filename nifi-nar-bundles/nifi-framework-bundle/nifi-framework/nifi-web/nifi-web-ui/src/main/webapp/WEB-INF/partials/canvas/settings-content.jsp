@@ -38,18 +38,6 @@
                             <span id="read-only-maximum-timer-driven-thread-count-field"></span>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">
-                            Maximum event driven thread count
-                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of threads for event driven processors available to the system."></div>
-                        </div>
-                        <div class="editable setting-field">
-                            <input type="text" id="maximum-event-driven-thread-count-field" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-maximum-event-driven-thread-count-field"></span>
-                        </div>
-                    </div>
                     <div class="editable settings-buttons">
                         <div id="settings-save" class="button">Apply</div>
                         <div class="clear"></div>

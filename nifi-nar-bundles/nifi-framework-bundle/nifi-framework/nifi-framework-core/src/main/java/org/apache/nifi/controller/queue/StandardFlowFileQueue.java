@@ -45,14 +45,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class StandardFlowFileQueue extends AbstractFlowFileQueue implements FlowFileQueue {
 
     private final SwappablePriorityQueue queue;
-    private final ConnectionEventListener eventListener;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
     private final FlowFileSwapManager swapManager;
     private final TimedLock writeLock;
 
 
-    public StandardFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
+    public StandardFlowFileQueue(final String identifier, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
                                  final ResourceClaimManager resourceClaimManager, final ProcessScheduler scheduler, final FlowFileSwapManager swapManager, final EventReporter eventReporter,
                                  final int swapThreshold, final String expirationPeriod, final long defaultBackPressureObjectThreshold, final String defaultBackPressureDataSizeThreshold) {
 
@@ -60,7 +59,6 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         super.setFlowFileExpiration(expirationPeriod);
         this.swapManager = swapManager;
         this.queue = new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, this, this::drop, null);
-        this.eventListener = eventListener;
 
         writeLock = new TimedLock(this.lock.writeLock(), getIdentifier() + " Write Lock", 100);
 
@@ -112,15 +110,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     @Override
     public void put(final FlowFileRecord file) {
         queue.put(file);
-
-        eventListener.triggerDestinationEvent();
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> files) {
         queue.putAll(files);
-
-        eventListener.triggerDestinationEvent();
     }
 
 
@@ -142,15 +136,11 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     @Override
     public void acknowledge(final FlowFileRecord flowFile) {
         queue.acknowledge(flowFile);
-
-        eventListener.triggerSourceEvent();
     }
 
     @Override
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
         queue.acknowledge(flowFiles);
-
-        eventListener.triggerSourceEvent();
     }
 
     @Override

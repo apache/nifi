@@ -567,19 +567,6 @@ The first configuration option is the Scheduling Strategy. There are three possi
 *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
 	at which the Processor is run is defined by the 'Run Schedule' option (see below).
 
-*Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
-	feeding this Processor. This mode is currently considered experimental and is not supported by all Processors. When this mode is
-	selected, the 'Run Schedule' option is not configurable, as the Processor is not triggered to run periodically but
-        as the result of an event. Additionally, this is the only mode for which the 'Concurrent Tasks'
-	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
-	the administrator has configured.
-
-[WARNING]
-.Experimental
-============
-This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.10.0 (October 2019). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
-============
-
 *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
 		Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of
 		increasing the complexity of the configuration. The CRON driven scheduling value is a string of six required fields and one
@@ -644,11 +631,11 @@ most Processors. There are, however, some types of Processors that can only be s
 
 ===== Run Schedule
 The 'Run Schedule' dictates how often the Processor should be scheduled to run. The valid values for this field depend on the selected
-Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
-Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
-The default value of `0 sec` means that the Processor should run as often as possible as long as it has data to process. This is true
-for any time duration of 0, regardless of the time unit (e.g., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
-applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
+Scheduling Strategy (see above). When using the Timer driven Scheduling Strategy, this value is a time duration specified by a number
+followed by a time unit. For example, `1 second` or `5 mins`. The default value of `0 sec` means that the Processor should run as often
+as possible as long as it has data to process. This is true for any time duration of 0, regardless of the time unit (e.g., `0 sec`, 
+`0 mins`, `0 days`). For an explanation of values that are applicable for the CRON driven Scheduling Strategy, see the description of 
+the CRON driven Scheduling Strategy itself.
 
 ===== Execution
 The Execution setting is used to determine on which node(s) the Processor will be
@@ -1963,8 +1950,6 @@ The supported keywords are the following:
 ** *validating*: Adds Processors to the result list that are validating at the time.
 
 - *Scheduling strategy*
-
-** *event*: Adds Processors to the result list where the Scheduling Strategy is "Event Driven".
 
 ** *timer*: Adds Processors to the result list where the Scheduling Strategy is "Timer Driven".
 

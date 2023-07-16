@@ -38,7 +38,6 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
     private boolean triggerWhenEmpty;
     private boolean triggerWhenAnyDestinationAvailable;
     private boolean supportsBatching;
-    private boolean supportsEventDriven;
     private boolean primaryNodeOnly;
     private boolean sideEffectFree;
 
@@ -126,17 +125,6 @@ public class ProcessorDefinition extends ConfigurableExtensionDefinition {
 
     public void setSupportsBatching(boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
-    }
-
-    @ApiModelProperty("Whether or not this processor supports event driven scheduling. Indicates to the framework that the " +
-            "Processor is eligible to be scheduled to run based on the occurrence of an \"Event\" " +
-            "(e.g., when a FlowFile is enqueued in an incoming Connection), rather than being triggered periodically.")
-    public boolean getSupportsEventDriven() {
-        return supportsEventDriven;
-    }
-
-    public void setSupportsEventDriven(boolean supportsEventDriven) {
-        this.supportsEventDriven = supportsEventDriven;
     }
 
     @ApiModelProperty("Whether or not this processor should be scheduled only on the primary node in a cluster.")

@@ -20,7 +20,6 @@ package org.apache.nifi.processors.enrich;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.whois.WhoisClient;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -49,7 +48,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"whois", "enrich", "ip"})

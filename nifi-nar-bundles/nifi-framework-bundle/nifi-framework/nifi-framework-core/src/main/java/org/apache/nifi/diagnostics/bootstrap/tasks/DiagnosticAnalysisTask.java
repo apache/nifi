@@ -27,7 +27,6 @@ import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
@@ -100,11 +99,6 @@ public class DiagnosticAnalysisTask implements DiagnosticTask {
             if (procNode.getMaxConcurrentTasks() > MAX_CONCURRENT_TASKS) {
                 details.add(procNode + " is configured with a Max Concurrent Tasks of " + procNode.getMaxConcurrentTasks()
                     + ", which is very high. Under most circumstances, this value should not be set above 12-15. This processor is currently " + procNode.getScheduledState().name());
-            }
-
-            if (procNode.getSchedulingStrategy() == SchedulingStrategy.EVENT_DRIVEN) {
-                details.add(procNode + " is configured with a Scheduling Strategy of Event-Driven. The Event-Driven Scheduling Strategy is experimental and may trigger unexpected behavior, such as " +
-                    "a Processor \"hanging\" or becoming unresponsive.");
             }
 
             if (isHighMemoryUtilizer(procNode)) {

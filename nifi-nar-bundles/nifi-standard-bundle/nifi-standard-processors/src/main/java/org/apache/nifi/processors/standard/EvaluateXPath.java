@@ -44,7 +44,6 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -80,7 +79,6 @@ import net.sf.saxon.xpath.XPathFactoryImpl;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"XML", "evaluate", "XPath"})

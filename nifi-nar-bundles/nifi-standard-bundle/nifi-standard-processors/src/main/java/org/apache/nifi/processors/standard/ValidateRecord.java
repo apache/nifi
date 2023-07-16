@@ -20,7 +20,6 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -76,7 +75,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)

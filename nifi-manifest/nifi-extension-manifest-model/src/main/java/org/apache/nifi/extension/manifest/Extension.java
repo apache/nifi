@@ -98,7 +98,6 @@ public class Extension {
     private boolean triggerWhenEmpty;
     private boolean triggerWhenAnyDestinationAvailable;
     private boolean supportsBatching;
-    private boolean eventDriven;
     private boolean primaryNodeOnly;
     private boolean sideEffectFree;
 
@@ -315,15 +314,6 @@ public class Extension {
 
     public void setSupportsBatching(boolean supportsBatching) {
         this.supportsBatching = supportsBatching;
-    }
-
-    @ApiModelProperty(value = "Indicates that a processor supports event driven scheduling")
-    public boolean getEventDriven() {
-        return eventDriven;
-    }
-
-    public void setEventDriven(boolean eventDriven) {
-        this.eventDriven = eventDriven;
     }
 
     @ApiModelProperty(value = "Indicates that a processor should be scheduled only on the primary node")

@@ -18,7 +18,6 @@
 package org.apache.nifi.processors.evtx;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -55,7 +54,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 @SideEffectFree
-@EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"logs", "windows", "event", "evtx", "message", "file"})

@@ -20,7 +20,6 @@ package org.apache.nifi.hbase;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -52,7 +51,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
 
-@EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "hbase", "put", "json"})

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.influxdb;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -48,7 +47,6 @@ import java.util.List;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@EventDriven
 @SupportsBatching
 @Tags({"influxdb", "measurement","insert", "write", "put", "timeseries"})
 @CapabilityDescription("Processor to write the content of a FlowFile in 'line protocol'.  Please check details of the 'line protocol' in InfluxDB documentation (https://www.influxdb.com/). "
