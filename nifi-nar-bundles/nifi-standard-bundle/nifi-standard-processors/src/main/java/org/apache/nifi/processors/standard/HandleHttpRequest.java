@@ -69,8 +69,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.security.Principal;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -767,6 +770,38 @@ public class HandleHttpRequest extends AbstractProcessor {
       }
 
       return session.putAllAttributes(flowFile, attributes);
+    }
+
+    private void putCertificateAttributes(final X509Certificate certificate, final Map<String, String> attributes) {
+        putAttribute(attributes, "http.subject.dn", certificate.getSubjectX500Principal().getName());
+        putAttribute(attributes, "http.issuer.dn", certificate.getIssuerX500Principal().getName());
+
+        try {
+            final Collection<List<?>> subjectAlternativeNames = certificate.getSubjectAlternativeNames();
+
+            if (subjectAlternativeNames != null) {
+                int subjectAlternativeNameIndex = 0;
+                for (final List<?> subjectAlternativeTypeName : subjectAlternativeNames) {
+                    final String nameTypeAttributeKey = String.format("http.client.certificate.sans.%d.nameType", subjectAlternativeNameIndex);
+                    final String nameType = subjectAlternativeTypeName.get(0).toString();
+                    putAttribute(attributes, nameTypeAttributeKey, nameType);
+
+                    final String nameAttributeKey = String.format("http.client.certificate.sans.%d.name", subjectAlternativeNameIndex);
+                    final Object name = subjectAlternativeTypeName.get(1);
+
+                    final String serializedName;
+                    if (name instanceof byte[]) {
+                        final byte[] encodedName = (byte[]) name;
+                        serializedName = Base64.getEncoder().encodeToString(encodedName);
+                    } else {
+                        serializedName = name.toString();
+                    }
+                    putAttribute(attributes, nameTypeAttributeKey, serializedName);
+                }
+            }
+        } catch (final CertificateParsingException e) {
+            getLogger().info("Read X.509 Client Certificate Subject Alternative Names failed", e);
+        }
     }
 
     private void forwardFlowFile(final ProcessSession session, final long start, final HttpServletRequest request, final FlowFile flowFile) {

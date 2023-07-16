@@ -40,6 +40,7 @@ org.apache.nifi.processors.standard.ExecuteSQL
 org.apache.nifi.processors.standard.ExecuteSQLRecord
 org.apache.nifi.processors.standard.ExecuteStreamCommand
 org.apache.nifi.processors.standard.ExtractGrok
+org.apache.nifi.processors.standard.ExtractRecordSchema
 org.apache.nifi.processors.standard.ExtractText
 org.apache.nifi.processors.standard.FetchDistributedMapCache
 org.apache.nifi.processors.standard.FetchFile
