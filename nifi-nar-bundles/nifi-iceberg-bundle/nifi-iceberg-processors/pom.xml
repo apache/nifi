@@ -281,6 +281,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Include Derby Tools since Derby 10.16 moved the EmbeddedDriver class -->
+        <dependency>
+            <groupId>org.apache.derby</groupId>
+            <artifactId>derbytools</artifactId>
+            <version>${derby.version}</version>
+        </dependency>
 
         <!-- Test dependencies -->
         <dependency>
