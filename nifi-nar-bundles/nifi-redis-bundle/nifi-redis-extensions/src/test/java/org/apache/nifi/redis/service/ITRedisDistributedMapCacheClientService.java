@@ -62,7 +62,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_MODE_SENTINEL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

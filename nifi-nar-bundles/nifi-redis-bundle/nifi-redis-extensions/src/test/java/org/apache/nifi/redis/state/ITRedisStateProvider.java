@@ -61,14 +61,14 @@ public class ITRedisStateProvider {
     private RedisStateProvider provider;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws Exception {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(RedisUtils.CONNECTION_STRING, redisContainer.getHost() + ":" + redisContainer.getFirstMappedPort());
         this.provider = createProvider(properties);
     }
 
     @AfterEach
-    public void teardown() throws IOException {
+    public void teardown() {
         if (provider != null) {
             try {
                 provider.clear(componentId);
