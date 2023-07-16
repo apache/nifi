@@ -559,6 +559,7 @@
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
+                        <exclude>src/test/resources/TestExtractRecordSchema/name_age_schema.avsc</exclude>
                         <exclude>src/test/resources/TestForkRecord/input/complex-input-json.json</exclude>
                         <exclude>src/test/resources/TestForkRecord/output/extract-transactions.json</exclude>
                         <exclude>src/test/resources/TestForkRecord/output/split-address.json</exclude>
