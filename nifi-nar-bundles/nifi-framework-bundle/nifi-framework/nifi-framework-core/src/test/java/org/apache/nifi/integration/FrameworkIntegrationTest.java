@@ -42,7 +42,6 @@ import org.apache.nifi.controller.XmlFlowSynchronizer;
 import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.framework.cluster.leader.zookeeper.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -370,7 +369,7 @@ public class FrameworkIntegrationTest {
 
     protected FlowFileQueue createFlowFileQueue(final String uuid, final ProcessGroup processGroup) {
         final RepositoryContext repoContext = getRepositoryContext();
-        return new StandardFlowFileQueue(uuid, ConnectionEventListener.NOP_EVENT_LISTENER, repoContext.getFlowFileRepository(), repoContext.getProvenanceRepository(),
+        return new StandardFlowFileQueue(uuid, repoContext.getFlowFileRepository(), repoContext.getProvenanceRepository(),
             resourceClaimManager, processScheduler, flowFileSwapManager, flowController.createEventReporter(), 20000,
                 processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
     }
@@ -483,7 +482,7 @@ public class FrameworkIntegrationTest {
                 .relationships(relationships)
                 .id(id)
                 .clustered(false)
-                .flowFileQueueFactory((loadBalanceStrategy, partitioningAttribute, eventListener, processGroup1) -> createFlowFileQueue(id, processGroup))
+                .flowFileQueueFactory((loadBalanceStrategy, partitioningAttribute, processGroup1) -> createFlowFileQueue(id, processGroup))
                 .build();
 
         source.addConnection(connection);

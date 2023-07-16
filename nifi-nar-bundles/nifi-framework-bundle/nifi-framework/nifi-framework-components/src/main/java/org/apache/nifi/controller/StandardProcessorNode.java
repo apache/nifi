@@ -478,11 +478,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return timeUnit.convert(schedulingNanos.get(), TimeUnit.NANOSECONDS);
     }
 
-    @Override
-    public boolean isEventDrivenSupported() {
-        return processorRef.get().isEventDrivenSupported();
-    }
-
     /**
      * Updates the Scheduling Strategy used for this Processor
      *
@@ -495,15 +490,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public synchronized void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
-        if (schedulingStrategy == SchedulingStrategy.EVENT_DRIVEN && !processorRef.get().isEventDrivenSupported()) {
-            // not valid. Just ignore it. We don't throw an Exception because if
-            // a developer changes a Processor so that
-            // it no longer supports EventDriven mode, we don't want the app to
-            // fail to startup if it was already in Event-Driven
-            // Mode. Instead, we will simply leave it in Timer-Driven mode
-            return;
-        }
-
         this.schedulingStrategy = schedulingStrategy;
     }
 
@@ -664,9 +650,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify configuration of " + this + " while the Processor is running");
         }
 
-        if (taskCount < 1 && getSchedulingStrategy() != SchedulingStrategy.EVENT_DRIVEN) {
-            throw new IllegalArgumentException("Cannot set Concurrent Tasks to " + taskCount + " for component "
-                    + this + " because Scheduling Strategy is not Event Driven");
+        if (taskCount < 1) {
+            throw new IllegalArgumentException("Cannot set Concurrent Tasks to " + taskCount + " for component " + this);
         }
 
         if (!isTriggeredSerially()) {
@@ -1278,7 +1263,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         }
                     }
                     break;
-                    case EVENT_DRIVEN:
                     default:
                         return results;
                 }

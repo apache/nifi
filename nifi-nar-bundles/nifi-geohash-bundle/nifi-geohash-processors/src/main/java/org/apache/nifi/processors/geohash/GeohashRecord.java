@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.geohash;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -67,7 +66,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"geo", "geohash", "record"})

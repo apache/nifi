@@ -79,12 +79,12 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Indicates whether the processor should be scheduled to run in event-driven mode or timer-driven mode
+     * Indicates how the processor should be scheduled to run
      *
      * @return scheduling strategy
      */
     @ApiModelProperty(
-            value = "Indcates whether the prcessor should be scheduled to run in event or timer driven mode."
+            value = "Indicates how the processor should be scheduled to run."
     )
     public String getSchedulingStrategy() {
         return schedulingStrategy;

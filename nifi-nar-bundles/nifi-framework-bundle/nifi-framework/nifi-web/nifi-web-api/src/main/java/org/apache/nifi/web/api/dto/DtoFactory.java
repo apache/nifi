@@ -299,7 +299,6 @@ public final class DtoFactory {
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
         dto.setMaxTimerDrivenThreadCount(controllerFacade.getMaxTimerDrivenThreadCount());
-        dto.setMaxEventDrivenThreadCount(controllerFacade.getMaxEventDrivenThreadCount());
         return dto;
     }
 
@@ -3423,7 +3422,6 @@ public final class DtoFactory {
 
         dto.setDescription(getCapabilityDescription(node.getClass()));
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
-        dto.setSupportsEventDriven(node.isEventDrivenSupported());
         dto.setSupportsBatching(node.isSessionBatchingSupported());
 
         dto.setConfig(createProcessorConfigDto(node, uiOnly));
@@ -4038,7 +4036,6 @@ public final class DtoFactory {
             .map(this::createBundleDto)
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        flowDiagnosticsDto.setActiveEventDrivenThreads(flowController.getActiveEventDrivenThreadCount());
         flowDiagnosticsDto.setActiveTimerDrivenThreads(flowController.getActiveTimerDrivenThreadCount());
         flowDiagnosticsDto.setBundlesLoaded(bundlesLoaded);
         flowDiagnosticsDto.setTimeZone(System.getProperty("user.timezone"));
@@ -4047,7 +4044,6 @@ public final class DtoFactory {
         // controller-related information
         controllerDiagnosticsDto.setClusterCoordinator(flowController.isClusterCoordinator());
         controllerDiagnosticsDto.setPrimaryNode(flowController.isPrimary());
-        controllerDiagnosticsDto.setMaxEventDrivenThreads(flowController.getMaxEventDrivenThreadCount());
         controllerDiagnosticsDto.setMaxTimerDrivenThreads(flowController.getMaxTimerDrivenThreadCount());
 
         // system-related information
@@ -4225,7 +4221,6 @@ public final class DtoFactory {
             // set up the default values for concurrent tasks and scheduling period
             final Map<String, String> defaultConcurrentTasks = new HashMap<>();
             defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), String.valueOf(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks()));
-            defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), String.valueOf(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks()));
             defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), String.valueOf(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks()));
             dto.setDefaultConcurrentTasks(defaultConcurrentTasks);
 
@@ -4451,7 +4446,6 @@ public final class DtoFactory {
         copy.setType(original.getType());
         copy.setBundle(copy(original.getBundle()));
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
-        copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());
         copy.setSupportsSensitiveDynamicProperties(original.getSupportsSensitiveDynamicProperties());
         copy.setPersistsState(original.getPersistsState());

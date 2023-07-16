@@ -82,9 +82,8 @@ class TestRuntimeManifest {
 
         final Map<String, Integer> defaultConcurrentTasks = schedulingDefaults.getDefaultConcurrentTasksBySchedulingStrategy();
         assertNotNull(defaultConcurrentTasks);
-        assertEquals(3, defaultConcurrentTasks.size());
+        assertEquals(2, defaultConcurrentTasks.size());
         assertEquals(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks(), defaultConcurrentTasks.get(SchedulingStrategy.TIMER_DRIVEN.name()).intValue());
-        assertEquals(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks(), defaultConcurrentTasks.get(SchedulingStrategy.EVENT_DRIVEN.name()).intValue());
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks(), defaultConcurrentTasks.get(SchedulingStrategy.CRON_DRIVEN.name()).intValue());
 
         final Map<String, String> defaultSchedulingPeriods = schedulingDefaults.getDefaultSchedulingPeriodsBySchedulingStrategy();
@@ -103,7 +102,6 @@ class TestRuntimeManifest {
         assertTrue(listHdfsDefinition.getTriggerSerially());
         assertTrue(listHdfsDefinition.getTriggerWhenEmpty());
         assertFalse(listHdfsDefinition.getSupportsBatching());
-        assertFalse(listHdfsDefinition.getSupportsEventDriven());
         assertFalse(listHdfsDefinition.getSideEffectFree());
         assertFalse(listHdfsDefinition.getTriggerWhenAnyDestinationAvailable());
         assertFalse(listHdfsDefinition.getSupportsDynamicProperties());
@@ -221,25 +219,21 @@ class TestRuntimeManifest {
         assertEquals(REPORTING_TASK_DEFAULT_SCHEDULE_TIME, prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod(), prometheusDefaultSchedulingPeriods.get(SchedulingStrategy.CRON_DRIVEN.name()));
 
-        // Verify JoltTransformRecord which has @EventDriven
         final ProcessorDefinition joltTransformDef = getProcessorDefinition(bundles, "nifi-jolt-record-nar",
                 "org.apache.nifi.processors.jolt.record.JoltTransformRecord");
-
         assertEquals(SchedulingStrategy.TIMER_DRIVEN.name(), joltTransformDef.getDefaultSchedulingStrategy());
 
         final List<String> joltTransformSchedulingStrategies = joltTransformDef.getSupportedSchedulingStrategies();
         assertNotNull(joltTransformSchedulingStrategies);
-        assertEquals(3, joltTransformSchedulingStrategies.size());
+        assertEquals(2, joltTransformSchedulingStrategies.size());
         assertTrue(joltTransformSchedulingStrategies.contains(SchedulingStrategy.TIMER_DRIVEN.name()));
         assertTrue(joltTransformSchedulingStrategies.contains(SchedulingStrategy.CRON_DRIVEN.name()));
-        assertTrue(joltTransformSchedulingStrategies.contains(SchedulingStrategy.EVENT_DRIVEN.name()));
 
         final Map<String, Integer> joltTransformDefaultConcurrentTasks = joltTransformDef.getDefaultConcurrentTasksBySchedulingStrategy();
         assertNotNull(joltTransformDefaultConcurrentTasks);
-        assertEquals(3, joltTransformDefaultConcurrentTasks.size());
+        assertEquals(2, joltTransformDefaultConcurrentTasks.size());
         assertEquals(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks(), joltTransformDefaultConcurrentTasks.get(SchedulingStrategy.TIMER_DRIVEN.name()).intValue());
         assertEquals(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks(), joltTransformDefaultConcurrentTasks.get(SchedulingStrategy.CRON_DRIVEN.name()).intValue());
-        assertEquals(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks(), joltTransformDefaultConcurrentTasks.get(SchedulingStrategy.EVENT_DRIVEN.name()).intValue());
 
         final Map<String, String> joltTransformDefaultSchedulingPeriods = listHdfsDefinition.getDefaultSchedulingPeriodBySchedulingStrategy();
         assertNotNull(joltTransformDefaultSchedulingPeriods);

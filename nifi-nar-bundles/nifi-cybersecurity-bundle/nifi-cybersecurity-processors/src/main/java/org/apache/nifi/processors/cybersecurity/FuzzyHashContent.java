@@ -18,7 +18,6 @@ package org.apache.nifi.processors.cybersecurity;
 
 import com.idealista.tlsh.exceptions.InsufficientComplexityException;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -54,7 +53,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

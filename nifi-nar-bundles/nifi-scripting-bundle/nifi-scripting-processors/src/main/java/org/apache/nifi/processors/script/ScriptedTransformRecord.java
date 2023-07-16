@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -57,7 +56,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-@EventDriven
 @SupportsBatching
 @SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

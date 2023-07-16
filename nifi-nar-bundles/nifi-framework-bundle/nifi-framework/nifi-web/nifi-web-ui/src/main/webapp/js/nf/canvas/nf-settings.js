@@ -127,9 +127,6 @@
         if (nfCommon.isDefinedAndNotNull(configuration['maxTimerDrivenThreadCount']) && !$.isNumeric(configuration['maxTimerDrivenThreadCount'])) {
             errors.push('Maximum Timer Driven Thread Count must be an integer value');
         }
-        if (nfCommon.isDefinedAndNotNull(configuration['maxEventDrivenThreadCount']) && !$.isNumeric(configuration['maxEventDrivenThreadCount'])) {
-            errors.push('Maximum Event Driven Thread Count must be an integer value');
-        }
 
         if (errors.length > 0) {
             nfDialog.showOkDialog({
@@ -197,7 +194,6 @@
         // create the configuration
         var configuration = {};
         configuration['maxTimerDrivenThreadCount'] = $('#maximum-timer-driven-thread-count-field').val();
-        configuration['maxEventDrivenThreadCount'] = $('#maximum-event-driven-thread-count-field').val();
         return configuration;
     };
 
@@ -2499,7 +2495,6 @@
     var loadSettings = function () {
         var setUnauthorizedText = function () {
             $('#read-only-maximum-timer-driven-thread-count-field').addClass('unset').text('Unauthorized');
-            $('#read-only-maximum-event-driven-thread-count-field').addClass('unset').text('Unauthorized');
         };
 
         var setEditable = function (editable) {
@@ -2523,7 +2518,6 @@
                 if (response.permissions.canWrite) {
                     // populate the settings
                     $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.component.maxTimerDrivenThreadCount);
-                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.component.maxEventDrivenThreadCount);
 
                     setEditable(true);
 
@@ -2535,7 +2529,6 @@
                     if (response.permissions.canRead) {
                         // populate the settings
                         $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.component.maxTimerDrivenThreadCount);
-                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.component.maxEventDrivenThreadCount);
                     } else {
                         setUnauthorizedText();
                     }

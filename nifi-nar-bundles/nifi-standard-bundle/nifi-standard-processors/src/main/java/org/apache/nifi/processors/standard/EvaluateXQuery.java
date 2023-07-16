@@ -43,7 +43,6 @@ import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -74,7 +73,6 @@ import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"XML", "evaluate", "XPath", "XQuery"})

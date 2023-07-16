@@ -19,7 +19,6 @@ package org.apache.nifi.processors.groovyx;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -66,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})
 @CapabilityDescription(

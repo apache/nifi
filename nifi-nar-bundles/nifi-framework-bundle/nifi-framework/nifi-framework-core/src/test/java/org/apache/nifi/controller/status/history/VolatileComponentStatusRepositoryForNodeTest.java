@@ -69,7 +69,6 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
                     Double.valueOf(nodeStatus.getProcessorLoadAverage() * MetricDescriptor.FRACTION_MULTIPLIER).longValue(),
                     snapshot.getStatusMetric(NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor()).longValue());
             assertEquals(nodeStatus.getTotalThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
-            assertEquals(nodeStatus.getEventDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
             assertEquals(nodeStatus.getTimerDrivenThreads(), snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
             assertEquals(nodeStatus.getFlowFileRepositoryFreeSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_FREE_SPACE.getDescriptor()).longValue());
             assertEquals(nodeStatus.getFlowFileRepositoryUsedSpace(), snapshot.getStatusMetric(NodeStatusDescriptor.FLOW_FILE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
@@ -87,26 +86,26 @@ public class VolatileComponentStatusRepositoryForNodeTest extends AbstractStatus
                     snapshot.getStatusMetric(NodeStatusDescriptor.PROVENANCE_REPOSITORY_USED_SPACE.getDescriptor()).longValue());
 
             // metrics based on repositories
-            assertEquals(12 + i, getMetricAtOrdinal(snapshot, 17)); // c1 used
-            assertEquals(13 + i, getMetricAtOrdinal(snapshot, 16)); // c1 free
-            assertEquals(14 + i, getMetricAtOrdinal(snapshot, 19)); // c2 used
-            assertEquals(15 + i, getMetricAtOrdinal(snapshot, 18)); // c2 free
+            assertEquals(12 + i, getMetricAtOrdinal(snapshot, 16)); // c1 used
+            assertEquals(13 + i, getMetricAtOrdinal(snapshot, 15)); // c1 free
+            assertEquals(14 + i, getMetricAtOrdinal(snapshot, 18)); // c2 used
+            assertEquals(15 + i, getMetricAtOrdinal(snapshot, 17)); // c2 free
 
-            assertEquals(16 + i, getMetricAtOrdinal(snapshot, 21)); // p1 used
-            assertEquals(17 + i, getMetricAtOrdinal(snapshot, 20)); // p1 free
-            assertEquals(18 + i, getMetricAtOrdinal(snapshot, 23)); // p2 used
-            assertEquals(19 + i, getMetricAtOrdinal(snapshot, 22)); // p2 free
+            assertEquals(16 + i, getMetricAtOrdinal(snapshot, 20)); // p1 used
+            assertEquals(17 + i, getMetricAtOrdinal(snapshot, 19)); // p1 free
+            assertEquals(18 + i, getMetricAtOrdinal(snapshot, 22)); // p2 used
+            assertEquals(19 + i, getMetricAtOrdinal(snapshot, 21)); // p2 free
         }
 
         // metrics based on GarbageCollectionStatus (The ordinal numbers are true for setup, in production it might differ)
-        final int g0TimeOrdinal = 24;
-        final int g0CountOrdinal = 25;
-        final int g0TimeDiffOrdinal = 26;
-        final int g0CountDiffOrdinal = 27;
-        final int g1TimeOrdinal = 28;
-        final int g1CountOrdinal = 29;
-        final int g1TimeDiffOrdinal = 30;
-        final int g1CountDiffOrdinal = 31;
+        final int g0TimeOrdinal = 23;
+        final int g0CountOrdinal = 24;
+        final int g0TimeDiffOrdinal = 25;
+        final int g0CountDiffOrdinal = 26;
+        final int g1TimeOrdinal = 27;
+        final int g1CountOrdinal = 28;
+        final int g1TimeDiffOrdinal = 29;
+        final int g1CountDiffOrdinal = 30;
 
         final StatusSnapshot snapshot1 = result.getStatusSnapshots().get(0);
         final StatusSnapshot snapshot2 = result.getStatusSnapshots().get(1);

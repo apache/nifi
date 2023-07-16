@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.graph;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -45,7 +44,6 @@ import java.util.Map;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@EventDriven
 @SupportsBatching
 @Tags({"cypher", "neo4j", "graph", "network", "insert", "update", "delete", "put", "get",
         "node", "relationship", "connection", "executor", "gremlin", "tinkerpop"})

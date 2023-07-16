@@ -737,7 +737,6 @@ public class StatusMerger {
             return;
         }
 
-        target.setMaxEventDrivenThreads(add(target.getMaxEventDrivenThreads(), toMerge.getMaxEventDrivenThreads()));
         target.setMaxTimerDrivenThreads(add(target.getMaxTimerDrivenThreads(), toMerge.getMaxTimerDrivenThreads()));
         target.setClusterCoordinator(null);
         target.setPrimaryNode(null);
@@ -748,7 +747,6 @@ public class StatusMerger {
             return;
         }
 
-        target.setActiveEventDrivenThreads(add(target.getActiveEventDrivenThreads(), toMerge.getActiveEventDrivenThreads()));
         target.setActiveTimerDrivenThreads(add(target.getActiveTimerDrivenThreads(), toMerge.getActiveTimerDrivenThreads()));
         target.setBundlesLoaded(null);
         target.setUptime(null);

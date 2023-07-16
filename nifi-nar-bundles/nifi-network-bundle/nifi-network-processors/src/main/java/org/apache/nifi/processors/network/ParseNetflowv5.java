@@ -17,7 +17,6 @@ package org.apache.nifi.processors.network;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -59,7 +58,6 @@ import java.util.Set;
 import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getHeaderFields;
 import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecordFields;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)

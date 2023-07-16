@@ -28,7 +28,6 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -240,7 +239,7 @@ public class StandardProcessSessionIT {
         final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
-        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", new NopConnectionEventListener(), flowFileRepo, provenanceRepo, null,
+        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", flowFileRepo, provenanceRepo, null,
                 processScheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         return Mockito.spy(actualQueue);
     }

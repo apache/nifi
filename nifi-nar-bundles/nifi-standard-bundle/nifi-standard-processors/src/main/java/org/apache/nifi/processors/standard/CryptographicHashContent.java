@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -43,7 +42,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.crypto.HashAlgorithm;
 import org.apache.nifi.security.util.crypto.HashService;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"content", "hash", "sha", "blake2", "md5", "cryptography"})

@@ -217,7 +217,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         processorDefinition.setTriggerSerially(extension.getTriggerSerially());
         processorDefinition.setTriggerWhenAnyDestinationAvailable(extension.getTriggerWhenAnyDestinationAvailable());
         processorDefinition.setSupportsBatching(extension.getSupportsBatching());
-        processorDefinition.setSupportsEventDriven(extension.getEventDriven());
         processorDefinition.setPrimaryNodeOnly(extension.getPrimaryNodeOnly());
         processorDefinition.setSideEffectFree(extension.getSideEffectFree());
 
@@ -235,9 +234,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         final List<String> schedulingStrategies = new ArrayList<>();
         schedulingStrategies.add(SchedulingStrategy.TIMER_DRIVEN.name());
         schedulingStrategies.add(SchedulingStrategy.CRON_DRIVEN.name());
-        if (extension.getEventDriven()) {
-            schedulingStrategies.add(SchedulingStrategy.EVENT_DRIVEN.name());
-        }
 
         // If a default schedule is provided then use that, otherwise default to TIMER_DRIVEN
         final DefaultSchedule defaultSchedule = extension.getDefaultSchedule();
@@ -247,9 +243,6 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         final Map<String, Integer> defaultConcurrentTasks = new LinkedHashMap<>(3);
         defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks());
         defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks());
-        if (extension.getEventDriven()) {
-            defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks());
-        }
 
         final Map<String, String> defaultSchedulingPeriods = new LinkedHashMap<>(2);
         defaultSchedulingPeriods.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -557,7 +550,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
 
             final DependentValues dependentValues = dependency.getDependentValues();
             if (dependentValues != null && dependentValues.getValues() != null) {
-                final List<String> values = new ArrayList();
+                final List<String> values = new ArrayList<String>();
                 values.addAll(dependentValues.getValues());
                 propertyDependency.setDependentValues(values);
             }

@@ -164,7 +164,6 @@ public class TestJAXBExtensionManifestParser {
         assertTrue(processor1.getTriggerWhenEmpty());
         assertTrue(processor1.getTriggerWhenAnyDestinationAvailable());
         assertTrue(processor1.getPrimaryNodeOnly());
-        assertTrue(processor1.getEventDriven());
         assertTrue(processor1.getSupportsBatching());
         assertTrue(processor1.getSideEffectFree());
 
@@ -189,7 +188,6 @@ public class TestJAXBExtensionManifestParser {
         assertFalse(processor2.getTriggerWhenEmpty());
         assertFalse(processor2.getTriggerWhenAnyDestinationAvailable());
         assertFalse(processor2.getPrimaryNodeOnly());
-        assertFalse(processor2.getEventDriven());
         assertFalse(processor2.getSupportsBatching());
         assertFalse(processor2.getSideEffectFree());
 

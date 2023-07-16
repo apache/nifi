@@ -98,7 +98,6 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             rootNode.setAttribute("encoding-version", MAX_ENCODING_VERSION);
             doc.appendChild(rootNode);
             addTextElement(rootNode, "maxTimerDrivenThreadCount", controller.getMaxTimerDrivenThreadCount());
-            addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
 
             final Element registriesElement = doc.createElement("registries");
             rootNode.appendChild(registriesElement);

@@ -28,20 +28,6 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
     private ProcessorNode component;
 
     @Test
-    public void testWhenKeywordAppearsAndEvent() {
-        // given
-        final SchedulingMatcher testSubject = new SchedulingMatcher();
-        givenSchedulingStrategy(SchedulingStrategy.EVENT_DRIVEN);
-        givenSearchTerm("event");
-
-        // when
-        testSubject.match(component, searchQuery, matches);
-
-        // then
-        thenMatchConsistsOf("Scheduling strategy: Event driven");
-    }
-
-    @Test
     public void testWhenKeywordAppearsAndNotEvent() {
         // given
         final SchedulingMatcher testSubject = new SchedulingMatcher();

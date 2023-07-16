@@ -37,7 +37,6 @@ import javax.naming.directory.InitialDirContext;
 
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -54,8 +53,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"dns", "enrich", "ip"})

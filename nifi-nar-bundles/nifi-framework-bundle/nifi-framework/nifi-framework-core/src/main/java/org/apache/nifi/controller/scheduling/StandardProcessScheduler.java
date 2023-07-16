@@ -517,11 +517,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void registerEvent(final Connectable worker) {
-        getSchedulingAgent(worker).onEvent(worker);
-    }
-
-    @Override
     public int getActiveThreadCount(final Object scheduled) {
         return getLifecycleState(scheduled, false).getActiveThreadCount();
     }

@@ -27,7 +27,6 @@ public class SchedulingDefaultsFactory {
     public static SchedulingDefaults getNifiSchedulingDefaults() {
         final Map<String, Integer> defaultConcurrentTasks = new LinkedHashMap<>(3);
         defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks());
-        defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks());
         defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks());
 
         final Map<String, String> defaultSchedulingPeriods = new LinkedHashMap<>(2);

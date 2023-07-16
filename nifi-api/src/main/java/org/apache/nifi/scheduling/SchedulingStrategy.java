@@ -23,33 +23,6 @@ package org.apache.nifi.scheduling;
 public enum SchedulingStrategy {
 
     /**
-     * Components should be scheduled to run whenever a relevant Event occurs.
-     * Examples of "relevant Events" are:
-     *
-     * <ul>
-     * <li>A FlowFile is added to one of the Component's incoming
-     * Connections</li>
-     * <li>A FlowFile is removed from one of the Component's outgoing
-     * Connections</li>
-     * <li>The Component is scheduled to run (started)</li>
-     * </ul>
-     *
-     * <p>
-     * When using this mode, the user will be unable to configure the scheduling
-     * period. Instead, the framework will manage this.
-     * </p>
-     *
-     * <p>
-     * When using this mode, the maximum number of concurrent tasks can be set
-     * to 0, indicating no maximum.
-     * </p>
-     *
-     * <p>
-     * Not all Components support Event-Driven mode.
-     * </p>
-     */
-    EVENT_DRIVEN(0, null),
-    /**
      * Components should be scheduled to run on a periodic interval that is
      * user-defined with a user-defined number of concurrent tasks. All
      * Components support Timer-Driven mode.

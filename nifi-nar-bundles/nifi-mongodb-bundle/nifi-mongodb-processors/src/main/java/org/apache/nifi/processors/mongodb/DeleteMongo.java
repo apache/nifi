@@ -22,7 +22,6 @@ package org.apache.nifi.processors.mongodb;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.DeleteResult;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -45,7 +44,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({ "delete", "mongo", "mongodb" })
 @CapabilityDescription(
