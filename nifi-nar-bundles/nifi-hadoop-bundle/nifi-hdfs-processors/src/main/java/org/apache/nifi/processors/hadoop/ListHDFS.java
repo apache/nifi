@@ -46,9 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
 import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.processors.hadoop.util.FilterMode;
-import org.apache.nifi.processors.hadoop.util.writer.FlowFileObjectWriter;
 import org.apache.nifi.processors.hadoop.util.writer.HadoopFileStatusWriter;
-import org.apache.nifi.processors.hadoop.util.writer.RecordObjectWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
@@ -100,6 +98,7 @@ import static org.apache.nifi.processors.hadoop.util.FilterMode.FILTER_DIRECTORI
 public class ListHDFS extends AbstractHadoopProcessor {
 
     private static final String NON_HIDDEN_FILES_REGEX = "[^\\.].*";
+    private static final String HDFS_ATTRIBUTE_PREFIX = "hdfs";
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
             .name("Recurse Subdirectories")
@@ -163,6 +162,8 @@ public class ListHDFS extends AbstractHadoopProcessor {
     public static final String LATEST_TIMESTAMP_KEY = "latest.timestamp";
     public static final String LATEST_FILES_KEY = "latest.file.%d";
 
+    private static final List<PropertyDescriptor> LIST_HDFS_PROPERTIES = Arrays.asList(
+            DIRECTORY, RECURSE_SUBDIRS, RECORD_WRITER, FILE_FILTER, FILE_FILTER_MODE, MINIMUM_FILE_AGE, MAXIMUM_FILE_AGE);
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     private Pattern fileFilterRegexPattern;
     private volatile boolean resetState = false;
@@ -177,7 +178,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.addAll(Arrays.asList(DIRECTORY, RECURSE_SUBDIRS, RECORD_WRITER, FILE_FILTER, FILE_FILTER_MODE, MINIMUM_FILE_AGE, MAXIMUM_FILE_AGE));
+        props.addAll(LIST_HDFS_PROPERTIES);
         return props;
     }
 
@@ -263,24 +264,31 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
             final FileStatusManager fileStatusManager = new FileStatusManager(latestTimestamp, latestFiles);
             final Path rootPath = getNormalizedPath(context, DIRECTORY);
-            final FileStatusIterable fileStatuses = new FileStatusIterable(rootPath, recursive, hdfs, getUserGroupInformation());
+            final FileStatusIterable fileStatusIterable = new FileStatusIterable(rootPath, recursive, hdfs, getUserGroupInformation());
 
             final Long minAgeProp = context.getProperty(MINIMUM_FILE_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
             final long minimumAge = (minAgeProp == null) ? Long.MIN_VALUE : minAgeProp;
             final Long maxAgeProp = context.getProperty(MAXIMUM_FILE_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
             final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
-            final HadoopFileStatusWriter writer;
-            if (writerFactory == null) {
-                writer = new FlowFileObjectWriter(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestTimestamp, latestFiles);
-            } else {
-                writer = new RecordObjectWriter(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, latestTimestamp,
-                        latestFiles, writerFactory, getLogger());
-            }
+            final HadoopFileStatusWriter writer = HadoopFileStatusWriter.builder()
+                    .session(session)
+                    .successRelationship(getSuccessRelationship())
+                    .fileStatusIterable(fileStatusIterable)
+                    .fileStatusManager(fileStatusManager)
+                    .pathFilter(pathFilter)
+                    .minimumAge(minimumAge)
+                    .maximumAge(maximumAge)
+                    .previousLatestTimestamp(latestTimestamp)
+                    .previousLatestFiles(latestFiles)
+                    .writerFactory(writerFactory)
+                    .hdfsPrefix(getAttributePrefix())
+                    .logger(getLogger())
+                    .build();
 
             writer.write();
 
-            getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatuses.getTotalFileCount(), writer.getListedFileCount());
+            getLogger().debug("Found a total of {} files in HDFS, {} are listed", fileStatusIterable.getTotalFileCount(), writer.getListedFileCount());
 
             if (writer.getListedFileCount() > 0) {
                 final Map<String, String> updatedState = new HashMap<>();
@@ -334,5 +342,13 @@ public class ListHDFS extends AbstractHadoopProcessor {
         } catch (IOException e) {
             getLogger().warn("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", e);
         }
+    }
+
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected String getAttributePrefix() {
+        return HDFS_ATTRIBUTE_PREFIX;
     }
 }
