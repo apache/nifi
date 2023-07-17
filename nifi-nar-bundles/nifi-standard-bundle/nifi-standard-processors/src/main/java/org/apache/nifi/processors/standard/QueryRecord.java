@@ -50,24 +50,21 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.calcite.RecordPathFunctions;
+import org.apache.nifi.processors.standard.calcite.RecordResultSetOutputStreamCallback;
 import org.apache.nifi.queryrecord.FlowFileTable;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -84,7 +81,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
@@ -313,41 +309,20 @@ public class QueryRecord extends AbstractProcessor {
 
                 try {
                     final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
-                    final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
                     final QueryResult queryResult = query(session, original, readerSchema, sql, recordReaderFactory);
 
-                    final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
-                    final FlowFile originalFlowFile = original;
+                    final ResultSet rs = queryResult.getResultSet();
+                    final RecordResultSetOutputStreamCallback writer = new RecordResultSetOutputStreamCallback(getLogger(),
+                            rs, writerSchema, defaultPrecision, defaultScale, recordSetWriterFactory, originalAttributes);
                     try {
-                        final ResultSet rs = queryResult.getResultSet();
-                        transformed = session.write(transformed, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream out) throws IOException {
-                                final ResultSetRecordSet recordSet;
-                                final RecordSchema writeSchema;
-
-                                try {
-                                    recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale);
-                                    final RecordSchema resultSetSchema = recordSet.getSchema();
-                                    writeSchema = recordSetWriterFactory.getSchema(originalAttributes, resultSetSchema);
-                                } catch (final SQLException | SchemaNotFoundException e) {
-                                    throw new ProcessException(e);
-                                }
-
-                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out, originalFlowFile)) {
-                                    writeResultRef.set(resultSetWriter.write(recordSet));
-                                    mimeTypeRef.set(resultSetWriter.getMimeType());
-                                } catch (final Exception e) {
-                                    throw new IOException(e);
-                                }
-                            }
-                        });
+                        transformed = session.write(transformed, writer);
                     } finally {
-                        closeQuietly(queryResult);
+                        closeQuietly(rs, queryResult);
                     }
 
                     recordsRead = Math.max(recordsRead, queryResult.getRecordsRead());
-                    final WriteResult result = writeResultRef.get();
+                    final WriteResult result = writer.getWriteResult();
+                    final String mimeType = writer.getMimeType();
                     if (result.getRecordCount() == 0 && !context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()) {
                         session.remove(transformed);
                         flowFileRemoved = true;
@@ -358,8 +333,9 @@ public class QueryRecord extends AbstractProcessor {
                         if (result.getAttributes() != null) {
                             attributesToAdd.putAll(result.getAttributes());
                         }
-
-                        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
+                        if (StringUtils.isNotEmpty(mimeType)) {
+                            attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeType);
+                        }
                         attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
                         attributesToAdd.put(ROUTE_ATTRIBUTE_KEY, relationship.getName());
                         transformed = session.putAllAttributes(transformed, attributesToAdd);
