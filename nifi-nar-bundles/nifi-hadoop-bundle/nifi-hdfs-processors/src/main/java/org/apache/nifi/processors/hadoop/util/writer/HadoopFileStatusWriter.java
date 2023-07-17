@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
 import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 
@@ -33,33 +34,28 @@ import java.util.List;
 public abstract class HadoopFileStatusWriter {
 
     protected final ProcessSession session;
+    protected final Relationship successRelationship;
     protected final FileStatusIterable fileStatusIterable;
+    protected final FileStatusManager fileStatusManager;
+    protected final PathFilter pathFilter;
     protected final long minimumAge;
     protected final long maximumAge;
-    protected final PathFilter pathFilter;
-    protected final FileStatusManager fileStatusManager;
     protected final long previousLatestTimestamp;
     protected final List<String> previousLatestFiles;
-    protected long fileCount;
     private final long currentTimeMillis;
+    protected long fileCount;
 
 
-    HadoopFileStatusWriter(final ProcessSession session,
-                           final FileStatusIterable fileStatusIterable,
-                           final long minimumAge,
-                           final long maximumAge,
-                           final PathFilter pathFilter,
-                           final FileStatusManager fileStatusManager,
-                           final long previousLatestTimestamp,
-                           final List<String> previousLatestFiles) {
-        this.session = session;
-        this.fileStatusIterable = fileStatusIterable;
-        this.minimumAge = minimumAge;
-        this.maximumAge = maximumAge;
-        this.pathFilter = pathFilter;
-        this.fileStatusManager = fileStatusManager;
-        this.previousLatestTimestamp = previousLatestTimestamp;
-        this.previousLatestFiles = previousLatestFiles;
+    HadoopFileStatusWriter(final HadoopWriterContext hadoopWriterContext) {
+        this.session = hadoopWriterContext.getSession();
+        this.successRelationship = hadoopWriterContext.getSuccessRelationship();
+        this.fileStatusIterable = hadoopWriterContext.getFileStatusIterable();
+        this.fileStatusManager = hadoopWriterContext.getFileStatusManager();
+        this.pathFilter = hadoopWriterContext.getPathFilter();
+        this.minimumAge = hadoopWriterContext.getMinimumAge();
+        this.maximumAge = hadoopWriterContext.getMaximumAge();
+        this.previousLatestTimestamp = hadoopWriterContext.getPreviousLatestTimestamp();
+        this.previousLatestFiles = hadoopWriterContext.getPreviousLatestFiles();
         currentTimeMillis = System.currentTimeMillis();
         fileCount = 0L;
     }

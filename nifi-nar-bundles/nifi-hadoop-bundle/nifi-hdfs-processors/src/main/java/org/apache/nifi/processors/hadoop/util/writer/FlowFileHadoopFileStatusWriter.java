@@ -17,31 +17,19 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.hadoop.ListHDFS;
-import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
-import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class FlowFileObjectWriter extends HadoopFileStatusWriter {
+public class FlowFileHadoopFileStatusWriter extends HadoopFileStatusWriter {
 
-    private static final String HDFS_ATTRIBUTE_PREFIX = "hdfs";
+    private final String hdfsPrefix;
 
-    public FlowFileObjectWriter(final ProcessSession session,
-                                final FileStatusIterable fileStatuses,
-                                final long minimumAge,
-                                final long maximumAge,
-                                final PathFilter pathFilter,
-                                final FileStatusManager fileStatusManager,
-                                final long previousLatestModificationTime,
-                                final List<String> previousLatestFiles) {
-        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, previousLatestModificationTime, previousLatestFiles);
+    public FlowFileHadoopFileStatusWriter(final HadoopWriterContext hadoopWriterContext) {
+        super(hadoopWriterContext);
+        this.hdfsPrefix = hadoopWriterContext.getHdfsPrefix();
     }
 
     @Override
@@ -52,7 +40,7 @@ public class FlowFileObjectWriter extends HadoopFileStatusWriter {
                 final Map<String, String> attributes = createAttributes(status);
                 FlowFile flowFile = session.create();
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                session.transfer(flowFile, ListHDFS.REL_SUCCESS);
+                session.transfer(flowFile, successRelationship);
 
                 fileStatusManager.update(status);
                 fileCount++;
@@ -64,12 +52,12 @@ public class FlowFileObjectWriter extends HadoopFileStatusWriter {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), status.getPath().getName());
         attributes.put(CoreAttributes.PATH.key(), getAbsolutePath(status.getPath().getParent()));
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".owner", status.getOwner());
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".group", status.getGroup());
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".lastModified", String.valueOf(status.getModificationTime()));
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".length", String.valueOf(status.getLen()));
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".replication", String.valueOf(status.getReplication()));
-        attributes.put(HDFS_ATTRIBUTE_PREFIX + ".permissions", getPermissionsString(status.getPermission()));
+        attributes.put(hdfsPrefix + ".owner", status.getOwner());
+        attributes.put(hdfsPrefix + ".group", status.getGroup());
+        attributes.put(hdfsPrefix + ".lastModified", String.valueOf(status.getModificationTime()));
+        attributes.put(hdfsPrefix + ".length", String.valueOf(status.getLen()));
+        attributes.put(hdfsPrefix + ".replication", String.valueOf(status.getReplication()));
+        attributes.put(hdfsPrefix + ".permissions", getPermissionsString(status.getPermission()));
         return attributes;
     }
 }

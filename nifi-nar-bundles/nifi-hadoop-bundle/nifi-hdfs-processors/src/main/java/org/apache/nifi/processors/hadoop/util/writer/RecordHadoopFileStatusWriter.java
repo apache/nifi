@@ -17,14 +17,10 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
-import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -42,9 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
-
-public class RecordObjectWriter extends HadoopFileStatusWriter {
+public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
 
     private static final RecordSchema RECORD_SCHEMA;
 
@@ -82,19 +76,10 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
     private final RecordSetWriterFactory writerFactory;
     private final ComponentLog logger;
 
-    public RecordObjectWriter(final ProcessSession session,
-                              final FileStatusIterable fileStatuses,
-                              final long minimumAge,
-                              final long maximumAge,
-                              final PathFilter pathFilter,
-                              final FileStatusManager fileStatusManager,
-                              final long previousLatestModificationTime,
-                              final List<String> previousLatestFiles,
-                              final  RecordSetWriterFactory writerFactory,
-                              final ComponentLog logger) {
-        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, previousLatestModificationTime, previousLatestFiles);
-        this.writerFactory = writerFactory;
-        this.logger = logger;
+    public RecordHadoopFileStatusWriter(final HadoopWriterContext hadoopWriterContext) {
+        super(hadoopWriterContext);
+        this.writerFactory = hadoopWriterContext.getWriterFactory();
+        this.logger = hadoopWriterContext.getLogger();
     }
 
     @Override
@@ -125,7 +110,7 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
             final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
+            session.transfer(flowFile, successRelationship);
         }
     }
 
