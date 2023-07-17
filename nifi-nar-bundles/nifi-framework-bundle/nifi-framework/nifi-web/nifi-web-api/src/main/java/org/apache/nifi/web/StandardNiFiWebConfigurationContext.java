@@ -573,7 +573,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 controllerService = entity.getComponent();
             } else {
-                controllerService = serviceFacade.getControllerService(id).getComponent();
+                controllerService = serviceFacade.getControllerService(id, true).getComponent();
             }
 
             // return the controller service info

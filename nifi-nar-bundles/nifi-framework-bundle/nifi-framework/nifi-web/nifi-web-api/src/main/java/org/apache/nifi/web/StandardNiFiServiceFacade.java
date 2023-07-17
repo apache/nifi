@@ -2916,8 +2916,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     awaitValidationCompletion(cs);
                     final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
                     final ControllerServiceReference ref = controllerService.getReferences();
-                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity =
-                            createControllerServiceReferencingComponentsEntity(ref, Collections.singleton(controllerService.getIdentifier()));
+                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
                     dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
                     return dto;
                 });
@@ -3007,7 +3006,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param reference ControllerServiceReference
      * @return The entity
      */
-    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference, final Set<String> lockedIds) {
+    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference) {
         final Set<ControllerServiceNode> visited = new HashSet<>();
         visited.add(reference.getReferencedComponent());
         findControllerServiceReferencingComponentIdentifiers(reference, visited);
@@ -4677,12 +4676,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return createProcessGroupEntity(processGroup);
     }
 
-    private ControllerServiceEntity createControllerServiceEntity(final ControllerServiceNode serviceNode, final Set<String> serviceIds) {
+    private ControllerServiceEntity createControllerServiceEntity(final ControllerServiceNode serviceNode, final boolean includeReferencingComponents) {
         final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
 
-        final ControllerServiceReference ref = serviceNode.getReferences();
-        final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref, serviceIds);
-        dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+        if (includeReferencingComponents) {
+            final ControllerServiceReference ref = serviceNode.getReferences();
+            final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+            dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+        }
 
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(serviceNode, NiFiUserUtils.getNiFiUser());
@@ -4743,19 +4744,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<ControllerServiceEntity> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups) {
+    public Set<ControllerServiceEntity> getControllerServices(final String groupId, final boolean includeAncestorGroups, final boolean includeDescendantGroups,
+                                                              final boolean includeReferencingComponents) {
         final Set<ControllerServiceNode> serviceNodes = controllerServiceDAO.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
-        final Set<String> serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
 
         return serviceNodes.stream()
-            .map(serviceNode -> createControllerServiceEntity(serviceNode, serviceIds))
+            .map(serviceNode -> createControllerServiceEntity(serviceNode, includeReferencingComponents))
             .collect(Collectors.toSet());
     }
 
     @Override
-    public ControllerServiceEntity getControllerService(final String controllerServiceId) {
+    public ControllerServiceEntity getControllerService(final String controllerServiceId, final boolean includeReferencingComponents) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
-        return createControllerServiceEntity(controllerService, Collections.singleton(controllerServiceId));
+        return createControllerServiceEntity(controllerService, includeReferencingComponents);
     }
 
     @Override
@@ -4770,7 +4771,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ControllerServiceReferencingComponentsEntity getControllerServiceReferencingComponents(final String controllerServiceId) {
         final ControllerServiceNode service = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference ref = service.getReferences();
-        return createControllerServiceReferencingComponentsEntity(ref, Collections.singleton(controllerServiceId));
+        return createControllerServiceReferencingComponentsEntity(ref);
     }
 
     private ReportingTaskEntity createReportingTaskEntity(final ReportingTaskNode reportingTask) {
@@ -5957,7 +5958,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ProcessorDiagnosticsDTO dto = controllerFacade.getProcessorDiagnostics(processor, processorStatus, bulletinRepository, serviceId -> {
             final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
-            return createControllerServiceEntity(serviceNode, Collections.emptySet());
+            return createControllerServiceEntity(serviceNode, true);
         });
 
         // Filter anything out of diagnostics that the user is not authorized to see.
