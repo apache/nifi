@@ -47,7 +47,7 @@ public class AffectedComponentUtils {
                 return dtoFactory.createAffectedComponentEntity(portEntity, AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
             }
             case AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE:
-                final ControllerServiceEntity serviceEntity = serviceFacade.getControllerService(componentEntity.getId());
+                final ControllerServiceEntity serviceEntity = serviceFacade.getControllerService(componentEntity.getId(), false);
                 return dtoFactory.createAffectedComponentEntity(serviceEntity);
             case AffectedComponentDTO.COMPONENT_TYPE_REMOTE_INPUT_PORT: {
                 final RemoteProcessGroupEntity remoteGroupEntity = serviceFacade.getRemoteProcessGroup(componentEntity.getComponent().getProcessGroupId());
