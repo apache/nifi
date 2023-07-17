@@ -35,7 +35,7 @@
         <module>nifi-registry-docker-maven</module>
     </modules>
     <properties>
-        <jax.rs.api.version>2.1</jax.rs.api.version>
+        <jax.rs.api.version>2.1.1</jax.rs.api.version>
         <spring.boot.version>2.7.13</spring.boot.version>
         <flyway.version>8.5.13</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
