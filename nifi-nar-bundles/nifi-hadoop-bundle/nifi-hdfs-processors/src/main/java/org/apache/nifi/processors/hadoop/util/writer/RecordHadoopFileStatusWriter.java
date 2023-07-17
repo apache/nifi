@@ -20,8 +20,10 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
 import org.apache.nifi.processors.hadoop.util.FileStatusManager;
@@ -42,9 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.hadoop.ListHDFS.REL_SUCCESS;
-
-public class RecordObjectWriter extends HadoopFileStatusWriter {
+public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
 
     private static final RecordSchema RECORD_SCHEMA;
 
@@ -78,23 +78,19 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
         RECORD_SCHEMA = new SimpleRecordSchema(recordFields);
     }
 
-
-    private final RecordSetWriterFactory writerFactory;
-    private final ComponentLog logger;
-
-    public RecordObjectWriter(final ProcessSession session,
-                              final FileStatusIterable fileStatuses,
-                              final long minimumAge,
-                              final long maximumAge,
-                              final PathFilter pathFilter,
-                              final FileStatusManager fileStatusManager,
-                              final long previousLatestModificationTime,
-                              final List<String> previousLatestFiles,
-                              final  RecordSetWriterFactory writerFactory,
-                              final ComponentLog logger) {
-        super(session, fileStatuses, minimumAge, maximumAge, pathFilter, fileStatusManager, previousLatestModificationTime, previousLatestFiles);
-        this.writerFactory = writerFactory;
-        this.logger = logger;
+    public RecordHadoopFileStatusWriter(final ProcessSession session,
+                                        final Relationship successRelationship,
+                                        final FileStatusIterable fileStatusIterable,
+                                        final FileStatusManager fileStatusManager,
+                                        final PathFilter pathFilter,
+                                        final long minimumAge,
+                                        final long maximumAge,
+                                        final long previousLatestTimestamp,
+                                        final List<String> previousLatestFiles,
+                                        final RecordSetWriterFactory writerFactory,
+                                        final String hdfsPrefix,
+                                        final ComponentLog logger) {
+        super(session, successRelationship, fileStatusIterable, fileStatusManager, pathFilter, minimumAge, maximumAge, previousLatestTimestamp, previousLatestFiles, writerFactory, hdfsPrefix, logger);
     }
 
     @Override
@@ -102,10 +98,12 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
         FlowFile flowFile = session.create();
 
         final WriteResult writeResult;
+        final String mimeType;
         try (
                 final OutputStream out = session.write(flowFile);
                 final RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)
         ) {
+            mimeType = recordWriter.getMimeType();
             recordWriter.beginRecordSet();
             for (FileStatus status : fileStatusIterable) {
                 if (determineListable(status)) {
@@ -124,8 +122,9 @@ public class RecordObjectWriter extends HadoopFileStatusWriter {
         } else {
             final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
             flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
+            session.transfer(flowFile, successRelationship);
         }
     }
 
