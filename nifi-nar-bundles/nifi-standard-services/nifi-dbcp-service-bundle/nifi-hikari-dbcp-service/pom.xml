@@ -22,7 +22,7 @@
     <artifactId>nifi-hikari-dbcp-service</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <derby.version>10.14.2.0</derby.version>
+        <derby.version>10.16.1.1</derby.version>
     </properties>
     <dependencies>
         <dependency>
