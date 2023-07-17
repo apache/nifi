@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [
+    {
+      "name": "avrofloat",
+      "type": [
+        "float",
+        "null"
+      ]
+    }
+  ]
+}
