@@ -87,6 +87,18 @@
                     }
                 ]
             }
+        },
+        {
+            "name": "numeric",
+            "type": ["null", "long"]
+        },
+        {
+            "name": "floatc",
+            "type": ["null", "double"]
+        },
+        {
+            "name": "json",
+            "type": ["null", "string"]
         }
     ]
 }

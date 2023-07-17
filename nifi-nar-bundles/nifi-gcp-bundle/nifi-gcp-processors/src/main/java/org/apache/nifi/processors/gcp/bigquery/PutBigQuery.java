@@ -40,6 +40,7 @@ import com.google.cloud.bigquery.storage.v1.ProtoSchemaConverter;
 import com.google.cloud.bigquery.storage.v1.StorageError;
 import com.google.cloud.bigquery.storage.v1.StreamWriter;
 import com.google.cloud.bigquery.storage.v1.TableName;
+import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.cloud.bigquery.storage.v1.WriteStream;
 import com.google.cloud.bigquery.storage.v1.stub.BigQueryWriteStubSettings;
 import com.google.protobuf.Descriptors;
@@ -222,9 +223,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
 
         WriteStream writeStream;
         Descriptors.Descriptor protoDescriptor;
+        TableSchema tableSchema;
         try {
             writeStream = createWriteStream(tableName);
-            protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(writeStream.getTableSchema());
+            tableSchema = writeStream.getTableSchema();
+            protoDescriptor = BQTableSchemaToProtoDescriptor.convertBQTableSchemaToProtoDescriptor(tableSchema);
             streamWriter = createStreamWriter(writeStream.getName(), protoDescriptor, getGoogleCredentials(context));
         } catch (Descriptors.DescriptorValidationException | IOException e) {
             getLogger().error("Failed to create Big Query Stream Writer for writing", e);
@@ -240,7 +243,7 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         try {
             try (InputStream in = session.read(flowFile);
                     RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
-                recordNumWritten = writeRecordsToStream(reader, protoDescriptor, skipInvalidRows);
+                recordNumWritten = writeRecordsToStream(reader, protoDescriptor, skipInvalidRows, tableSchema);
             }
             flowFile = session.putAttribute(flowFile, BigQueryAttributes.JOB_NB_RECORDS_ATTR, Integer.toString(recordNumWritten));
         } catch (Exception e) {
@@ -250,13 +253,13 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         }
     }
 
-    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor, boolean skipInvalidRows) throws Exception {
+    private int writeRecordsToStream(RecordReader reader, Descriptors.Descriptor descriptor, boolean skipInvalidRows, TableSchema tableSchema) throws Exception {
         Record currentRecord;
         int offset = 0;
         int recordNum = 0;
         ProtoRows.Builder rowsBuilder = ProtoRows.newBuilder();
         while ((currentRecord = reader.nextRecord()) != null) {
-            DynamicMessage message = recordToProtoMessage(currentRecord, descriptor, skipInvalidRows);
+            DynamicMessage message = recordToProtoMessage(currentRecord, descriptor, skipInvalidRows, tableSchema);
 
             if (message == null) {
                 continue;
@@ -278,11 +281,11 @@ public class PutBigQuery extends AbstractBigQueryProcessor {
         return recordNum;
     }
 
-    private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor, boolean skipInvalidRows) {
+    private DynamicMessage recordToProtoMessage(Record record, Descriptors.Descriptor descriptor, boolean skipInvalidRows, TableSchema tableSchema) {
         Map<String, Object> valueMap = convertMapRecord(record.toMap());
         DynamicMessage message = null;
         try {
-            message = ProtoUtils.createMessage(descriptor, valueMap);
+            message = ProtoUtils.createMessage(descriptor, valueMap, tableSchema);
         } catch (RuntimeException e) {
             getLogger().error("Cannot convert record to message", e);
             if (!skipInvalidRows) {
