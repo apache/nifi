@@ -198,6 +198,12 @@
                         <exclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</exclude>
                         <exclude>src/test/resources/mock-gcp-service-account.json</exclude>
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
+                        <exclude>src/test/resources/bigquery/avrodecimal.avsc</exclude>
+                        <exclude>src/test/resources/bigquery/avrodecimal.avro</exclude>
+                        <exclude>src/test/resources/bigquery/avrofloat.avsc</exclude>
+                        <exclude>src/test/resources/bigquery/avrofloat.avro</exclude>
+                        <exclude>src/test/resources/bigquery/avroint.avsc</exclude>
+                        <exclude>src/test/resources/bigquery/avroint.avro</exclude>
                         <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
                         <exclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</exclude>
