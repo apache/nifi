@@ -94,7 +94,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         }
 
         return servicesRequiringDesiredState.stream()
-            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
+            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), false))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
     }
@@ -370,7 +370,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         logger.debug("Waiting for {} controller services to complete validation", affectedComponents.size());
         boolean continuePolling = true;
         while (continuePolling) {
-            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true, false);
             if (isControllerServiceValidationComplete(serviceEntities, affectedComponents)) {
                 logger.debug("All {} controller services of interest have completed validation", affectedComponents.size());
                 return true;
@@ -407,10 +407,13 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                                                   final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
         logger.debug("Waiting for {} Controller Services to transition their states to {}", affectedServices.size(), desiredState);
+        if (affectedServices.isEmpty()) {
+            return true;
+        }
 
         boolean continuePolling = true;
         while (continuePolling) {
-            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true, false);
 
             // update the affected controller services
             updateAffectedControllerServices(serviceEntities, affectedServices);

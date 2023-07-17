@@ -2095,17 +2095,23 @@ public interface NiFiServiceFacade {
      * @param groupId the id of the process group of interest
      * @param includeAncestorGroups if true, parent and ancestor groups' services will be returned as well
      * @param includeDescendantGroups if true, child and descendant groups' services will be returned as well
+     * @param includeReferencingComponents whether or not the response should include the referencing component services.
+     *       These can be expensive to include so should not be included when the are not necessary.
+     *
      * @return services
      */
-    Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups);
+    Set<ControllerServiceEntity> getControllerServices(String groupId, boolean includeAncestorGroups, boolean includeDescendantGroups, boolean includeReferencingComponents);
 
     /**
      * Gets the specified controller service.
      *
      * @param controllerServiceId id
+     * @param includeReferencingComponents whether or not the response should include the referencing component services.
+     *       These can be expensive to include so should not be included when the are not necessary.
+     *
      * @return service
      */
-    ControllerServiceEntity getControllerService(String controllerServiceId);
+    ControllerServiceEntity getControllerService(String controllerServiceId, boolean includeReferencingComponents);
 
     /**
      * Get the descriptor for the specified property of the specified controller service.

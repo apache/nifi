@@ -210,7 +210,7 @@ public class ControllerServiceResource extends ApplicationResource {
         });
 
         // get the controller service
-        final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
+        final ControllerServiceEntity entity = serviceFacade.getControllerService(id, true);
         if (uiOnly) {
             stripNonUiRelevantFields(entity);
         }

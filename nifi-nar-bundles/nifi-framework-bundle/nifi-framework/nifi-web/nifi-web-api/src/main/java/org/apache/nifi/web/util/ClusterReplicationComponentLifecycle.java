@@ -54,6 +54,7 @@ import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -72,6 +73,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     @Override
     public Set<AffectedComponentEntity> scheduleComponents(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> components,
             final ScheduledState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
+
+        if (components.isEmpty()) {
+            logger.debug("No components to schedule for group {} so will not issue request", groupId);
+            return Collections.emptySet();
+        }
 
         final Set<String> componentIds = components.stream()
             .map(ComponentEntity::getId)
@@ -169,6 +175,12 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
     private boolean waitForProcessorValidation(final NiFiUser user, final URI originalUri, final String groupId,
                                                final Map<String, AffectedComponentEntity> processors, final Pause pause) throws InterruptedException {
+
+        if (processors.isEmpty()) {
+            logger.debug("No processors to wait for so will not wait for Processor Validation");
+            return true;
+        }
+
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
@@ -246,6 +258,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
      */
     private boolean waitForProcessorStatus(final NiFiUser user, final URI originalUri, final String groupId, final Map<String, AffectedComponentEntity> processors,
                 final ScheduledState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws InterruptedException, LifecycleManagementException {
+
+        if (processors.isEmpty()) {
+            logger.debug("No processors to wait for, so will not wait for processors to reach state of {}", desiredState);
+            return true;
+        }
 
         URI groupUri;
         try {
@@ -405,6 +422,11 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                                                                    final Set<AffectedComponentEntity> servicesRequiringDesiredState, final ControllerServiceState desiredState,
                                                                    final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
+        if (affectedServices.isEmpty() && servicesRequiringDesiredState.isEmpty()) {
+            logger.debug("No Controller Services to activate for group {} so will not issue request", groupId);
+            return Collections.emptySet();
+        }
+
         final Set<String> affectedServiceIds = affectedServices.stream()
             .map(ComponentEntity::getId)
             .collect(Collectors.toSet());
@@ -436,7 +458,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         // If enabling services, validation must complete first
-        if (desiredState == ControllerServiceState.ENABLED && !affectedServiceIds.isEmpty()) {
+        if (desiredState == ControllerServiceState.ENABLED) {
             try {
                 waitForControllerServiceValidation(user, originalUri, groupId, affectedServiceIds, pause);
             } catch (InterruptedException e) {
@@ -447,20 +469,18 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
         try {
-            if (!affectedServiceIds.isEmpty()) {
-                final NodeResponse clusterResponse;
-                if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                    clusterResponse = getRequestReplicator().replicate(user, HttpMethod.PUT, controllerServicesUri, activateServicesEntity, headers).awaitMergedResponse();
-                } else {
-                    clusterResponse = getRequestReplicator().forwardToCoordinator(
-                        getClusterCoordinatorNode(), user, HttpMethod.PUT, controllerServicesUri, activateServicesEntity, headers).awaitMergedResponse();
-                }
+            final NodeResponse clusterResponse;
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.PUT, controllerServicesUri, activateServicesEntity, headers).awaitMergedResponse();
+            } else {
+                clusterResponse = getRequestReplicator().forwardToCoordinator(
+                    getClusterCoordinatorNode(), user, HttpMethod.PUT, controllerServicesUri, activateServicesEntity, headers).awaitMergedResponse();
+            }
 
-                final int disableServicesStatus = clusterResponse.getStatus();
-                if (disableServicesStatus != Status.OK.getStatusCode()) {
-                    final String explanation = getResponseEntity(clusterResponse, String.class);
-                    throw new LifecycleManagementException("Failed to update Controller Services to a state of " + desiredState + " due to " + explanation);
-                }
+            final int disableServicesStatus = clusterResponse.getStatus();
+            if (disableServicesStatus != Status.OK.getStatusCode()) {
+                final String explanation = getResponseEntity(clusterResponse, String.class);
+                throw new LifecycleManagementException("Failed to update Controller Services to a state of " + desiredState + " due to " + explanation);
             }
 
             final boolean serviceTransitioned = waitForControllerServiceStatus(user, originalUri, groupId, idsOfServicesRequiringDesiredState, desiredState, pause, invalidComponentAction);
@@ -474,7 +494,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         }
 
         return affectedServices.stream()
-            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
+            .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId(), false))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
     }
@@ -486,7 +506,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services",
+                "includeAncestorGroups=false&includeDescendantGroups=true&includeReferencingComponents=false", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -555,10 +576,15 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                                                    final ControllerServiceState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction)
                             throws InterruptedException, LifecycleManagementException {
 
+        if (serviceIds.isEmpty()) {
+            return true;
+        }
+
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
+                originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services",
+                "includeAncestorGroups=false&includeDescendantGroups=true&includeReferencingComponents=false", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
