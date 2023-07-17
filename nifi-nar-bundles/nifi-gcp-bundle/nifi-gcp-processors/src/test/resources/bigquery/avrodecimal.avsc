@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [
+    {
+      "name": "avrodecimal",
+      "type": [
+        {
+          "type": "bytes",
+          "logicalType": "decimal",
+          "precision": 10,
+          "scale": 0
+        },
+        "null"
+      ]
+    }
+  ]
+}
