@@ -108,6 +108,7 @@
         <io.fabric8.kubernetes.client.version>6.5.1</io.fabric8.kubernetes.client.version>
         <kotlin.version>1.8.20</kotlin.version>
         <okhttp.version>4.11.0</okhttp.version>
+        <okio.version>3.4.0</okio.version>
         <org.apache.commons.cli.version>1.5.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.16.0</org.apache.commons.codec.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
@@ -683,6 +684,11 @@
                 <version>${okhttp.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>${okio.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
