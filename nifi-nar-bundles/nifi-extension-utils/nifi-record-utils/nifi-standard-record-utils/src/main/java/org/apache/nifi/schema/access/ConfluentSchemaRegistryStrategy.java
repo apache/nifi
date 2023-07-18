@@ -54,7 +54,7 @@ public class ConfluentSchemaRegistryStrategy implements SchemaAccessStrategy {
 
         // This encoding follows the pattern that is provided for serializing data by the Confluent Schema Registry serializer
         // as it is provided at:
-        // http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html#wire-format
+        // https://docs.confluent.io/platform/current/schema-registry/fundamentals/serdes-develop/index.html#wire-format
         // The format consists of the first byte always being 0, to indicate a 'magic byte' followed by 4 bytes
         // representing the schema id.
         final ByteBuffer bb = ByteBuffer.wrap(buffer);
@@ -67,7 +67,7 @@ public class ConfluentSchemaRegistryStrategy implements SchemaAccessStrategy {
         final int schemaId = bb.getInt();
 
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
-                .id(Long.valueOf(schemaId))
+                .schemaVersionId(Long.valueOf(schemaId))
                 .version(1)
                 .build();
 

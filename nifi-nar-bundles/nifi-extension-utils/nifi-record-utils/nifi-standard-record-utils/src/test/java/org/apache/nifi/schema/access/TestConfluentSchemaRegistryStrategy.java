@@ -49,7 +49,7 @@ public class TestConfluentSchemaRegistryStrategy extends AbstractSchemaAccessStr
 
                 // the confluent strategy will read the id from the input stream and use '1' as the version
                 final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
-                        .id((long)schemaId)
+                        .schemaVersionId((long)schemaId)
                         .version(1)
                         .build();
 
