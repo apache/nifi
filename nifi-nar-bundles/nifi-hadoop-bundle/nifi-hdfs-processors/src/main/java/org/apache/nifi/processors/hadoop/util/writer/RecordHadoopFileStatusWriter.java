@@ -17,10 +17,16 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
+import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -72,14 +78,19 @@ public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
         RECORD_SCHEMA = new SimpleRecordSchema(recordFields);
     }
 
-
-    private final RecordSetWriterFactory writerFactory;
-    private final ComponentLog logger;
-
-    public RecordHadoopFileStatusWriter(final HadoopWriterContext hadoopWriterContext) {
-        super(hadoopWriterContext);
-        this.writerFactory = hadoopWriterContext.getWriterFactory();
-        this.logger = hadoopWriterContext.getLogger();
+    public RecordHadoopFileStatusWriter(final ProcessSession session,
+                                        final Relationship successRelationship,
+                                        final FileStatusIterable fileStatusIterable,
+                                        final FileStatusManager fileStatusManager,
+                                        final PathFilter pathFilter,
+                                        final long minimumAge,
+                                        final long maximumAge,
+                                        final long previousLatestTimestamp,
+                                        final List<String> previousLatestFiles,
+                                        final RecordSetWriterFactory writerFactory,
+                                        final String hdfsPrefix,
+                                        final ComponentLog logger) {
+        super(session, successRelationship, fileStatusIterable, fileStatusManager, pathFilter, minimumAge, maximumAge, previousLatestTimestamp, previousLatestFiles, writerFactory, hdfsPrefix, logger);
     }
 
     @Override
@@ -87,10 +98,12 @@ public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
         FlowFile flowFile = session.create();
 
         final WriteResult writeResult;
+        final String mimeType;
         try (
                 final OutputStream out = session.write(flowFile);
                 final RecordSetWriter recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile)
         ) {
+            mimeType = recordWriter.getMimeType();
             recordWriter.beginRecordSet();
             for (FileStatus status : fileStatusIterable) {
                 if (determineListable(status)) {
@@ -109,6 +122,7 @@ public class RecordHadoopFileStatusWriter extends HadoopFileStatusWriter {
         } else {
             final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+            attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
             flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, successRelationship);
         }

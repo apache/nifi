@@ -17,19 +17,34 @@
 package org.apache.nifi.processors.hadoop.util.writer;
 
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
+import org.apache.nifi.processors.hadoop.util.FileStatusManager;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FlowFileHadoopFileStatusWriter extends HadoopFileStatusWriter {
-
-    private final String hdfsPrefix;
-
-    public FlowFileHadoopFileStatusWriter(final HadoopWriterContext hadoopWriterContext) {
-        super(hadoopWriterContext);
-        this.hdfsPrefix = hadoopWriterContext.getHdfsPrefix();
+    public FlowFileHadoopFileStatusWriter(final ProcessSession session,
+                                          final Relationship successRelationship,
+                                          final FileStatusIterable fileStatusIterable,
+                                          final FileStatusManager fileStatusManager,
+                                          final PathFilter pathFilter,
+                                          final long minimumAge,
+                                          final long maximumAge,
+                                          final long previousLatestTimestamp,
+                                          final List<String> previousLatestFiles,
+                                          final RecordSetWriterFactory writerFactory,
+                                          final String hdfsPrefix,
+                                          final ComponentLog logger) {
+        super(session, successRelationship, fileStatusIterable, fileStatusManager, pathFilter, minimumAge, maximumAge, previousLatestTimestamp, previousLatestFiles, writerFactory, hdfsPrefix, logger);
     }
 
     @Override

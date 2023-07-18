@@ -46,10 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.FileStatusIterable;
 import org.apache.nifi.processors.hadoop.util.FileStatusManager;
 import org.apache.nifi.processors.hadoop.util.FilterMode;
-import org.apache.nifi.processors.hadoop.util.writer.FlowFileHadoopFileStatusWriter;
 import org.apache.nifi.processors.hadoop.util.writer.HadoopFileStatusWriter;
-import org.apache.nifi.processors.hadoop.util.writer.HadoopWriterContext;
-import org.apache.nifi.processors.hadoop.util.writer.RecordHadoopFileStatusWriter;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
@@ -274,7 +271,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             final Long maxAgeProp = context.getProperty(MAXIMUM_FILE_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
             final long maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
 
-            final HadoopWriterContext hadoopWriterContext = HadoopWriterContext.builder()
+            final HadoopFileStatusWriter writer = HadoopFileStatusWriter.builder()
                     .session(session)
                     .successRelationship(getSuccessRelationship())
                     .fileStatusIterable(fileStatusIterable)
@@ -288,10 +285,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
                     .hdfsPrefix(getAttributePrefix())
                     .logger(getLogger())
                     .build();
-
-            final HadoopFileStatusWriter writer = (writerFactory == null)
-                    ? new FlowFileHadoopFileStatusWriter(hadoopWriterContext)
-                    : new RecordHadoopFileStatusWriter(hadoopWriterContext);
 
             writer.write();
 
