@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.aws.schemaregistry.GlueSchemaRegistry
+org.apache.nifi.aws.schemaregistry.AmazonGlueSchemaRegistry

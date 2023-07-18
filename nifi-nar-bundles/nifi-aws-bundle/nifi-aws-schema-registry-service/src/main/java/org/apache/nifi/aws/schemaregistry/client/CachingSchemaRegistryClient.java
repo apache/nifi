@@ -27,7 +27,7 @@ import java.time.Duration;
 public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     private final SchemaRegistryClient client;
     private final LoadingCache<String, RecordSchema> nameCache;
-    private final LoadingCache<Pair<String, Integer>, RecordSchema> nameVersionCache;
+    private final LoadingCache<Pair<String, Long>, RecordSchema> nameVersionCache;
 
     public CachingSchemaRegistryClient(final SchemaRegistryClient toWrap, final int cacheSize, final long expirationNanos) {
         this.client = toWrap;
@@ -48,7 +48,7 @@ public class CachingSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, int version) {
+    public RecordSchema getSchema(String schemaName, long version) {
         return nameVersionCache.get(Pair.of(schemaName, version));
     }
 }

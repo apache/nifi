@@ -47,7 +47,7 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final String schemaName) throws IOException, SchemaNotFoundException {
         final SchemaVersionNumber schemaVersionNumber = SchemaVersionNumber.builder()
                 .latestVersion(true)
                 .build();
@@ -58,9 +58,9 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
     }
 
     @Override
-    public RecordSchema getSchema(String schemaName, int version) throws IOException, SchemaNotFoundException {
+    public RecordSchema getSchema(final String schemaName, final long version) throws IOException, SchemaNotFoundException {
         final SchemaVersionNumber schemaVersionNumber = SchemaVersionNumber.builder()
-                .versionNumber((long) version)
+                .versionNumber(version)
                 .build();
 
         final GetSchemaVersionResponse schemaVersionResponse = getSchemaVersionResponse(schemaName, schemaVersionNumber);
@@ -68,20 +68,20 @@ public class GlueSchemaRegistryClient implements SchemaRegistryClient {
         return createRecordSchema(schemaVersionResponse);
     }
 
-    private GetSchemaVersionResponse getSchemaVersionResponse(String schemaName, SchemaVersionNumber schemaVersionNumber) {
+    private GetSchemaVersionResponse getSchemaVersionResponse(final String schemaName, final SchemaVersionNumber schemaVersionNumber) {
         final SchemaId schemaId = buildSchemaId(schemaName);
         final GetSchemaVersionRequest request = buildSchemaVersionRequest(schemaVersionNumber, schemaId);
         return client.getSchemaVersion(request);
     }
 
-    private GetSchemaVersionRequest buildSchemaVersionRequest(SchemaVersionNumber schemaVersionNumber, SchemaId schemaId) {
+    private GetSchemaVersionRequest buildSchemaVersionRequest(final SchemaVersionNumber schemaVersionNumber, final SchemaId schemaId) {
         return GetSchemaVersionRequest.builder()
                 .schemaVersionNumber(schemaVersionNumber)
                 .schemaId(schemaId)
                 .build();
     }
 
-    private SchemaId buildSchemaId(String schemaName) {
+    private SchemaId buildSchemaId(final String schemaName) {
         return SchemaId.builder()
                 .registryName(registryName)
                 .schemaName(schemaName)

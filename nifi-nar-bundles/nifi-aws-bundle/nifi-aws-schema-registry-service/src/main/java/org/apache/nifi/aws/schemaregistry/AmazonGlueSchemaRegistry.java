@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit;
 @Tags({"schema", "registry", "aws", "avro", "glue"})
 @CapabilityDescription("Provides a Schema Registry that interacts with the AWS Glue Schema Registry so that those Schemas that are stored in the Glue Schema "
         + "Registry can be used in NiFi. When a Schema is looked up by name by this registry, it will find a Schema in the Glue Schema Registry with their names.")
-public class GlueSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
+public class AmazonGlueSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,
             SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
@@ -107,8 +107,8 @@ public class GlueSchemaRegistry extends AbstractControllerService implements Sch
             .required(true)
             .build();
 
-    static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-            .name("timeout")
+    static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("communications-timeout")
             .displayName("Communications Timeout")
             .description("Specifies how long to wait to receive data from the Schema Registry before considering the communications a failure")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -140,7 +140,7 @@ public class GlueSchemaRegistry extends AbstractControllerService implements Sch
     private static final List<PropertyDescriptor> PROPERTIES = new ArrayList<>(Arrays.asList(
             SCHEMA_REGISTRY_NAME,
             REGION,
-            TIMEOUT,
+            COMMUNICATIONS_TIMEOUT,
             CACHE_SIZE,
             CACHE_EXPIRATION,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
@@ -203,14 +203,14 @@ public class GlueSchemaRegistry extends AbstractControllerService implements Sch
 
     private static AllowableValue[] getAvailableRegions() {
         return Arrays.stream(Regions.values())
-                .map(GlueSchemaRegistry::createAllowableValue)
+                .map(AmazonGlueSchemaRegistry::createAllowableValue)
                 .toArray(AllowableValue[]::new);
     }
 
     private SdkHttpClient createSdkHttpClient(final ConfigurationContext context) {
         final ApacheHttpClient.Builder builder = ApacheHttpClient.builder();
 
-        final int communicationsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int communicationsTimeout = context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         builder.connectionTimeout(Duration.ofMillis(communicationsTimeout));
         builder.socketTimeout(Duration.ofMillis(communicationsTimeout));
 

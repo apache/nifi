@@ -37,12 +37,10 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>glue</artifactId>
-            <version>2.20.103</version>
         </dependency>
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>apache-client</artifactId>
-            <version>2.20.103</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

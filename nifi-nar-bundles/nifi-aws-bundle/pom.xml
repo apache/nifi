@@ -39,7 +39,6 @@
         <module>nifi-aws-parameter-value-providers</module>
         <module>nifi-aws-parameter-providers</module>
         <module>nifi-aws-schema-registry-service</module>
-        <module>nifi-aws-schema-registry-service-nar</module>
     </modules>
 
     <dependencyManagement>
