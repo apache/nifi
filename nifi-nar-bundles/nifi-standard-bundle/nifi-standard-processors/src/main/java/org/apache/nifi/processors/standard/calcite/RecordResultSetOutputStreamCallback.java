@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.calcite;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -31,7 +32,6 @@ import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class RecordResultSetOutputStreamCallback implements OutputStreamCallback {
     private final ComponentLog logger;
@@ -41,14 +41,14 @@ public class RecordResultSetOutputStreamCallback implements OutputStreamCallback
     private final Integer defaultScale;
     private final RecordSetWriterFactory recordSetWriterFactory;
     private final Map<String, String> originalAttributes;
-    private final AtomicReference<WriteResult> writeResultRef;
-    private final AtomicReference<String> mimeTypeRef;
+
+    private WriteResult writeResult;
+    private String mimeType;
 
     public RecordResultSetOutputStreamCallback(
             final ComponentLog logger, final ResultSet rs, final RecordSchema writerSchema,
             final Integer defaultPrecision, final Integer defaultScale,
-            final RecordSetWriterFactory recordSetWriterFactory, final Map<String, String> originalAttributes,
-            final AtomicReference<WriteResult> writeResultRef, final AtomicReference<String> mimeTypeRef) {
+            final RecordSetWriterFactory recordSetWriterFactory, final Map<String, String> originalAttributes) {
         this.logger = logger;
         this.rs = rs;
         this.writerSchema = writerSchema;
@@ -56,8 +56,14 @@ public class RecordResultSetOutputStreamCallback implements OutputStreamCallback
         this.defaultScale = defaultScale;
         this.recordSetWriterFactory = recordSetWriterFactory;
         this.originalAttributes = originalAttributes;
-        this.writeResultRef = writeResultRef;
-        this.mimeTypeRef = mimeTypeRef;
+    }
+
+    public WriteResult getWriteResult() throws ProcessException {
+        return ObjectUtils.defaultIfNull(writeResult, WriteResult.EMPTY);
+    }
+
+    public String getMimeType() {
+        return mimeType;
     }
 
     @Override
@@ -69,13 +75,13 @@ public class RecordResultSetOutputStreamCallback implements OutputStreamCallback
             writeSchema = recordSetWriterFactory.getSchema(originalAttributes, resultSetSchema);
 
             try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(logger, writeSchema, out, originalAttributes)) {
-                writeResultRef.set(resultSetWriter.write(recordSet));
-                mimeTypeRef.set(resultSetWriter.getMimeType());
+                writeResult = resultSetWriter.write(recordSet);
+                mimeType = resultSetWriter.getMimeType();
             } catch (final Exception e) {
-                throw new IOException(e);
+                throw new IOException("Writing result records failed", e);
             }
         } catch (final SQLException | SchemaNotFoundException e) {
-            throw new ProcessException(e);
+            throw new ProcessException("Reading query result records failed", e);
         }
     }
 }

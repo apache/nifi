@@ -59,6 +59,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.Tuple;
 
 import java.io.Closeable;
@@ -80,7 +81,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
@@ -309,21 +309,20 @@ public class QueryRecord extends AbstractProcessor {
 
                 try {
                     final String sql = context.getProperty(descriptor).evaluateAttributeExpressions(original).getValue();
-                    final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
                     final QueryResult queryResult = query(session, original, readerSchema, sql, recordReaderFactory);
 
-                    final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
                     final ResultSet rs = queryResult.getResultSet();
+                    final RecordResultSetOutputStreamCallback writer = new RecordResultSetOutputStreamCallback(getLogger(),
+                            rs, writerSchema, defaultPrecision, defaultScale, recordSetWriterFactory, originalAttributes);
                     try {
-                        transformed = session.write(transformed, new RecordResultSetOutputStreamCallback(
-                                getLogger(), rs, writerSchema, defaultPrecision, defaultScale, recordSetWriterFactory,
-                                originalAttributes, writeResultRef, mimeTypeRef));
+                        transformed = session.write(transformed, writer);
                     } finally {
                         closeQuietly(rs, queryResult);
                     }
 
                     recordsRead = Math.max(recordsRead, queryResult.getRecordsRead());
-                    final WriteResult result = writeResultRef.get();
+                    final WriteResult result = writer.getWriteResult();
+                    final String mimeType = writer.getMimeType();
                     if (result.getRecordCount() == 0 && !context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean()) {
                         session.remove(transformed);
                         flowFileRemoved = true;
@@ -334,8 +333,9 @@ public class QueryRecord extends AbstractProcessor {
                         if (result.getAttributes() != null) {
                             attributesToAdd.putAll(result.getAttributes());
                         }
-
-                        attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
+                        if (StringUtils.isNotEmpty(mimeType)) {
+                            attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeType);
+                        }
                         attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
                         attributesToAdd.put(ROUTE_ATTRIBUTE_KEY, relationship.getName());
                         transformed = session.putAllAttributes(transformed, attributesToAdd);

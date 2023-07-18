@@ -25,13 +25,11 @@ import org.apache.nifi.processors.standard.QueryRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -44,15 +42,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestRecordResultSetOutputStreamCallback {
 
     @Test
-    void testResultSetClosed() throws IOException, SQLException, ClassNotFoundException, InitializationException {
+    void testResultSetClosed() throws IOException, SQLException, InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
 
         final String writerId = "record-writer";
@@ -72,20 +70,17 @@ public class TestRecordResultSetOutputStreamCallback {
         final FlowFile flowFile = mock(FlowFile.class);
         when(flowFile.getAttributes()).thenReturn(new LinkedHashMap<>());
 
-        final AtomicReference<WriteResult> writeResultRef = new AtomicReference<>();
-        final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
-
         final RecordResultSetOutputStreamCallback writer = new RecordResultSetOutputStreamCallback(runner.getLogger(),
-                resultSet, writerSchema, 0, 0, writerService, flowFile.getAttributes(), writeResultRef, mimeTypeRef);
+                resultSet, writerSchema, 0, 0, writerService, flowFile.getAttributes());
 
         final OutputStream os = new ByteArrayOutputStream();
         writer.process(os);
 
-        Assertions.assertTrue(resultSet.isClosed());
+        assertTrue(resultSet.isClosed());
     }
 
-    private ResultSet getResultSet() throws ClassNotFoundException, SQLException {
-        Class.forName("org.apache.calcite.jdbc.Driver");
+    private ResultSet getResultSet() throws SQLException {
+        DriverManager.registerDriver(new org.apache.calcite.jdbc.Driver());
         final Connection connection = DriverManager.getConnection("jdbc:calcite:");
         final CalciteConnection calciteConnection = connection.unwrap(CalciteConnection.class);
         calciteConnection.getRootSchema().add("TEST", new ReflectiveSchema(new CalciteTestSchema()));
@@ -93,7 +88,6 @@ public class TestRecordResultSetOutputStreamCallback {
         return statement.executeQuery("SELECT * FROM TEST.PERSONS");
     }
 
-    @SuppressWarnings("ClassCanBeRecord")
     public static class Person {
         public final String first;
         public final String last;
@@ -104,7 +98,6 @@ public class TestRecordResultSetOutputStreamCallback {
         }
     }
 
-    @SuppressWarnings("unused")
     public static class CalciteTestSchema extends AbstractSchema {
         public Person[] PERSONS = { new Person("Joe", "Smith"), new Person("Bob", "Jones") };
     }
