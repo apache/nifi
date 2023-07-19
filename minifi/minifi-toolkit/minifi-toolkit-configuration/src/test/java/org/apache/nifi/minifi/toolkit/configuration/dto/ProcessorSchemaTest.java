@@ -41,7 +41,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
     private final String testName = "testName";
     private final String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
     private final String testProcessorClass = "testProcessorClass";
-    private final String testSchedulingStrategy = SchedulingStrategy.PRIMARY_NODE_ONLY.name();
+    private final String testSchedulingStrategy = SchedulingStrategy.TIMER_DRIVEN.name();
     private final String testSchedulingPeriod = "10 s";
     private final int testMaxConcurrentTasks = 101;
     private final String testYieldDuration = "5 s";

@@ -360,7 +360,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     @SuppressWarnings("deprecation")
     public boolean isIsolated() {
-        return schedulingStrategy == SchedulingStrategy.PRIMARY_NODE_ONLY || executionNode == ExecutionNode.PRIMARY;
+        return executionNode == ExecutionNode.PRIMARY;
     }
 
     /**
@@ -1236,7 +1236,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         }
                     }
                     break;
-                    case PRIMARY_NODE_ONLY:
                     case TIMER_DRIVEN: {
                         try {
                             final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(evaluatedSchedulingPeriod),
