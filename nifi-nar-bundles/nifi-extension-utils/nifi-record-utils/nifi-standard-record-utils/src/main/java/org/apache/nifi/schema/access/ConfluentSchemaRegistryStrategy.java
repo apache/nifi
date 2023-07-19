@@ -68,7 +68,6 @@ public class ConfluentSchemaRegistryStrategy implements SchemaAccessStrategy {
 
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder()
                 .schemaVersionId(Long.valueOf(schemaId))
-                .version(1)
                 .build();
 
         return schemaRegistry.retrieveSchema(schemaIdentifier);
