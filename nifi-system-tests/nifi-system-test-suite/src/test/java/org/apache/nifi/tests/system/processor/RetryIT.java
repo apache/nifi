@@ -20,7 +20,9 @@ import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +38,45 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RetryIT extends NiFiSystemIT {
     private static final int RETRY_COUNT = 2;
+
+    @Test
+    public void testSplitInputIntoTwoRemoveParentRetryChild() throws NiFiClientException, IOException, InterruptedException {
+        // Create a GenerateFlowFile processor and a SplitByLine Processor
+        final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity splitByLine = getClientUtil().createProcessor("SplitByLine");
+        final ProcessorEntity terminateFlowFile = getClientUtil().createProcessor("TerminateFlowFile");
+
+        // Configure split to retry once. Set backoff/penalty to 60 seconds to ensure that it is not re-processed before having a chance to verify the rollback
+        enableRetries(splitByLine, Collections.singleton("success"), 60_000L);
+        getClientUtil().updateProcessorProperties(generateFlowFile, Collections.singletonMap("Text", "abc\nxyz"));
+
+        final ConnectionEntity generateToSplit = getClientUtil().createConnection(generateFlowFile, splitByLine, "success");
+        final ConnectionEntity splitToTerminate = getClientUtil().createConnection(splitByLine, terminateFlowFile, "success");
+
+        getClientUtil().startProcessor(generateFlowFile);
+
+        waitForQueueCount(generateToSplit.getId(), 1);
+        getClientUtil().startProcessor(splitByLine);
+
+        waitFor(() -> {
+            if (getConnectionQueueSize(generateToSplit.getId()) != 1) {
+                return false;
+            }
+
+            final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(generateToSplit.getId(), 0);
+            if (!Boolean.TRUE.equals(flowFile.getFlowFile().getPenalized())) {
+                return false;
+            }
+
+            return getConnectionQueueSize(splitToTerminate.getId()) == 0;
+        });
+
+        final ProcessorStatusDTO statusDto = getNifiClient().getProcessorClient().getProcessor(splitByLine.getId()).getStatus();
+        assertEquals(0, statusDto.getAggregateSnapshot().getFlowFilesIn());
+        assertEquals(0L, statusDto.getAggregateSnapshot().getBytesIn());
+        assertEquals(0, statusDto.getAggregateSnapshot().getFlowFilesOut());
+        assertEquals(0L, statusDto.getAggregateSnapshot().getBytesOut());
+    }
 
     @Test
     public void testRetryHappensTwiceThenFinishes() throws NiFiClientException, IOException, InterruptedException {
@@ -318,12 +359,16 @@ public class RetryIT extends NiFiSystemIT {
     }
 
     private void enableRetries(final ProcessorEntity processorEntity, final Set<String> relationships) throws NiFiClientException, IOException {
+        enableRetries(processorEntity, relationships, 1);
+    }
+
+    private void enableRetries(final ProcessorEntity processorEntity, final Set<String> relationships, final long backoffMillis) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setRetryCount(RETRY_COUNT);
-        config.setMaxBackoffPeriod("1 ms");
+        config.setMaxBackoffPeriod(backoffMillis + " ms");
         config.setBackoffMechanism(BackoffMechanism.PENALIZE_FLOWFILE.name());
         config.setRetriedRelationships(relationships);
-        config.setPenaltyDuration("1 ms");
+        config.setPenaltyDuration(backoffMillis + " ms");
         getClientUtil().updateProcessorConfig(processorEntity, config);
     }
 }
