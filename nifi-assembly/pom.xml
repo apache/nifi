@@ -506,18 +506,6 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-riemann-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hbase_2-client-service-nar</artifactId>
             <version>1.23.0-SNAPSHOT</version>
             <type>nar</type>
@@ -1090,6 +1078,23 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>include-hbase1_1_2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
+                    <version>1.23.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>include-hive</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -1563,6 +1568,23 @@ language governing permissions and limitations under the License. -->
                 <dependency>
                     <groupId>org.apache.nifi</groupId>
                     <artifactId>nifi-asn1-nar</artifactId>
+                    <version>1.23.0-SNAPSHOT</version>
+                    <type>nar</type>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>include-riemann</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>allProfiles</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-riemann-nar</artifactId>
                     <version>1.23.0-SNAPSHOT</version>
                     <type>nar</type>
                 </dependency>
