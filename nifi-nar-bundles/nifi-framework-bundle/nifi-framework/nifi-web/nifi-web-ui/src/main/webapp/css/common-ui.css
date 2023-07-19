@@ -162,9 +162,14 @@ ul.links span.header-link-over {
     display: none;
 }
 
-.blank, .unset, .sensitive {
+.blank, .sensitive {
     font-weight: normal !important;
     color: #a8a8a8 !important;
+}
+
+.unset {
+    font-weight: normal !important;
+    color: #262626 !important;
 }
 
 .required {
