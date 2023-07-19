@@ -19,7 +19,6 @@ package org.apache.nifi.processors.standard;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -28,6 +27,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -36,18 +36,18 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SideEffectFree
@@ -70,6 +70,16 @@ public class ExtractRecordSchema extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor SCHEMA_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("cache-size")
+            .displayName("Schema Cache Size")
+            .description("Specifies the number of schemas to cache. This value should reflect the expected number of different schemas "
+                    + "that may be in the incoming FlowFiles. This ensures more efficient retrieval of the schemas and thus the processor performance.")
+            .defaultValue("10")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .required(true)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles whose record schemas are successfully extracted will be routed to this relationship")
@@ -80,14 +90,12 @@ public class ExtractRecordSchema extends AbstractProcessor {
                     + "the FlowFile will be routed to this relationship")
             .build();
 
-    private final LoadingCache<RecordSchema, String> avroSchemaTextCache = Caffeine.newBuilder()
-            .maximumSize(10)
-            .build(schema -> AvroTypeUtil.extractAvroSchema(schema).toString());
+    static final List<PropertyDescriptor> properties = Arrays.asList(RECORD_READER, SCHEMA_CACHE_SIZE);
+
+    private LoadingCache<RecordSchema, String> avroSchemaTextCache;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RECORD_READER);
         return properties;
     }
 
@@ -97,6 +105,14 @@ public class ExtractRecordSchema extends AbstractProcessor {
         relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
         return relationships;
+    }
+
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        final int cacheSize = context.getProperty(SCHEMA_CACHE_SIZE).asInteger();
+        avroSchemaTextCache = Caffeine.newBuilder()
+                .maximumSize(cacheSize)
+                .build(schema -> AvroTypeUtil.extractAvroSchema(schema).toString());
     }
 
     @Override
@@ -119,10 +135,10 @@ public class ExtractRecordSchema extends AbstractProcessor {
             // but it's possible it might not have a message. This handles that by logging
             // the name of the class thrown.
             Throwable c = e.getCause();
-            if (c != null) {
-                session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
-            } else {
+            if (c == null) {
                 session.putAttribute(flowFile, "record.error.message", e.getClass().getCanonicalName() + " Thrown");
+            } else {
+                session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
             }
             session.transfer(flowFile, REL_FAILURE);
             return;
