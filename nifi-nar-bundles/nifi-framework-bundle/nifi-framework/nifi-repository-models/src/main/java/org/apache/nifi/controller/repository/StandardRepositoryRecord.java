@@ -181,6 +181,12 @@ public class StandardRepositoryRecord implements RepositoryRecord {
 
     public void setTransferRelationship(final Relationship relationship) {
         transferRelationship = relationship;
+
+        // If we're changing from DELETE to transferring to SELF, this means we're rolling the FlowFile back. In this case,
+        // we need to set the type to UPDATE.
+        if (relationship == Relationship.SELF && isMarkedForDelete() && originalFlowFileRecord != null && originalQueue != null) {
+            setType(RepositoryRecordType.UPDATE);
+        }
     }
 
     public Relationship getTransferRelationship() {

@@ -345,7 +345,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     dropEvent = provenanceReporter.generateDropEvent(record.getCurrent(), "Auto-Terminated by " + relationship.getName() + " Relationship");
                     autoTerminatedEvents.add(dropEvent);
                 } catch (final Exception e) {
-                    LOG.warn("Unable to generate Provenance Event for {} on behalf of {} due to {}", record.getCurrent(), connectableDescription, e);
+                    LOG.warn("Unable to generate Provenance Event for {} on behalf of {}", record.getCurrent(), connectableDescription, e);
                     if (LOG.isDebugEnabled()) {
                         LOG.warn("", e);
                     }
@@ -428,12 +428,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         // Account for any statistics that have been added to for FlowFiles/Bytes In/Out
         final Relationship relationship = record.getTransferRelationship();
-        final int numDestinations = context.getConnections(relationship).size();
-        final int multiplier = Math.max(1, numDestinations);
-        final boolean autoTerminated = connectable.isAutoTerminated(relationship);
-        if (!autoTerminated) {
-            flowFilesOut-= multiplier;
-            contentSizeOut -= record.getCurrent().getSize() * multiplier;
+        if (relationship != null) {
+            final int numDestinations = context.getConnections(relationship).size();
+            final int multiplier = Math.max(1, numDestinations);
+            final boolean autoTerminated = connectable.isAutoTerminated(relationship);
+            if (!autoTerminated) {
+                flowFilesOut -= multiplier;
+                contentSizeOut -= record.getCurrent().getSize() * multiplier;
+            }
         }
 
         final FlowFileRecord original = record.getOriginal();
@@ -1584,10 +1586,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final StandardRepositoryRecord repoRecord = this.records.remove(flowFileId);
                 newOwner.records.put(flowFileId, repoRecord);
 
-                final Collection<Long> linkedIds = this.flowFileLinkage.remove(flowFileId);
-                if (linkedIds != null) {
-                    linkedIds.forEach(linkedId -> newOwner.flowFileLinkage.addLink(flowFileId, linkedId));
-                }
+                final Collection<Long> linkedIds = this.flowFileLinkage.getLinkedIds(flowFileId);
+                linkedIds.forEach(linkedId -> newOwner.flowFileLinkage.addLink(flowFileId, linkedId));
 
                 // Adjust the counts for Connections for each FlowFile that was pulled from a Connection.
                 // We do not have to worry about accounting for 'input counts' on connections because those
@@ -2458,8 +2458,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             removedBytes += flowFile.getSize();
             provenanceReporter.drop(flowFile, flowFile.getAttribute(CoreAttributes.DISCARD_REASON.key()));
         }
-
-        flowFileLinkage.remove(flowFile.getId());
     }
 
     @Override
@@ -2482,8 +2480,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 removedBytes += flowFile.getSize();
                 provenanceReporter.drop(flowFile, flowFile.getAttribute(CoreAttributes.DISCARD_REASON.key()));
             }
-
-            flowFileLinkage.remove(flowFile.getId());
         }
     }
 
@@ -4144,23 +4140,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
                 for (final Long linkedId : linked) {
                     final List<Long> onceRemoved = linkedIds.get(linkedId);
-                    allLinked.addAll(onceRemoved);
+                    if (onceRemoved != null) {
+                        allLinked.addAll(onceRemoved);
+                    }
                 }
             }
             return allLinked;
         }
 
-        public Collection<Long> remove(final long id) {
-            final List<Long> linked = linkedIds.remove(id);
-
-            if (linked != null) {
-                for (final Long otherId : linked) {
-                    linkedIds.get(otherId).remove(id);
-                }
-            }
-
-            return linked;
-        }
 
         public void clear() {
             linkedIds.clear();

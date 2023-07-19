@@ -448,7 +448,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         }
     }
 
-    private void logQueueSizes() throws NiFiClientException, IOException {
+    protected void logQueueSizes() throws NiFiClientException, IOException {
         final ProcessGroupStatusEntity groupStatusEntity = getNifiClient().getFlowClient().getProcessGroupStatus("root", true);
         final ProcessGroupStatusSnapshotDTO groupStatusDto = groupStatusEntity.getProcessGroupStatus().getAggregateSnapshot();
 
