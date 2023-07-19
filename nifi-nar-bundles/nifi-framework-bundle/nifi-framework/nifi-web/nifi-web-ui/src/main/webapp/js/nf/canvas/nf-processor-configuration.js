@@ -100,16 +100,6 @@
             description: 'Processor will be scheduled to run on an interval defined by the run schedule.'
         }];
 
-        // conditionally support primary node only - to be removed - deprecated
-        if (processor.config['schedulingStrategy'] === 'PRIMARY_NODE_ONLY') {
-            strategies.push({
-                text: 'On primary node',
-                value: 'PRIMARY_NODE_ONLY',
-                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution setting below.',
-                disabled: true
-            });
-        }
-
         // add an option for cron driven
         strategies.push({
             text: 'CRON driven',

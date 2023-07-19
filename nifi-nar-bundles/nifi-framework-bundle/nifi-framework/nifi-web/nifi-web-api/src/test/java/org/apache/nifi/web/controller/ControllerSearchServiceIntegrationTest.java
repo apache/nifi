@@ -177,7 +177,7 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
     public void testSearchBasedOnExecution() {
         // given
         givenRootProcessGroup()
-                .withProcessor(getProcessorNode("processor1", "processor1name", SchedulingStrategy.PRIMARY_NODE_ONLY, ExecutionNode.PRIMARY, ScheduledState.RUNNING, ValidationStatus.VALID,
+                .withProcessor(getProcessorNode("processor1", "processor1name", SchedulingStrategy.TIMER_DRIVEN, ExecutionNode.PRIMARY, ScheduledState.RUNNING, ValidationStatus.VALID,
                         AUTHORIZED));
 
         // when
@@ -185,7 +185,7 @@ public class ControllerSearchServiceIntegrationTest extends AbstractControllerSe
 
         // then
         thenResultConsists()
-                .ofProcessor(getSimpleResultFromRoot("processor1", "processor1name",  "Execution node: primary", "Scheduling strategy: On primary node"))
+                .ofProcessor(getSimpleResultFromRoot("processor1", "processor1name",  "Execution node: primary"))
                 .validate(results);
     }
 

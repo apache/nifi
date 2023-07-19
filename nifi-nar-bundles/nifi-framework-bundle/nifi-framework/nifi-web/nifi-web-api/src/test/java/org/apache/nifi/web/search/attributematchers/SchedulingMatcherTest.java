@@ -69,20 +69,6 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
         thenMatchConsistsOf("Scheduling strategy: Timer driven");
     }
 
-    @Test
-    public void testWhenKeywordAppearsAndPrimaryNodeOnly() {
-        // given
-        final SchedulingMatcher testSubject = new SchedulingMatcher();
-        givenSchedulingStrategy(SchedulingStrategy.PRIMARY_NODE_ONLY);
-        givenSearchTerm("primary");
-
-        // when
-        testSubject.match(component, searchQuery, matches);
-
-        // then
-        thenMatchConsistsOf("Scheduling strategy: On primary node");
-    }
-
     private void givenSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
         Mockito.when(component.getSchedulingStrategy()).thenReturn(schedulingStrategy);
     }
