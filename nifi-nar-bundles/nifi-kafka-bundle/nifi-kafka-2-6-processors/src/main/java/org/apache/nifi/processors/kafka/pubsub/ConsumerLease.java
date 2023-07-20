@@ -545,8 +545,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         final Map<String, String> attributes = getAttributes(consumerRecord);
         attributes.put(KAFKA_OFFSET, String.valueOf(consumerRecord.offset()));
         attributes.put(KAFKA_TIMESTAMP, String.valueOf(consumerRecord.timestamp()));
-        attributes.put(KAFKA_PARTITION, String.valueOf(consumerRecord.partition()));
-        attributes.put(KAFKA_TOPIC, consumerRecord.topic());
 
         FlowFile failureFlowFile = session.create();
 
@@ -572,6 +570,9 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
 
     protected Map<String, String> getAttributes(final ConsumerRecord<?, ?> consumerRecord) {
         final Map<String, String> attributes = new HashMap<>();
+        attributes.put(KAFKA_PARTITION, String.valueOf(consumerRecord.partition()));
+        attributes.put(KAFKA_TOPIC, consumerRecord.topic());
+
         if (headerNamePattern == null) {
             return attributes;
         }
@@ -826,8 +827,6 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             }
         }
 
-        kafkaAttrs.put(KAFKA_PARTITION, String.valueOf(tracker.partition));
-        kafkaAttrs.put(KAFKA_TOPIC, tracker.topic);
         if (tracker.totalRecords > 1) {
             // Add a record.count attribute to remain consistent with other record-oriented processors. If not
             // reading/writing records, then use "kafka.count" attribute.
