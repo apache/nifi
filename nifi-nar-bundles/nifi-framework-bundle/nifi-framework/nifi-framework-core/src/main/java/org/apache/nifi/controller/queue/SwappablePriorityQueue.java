@@ -346,7 +346,8 @@ public class SwappablePriorityQueue {
             logger.debug("Migrated {} FlowFiles from swap queue to active queue for {}", recordsMigrated, this);
         }
 
-        if (size.getSwappedCount() == 0) {
+        final FlowFileQueueSize updatedQueueSize = getFlowFileQueueSize();
+        if (updatedQueueSize.getSwappedCount() == 0) {
             swapMode = false;
         }
     }
