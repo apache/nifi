@@ -29,8 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.wali.MinimalLockingWriteAheadLog;
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.wali.SerDe;
+import org.wali.SerDeFactory;
 import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
@@ -42,7 +43,7 @@ public class PersistentSetCache implements SetCache {
     private final AtomicLong modifications = new AtomicLong(0L);
 
     public PersistentSetCache(final String serviceIdentifier, final File persistencePath, final SetCache cacheToWrap) throws IOException {
-        wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+        wali = new SequentialAccessWriteAheadLog<>(persistencePath, new SerdeFactory());
         wrapped = cacheToWrap;
     }
 
@@ -191,5 +192,35 @@ public class PersistentSetCache implements SetCache {
         public int getVersion() {
             return 1;
         }
+    }
+
+    private static class SerdeFactory implements SerDeFactory<SetRecord> {
+
+        private Serde serde;
+
+        public SerdeFactory() {
+            this.serde = new Serde();
+        }
+
+        @Override
+        public SerDe<SetRecord> createSerDe(String encodingName) {
+            return this.serde;
+        }
+
+        @Override
+        public Object getRecordIdentifier(SetRecord record) {
+            return this.serde.getRecordIdentifier(record);
+        }
+
+        @Override
+        public UpdateType getUpdateType(SetRecord record) {
+            return this.serde.getUpdateType(record);
+        }
+
+        @Override
+        public String getLocation(SetRecord record) {
+            return this.serde.getLocation(record);
+        }
+
     }
 }

@@ -29,11 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.SerDe;
+import org.wali.SerDeFactory;
 import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
@@ -48,7 +50,7 @@ public class PersistentMapCache implements MapCache {
 
     public PersistentMapCache(final String serviceIdentifier, final File persistencePath, final MapCache cacheToWrap) throws IOException {
         try {
-            wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
+            wali = new SequentialAccessWriteAheadLog<>(persistencePath, new SerdeFactory());
         } catch (OverlappingFileLockException ex) {
             logger.error("OverlappingFileLockException thrown: Check lock location - possible duplicate persistencePath conflict in PersistentMapCache.");
             // Propagate the exception
@@ -275,5 +277,35 @@ public class PersistentMapCache implements MapCache {
         public int getVersion() {
             return 1;
         }
+    }
+
+    private static class SerdeFactory implements SerDeFactory<MapWaliRecord> {
+
+        private Serde serde;
+
+        public SerdeFactory() {
+            this.serde = new Serde();
+        }
+
+        @Override
+        public SerDe<MapWaliRecord> createSerDe(String encodingName) {
+            return this.serde;
+        }
+
+        @Override
+        public Object getRecordIdentifier(MapWaliRecord record) {
+            return this.serde.getRecordIdentifier(record);
+        }
+
+        @Override
+        public UpdateType getUpdateType(MapWaliRecord record) {
+            return this.serde.getUpdateType(record);
+        }
+
+        @Override
+        public String getLocation(MapWaliRecord record) {
+            return this.serde.getLocation(record);
+        }
+
     }
 }
