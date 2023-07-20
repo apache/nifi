@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.aws.schemaregistry;
 
-import com.amazonaws.regions.Regions;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -56,6 +55,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.OptionalInt;
@@ -84,7 +84,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .description("The region of the cloud resources")
             .required(true)
             .allowableValues(getAvailableRegions())
-            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .defaultValue(createAllowableValue(Region.US_WEST_2).getValue())
             .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
@@ -197,14 +197,18 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
         return schemaFields;
     }
 
-    private static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
+    private static AllowableValue createAllowableValue(final Region region) {
+        final String description = region.metadata() != null ? region.metadata().description() : region.id();
+        return new AllowableValue(region.id(), description, "AWS Region Code : " + region.id());
     }
 
     private static AllowableValue[] getAvailableRegions() {
-        return Arrays.stream(Regions.values())
-                .map(AmazonGlueSchemaRegistry::createAllowableValue)
-                .toArray(AllowableValue[]::new);
+        final List<AllowableValue> values = new ArrayList<>();
+        for (final Region region : Region.regions()) {
+            values.add(createAllowableValue(region));
+        }
+        values.sort(Comparator.comparing(AllowableValue::getDisplayName));
+        return values.toArray(new AllowableValue[0]);
     }
 
     private SdkHttpClient createSdkHttpClient(final ConfigurationContext context) {
