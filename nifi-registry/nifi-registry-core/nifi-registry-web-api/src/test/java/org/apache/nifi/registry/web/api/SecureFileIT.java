@@ -110,7 +110,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = new Long(0);
+        Long initialVersion = Long.valueOf(0);
         String clientId = UUID.randomUUID().toString();
         RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 
@@ -152,7 +152,7 @@ public class SecureFileIT extends IntegrationTestBase {
 
         // Given: the server has been configured with FileUserGroupProvider, which is configurable,
         //   and: the initial admin client wants to create a tenant
-        Long initialVersion = new Long(0);
+        Long initialVersion = Long.valueOf(0);
         String clientId = UUID.randomUUID().toString();
         RevisionInfo revisionInfo = new RevisionInfo(clientId, initialVersion);
 

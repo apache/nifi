@@ -86,7 +86,7 @@ public class JdbcRevisionManager implements RevisionManager {
     private Revision retrieveRevision(final String entityId) {
         try {
             final String selectSql = "SELECT * FROM REVISION WHERE ENTITY_ID = ?";
-            return jdbcTemplate.queryForObject(selectSql, new Object[] {entityId}, new RevisionRowMapper());
+            return jdbcTemplate.queryForObject(selectSql, new RevisionRowMapper(), entityId);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }

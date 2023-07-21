@@ -125,7 +125,7 @@ public class TestJdbcRevisionManager {
     @Test
     public void testGetRevisionWhenExists() {
         final String entityId = "entity1";
-        final Long version = new Long(99);
+        final Long version = Long.valueOf(99);
         createRevision(entityId, version, null);
 
         final Revision revision = revisionManager.getRevision(entityId);
@@ -151,7 +151,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 100 since it was 99 before
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(100), null);
+        verifyRevisionUpdate(entityId, revisionUpdate, Long.valueOf(100), null);
     }
 
     @Test
@@ -186,7 +186,7 @@ public class TestJdbcRevisionManager {
 
         // client in 99 which was not latest version, but since client id was the same the update was allowed
         // and the incremented version should be based on the version in the DB which was 100, so it goes to 101
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(101), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, Long.valueOf(101), clientId);
     }
 
     @Test
@@ -203,7 +203,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 1 and client id should be updated to client-new
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(1), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, Long.valueOf(1), clientId);
     }
 
     @Test
@@ -223,7 +223,7 @@ public class TestJdbcRevisionManager {
         assertNotNull(revisionUpdate);
 
         // version should go to 100 and client id should be updated to client-new
-        verifyRevisionUpdate(entityId, revisionUpdate, new Long(100), clientId);
+        verifyRevisionUpdate(entityId, revisionUpdate, Long.valueOf(100), clientId);
     }
 
     @Test
@@ -295,8 +295,8 @@ public class TestJdbcRevisionManager {
 
     @Test
     public void testGetAllAndReset() {
-        createRevision("entity1", new Long(1), null);
-        createRevision("entity2", new Long(1), null);
+        createRevision("entity1", Long.valueOf(1), null);
+        createRevision("entity2", Long.valueOf(1), null);
 
         final List<Revision> allRevisions = revisionManager.getAllRevisions();
         assertNotNull(allRevisions);
@@ -318,8 +318,8 @@ public class TestJdbcRevisionManager {
 
     @Test
     public void testGetRevisionMap() {
-        createRevision("entity1", new Long(1), null);
-        createRevision("entity2", new Long(1), null);
+        createRevision("entity1", Long.valueOf(1), null);
+        createRevision("entity2", Long.valueOf(1), null);
 
         final Map<String,Revision> revisions = revisionManager.getRevisionMap();
         assertNotNull(revisions);
@@ -390,22 +390,12 @@ public class TestJdbcRevisionManager {
 
         private String id;
 
-        private Revision revision;
-
         public String getId() {
             return id;
         }
 
         public void setId(String id) {
             this.id = id;
-        }
-
-        public Revision getRevision() {
-            return revision;
-        }
-
-        public void setRevision(Revision revision) {
-            this.revision = revision;
         }
     }
 }

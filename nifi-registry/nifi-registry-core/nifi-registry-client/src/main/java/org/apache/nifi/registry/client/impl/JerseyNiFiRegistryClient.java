@@ -38,7 +38,6 @@ import org.apache.nifi.registry.client.PoliciesClient;
 import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.registry.client.UserClient;
-import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.RequestEntityProcessing;
@@ -133,12 +132,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public BucketClient getBucketClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyBucketClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public BucketClient getBucketClient(RequestConfig requestConfig) {
         return new JerseyBucketClient(baseTarget, requestConfig);
     }
@@ -146,12 +139,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     @Override
     public FlowClient getFlowClient() {
         return this.flowClient;
-    }
-
-    @Override
-    public FlowClient getFlowClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyFlowClient(baseTarget, requestConfig);
     }
 
     @Override
@@ -165,12 +152,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public FlowSnapshotClient getFlowSnapshotClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyFlowSnapshotClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public FlowSnapshotClient getFlowSnapshotClient(RequestConfig requestConfig) {
         return new JerseyFlowSnapshotClient(baseTarget, requestConfig);
     }
@@ -178,12 +159,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     @Override
     public ItemsClient getItemsClient() {
         return this.itemsClient;
-    }
-
-    @Override
-    public ItemsClient getItemsClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyItemsClient(baseTarget, requestConfig);
     }
 
     @Override
@@ -197,12 +172,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public UserClient getUserClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyUserClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public UserClient getUserClient(RequestConfig requestConfig) {
         return new JerseyUserClient(baseTarget, requestConfig);
     }
@@ -210,12 +179,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     @Override
     public BundleClient getBundleClient() {
         return new JerseyBundleClient(baseTarget);
-    }
-
-    @Override
-    public BundleClient getBundleClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyBundleClient(baseTarget, requestConfig);
     }
 
     @Override
@@ -229,12 +192,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public BundleVersionClient getBundleVersionClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyBundleVersionClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public BundleVersionClient getBundleVersionClient(RequestConfig requestConfig) {
         return new JerseyBundleVersionClient(baseTarget, requestConfig);
     }
@@ -242,12 +199,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     @Override
     public ExtensionRepoClient getExtensionRepoClient() {
         return new JerseyExtensionRepoClient(baseTarget);
-    }
-
-    @Override
-    public ExtensionRepoClient getExtensionRepoClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyExtensionRepoClient(baseTarget, requestConfig);
     }
 
     @Override
@@ -261,12 +212,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public ExtensionClient getExtensionClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyExtensionClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public ExtensionClient getExtensionClient(RequestConfig requestConfig) {
         return new JerseyExtensionClient(baseTarget, requestConfig);
     }
@@ -277,12 +222,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     }
 
     @Override
-    public TenantsClient getTenantsClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyTenantsClient(baseTarget, requestConfig);
-    }
-
-    @Override
     public TenantsClient getTenantsClient(RequestConfig requestConfig) {
         return new JerseyTenantsClient(baseTarget, requestConfig);
     }
@@ -290,12 +229,6 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
     @Override
     public PoliciesClient getPoliciesClient() {
         return new JerseyPoliciesClient(baseTarget);
-    }
-
-    @Override
-    public PoliciesClient getPoliciesClient(String... proxiedEntity) {
-        final RequestConfig requestConfig = new ProxiedEntityRequestConfig(proxiedEntity);
-        return new JerseyPoliciesClient(baseTarget, requestConfig);
     }
 
     @Override
@@ -348,7 +281,7 @@ public class JerseyNiFiRegistryClient implements NiFiRegistryClient {
         JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
         mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
         // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

@@ -254,7 +254,7 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
         final String policySql = "SELECT * FROM APP_POLICY WHERE RESOURCE = ? AND ACTION = ?";
         final Object[] args = new Object[]{resourceIdentifier, action.toString()};
-        final DatabaseAccessPolicy databaseAccessPolicy = queryForObject(policySql, args, new DatabaseAccessPolicyRowMapper());
+        final DatabaseAccessPolicy databaseAccessPolicy = queryForObject(policySql, new DatabaseAccessPolicyRowMapper(), args);
         if (databaseAccessPolicy == null) {
             return null;
         }
@@ -303,16 +303,16 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     protected DatabaseAccessPolicy getDatabaseAcessPolicy(final String policyIdentifier) {
         final String sql = "SELECT * FROM APP_POLICY WHERE IDENTIFIER = ?";
-        return queryForObject(sql, new Object[] {policyIdentifier}, new DatabaseAccessPolicyRowMapper());
+        return queryForObject(sql, new DatabaseAccessPolicyRowMapper(), policyIdentifier);
     }
 
     protected Set<String> getPolicyUsers(final String policyIdentifier) {
         final String sql = "SELECT * FROM APP_POLICY_USER WHERE POLICY_IDENTIFIER = ?";
 
         final Set<String> userIdentifiers = new HashSet<>();
-        jdbcTemplate.query(sql, new Object[]{policyIdentifier}, (rs) -> {
+        jdbcTemplate.query(sql, (rs) -> {
             userIdentifiers.add(rs.getString("USER_IDENTIFIER"));
-        });
+        }, policyIdentifier);
         return userIdentifiers;
     }
 
@@ -320,9 +320,9 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
         final String sql = "SELECT * FROM APP_POLICY_GROUP WHERE POLICY_IDENTIFIER = ?";
 
         final Set<String> groupIdentifiers = new HashSet<>();
-        jdbcTemplate.query(sql, new Object[]{policyIdentifier}, (rs) -> {
+        jdbcTemplate.query(sql, (rs) -> {
             groupIdentifiers.add(rs.getString("GROUP_IDENTIFIER"));
-        });
+        }, policyIdentifier);
         return groupIdentifiers;
     }
 
@@ -390,9 +390,9 @@ public class DatabaseAccessPolicyProvider extends AbstractConfigurableAccessPoli
 
     //-- util methods
 
-    protected <T> T queryForObject(final String sql, final Object[] args, final RowMapper<T> rowMapper) {
+    protected <T> T queryForObject(final String sql, final RowMapper<T> rowMapper, final Object... args) {
         try {
-            return jdbcTemplate.queryForObject(sql, args, rowMapper);
+            return jdbcTemplate.queryForObject(sql, rowMapper, args);
         } catch(final EmptyResultDataAccessException e) {
             return null;
         }

@@ -19,6 +19,8 @@ package org.apache.nifi.registry.web.api;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.db.DatabaseProfileValueSource;
@@ -28,8 +30,8 @@ import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonP
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.web.embedded.jetty.JettyServletWebServerFactory;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 
@@ -210,11 +212,12 @@ public abstract class IntegrationTestBase {
     private static JacksonJaxbJsonProvider jacksonJaxbJsonProvider() {
         JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-        mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
-        // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        ObjectMapper mapper = JsonMapper.builder()
+                .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
+                .annotationIntrospector(new JaxbAnnotationIntrospector(TypeFactory.defaultInstance()))
+                // Ignore unknown properties so that deployed client remain compatible with future versions of NiFi Registry that add new fields
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .build();
 
         jacksonJaxbJsonProvider.setMapper(mapper);
         return jacksonJaxbJsonProvider;

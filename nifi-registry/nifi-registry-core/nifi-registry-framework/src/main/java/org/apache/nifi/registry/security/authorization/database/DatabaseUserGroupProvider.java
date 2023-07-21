@@ -171,7 +171,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
         Validate.notBlank(identity);
 
         final String sql = "SELECT * FROM UGP_USER WHERE IDENTITY = ?";
-        final DatabaseUser databaseUser = queryForObject(sql, new Object[] {identity}, new DatabaseUserRowMapper());
+        final DatabaseUser databaseUser = queryForObject(sql, new DatabaseUserRowMapper(), identity);
         if (databaseUser == null) {
             return null;
         }
@@ -202,8 +202,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
                             "G.IDENTIFIER = UG.GROUP_IDENTIFIER AND " +
                             "UG.USER_IDENTIFIER = ?";
 
-            final Object[] args = {user.getIdentifier()};
-            final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, args, new DatabaseGroupRowMapper());
+            final List<DatabaseGroup> databaseGroups = jdbcTemplate.query(userGroupSql, new DatabaseGroupRowMapper(), user.getIdentifier());
 
             groups = new HashSet<>();
             databaseGroups.forEach(g -> {
@@ -243,7 +242,7 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     private DatabaseUser getDatabaseUser(final String userIdentifier) {
         final String sql = "SELECT * FROM UGP_USER WHERE IDENTIFIER = ?";
-        return queryForObject(sql, new Object[] {userIdentifier}, new DatabaseUserRowMapper());
+        return queryForObject(sql, new DatabaseUserRowMapper(), userIdentifier);
     }
 
     private User mapToUser(final DatabaseUser databaseUser) {
@@ -353,16 +352,16 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     private DatabaseGroup getDatabaseGroup(final String groupIdentifier) {
         final String sql = "SELECT * FROM UGP_GROUP WHERE IDENTIFIER = ?";
-        return queryForObject(sql, new Object[] {groupIdentifier}, new DatabaseGroupRowMapper());
+        return queryForObject(sql, new DatabaseGroupRowMapper(), groupIdentifier);
     }
 
     private Set<String> getUserIdentifiers(final String groupIdentifier) {
         final String sql = "SELECT * FROM UGP_USER_GROUP WHERE GROUP_IDENTIFIER = ?";
 
         final Set<String> userIdentifiers = new HashSet<>();
-        jdbcTemplate.query(sql, new Object[]{groupIdentifier}, (rs) -> {
+        jdbcTemplate.query(sql, (rs) -> {
             userIdentifiers.add(rs.getString("USER_IDENTIFIER"));
-        });
+        }, groupIdentifier);
 
         return userIdentifiers;
     }
@@ -377,9 +376,9 @@ public class DatabaseUserGroupProvider implements ConfigurableUserGroupProvider 
 
     //-- util methods
 
-    private <T> T queryForObject(final String sql, final Object[] args, final RowMapper<T> rowMapper) {
+    private <T> T queryForObject(final String sql, final RowMapper<T> rowMapper, final Object... args) {
         try {
-            return jdbcTemplate.queryForObject(sql, args, rowMapper);
+            return jdbcTemplate.queryForObject(sql, rowMapper, args);
         } catch(final EmptyResultDataAccessException e) {
             return null;
         }
