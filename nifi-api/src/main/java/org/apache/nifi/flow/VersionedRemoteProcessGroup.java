@@ -22,7 +22,6 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.Set;
 
 public class VersionedRemoteProcessGroup extends VersionedComponent {
-    private String targetUri;
     private String targetUris;
 
     private String communicationsTimeout;
@@ -38,36 +37,12 @@ public class VersionedRemoteProcessGroup extends VersionedComponent {
     private Set<VersionedRemoteGroupPort> outputPorts;
 
 
-    @Deprecated
-    @ApiModelProperty(
-            value = "[DEPRECATED] The target URI of the remote process group." +
-                    " If target uri is not set, but uris are set, then returns the first uri in the uris." +
-                    " If neither target uri nor uris are set, then returns null.",
-            notes = "This field is deprecated and will be removed in version 1.x of NiFi Registry." +
-                    " Please migrate to using targetUris only.")
-    public String getTargetUri() {
-
-        if (!isEmpty(targetUri)) {
-            return targetUri;
-        }
-        return !isEmpty(targetUris) ? targetUris.split(",", 2)[0] : null;
-
-    }
-
-    public void setTargetUri(final String targetUri) {
-        this.targetUri = targetUri;
-    }
-
     @ApiModelProperty(
             value = "The target URIs of the remote process group." +
                     " If target uris is not set but target uri is set, then returns the single target uri." +
                     " If neither target uris nor target uri is set, then returns null.")
     public String getTargetUris() {
-
-        if (!isEmpty(targetUris)) {
-            return targetUris;
-        }
-        return !isEmpty(targetUri) ? targetUri : null;
+        return !isEmpty(targetUris) ? targetUris : null;
 
     }
 

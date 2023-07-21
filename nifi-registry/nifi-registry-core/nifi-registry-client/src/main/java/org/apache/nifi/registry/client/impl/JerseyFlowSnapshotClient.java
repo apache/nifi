@@ -206,7 +206,6 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<VersionedFlowSnapshotMetadata> getSnapshotMetadata(final String bucketId, final String flowId)
             throws NiFiRegistryException, IOException {
         if (StringUtils.isBlank(bucketId)) {
@@ -230,7 +229,6 @@ public class JerseyFlowSnapshotClient extends AbstractJerseyClient implements Fl
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public List<VersionedFlowSnapshotMetadata> getSnapshotMetadata(final String flowId)
             throws NiFiRegistryException, IOException {
 

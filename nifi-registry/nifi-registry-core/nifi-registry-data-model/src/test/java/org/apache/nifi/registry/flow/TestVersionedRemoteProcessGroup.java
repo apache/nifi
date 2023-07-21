@@ -31,70 +31,46 @@ public class TestVersionedRemoteProcessGroup {
 
         /* targetUri is null, targetUris varies */
 
-        vRPG.setTargetUri(null);
         vRPG.setTargetUris(null);
-        assertEquals(null, vRPG.getTargetUri());
         assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri(null);
         vRPG.setTargetUris("");
-        assertEquals(null, vRPG.getTargetUri());
         assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri(null);
         vRPG.setTargetUris("uri-2");
-        //assertEquals("uri-2", vRPG.getTargetUri());
         assertEquals("uri-2", vRPG.getTargetUris());
 
-        vRPG.setTargetUri(null);
         vRPG.setTargetUris("uri-2,uri-3");
-        assertEquals("uri-2", vRPG.getTargetUri());
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
 
 
         /* targetUri is empty, targetUris varies */
 
-        vRPG.setTargetUri("");
         vRPG.setTargetUris(null);
-        assertEquals(null, vRPG.getTargetUri());
         assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri("");
         vRPG.setTargetUris("");
-        assertEquals(null, vRPG.getTargetUri());
         assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri("");
         vRPG.setTargetUris("uri-2");
-        assertEquals("uri-2", vRPG.getTargetUri());
         assertEquals("uri-2", vRPG.getTargetUris());
 
-        vRPG.setTargetUri("");
         vRPG.setTargetUris("uri-2,uri-3");
-        assertEquals("uri-2", vRPG.getTargetUri());
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
 
 
         /* targetUri is set, targetUris varies */
 
-        vRPG.setTargetUri("uri-1");
         vRPG.setTargetUris(null);
-        assertEquals("uri-1", vRPG.getTargetUri());
-        assertEquals("uri-1", vRPG.getTargetUris());
+        assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri("uri-1");
         vRPG.setTargetUris("");
-        assertEquals("uri-1", vRPG.getTargetUri());
-        assertEquals("uri-1", vRPG.getTargetUris());
+        assertEquals(null, vRPG.getTargetUris());
 
-        vRPG.setTargetUri("uri-1");
         vRPG.setTargetUris("uri-2");
-        assertEquals("uri-1", vRPG.getTargetUri());
         assertEquals("uri-2", vRPG.getTargetUris());
 
-        vRPG.setTargetUri("uri-1");
         vRPG.setTargetUris("uri-2,uri-3");
-        assertEquals("uri-1", vRPG.getTargetUri());
         assertEquals("uri-2,uri-3", vRPG.getTargetUris());
 
     }

@@ -59,10 +59,10 @@ public class DatabaseFlowPersistenceProvider implements FlowPersistenceProvider 
         final List<byte[]> results = new ArrayList<>();
         final String sql = "SELECT FLOW_CONTENT FROM FLOW_PERSISTENCE_PROVIDER WHERE BUCKET_ID = ? and FLOW_ID = ? and VERSION = ?";
 
-        jdbcTemplate.query(sql, new Object[] {bucketId, flowId, version}, (rs) -> {
+        jdbcTemplate.query(sql, (rs) -> {
             final byte[] content = rs.getBytes("FLOW_CONTENT");
             results.add(content);
-        });
+        }, bucketId, flowId, version);
 
         if (results.isEmpty()) {
             return null;

@@ -100,7 +100,7 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<BucketEntity> getBucketsByName(final String name) {
         final String sql = "SELECT * FROM BUCKET WHERE name = ? ORDER BY name ASC";
-        return jdbcTemplate.query(sql, new Object[] {name} , new BucketEntityRowMapper());
+        return jdbcTemplate.query(sql, new BucketEntityRowMapper(), name);
     }
 
     @Override
@@ -139,7 +139,7 @@ public class DatabaseMetadataService implements MetadataService {
         addIdentifiersInClause(sqlBuilder, "id", bucketIds);
         sqlBuilder.append("ORDER BY name ASC");
 
-        return jdbcTemplate.query(sqlBuilder.toString(), bucketIds.toArray(), new BucketEntityRowMapper());
+        return jdbcTemplate.query(sqlBuilder.toString(), new BucketEntityRowMapper(), bucketIds.toArray());
     }
 
     @Override
@@ -170,7 +170,7 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<BucketItemEntity> getBucketItems(final String bucketIdentifier) {
         final String sql = BASE_BUCKET_ITEMS_SQL + " WHERE item.bucket_id = ?";
-        final List<BucketItemEntity> items = jdbcTemplate.query(sql, new Object[] { bucketIdentifier }, new BucketItemEntityRowMapper());
+        final List<BucketItemEntity> items = jdbcTemplate.query(sql, new BucketItemEntityRowMapper(), bucketIdentifier);
         return getItemsWithCounts(items);
     }
 
@@ -189,7 +189,7 @@ public class DatabaseMetadataService implements MetadataService {
         }
         sqlBuilder.append(")");
 
-        final List<BucketItemEntity> items = jdbcTemplate.query(sqlBuilder.toString(), bucketIds.toArray(), new BucketItemEntityRowMapper());
+        final List<BucketItemEntity> items = jdbcTemplate.query(sqlBuilder.toString(), new BucketItemEntityRowMapper(), bucketIds.toArray());
         return getItemsWithCounts(items);
     }
 
@@ -232,9 +232,9 @@ public class DatabaseMetadataService implements MetadataService {
     private Long getFlowSnapshotCount(final String flowIdentifier) {
         final String sql = "SELECT count(*) FROM FLOW_SNAPSHOT WHERE flow_id = ?";
 
-        return jdbcTemplate.queryForObject(sql, new Object[] {flowIdentifier}, (rs, num) -> {
+        return jdbcTemplate.queryForObject(sql, (rs, num) -> {
             return rs.getLong(1);
-        });
+        }, flowIdentifier);
     }
 
     private Map<String,Long> getExtensionBundleVersionCounts() {
@@ -250,9 +250,9 @@ public class DatabaseMetadataService implements MetadataService {
     private Long getExtensionBundleVersionCount(final String extensionBundleIdentifier) {
         final String sql = "SELECT count(*) FROM BUNDLE_VERSION WHERE bundle_id = ?";
 
-        return jdbcTemplate.queryForObject(sql, new Object[] {extensionBundleIdentifier}, (rs, num) -> {
+        return jdbcTemplate.queryForObject(sql, (rs, num) -> {
             return rs.getLong(1);
-        });
+        }, extensionBundleIdentifier);
     }
 
     //----------------- Flows ---------------------------------
@@ -305,19 +305,19 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<FlowEntity> getFlowsByName(final String name) {
         final String sql = "SELECT * FROM FLOW f, BUCKET_ITEM item WHERE item.name = ? AND item.id = f.id";
-        return jdbcTemplate.query(sql, new Object[] {name}, new FlowEntityRowMapper());
+        return jdbcTemplate.query(sql, new FlowEntityRowMapper(), name);
     }
 
     @Override
     public List<FlowEntity> getFlowsByName(final String bucketIdentifier, final String name) {
         final String sql = "SELECT * FROM FLOW f, BUCKET_ITEM item WHERE item.name = ? AND item.id = f.id AND item.bucket_id = ?";
-        return jdbcTemplate.query(sql, new Object[] {name, bucketIdentifier}, new FlowEntityRowMapper());
+        return jdbcTemplate.query(sql, new FlowEntityRowMapper(), name, bucketIdentifier);
     }
 
     @Override
     public List<FlowEntity> getFlowsByBucket(final String bucketIdentifier) {
         final String sql = "SELECT * FROM FLOW f, BUCKET_ITEM item WHERE item.bucket_id = ? AND item.id = f.id";
-        final List<FlowEntity> flows = jdbcTemplate.query(sql, new Object[] {bucketIdentifier}, new FlowEntityRowMapper());
+        final List<FlowEntity> flows = jdbcTemplate.query(sql, new FlowEntityRowMapper(), bucketIdentifier);
 
         final Map<String,Long> snapshotCounts = getFlowSnapshotCounts();
         for (final FlowEntity flowEntity : flows) {
@@ -418,8 +418,7 @@ public class DatabaseMetadataService implements MetadataService {
                         "f.id = ? AND " +
                         "f.id = fs.flow_id";
 
-        final Object[] args = new Object[] { flowIdentifier };
-        return jdbcTemplate.query(sql, args, new FlowSnapshotEntityRowMapper());
+        return jdbcTemplate.query(sql, new FlowSnapshotEntityRowMapper(), flowIdentifier);
     }
 
     @Override
@@ -594,7 +593,7 @@ public class DatabaseMetadataService implements MetadataService {
                 .append(" AND b.id = ?")
                 .append(" ORDER BY eb.group_id ASC, eb.artifact_id ASC");
 
-        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder.toString(), new Object[]{bucketId}, new BundleEntityRowMapper());
+        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder.toString(), new BundleEntityRowMapper(), bucketId);
         return populateVersionCounts(bundles);
     }
 
@@ -605,7 +604,7 @@ public class DatabaseMetadataService implements MetadataService {
                 .append(" AND eb.group_id = ?")
                 .append(" ORDER BY eb.group_id ASC, eb.artifact_id ASC");
 
-        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder.toString(), new Object[]{bucketId, groupId}, new BundleEntityRowMapper());
+        final List<BundleEntity> bundles = jdbcTemplate.query(sqlBuilder.toString(), new BundleEntityRowMapper(), bucketId, groupId);
         return populateVersionCounts(bundles);
     }
 
@@ -786,7 +785,7 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<BundleVersionEntity> getBundleVersions(final String extensionBundleId) {
         final String sql = BASE_EXTENSION_BUNDLE_VERSION_SQL + " AND ebv.bundle_id = ?";
-        return jdbcTemplate.query(sql, new Object[]{extensionBundleId}, new BundleVersionEntityRowMapper());
+        return jdbcTemplate.query(sql, new BundleVersionEntityRowMapper(), extensionBundleId);
     }
 
     @Override
@@ -796,8 +795,7 @@ public class DatabaseMetadataService implements MetadataService {
                     "AND eb.group_id = ? " +
                     "AND eb.artifact_id = ? ";
 
-        final Object[] args = {bucketId, groupId, artifactId};
-        return jdbcTemplate.query(sql, args, new BundleVersionEntityRowMapper());
+        return jdbcTemplate.query(sql, new BundleVersionEntityRowMapper(), bucketId, groupId, artifactId);
     }
 
     @Override
@@ -807,8 +805,7 @@ public class DatabaseMetadataService implements MetadataService {
                 "AND eb.artifact_id = ? " +
                 "AND ebv.version = ?";
 
-        final Object[] args = {groupId, artifactId, version};
-        return jdbcTemplate.query(sql, args, new BundleVersionEntityRowMapper());
+        return jdbcTemplate.query(sql, new BundleVersionEntityRowMapper(), groupId, artifactId, version);
     }
 
     @Override
@@ -849,8 +846,7 @@ public class DatabaseMetadataService implements MetadataService {
     @Override
     public List<BundleVersionDependencyEntity> getDependenciesForBundleVersion(final String extensionBundleVersionId) {
         final String sql = "SELECT * FROM BUNDLE_VERSION_DEPENDENCY WHERE bundle_version_id = ?";
-        final Object[] args = {extensionBundleVersionId};
-        return jdbcTemplate.query(sql, args, new BundleVersionDependencyEntityRowMapper());
+        return jdbcTemplate.query(sql, new BundleVersionDependencyEntityRowMapper(), extensionBundleVersionId);
     }
 
 
@@ -962,13 +958,12 @@ public class DatabaseMetadataService implements MetadataService {
     public ExtensionAdditionalDetailsEntity getExtensionAdditionalDetails(final String bundleVersionId, final String name) {
         final String selectSql = "SELECT id, additional_details FROM EXTENSION WHERE bundle_version_id = ? AND name = ?";
         try {
-            final Object[] args = {bundleVersionId, name};
-            return jdbcTemplate.queryForObject(selectSql, args, (rs, i) -> {
+            return jdbcTemplate.queryForObject(selectSql, (rs, i) -> {
                 final ExtensionAdditionalDetailsEntity entity = new ExtensionAdditionalDetailsEntity();
                 entity.setExtensionId(rs.getString("ID"));
                 entity.setAdditionalDetails(Optional.ofNullable(rs.getString("ADDITIONAL_DETAILS")));
                 return entity;
-            });
+            }, bundleVersionId, name);
         } catch (EmptyResultDataAccessException e) {
             return null;
         }
@@ -1057,7 +1052,7 @@ public class DatabaseMetadataService implements MetadataService {
     public List<ExtensionEntity> getExtensionsByBundleVersionId(final String bundleVersionId) {
         final String selectSql = BASE_EXTENSION_SQL + " AND e.bundle_version_id = ?";
         final Object[] args = { bundleVersionId };
-        return jdbcTemplate.query(selectSql, args, new ExtensionEntityRowMapper());
+        return jdbcTemplate.query(selectSql, new ExtensionEntityRowMapper(), bundleVersionId);
     }
 
     @Override
