@@ -41,6 +41,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.http.CertificateAttribute;
+import org.apache.nifi.processors.standard.http.CertificateAttributesProvider;
+import org.apache.nifi.processors.standard.http.HandleHttpRequestCertificateAttributesProvider;
 import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -69,7 +72,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.security.Principal;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -122,6 +124,10 @@ import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
             + "This value will not be populated unless the Processor is configured to use an SSLContext Service"),
+    @WritesAttribute(attribute = "http.certificate.sans.N.name", description = "X.509 Client Certificate Subject Alternative Name value from mutual TLS authentication. "
+            + "The attribute name has a zero-based index ordered according to the content of Client Certificate"),
+    @WritesAttribute(attribute = "http.certificate.sans.N.nameType", description = "X.509 Client Certificate Subject Alternative Name type from mutual TLS authentication. "
+            + "The attribute name has a zero-based index ordered according to the content of Client Certificate. The attribute value is one of the General Names from RFC 3280 Section 4.1.2.7"),
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\""),
@@ -343,6 +349,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean runOnPrimary = new AtomicBoolean(false);
     private final AtomicReference<Set<String>> parameterToAttributesReference = new AtomicReference<>(null);
+    private final CertificateAttributesProvider certificateAttributesProvider = new HandleHttpRequestCertificateAttributesProvider();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -756,22 +763,15 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.principal.name", principal.getName());
       }
 
-      final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-      if (certs != null && certs.length > 0) {
-          final X509Certificate cert = certs[0];
-          final String subjectDn = cert.getSubjectDN().getName();
-          final String issuerDn = cert.getIssuerDN().getName();
-
-          putAttribute(attributes, HTTPUtils.HTTP_SSL_CERT, subjectDn);
-          putAttribute(attributes, "http.issuer.dn", issuerDn);
-      }
+      final Map<String, String> certificateAttributes = certificateAttributesProvider.getCertificateAttributes(request);
+      attributes.putAll(certificateAttributes);
 
       return session.putAllAttributes(flowFile, attributes);
     }
 
     private void forwardFlowFile(final ProcessSession session, final long start, final HttpServletRequest request, final FlowFile flowFile) {
       final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-      final String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
+      final String subjectDn = flowFile.getAttribute(CertificateAttribute.HTTP_SUBJECT_DN.getName());
       session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
           "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
       session.transfer(flowFile, REL_SUCCESS);
