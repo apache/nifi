@@ -111,7 +111,7 @@ public class PythonProcessConfig {
         private Duration commsTimeout = Duration.ofSeconds(0);
         private int maxProcesses;
         private int maxProcessesPerType;
-        private boolean debugController = true; // TODO: Make this default to false and get config from nifi.properties
+        private boolean debugController = false;
         private String debugHost = "localhost";
         private int debugPort = 5678;
         private File debugLogsDirectory = new File("logs/");

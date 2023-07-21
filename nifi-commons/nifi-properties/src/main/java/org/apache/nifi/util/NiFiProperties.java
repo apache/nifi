@@ -343,8 +343,8 @@ public class NiFiProperties extends ApplicationProperties {
 
     public static final String PYTHON_CONTROLLER_DEBUGPY_ENABLED = "nifi.python.controller.debugpy.enabled";
     public static final String PYTHON_CONTROLLER_DEBUGPY_PORT = "nifi.python.controller.debugpy.port";
-    public static final String PYTHON_DEBUG_CONTROLLER_HOST = "nifi.python.controller.debugpy.host";
-    public static final String PYTHON_DEBUG_CONTROLLER_LOGS_DIR = "nifi.python.controller.debugpy.logs.directory";
+    public static final String PYTHON_CONTROLLER_DEBUGPY_HOST = "nifi.python.controller.debugpy.host";
+    public static final String PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR = "nifi.python.controller.debugpy.logs.directory";
 
     public static final String DEFAULT_PYTHON_WORKING_DIRECTORY = "./work/python";
 
