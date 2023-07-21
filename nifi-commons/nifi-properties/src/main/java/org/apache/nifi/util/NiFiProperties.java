@@ -342,7 +342,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PYTHON_COMMS_TIMEOUT = "nifi.python.comms.timeout";
 
     public static final String PYTHON_DEBUG_CONTROLLER_ENABLE = "nifi.python.controller.debugpy.enable";
-    public static final String PYTHON_DEBUG_CONTROLLER_PORT = "nifi.python.controller.debugpy.port";
+    public static final String PYTHON_CONTROLLER_DEBUGPY_PORT = "nifi.python.controller.debugpy.port";
     public static final String PYTHON_DEBUG_CONTROLLER_HOST = "nifi.python.controller.debugpy.host";
     public static final String PYTHON_DEBUG_CONTROLLER_LOGS_DIR = "nifi.python.controller.debugpy.logs.directory";
 
