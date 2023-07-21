@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.apache.nifi.processors.jslt.JSLTTransformJSON.TransformStrategy.APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestJSLTTransformJSON {
@@ -75,7 +76,7 @@ public class TestJSLTTransformJSON {
         final String transformPath = transformUrl.getPath();
 
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transformPath);
-        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, JSLTTransformJSON.APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE);
+        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE.getValue());
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
 
         final String json = getResource("input.json");
@@ -105,7 +106,7 @@ public class TestJSLTTransformJSON {
         final String inputFlowFile = getResource("input.json");
         final String transform = getResource("expressionLanguageTransform.json");
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, JSLTTransformJSON.APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE);
+        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE.getValue());
         runner.assertValid();
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         Map<String, String> attrs = new HashMap<>();
@@ -142,7 +143,7 @@ public class TestJSLTTransformJSON {
         final String input = "{\"a\":1}";
         final String transform = ".b";
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, JSLTTransformJSON.APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE);
+        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE.getValue());
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         runner.enqueue(input);
 
@@ -173,7 +174,7 @@ public class TestJSLTTransformJSON {
         final String transform = getResource(transformFileName);
         final String json = getResource(jsonFileName);
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
-        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, JSLTTransformJSON.APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE);
+        runner.setProperty(JSLTTransformJSON.TRANSFORM_STRATEGY, APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE.getValue());
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         runner.enqueue(json);
     }
