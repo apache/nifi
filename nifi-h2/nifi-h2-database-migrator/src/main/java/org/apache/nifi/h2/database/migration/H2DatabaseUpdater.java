@@ -16,72 +16,58 @@
  */
 package org.apache.nifi.h2.database.migration;
 
-import org.h2.jdbcx.JdbcDataSource;
-import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientException;
-import java.sql.Statement;
 
+/**
+ * H2 Database Updater responsible for evaluating current version and migrating when required
+ */
 public class H2DatabaseUpdater {
+    public static final String H2_URL_PREFIX = "jdbc:h2:";
+
+    private static final DatabaseVersion LATEST_VERSION = DatabaseVersion.VERSION_2_2;
+
+    private static final String FILE_PATH_FORMAT = "%s.mv.db";
+
+    private static final String RUNSCRIPT_FORMAT = "RUNSCRIPT FROM '%s'";
 
     private static final Logger logger = LoggerFactory.getLogger(H2DatabaseUpdater.class);
 
-    public static final String EXPORT_FILE_PREFIX = "export_";
-    public static final String EXPORT_FILE_POSTFIX = ".sql";
-    public static final String H2_URL_PREFIX = "jdbc:h2:";
+    /**
+     * Check H2 Database File status and perform migration when required
+     *
+     * @param dbPathNoExtension H2 Database File Path without mv.db extension
+     * @param url H2 Database URL
+     * @param user H2 Database User
+     * @param pass H2 Database Password
+     * @throws Exception Thrown on failures performing migration
+     */
+    public static void checkAndPerformMigration(final String dbPathNoExtension, final String url, final String user, final String pass) throws Exception {
+        final Path databaseFilePath = Paths.get(String.format(FILE_PATH_FORMAT, dbPathNoExtension));
+        final DatabaseVersion databaseVersion = DatabaseVersionReader.readDatabaseVersion(databaseFilePath);
 
-    public static void checkAndPerformMigration(final String dbPathNoExtension, final String dbUrl, final String user, final String pass) throws Exception {
+        if (LATEST_VERSION == databaseVersion) {
+            logger.debug("H2 DB migration not required from Driver {} for [{}]", databaseVersion.getVersion(), databaseFilePath);
+        } else {
+            logger.info("H2 DB migration required to Driver {} from Driver {} for [{}]", LATEST_VERSION.getVersion(), databaseVersion.getVersion(), databaseFilePath);
 
-        final JdbcDataSource migrationDataSource = new JdbcDataSource();
+            final Path exportScriptPath = DatabaseExporter.runExportBackup(databaseVersion, user, pass, dbPathNoExtension);
 
-        // Attempt to connect with the latest driver
-        migrationDataSource.setURL(dbUrl);
-        migrationDataSource.setUser(user);
-        migrationDataSource.setPassword(pass);
-        try (Connection connection = migrationDataSource.getConnection()) {
-            return;
-        } catch (SQLNonTransientException e) {
-            // Migration/version issues will be caused by an MVStoreException
-            final Throwable exceptionCause = e.getCause();
-            if (exceptionCause instanceof MVStoreException) {
-                // Check for specific error message
-                final String errorMessage = exceptionCause.getMessage();
-                if (!errorMessage.contains("The write format")
-                        && !errorMessage.contains("is smaller than the supported format")) {
-                    throw e;
-                }
-            } else {
-                throw e;
+            final String command = String.format(RUNSCRIPT_FORMAT, exportScriptPath);
+            DatabaseStatementRunner.run(LATEST_VERSION, url, user, pass, command);
+
+            logger.info("H2 DB migration completed to Driver {} from Driver {} for [{}]", LATEST_VERSION.getVersion(), databaseVersion.getVersion(), databaseFilePath);
+
+            try {
+                Files.delete(exportScriptPath);
+            } catch (final IOException e) {
+                logger.warn("H2 DB {} for [{}] delete export script failed [{}]", databaseVersion.getVersion(), databaseFilePath, exportScriptPath, e);
             }
-        } catch (SQLException sqle) {
-            throw new RuntimeException(String.format("H2 connection failed URL [%s] File [%s]", dbUrl, dbPathNoExtension), sqle);
         }
-        // At this point it is known that migration should be attempted
-        logger.info("H2 1.4 database detected [{}]: starting migration to H2 2.1", dbPathNoExtension);
-        H2DatabaseMigrator.exportAndBackup(dbUrl, dbPathNoExtension, user, pass);
-
-        // The export file has been created and the DB has been backed up, now create a new one with the same name and run the SQL script to import the database
-        try (Connection migrationConnection = migrationDataSource.getConnection();
-             Statement s = migrationConnection.createStatement()) {
-            final Path dbFilePath = Paths.get(dbPathNoExtension);
-            final String dbDirectory = dbFilePath.getParent().toFile().getAbsolutePath();
-            // use RUNSCRIPT to recreate the database
-            final String exportSqlLocation = dbDirectory + File.separator
-                    + H2DatabaseUpdater.EXPORT_FILE_PREFIX + dbFilePath.toFile().getName() + H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
-            s.execute("RUNSCRIPT FROM '" + exportSqlLocation + "'");
-
-        } catch (SQLException sqle) {
-            throw new IOException(String.format("H2 import database creation failed URL [%s]", dbUrl), sqle);
-        }
-
-        logger.info("H2 1.4 to 2.1 migration completed [{}]", dbPathNoExtension);
     }
 }
