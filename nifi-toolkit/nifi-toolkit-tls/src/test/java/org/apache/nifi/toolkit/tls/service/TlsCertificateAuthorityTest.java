@@ -23,7 +23,6 @@ import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClient;
-import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClientCommandLine;
 import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
@@ -100,10 +99,12 @@ public class TlsCertificateAuthorityTest {
         serverConfig.setCaHostname("localhost");
         serverConfig.setToken(myTestTokenUseSomethingStronger);
         serverConfig.setKeyStore(serverKeyStore);
-        serverConfig.setPort(0);
         serverConfig.setDays(5);
         serverConfig.setKeySize(2048);
         serverConfig.initDefaults();
+
+        // set port back to 0, so Jetty will allocate a free port
+        serverConfig.setPort(0);
 
         clientConfig = new TlsClientConfig();
         clientConfig.setCaHostname("localhost");
@@ -112,7 +113,6 @@ public class TlsCertificateAuthorityTest {
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);
         clientConfig.setDomainAlternativeNames(Collections.singletonList(subjectAlternativeName));
-        clientConfig.setPort(0);
         clientConfig.setKeySize(2048);
         clientConfig.initDefaults();
 
@@ -146,6 +146,7 @@ public class TlsCertificateAuthorityTest {
         try {
             tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
             tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath(), true);
+            clientConfig.setPort(tlsCertificateAuthorityService.getPort());
             TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
             tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), true);
             validate();
@@ -162,6 +163,7 @@ public class TlsCertificateAuthorityTest {
         try {
             tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
             tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath(), false);
+            clientConfig.setPort(tlsCertificateAuthorityService.getPort());
             TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
             tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), false);
             validate();
@@ -180,8 +182,8 @@ public class TlsCertificateAuthorityTest {
         try {
             tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
             tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath(), false);
+            clientConfig.setPort(tlsCertificateAuthorityService.getPort());
             TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
-            new TlsCertificateAuthorityClientCommandLine(inputStreamFactory);
             tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), true);
             validate();
         } finally {
