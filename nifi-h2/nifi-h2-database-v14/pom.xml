@@ -17,7 +17,7 @@
         <version>1.23.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-h2-database</artifactId>
+    <artifactId>nifi-h2-database-v14</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -71,7 +71,7 @@
                             <relocations>
                                 <relocation>
                                     <pattern>org.h2</pattern>
-                                    <shadedPattern>org.apache.nifi.org.h2</shadedPattern>
+                                    <shadedPattern>v14.h2</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

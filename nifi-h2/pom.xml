@@ -24,7 +24,8 @@
     <artifactId>nifi-h2</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>nifi-h2-database</module>
         <module>nifi-h2-database-migrator</module>
+        <module>nifi-h2-database-v14</module>
+        <module>nifi-h2-database-v21</module>
     </modules>
 </project>

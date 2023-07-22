@@ -30,7 +30,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-h2-database</artifactId>
+            <artifactId>nifi-h2-database-v14</artifactId>
+            <version>1.23.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-h2-database-v21</artifactId>
             <version>1.23.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

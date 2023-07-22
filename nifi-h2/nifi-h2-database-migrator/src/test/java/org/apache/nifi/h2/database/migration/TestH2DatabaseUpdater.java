@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.h2.database.migration;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,53 +30,73 @@ import java.nio.file.Paths;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestH2DatabaseUpdater {
 
-    public static final String DB_NAME = "nifi-flow-audit";
-    public static final String MVDB_EXTENSION = ".mv.db";
-    public static final String ORIGINAL_AUDIT_DB_PATH = "./src/test/resources/" + DB_NAME;
-    public static final String ORIGINAL_AUDIT_DB_PATH_FILE = ORIGINAL_AUDIT_DB_PATH + MVDB_EXTENSION;
+    private static final String DATABASE_NAME = "nifi-flow-audit";
 
-    @TempDir
-    File tmpDir;
+    private static final String VERSION_1_4_PATH = String.format("/1.4/%s", DATABASE_NAME);
 
-    @BeforeEach
-    public void copyDatabaseFile() throws IOException {
-        // Copy the legacy database file to a temporary directory
-        final Path origAuditDbPath = Paths.get(ORIGINAL_AUDIT_DB_PATH_FILE);
-        final Path destAuditDbPath = Paths.get(tmpDir.getAbsolutePath(), DB_NAME + MVDB_EXTENSION);
-        Files.copy(origAuditDbPath, destAuditDbPath, REPLACE_EXISTING);
+    private static final String VERSION_2_1_PATH = String.format("/2.1/%s", DATABASE_NAME);
+
+    private static final String VERSION_2_2_PATH = String.format("/2.2/%s", DATABASE_NAME);
+
+    private static final String FILE_NAME_FORMAT = "%s.mv.db";
+
+    private static final String URL_FORMAT = "jdbc:h2:%s;LOCK_MODE=3";
+
+    private static final String CREDENTIALS = "nf";
+
+    @Test
+    public void testMigrationFrom14(@TempDir final File temporaryDirectory) throws Exception {
+        runUpdater(temporaryDirectory, VERSION_1_4_PATH);
+        assertFilesFound(2, temporaryDirectory);
     }
 
     @Test
-    public void testMigration() throws Exception {
-        final Path testAuditDbPath = Paths.get(tmpDir.getAbsolutePath(), DB_NAME);
-        final File dbFileNoExtension = testAuditDbPath.toFile();
-        final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFileNoExtension + ";LOCK_MODE=3";
+    public void testMigrationFrom21(@TempDir final File temporaryDirectory) throws Exception {
+        runUpdater(temporaryDirectory, VERSION_2_1_PATH);
+        assertFilesFound(2, temporaryDirectory);
+    }
 
-        H2DatabaseUpdater.checkAndPerformMigration(dbFileNoExtension.getAbsolutePath(), migrationDbUrl, "nf", "nf");
+    @Test
+    public void testMigrationFrom22(@TempDir final File temporaryDirectory) throws Exception {
+        runUpdater(temporaryDirectory, VERSION_2_2_PATH);
+        assertFilesFound(1, temporaryDirectory);
+    }
 
-        // Verify the export, backup, and new database files were created
-        final File exportFile = Paths.get(dbFileNoExtension.getParent(), H2DatabaseUpdater.EXPORT_FILE_PREFIX + dbFileNoExtension.getName() + H2DatabaseUpdater.EXPORT_FILE_POSTFIX).toFile();
-        assertTrue(exportFile.exists());
+    private void assertFilesFound(final int filesExpected, final File temporaryDirectory) {
+        final File[] files = temporaryDirectory.listFiles();
 
-        File dbDir = dbFileNoExtension.getParentFile();
-        File[] backupFiles = dbDir.listFiles((dir, name) -> name.endsWith(H2DatabaseMigrator.BACKUP_FILE_POSTFIX) && name.startsWith(dbFileNoExtension.getName()));
+        assertNotNull(files);
+        assertEquals(filesExpected, files.length);
+    }
+
+    private void runUpdater(final File temporaryDirectory, final String sourceRelativePath) throws Exception {
+        final Path temporaryDirectoryPath = temporaryDirectory.toPath();
+
+        final String sourceRelativeFilePath = String.format(FILE_NAME_FORMAT, sourceRelativePath);
+        final Path sourceFilePath = getResourcePath(sourceRelativeFilePath);
+
+        final Path temporarySourceFilePath = temporaryDirectoryPath.resolve(sourceFilePath.getFileName());
+        Files.copy(sourceFilePath, temporarySourceFilePath, REPLACE_EXISTING);
+
+        final Path temporaryDatabasePath = temporaryDirectoryPath.resolve(DATABASE_NAME);
+        final String databaseUrl = String.format(URL_FORMAT, temporaryDatabasePath);
+
+        H2DatabaseUpdater.checkAndPerformMigration(temporaryDatabasePath.toString(), databaseUrl, CREDENTIALS, CREDENTIALS);
+    }
+
+    private Path getResourcePath(final String relativePath) {
+        final URL resourceUrl = getClass().getResource(relativePath);
+        if (resourceUrl == null) {
+            throw new IllegalStateException(String.format("Resource Path [%s] not found", relativePath));
+        }
         try {
-            assertNotNull(backupFiles);
-
-            // The database and its trace file should exist after the initial connection is made, so they both should be backed up
-            assertEquals(2, backupFiles.length);
-            final File newDbFile = Paths.get(tmpDir.getAbsolutePath(), DB_NAME + MVDB_EXTENSION).toFile();
-            assertTrue(newDbFile.exists());
-        } finally {
-            // Remove the export and backup files
-            exportFile.delete();
-            for (File f : backupFiles) {
-                f.delete();
-            }
+            final URI resourceUri = resourceUrl.toURI();
+            return Paths.get(resourceUri);
+        } catch (final URISyntaxException e) {
+            throw new IllegalStateException(String.format("Resource URL [%s] conversion failed", resourceUrl));
         }
     }
 }
