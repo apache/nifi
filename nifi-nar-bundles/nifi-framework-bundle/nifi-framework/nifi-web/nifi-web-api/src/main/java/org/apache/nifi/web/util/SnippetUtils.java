@@ -474,7 +474,7 @@ public final class SnippetUtils {
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO processGroupDTO : snippetContents.getProcessGroups()) {
                 String logFileSuffix = processGroupDTO.getLogFileSuffix();
-                if (logFileSuffix != null) {
+                if (logFileSuffix != null && !logFileSuffix.trim().isEmpty()) {
                     while (existingLogFileSuffixes.contains(logFileSuffix)) {
                         logFileSuffix = "Copy_of_" + logFileSuffix;
                     }
