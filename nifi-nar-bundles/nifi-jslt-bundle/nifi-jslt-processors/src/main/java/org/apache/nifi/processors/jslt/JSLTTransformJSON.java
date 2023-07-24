@@ -361,24 +361,21 @@ public class JSLTTransformJSON extends AbstractProcessor {
      * Enumeration of supported Output Strategies
      */
     enum TransformStrategy implements DescribedValue {
-        APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE("APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE", "Entire FlowFile", "Entire FlowFile"),
-        APPLY_TRANSFORM_TO_EACH_OBJECT("APPLY_TRANSFORM_TO_EACH_OBJECT", "Each JSON Object", "Each JSON Object");
-
-        private final String value;
+        APPLY_TRANSFORM_TO_ENTIRE_FLOWFILE("Entire FlowFile", "Entire FlowFile"),
+        APPLY_TRANSFORM_TO_EACH_OBJECT("Each JSON Object", "Each JSON Object");
 
         private final String displayName;
 
         private final String description;
 
-        TransformStrategy(final String value, final String displayName, final String description) {
-            this.value = value;
+        TransformStrategy(final String displayName, final String description) {
             this.displayName = displayName;
             this.description = description;
         }
 
         @Override
         public String getValue() {
-            return value;
+            return name();
         }
 
         @Override
