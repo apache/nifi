@@ -247,6 +247,8 @@
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
+        } else {
+            schedulingPeriod = $('#timer-driven-scheduling-period');
         }
 
         // check the scheduling period
@@ -311,6 +313,8 @@
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
+        } else {
+            schedulingPeriod = $('#timer-driven-scheduling-period');
         }
 
         // get the scheduling period if appropriate
