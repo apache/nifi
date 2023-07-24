@@ -96,10 +96,6 @@
                                 <div type="text" id="scheduling-strategy-combo"></div>
                             </div>
                         </div>
-                        <div id="event-driven-warning" class="hidden">
-                            <div class="processor-configuration-warning-icon"></div>
-                            This strategy is experimental
-                        </div>
                         <div class="clear"></div>
                     </div>
                     <div id="timer-driven-options" class="setting">
@@ -119,18 +115,6 @@
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="timer-driven-scheduling-period" name="timer-driven-scheduling-period" class="small-setting-input"/>
-                            </div>
-                        </div>
-                        <div class="clear"></div>
-                    </div>
-                    <div id="event-driven-options" class="setting">
-                        <div class="concurrently-schedulable-tasks-setting">
-                            <div class="setting-name">
-                                Concurrent tasks
-                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
-                            </div>
-                            <div class="setting-field">
-                                <input type="text" id="event-driven-concurrently-schedulable-tasks" name="event-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
                             </div>
                         </div>
                         <div class="clear"></div>
