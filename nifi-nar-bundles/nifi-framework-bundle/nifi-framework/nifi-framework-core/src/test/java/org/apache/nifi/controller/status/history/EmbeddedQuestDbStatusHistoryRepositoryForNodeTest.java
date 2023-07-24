@@ -25,11 +25,9 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
 
     @Test
     public void testReadingEmptyRepository() {
-        // when
-        final StatusHistory nodeStatusHistory = testSubject.getNodeStatusHistory(START, END);
-        final GarbageCollectionHistory garbageCollectionHistory = testSubject.getGarbageCollectionHistory(START, END);
+        final StatusHistory nodeStatusHistory = repository.getNodeStatusHistory(START, END);
+        final GarbageCollectionHistory garbageCollectionHistory = repository.getGarbageCollectionHistory(START, END);
 
-        // then
         assertTrue(nodeStatusHistory.getStatusSnapshots().isEmpty());
         assertTrue(garbageCollectionHistory.getGarbageCollectionStatuses("gc1").isEmpty());
         assertTrue(garbageCollectionHistory.getGarbageCollectionStatuses("gc2").isEmpty());
@@ -37,16 +35,13 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
 
     @Test
     public void testWritingThenReadingComponents() throws Exception {
-        // given
-        testSubject.capture(givenNodeStatus(), new ProcessGroupStatus(), givenGarbageCollectionStatuses(INSERTED_AT), INSERTED_AT);
-        givenWaitUntilPersisted();
+        repository.capture(givenNodeStatus(), new ProcessGroupStatus(), givenGarbageCollectionStatuses(INSERTED_AT), INSERTED_AT);
+        waitUntilPersisted();
 
-        // when & then - reading node status
-        final StatusHistory nodeStatusHistory = testSubject.getNodeStatusHistory(START, END);
+        final StatusHistory nodeStatusHistory = repository.getNodeStatusHistory(START, END);
         assertNodeStatusHistory(nodeStatusHistory.getStatusSnapshots().get(0));
 
-        // when & then - garbage collection status
-        final GarbageCollectionHistory garbageCollectionHistory = testSubject.getGarbageCollectionHistory(START, END);
+        final GarbageCollectionHistory garbageCollectionHistory = repository.getGarbageCollectionHistory(START, END);
         assertGc1Status(garbageCollectionHistory.getGarbageCollectionStatuses("gc1"));
         assertGc2Status(garbageCollectionHistory.getGarbageCollectionStatuses("gc2"));
     }
