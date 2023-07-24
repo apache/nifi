@@ -60,6 +60,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.params.SetInheritedParamCon
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.SetParam;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.params.SetParamProviderProperty;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGChangeVersion;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGConnect;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGCreate;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGCreateControllerService;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGDisableControllerServices;
@@ -126,6 +127,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new UpdateRegistryClient());
         commands.add(new GetRegistryClientId());
         commands.add(new PGImport());
+        commands.add(new PGConnect());
         commands.add(new PGStart());
         commands.add(new PGStop());
         commands.add(new PGCreate());
