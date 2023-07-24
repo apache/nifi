@@ -45,7 +45,7 @@
                 <div id="import-flow-version-label"></div>
             </div>
         </div>
-        <div class="setting keep-parameter-context">
+        <div id="keep-parameter-context-container" class="setting keep-parameter-context">
             <div id="keepExistingParameterContext" class="nf-checkbox checkbox-checked"></div>
             <div class="nf-checkbox-label">Keep Existing Parameter Contexts</div>
             <div class="fa fa-question-circle" alt="Info" title="When not selected, only directly associated Parameter Contexts will be copied, inherited Contexts with no direct assignment to a Process Group are ignored."></div>
