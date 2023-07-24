@@ -259,6 +259,13 @@
                         }],
                         selectedOption: {
                             value: processGroup.executionEngine
+                        },
+                        select: function (selectedOption) {
+                            if (selectedOption.value === 'STATELESS') {
+                                $('#stateless-group-options').show();
+                            } else {
+                                $('#stateless-group-options').hide();
+                            }
                         }
                     });
                     $('#process-group-max-concurrent-tasks').removeClass('unset').val(processGroup.maxConcurrentTasks);
@@ -329,8 +336,8 @@
                         var executionEngineName;
                         if (processGroup.executionEngine == "INHERITED") {
                             executionEngineName = "Inherited";
-                        } else if (processGroup.executionEngine == "TRADITIONAL") {
-                            executionEngineName = "Traditional";
+                        } else if (processGroup.executionEngine == "STANDARD") {
+                            executionEngineName = "Standard";
                         } else if (processGroup.executionEngine == "STATELESS") {
                             executionEngineName = "Stateless";
                         }

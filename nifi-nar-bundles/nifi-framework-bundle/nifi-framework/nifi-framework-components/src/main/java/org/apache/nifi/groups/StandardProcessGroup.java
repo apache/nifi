@@ -4679,8 +4679,8 @@ public final class StandardProcessGroup implements ProcessGroup {
         if (executionEngine == ExecutionEngine.STANDARD) {
             final ProcessGroup statelessGroup = getStatelessGroup(getParent());
             if (statelessGroup != null) {
-                throw new IllegalStateException("Cannot change Execution Engine for " + this + " to " + executionEngine + " because parent group " + statelessGroup + " is configured to use " +
-                    "the Stateless Engine. A Process Group using the Stateless Engine may be embedded within a Process Group using the Traditional Engine, but the reverse is not allowed.");
+                throw new IllegalStateException("A Process Group using the Standard Engine may not be the child of a Process Group using the Stateless Engine. Cannot set Execution Engine of " + this +
+                    " to Standard because it is a child of " + statelessGroup);
             }
         }
 

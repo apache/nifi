@@ -60,22 +60,24 @@
                             <span id="read-only-process-group-execution-engine" class="unset"></span>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">Max Concurrent Tasks</div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-max-concurrent-tasks" class="setting-input"/>
+                    <div id="stateless-group-options" class="setting">
+                        <div class="setting">
+                            <div class="setting-name">Max Concurrent Tasks</div>
+                            <div class="editable setting-field">
+                                <input type="text" id="process-group-max-concurrent-tasks" class="setting-input"/>
+                            </div>
+                            <div class="read-only setting-field">
+                                <span id="read-only-process-group-max-concurrent-tasks" class="unset"></span>
+                            </div>
                         </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-max-concurrent-tasks" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Stateless Flow Timeout</div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-stateless-flow-timeout" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-stateless-flow-timeout" class="unset"></span>
+                        <div class="setting">
+                            <div class="setting-name">Stateless Flow Timeout</div>
+                            <div class="editable setting-field">
+                                <input type="text" id="process-group-stateless-flow-timeout" class="setting-input"/>
+                            </div>
+                            <div class="read-only setting-field">
+                                <span id="read-only-process-group-stateless-flow-timeout" class="unset"></span>
+                            </div>
                         </div>
                     </div>
                     <div class="setting">
@@ -133,6 +135,8 @@
                         <div class="read-only setting-field">
                             <span id="read-only-process-group-log-file-suffix" class="unset"></span>
                         </div>
+                    </div>
+                    <div class="setting">
                         <div class="setting-name">Process group comments</div>
                         <div class="editable setting-field">
                             <textarea id="process-group-comments" class="setting-input"></textarea>
