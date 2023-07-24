@@ -42,6 +42,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
@@ -124,6 +125,15 @@ public class ConvertExcelToCSVProcessor
             .required(true)
             .build();
 
+    public static final PropertyDescriptor FORMAT_BOOLEANS = new PropertyDescriptor.Builder()
+            .name("excel-format-booleans")
+            .displayName("Format Booleans")
+            .description("If true, true/false will be represented by TRUE/FALSE. If false, true/false will be represented by 0/1.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
     public static final Relationship ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("Original Excel document received by this processor")
@@ -150,6 +160,7 @@ public class ConvertExcelToCSVProcessor
         descriptors.add(ROWS_TO_SKIP);
         descriptors.add(COLUMNS_TO_SKIP);
         descriptors.add(FORMAT_VALUES);
+        descriptors.add(FORMAT_BOOLEANS);
 
         descriptors.add(CSVUtils.CSV_FORMAT);
         descriptors.add(CSVUtils.VALUE_SEPARATOR);
@@ -193,6 +204,7 @@ public class ConvertExcelToCSVProcessor
 
         final Map<String, Boolean> desiredSheets = getDesiredSheets(context, flowFile);
         final boolean formatValues = context.getProperty(FORMAT_VALUES).asBoolean();
+        final boolean formatBooleans = context.getProperty(FORMAT_BOOLEANS).asBoolean();
         final CSVFormat csvFormat = CSVUtils.createCSVFormat(context, flowFile.getAttributes());
 
         //Switch to 0 based index
@@ -211,7 +223,7 @@ public class ConvertExcelToCSVProcessor
                         desiredSheets.keySet().forEach(desiredSheet -> workbook.forEach(sheet -> {
                            if (sheet.getSheetName().equalsIgnoreCase(desiredSheet)) {
                                ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheet.getSheetName());
-                               handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
+                               handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat, formatBooleans);
                                desiredSheets.put(desiredSheet, Boolean.TRUE);
                            }
                        }));
@@ -223,7 +235,7 @@ public class ConvertExcelToCSVProcessor
                     } else {
                         workbook.forEach(sheet -> {
                             ExcelSheetReadConfig readConfig = new ExcelSheetReadConfig(columnsToSkip, firstRow, sheet.getSheetName());
-                            handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat);
+                            handleExcelSheet(session, flowFile, sheet, readConfig, csvFormat, formatBooleans);
                         });
                     }
                 } catch (ParseException | OpenException | ReadException e) {
@@ -282,12 +294,14 @@ public class ConvertExcelToCSVProcessor
      * Handles an individual Excel sheet from the entire Excel document. Each sheet will result in an individual flowfile.
      *
      * @param session The NiFi ProcessSession instance for the current invocation.
+     * @param formatBooleans true/false to format booleans
      */
     private void handleExcelSheet(ProcessSession session, FlowFile originalParentFF, final Sheet sheet, ExcelSheetReadConfig readConfig,
-                                  CSVFormat csvFormat) {
+                                  CSVFormat csvFormat, boolean formatBooleans) {
 
         FlowFile ff = session.create(originalParentFF);
         final SheetToCSV sheetHandler = new SheetToCSV(readConfig, csvFormat);
+        sheetHandler.setFormatBooleans(formatBooleans);
         try {
             ff = session.write(ff, out -> {
                 sheetHandler.setOutput(out);
@@ -345,6 +359,7 @@ public class ConvertExcelToCSVProcessor
         private CSVPrinter printer;
         private boolean firstRow = false;
         private ArrayList<String> fieldValues;
+        private boolean formatBooleans = true;
 
         public int getRowCount() {
             return rowCount;
@@ -358,6 +373,10 @@ public class ConvertExcelToCSVProcessor
             } catch (IOException e) {
                 throw new ProcessException("Failed to create CSV Printer.", e);
             }
+        }
+
+        public void setFormatBooleans(boolean formatBooleans) {
+            this.formatBooleans = formatBooleans;
         }
 
         public SheetToCSV(ExcelSheetReadConfig readConfig, CSVFormat csvFormat) {
@@ -450,6 +469,12 @@ public class ConvertExcelToCSVProcessor
             currentCol = thisCol;
 
             String stringCellValue = cell.getStringCellValue();
+
+            final CellType type = cell.getCellType();
+            if(type.equals(CellType.BOOLEAN) && formatBooleans) {
+                stringCellValue = stringCellValue.equals("1") ? "TRUE" : "FALSE";
+            }
+
             fieldValues.add(stringCellValue != null && !stringCellValue.isEmpty() ? stringCellValue : null);
 
             skippedColumns = 0;

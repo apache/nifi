@@ -115,6 +115,53 @@ public class ConvertExcelToCSVProcessorTest {
     }
 
     @Test
+    public void testBooleanFormatting() {
+        testRunner.enqueue(getClass().getResourceAsStream("/databooleans.xlsx"));
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        long rowsSheet = Long.parseLong(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertEquals(9, rowsSheet);
+
+        ff.assertContentEquals("Numbers,Timestamps,Money,Boolean\n"
+                + "1234.456,42736.5,123.45,TRUE\n"
+                + "1234.456,42736.5,123.45,FALSE\n"
+                + "1234.456,42736.5,123.45,TRUE\n"
+                + "1234.456,42736.5,1023.45,FALSE\n"
+                + "1234.456,42736.5,1023.45,TRUE\n"
+                + "987654321,42736.5,1023.45,FALSE\n"
+                + "987654321,,,\n"
+                + "987654321,,,\n");
+
+        testRunner.clearTransferState();
+        testRunner.setProperty(ConvertExcelToCSVProcessor.FORMAT_BOOLEANS, "false");
+        testRunner.enqueue(getClass().getResourceAsStream("/databooleans.xlsx"));
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.SUCCESS, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.ORIGINAL, 1);
+        testRunner.assertTransferCount(ConvertExcelToCSVProcessor.FAILURE, 0);
+
+        ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
+        rowsSheet = Long.parseLong(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
+        assertEquals(9, rowsSheet);
+
+        ff.assertContentEquals("Numbers,Timestamps,Money,Boolean\n"
+                + "1234.456,42736.5,123.45,1\n"
+                + "1234.456,42736.5,123.45,0\n"
+                + "1234.456,42736.5,123.45,1\n"
+                + "1234.456,42736.5,1023.45,0\n"
+                + "1234.456,42736.5,1023.45,1\n"
+                + "987654321,42736.5,1023.45,0\n"
+                + "987654321,,,\n"
+                + "987654321,,,\n");
+    }
+
+    @Test
     public void testQuoting() {
         testRunner.enqueue(getClass().getResourceAsStream("/dataformatting.xlsx"));
 
