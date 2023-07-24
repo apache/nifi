@@ -38,6 +38,9 @@ public interface ProcessGroupClient {
     ProcessGroupEntity createProcessGroup(String parentGroupdId, ProcessGroupEntity entity)
             throws NiFiClientException, IOException;
 
+    ProcessGroupEntity createProcessGroup(String parentGroupdId, ProcessGroupEntity entity, boolean keepExisting)
+            throws NiFiClientException, IOException;
+
     ProcessGroupEntity getProcessGroup(String processGroupId) throws NiFiClientException, IOException;
 
     ProcessGroupEntity updateProcessGroup(ProcessGroupEntity entity) throws NiFiClientException, IOException;

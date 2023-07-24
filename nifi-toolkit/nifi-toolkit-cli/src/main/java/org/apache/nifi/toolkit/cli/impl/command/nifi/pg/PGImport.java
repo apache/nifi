@@ -65,6 +65,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         addOption(CommandOption.FLOW_VERSION.createOption());
         addOption(CommandOption.POS_X.createOption());
         addOption(CommandOption.POS_Y.createOption());
+        addOption(CommandOption.KEEP_EXISTING_PARAMETER_CONTEXT.createOption());
     }
 
     @Override
@@ -78,6 +79,8 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         final String posXStr = getArg(properties, CommandOption.POS_X);
         final String posYStr = getArg(properties, CommandOption.POS_Y);
 
+        String keepExistingPC = getArg(properties, CommandOption.KEEP_EXISTING_PARAMETER_CONTEXT);
+
         final boolean posXExists = StringUtils.isNotBlank(posXStr);
         final boolean posYExists = StringUtils.isNotBlank(posYStr);
 
@@ -87,6 +90,12 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
 
         if ((posYExists && !posXExists)) {
             throw new IllegalArgumentException("Missing X position - Please specify both X and Y, or specify neither");
+        }
+
+        if(StringUtils.isNotBlank(keepExistingPC) && !(keepExistingPC.equals("true") || keepExistingPC.equals("false"))) {
+            throw new IllegalArgumentException("Keep Existing Parameter Context must be either true or false");
+        } else if (StringUtils.isBlank(keepExistingPC)) {
+            keepExistingPC = "true";
         }
 
         // if a registry client is specified use it, otherwise see if there is only one available and use that,
@@ -140,7 +149,7 @@ public class PGImport extends AbstractNiFiCommand<StringResult> {
         pgEntity.setRevision(getInitialRevisionDTO());
 
         final ProcessGroupClient pgClient = client.getProcessGroupClient();
-        final ProcessGroupEntity createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity);
+        final ProcessGroupEntity createdEntity = pgClient.createProcessGroup(parentPgId, pgEntity, Boolean.parseBoolean(keepExistingPC));
         return new StringResult(createdEntity.getId(), getContext().isInteractive());
     }
 
