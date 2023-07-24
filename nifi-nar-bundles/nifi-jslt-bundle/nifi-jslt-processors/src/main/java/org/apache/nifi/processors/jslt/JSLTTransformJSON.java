@@ -104,7 +104,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .description("Whether to apply the JSLT transformation to the entire FlowFile contents or each JSON object in the root-level array")
             .required(true)
             .allowableValues(TransformationStrategy.class)
-            .defaultValue(EACH_OBJECT.getValue())
+            .defaultValue(ENTIRE_FLOWFILE.getValue())
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
