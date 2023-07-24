@@ -87,6 +87,11 @@ public enum CommandOption {
     POS_X("px", "posX", "The x coordinate of a position", true),
     POS_Y("py", "posY", "The y coordinate of a position", true),
 
+    SOURCE_PG("sourcePg", "source-pg", "The ID of the source process group", true),
+    DESTINATION_PG("destPg", "destination-pg", "The ID of the destination process group", true),
+    SOURCE_OUTPUT_PORT("sourceOutput", "source-output-port", "The name of the output port in the source process group", true),
+    DESTINATION_INPUT_PORT("destInput", "destination-input-port", "The name of the input port in the destination process group", true),
+
     // NiFi - Controller Services
     CS_ID("cs", "controllerServiceId", "The id of a controller service", true),
 
