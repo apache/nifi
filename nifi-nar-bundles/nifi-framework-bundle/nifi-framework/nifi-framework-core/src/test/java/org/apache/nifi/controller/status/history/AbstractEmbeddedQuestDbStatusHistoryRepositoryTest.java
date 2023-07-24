@@ -16,23 +16,17 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends AbstractStatusHistoryRepositoryTest {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractEmbeddedQuestDbStatusHistoryRepositoryTest.class);
-
-    protected static final String PATH = "target/questdb";
     protected static final long NOW = System.currentTimeMillis();
     protected static final Date START = new Date(0);
     protected static final Date INSERTED_AT = new Date(NOW - TimeUnit.MINUTES.toMillis(1));
@@ -43,27 +37,22 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
     protected static final int DAYS_TO_KEEP_DATA = 7;
     protected static final long PERSIST_FREQUENCY = 50; //200 milliseconds
 
-    protected EmbeddedQuestDbStatusHistoryRepository testSubject;
-    protected String path;
+    protected EmbeddedQuestDbStatusHistoryRepository repository;
+
+    @TempDir
+    private Path temporaryDirectory;
 
     @BeforeEach
     public void setUp() throws Exception {
-        path = PATH + System.currentTimeMillis();
-        testSubject = givenTestSubject();
+        repository = startRepository();
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
-        testSubject.shutdown();
-
-        try {
-            FileUtils.deleteFile(new File(path), true);
-        } catch (final Exception e) {
-            LOGGER.error("Could not delete database directory", e);
-        }
+    public void tearDown() {
+        repository.shutdown();
     }
 
-    private EmbeddedQuestDbStatusHistoryRepository givenTestSubject() {
+    private EmbeddedQuestDbStatusHistoryRepository startRepository() {
         final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
 
         Mockito.when(niFiProperties.getIntegerProperty(
@@ -76,14 +65,14 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
                 NiFiProperties.DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS)
         ).thenReturn(DAYS_TO_KEEP_DATA);
 
-        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPath()).thenReturn(Paths.get(path));
+        Mockito.when(niFiProperties.getQuestDbStatusRepositoryPath()).thenReturn(temporaryDirectory);
 
         final EmbeddedQuestDbStatusHistoryRepository testSubject = new EmbeddedQuestDbStatusHistoryRepository(niFiProperties, PERSIST_FREQUENCY);
         testSubject.start();
         return testSubject;
     }
 
-    protected void givenWaitUntilPersisted() throws InterruptedException {
+    protected void waitUntilPersisted() throws InterruptedException {
         Thread.sleep(3000); // The actual writing happens asynchronously on a different thread
     }
 }
