@@ -101,7 +101,7 @@ public interface VersionedComponentStateLookup {
 
         @Override
         public ScheduledState getState(final ProcessGroup group) {
-            if (group.getStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
+            if (group.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING) {
                 return ScheduledState.RUNNING;
             }
 

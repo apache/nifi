@@ -25,17 +25,16 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
-import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
@@ -221,7 +220,7 @@ public class VersionedDataflowMapper {
 
             @Override
             public ScheduledState getState(final ProcessGroup group) {
-                return group.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING ? ScheduledState.RUNNING : ScheduledState.ENABLED;
+                return map(stateLookup.getScheduledState(group));
             }
         };
     }

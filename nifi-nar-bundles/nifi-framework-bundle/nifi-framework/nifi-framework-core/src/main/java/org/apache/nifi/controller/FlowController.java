@@ -149,6 +149,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.groups.StatelessGroupScheduledState;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -1196,7 +1197,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                         remoteGroupPort.getRemoteProcessGroup().startTransmitting(remoteGroupPort);
                         startedTransmitting++;
                     } catch (final Throwable t) {
-                        LOG.error("Unable to start transmitting with {} due to {}", new Object[]{remoteGroupPort, t});
+                        LOG.error("Unable to start transmitting with {}", remoteGroupPort, t);
                     }
                 }
 
@@ -1211,7 +1212,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                             startConnectable(connectable);
                         }
                     } catch (final Throwable t) {
-                        LOG.error("Unable to start {} due to {}", new Object[]{connectable, t});
+                        LOG.error("Unable to start {}", connectable, t);
                     }
                 }
 
@@ -1567,6 +1568,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 }
 
                 return port.getScheduledState();
+            }
+
+            @Override
+            public ScheduledState getScheduledState(final ProcessGroup processGroup) {
+                if (startGroupsAfterInitialization.contains(processGroup)) {
+                    return ScheduledState.RUNNING;
+                }
+
+                return processGroup.getDesiredStatelessScheduledState() == StatelessGroupScheduledState.RUNNING ? ScheduledState.RUNNING : ScheduledState.STOPPED;
             }
         };
     }
