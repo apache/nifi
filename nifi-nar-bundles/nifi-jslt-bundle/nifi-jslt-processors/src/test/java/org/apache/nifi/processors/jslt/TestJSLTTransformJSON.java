@@ -129,6 +129,7 @@ public class TestJSLTTransformJSON {
         final String transform = getResource("arrayTransformPerObject.json");
         final String json = getResource("inputArray.json");
         runner.setProperty(JSLTTransformJSON.JSLT_TRANSFORM, transform);
+        runner.setProperty(JSLTTransformJSON.TRANSFORMATION_STRATEGY, JSLTTransformJSON.TransformationStrategy.EACH_OBJECT.getValue());
         runner.setProperty(JSLTTransformJSON.PRETTY_PRINT, Boolean.TRUE.toString());
         runner.enqueue(json);
 
