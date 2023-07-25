@@ -90,6 +90,9 @@ div.selected-disabled-option {
     font-weight: normal;
     line-height: 32px;
     width: calc(100% - 15px);
+}
+
+.combo-option-enabled {
     color: #262626;
 }
 

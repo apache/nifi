@@ -196,6 +196,7 @@
                             if (option.disabled === true) {
                                 optionElement.addClass('unset disabled-option');
                             } else {
+                                optionElement.addClass('combo-option-enabled');
                                 optionElement.click(function () {
                                     //remove active styles
                                     $('.combo').removeClass('combo-open');
