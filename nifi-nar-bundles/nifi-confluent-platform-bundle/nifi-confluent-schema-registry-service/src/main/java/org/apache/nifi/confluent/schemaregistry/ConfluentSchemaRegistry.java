@@ -296,7 +296,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     }
 
     private RecordSchema retrieveSchemaById(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
-        final OptionalLong schemaId = schemaIdentifier.getIdentifier();
+        final OptionalLong schemaId = schemaIdentifier.getSchemaVersionId();
         if (!schemaId.isPresent()) {
             throw new org.apache.nifi.schema.access.SchemaNotFoundException("Cannot retrieve schema because Schema Id is not present");
         }

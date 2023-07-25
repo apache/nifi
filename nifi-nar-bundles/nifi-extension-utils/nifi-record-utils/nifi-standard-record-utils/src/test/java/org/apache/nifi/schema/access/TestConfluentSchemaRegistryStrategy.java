@@ -47,10 +47,9 @@ public class TestConfluentSchemaRegistryStrategy extends AbstractSchemaAccessStr
 
             try (final ByteArrayInputStream in = new ByteArrayInputStream(bytesOut.toByteArray())) {
 
-                // the confluent strategy will read the id from the input stream and use '1' as the version
+                // the confluent strategy will read the id from the input stream
                 final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
-                        .id((long)schemaId)
-                        .version(1)
+                        .schemaVersionId((long)schemaId)
                         .build();
 
                 when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
