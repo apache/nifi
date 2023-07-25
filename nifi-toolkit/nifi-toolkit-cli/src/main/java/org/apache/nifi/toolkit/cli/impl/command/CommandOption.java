@@ -60,6 +60,8 @@ public enum CommandOption {
     EXT_BUNDLE_GROUP("gr", "group", "The group id of a bundle", true),
     EXT_BUNDLE_ARTIFACT("ar", "artifact", "The artifact id of a bundle", true),
     EXT_BUNDLE_VERSION("ver", "version", "The version of the bundle", true),
+    EXT_BUNDLE_CURRENT_VERSION("cver", "current-version", "The current version of the bundle", true),
+    EXT_QUALIFIED_NAME("extname", "extension-name", "The qualified name of the extension", true),
 
     EXT_TYPE("et", "extensionType", "The type of extension, one of 'PROCESSOR', 'CONTROLLER_SERVICE', or 'REPORTING_TASK'.", true),
     EXT_BUNDLE_TYPE("ebt", "extensionBundleType", "The type of extension bundle, either nifi-nar or minifi-cpp", true),
