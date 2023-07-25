@@ -80,6 +80,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStopVersionControl;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.GetAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.UpdateAccessPolicy;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.processors.ChangeVersionProcessor;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClient;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.GetRegistryClientId;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListRegistryClients;
@@ -180,6 +181,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new LogoutAccessToken());
         commands.add(new GetControllerConfiguration());
         commands.add(new UpdateControllerConfiguration());
+        commands.add(new ChangeVersionProcessor());
         return new ArrayList<>(commands);
     }
 }
