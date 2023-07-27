@@ -20,17 +20,14 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
-
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
+import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.services.firehose.FirehoseClient;
+import software.amazon.awssdk.services.firehose.FirehoseClientBuilder;
 
 /**
- * This class provides processor the base class for kinesis firehose
+ * This class is the base class for Kinesis Firehose processors
  */
-public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisFirehoseClient> {
+public abstract class AbstractKinesisFirehoseProcessor extends AbstractAwsSyncProcessor<FirehoseClient, FirehoseClientBuilder> {
 
     public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Firehose Delivery Stream Name")
@@ -58,26 +55,8 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKines
             .sensitive(false)
             .build();
 
-    /**
-     * Create client using aws credentials provider. This is the preferred way for creating clients
-     */
     @Override
-    protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials provider");
-
-        return new AmazonKinesisFirehoseClient(credentialsProvider, config);
-    }
-
-    /**
-     * Create client using AWSCredentails
-     *
-     * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
-     */
-    @Deprecated
-    @Override
-    protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
-        getLogger().info("Creating client using aws credentials");
-
-        return new AmazonKinesisFirehoseClient(credentials, config);
+    protected FirehoseClientBuilder createClientBuilder(final ProcessContext context) {
+        return FirehoseClient.builder();
     }
 }

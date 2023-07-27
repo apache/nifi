@@ -16,27 +16,17 @@
  */
 package org.apache.nifi.processors.aws.v2;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.nifi.processor.ProcessContext;
-import software.amazon.awssdk.core.SdkClient;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import software.amazon.awssdk.http.TlsKeyManagersProvider;
 
-public class AwsClientCache<T extends SdkClient> {
+import javax.net.ssl.TrustManager;
+import java.time.Duration;
 
-    private final Cache<AwsClientDetails, T> clientCache = Caffeine.newBuilder().build();
+public interface AwsHttpClientConfigurer {
 
-    public T getOrCreateClient(final ProcessContext context, final AwsClientDetails clientDetails, final AwsClientProvider<T> provider) {
-        return clientCache.get(clientDetails, ignored -> provider.createClient(context));
-    }
+    void configureBasicSettings(Duration communicationsTimeout, int maxConcurrentTasks);
 
-    public void closeClients() {
-        clientCache.asMap().values().stream().forEach(SdkClient::close);
-    }
+    void configureTls(TrustManager[] trustManagers, TlsKeyManagersProvider keyManagersProvider);
 
-    public void clearCache() {
-        closeClients();
-        clientCache.invalidateAll();
-        clientCache.cleanUp();
-    }
-
+    void configureProxy(ProxyConfiguration proxyConfiguration);
 }

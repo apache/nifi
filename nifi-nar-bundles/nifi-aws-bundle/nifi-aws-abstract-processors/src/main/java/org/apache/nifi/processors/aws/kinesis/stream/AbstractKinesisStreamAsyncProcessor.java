@@ -14,29 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.v2;
+package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.processor.ProcessContext;
-import software.amazon.awssdk.core.SdkClient;
+import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClientBuilder;
 
-public class AwsClientCache<T extends SdkClient> {
+/**
+ * This class is the base class for kinesis stream processors that use the async KinesisClient
+ */
+public abstract class AbstractKinesisStreamAsyncProcessor extends AbstractAwsAsyncProcessor<KinesisAsyncClient, KinesisAsyncClientBuilder>
+implements KinesisStreamProcessor {
 
-    private final Cache<AwsClientDetails, T> clientCache = Caffeine.newBuilder().build();
-
-    public T getOrCreateClient(final ProcessContext context, final AwsClientDetails clientDetails, final AwsClientProvider<T> provider) {
-        return clientCache.get(clientDetails, ignored -> provider.createClient(context));
+    @Override
+    protected KinesisAsyncClientBuilder createClientBuilder(final ProcessContext context) {
+        return KinesisAsyncClient.builder();
     }
-
-    public void closeClients() {
-        clientCache.asMap().values().stream().forEach(SdkClient::close);
-    }
-
-    public void clearCache() {
-        closeClients();
-        clientCache.invalidateAll();
-        clientCache.cleanUp();
-    }
-
 }

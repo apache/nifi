@@ -16,12 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessorFactory;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.WorkerStateChangeListener;
-import com.amazonaws.services.kinesis.metrics.impl.NullMetricsFactory;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtilsBean2;
 import org.apache.commons.beanutils.FluentPropertyBeanIntrospector;
@@ -52,13 +47,34 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
+import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClientBuilder;
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClientBuilder;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
+import software.amazon.kinesis.checkpoint.CheckpointConfig;
+import software.amazon.kinesis.common.ConfigsBuilder;
+import software.amazon.kinesis.common.InitialPositionInStream;
+import software.amazon.kinesis.common.InitialPositionInStreamExtended;
+import software.amazon.kinesis.coordinator.CoordinatorConfig;
+import software.amazon.kinesis.coordinator.Scheduler;
+import software.amazon.kinesis.coordinator.WorkerStateChangeListener;
+import software.amazon.kinesis.leases.LeaseManagementConfig;
+import software.amazon.kinesis.lifecycle.LifecycleConfig;
+import software.amazon.kinesis.metrics.MetricsConfig;
+import software.amazon.kinesis.metrics.NullMetricsFactory;
+import software.amazon.kinesis.processor.ProcessorConfig;
+import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
+import software.amazon.kinesis.retrieval.RetrievalConfig;
+import software.amazon.kinesis.retrieval.polling.PollingConfig;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
@@ -113,9 +129,9 @@ import java.util.stream.Collectors;
 })
 @DynamicProperties({
         @DynamicProperty(name="Kinesis Client Library (KCL) Configuration property name",
-                description="Override default KCL Configuration properties with required values. Supports setting of values via the \"with\" " +
-                        "methods on the KCL Configuration class. Specify the property to be set without the leading prefix, e.g. \"maxInitialisationAttempts\" " +
-                        "will call \"withMaxInitialisationAttempts\" and set the provided value. Only supports setting of simple property values, e.g. String, " +
+                description="Override default KCL Configuration ConfigsBuilder properties with required values. Supports setting of values directly on " +
+                        "the ConfigsBuilder, such as 'namespace', as well as properties on nested builders. For example, to set configsBuilder.retrievalConfig().maxListShardsRetryAttempts(value), " +
+                        "name the property as 'retrievalConfig.maxListShardsRetryAttempts'. Only supports setting of simple property values, e.g. String, " +
                         "int, long and boolean. Does not allow override of KCL Configuration settings handled by non-dynamic processor properties.",
                 expressionLanguageScope = ExpressionLanguageScope.NONE, value="Value to set in the KCL Configuration property")
 })
@@ -126,7 +142,15 @@ import java.util.stream.Collectors;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
-public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
+public class ConsumeKinesisStream extends AbstractKinesisStreamAsyncProcessor {
+    private static final String CHECKPOINT_CONFIG = "checkpointConfig";
+    private static final String COORDINATOR_CONFIG = "coordinatorConfig";
+    private static final String LEASE_MANAGEMENT_CONFIG = "leaseManagementConfig";
+    private static final String LIFECYCLE_CONFIG = "lifecycleConfig";
+    private static final String METRICS_CONFIG = "metricsConfig";
+    private static final String PROCESSOR_CONFIG = "processorConfig";
+    private static final String RETRIEVAL_CONFIG = "retrievalConfig";
+
     static final AllowableValue TRIM_HORIZON = new AllowableValue(
             InitialPositionInStream.TRIM_HORIZON.toString(),
             InitialPositionInStream.TRIM_HORIZON.toString(),
@@ -270,7 +294,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .build();
 
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE)
+            .fromPropertyDescriptor(AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE)
             .required(true)
             .build();
 
@@ -292,27 +316,23 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             )
     );
 
-    private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = new HashMap<String, PropertyDescriptor>(){{
-        put("regionName", REGION);
-        put("timestampAtInitialPositionInStream", STREAM_POSITION_TIMESTAMP);
-        put("initialPositionInStream", INITIAL_STREAM_POSITION);
-        put("dynamoDBEndpoint", DYNAMODB_ENDPOINT_OVERRIDE);
-        put("kinesisEndpoint", ENDPOINT_OVERRIDE);
-        put("failoverTimeMillis", FAILOVER_TIMEOUT);
-        put("gracefulShutdownMillis", GRACEFUL_SHUTDOWN_TIMEOUT);
+    private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = new HashMap<>() {{
+        put("leaseManagementConfig.initialPositionInStream", INITIAL_STREAM_POSITION);
+        put("leaseManagementConfig.failoverTimeMillis", FAILOVER_TIMEOUT);
     }};
 
     private static final Object WORKER_LOCK = new Object();
-    private static final String WORKER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Worker.class.getSimpleName() + "-";
+    private static final String SCHEDULER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Scheduler.class.getSimpleName() + "-";
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     private static final Set<Relationship> RECORD_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_PARSE_FAILURE)));
 
     private static final PropertyUtilsBean PROPERTY_UTILS_BEAN;
     private static final BeanUtilsBean BEAN_UTILS_BEAN;
+
     static {
         PROPERTY_UTILS_BEAN = new PropertyUtilsBean();
-        PROPERTY_UTILS_BEAN.addBeanIntrospector(new FluentPropertyBeanIntrospector("with"));
+        PROPERTY_UTILS_BEAN.addBeanIntrospector(new FluentPropertyBeanIntrospector(""));
 
         final ConvertUtilsBean2 convertUtilsBean2 = new ConvertUtilsBean2() {
             @SuppressWarnings("unchecked") // generic Enum conversion from String property values
@@ -332,7 +352,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     private volatile boolean isRecordReaderSet;
     private volatile boolean isRecordWriterSet;
 
-    private volatile Worker worker;
+    private volatile Scheduler scheduler;
     final AtomicReference<WorkerStateChangeListener.WorkerState> workerState = new AtomicReference<>(null);
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -368,12 +388,17 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         return builder.build();
     }
 
+    @OnStopped
+    public void onStopped() {
+        super.onStopped();
+    }
+
     private ValidationResult validateDynamicKCLConfigProperty(final String subject, final String input, final ValidationContext context) {
         final ValidationResult.Builder validationResult = new ValidationResult.Builder().subject(subject).input(input);
 
-        if (!subject.matches("^(?!with)[a-zA-Z]\\w*$")) {
+        if (!subject.matches("^(?!with)[a-zA-Z]\\w*(\\.[a-zA-Z]\\w*)?$")) {
             return validationResult
-                    .explanation("Property name must not have a prefix of \"with\", must start with a letter and contain only letters, numbers or underscores")
+                    .explanation("Property name must not have a prefix of \"with\", must start with a letter and contain only letters, numbers, periods, or underscores")
                     .valid(false).build();
         }
 
@@ -383,22 +408,48 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     .valid(false).build();
         }
 
-        final KinesisClientLibConfiguration kclTemp = new KinesisClientLibConfiguration("validate", "validate", null, "validate");
+        final Region region = Region.of(context.getProperty(REGION).getValue());
+        // This is a temporary builder that is not used outside of validation
+        final ConfigsBuilder configsBuilderTemp = new ConfigsBuilder(
+                getStreamName(context),
+                getApplicationName(context),
+                KinesisAsyncClient.builder().region(region).build(),
+                DynamoDbAsyncClient.builder().region(region).build(),
+                CloudWatchAsyncClient.builder().region(region).build(),
+                UUID.randomUUID().toString(),
+                () -> null
+        );
         try {
-            final String propName = StringUtils.uncapitalize(subject);
-            if (!PROPERTY_UTILS_BEAN.isWriteable(kclTemp, propName)) {
-                return validationResult
-                        .explanation(String.format("Kinesis Client Library Configuration property with name %s does not exist or is not writable", StringUtils.capitalize(subject)))
-                        .valid(false).build();
+            if (subject.contains(".")) {
+                final String[] beanParts = subject.split("\\.");
+                if (beanParts.length != 2) {
+                    throw new IllegalArgumentException("Kinesis Client Configuration Builder properties only support one level of nesting");
+                }
+                final String configurationMethod = beanParts[0];
+                final String setterMethod = StringUtils.uncapitalize(beanParts[1]);
+                final Object configurationObject = configsBuilderTemp.getClass().getMethod(configurationMethod).invoke(configsBuilderTemp);
+                if (!PROPERTY_UTILS_BEAN.isWriteable(configurationObject, setterMethod)) {
+                    return validationResult
+                            .explanation(String.format("Kinesis Client Configuration Builder property with name %s does not exist or is not writable", StringUtils.capitalize(subject)))
+                            .valid(false).build();
+                }
+                BEAN_UTILS_BEAN.setProperty(configurationObject, setterMethod, input);
+            } else {
+                final String propName = StringUtils.uncapitalize(subject);
+                if (!PROPERTY_UTILS_BEAN.isWriteable(configsBuilderTemp, propName)) {
+                    return validationResult
+                            .explanation(String.format("Kinesis Client Configuration Builder property with name %s does not exist or is not writable", StringUtils.capitalize(subject)))
+                            .valid(false).build();
+                }
+                BEAN_UTILS_BEAN.setProperty(configsBuilderTemp, propName, input);
             }
-            BEAN_UTILS_BEAN.setProperty(kclTemp, propName, input);
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException | NoSuchMethodException e) {
             return validationResult
-                    .explanation(String.format("Kinesis Client Library Configuration property with name %s is not accessible", StringUtils.capitalize(subject)))
+                    .explanation(String.format("Kinesis Client Configuration Builder property with name %s is not accessible", StringUtils.capitalize(subject)))
                     .valid(false).build();
-        } catch (InvocationTargetException e) {
+        } catch (final InvocationTargetException e) {
             return buildDynamicPropertyBeanValidationResult(validationResult, subject, input, e.getTargetException().getLocalizedMessage());
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             return buildDynamicPropertyBeanValidationResult(validationResult, subject, input, e.getLocalizedMessage());
         }
 
@@ -409,7 +460,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                                                                       final String subject, final String input, final String message) {
         return validationResult
                 .explanation(
-                        String.format("Kinesis Client Library Configuration property with name %s cannot be used with value \"%s\" : %s",
+                        String.format("Kinesis Client Configuration Builder property with name %s cannot be used with value \"%s\" : %s",
                                 StringUtils.capitalize(subject), input, message)
                 )
                 .valid(false).build();
@@ -481,25 +532,25 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        if (worker == null) {
+        if (scheduler == null) {
             synchronized (WORKER_LOCK) {
-                if (worker == null) {
-                    final String workerId = generateWorkerId();
-                    getLogger().info("Starting Kinesis Worker {}", workerId);
-                    // create worker (WorkerState will be CREATED)
-                    worker = prepareWorker(context, sessionFactory, workerId);
-                    // initialise and start Worker (will set WorkerState to INITIALIZING and attempt to start)
-                    new Thread(worker, WORKER_THREAD_NAME_TEMPLATE + workerId).start();
+                if (scheduler == null) {
+                    final String schedulerId = generateSchedulerId();
+                    getLogger().info("Starting Kinesis Scheduler {}", schedulerId);
+                    // create scheduler (WorkerState will be CREATED)
+                    scheduler = prepareScheduler(context, sessionFactory, schedulerId);
+                    // initialise and start Scheduler (will set WorkerState to INITIALIZING and attempt to start)
+                    new Thread(scheduler, SCHEDULER_THREAD_NAME_TEMPLATE + schedulerId).start();
                 }
             }
         } else {
-            // after a Worker is registered successfully, nothing has to be done at onTrigger
-            // new sessions are created when new messages are consumed by the Worker
+            // after a Scheduler is registered successfully, nothing has to be done at onTrigger
+            // new sessions are created when new messages are consumed by the Scheduler
             // and if the WorkerState is unexpectedly SHUT_DOWN, then we don't want to immediately re-enter onTrigger
             context.yield();
 
             if (!stopped.get() && WorkerStateChangeListener.WorkerState.SHUT_DOWN == workerState.get()) {
-                throw new ProcessException("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details");
+                throw new ProcessException("Scheduler has shutdown unexpectedly, possibly due to a configuration issue; check logs for details");
             }
         }
     }
@@ -511,15 +562,15 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
 
     @OnStopped
     public void stopConsuming(final ProcessContext context) {
-        if (worker != null) {
+        if (scheduler != null) {
             synchronized (WORKER_LOCK) {
-                if (worker != null) {
+                if (scheduler != null) {
                     // indicate whether the processor has been Stopped; the Worker can be marked as SHUT_DOWN but still be waiting
                     // for ShardConsumers/RecordProcessors to complete, etc.
                     stopped.set(true);
 
                     final boolean success = shutdownWorker(context);
-                    worker = null;
+                    scheduler = null;
                     workerState.set(null);
 
                     if (!success) {
@@ -530,65 +581,27 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         }
     }
 
-    private synchronized Worker prepareWorker(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String workerId) {
-        final IRecordProcessorFactory factory = prepareRecordProcessorFactory(context, sessionFactory);
+    @VisibleForTesting
+    synchronized Scheduler prepareScheduler(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String schedulerId) {
+        final KinesisAsyncClient kinesisClient = getClient(context);
+        final ConfigsBuilder configsBuilder = prepareConfigsBuilder(context, schedulerId, sessionFactory);
 
-        final KinesisClientLibConfiguration kinesisClientLibConfiguration =
-                prepareKinesisClientLibConfiguration(context, workerId);
-
-        final Worker.Builder workerBuilder = prepareWorkerBuilder(context, kinesisClientLibConfiguration, factory);
-
-        getLogger().info("Kinesis Worker prepared for application {} to process stream {} as worker ID {}...",
-                getApplicationName(context), getStreamName(context), workerId);
-
-        return workerBuilder.build();
-    }
-
-    private IRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        return () -> {
-            if (isRecordReaderSet && isRecordWriterSet) {
-                return new KinesisRecordProcessorRecord(
-                        sessionFactory, getLogger(), getStreamName(context), getClient(context).getEndpointPrefix(),
-                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
-                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
-                        getReaderFactory(context), getWriterFactory(context)
-                );
-            } else {
-                return new KinesisRecordProcessorRaw(
-                        sessionFactory, getLogger(), getStreamName(context), getClient(context).getEndpointPrefix(),
-                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
-                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context)
-                );
-            }
-        };
-    }
-
-    /*
-     *  Developer note: if setting KCL configuration explicitly from processor properties, be sure to add them to the
-     *  DISALLOWED_DYNAMIC_KCL_PROPERTIES list so Dynamic Properties can't be used to override the static properties
-     */
-    KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String workerId) {
-        @SuppressWarnings("deprecated")
-        final KinesisClientLibConfiguration kinesisClientLibConfiguration = new KinesisClientLibConfiguration(
-                getApplicationName(context),
-                getStreamName(context),
-                getCredentialsProvider(context),
-                workerId
-        )
-                .withCommonClientConfig(getClient(context).getClientConfiguration())
-                .withRegionName(getRegion(context).getName())
-                .withFailoverTimeMillis(getFailoverTimeMillis(context))
-                .withShutdownGraceMillis(getGracefulShutdownMillis(context));
-
-        final InitialPositionInStream initialPositionInStream = getInitialPositionInStream(context);
-        if (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream) {
-            kinesisClientLibConfiguration.withTimestampAtInitialPositionInStream(getStartStreamTimestamp(context));
-        } else {
-            kinesisClientLibConfiguration.withInitialPositionInStream(initialPositionInStream);
+        final MetricsConfig metricsConfig = configsBuilder.metricsConfig();
+        if (!isReportCloudWatchMetrics(context)) {
+            metricsConfig.metricsFactory(new NullMetricsFactory());
         }
 
-        getDynamoDBOverride(context).ifPresent(kinesisClientLibConfiguration::withDynamoDBEndpoint);
-        getKinesisEndpoint(context).ifPresent(kinesisClientLibConfiguration::withKinesisEndpoint);
+        final String streamName = getStreamName(context);
+        final LeaseManagementConfig leaseManagementConfig = configsBuilder.leaseManagementConfig()
+                .failoverTimeMillis(getFailoverTimeMillis(context))
+                .streamName(streamName);
+        final CoordinatorConfig coordinatorConfig = configsBuilder.coordinatorConfig().workerStateChangeListener(workerState::set);
+
+        final InitialPositionInStream initialPositionInStream = getInitialPositionInStream(context);
+        final InitialPositionInStreamExtended initialPositionInStreamValue = (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream)
+                ? InitialPositionInStreamExtended.newInitialPositionAtTimestamp(getStartStreamTimestamp(context))
+                : InitialPositionInStreamExtended.newInitialPosition(initialPositionInStream);
+        leaseManagementConfig.initialPositionInStream(initialPositionInStreamValue);
 
         final List<PropertyDescriptor> dynamicProperties = context.getProperties()
                 .keySet()
@@ -596,40 +609,115 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
 
+        final RetrievalConfig retrievalConfig = configsBuilder.retrievalConfig()
+                .retrievalSpecificConfig(new PollingConfig(streamName, kinesisClient));
+
+        final Map<String, Object> configMap = new HashMap<>();
+        configMap.put(CHECKPOINT_CONFIG, configsBuilder.checkpointConfig());
+        configMap.put(COORDINATOR_CONFIG, coordinatorConfig);
+        configMap.put(LEASE_MANAGEMENT_CONFIG, leaseManagementConfig);
+        configMap.put(LIFECYCLE_CONFIG, configsBuilder.lifecycleConfig());
+        configMap.put(METRICS_CONFIG, metricsConfig);
+        configMap.put(PROCESSOR_CONFIG, configsBuilder.processorConfig());
+        configMap.put(RETRIEVAL_CONFIG, retrievalConfig);
+
         dynamicProperties.forEach(descriptor -> {
             final String name = descriptor.getName();
             final String value = context.getProperty(descriptor).getValue();
             try {
-                BEAN_UTILS_BEAN.setProperty(kinesisClientLibConfiguration, StringUtils.uncapitalize(name), value);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new ProcessException(String.format("Unable to set Kinesis Client Library Configuration property %s with value %s", StringUtils.capitalize(name), value), e);
+                if (name.contains(".")) {
+                    final String[] beanParts = name.split("\\.");
+                    if (beanParts.length != 2) {
+                        throw new IllegalArgumentException("Kinesis Client Configuration Builder properties only support one level of nesting");
+                    }
+                    final String configurationMethod = beanParts[0];
+                    final String setterMethod = beanParts[1];
+                    final Object configurationObject = configMap.get(configurationMethod);
+                    if (configurationObject == null) {
+                        throw new IllegalArgumentException("Kinesis Client Configuration Builder does not have a configuration method named " + configurationMethod);
+                    }
+
+                    BEAN_UTILS_BEAN.setProperty(configurationObject, StringUtils.uncapitalize(setterMethod), value);
+                } else {
+                    BEAN_UTILS_BEAN.setProperty(configsBuilder, StringUtils.uncapitalize(name), value);
+                }
+            } catch (final IllegalAccessException | InvocationTargetException e) {
+                throw new ProcessException(String.format("Unable to set Kinesis Client Configuration Builder property %s with value %s", StringUtils.capitalize(name), value), e);
             }
         });
 
-        return kinesisClientLibConfiguration;
+        getLogger().info("Kinesis Scheduler prepared for application {} to process stream {} as scheduler ID {}...",
+                getApplicationName(context), streamName, schedulerId);
+
+        return new Scheduler(
+                (CheckpointConfig) configMap.get(CHECKPOINT_CONFIG),
+                (CoordinatorConfig) configMap.get(COORDINATOR_CONFIG),
+                (LeaseManagementConfig) configMap.get(LEASE_MANAGEMENT_CONFIG),
+                (LifecycleConfig) configMap.get(LIFECYCLE_CONFIG),
+                (MetricsConfig) configMap.get(METRICS_CONFIG),
+                (ProcessorConfig) configMap.get(PROCESSOR_CONFIG),
+                (RetrievalConfig) configMap.get(RETRIEVAL_CONFIG)
+        );
     }
 
-    Worker.Builder prepareWorkerBuilder(final ProcessContext context, final KinesisClientLibConfiguration kinesisClientLibConfiguration,
-                                        final IRecordProcessorFactory factory) {
-        final Worker.Builder workerBuilder = new Worker.Builder()
-                .config(kinesisClientLibConfiguration)
-                .kinesisClient(getClient(context))
-                .workerStateChangeListener(workerState::set)
-                .recordProcessorFactory(factory);
+    private ShardRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        return () -> {
+            if (isRecordReaderSet && isRecordWriterSet) {
+                return new KinesisRecordProcessorRecord(
+                        sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
+                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
+                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
+                        getReaderFactory(context), getWriterFactory(context)
+                );
+            } else {
+                return new KinesisRecordProcessorRaw(
+                        sessionFactory, getLogger(), getStreamName(context), getEndpointPrefix(context),
+                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
+                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context)
+                );
+            }
+        };
+    }
 
-        if (!isReportCloudWatchMetrics(context)) {
-            workerBuilder.metricsFactory(new NullMetricsFactory());
-        }
+    private String getEndpointPrefix(final ProcessContext context) {
+        return "kinesis." + getRegion(context).id().toLowerCase();
+    }
 
-        return workerBuilder;
+    /*
+     *  Developer note: if setting KCL configuration explicitly from processor properties, be sure to add them to the
+     *  DISALLOWED_DYNAMIC_KCL_PROPERTIES list so Dynamic Properties can't be used to override the static properties
+     */
+    @VisibleForTesting
+    ConfigsBuilder prepareConfigsBuilder(final ProcessContext context, final String workerId, final ProcessSessionFactory sessionFactory) {
+        return new ConfigsBuilder(
+                getStreamName(context),
+                getApplicationName(context),
+                getClient(context),
+                getDynamoClient(context),
+                getCloudwatchClient(context),
+                workerId,
+                prepareRecordProcessorFactory(context, sessionFactory)
+        );
+    }
+
+    private CloudWatchAsyncClient getCloudwatchClient(final ProcessContext context) {
+        final CloudWatchAsyncClientBuilder builder = CloudWatchAsyncClient.builder();
+        configureClientBuilder(builder, context, null);
+        return builder.build();
+    }
+
+    private DynamoDbAsyncClient getDynamoClient(final ProcessContext context) {
+        final DynamoDbAsyncClientBuilder dynamoClientBuilder = DynamoDbAsyncClient.builder();
+        configureClientBuilder(dynamoClientBuilder, context, DYNAMODB_ENDPOINT_OVERRIDE);
+        return dynamoClientBuilder.build();
     }
 
     private boolean shutdownWorker(final ProcessContext context) {
         boolean success = true;
         try {
-            if (!worker.hasGracefulShutdownStarted()) {
+            if (!scheduler.hasGracefulShutdownStarted()) {
                 getLogger().info("Requesting Kinesis Worker shutdown");
-                final Future<Boolean> shutdown = worker.startGracefulShutdown();
+                final Future<Boolean> shutdown = scheduler.startGracefulShutdown();
                 // allow 2 seconds longer than the graceful period for shutdown before cancelling the task
                 if (Boolean.FALSE.equals(shutdown.get(getGracefulShutdownMillis(context) + 2_000L, TimeUnit.MILLISECONDS))) {
                     getLogger().warn("Kinesis Worker shutdown did not complete in time, cancelling");
@@ -638,14 +726,14 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     getLogger().info("Kinesis Worker shutdown");
                 }
             }
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (final InterruptedException | TimeoutException | ExecutionException e) {
             getLogger().warn("Problem while shutting down Kinesis Worker: {}", e.getLocalizedMessage(), e);
             success = false;
         }
         return success;
     }
 
-    private String generateWorkerId() {
+    private String generateSchedulerId() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName() + ":" + UUID.randomUUID();
         } catch (UnknownHostException e) {
@@ -688,12 +776,6 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     private Optional<String> getKinesisEndpoint(final PropertyContext context) {
         return context.getProperty(ENDPOINT_OVERRIDE).isSet()
                 ? Optional.of(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
-                : Optional.empty();
-    }
-
-    private Optional<String> getDynamoDBOverride(final PropertyContext context) {
-        return context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).isSet()
-                ? Optional.of(StringUtils.trimToEmpty(context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
                 : Optional.empty();
     }
 
