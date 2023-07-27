@@ -20,7 +20,7 @@
     <parent>
         <artifactId>nifi-snowflake-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -31,12 +31,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snowflake-processors</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snowflake-services-api-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <type>nar</type>
         </dependency>
     </dependencies>

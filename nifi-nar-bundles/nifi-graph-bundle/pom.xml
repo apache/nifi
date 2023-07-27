@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-graph-bundle</artifactId>
@@ -44,7 +44,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-graph-processors</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <!-- Override commons-compress -->
             <dependency>

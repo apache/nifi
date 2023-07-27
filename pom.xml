@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.23.0-SNAPSHOT</version>
+    <version>1.23.0-ANETAC</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -994,12 +994,6 @@
                                         <exclude>commons-logging:commons-logging:*</exclude>
                                         <!-- Apache Xalan is no longer maintained and is bundled in the standard JRE -->
                                         <exclude>xalan:xalan</exclude>
-                                        <!-- As of Bouncycastle 1.71 Java 8 is the minimum required so jdk15on artifacts not allowed -->
-                                        <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
-                                        <exclude>org.bouncycastle:bcpg-jdk15on</exclude>
-                                        <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
-                                        <exclude>org.bouncycastle:bcutil-jdk15on</exclude>
-                                        <exclude>org.bouncycastle:bcmail-jdk15on</exclude>
                                         <!-- Exclude SSHD 2.9.1 and earlier due to CVE-2022-45047 -->
                                         <exclude>org.apache.sshd:*:[,2.9.1]</exclude>
                                     </excludes>

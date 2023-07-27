@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <properties>
@@ -40,7 +40,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-accumulo-processors</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <!-- Override nimbus-jose-jwt 9.8.1 from hadoop-auth -->
             <dependency>

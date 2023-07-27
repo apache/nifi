@@ -21,7 +21,7 @@ limitations under the License.
     <parent>
         <artifactId>nifi</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>c2</artifactId>
@@ -37,7 +37,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
