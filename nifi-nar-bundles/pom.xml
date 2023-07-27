@@ -27,7 +27,6 @@
     </properties>
     <modules>
         <module>nifi-framework-bundle</module>
-        <module>nifi-hadoop-bundle</module>
         <module>nifi-hadoop-libraries-bundle</module>
         <module>nifi-jetty-bundle</module>
         <module>nifi-provenance-repository-bundle</module>
@@ -35,8 +34,6 @@
         <module>nifi-standard-services</module>
         <module>nifi-update-attribute-bundle</module>
         <module>nifi-kafka-bundle</module>
-        <module>nifi-kudu-bundle</module>
-        <module>nifi-solr-bundle</module>
         <module>nifi-confluent-platform-bundle</module>
         <module>nifi-aws-bundle</module>
         <module>nifi-social-media-bundle</module>
@@ -45,13 +42,9 @@
         <module>nifi-ccda-bundle</module>
         <module>nifi-language-translation-bundle</module>
         <module>nifi-mongodb-bundle</module>
-        <module>nifi-flume-bundle</module>
-        <module>nifi-hbase-bundle</module>
-        <module>nifi-ambari-bundle</module>
         <module>nifi-asana-bundle</module>
         <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
-        <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
@@ -74,7 +67,6 @@
         <module>nifi-datadog-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
         <module>nifi-ignite-bundle</module>
-        <module>nifi-rethinkdb-bundle</module>
         <module>nifi-influxdb-bundle</module>
         <module>nifi-graph-bundle</module>
         <module>nifi-email-bundle</module>
@@ -89,11 +81,9 @@
         <module>nifi-cybersecurity-bundle</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
-        <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
         <module>nifi-spark-bundle</module>
-        <module>nifi-atlas-bundle</module>
         <module>nifi-jolt-record-bundle</module>
         <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
@@ -101,7 +91,6 @@
         <module>nifi-sql-reporting-bundle</module>
         <module>nifi-rules-action-handler-bundle</module>
         <module>nifi-hazelcast-bundle</module>
-        <module>nifi-accumulo-bundle</module>
         <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
         <module>nifi-hashicorp-vault-bundle</module>
@@ -109,7 +98,6 @@
         <module>nifi-geohash-bundle</module>
         <module>nifi-snowflake-bundle</module>
         <module>nifi-salesforce-bundle</module>
-        <module>nifi-rocksdb-bundle</module>
         <module>nifi-zendesk-bundle</module>
         <module>nifi-hubspot-bundle</module>
         <module>nifi-dropbox-bundle</module>
