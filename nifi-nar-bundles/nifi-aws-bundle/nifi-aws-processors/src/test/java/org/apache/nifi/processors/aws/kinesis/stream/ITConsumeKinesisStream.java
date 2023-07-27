@@ -17,21 +17,25 @@
 package org.apache.nifi.processors.aws.kinesis.stream;
 
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
-import com.amazonaws.services.kinesis.AmazonKinesis;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
-import com.amazonaws.services.kinesis.model.DeleteStreamRequest;
-import com.amazonaws.services.kinesis.model.ListStreamsResult;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.ListTablesResponse;
+import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.DeleteStreamRequest;
+import software.amazon.awssdk.services.kinesis.model.ListStreamsResponse;
+import software.amazon.awssdk.services.kinesis.model.PutRecordRequest;
+import software.amazon.kinesis.common.InitialPositionInStream;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
@@ -44,14 +48,19 @@ public abstract class ITConsumeKinesisStream {
 
     protected TestRunner runner;
 
-    AmazonKinesis kinesis;
-    AmazonDynamoDB dynamoDB;
+    KinesisClient kinesis;
+    DynamoDbClient dynamoDB;
 
     @Test
     public void readHorizon() throws InterruptedException, IOException {
         String partitionKey = "1";
 
-        kinesis.putRecord(KINESIS_STREAM_NAME, ByteBuffer.wrap("horizon".getBytes()), partitionKey);
+        final PutRecordRequest request = PutRecordRequest.builder()
+                .streamName(KINESIS_STREAM_NAME)
+                .data(SdkBytes.fromString("horizon", Charset.defaultCharset()))
+                .partitionKey(partitionKey)
+                .build();
+        kinesis.putRecord(request);
 
         startKCL(runner, InitialPositionInStream.TRIM_HORIZON);
 
@@ -69,11 +78,21 @@ public abstract class ITConsumeKinesisStream {
     public void readLatest() throws InterruptedException, IOException {
         String partitionKey = "1";
 
-        kinesis.putRecord(KINESIS_STREAM_NAME, ByteBuffer.wrap("horizon".getBytes()), partitionKey);
+        final PutRecordRequest request = PutRecordRequest.builder()
+                .streamName(KINESIS_STREAM_NAME)
+                .data(SdkBytes.fromString("horizon", Charset.defaultCharset()))
+                .partitionKey(partitionKey)
+                .build();
+        kinesis.putRecord(request);
 
         startKCL(runner, InitialPositionInStream.LATEST);
 
-        kinesis.putRecord(KINESIS_STREAM_NAME, ByteBuffer.wrap("latest".getBytes()), partitionKey);
+        final PutRecordRequest request2 = PutRecordRequest.builder()
+                .streamName(KINESIS_STREAM_NAME)
+                .data(SdkBytes.fromString("latest", Charset.defaultCharset()))
+                .partitionKey(partitionKey)
+                .build();
+        kinesis.putRecord(request2);
 
         waitForKCLToProcessTheLatestMessage();
 
@@ -102,7 +121,7 @@ public abstract class ITConsumeKinesisStream {
     }
 
     @AfterEach
-    public void tearDown() throws InterruptedException {
+    public void tearDown() throws InterruptedException, ExecutionException {
         cleanupKinesis();
         cleanupDynamoDB();
 
@@ -115,10 +134,10 @@ public abstract class ITConsumeKinesisStream {
 
     private void cleanupDynamoDB() {
         if (dynamoDB != null) {
-            ListTablesResult tableResults = dynamoDB.listTables();
-            List<String> tableName = tableResults.getTableNames();
+            ListTablesResponse tableResults = dynamoDB.listTables();
+            List<String> tableName = tableResults.tableNames();
             if (tableName.contains(APPLICATION_NAME)) {
-                dynamoDB.deleteTable(APPLICATION_NAME);
+                dynamoDB.deleteTable(DeleteTableRequest.builder().tableName(APPLICATION_NAME).build());
             }
         }
         dynamoDB = null;
@@ -126,10 +145,10 @@ public abstract class ITConsumeKinesisStream {
 
     private void cleanupKinesis() {
         if (kinesis != null) {
-            ListStreamsResult streamsResult = kinesis.listStreams();
-            List<String> streamNames = streamsResult.getStreamNames();
+            final ListStreamsResponse streamsResult = kinesis.listStreams();
+            List<String> streamNames = streamsResult.streamNames();
             if (streamNames.contains(KINESIS_STREAM_NAME)) {
-                kinesis.deleteStream(new DeleteStreamRequest().withStreamName(KINESIS_STREAM_NAME));
+                kinesis.deleteStream(DeleteStreamRequest.builder().streamName(KINESIS_STREAM_NAME).build());
             }
         }
         kinesis = null;

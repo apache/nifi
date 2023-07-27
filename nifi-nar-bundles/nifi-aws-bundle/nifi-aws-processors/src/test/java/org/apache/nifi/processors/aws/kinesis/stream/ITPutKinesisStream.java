@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
+import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -126,7 +127,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "2");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -144,7 +145,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.setProperty(PutKinesisStream.KINESIS_PARTITION_KEY, "${partitionKey}");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -163,7 +164,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "5");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "2 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -185,7 +186,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -208,7 +209,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -230,7 +231,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "2");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -253,7 +254,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE * 2)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -281,7 +282,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE * 2)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -309,7 +310,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "10");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE * 2)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
@@ -359,7 +360,7 @@ public class ITPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "5");
         runner.setProperty(PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE)];
+        byte [] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }

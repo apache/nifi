@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
-import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.util.StopWatch;
+import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
+import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -38,12 +39,16 @@ public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
-        final String partitionKey = kinesisRecord.getPartitionKey();
-        final String sequenceNumber = kinesisRecord.getSequenceNumber();
-        final Date approximateArrivalTimestamp = kinesisRecord.getApproximateArrivalTimestamp();
-        final byte[] data = kinesisRecord.getData() != null ? kinesisRecord.getData().array() : new byte[0];
+        final String partitionKey = kinesisRecord.partitionKey();
+        final String sequenceNumber = kinesisRecord.sequenceNumber();
+        final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
+        final ByteBuffer dataBuffer = kinesisRecord.data();
+        byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
+        if (data != null) {
+            dataBuffer.get(data);
+        }
 
         FlowFile flowFile = session.create();
         session.write(flowFile, out -> out.write(data));

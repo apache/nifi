@@ -16,17 +16,12 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.ClientConfiguration;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessorFactory;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
-import com.amazonaws.services.kinesis.clientlibrary.lib.worker.WorkerStateChangeListener;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -38,6 +33,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.kinesis.common.ConfigsBuilder;
+import software.amazon.kinesis.common.InitialPositionInStream;
+import software.amazon.kinesis.coordinator.Scheduler;
+import software.amazon.kinesis.coordinator.WorkerStateChangeListener;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -46,7 +46,6 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -257,18 +256,18 @@ public class TestConsumeKinesisStream {
         runner.setProperty("no)allowed", "no-)");
 
         // can't override static properties
-        runner.setProperty("regionName", Regions.AF_SOUTH_1.getName());
-        runner.setProperty("timestampAtInitialPositionInStream", "2021-01-01 00:00:00");
-        runner.setProperty("initialPositionInStream", "AT_TIMESTAMP");
-        runner.setProperty("dynamoDBEndpoint", "http://localhost:4566/dynamodb");
-        runner.setProperty("kinesisEndpoint", "http://localhost:4566/kinesis");
+        runner.setProperty("leaseManagementConfig.failoverTimeMillis", "1000");
+        runner.setProperty("leaseManagementConfig.initialPositionInStream", "AT_TIMESTAMP");
 
         // invalid parameter conversions
-        runner.setProperty("dynamoDBClientConfig", "too-complex");
-        runner.setProperty("shutdownGraceMillis", "not-long");
+        runner.setProperty("checkpointConfig.checkpointFactory", "too-complex");
+        runner.setProperty("coordinatorConfig.schedulerInitializationBackoffTimeMillis", "not-long");
+
+        // valid dynamic parameters
+        runner.setProperty("namespace", "value");
 
         final AssertionError ae = assertThrows(AssertionError.class, runner::assertValid);
-        assertThat(ae.getMessage(), startsWith("Processor has 17 validation failures:\n"));
+        assertThat(ae.getMessage(), startsWith("Processor has 13 validation failures:\n"));
 
         // blank properties
         assertThat(ae.getMessage(), containsString("'Property Name' validated against '' is invalid because Invalid attribute key: <Empty String>\n"));
@@ -277,74 +276,60 @@ public class TestConsumeKinesisStream {
         // invalid property names
         assertThat(ae.getMessage(), containsString(
                 "'withPrefixNotAllowed' validated against 'a-value' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
-                "'unknownProperty' validated against 'a-third-value' is invalid because Kinesis Client Library Configuration property with name " +
+                "'unknownProperty' validated against 'a-third-value' is invalid because Kinesis Client Configuration Builder property with name " +
                 "UnknownProperty does not exist or is not writable\n"
         ));
         assertThat(ae.getMessage(), containsString(
-                "'toString' validated against 'cannot-call' is invalid because Kinesis Client Library Configuration property with name " +
+                "'toString' validated against 'cannot-call' is invalid because Kinesis Client Configuration Builder property with name " +
                 "ToString does not exist or is not writable\n"
         ));
 
         // invalid property names (cannot use nested/indexed/mapped properties via BeanUtils)
         assertThat(ae.getMessage(), containsString(
-                "'no.allowed' validated against 'no-.' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
                 "'no[allowed' validated against 'no-[' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no]allowed' validated against 'no-]' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no(allowed' validated against 'no-(' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no)allowed' validated against 'no-)' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers, periods, or underscores\n"
         ));
 
         // can't override static properties
-        assertThat(ae.getMessage(), containsString("'regionName' validated against 'af-south-1' is invalid because Use \"Region\" instead of a dynamic property\n"));
         assertThat(ae.getMessage(), containsString(
-                "'timestampAtInitialPositionInStream' validated against '2021-01-01 00:00:00' is invalid because Use \"Stream Position Timestamp\" instead of a dynamic property\n"
+                "'leaseManagementConfig.failoverTimeMillis' validated against '1000' is invalid because Use \"Failover Timeout\" instead of a dynamic property\n"
         ));
         assertThat(ae.getMessage(), containsString(
-                "'initialPositionInStream' validated against 'AT_TIMESTAMP' is invalid because Use \"Initial Stream Position\" instead of a dynamic property\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'dynamoDBEndpoint' validated against 'http://localhost:4566/dynamodb' is invalid because Use \"DynamoDB Override\" instead of a dynamic property\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'kinesisEndpoint' validated against 'http://localhost:4566/kinesis' is invalid because Use \"Endpoint Override URL\" instead of a dynamic property\n"
+                "'leaseManagementConfig.initialPositionInStream' validated against 'AT_TIMESTAMP' is invalid because Use \"Initial Stream Position\" instead of a dynamic property\n"
         ));
 
         // invalid parameter conversions
         assertThat(ae.getMessage(), containsString(
-                "'dynamoDBClientConfig' validated against 'too-complex' is invalid because Kinesis Client Library Configuration property " +
-                "with name DynamoDBClientConfig cannot be used with value \"too-complex\" : " +
-                "Cannot invoke com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration.withDynamoDBClientConfig on bean class " +
-                "'class com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration' - argument type mismatch - " +
-                "had objects of type \"java.lang.String\" but expected signature \"com.amazonaws.ClientConfiguration\"\n"
+                "'checkpointConfig.checkpointFactory' validated against 'too-complex' is invalid because Kinesis Client Configuration Builder property " +
+                "with name CheckpointConfig.checkpointFactory cannot be used with value \"too-complex\" : " +
+                "Cannot invoke software.amazon.kinesis.checkpoint.CheckpointConfig.checkpointFactory on bean class " +
+                "'class software.amazon.kinesis.checkpoint.CheckpointConfig' - argument type mismatch - had objects of type \"java.lang.String\" " +
+                "but expected signature \"software.amazon.kinesis.checkpoint.CheckpointFactory\"\n"
         ));
-        assertThat(ae.getMessage(), containsString("'shutdownGraceMillis' validated against 'not-long' is invalid because " +
-                "Kinesis Client Library Configuration property with name ShutdownGraceMillis " +
-                "cannot be used with value \"not-long\" : Value of ShutdownGraceMillis should be positive, but current value is 0\n"));
     }
 
     @Test
     public void testValidDynamicKCLProperties() {
-        runner.setProperty("billingMode", "PROVISIONED"); // enum
-        runner.setProperty("idleMillisBetweenCalls", "1000"); // long
-        runner.setProperty("cleanupLeasesUponShardCompletion", "true"); // boolean
-        runner.setProperty("initialLeaseTableReadCapacity", "1"); // int
-        runner.setProperty("DataFetchingStrategy", "DEFAULT"); // String with uppercase leading character in property name
+        runner.setProperty("leaseManagementConfig.billingMode", "PROVISIONED"); // enum
+        runner.setProperty("leaseManagementConfig.leasesRecoveryAuditorExecutionFrequencyMillis", "1000"); // long
+        runner.setProperty("leaseManagementConfig.cleanupLeasesUponShardCompletion", "true"); // boolean
+        runner.setProperty("leaseManagementConfig.initialLeaseTableReadCapacity", "1"); // int
+        runner.setProperty("leaseManagementConfig.MaxCacheMissesBeforeReload", "2"); // String with uppercase leading character in property name
 
         runner.assertValid();
     }
@@ -374,7 +359,7 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "aws-credentials");
 
         // speed up init process for the unit test (and show use of dynamic properties to configure KCL)
-        mockConsumeKinesisStreamRunner.setProperty("parentShardPollIntervalMillis", "1");
+        mockConsumeKinesisStreamRunner.setProperty("coordinatorConfig.parentShardPollIntervalMillis", "1");
 
         mockConsumeKinesisStreamRunner.assertValid();
 
@@ -382,13 +367,16 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.run(1, false);
         final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockConsumeKinesisStreamRunner.getProcessor());
 
-        // WorkerState should get to INITIALIZING pretty quickly, but there's a change it will still be at CREATED by the time we get here
+        Thread.sleep(50);
+
+        // WorkerState should get to INITIALIZING pretty quickly, but there's a chance it will still be at CREATED by the time we get here
         assertThat(processor.workerState.get(), anyOf(equalTo(WorkerStateChangeListener.WorkerState.INITIALIZING), equalTo(WorkerStateChangeListener.WorkerState.CREATED)));
 
         final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
-        assertKinesisClientLibConfiguration(processor.kinesisClientLibConfiguration, withCredentials, hostname);
-        assertThat(processor.workerBuilder.build().getApplicationName(), equalTo("test-application"));
+        assertSchedulerConfigs(processor.scheduler, hostname);
+        assertConfigsBuilder(processor.configsBuilder);
+        assertThat(processor.scheduler.applicationName(), equalTo("test-application"));
 
         if (!waitForFailure) {
             // re-trigger the processor to ensure the Worker isn't re-initialised when already running
@@ -412,57 +400,36 @@ public class TestConsumeKinesisStream {
         }
     }
 
-    private void assertKinesisClientLibConfiguration(final KinesisClientLibConfiguration kinesisClientLibConfiguration,
-                                                     final boolean withCredentials, final String hostname) {
-        assertThat(kinesisClientLibConfiguration.getWorkerIdentifier(), startsWith(hostname));
-        assertThat(kinesisClientLibConfiguration.getApplicationName(), equalTo("test-application"));
-        assertThat(kinesisClientLibConfiguration.getStreamName(), equalTo("test-stream"));
+    private void assertConfigsBuilder(final ConfigsBuilder configsBuilder) {
+        assertThat(configsBuilder.kinesisClient().serviceClientConfiguration().region().id(), equalTo(Region.EU_WEST_2.id()));
+        assertTrue(configsBuilder.dynamoDBClient().serviceClientConfiguration().endpointOverride().isEmpty());
+        assertTrue(configsBuilder.kinesisClient().serviceClientConfiguration().endpointOverride().isEmpty());
+    }
 
-        if (withCredentials) {
-            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
-            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
-            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
-        } else {
-            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
-            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
-            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
-            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
-            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
-            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
-        }
-
-        assertThat(kinesisClientLibConfiguration.getRegionName(), equalTo(Regions.EU_WEST_2.getName()));
-        assertThat(kinesisClientLibConfiguration.getInitialPositionInStream(), equalTo(InitialPositionInStream.LATEST));
-        assertThat(kinesisClientLibConfiguration.getDynamoDBEndpoint(), nullValue());
-        assertThat(kinesisClientLibConfiguration.getKinesisEndpoint(), nullValue());
-
-        assertThat(kinesisClientLibConfiguration.getKinesisClientConfiguration(), instanceOf(ClientConfiguration.class));
-        assertThat(kinesisClientLibConfiguration.getDynamoDBClientConfiguration(), instanceOf(ClientConfiguration.class));
-        assertThat(kinesisClientLibConfiguration.getCloudWatchClientConfiguration(), instanceOf(ClientConfiguration.class));
-
-        assertThat(kinesisClientLibConfiguration.getParentShardPollIntervalMillis(), equalTo(1L));
+    private void assertSchedulerConfigs(final Scheduler scheduler, final String hostname) {
+        assertThat(scheduler.leaseManagementConfig().workerIdentifier(), startsWith(hostname));
+        assertThat(scheduler.coordinatorConfig().applicationName(), equalTo("test-application"));
+        assertThat(scheduler.leaseManagementConfig().streamName(), equalTo("test-stream"));
+        assertThat(scheduler.leaseManagementConfig().initialPositionInStream().getInitialPositionInStream(), equalTo(InitialPositionInStream.LATEST));
+        assertThat(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), equalTo(1L));
     }
 
     // public so TestRunners is able to see and instantiate the class for the tests
     public static class MockConsumeKinesisStream extends ConsumeKinesisStream {
-        // capture the WorkerBuilder and KinesisClientLibConfiguration for unit test assertions
-        KinesisClientLibConfiguration kinesisClientLibConfiguration;
-        Worker.Builder workerBuilder;
+        // capture the Scheduler and ConfigsBuilder for unit test assertions
+        ConfigsBuilder configsBuilder;
+        Scheduler scheduler;
 
         @Override
-        Worker.Builder prepareWorkerBuilder(final ProcessContext context, final KinesisClientLibConfiguration kinesisClientLibConfiguration,
-                                            final IRecordProcessorFactory factory) {
-            workerBuilder = super.prepareWorkerBuilder(context, kinesisClientLibConfiguration, factory);
-            return workerBuilder;
+        synchronized Scheduler prepareScheduler(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String schedulerId) {
+            scheduler = super.prepareScheduler(context, sessionFactory, schedulerId);
+            return scheduler;
         }
 
         @Override
-        KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String workerId) {
-            kinesisClientLibConfiguration = super.prepareKinesisClientLibConfiguration(context, workerId);
-            return kinesisClientLibConfiguration;
+        ConfigsBuilder prepareConfigsBuilder(final ProcessContext context, final String workerId, final ProcessSessionFactory sessionFactory) {
+            configsBuilder = super.prepareConfigsBuilder(context, workerId, sessionFactory);
+            return configsBuilder;
         }
     }
 }

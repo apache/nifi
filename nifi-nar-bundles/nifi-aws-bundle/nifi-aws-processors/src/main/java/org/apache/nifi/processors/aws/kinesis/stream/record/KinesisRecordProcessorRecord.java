@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
-import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -33,14 +32,16 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StopWatch;
+import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -73,11 +74,15 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final KinesisClientRecord kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
         boolean firstOutputRecord = true;
         int recordCount = 0;
-        final byte[] data = kinesisRecord.getData() != null ? kinesisRecord.getData().array() : new byte[0];
+        final ByteBuffer dataBuffer = kinesisRecord.data();
+        byte[] data = dataBuffer != null ? new byte[dataBuffer.remaining()] : new byte[0];
+        if (data != null) {
+            dataBuffer.get(data);
+        }
 
         FlowFile flowFile = null;
         try (final InputStream in = new ByteArrayInputStream(data);
@@ -112,7 +117,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
         if (getLogger().isDebugEnabled()) {
             getLogger().debug("Sequence No: {}, Partition Key: {}, Data: {}",
-                    kinesisRecord.getSequenceNumber(), kinesisRecord.getPartitionKey(), BASE_64_ENCODER.encodeToString(data));
+                    kinesisRecord.sequenceNumber(), kinesisRecord.partitionKey(), BASE_64_ENCODER.encodeToString(data));
         }
     }
 
@@ -128,7 +133,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     private void completeFlowFile(final List<FlowFile> flowFiles, final ProcessSession session, final int recordCount,
-                                  final WriteResult writeResult, final Record lastRecord, final StopWatch stopWatch)
+                                  final WriteResult writeResult, final KinesisClientRecord lastRecord, final StopWatch stopWatch)
             throws IOException {
 
         try {
@@ -161,7 +166,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
     private void outputRawRecordOnException(final boolean firstOutputRecord, final FlowFile flowFile,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
-                                            final byte[] data, final Record kinesisRecord, final Exception e) {
+                                            final byte[] data, final KinesisClientRecord kinesisRecord, final Exception e) {
         if (firstOutputRecord && flowFile != null) {
             session.remove(flowFile);
             flowFiles.remove(0);
@@ -183,10 +188,10 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         transferTo(ConsumeKinesisStream.REL_PARSE_FAILURE, session, 0, 0, Collections.singletonList(failed));
     }
 
-    private Map<String, String> getDefaultAttributes(final Record kinesisRecord) {
-        final String partitionKey = kinesisRecord.getPartitionKey();
-        final String sequenceNumber = kinesisRecord.getSequenceNumber();
-        final Date approximateArrivalTimestamp = kinesisRecord.getApproximateArrivalTimestamp();
+    private Map<String, String> getDefaultAttributes(final KinesisClientRecord kinesisRecord) {
+        final String partitionKey = kinesisRecord.partitionKey();
+        final String sequenceNumber = kinesisRecord.sequenceNumber();
+        final Instant approximateArrivalTimestamp = kinesisRecord.approximateArrivalTimestamp();
         return getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
     }
 }
