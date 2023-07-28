@@ -37,13 +37,9 @@
         <module>nifi-standard-services-api-nar</module>
         <module>nifi-dbcp-service-api</module>
         <module>nifi-dbcp-service-bundle</module>
-        <module>nifi-hbase-client-service-api</module>
-        <module>nifi-hbase_1_1_2-client-service-bundle</module>
-        <module>nifi-hbase_2-client-service-bundle</module>
         <module>nifi-schema-registry-service-api</module>
         <module>nifi-record-serialization-service-api</module>
         <module>nifi-record-serialization-services-bundle</module>
-        <module>nifi-hwx-schema-registry-bundle</module>
         <module>nifi-kerberos-credentials-service-api</module>
         <module>nifi-kerberos-credentials-service-bundle</module>
         <module>nifi-proxy-configuration-api</module>
@@ -53,7 +49,6 @@
         <module>nifi-rules-engine-service-api</module>
         <module>nifi-record-sink-api</module>
         <module>nifi-record-sink-service-bundle</module>
-        <module>nifi-hadoop-dbcp-service-bundle</module>
         <module>nifi-kerberos-user-service-api</module>
         <module>nifi-kerberos-user-service-bundle</module>
         <module>nifi-web-client-provider-bundle</module>
