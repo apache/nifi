@@ -1,0 +1,28 @@
+[
+    {
+        "msg": "Hello"
+    },
+    {
+        "id": null,
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-3",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-4",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-5",
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-6",
+        "type": "message",
+        "msg": "Hello",
+        "time": 46523000
+    }
+]

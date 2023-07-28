@@ -1,0 +1,90 @@
+{
+    "type": "record",
+    "name": "RecordPathTestType",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "op",
+            "type": "string"
+        },
+        {
+            "name": "index",
+            "type": "string"
+        },
+        {
+            "name": "type",
+            "type": "string"
+        },
+        {
+            "name": "msg",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "name": "ts",
+            "type": {
+                "type": "long",
+                "logicalType": "timestamp-millis"
+            }
+        },
+        {
+            "name": "date",
+            "type": {
+                "type": "int",
+                "logicalType": "date"
+            }
+        },
+        {
+            "name": "time",
+            "type": {
+                "type": "int",
+                "logicalType": "time-millis"
+            }
+        },
+        {
+            "name": "code",
+            "type": "long"
+        },
+        {
+            "name": "script",
+            "type": {
+                "type": "map",
+                "values": "string"
+            }
+        },
+        {
+            "name": "scripted_upsert",
+            "type": [
+                "null",
+                "boolean",
+                "string"
+            ]
+        },
+        {
+            "name": "script_record",
+            "type": {
+                "type": "record",
+                "name": "nested",
+                "fields": [
+                    {
+                        "name": "source",
+                        "type": "string"
+                    },
+                    {
+                        "name": "language",
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "dynamic_templates",
+            "type": "string"
+        }
+    ]
+}
