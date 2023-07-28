@@ -1,0 +1,92 @@
+[
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "14",
+        "_score": 1,
+        "_source": {
+          "msg": "five"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "5",
+        "_score": 1,
+        "_source": {
+          "msg": "three"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "8",
+        "_score": 1,
+        "_source": {
+          "msg": "four"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "9",
+        "_score": 1,
+        "_source": {
+          "msg": "four"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "10",
+        "_score": 1,
+        "_source": {
+          "msg": "four"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "12",
+        "_score": 1,
+        "_source": {
+          "msg": "five"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "2",
+        "_score": 1,
+        "_source": {
+          "msg": "two"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "4",
+        "_score": 1,
+        "_source": {
+          "msg": "three"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "6",
+        "_score": 1,
+        "_source": {
+          "msg": "three"
+        }
+      },
+      {
+        "_index": "messages",
+        "_type": "message",
+        "_id": "15",
+        "_score": 1,
+        "_source": {
+          "msg": "five"
+        }
+      }
+    ]

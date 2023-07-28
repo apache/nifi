@@ -1,0 +1,10 @@
+{
+  "size": 10,
+  "sort": {
+    "msg": "desc"
+  },
+  "query": {
+    "match_all": {
+    }
+  }
+}

@@ -1,0 +1,10 @@
+[
+    {
+        "id": "rec-1",
+        "op": "index",
+        "index": "bulk_a",
+        "type": "message",
+        "msg": "Hello",
+        "empty": ""
+    }
+]

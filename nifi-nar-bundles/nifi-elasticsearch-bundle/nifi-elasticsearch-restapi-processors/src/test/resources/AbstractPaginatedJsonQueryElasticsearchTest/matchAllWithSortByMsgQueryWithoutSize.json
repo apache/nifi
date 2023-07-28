@@ -1,0 +1,9 @@
+{
+  "sort": {
+    "msg": "desc"
+  },
+  "query": {
+    "match_all": {
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+    "name": "TestSchema",
+    "type": "record",
+    "fields": [
+        {
+            "name": "msg",
+            "type": "string"
+        },
+        {
+            "name": "from",
+            "type": "string"
+        },
+        {
+            "name": "routing",
+            "type": "string"
+        },
+        {
+            "name": "version",
+            "type": "string"
+        }
+    ]
+}

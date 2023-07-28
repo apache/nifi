@@ -71,7 +71,7 @@ public class IndexOperationRequest {
         return operation;
     }
 
-    public Map<String, Object> getScript() {
+    public Map<String, Object>  getScript() {
         return script;
     }
 
