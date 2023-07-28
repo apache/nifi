@@ -41,6 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
@@ -78,6 +79,20 @@ public class GetSMBAccountPermissions extends AbstractProcessor  {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+    
+    public static final PropertyDescriptor ACCOUNT_SID = new PropertyDescriptor.Builder()
+            .name("Account SID")
+            .description("SID of account for which to get permissions")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, HOSTNAME, DOMAIN, USERNAME, PASSWORD);
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
+    }
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -87,17 +102,12 @@ public class GetSMBAccountPermissions extends AbstractProcessor  {
             .name("failure")
             .description("FlowFiles are routed to failure relationship when account rights cannot be retrieved")
             .build();
+
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.unmodifiableSet(
                 new LinkedHashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
     }
-    public static final PropertyDescriptor ACCOUNT_SID = new PropertyDescriptor.Builder()
-            .name("Account SID")
-            .description("SID of account for which to get permissions")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
