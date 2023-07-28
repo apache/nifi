@@ -120,11 +120,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
-            <artifactId>nifi-registry-web-ui</artifactId>
-            <type>war</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-api</artifactId>
             <type>war</type>
         </dependency>

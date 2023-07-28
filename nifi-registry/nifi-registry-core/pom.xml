@@ -38,7 +38,6 @@
         <module>nifi-registry-framework</module>
         <module>nifi-registry-provider-api</module>
         <module>nifi-registry-web-api</module>
-        <module>nifi-registry-web-ui</module>
         <module>nifi-registry-web-docs</module>
         <module>nifi-registry-bootstrap</module>
         <module>nifi-registry-docs</module>

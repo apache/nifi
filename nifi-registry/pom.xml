@@ -170,12 +170,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
-                <artifactId>nifi-registry-web-ui</artifactId>
-                <type>war</type>
-                <version>1.23.0-ANETAC</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-api</artifactId>
                 <type>war</type>
                 <version>1.23.0-ANETAC</version>
