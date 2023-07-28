@@ -59,6 +59,11 @@
             <artifactId>smbj</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.rapid7.client</groupId>
+            <artifactId>dcerpc</artifactId>
+            <version>0.12.1-ANETAC</version>
+        </dependency>
+        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
