@@ -91,6 +91,14 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor ACCESS_LEVEL = new PropertyDescriptor.Builder()
+            .name("Access level")
+            .description("integer representation of policy object access level")
+            .required(true)
+            .defaultValue("33554432")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor AD_SERVER_NAME = new PropertyDescriptor.Builder()
             .name("AD Server Name")
             .description("Name of Active Directory Serer")
@@ -98,7 +106,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT, USE_ENCRYPTION, TIMEOUT);
+    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT, USE_ENCRYPTION, ACCESS_LEVEL, TIMEOUT);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -127,6 +135,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
         final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
+        final String accessLevel = context.getProperty(ACCESS_LEVEL).evaluateAttributeExpressions().getValue();
         final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet() ?
                 context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions().getValue() : null;
         final SID accountSid = SID.fromString(context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions().getValue());
@@ -148,7 +157,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             getLogger().debug("Connected to SMB service. SessionId: {}, SessionKey: {}", new Object[]{sessionId, sessionKey});
             final LocalSecurityAuthorityService service = new LocalSecurityAuthorityService(transport);
 
-            PolicyHandle handle = service.openPolicyHandle(adServerNameorNull, LocalSecurityAuthorityService.MAXIMUM_ALLOWED);
+            PolicyHandle handle = service.openPolicyHandle(adServerNameorNull, Integer.parseInt(accessLevel));
             String[] accountRights = service.getAccountRights(handle, accountSid);
 
             // add account rights to incoming flowfile and pass it to success relationship
