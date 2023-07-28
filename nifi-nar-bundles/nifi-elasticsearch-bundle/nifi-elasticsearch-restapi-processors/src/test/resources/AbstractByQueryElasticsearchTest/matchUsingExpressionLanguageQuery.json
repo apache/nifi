@@ -1,0 +1,7 @@
+{
+	"query": {
+		"match": {
+			"${field.name}.keyword": "test"
+		}
+	}
+}

@@ -1,0 +1,54 @@
+{
+    "term_agg": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "five",
+          "doc_count": 5
+        },
+        {
+          "key": "four",
+          "doc_count": 4
+        },
+        {
+          "key": "three",
+          "doc_count": 3
+        },
+        {
+          "key": "two",
+          "doc_count": 2
+        },
+        {
+          "key": "one",
+          "doc_count": 1
+        }
+      ]
+    },
+    "term_agg2": {
+      "doc_count_error_upper_bound": 0,
+      "sum_other_doc_count": 0,
+      "buckets": [
+        {
+          "key": "five",
+          "doc_count": 5
+        },
+        {
+          "key": "four",
+          "doc_count": 4
+        },
+        {
+          "key": "three",
+          "doc_count": 3
+        },
+        {
+          "key": "two",
+          "doc_count": 2
+        },
+        {
+          "key": "one",
+          "doc_count": 1
+        }
+      ]
+    }
+  }

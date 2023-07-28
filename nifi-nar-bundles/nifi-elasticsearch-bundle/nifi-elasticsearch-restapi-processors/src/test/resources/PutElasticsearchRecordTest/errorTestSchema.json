@@ -1,0 +1,21 @@
+{
+    "type": "record",
+    "name": "RecordPathTestType",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "field1",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "name": "field2",
+            "type": "string"
+        }
+    ]
+}

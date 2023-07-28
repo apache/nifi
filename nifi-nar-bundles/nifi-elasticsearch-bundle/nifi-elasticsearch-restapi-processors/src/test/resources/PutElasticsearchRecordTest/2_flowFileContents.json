@@ -1,0 +1,49 @@
+[
+    {
+        "id": "rec-1",
+        "op": null,
+        "index": null,
+        "type": null,
+        "msg": "Hello",
+        "date": 1606435200000
+    },
+    {
+        "id": "rec-2",
+        "op": null,
+        "index": null,
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-3",
+        "op": null,
+        "index": null,
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-4",
+        "op": null,
+        "index": null,
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-5",
+        "op": "update",
+        "index": null,
+        "type": null,
+        "msg": "Hello"
+    },
+    {
+        "id": "rec-6",
+        "op": null,
+        "index": "bulk_b",
+        "type": "message",
+        "msg": "Hello",
+        "script_record": {
+            "source": "some script",
+            "language": "painless"
+        }
+    }
+]

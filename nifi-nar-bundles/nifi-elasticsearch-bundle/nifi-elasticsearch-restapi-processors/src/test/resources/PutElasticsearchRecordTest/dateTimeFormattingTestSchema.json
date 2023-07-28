@@ -1,0 +1,54 @@
+{
+    "type": "record",
+    "name": "DateTimeFormattingTestType",
+    "fields": [
+        {
+            "name": "msg",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "name": "ts",
+            "type": [
+                "null",
+                {
+                    "type": "long",
+                    "logicalType": "timestamp-millis"
+                }
+            ]
+        },
+        {
+            "name": "date",
+            "type": [
+                "null",
+                {
+                    "type": "int",
+                    "logicalType": "date"
+                }
+            ]
+        },
+        {
+            "name": "time",
+            "type": [
+                "null",
+                {
+                    "type": "int",
+                    "logicalType": "time-millis"
+                }
+            ]
+        },
+        {
+            "name": "choice_ts",
+            "type": [
+                "null",
+                {
+                    "type": "long",
+                    "logicalType": "timestamp-millis"
+                },
+                "string"
+            ]
+        }
+    ]
+}

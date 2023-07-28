@@ -1,0 +1,21 @@
+[ {
+  "id" : "1",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "2",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "2",
+  "field1" : "value1",
+  "field2" : "20"
+}, {
+  "id" : "3",
+  "field1" : "value1",
+  "field2" : "20abcd"
+}, {
+  "id" : "4",
+  "field1" : "value2",
+  "field2" : "30"
+} ]
