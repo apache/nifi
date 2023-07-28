@@ -44,13 +44,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
+import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
+import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
+
 @Tags({"windows, smb, security, account, permissions"})
 @CapabilityDescription("Retrieves account permissions for a given account")
 @WritesAttributes({
-@WritesAttribute(attribute = "accountRights", description = "The account rights of the given account")
+        @WritesAttribute(attribute = "accountRights", description = "The account rights of the given account")
 })
-public class GetSMBAccountPermissions extends AbstractProcessor  {
+public class GetSMBAccountPermissions extends AbstractProcessor {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
@@ -79,7 +83,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor  {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
-    
+
     public static final PropertyDescriptor ACCOUNT_SID = new PropertyDescriptor.Builder()
             .name("Account SID")
             .description("SID of account for which to get permissions")
@@ -87,7 +91,14 @@ public class GetSMBAccountPermissions extends AbstractProcessor  {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, HOSTNAME, DOMAIN, USERNAME, PASSWORD);
+    public static final PropertyDescriptor AD_SERVER_NAME = new PropertyDescriptor.Builder()
+            .name("AD Server Name")
+            .description("Name of Active Directory Serer")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT, USE_ENCRYPTION, TIMEOUT);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -113,29 +124,31 @@ public class GetSMBAccountPermissions extends AbstractProcessor  {
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         SMBClient smbClient = initSmbClient(context);
         final String hostname = context.getProperty(HOSTNAME).getValue();
-        final String domain = context.getProperty(DOMAIN).getValue();
+        final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
-
+        final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet() ?
+                context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions().getValue() : null;
+        final SID accountSid = SID.fromString(context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions().getValue());
         AuthenticationContext ac = null;
         if (username != null && password != null) {
-            ac = new AuthenticationContext(
-                    username,
-                    password.toCharArray(),
-                    domain);
+            ac = new AuthenticationContext(username, password.toCharArray(), domainOrNull);
         } else {
             ac = AuthenticationContext.anonymous();
         }
         FlowFile flowFile = session.get();
-        if(flowFile == null) {
+        if (flowFile == null) {
             flowFile = session.create();
         }
         try (Connection connection = smbClient.connect(hostname);
-            Session smbSession = connection.authenticate(ac)) {
+             Session smbSession = connection.authenticate(ac)) {
             final RPCTransport transport = SMBTransportFactories.SRVSVC.getTransport(smbSession);
+            long sessionId = smbSession.getSessionId();
+            String sessionKey = smbSession.getSessionContext().getSessionKey().toString();
+            getLogger().debug("Connected to SMB service. SessionId: {}, SessionKey: {}", new Object[]{sessionId, sessionKey});
             final LocalSecurityAuthorityService service = new LocalSecurityAuthorityService(transport);
-            final SID accountSid = SID.fromString(context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions().getValue());
-            PolicyHandle handle = service.openPolicyHandle(hostname, LocalSecurityAuthorityService.MAXIMUM_ALLOWED);
+
+            PolicyHandle handle = service.openPolicyHandle(adServerNameorNull, LocalSecurityAuthorityService.MAXIMUM_ALLOWED);
             String[] accountRights = service.getAccountRights(handle, accountSid);
 
             // add account rights to incoming flowfile and pass it to success relationship
