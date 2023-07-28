@@ -20,7 +20,9 @@ import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.rapid7.client.dcerpc.RPCException;
 import com.rapid7.client.dcerpc.dto.SID;
+import com.rapid7.client.dcerpc.mserref.SystemErrorCode;
 import com.rapid7.client.dcerpc.mslsad.LocalSecurityAuthorityService;
 import com.rapid7.client.dcerpc.mslsad.dto.PolicyHandle;
 import com.rapid7.client.dcerpc.transport.RPCTransport;
@@ -30,6 +32,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -60,6 +63,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .name("Hostname")
             .description("The hostname of the SMB server.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -67,19 +71,20 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .name("Domain")
             .description("The domain used for authentication. Optional, in most cases username and password is sufficient.")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("Username")
             .description("The username used for authentication. If no username is set then anonymous authentication is attempted.")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("The password used for authentication. Required if Username is set.")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
@@ -88,6 +93,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .name("Account SID")
             .description("SID of account for which to get permissions")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -96,14 +102,15 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .description("integer representation of policy object access level")
             .required(true)
             .defaultValue("33554432")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor AD_SERVER_NAME = new PropertyDescriptor.Builder()
             .name("AD Server Name")
             .description("Name of Active Directory Serer")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final List<PropertyDescriptor> properties = List.of(ACCOUNT_SID, AD_SERVER_NAME, HOSTNAME, DOMAIN, USERNAME, PASSWORD, SMB_DIALECT, USE_ENCRYPTION, ACCESS_LEVEL, TIMEOUT);
@@ -122,39 +129,49 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             .description("FlowFiles are routed to failure relationship when account rights cannot be retrieved")
             .build();
 
+    public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
+            .name("not found")
+            .description("FlowFiles are routed to failure relationship when SMB server returns STATUS_OBJECT_NAME_NOT_FOUND (0xC0000034)")
+            .build();
+
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.unmodifiableSet(
-                new LinkedHashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+                new LinkedHashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE, REL_NOT_FOUND)));
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         SMBClient smbClient = initSmbClient(context);
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            flowFile = session.create();
+        }
         final String hostname = context.getProperty(HOSTNAME).getValue();
         final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
-        final String accessLevel = context.getProperty(ACCESS_LEVEL).evaluateAttributeExpressions().getValue();
+        final String accessLevel = context.getProperty(ACCESS_LEVEL).evaluateAttributeExpressions(flowFile).getValue();
         final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet() ?
-                context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions().getValue() : null;
-        final SID accountSid = SID.fromString(context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions().getValue());
+                context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions(flowFile).getValue() : null;
+        final String sidString = context.getProperty(ACCOUNT_SID).evaluateAttributeExpressions(flowFile).getValue();
+        getLogger().debug("Looking up account rights for account {} on host {} with access level {}",
+                new Object[]{sidString, hostname, accessLevel});
+
+        final SID accountSid = SID.fromString(sidString);
+
         AuthenticationContext ac = null;
         if (username != null && password != null) {
             ac = new AuthenticationContext(username, password.toCharArray(), domainOrNull);
         } else {
             ac = AuthenticationContext.anonymous();
         }
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            flowFile = session.create();
-        }
         try (Connection connection = smbClient.connect(hostname);
-             Session smbSession = connection.authenticate(ac)) {
-            final RPCTransport transport = SMBTransportFactories.SRVSVC.getTransport(smbSession);
+            Session smbSession = connection.authenticate(ac)) {
+            final RPCTransport transport = SMBTransportFactories.LSASVC.getTransport(smbSession);
             long sessionId = smbSession.getSessionId();
             String sessionKey = smbSession.getSessionContext().getSessionKey().toString();
-            getLogger().debug("Connected to SMB service. SessionId: {}, SessionKey: {}", new Object[]{sessionId, sessionKey});
+            getLogger().debug("Connected to SMB service");
             final LocalSecurityAuthorityService service = new LocalSecurityAuthorityService(transport);
 
             PolicyHandle handle = service.openPolicyHandle(adServerNameorNull, Integer.parseInt(accessLevel));
@@ -164,6 +181,19 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
             if (flowFile != null) {
                 flowFile = session.putAttribute(flowFile, "accountRights", String.join(",", accountRights));
                 session.transfer(flowFile, REL_SUCCESS);
+            }
+        } catch (RPCException rpce) {
+            //check error code
+            if(rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
+                getLogger().error("Could not find account with SID {} on host {}", new Object[]{sidString, hostname});
+                context.yield();
+                smbClient.getServerList().unregister(hostname);
+                session.transfer(flowFile, REL_NOT_FOUND);
+            } else {
+                getLogger().error("Could not establish smb connection because of error {}", new Object[]{rpce});
+                context.yield();
+                smbClient.getServerList().unregister(hostname);
+                session.transfer(flowFile, REL_FAILURE);
             }
         } catch (Exception e) {
             getLogger().error("Could not establish smb connection because of error {}", new Object[]{e});

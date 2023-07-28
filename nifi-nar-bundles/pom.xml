@@ -34,7 +34,6 @@
         <module>nifi-standard-bundle</module>
         <module>nifi-standard-services</module>
         <module>nifi-update-attribute-bundle</module>
-        <module>nifi-aws-bundle</module>
         <module>nifi-media-bundle</module>
         <module>nifi-kafka-bundle</module>
         <module>nifi-kudu-bundle</module>
@@ -51,7 +50,6 @@
         <module>nifi-hbase-bundle</module>
         <module>nifi-ambari-bundle</module>
         <module>nifi-asana-bundle</module>
-        <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
         <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
@@ -79,7 +77,6 @@
         <module>nifi-registry-bundle</module>
         <module>nifi-stateful-analysis-bundle</module>
         <module>nifi-extension-utils</module>
-        <module>nifi-metrics-reporting-bundle</module>
         <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
