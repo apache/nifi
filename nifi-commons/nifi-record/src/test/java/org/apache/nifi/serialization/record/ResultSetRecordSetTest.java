@@ -131,6 +131,20 @@ public class ResultSetRecordSetTest {
     }
 
     @Test
+    public void testCreateSchemaWhenScaleIsNonDefault() throws SQLException {
+        // given
+        final RecordSchema recordSchema = givenRecordSchema(COLUMNS);
+        final RecordSchema expectedSchema = givenRecordSchema(COLUMNS);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema, 10, 2);
+        final RecordSchema actualSchema = testSubject.getSchema();
+
+        // then
+        thenAllColumnDataTypesAreCorrect(COLUMNS, expectedSchema, actualSchema);
+    }
+
+    @Test
     public void testCreateSchemaWhenNoRecordSchema() throws SQLException {
         // given
         final RecordSchema expectedSchema = givenRecordSchema(COLUMNS);
