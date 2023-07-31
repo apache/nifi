@@ -325,7 +325,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             decimalPrecision = resultSetPrecision;
             //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
             //Hence falling back to default scale if decimalScale < 0
-            decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+            decimalScale = resultSetScale >= 0 ? resultSetScale : defaultScale;
         } else {
             // If not, use default precision.
             decimalPrecision = defaultPrecision;
