@@ -421,7 +421,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                     primaryKeyColumnNames = null;
                 }
                 final OutputMetadataHolder outputMetadataHolder = checkAndUpdateTableSchema(connection, databaseAdapter, recordSchema,
-                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames,  translationStrategy, translationRegex, updateFieldNames, primaryKeyColumnNames, quoteTableName, quoteColumnNames);
+                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames,  translationStrategy,
+                        translationRegex, updateFieldNames, primaryKeyColumnNames, quoteTableName, quoteColumnNames);
                 if (outputMetadataHolder != null) {
                     // The output schema changed (i.e. field names were updated), so write out the corresponding FlowFile
                     try {
@@ -485,7 +486,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     private synchronized OutputMetadataHolder checkAndUpdateTableSchema(final Connection conn, final DatabaseAdapter databaseAdapter, final RecordSchema schema,
                                                                         final String catalogName, final String schemaName, final String tableName,
-                                                                        final boolean createIfNotExists, final boolean translateFieldNames,final TranslationStrategy translationStrategy,String translationRegex, final boolean updateFieldNames,
+                                                                        final boolean createIfNotExists, final boolean translateFieldNames,
+                                                                        final TranslationStrategy translationStrategy,String translationRegex, final boolean updateFieldNames,
                                                                         final Set<String> primaryKeyColumnNames, final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table

@@ -92,7 +92,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
-import static org.apache.nifi.expression.ExpressionLanguageScope.*;
+import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
+import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"sql", "record", "jdbc", "put", "database", "update", "insert", "delete"})
@@ -190,8 +192,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor DATA_RECORD_PATH = new Builder()
             .name("Data Record Path")
             .displayName("Data Record Path")
-            .description("If specified, this property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
-                    " the database instead of sending the entire incoming Record. If not specified, the entire incoming Record will be published to the database.")
+            .description("If specified, this property denotes a RecordPath that will be evaluated against each " +
+                    "incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
+                    " the database instead of sending the entire incoming Record. If not specified, the entire " +
+                    "incoming Record will be published to the database.")
             .required(false)
             .addValidator(new RecordPathValidator())
             .expressionLanguageSupported(NONE)
@@ -622,7 +626,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
         try {
             tableSchema = schemaCache.get(schemaKey, key -> {
                 try {
-                    final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, settings.translationStrategy, settings.translationRegex, updateKeys, log);
+                    final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName,
+                            settings.translateFieldNames, settings.translationStrategy,
+                            settings.translationRegex, updateKeys, log);
                     getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
                     return schema;
                 } catch (SQLException e) {
