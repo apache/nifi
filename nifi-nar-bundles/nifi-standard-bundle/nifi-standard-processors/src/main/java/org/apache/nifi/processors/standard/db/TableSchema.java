@@ -37,15 +37,16 @@ public class TableSchema {
     private final String tableName;
 
     public TableSchema(final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
+                       final TranslationStrategy translationStrategy,String translationRegex,
+                       final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.tableName = tableName;
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
         this.quotedIdentifierString = quotedIdentifierString;
-
+        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(translateColumnNames, translationStrategy, translationRegex);
         this.requiredColumnNames = new ArrayList<>();
         for (final ColumnDescription desc : columnDescriptions) {
-            columns.put(ColumnDescription.normalizeColumnName(desc.getColumnName(), translateColumnNames), desc);
+            columns.put(normalizer.getColName(desc.getColumnName()), desc);
             if (desc.isRequired()) {
                 requiredColumnNames.add(desc.getColumnName());
             }
@@ -77,7 +78,8 @@ public class TableSchema {
     }
 
     public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                   final boolean translateColumnNames, final String updateKeys, ComponentLog log) throws SQLException {
+                                   final boolean translateColumnNames,final TranslationStrategy translationStrategy,String translationRegex,
+                                   final String updateKeys, ComponentLog log) throws SQLException {
         final DatabaseMetaData dmd = conn.getMetaData();
 
         try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -123,12 +125,13 @@ public class TableSchema {
                 }
             } else {
                 // Parse the Update Keys field and normalize the column names
+                final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(translateColumnNames, translationStrategy, translationRegex);
                 for (final String updateKey : updateKeys.split(",")) {
-                    primaryKeyColumns.add(ColumnDescription.normalizeColumnName(updateKey.trim(), translateColumnNames));
+                    primaryKeyColumns.add(normalizer.getColName(updateKey.trim()));
                 }
             }
 
-            return new TableSchema(tableName, cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
+            return new TableSchema(tableName, cols, translateColumnNames,translationStrategy,translationRegex, primaryKeyColumns, dmd.getIdentifierQuoteString());
         }
     }
 

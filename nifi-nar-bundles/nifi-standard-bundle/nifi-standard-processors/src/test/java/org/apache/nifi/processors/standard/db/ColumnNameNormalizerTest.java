@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 public class ColumnNameNormalizerTest {
@@ -15,7 +14,7 @@ public class ColumnNameNormalizerTest {
     void testNormalizingColumnName_RemoveUnderscore() {
         String inputColumnName = "example_column_name";
         String expectedNormalized = "EXAMPLECOLUMNNAME";
-        normalizer = new ColumnNameNormalizer(true, "REMOVE_UNDERSCORE", null);
+        normalizer = new ColumnNameNormalizer(true, TranslationStrategy.REMOVE_UNDERSCORE, null);
 
         String normalized = normalizer.getColName(inputColumnName);
 
@@ -26,7 +25,7 @@ public class ColumnNameNormalizerTest {
     void testNormalizingColumnName_RemoveSpace() {
         String inputColumnName = "Column Name With Spaces";
         String expectedNormalized = "COLUMNNAMEWITHSPACES";
-        normalizer = new ColumnNameNormalizer(true, "REMOVE_SPACE", null);
+        normalizer = new ColumnNameNormalizer(true, TranslationStrategy.REMOVE_SPACE, null);
         String normalized = normalizer.getColName(inputColumnName);
 
         assertEquals(expectedNormalized, normalized);
@@ -36,7 +35,7 @@ public class ColumnNameNormalizerTest {
     void testNormalizingColumnName_RemoveAllSpecialCharacters() {
         String inputColumnName = "Special!Characters@Here$";
         String expectedNormalized = "SPECIALCHARACTERSHERE";
-        normalizer = new ColumnNameNormalizer(true, "REMOVE_ALL_SPECIAL_CHAR", null);
+        normalizer = new ColumnNameNormalizer(true, TranslationStrategy.REMOVE_ALL_SPECIAL_CHAR, null);
         String normalized = normalizer.getColName(inputColumnName);
 
         assertEquals(expectedNormalized, normalized);
@@ -48,7 +47,7 @@ public class ColumnNameNormalizerTest {
         String translationRegex = "[@-]";
         String expectedNormalized = inputColumnName.toUpperCase().replaceAll(translationRegex, "");
 
-        ColumnNameNormalizer regexNormalizer = new ColumnNameNormalizer(true, "REGEX", translationRegex);
+        ColumnNameNormalizer regexNormalizer = new ColumnNameNormalizer(true, TranslationStrategy.REGEX, translationRegex);
         String normalized = regexNormalizer.getColName(inputColumnName);
 
         assertEquals(expectedNormalized, normalized);
@@ -56,7 +55,7 @@ public class ColumnNameNormalizerTest {
 
     @Test
     void testNormalizingColumnName_NullInput() {
-        normalizer = new ColumnNameNormalizer(true, "REMOVE_ALL_SPECIAL_CHAR", null);
+        normalizer = new ColumnNameNormalizer(true, null, null);
         String normalized = normalizer.getColName(null);
 
         assertNull(normalized);
@@ -64,20 +63,12 @@ public class ColumnNameNormalizerTest {
 
     @Test
     void testNormalizingColumnName_NotEnabled() {
-        normalizer = new ColumnNameNormalizer(false, "REMOVE_UNDERSCORE", "");
+        normalizer = new ColumnNameNormalizer(false, TranslationStrategy.REMOVE_UNDERSCORE, null);
 
         String inputColumnName = "example_column_name";
 
         String normalized = normalizer.getColName(inputColumnName);
 
         assertEquals(inputColumnName, normalized);
-    }
-
-    @Test
-    void testNormalizingColumnName_UnsupportedStrategy() {
-        String unsupportedStrategy = "INVALID_STRATEGY";
-        normalizer = new ColumnNameNormalizer(true, unsupportedStrategy, "");
-        String inputColumnName = "example_column_name";
-        assertThrows(NullPointerException.class, () -> normalizer.getColName(inputColumnName));
     }
 }

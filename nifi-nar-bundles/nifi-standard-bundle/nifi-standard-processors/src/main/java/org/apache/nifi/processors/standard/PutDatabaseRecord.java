@@ -44,10 +44,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
-import org.apache.nifi.processors.standard.db.ColumnDescription;
-import org.apache.nifi.processors.standard.db.ColumnNameNormalizer;
-import org.apache.nifi.processors.standard.db.DatabaseAdapter;
-import org.apache.nifi.processors.standard.db.TableSchema;
+import org.apache.nifi.processors.standard.db.*;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -239,6 +236,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new Builder()
+            .required(true)
             .name("put-db-record-translate-field-names")
             .displayName("Translate Field Names")
             .description("If true, the Processor will attempt to translate field names into the appropriate column names for the table specified. "
@@ -246,30 +244,25 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
-    public static final AllowableValue TRANSLATION_STRATEGY_REMOVE_UNDERSCORE = new AllowableValue("REMOVE_UNDERSCORE", "REMOVE_UNDERSCORE", "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become Pics111");
-    public static final AllowableValue TRANSLATION_STRATEGY_REMOVE_SPACE = new AllowableValue("REMOVE_SPACE", "REMOVE_SPACE", "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become Pics111");
-    public static final AllowableValue TRANSLATION_STRATEGY_REMOVE_ALL_SPECIAL_CHAR = new AllowableValue("REMOVE_ALL_SPECIAL_CHAR", "REMOVE_ALL_SPECIAL_CHAR", "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become Pics111");
-    public static final AllowableValue TRANSLATION_STRATEGY_REGEX = new AllowableValue("REGEX", "REGEX", "Underscore(_) will be removed from column name with empty string Ex. Pics_1_11 become Pics111");
 
     public static final PropertyDescriptor TRANSLATION_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("Delimiter Strategy")
-            .description("Determines if Header, Footer, and Demarcator should point to files containing the respective content, or if "
-                    + "the values of the properties should be used as the content.")
-            .allowableValues(TRANSLATION_STRATEGY_REMOVE_UNDERSCORE, TRANSLATION_STRATEGY_REMOVE_SPACE, TRANSLATION_STRATEGY_REMOVE_ALL_SPECIAL_CHAR, TRANSLATION_STRATEGY_REGEX)
-            .defaultValue(TRANSLATION_STRATEGY_REMOVE_UNDERSCORE.getValue())
-            .dependsOn(TRANSLATE_FIELD_NAMES)
+            .name("translation-strategy")
+            .description("The strategy used to normalize table column name")
+            .allowableValues(TranslationStrategy.class)
+            .defaultValue(TranslationStrategy.REMOVE_UNDERSCORE.getValue())
+            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATE_FIELD_NAMES.getDefaultValue())
             .build();
 
     public static final PropertyDescriptor TRANSLATION_REGEX = new PropertyDescriptor.Builder()
+            .required(true)
             .name("translation-regex")
             .displayName("Translation Regular Expression")
             .description("Column name will be normalized with this regular expression")
-            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dependsOn(TRANSLATE_FIELD_NAMES, TRANSLATION_STRATEGY_REGEX)
-            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .dependsOn(TRANSLATE_FIELD_NAMES,TRANSLATE_FIELD_NAMES.getDefaultValue())
+            .dependsOn(TRANSLATION_STRATEGY,TranslationStrategy.REGEX.getValue())
             .build();
     static final PropertyDescriptor UNMATCHED_FIELD_BEHAVIOR = new Builder()
             .name("put-db-record-unmatched-field-behavior")
@@ -460,7 +453,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     .build()
             );
         }
-
         return validationResults;
     }
 
@@ -631,7 +623,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         try {
             tableSchema = schemaCache.get(schemaKey, key -> {
                 try {
-                    final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, updateKeys, log);
+                    final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, settings.translationStrategy, settings.translationRegex, updateKeys, log);
                     getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
                     return schema;
                 } catch (SQLException e) {
@@ -727,7 +719,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                     final RecordSchema recordSchema = currentRecord.getSchema();
                     final Map<String, ColumnDescription> columns = tableSchema.getColumns();
-                    final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+                    final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
                     int deleteIndex = 0;
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
@@ -1076,7 +1068,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         if (fieldNames != null) {
             int fieldCount = fieldNames.size();
             AtomicInteger fieldsFound = new AtomicInteger(0);
-            final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+            final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
@@ -1135,7 +1127,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         List<String> fieldNames = recordSchema.getFieldNames();
         if (fieldNames != null) {
             int fieldCount = fieldNames.size();
-            final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+            final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
@@ -1189,7 +1181,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         List<String> fieldNames = recordSchema.getFieldNames();
         if (fieldNames != null) {
             int fieldCount = fieldNames.size();
-            final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+            final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
@@ -1248,7 +1240,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
             int fieldCount = fieldNames.size();
             AtomicInteger fieldsFound = new AtomicInteger(0);
-            final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+            final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
@@ -1328,7 +1320,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             throws IllegalArgumentException, MalformedRecordException, SQLDataException {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings);
-        final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
             final String normalizedColName = normalizer.getColName(requiredColName);
             if (!normalizedFieldNames.contains(normalizedColName)) {
@@ -1410,7 +1402,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     private void checkValuesForRequiredColumns(RecordSchema recordSchema, TableSchema tableSchema, DMLSettings settings) {
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(recordSchema, settings);
-        final ColumnNameNormalizer normalizer =new ColumnNameNormalizer(settings.translateFieldNames,settings.translationStrategy,settings.translationRegex);
+        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
         for (final String requiredColName : tableSchema.getRequiredColumnNames()) {
             final String normalizedColName = normalizer.getColName(requiredColName);
             if (!normalizedFieldNames.contains(normalizedColName)) {
@@ -1449,10 +1441,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
         final Set<String> normalizedRecordFieldNames = getNormalizedColumnNames(recordSchema, settings);
-
+        final ColumnNameNormalizer normalizer = new ColumnNameNormalizer(settings.translateFieldNames, settings.translationStrategy, settings.translationRegex);
         final Set<String> normalizedKeyColumnNames = new HashSet<>();
         for (final String updateKeyColumnName : updateKeyColumnNames) {
-            String normalizedKeyColumnName = ColumnDescription.normalizeColumnName(updateKeyColumnName, settings.translateFieldNames);
+            String normalizedKeyColumnName = normalizer.getColName(updateKeyColumnName);
 
             if (!normalizedRecordFieldNames.contains(normalizedKeyColumnName)) {
                 String missingColMessage = "Record does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + updateKeyColumnName + "'";
@@ -1582,7 +1574,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     static class DMLSettings {
         private final boolean translateFieldNames;
-        private final String translationStrategy;
+        private final TranslationStrategy translationStrategy;
         private final String translationRegex;
         private final boolean ignoreUnmappedFields;
 
@@ -1598,8 +1590,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         DMLSettings(ProcessContext context) {
             translateFieldNames = context.getProperty(TRANSLATE_FIELD_NAMES).asBoolean();
-            translationStrategy = context.getProperty(TRANSLATION_STRATEGY).getValue();
-            translationRegex = context.getProperty(TRANSLATION_STRATEGY).getValue();
+            translationStrategy = TranslationStrategy.valueOf(context.getProperty(TRANSLATION_STRATEGY).getValue());
+            translationRegex = context.getProperty(TRANSLATION_REGEX).getValue();
             ignoreUnmappedFields = IGNORE_UNMATCHED_FIELD.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_FIELD_BEHAVIOR).getValue());
 
             failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
