@@ -54,19 +54,21 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
-            .description("The ip address or hostname of the destination.")
+            .description("Destination hostname or IP address")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor
-            .Builder().name("Port")
-            .description("The port on the destination.")
+
+    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
+            .name("Port")
+            .description("Destination port number")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
             .description("The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System " +
@@ -76,8 +78,9 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .defaultValue("1 MB")
             .required(true)
             .build();
-    public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
-            .Builder().name("Idle Connection Expiration")
+
+    public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor.Builder()
+            .name("Idle Connection Expiration")
             .description("The amount of time a connection should be held open without being used before closing the connection. A value of 0 seconds will disable this feature.")
             .required(true)
             .defaultValue("15 seconds")
@@ -89,13 +92,14 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
     // not added to the properties by default since not all processors may need them
     public static final AllowableValue TCP_VALUE = new AllowableValue("TCP", "TCP");
     public static final AllowableValue UDP_VALUE = new AllowableValue("UDP", "UDP");
-    public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
-            .Builder().name("Protocol")
+    public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor.Builder()
+            .name("Protocol")
             .description("The protocol for communication.")
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
             .defaultValue(TCP_VALUE.getValue())
             .build();
+
     public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Message Delimiter")
             .description("Specifies the delimiter to use for splitting apart multiple messages within a single FlowFile. "
@@ -109,6 +113,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies the character set of the data being sent.")
@@ -117,6 +122,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Timeout")
             .description("The timeout for connecting to and communicating with the destination. Does not apply to UDP")
@@ -125,6 +131,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
     public static final PropertyDescriptor OUTGOING_MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Outgoing Message Delimiter")
             .description("Specifies the delimiter to use when sending messages out over the same TCP stream. The delimiter is appended to each FlowFile message "
@@ -135,6 +142,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
     public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()
             .name("Connection Per FlowFile")
             .description("Specifies whether to send each FlowFile's content on an individual connection.")
@@ -142,10 +150,10 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .defaultValue("false")
             .allowableValues("true", "false")
             .build();
+
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
-                    "messages will be sent over a secure connection.")
+            .description("Specifies the SSL Context Service to enable TLS socket communication")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
@@ -154,6 +162,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are sent out this relationship.")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("FlowFiles that failed to send to the destination are sent out this relationship.")
@@ -414,14 +423,14 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             }
 
             if (successfulRanges.isEmpty() && failedRanges.isEmpty()) {
-                getLogger().info("Completed processing {} but sent 0 FlowFiles", new Object[] {flowFile});
+                getLogger().info("Completed processing {} but sent 0 FlowFiles", flowFile);
                 session.transfer(flowFile, REL_SUCCESS);
                 session.commitAsync();
                 return;
             }
 
             if (successfulRanges.isEmpty()) {
-                getLogger().error("Failed to send {}; routing to 'failure'; last failure reason reported was {};", new Object[] {flowFile, lastFailureReason});
+                getLogger().error("Failed to send {}; routing to 'failure'; last failure reason reported was {};", flowFile, lastFailureReason);
                 final FlowFile penalizedFlowFile = session.penalize(flowFile);
                 session.transfer(penalizedFlowFile, REL_FAILURE);
                 session.commitAsync();
@@ -432,7 +441,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(completeTime - startTime);
                 session.getProvenanceReporter().send(flowFile, transitUri, "Sent " + successfulRanges.size() + " messages;", transferMillis);
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Successfully sent {} messages for {} in {} millis", new Object[] {successfulRanges.size(), flowFile, transferMillis});
+                getLogger().info("Successfully sent {} messages for {} in {} millis", successfulRanges.size(), flowFile, transferMillis);
                 session.commitAsync();
                 return;
             }
@@ -444,7 +453,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             transferRanges(failedRanges, REL_FAILURE);
             session.remove(flowFile);
             getLogger().error("Successfully sent {} messages, but failed to send {} messages; the last error received was {}",
-                    new Object[] {successfulRanges.size(), failedRanges.size(), lastFailureReason});
+                    successfulRanges.size(), failedRanges.size(), lastFailureReason);
             session.commitAsync();
         }
     }

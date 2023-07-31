@@ -18,15 +18,26 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.event.transport.EventServer;
-import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processors.standard.property.TransmissionStrategy;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
@@ -34,28 +45,41 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @Timeout(30)
+@ExtendWith(MockitoExtension.class)
 public class TestPutTCP {
     private final static String TCP_SERVER_ADDRESS = "127.0.0.1";
     private final static String SERVER_VARIABLE = "server.address";
     private final static String TCP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
-    private final static int MIN_INVALID_PORT = 0;
-    private final static int MIN_VALID_PORT = 1;
-    private final static int MAX_VALID_PORT = 65535;
-    private final static int MAX_INVALID_PORT = 65536;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
     private final static int LOAD_TEST_ITERATIONS = 500;
@@ -67,6 +91,26 @@ public class TestPutTCP {
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
     private final static String[] EMPTY_FILE = { "" };
     private final static String[] VALID_FILES = { "abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\" };
+
+    private static final String WRITER_SERVICE_ID = RecordSetWriterFactory.class.getSimpleName();
+
+    private static final String READER_SERVICE_ID = RecordReaderFactory.class.getSimpleName();
+
+    private static final String RECORD = String.class.getSimpleName();
+
+    private static final Record NULL_RECORD = null;
+
+    @Mock
+    private RecordSetWriterFactory writerFactory;
+
+    @Mock
+    private RecordReaderFactory readerFactory;
+
+    @Mock
+    private RecordReader recordReader;
+
+    @Mock
+    private Record record;
 
     private EventServer eventServer;
     private TestRunner runner;
@@ -194,6 +238,55 @@ public class TestPutTCP {
         assertMessagesReceived(testData, LOAD_TEST_ITERATIONS);
     }
 
+    @Test
+    void testRunSuccessRecordOriented() throws Exception {
+        createTestServer(OUTGOING_MESSAGE_DELIMITER);
+        runner.setProperty(PutTCP.HOSTNAME, TCP_SERVER_ADDRESS);
+        runner.setProperty(PutTCP.PORT, String.valueOf(eventServer.getListeningPort()));
+
+        runner.setProperty(PutTCP.TRANSMISSION_STRATEGY, TransmissionStrategy.RECORD_ORIENTED.getValue());
+
+        when(writerFactory.getIdentifier()).thenReturn(WRITER_SERVICE_ID);
+        runner.addControllerService(WRITER_SERVICE_ID, writerFactory);
+        runner.enableControllerService(writerFactory);
+        runner.setProperty(PutTCP.RECORD_WRITER, WRITER_SERVICE_ID);
+
+        when(readerFactory.getIdentifier()).thenReturn(READER_SERVICE_ID);
+        runner.addControllerService(READER_SERVICE_ID, readerFactory);
+        runner.enableControllerService(readerFactory);
+        runner.setProperty(PutTCP.RECORD_READER, READER_SERVICE_ID);
+
+        when(readerFactory.createRecordReader(any(), any(), any())).thenReturn(recordReader);
+        when(recordReader.nextRecord()).thenReturn(record, NULL_RECORD);
+        when(writerFactory.createWriter(any(), any(), any(OutputStream.class), any(FlowFile.class))).thenAnswer((Answer<RecordSetWriter>) invocationOnMock -> {
+            final OutputStream outputStream = invocationOnMock.getArgument(2, OutputStream.class);
+            return new TestPutTCP.MockRecordSetWriter(outputStream);
+        });
+
+        runner.enqueue(RECORD);
+        runner.run();
+
+        runner.assertTransferCount(PutTCP.REL_FAILURE, 0);
+
+        final Iterator<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(PutTCP.REL_SUCCESS).iterator();
+        assertTrue(successFlowFiles.hasNext(), "Success FlowFiles not found");
+        final MockFlowFile successFlowFile = successFlowFiles.next();
+        successFlowFile.assertAttributeEquals(PutTCP.RECORD_COUNT_TRANSMITTED, Integer.toString(1));
+
+        final List<ProvenanceEventRecord> provenanceEventRecords = runner.getProvenanceEvents();
+        final Optional<ProvenanceEventRecord> sendEventFound = provenanceEventRecords.stream()
+                .filter(eventRecord -> ProvenanceEventType.SEND == eventRecord.getEventType())
+                .findFirst();
+        assertTrue(sendEventFound.isPresent(), "Provenance Send Event not found");
+        final ProvenanceEventRecord sendEventRecord = sendEventFound.get();
+        assertTrue(sendEventRecord.getTransitUri().contains(TCP_SERVER_ADDRESS), "Transit URI not matched");
+
+        final ByteArrayMessage message = messages.take();
+        assertNotNull(message);
+        assertArrayEquals(RECORD.getBytes(StandardCharsets.UTF_8), message.getMessage());
+        assertEquals(TCP_SERVER_ADDRESS, message.getSender());
+    }
+
     private void createTestServer(final String delimiter) throws UnknownHostException {
         createTestServer(null, delimiter);
     }
@@ -206,7 +299,7 @@ public class TestPutTCP {
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
         }
-        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownQuietPeriod(Duration.ZERO);
         serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
     }
@@ -270,12 +363,52 @@ public class TestPutTCP {
 
     private String[] createContent(final int size) {
         final char[] content = new char[size];
-
-        for (int i = 0; i < size; i++) {
-            content[i] = CONTENT_CHAR;
-        }
-
+        Arrays.fill(content, CONTENT_CHAR);
         return new String[] { new String(content) };
     }
 
+    private static class MockRecordSetWriter implements RecordSetWriter {
+        private final OutputStream outputStream;
+
+        private MockRecordSetWriter(final OutputStream outputStream) {
+            this.outputStream = outputStream;
+        }
+
+        @Override
+        public WriteResult write(final RecordSet recordSet) {
+            return WriteResult.EMPTY;
+        }
+
+        @Override
+        public void beginRecordSet() {
+
+        }
+
+        @Override
+        public WriteResult finishRecordSet() {
+            return WriteResult.EMPTY;
+        }
+
+        @Override
+        public WriteResult write(Record record) throws IOException {
+            outputStream.write(RECORD.getBytes(StandardCharsets.UTF_8));
+            outputStream.write(OUTGOING_MESSAGE_DELIMITER.getBytes(StandardCharsets.UTF_8));
+            return WriteResult.of(1, Collections.emptyMap());
+        }
+
+        @Override
+        public String getMimeType() {
+            return null;
+        }
+
+        @Override
+        public void flush() {
+
+        }
+
+        @Override
+        public void close() {
+
+        }
+    }
 }
