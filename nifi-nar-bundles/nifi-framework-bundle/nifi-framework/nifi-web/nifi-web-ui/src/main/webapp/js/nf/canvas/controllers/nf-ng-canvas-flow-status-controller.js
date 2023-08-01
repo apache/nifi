@@ -98,6 +98,7 @@
             this.controllerLocallyModifiedAndStaleCount = "-";
             this.controllerSyncFailureCount = "-";
             this.statsLastRefreshed = "-";
+            this.violationMenuInitialized = false;
 
             /**
              * The search controller.
@@ -432,20 +433,34 @@
                 buildRuleViolationsList: function(rules, violations) {
                     var ruleViolationCountEl = $('#rule-violation-count');
                     var ruleViolationListEl = $('#rule-violations-list');
-                    ruleViolationCountEl.empty().append('(' + violations.length + ')');
+                    ruleViolationCountEl.empty().text('(' + violations.length + ')');
                     ruleViolationListEl.empty();
                     violations.forEach(function(violation) {
                         if (violation.enforcementPolicy === 'ENFORCE') {
                             var rule = rules.find(function(rule) {
                                 return rule.id === violation.ruleId;
                             });
-                            var violationRule = '<div class="rule-violations-list-item-name">' + rule.name + '</div>';
-                            var violationListItemEl = '<li></li>';
-                            // <li class="violation-list-item"><div class="violation-list-item-wrapper"><div class="violation-list-item-name">' + violation.subjectDisplayName + '</div><span>' + violation.subjectId + '</span></div></li>'
-                            var violationEl = '<div class="violation-list-item"><div class="violation-list-item-wrapper"><div class="violation-list-item-name">' + violation.subjectDisplayName + '</div><span class="violation-list-item-id">' + violation.subjectId + '</span>' +'</div></div>';
-                            var violationInfoButton = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
-                            $(violationInfoButton).data('violationInfo', violation);
-                            ruleViolationListEl.append($(violationListItemEl).append(violationRule).append($(violationEl).append(violationInfoButton)));
+                            // create DOM elements
+                            var violationListItemEl = $('<li></li>');
+                            var violationEl = $('<div class="violation-list-item"></div>');
+                            var violationListItemWrapperEl = $('<div class="violation-list-item-wrapper"></div>');
+                            var violationRuleEl = $('<div class="rule-violations-list-item-name"></div>');
+                            var violationListItemNameEl = $('<div class="violation-list-item-name"></div>');
+                            var violationListItemIdEl = $('<span class="violation-list-item-id"></span>');
+                            var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                            // add text content and button data
+                            $(violationRuleEl).text(rule.name);
+                            $(violationListItemNameEl).text(violation.subjectDisplayName);
+                            $(violationListItemIdEl).text(violation.subjectId);
+                            $(violationListItemEl).append(violationRuleEl).append(violationListItemWrapperEl);
+                            $(violationInfoButtonEl).data('violationInfo', violation);
+
+                            // build list DOM structure
+                            violationListItemWrapperEl.append(violationListItemNameEl).append(violationListItemIdEl);
+                            violationEl.append(violationListItemWrapperEl).append(violationInfoButtonEl);
+                            violationListItemEl.append(violationRuleEl).append(violationEl)
+                            ruleViolationListEl.append(violationListItemEl);
                         }
                     });
                 },
@@ -478,10 +493,22 @@
                         }
                         violationsList = $('<ul class="rule-' + ruleType + 's-list"></ul>');
                         violations.forEach(function(violation) {
-                            var violationListItem = $('<li class="' + ruleType + '-list-item"><div class="' + ruleType + '-list-item-wrapper"><div class="' + ruleType + '-list-item-name">' + violation.subjectDisplayName + '</div><span class="' + ruleType + '-list-item-id">' + violation.subjectId + '</span></div></li>');
-                            var violationInfoButton = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
-                            $(violationInfoButton).data('violationInfo', violation);
-                            $(violationsList).append(violationListItem.append(violationInfoButton));
+                            // create DOM elements
+                            var violationListItemEl = $('<li class="' + ruleType + '-list-item"></li>');
+                            var violationWrapperEl = $('<div class="' + ruleType + '-list-item-wrapper"></div>');
+                            var violationNameEl = $('<div class="' + ruleType + '-list-item-name"></div>');
+                            var violationIdEl = $('<span class="' + ruleType + '-list-item-id"></span>');
+                            var violationInfoButtonEl = $('<button class="violation-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>');
+
+                            // add text content and button data
+                            violationNameEl.text(violation.subjectDisplayName);
+                            violationIdEl.text(violation.subjectId);
+
+                            // build list DOM structure
+                            violationListItemEl.append(violationWrapperEl);
+                            violationWrapperEl.append(violationNameEl).append(violationIdEl)
+                            violationInfoButtonEl.data('violationInfo', violation);
+                            (violationsList).append(violationListItemEl.append(violationInfoButtonEl));
                         });
                         rule.append(violationCountEl).append(violationsList);
                     }
@@ -490,7 +517,6 @@
 
                 loadFlowPolicies: function () {
                     var recsAndPoliciesCtrl = this;
-                    var res;
                     var requiredRulesListEl = $('#required-rules-list');
                     var recommendedRulesListEl = $('#recommended-rules-list');
                     var requiredRuleCountEl = $('#required-rule-count');
@@ -504,7 +530,6 @@
                             dataType: 'json',
                             context: this
                         }).done(function (response) {
-                            res = response;
                             var recommendations = [];
                             var requirements = [];
                             var requirementsTotal = 0;
@@ -523,9 +548,9 @@
                                 // * append violation list to matching rule list item
                                 var violationsMap = new Map();
                                 response.ruleViolations.forEach(function(violation) {
-                                    if(violationsMap.has(violation.ruleId)){
+                                    if (violationsMap.has(violation.ruleId)){
                                         violationsMap.get(violation.ruleId).push(violation);
-                                     }else{
+                                     } else {
                                         violationsMap.set(violation.ruleId, [violation]);
                                      }
                                 });
@@ -533,11 +558,12 @@
                                 // build list of recommendations
                                 response.rules.forEach(function(rule) {
                                     if (rule.enforcementPolicy === 'WARN') {
-                                        var requirement = '<div class="rules-list-rule-info"><div>' + rule.name + '</div></div>';
+                                        var requirement = '<div class="rules-list-rule-info"></div>';
+                                        var requirementName = $('<div></div>').text(rule.name);
                                         var requirementInfoButton = '<button class="rule-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>';
                                         recommendations.push(
                                             {
-                                                'requirement': requirement,
+                                                'requirement': $(requirement).append(requirementName),
                                                 'requirementInfoButton': $(requirementInfoButton).data('ruleInfo', rule),
                                                 'id': rule.id
                                             }
@@ -564,11 +590,12 @@
 
                                 response.rules.forEach(function(rule) {
                                     if (rule.enforcementPolicy === 'ENFORCE') {
-                                        var requirement = '<div class="rules-list-rule-info"><div>' + rule.name + '</div></div>';
+                                        var requirement = '<div class="rules-list-rule-info"></div>';
+                                        var requirementName = $('<div></div>').text(rule.name);
                                         var requirementInfoButton = '<button class="rule-menu-btn"><i class="fa fa-ellipsis-v rules-list-item-menu-target" aria-hidden="true"></i></button>';
                                         requirements.push(
                                             {
-                                                'requirement': requirement,
+                                                'requirement': $(requirement).append(requirementName),
                                                 'requirementInfoButton': $(requirementInfoButton).data('ruleInfo', rule),
                                                 'id': rule.id
                                             }
@@ -652,7 +679,8 @@
 
                 setViolationMenuHandling: function(response, groupId) {
                     $('.violation-menu-btn').click(function(event) {
-                        var violationMenuInitialized = false;
+                        // $("#violation-menu").hide();
+                        // this.violationMenuInitialized = false;
                         var violationInfo = $(this).data('violationInfo');
                         $('#violation-menu').show();
                         $('#violation-menu').position({
@@ -685,11 +713,13 @@
                         });
 
                         $(document).on('click', function closeViolationWindow(e) {
-                            if (violationMenuInitialized && $(e.target).parents("#violation-menu").length === 0) {
+                            if (this.violationMenuInitialized && $(e.target).parents("#violation-menu").length === 0) {
                                 $("#violation-menu").hide();
                                 $(document).unbind('click', closeViolationWindow);
+                                this.violationMenuInitialized = false;
+                            } else {
+                                this.violationMenuInitialized = true;
                             }
-                            violationMenuInitialized = true;
                         });
                     });
                 },
