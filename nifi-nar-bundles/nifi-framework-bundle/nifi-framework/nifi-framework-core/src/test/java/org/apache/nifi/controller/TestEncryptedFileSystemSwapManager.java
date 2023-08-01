@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -26,18 +25,25 @@ import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapManagerInitializationContext;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.security.kms.StaticKeyProvider;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,8 +55,43 @@ import static org.mockito.Mockito.when;
  * Test cases for {@link EncryptedFileSystemSwapManager}.
  */
 public class TestEncryptedFileSystemSwapManager {
+    private static final String KEYSTORE_CREDENTIALS = UUID.randomUUID().toString();
+
+    private static final String KEYSTORE_NAME = "repository.p12";
+
+    private static final String KEY_ID = "primary-key";
+
+    private static final String KEYSTORE_TYPE = "PKCS12";
+
+    private static final int KEY_LENGTH = 32;
+
+    private static final String KEY_ALGORITHM = "AES";
+
+    private static Path keyStorePath;
+
+    @BeforeAll
+    public static void setRepositoryKeystore(@TempDir final Path temporaryDirectory) throws GeneralSecurityException, IOException {
+        keyStorePath = temporaryDirectory.resolve(KEYSTORE_NAME);
+
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] key = new byte[KEY_LENGTH];
+        secureRandom.nextBytes(key);
+        final SecretKeySpec secretKeySpec = new SecretKeySpec(key, KEY_ALGORITHM);
+
+        final KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
+        keyStore.load(null);
+
+        final KeyStore.SecretKeyEntry secretKeyEntry = new KeyStore.SecretKeyEntry(secretKeySpec);
+        final KeyStore.PasswordProtection passwordProtection = new KeyStore.PasswordProtection(KEYSTORE_CREDENTIALS.toCharArray());
+        keyStore.setEntry(KEY_ID, secretKeyEntry, passwordProtection);
+
+        try (final OutputStream outputStream = Files.newOutputStream(keyStorePath)) {
+            keyStore.store(outputStream, KEYSTORE_CREDENTIALS.toCharArray());
+        }
+    }
+
     /**
-     * Test a simple swap to disk / swap from disk operation.  Configured to use {@link StaticKeyProvider}.
+     * Test a simple swap to disk / swap from disk operation
      */
     @Test
     public void testSwapOutSwapIn() throws GeneralSecurityException, IOException {
@@ -60,10 +101,7 @@ public class TestEncryptedFileSystemSwapManager {
         new File(folderRepository, "swap").deleteOnExit();
 
         // configure a nifi properties for encrypted swap file
-        final Properties properties = new Properties();
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, StaticKeyProvider.class.getName());
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID, NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY);
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY, StringUtils.repeat("00", 32));
+        final Map<String, String> properties = getEncryptionProperties();
         properties.put(NiFiProperties.FLOWFILE_REPOSITORY_DIRECTORY, folderRepository.getPath());
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 
@@ -106,5 +144,15 @@ public class TestEncryptedFileSystemSwapManager {
         swapManager.initialize(context);
 
         return swapManager;
+    }
+
+    private Map<String, String> getEncryptionProperties() {
+        final Map<String, String> encryptedRepoProperties = new HashMap<>();
+        encryptedRepoProperties.put("nifi.repository.encryption.protocol.version", "1");
+        encryptedRepoProperties.put("nifi.repository.encryption.key.id", KEY_ID);
+        encryptedRepoProperties.put("nifi.repository.encryption.key.provider", "KEYSTORE");
+        encryptedRepoProperties.put("nifi.repository.encryption.key.provider.keystore.location", keyStorePath.toString());
+        encryptedRepoProperties.put("nifi.repository.encryption.key.provider.keystore.password", KEYSTORE_CREDENTIALS);
+        return encryptedRepoProperties;
     }
 }

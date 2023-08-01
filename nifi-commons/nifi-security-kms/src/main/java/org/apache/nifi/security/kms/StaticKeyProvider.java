@@ -27,7 +27,7 @@ import javax.crypto.SecretKey;
 /**
  * Static Key Provider stores Secret Keys in memory based on initialized configuration properties
  */
-public class StaticKeyProvider implements KeyProvider {
+class StaticKeyProvider implements KeyProvider {
     private final Map<String, SecretKey> keys;
 
     /**

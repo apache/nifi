@@ -65,7 +65,7 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
         final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.CONTENT, niFiProperties);
         repositoryEncryptor = new AesCtrStreamRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.CONTENT);
-        keyId = Objects.requireNonNull(niFiProperties.getContentRepositoryEncryptionKeyId(), "Key Identifier required");
+        keyId = Objects.requireNonNull(niFiProperties.getRepositoryEncryptionKeyId(), "Key Identifier required");
     }
 
     /**

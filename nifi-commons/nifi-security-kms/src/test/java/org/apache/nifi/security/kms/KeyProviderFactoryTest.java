@@ -16,21 +16,13 @@
  */
 package org.apache.nifi.security.kms;
 
-import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.security.kms.configuration.FileBasedKeyProviderConfiguration;
 import org.apache.nifi.security.kms.configuration.KeyProviderConfiguration;
 import org.apache.nifi.security.kms.configuration.KeyStoreKeyProviderConfiguration;
-import org.apache.nifi.security.kms.configuration.StaticKeyProviderConfiguration;
-import org.apache.nifi.security.kms.util.SecretKeyUtils;
 import org.junit.jupiter.api.Test;
 
-import javax.crypto.SecretKey;
-import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.util.Collections;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,28 +33,6 @@ public class KeyProviderFactoryTest {
     public void testGetUnsupportedKeyProvider() {
         final KeyProviderConfiguration<?> configuration = new UnsupportedKeyProviderConfiguration();
         assertThrows(UnsupportedOperationException.class, () -> KeyProviderFactory.getKeyProvider(configuration));
-    }
-
-    @Test
-    public void testGetStaticKeyProvider() {
-        final SecretKey secretKey = SecretKeyUtils.getSecretKey();
-        final String encodedSecretKey = Hex.encodeHexString(secretKey.getEncoded());
-        final Map<String, String> keys = Collections.singletonMap(SecretKey.class.getSimpleName(), encodedSecretKey);
-
-        final KeyProviderConfiguration<?> configuration = new StaticKeyProviderConfiguration(keys);
-        final KeyProvider keyProvider = KeyProviderFactory.getKeyProvider(configuration);
-        assertEquals(StaticKeyProvider.class, keyProvider.getClass());
-    }
-
-    @Test
-    public void testGetFileBasedKeyProvider() throws IOException {
-        final File file = File.createTempFile(KeyProviderFactoryTest.class.getSimpleName(), FileBasedKeyProviderConfiguration.class.getSimpleName());
-        file.deleteOnExit();
-        final String location = file.getAbsolutePath();
-        final SecretKey rootKey = SecretKeyUtils.getSecretKey();
-        final KeyProviderConfiguration<?> configuration = new FileBasedKeyProviderConfiguration(location, rootKey);
-        final KeyProvider keyProvider = KeyProviderFactory.getKeyProvider(configuration);
-        assertEquals(FileBasedKeyProvider.class, keyProvider.getClass());
     }
 
     @Test
