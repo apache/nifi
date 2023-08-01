@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-system-test-nar-provider-bundles</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-nar-provider-service-api</artifactId>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

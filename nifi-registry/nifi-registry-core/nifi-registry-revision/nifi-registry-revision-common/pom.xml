@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-revision</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <artifactId>nifi-registry-revision-common</artifactId>
     <packaging>jar</packaging>
@@ -28,7 +28,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
     </dependencies>
 </project>

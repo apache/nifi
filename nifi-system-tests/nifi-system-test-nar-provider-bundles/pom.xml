@@ -16,7 +16,7 @@
     <parent>
         <artifactId>nifi-system-tests</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 

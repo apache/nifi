@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry</artifactId>
@@ -121,69 +121,69 @@
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties-loader</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-factory</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-loader</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-bootstrap</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-runtime</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-security-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-provider-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-ui</artifactId>
                 <type>war</type>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-api</artifactId>
                 <type>war</type>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-resources</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>

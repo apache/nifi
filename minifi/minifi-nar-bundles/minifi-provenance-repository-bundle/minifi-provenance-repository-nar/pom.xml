@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-provenance-repository-bundle</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>minifi-provenance-repository-nar</artifactId>

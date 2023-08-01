@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hashicorp-vault-bundle</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-hashicorp-vault-nar</artifactId>
@@ -33,29 +33,29 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-parameter-value-provider</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-client-service-api-nar</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-parameter-provider</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hashicorp-vault-client-service</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
     </dependencies>
 </project>

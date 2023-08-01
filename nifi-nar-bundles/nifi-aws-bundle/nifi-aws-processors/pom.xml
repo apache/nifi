@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-aws-processors</artifactId>
@@ -35,17 +35,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-listed-entity</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-abstract-processors</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-service-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -59,7 +59,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-record-utils</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -106,7 +106,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -122,13 +122,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

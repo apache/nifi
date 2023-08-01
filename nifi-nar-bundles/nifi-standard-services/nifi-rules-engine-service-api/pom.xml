@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-standard-services</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-rules-engine-service-api</artifactId>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
     </dependencies>
 </project>

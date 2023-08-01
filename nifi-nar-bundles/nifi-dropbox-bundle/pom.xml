@@ -19,11 +19,11 @@
     <parent>
         <artifactId>nifi-nar-bundles</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-dropbox-bundle</artifactId>
-    <version>1.23.0-SNAPSHOT</version>
+    <version>1.23.0-ANETAC</version>
     <packaging>pom</packaging>
 
     <properties>

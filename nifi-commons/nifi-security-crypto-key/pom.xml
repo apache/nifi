@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <artifactId>nifi-security-crypto-key</artifactId>
     <description>Cryptographic key derivation function components with minimal dependencies</description>

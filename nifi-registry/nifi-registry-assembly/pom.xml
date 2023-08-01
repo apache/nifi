@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
     <artifactId>nifi-registry-assembly</artifactId>
     <packaging>pom</packaging>
@@ -108,7 +108,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -132,7 +132,7 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-docs</artifactId>
             <type>war</type>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -144,7 +144,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-docs</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
             <classifier>resources</classifier>
             <scope>runtime</scope>
             <type>zip</type>
@@ -402,7 +402,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-ranger-assembly</artifactId>
-                    <version>1.23.0-SNAPSHOT</version>
+                    <version>1.23.0-ANETAC</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>
@@ -445,7 +445,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-aws-assembly</artifactId>
-                    <version>1.23.0-SNAPSHOT</version>
+                    <version>1.23.0-ANETAC</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>${nifi.registry.extension.archive.type}</type>

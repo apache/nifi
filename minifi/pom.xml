@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <groupId>org.apache.nifi.minifi</groupId>
@@ -49,42 +49,42 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bootstrap-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-deprecation-log</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-bootstrap</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-core</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-resources</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repository-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
@@ -92,45 +92,45 @@ limitations under the License.
                 <artifactId>minifi-resources</artifactId>
                 <classifier>resources</classifier>
                 <type>zip</type>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-runtime</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-standard-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-server-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-update-attribute-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-docs</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -138,89 +138,89 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repositories</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
 
             <!-- NiFi Modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ui-extension</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-socket-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-data-provenance-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-toolkit-tls</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty-configuration</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -228,7 +228,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-docs</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -236,218 +236,218 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-record-serialization-services-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-services-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-proxy-configuration-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-oauth2-provider-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-lookup-services-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-registry-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty-bundle</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-headless-server-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kerberos-credentials-service-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-ssl</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-xml-processing</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-utils</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-write-ahead-log</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-administration</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-persistent-provenance-repository</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-task</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
 
             <!-- C2 modules -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>c2-client-api</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>c2-client-base</artifactId>
-                <version>1.23.0-SNAPSHOT</version>
+                <version>1.23.0-ANETAC</version>
             </dependency>
 
             <dependency>

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-geohash-bundle</artifactId>
-        <version>1.23.0-SNAPSHOT</version>
+        <version>1.23.0-ANETAC</version>
     </parent>
 
     <artifactId>nifi-geohash-nar</artifactId>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-geohash-processors</artifactId>
-            <version>1.23.0-SNAPSHOT</version>
+            <version>1.23.0-ANETAC</version>
         </dependency>
     </dependencies>
 </project>
