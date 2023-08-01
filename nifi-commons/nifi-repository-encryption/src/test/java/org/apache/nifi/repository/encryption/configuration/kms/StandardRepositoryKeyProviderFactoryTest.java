@@ -19,7 +19,6 @@ package org.apache.nifi.repository.encryption.configuration.kms;
 import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyStoreKeyProvider;
-import org.apache.nifi.security.kms.StaticKeyProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,9 +69,7 @@ public class StandardRepositoryKeyProviderFactoryTest {
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null);
         final EncryptedRepositoryType encryptedRepositoryType = EncryptedRepositoryType.CONTENT;
 
-        final EncryptedConfigurationException exception = assertThrows(EncryptedConfigurationException.class, () ->
-                factory.getKeyProvider(encryptedRepositoryType, niFiProperties));
-        assertTrue(exception.getMessage().contains(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS));
+        assertThrows(EncryptedConfigurationException.class, () -> factory.getKeyProvider(encryptedRepositoryType, niFiProperties));
     }
 
     @Test
@@ -105,45 +102,6 @@ public class StandardRepositoryKeyProviderFactoryTest {
 
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
         assertKeyProviderConfigured(KeyStoreKeyProvider.class, EncryptedRepositoryType.CONTENT, niFiProperties);
-    }
-
-    @Test
-    public void testGetKeyProviderContentStaticKeyProvider() {
-        final Map<String, String> properties = new HashMap<>();
-
-        final Class<?> providerClass = StaticKeyProvider.class;
-        properties.put(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, providerClass.getName());
-        properties.put(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY, KEY);
-        properties.put(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_ID, KEY_ID);
-
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        assertKeyProviderConfigured(providerClass, EncryptedRepositoryType.CONTENT, niFiProperties);
-    }
-
-    @Test
-    public void testGetKeyProviderFlowFileStaticKeyProvider() {
-        final Map<String, String> properties = new HashMap<>();
-
-        final Class<?> providerClass = StaticKeyProvider.class;
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, providerClass.getName());
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY, KEY);
-        properties.put(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID, KEY_ID);
-
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        assertKeyProviderConfigured(providerClass, EncryptedRepositoryType.FLOWFILE, niFiProperties);
-    }
-
-    @Test
-    public void testGetKeyProviderProvenanceStaticKeyProvider() {
-        final Map<String, String> properties = new HashMap<>();
-
-        final Class<?> providerClass = StaticKeyProvider.class;
-        properties.put(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, providerClass.getName());
-        properties.put(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY, KEY);
-        properties.put(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID, KEY_ID);
-
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
-        assertKeyProviderConfigured(providerClass, EncryptedRepositoryType.PROVENANCE, niFiProperties);
     }
 
     private void assertKeyProviderConfigured(final Class<?> providerClass, final EncryptedRepositoryType encryptedRepositoryType, final NiFiProperties niFiProperties) {

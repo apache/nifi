@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.repository.encryption.configuration.kms;
 
-import org.apache.nifi.security.kms.FileBasedKeyProvider;
 import org.apache.nifi.security.kms.KeyStoreKeyProvider;
-import org.apache.nifi.security.kms.StaticKeyProvider;
 
 /**
  * Configuration options for Repository Encryption Key Provider
@@ -38,17 +36,13 @@ public enum EncryptionKeyProvider {
      *
      * @param implementationClass Implementation class name
      * @return Encryption Key Provider
-     * @throw IllegalArgumentException Thrown when implementation class name does not match a known class
+     * @throws IllegalArgumentException Thrown when implementation class name does not match a known class
      */
     public static EncryptionKeyProvider fromImplementationClass(final String implementationClass) {
         EncryptionKeyProvider encryptionKeyProvider;
 
-        if (implementationClass.endsWith(FileBasedKeyProvider.class.getSimpleName())) {
-            encryptionKeyProvider = EncryptionKeyProvider.FILE_PROPERTIES;
-        } else if (implementationClass.endsWith(KeyStoreKeyProvider.class.getSimpleName())) {
+        if (implementationClass.endsWith(KeyStoreKeyProvider.class.getSimpleName())) {
             encryptionKeyProvider = EncryptionKeyProvider.KEYSTORE;
-        } else if (implementationClass.endsWith(StaticKeyProvider.class.getSimpleName())) {
-            encryptionKeyProvider = EncryptionKeyProvider.NIFI_PROPERTIES;
         } else {
             final String message = String.format("Key Provider Class [%s] not supported", implementationClass);
             throw new IllegalArgumentException(message);

@@ -88,7 +88,7 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         // Build a factory using lambda which injects the encryptor
         final RecordWriterFactory recordWriterFactory = (file, idGenerator, compressed, createToc) -> {
             final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
-            final String keyId = niFiProperties.getProvenanceRepoEncryptionKeyId();
+            final String keyId = niFiProperties.getRepositoryEncryptionKeyId();
             return new EncryptedSchemaRecordWriter(file, idGenerator, tocWriter, compressed, BLOCK_SIZE, idLookup, repositoryEncryptor, keyId);
         };
 
