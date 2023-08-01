@@ -44,7 +44,7 @@ public class DefaultedDynamicallyModifyClasspath extends AbstractProcessor {
             .name("URLs to Load")
             .description("URLs to load onto the classpath")
             .required(false)
-            .defaultValue("lib/bootstrap/commons-lang3-3.12.0.jar")
+            .defaultValue("lib/bootstrap/commons-lang3-3.13.0.jar")
             .dynamicallyModifiesClasspath(true)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.URL, ResourceType.FILE, ResourceType.DIRECTORY)
             .build();
