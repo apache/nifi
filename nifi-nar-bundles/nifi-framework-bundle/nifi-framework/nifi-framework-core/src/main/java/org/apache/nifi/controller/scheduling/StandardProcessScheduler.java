@@ -44,7 +44,6 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.ExecutionEngine;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.StandardLoggingContext;
@@ -63,7 +62,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -478,32 +476,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public CompletableFuture<Void> stopStatelessGroup(final StatelessGroupNode groupNode) {
         final LifecycleState lifecycleState = getLifecycleState(groupNode, false, false);
-
-        final List<CompletableFuture<Void>> futures = new ArrayList<>();
-
-        final CompletableFuture<Void> stopGroupFuture = groupNode.stop(this, this.componentLifeCycleThreadPool, getSchedulingAgent(groupNode), lifecycleState);
-        futures.add(stopGroupFuture);
-
-        for (final ProcessorNode procNode : groupNode.getProcessGroup().findAllProcessors()) {
-            final CompletableFuture<Void> stopProcessorFuture = stopProcessor(procNode);
-            futures.add(stopProcessorFuture);
-        }
-
-        for (final ProcessGroup innerGroup : groupNode.getProcessGroup().findAllProcessGroups()) {
-            innerGroup.getInputPorts().forEach(this::stopPort);
-            innerGroup.getOutputPorts().forEach(this::stopPort);
-        }
-
-        final Set<ControllerServiceNode> controllerServices = groupNode.getProcessGroup().findAllControllerServices();
-
-        final CompletableFuture<?>[] processorFutureArray = futures.toArray(new CompletableFuture[0]);
-        final CompletableFuture<Void> processorsStoppedFuture = CompletableFuture.allOf(processorFutureArray);
-        final CompletableFuture<Void> allStoppedFuture = processorsStoppedFuture.thenAccept(completion -> {
-            getControllerServiceProvider().disableControllerServicesAsync(controllerServices).join();
-        });
-
-        return allStoppedFuture;
+        return groupNode.stop(this, this.componentLifeCycleThreadPool, getSchedulingAgent(groupNode), lifecycleState);
     }
+
 
     @Override
     public synchronized void terminateProcessor(final ProcessorNode procNode) {

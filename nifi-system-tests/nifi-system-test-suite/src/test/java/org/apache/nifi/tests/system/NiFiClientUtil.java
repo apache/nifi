@@ -554,6 +554,8 @@ public class NiFiClientUtil {
         while (true) {
             final ParameterContextUpdateRequestEntity entity = nifiClient.getParamContextClient().getParamContextUpdateRequest(contextId, requestId);
             if (entity.getRequest().isComplete()) {
+                nifiClient.getParamContextClient().deleteParamContextUpdateRequest(contextId, requestId);
+
                 if (entity.getRequest().getFailureReason() == null) {
                     return;
                 }

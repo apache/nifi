@@ -39,6 +39,7 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.LifecycleStateManager;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.scheduling.StatelessProcessScheduler;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.tasks.StatelessFlowTask;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -403,6 +404,8 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             processScheduler.submitFrameworkTask(() -> {
                 shutdownFlows();
                 stopPorts();
+                stopCanvasComponents(processScheduler).join();
+
                 lifecycleState.decrementActiveThreadCount();
                 currentState = ScheduledState.STOPPED;
                 logger.info("{} is now fully stopped.", this);
@@ -416,6 +419,50 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
             writeLock.unlock();
         }
     }
+
+
+    /**
+     * When a Stateless Group is stopped, we need to stop all of the Processors within the group, as well as all of the
+     * processors that are on the canvas. When the Stateless Group is started, the processors on the canvas are transitioned to a RUNNING
+     * state but their lifecycle methods are not called, and they are not scheduled to run. However, this must be done in order to ensure that
+     * the state reflected in the UI (and REST API) shows the components running. Additionally, the Controller Services are referenced by the
+     * components of the Stateless Group.
+     *
+     * When we stop the Stateless Group, we need to then stop all of these components. However, it is important that we stop these components
+     * after stopping Processors in the Stateless Group (because we don't want to disable services until the Processors have been stopped) and
+     * before the Stateless Group's state transitions to STOPPED (because we don't want to return a state of STOPPED if the processor on the canvas
+     * is running, as that will prevent things like parameter updates, etc. from occurring).
+     *
+     * As a result, we have this method that is responsible for stopping these components and which may be called from a callback within the Stateless Group Node.
+     *
+     * @param scheduler the process scheduler to use for stopping the components
+     *
+     * @return a CompletableFuture that can be used to wait until the process has completed
+     */
+    private CompletableFuture<Void> stopCanvasComponents(final ProcessScheduler scheduler) {
+        final List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        for (final ProcessorNode procNode : getProcessGroup().findAllProcessors()) {
+            final CompletableFuture<Void> stopProcessorFuture = scheduler.stopProcessor(procNode);
+            futures.add(stopProcessorFuture);
+        }
+
+        for (final ProcessGroup innerGroup : getProcessGroup().findAllProcessGroups()) {
+            innerGroup.getInputPorts().forEach(scheduler::stopPort);
+            innerGroup.getOutputPorts().forEach(scheduler::stopPort);
+        }
+
+        final Set<ControllerServiceNode> controllerServices = getProcessGroup().findAllControllerServices();
+
+        final CompletableFuture<?>[] processorFutureArray = futures.toArray(new CompletableFuture[0]);
+        final CompletableFuture<Void> processorsStoppedFuture = CompletableFuture.allOf(processorFutureArray);
+        final CompletableFuture<Void> allStoppedFuture = processorsStoppedFuture.thenAccept(completion -> {
+            controllerServiceProvider.disableControllerServicesAsync(controllerServices).join();
+        });
+
+        return allStoppedFuture;
+    }
+
 
 
     private void stopPorts() {
