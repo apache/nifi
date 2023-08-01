@@ -142,7 +142,7 @@
         <mockito.version>4.11.0</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <snakeyaml.version>2.0</snakeyaml.version>
-        <netty.4.version>4.1.95.Final</netty.4.version>
+        <netty.4.version>4.1.96.Final</netty.4.version>
         <spring.version>5.3.29</spring.version>
         <spring.security.version>5.8.5</spring.security.version>
         <swagger.annotations.version>1.6.11</swagger.annotations.version>
