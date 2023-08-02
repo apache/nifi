@@ -22,6 +22,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractEmbeddedQuestDbStatusHistoryRepositoryTest {
+    private static final long ZERO_BYTES = 0L;
+
+    private static final int ZERO_COUNT = 0;
 
     @Test
     public void testReadingEmptyRepository() {
@@ -35,7 +38,9 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
 
     @Test
     public void testWritingThenReadingComponents() throws Exception {
-        repository.capture(givenNodeStatus(), new ProcessGroupStatus(), givenGarbageCollectionStatuses(INSERTED_AT), INSERTED_AT);
+        final ProcessGroupStatus processGroupStatus = getProcessGroupStatus();
+
+        repository.capture(givenNodeStatus(), processGroupStatus, givenGarbageCollectionStatuses(INSERTED_AT), INSERTED_AT);
         waitUntilPersisted();
 
         final StatusHistory nodeStatusHistory = repository.getNodeStatusHistory(START, END);
@@ -44,5 +49,18 @@ public class EmbeddedQuestDbStatusHistoryRepositoryForNodeTest extends AbstractE
         final GarbageCollectionHistory garbageCollectionHistory = repository.getGarbageCollectionHistory(START, END);
         assertGc1Status(garbageCollectionHistory.getGarbageCollectionStatuses("gc1"));
         assertGc2Status(garbageCollectionHistory.getGarbageCollectionStatuses("gc2"));
+    }
+
+    private static ProcessGroupStatus getProcessGroupStatus() {
+        final ProcessGroupStatus processGroupStatus = new ProcessGroupStatus();
+        processGroupStatus.setBytesRead(ZERO_BYTES);
+        processGroupStatus.setBytesWritten(ZERO_BYTES);
+        processGroupStatus.setInputCount(ZERO_COUNT);
+        processGroupStatus.setOutputCount(ZERO_COUNT);
+        processGroupStatus.setQueuedCount(ZERO_COUNT);
+        processGroupStatus.setInputContentSize(ZERO_BYTES);
+        processGroupStatus.setOutputContentSize(ZERO_BYTES);
+        processGroupStatus.setQueuedContentSize(ZERO_BYTES);
+        return processGroupStatus;
     }
 }
