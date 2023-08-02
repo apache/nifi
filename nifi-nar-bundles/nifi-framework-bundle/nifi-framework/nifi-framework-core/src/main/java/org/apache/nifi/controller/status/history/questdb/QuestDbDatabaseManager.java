@@ -64,7 +64,7 @@ public final class QuestDbDatabaseManager {
 
     public static void checkDatabaseStatus(final Path persistLocation) {
         final QuestDbDatabaseManager.DatabaseStatus databaseStatus = getDatabaseStatus(persistLocation);
-        LOGGER.debug("Starting status repository. It's estimated status is {}", databaseStatus);
+        LOGGER.debug("Starting Status Repository: Database Status [{}]", databaseStatus);
 
         if (databaseStatus == QuestDbDatabaseManager.DatabaseStatus.NON_EXISTING) {
             createDatabase(persistLocation);
@@ -120,27 +120,28 @@ public final class QuestDbDatabaseManager {
     }
 
     private static boolean checkConnection(final Path persistLocation) {
-        final CairoConfiguration configuration = new DefaultCairoConfiguration(persistLocation.toFile().getAbsolutePath());
+        final String absolutePath = persistLocation.toFile().getAbsolutePath();
+        final CairoConfiguration configuration = new DefaultCairoConfiguration(absolutePath);
 
         try (
             final CairoEngine engine = new CairoEngine(configuration)
         ) {
-            LOGGER.info("Connection to database was successful");
+            LOGGER.info("Database connection successful [{}]", absolutePath);
             return true;
         } catch (Exception e) {
-            LOGGER.error("Error during connection to database", e);
+            LOGGER.error("Database connection failed [{}]", absolutePath, e);
             return false;
         }
     }
 
     private static void createDatabase(final Path persistLocation) {
-        LOGGER.info("Creating database");
+        LOGGER.debug("Database creation started [{}]", persistLocation);
         final CairoConfiguration configuration;
 
         try {
             FileUtils.ensureDirectoryExistAndCanReadAndWrite(persistLocation.toFile());
         } catch (final Exception e) {
-            throw new RuntimeException("Could not create database folder " + persistLocation.toAbsolutePath().toString(), e);
+            throw new RuntimeException(String.format("Database directory creation failed [%s]", persistLocation), e);
         }
 
         configuration = new DefaultCairoConfiguration(persistLocation.toFile().getAbsolutePath());
@@ -163,9 +164,9 @@ public final class QuestDbDatabaseManager {
             compiler.compile(QuestDbQueries.CREATE_PROCESSOR_STATUS, context);
             compiler.compile(QuestDbQueries.CREATE_COMPONENT_COUNTER, context);
 
-            LOGGER.info("Database is created");
+            LOGGER.info("Database creation completed [{}]", persistLocation);
         } catch (final Exception e) {
-            throw new RuntimeException("Could not create database!", e);
+            throw new RuntimeException(String.format("Database creation failed [%s]", persistLocation), e);
         }
     }
 
