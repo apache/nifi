@@ -71,9 +71,9 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
 
     @Override
     public void run() {
-        LOGGER.debug("Starting rollover");
+        LOGGER.debug("Rollover started for Tables {}", tables);
         tables.forEach(tableName -> rolloverTable(tableName));
-        LOGGER.debug("Finishing rollover");
+        LOGGER.debug("Rollover completed for Tables {}", tables);
     }
 
     private void rolloverTable(final CharSequence tableName) {
@@ -89,7 +89,7 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
                 }
             }
         } catch (final Exception e) {
-            LOGGER.error("Could not rollover table " + tableName, e);
+            LOGGER.error("Rollover failed for table [{}]", tableName, e);
         }
     }
 
@@ -98,7 +98,7 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
             final CompiledQuery compile = compiler.compile(String.format(DELETION_QUERY, tableName, partition), dbContext.getSqlExecutionContext());
             compile.execute(new SCSequence(new TimeoutBlockingWaitStrategy(5, TimeUnit.SECONDS)));
         } catch (final Exception e) {
-            LOGGER.error("Dropping partition " + partition + " of table " + tableName + " failed", e);
+            LOGGER.error("Dropping partition [{}] of table [{}] failed", partition, tableName, e);
         }
     }
 

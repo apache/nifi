@@ -18,10 +18,12 @@ package org.apache.nifi.controller.status.history;
 
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +43,15 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
 
     @TempDir
     private Path temporaryDirectory;
+
+    @BeforeAll
+    public static void setLogging() {
+        final URL logConfUrl = AbstractEmbeddedQuestDbStatusHistoryRepositoryTest.class.getResource("/log-stdout.conf");
+        if (logConfUrl == null) {
+            throw new IllegalStateException("QuestDB log configuration not found");
+        }
+        System.setProperty("out", logConfUrl.getPath());
+    }
 
     @BeforeEach
     public void setUp() throws Exception {
