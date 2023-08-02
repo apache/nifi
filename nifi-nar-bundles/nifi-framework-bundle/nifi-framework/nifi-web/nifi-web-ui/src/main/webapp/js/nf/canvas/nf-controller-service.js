@@ -87,6 +87,8 @@
         }
     };
 
+    var options;
+
     // the last submitted referenced attributes
     var referencedAttributes = null;
 
@@ -1416,7 +1418,7 @@
      *
      * @param {jQuery} serviceTable
      */
-    var disableHandler = function (serviceTable) {
+    var disableHandler = function (serviceTable, cb) {
         var disableDialog = $('#disable-controller-service-dialog');
         var canceled = false;
 
@@ -1485,7 +1487,7 @@
         }
 
         $('#disable-progress-label').text('Steps to disable ' + nfCommon.getComponentName(controllerServiceEntity));
-        var disableReferencingSchedulable = $('#disable-referencing-schedulable').addClass('ajax-loading');
+        var disableReferencingSchedulable = $('#disable-referencing-schedulable').removeClass('ajax-complete').addClass('ajax-loading');
 
         $.Deferred(function (deferred) {
             // stop all referencing schedulable components
@@ -1494,7 +1496,7 @@
             // once everything has stopped
             stopped.done(function () {
                 disableReferencingSchedulable.removeClass('ajax-loading').addClass('ajax-complete');
-                var disableReferencingServices = $('#disable-referencing-services').addClass('ajax-loading');
+                var disableReferencingServices = $('#disable-referencing-services').removeClass('ajax-complete').addClass('ajax-loading');
 
                 // disable all referencing services
                 var disabled = updateReferencingServices(serviceTable, controllerServiceEntity, false, continuePolling);
@@ -1502,7 +1504,7 @@
                 // everything is disabled
                 disabled.done(function () {
                     disableReferencingServices.removeClass('ajax-loading').addClass('ajax-complete');
-                    var disableControllerService = $('#disable-controller-service').addClass('ajax-loading');
+                    var disableControllerService = $('#disable-controller-service').removeClass('ajax-complete').addClass('ajax-loading');
 
                     // disable this service
                     setEnabled(serviceTable, controllerServiceEntity, false, continuePolling).done(function () {
@@ -1532,6 +1534,12 @@
                     headerText: 'Controller Service',
                     dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
                 });
+            }
+            //Execute the callback function if provided
+            if (nfCommon.isDefinedAndNotNull(cb)) {
+                if (typeof cb == 'function') {
+                    cb();
+                }
             }
         });
     };
@@ -1937,13 +1945,15 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef, nfFlowAnalysisRuleRef, nfParameterProviderRef, nfSettingsRef) {
+
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfFlowAnalysisRuleRef, nfParameterProviderRef, nfSettingsRef, optionsRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
             nfFlowAnalysisRule = nfFlowAnalysisRuleRef;
             nfParameterProvider = nfParameterProviderRef;
             nfSettings = nfSettingsRef;
 
+            options = optionsRef;
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({
                 tabStyle: 'tab',
@@ -2017,6 +2027,11 @@
                     }
                 }
             });
+
+            //initialize status bar
+            if (options.supportsStatusBar) {
+                $('#controller-configuration-status-bar').statusbar('processor');
+            }
 
             // initialize the disable service dialog
             $('#disable-controller-service-dialog').modal({
@@ -2327,6 +2342,22 @@
                     });
                 }
 
+                if (options.supportsStatusBar) {
+                    var formattedBulletins = nfCommon.getFormattedBulletins(controllerServiceEntity.bulletins);
+                    var unorderedBulletins = nfCommon.formatUnorderedList(formattedBulletins);
+
+                    // Initialize current status
+                    $("#controller-configuration-status-bar").statusbar(
+                        'set',
+                        {
+                            controller: controllerServiceEntity,
+                            bulletins: unorderedBulletins
+                        }
+                    );
+
+                    $("#controller-configuration-status-bar").statusbar('hideButtons');
+                    $('#controller-service-configuration').modal('refreshButtons');
+                }
                 // set the button model
                 controllerServiceDialog.modal('setButtonModel', buttons);
 
@@ -2471,6 +2502,73 @@
                             }
                         }
                     });
+                }
+
+                //Initialize current status
+                if (options.supportsStatusBar) {
+                    var formattedBulletins = nfCommon.getFormattedBulletins(controllerServiceEntity.bulletins);
+                    var unorderedBulletins = nfCommon.formatUnorderedList(formattedBulletins);
+
+                    $("#controller-configuration-status-bar").statusbar(
+                        'set',
+                        {
+                            controller: controllerServiceEntity,
+                            bulletins: unorderedBulletins
+                        }
+                    );
+                    $("#controller-configuration-status-bar").statusbar('showButtons');
+                    $('#controller-service-configuration').modal('refreshButtons');
+
+                    //Set the stop and configure button
+                    if (nfCommon.isDefinedAndNotNull(options.nfActions) ) {
+                        var cb = function() {
+                            $('#disable-controller-service-dialog').modal('hide');
+                            $('#controller-service-configuration').modal('hide');
+                            $("#controller-configuration-status-bar").statusbar('hideButtons');
+                            nfControllerService.showConfiguration(serviceTable, controllerServiceEntity);
+                        };
+
+                        var selection = nfCanvasUtils.getSelectionById(controllerServiceEntity.id);
+                        $("#controller-configuration-status-bar").statusbar('buttons',[{
+                            buttonHtml: '<i class="fa fa-stop stop-configure-icon" aria-hidden="true"></i><span>Disable & Configure</span>',
+                            clazz: 'button button-icon auto-width',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return !nfCanvasUtils.canOperate(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    //execute the stop and open the configuration modal
+                                    $("#controller-configuration-status-bar").statusbar('hideButtons');
+                                    showDisableControllerServiceDialog(serviceTable, controllerServiceEntity);
+                                    disableHandler(serviceTable, cb);
+                                }
+                            }
+                        },
+                        {
+                            buttonText: 'Configure',
+                            clazz: 'fa fa-cog button-icon',
+                            color: {
+                                hover: '#C7D2D7',
+                                base: 'transparent',
+                                text: '#004849'
+                            },
+                            disabled : function() {
+                                return nfCanvasUtils.canOperate(selection);
+                            },
+                            handler: {
+                                click: function() {
+                                    //execute the stop and open the configuration modal
+                                    $("#controller-configuration-status-bar").statusbar('hideButtons');
+                                    showDisableControllerServiceDialog(serviceTable, controllerServiceEntity);
+                                }
+                            }
+                        }]);
+                    }
                 }
 
                 // show the dialog
