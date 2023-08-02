@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.dbcp2.DelegatingConnection;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processors.standard.db.ColumnDescription;
@@ -53,6 +55,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -74,6 +77,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -102,7 +106,7 @@ public class PutDatabaseRecordTest {
 
     TestRunner runner;
     PutDatabaseRecord processor;
-    DBCPServiceSimpleImpl dbcp;
+    DBCPService dbcp;
 
     @BeforeAll
     public static void setDatabaseLocation() {
@@ -164,6 +168,42 @@ public class PutDatabaseRecordTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE);
+    }
+
+    @Test
+    public void testSetAutoCommitFalseFailure() throws InitializationException, SQLException {
+        dbcp = new DBCPServiceAutoCommitTest(DB_LOCATION);
+        final Map<String, String> dbcpProperties = new HashMap<>();
+        runner = TestRunners.newTestRunner(processor);
+        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.enableControllerService(dbcp);
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("dt", RecordFieldType.DATE);
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+
+        parser.addRecord(1, "rec1", 101, jdbcDate1);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS);
     }
 
     @Test
@@ -1947,6 +1987,31 @@ public class PutDatabaseRecordTest {
         @Override
         SqlAndIncludedColumns generateInsert(RecordSchema recordSchema, String tableName, TableSchema tableSchema, DMLSettings settings) throws IllegalArgumentException {
             return new SqlAndIncludedColumns("INSERT INTO PERSONS VALUES (?,?,?,?)", Arrays.asList(0, 1, 2, 3));
+        }
+    }
+
+    static class DBCPServiceAutoCommitTest extends AbstractControllerService implements DBCPService {
+        private final String databaseLocation;
+
+        public DBCPServiceAutoCommitTest(final String databaseLocation) {
+            this.databaseLocation = databaseLocation;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return "dbcp";
+        }
+
+        @Override
+        public Connection getConnection() throws ProcessException {
+            try {
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                Connection spyConnection =  spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
+                doThrow(SQLFeatureNotSupportedException.class).when(spyConnection).setAutoCommit(false);
+                return spyConnection;
+            } catch (final Exception e) {
+                throw new ProcessException("getConnection failed: " + e);
+            }
         }
     }
 }
