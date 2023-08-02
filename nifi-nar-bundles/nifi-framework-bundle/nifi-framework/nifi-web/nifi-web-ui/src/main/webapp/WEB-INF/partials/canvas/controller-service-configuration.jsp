@@ -16,6 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="controller-service-configuration" class="hidden large-dialog">
+    <div id="controller-configuration-status-bar"></div>
     <div class="controller-service-configuration-tab-container dialog-content">
         <div id="controller-service-configuration-tabs" class="tab-container"></div>
         <div id="controller-service-configuration-tabs-content">

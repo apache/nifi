@@ -373,7 +373,12 @@
 
                     // initialize the connection config and invert control of the birdseye and graph
                     nfConnectionConfiguration.init(nfBirdseye, nfGraph, configDetails.defaultBackPressureObjectThreshold, configDetails.defaultBackPressureDataSizeThreshold);
-                    nfControllerService.init(nfControllerServices, nfReportingTask, nfParameterProvider, nfSettings);
+
+                    nfControllerService.init(nfControllerServices, nfReportingTask, nfParameterProvider, nfSettings, {
+                        supportsStatusBar : true,
+                        nfActions : nfActions
+                    });
+
                     nfReportingTask.init(nfSettings);
                     nfParameterProvider.init({
                         nfSettings: nfSettings,
