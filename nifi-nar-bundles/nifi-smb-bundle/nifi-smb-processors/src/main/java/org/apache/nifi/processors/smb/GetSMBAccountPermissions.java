@@ -147,10 +147,10 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
         if (flowFile == null) {
             flowFile = session.create();
         }
-        final String hostname = context.getProperty(HOSTNAME).getValue();
-        final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
-        final String username = context.getProperty(USERNAME).getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
+        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).evaluateAttributeExpressions(flowFile).getValue() : null;
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
         final String accessLevel = context.getProperty(ACCESS_LEVEL).evaluateAttributeExpressions(flowFile).getValue();
         final String adServerNameorNull = context.getProperty(AD_SERVER_NAME).isSet() ?
                 context.getProperty(AD_SERVER_NAME).evaluateAttributeExpressions(flowFile).getValue() : null;
