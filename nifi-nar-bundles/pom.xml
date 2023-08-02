@@ -34,7 +34,6 @@
         <module>nifi-standard-bundle</module>
         <module>nifi-standard-services</module>
         <module>nifi-update-attribute-bundle</module>
-        <module>nifi-media-bundle</module>
         <module>nifi-kafka-bundle</module>
         <module>nifi-kudu-bundle</module>
         <module>nifi-solr-bundle</module>
@@ -50,14 +49,22 @@
         <module>nifi-hbase-bundle</module>
         <module>nifi-ambari-bundle</module>
         <module>nifi-asana-bundle</module>
+        <module>nifi-media-bundle</module>
         <module>nifi-avro-bundle</module>
         <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
         <module>nifi-single-user-iaa-providers-bundle</module>
+        <module>nifi-riemann-bundle</module>
+        <module>nifi-html-bundle</module>
         <module>nifi-scripting-bundle</module>
+        <module>nifi-elasticsearch-bundle</module>
+        <module>nifi-amqp-bundle</module>
+        <module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
+        <module>nifi-beats-bundle</module>
+        <module>nifi-spring-bundle</module>
         <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
@@ -74,8 +81,13 @@
         <module>nifi-groovyx-bundle</module>
         <module>nifi-websocket-bundle</module>
         <module>nifi-tcp-bundle</module>
+        <module>nifi-gcp-bundle</module>
         <module>nifi-registry-bundle</module>
         <module>nifi-stateful-analysis-bundle</module>
+        <module>nifi-poi-bundle</module>
+        <module>nifi-cdc</module>
+        <module>nifi-cybersecurity-bundle</module>
+        <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
         <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
@@ -86,11 +98,13 @@
         <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
         <module>nifi-easyrules-bundle</module>
+        <module>nifi-sql-reporting-bundle</module>
         <module>nifi-rules-action-handler-bundle</module>
         <module>nifi-hazelcast-bundle</module>
         <module>nifi-accumulo-bundle</module>
         <module>nifi-asn1-bundle</module>
         <module>nifi-pgp-bundle</module>
+        <module>nifi-hashicorp-vault-bundle</module>
         <module>nifi-stateless-processor-bundle</module>
         <module>nifi-geohash-bundle</module>
         <module>nifi-snowflake-bundle</module>
@@ -103,7 +117,9 @@
         <module>nifi-workday-bundle</module>
         <module>nifi-box-bundle</module>
         <module>nifi-flow-registry-client-bundle</module>
+        <module>nifi-shopify-bundle</module>
         <module>nifi-jslt-bundle</module>
+        <module>nifi-iotdb-bundle</module>
         <module>nifi-cipher-bundle</module>
         <module>nifi-compress-bundle</module>
     </modules>

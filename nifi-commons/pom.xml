@@ -28,6 +28,7 @@
         <module>nifi-data-provenance-utils</module>
         <module>nifi-deprecation-log</module>
         <module>nifi-expression-language</module>
+        <module>nifi-external-resource-utils</module>
         <module>nifi-flowfile-packager</module>
         <module>nifi-flow-encryptor</module>
         <module>nifi-hl7-query-language</module>
@@ -42,8 +43,11 @@
         <module>nifi-properties</module>
         <module>nifi-property-protection-api</module>
         <module>nifi-property-protection-aws</module>
+        <module>nifi-property-protection-azure</module>
         <module>nifi-property-protection-cipher</module>
         <module>nifi-property-protection-factory</module>
+        <module>nifi-property-protection-gcp</module>
+        <module>nifi-property-protection-hashicorp</module>
         <module>nifi-property-protection-loader</module>
         <module>nifi-property-protection-shared</module>
         <module>nifi-record</module>
@@ -63,6 +67,8 @@
         <module>nifi-socket-utils</module>
         <module>nifi-utils</module>
         <module>nifi-uuid5</module>
+        <module>nifi-hashicorp-vault</module>
+        <module>nifi-hashicorp-vault-api</module>
         <module>nifi-web-client</module>
         <module>nifi-web-client-api</module>
         <module>nifi-web-utils</module>
