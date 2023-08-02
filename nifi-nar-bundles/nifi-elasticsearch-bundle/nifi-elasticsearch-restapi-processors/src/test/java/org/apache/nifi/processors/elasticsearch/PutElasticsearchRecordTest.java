@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,6 +82,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
         simpleSchema = Files.readString(Paths.get(TEST_DIR, "simpleSchema.json"));
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     }
 
     @BeforeEach
