@@ -169,7 +169,7 @@ public class ResizeImage extends AbstractProcessor {
                 reader.setInput(iis, true);
                 image = reader.read(0);
             }
-        } catch (final IOException | IllegalArgumentException | IllegalStateException | ProcessException ex) {
+        } catch (final IOException | RuntimeException ex) {
             getLogger().error("Failed to read {} due to {}", flowFile, ex);
             session.transfer(flowFile, REL_FAILURE);
             return;
