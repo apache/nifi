@@ -18,13 +18,6 @@
 package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
@@ -32,7 +25,6 @@ import org.apache.nifi.toolkit.tls.manager.writer.JsonConfigurationWriter;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.eclipse.jetty.http.HttpVersion;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
@@ -43,6 +35,14 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+
 /**
  * Starts a Jetty server that will either load an existing CA or create one and use it to sign CSRs
  */
@@ -50,6 +50,8 @@ public class TlsCertificateAuthorityService {
     private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityService.class);
     private final OutputStreamFactory outputStreamFactory;
     private Server server;
+
+    private ServerConnector serverConnector;
 
     public TlsCertificateAuthorityService() {
         this(FileOutputStream::new);
@@ -59,9 +61,7 @@ public class TlsCertificateAuthorityService {
         this.outputStreamFactory = outputStreamFactory;
     }
 
-    private static Server createServer(Handler handler, int port, KeyStore keyStore, String keyPassword) throws Exception {
-        Server server = new Server();
-
+    private static ServerConnector createSSLConnector(Server server, int port, KeyStore keyStore, String keyPassword) {
         SslContextFactory sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setIncludeProtocols(TlsPlatform.getLatestProtocol());
         sslContextFactory.setKeyStore(keyStore);
@@ -73,10 +73,7 @@ public class TlsCertificateAuthorityService {
         ServerConnector sslConnector = new ServerConnector(server, new SslConnectionFactory(sslContextFactory, HttpVersion.HTTP_1_1.asString()), new HttpConnectionFactory(httpsConfig));
         sslConnector.setPort(port);
 
-        server.addConnector(sslConnector);
-        server.setHandler(handler);
-
-        return server;
+        return sslConnector;
     }
 
     public synchronized void start(TlsConfig tlsConfig, String configJson, boolean differentPasswordsForKeyAndKeystore) throws Exception {
@@ -111,8 +108,10 @@ public class TlsCertificateAuthorityService {
         tlsManager.write(outputStreamFactory);
         String signingAlgorithm = tlsConfig.getSigningAlgorithm();
         int days = tlsConfig.getDays();
-        server = createServer(new TlsCertificateAuthorityServiceHandler(signingAlgorithm, days, tlsConfig.getToken(), caCert, keyPair, objectMapper), tlsConfig.getPort(), tlsManager.getKeyStore(),
-                tlsConfig.getKeyPassword());
+        server = new Server();
+        serverConnector = createSSLConnector(server, tlsConfig.getPort(), tlsManager.getKeyStore(), tlsConfig.getKeyPassword());
+        server.addConnector(serverConnector);
+        server.setHandler(new TlsCertificateAuthorityServiceHandler(signingAlgorithm, days, tlsConfig.getToken(), caCert, keyPair, objectMapper));
         server.start();
     }
 
@@ -122,5 +121,9 @@ public class TlsCertificateAuthorityService {
         }
         server.stop();
         server.join();
+    }
+
+    public int getPort() {
+        return serverConnector.getLocalPort();
     }
 }

@@ -31,7 +31,6 @@ import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SnapshotCapture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.SyncListener;
 import org.wali.WriteAheadRepository;
 
@@ -47,10 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -94,7 +90,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
     static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
-    private static final String MINIMAL_LOCKING_WALI = "org.wali.MinimalLockingWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
     private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
@@ -110,7 +105,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     private final long checkpointDelayMillis;
     private final List<File> flowFileRepositoryPaths = new ArrayList<>();
-    private final List<File> recoveryFiles = new ArrayList<>();
     private final ScheduledExecutorService checkpointExecutor;
     private final int maxCharactersToCache;
 
@@ -176,24 +170,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         this.walImplementation = writeAheadLogImpl;
         this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
 
-        // We used to use one implementation (minimal locking) of the write-ahead log, but we now want to use the other
-        // (sequential access), we must address this. Since the MinimalLockingWriteAheadLog supports multiple partitions,
-        // we need to ensure that we recover records from all partitions, so we build up a List of Files for the
-        // recovery files.
-        for (final String propertyName : nifiProperties.getPropertyKeys()) {
-            if (propertyName.startsWith(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX)) {
-                final String dirName = nifiProperties.getProperty(propertyName);
-                recoveryFiles.add(new File(dirName));
-            }
-        }
-
-        if (isSequentialAccessWAL(walImplementation)) {
-            final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
-            flowFileRepositoryPaths.add(new File(directoryName));
-        } else {
-            flowFileRepositoryPaths.addAll(recoveryFiles);
-        }
-
+        final String directoryName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
+        flowFileRepositoryPaths.add(new File(directoryName));
 
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
@@ -205,16 +183,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 return t;
             }
         });
-    }
-
-    /**
-     * Returns true if the provided implementation is a sequential access write ahead log (plaintext or encrypted).
-     *
-     * @param walImplementation the implementation to check
-     * @return true if this implementation is sequential access
-     */
-    private static boolean isSequentialAccessWAL(String walImplementation) {
-        return walImplementation.equals(SEQUENTIAL_ACCESS_WAL) || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL);
     }
 
     @Override
@@ -251,15 +219,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         this.serdeFactory = serdeFactory;
 
         // The specified implementation can be plaintext or encrypted; the only difference is the serde factory
-        if (isSequentialAccessWAL(walImplementation)) {
+        if (walImplementation.equals(SEQUENTIAL_ACCESS_WAL) || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL)) {
             // TODO: May need to instantiate ESAWAL for clarity?
             wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
-        } else if (walImplementation.equals(MINIMAL_LOCKING_WALI)) {
-            final SortedSet<Path> paths = flowFileRepositoryPaths.stream()
-                    .map(File::toPath)
-                    .collect(Collectors.toCollection(TreeSet::new));
-
-            wal = new MinimalLockingWriteAheadLog<>(paths, 1, serdeFactory, this);
         } else {
             throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + WRITE_AHEAD_LOG_IMPL + "' has an invalid value of '" + walImplementation
                     + "'. Please update nifi.properties to indicate a valid value for this property.");
@@ -285,10 +247,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) {
-        if (!(isSequentialAccessWAL(walImplementation))) {
-            return null;
-        }
-
         final Map<ResourceClaim, Set<ResourceClaimReference>> references = new HashMap<>();
 
         final SnapshotCapture<SerializedRepositoryRecord> snapshot = ((SequentialAccessWriteAheadLog<SerializedRepositoryRecord>) wal).captureSnapshot();
@@ -747,95 +705,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
     }
 
-    private Optional<Collection<SerializedRepositoryRecord>> migrateFromSequentialAccessLog(final WriteAheadRepository<SerializedRepositoryRecord> toUpdate) throws IOException {
-        final String recoveryDirName = nifiProperties.getProperty(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX);
-        final File recoveryDir = new File(recoveryDirName);
-        if (!recoveryDir.exists()) {
-            return Optional.empty();
-        }
-
-        final WriteAheadRepository<SerializedRepositoryRecord> recoveryWal = new SequentialAccessWriteAheadLog<>(recoveryDir, serdeFactory, this);
-        logger.info("Encountered FlowFile Repository that was written using the Sequential Access Write Ahead Log. Will recover from this version.");
-
-        final Collection<SerializedRepositoryRecord> recordList;
-        try {
-            recordList = recoveryWal.recoverRecords();
-        } finally {
-            recoveryWal.shutdown();
-        }
-
-        toUpdate.update(recordList, true);
-
-        logger.info("Successfully recovered files from existing Write-Ahead Log and transitioned to new Write-Ahead Log. Will not delete old files.");
-
-        final File journalsDir = new File(recoveryDir, "journals");
-        deleteRecursively(journalsDir);
-
-        final File checkpointFile = new File(recoveryDir, "checkpoint");
-        if (!checkpointFile.delete() && checkpointFile.exists()) {
-            logger.warn("Failed to delete old file {}; this file should be cleaned up manually", checkpointFile);
-        }
-
-        final File partialFile = new File(recoveryDir, "checkpoint.partial");
-        if (!partialFile.delete() && partialFile.exists()) {
-            logger.warn("Failed to delete old file {}; this file should be cleaned up manually", partialFile);
-        }
-
-        return Optional.of(recordList);
-    }
-
-    @SuppressWarnings("deprecation")
-    private Optional<Collection<SerializedRepositoryRecord>> migrateFromMinimalLockingLog(final WriteAheadRepository<SerializedRepositoryRecord> toUpdate) throws IOException {
-        final List<File> partitionDirs = new ArrayList<>();
-        for (final File recoveryFile : recoveryFiles) {
-            final File[] partitions = recoveryFile.listFiles(file -> file.getName().startsWith("partition-"));
-            for (final File partition : partitions) {
-                partitionDirs.add(partition);
-            }
-        }
-
-        if (partitionDirs == null || partitionDirs.isEmpty()) {
-            return Optional.empty();
-        }
-
-        logger.info("Encountered FlowFile Repository that was written using the 'Minimal Locking Write-Ahead Log'. "
-                + "Will recover from this version and re-write the repository using the new version of the Write-Ahead Log.");
-
-        final SortedSet<Path> paths = recoveryFiles.stream()
-                .map(File::toPath)
-                .collect(Collectors.toCollection(TreeSet::new));
-
-        final Collection<SerializedRepositoryRecord> recordList;
-        final MinimalLockingWriteAheadLog<SerializedRepositoryRecord> minimalLockingWal = new MinimalLockingWriteAheadLog<>(paths, partitionDirs.size(), serdeFactory, null);
-        try {
-            recordList = minimalLockingWal.recoverRecords();
-        } finally {
-            minimalLockingWal.shutdown();
-        }
-
-        toUpdate.update(recordList, true);
-
-        // Delete the old repository
-        logger.info("Successfully recovered files from existing Write-Ahead Log and transitioned to new implementation. Will now delete old files.");
-        for (final File partitionDir : partitionDirs) {
-            deleteRecursively(partitionDir);
-        }
-
-        for (final File recoveryFile : recoveryFiles) {
-            final File snapshotFile = new File(recoveryFile, "snapshot");
-            if (!snapshotFile.delete() && snapshotFile.exists()) {
-                logger.warn("Failed to delete old file {}; this file should be cleaned up manually", snapshotFile);
-            }
-
-            final File partialFile = new File(recoveryFile, "snapshot.partial");
-            if (!partialFile.delete() && partialFile.exists()) {
-                logger.warn("Failed to delete old file {}; this file should be cleaned up manually", partialFile);
-            }
-        }
-
-        return Optional.of(recordList);
-    }
-
     @Override
     public Set<String> findQueuesWithFlowFiles(final FlowFileSwapManager swapManager) throws IOException {
         if (recoveredRecords == null) {
@@ -883,23 +752,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         synchronized (this.swapLocationSuffixes) {
             recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(normalizeSwapLocation(loc)));
             logger.debug("Recovered {} Swap Files: {}", swapLocationSuffixes.size(), swapLocationSuffixes);
-        }
-
-        // If we didn't recover any records from our write-ahead log, attempt to recover records from the other implementation
-        // of the write-ahead log. We do this in case the user changed the "nifi.flowfile.repository.wal.impl" property.
-        // In such a case, we still want to recover the records from the previous FlowFile Repository and write them into the new one.
-        // Since these implementations do not write to the same files, they will not interfere with one another. If we do recover records,
-        // then we will update the new WAL (with fsync()) and delete the old repository so that we won't recover it again.
-        if (recordList == null || recordList.isEmpty()) {
-            if (isSequentialAccessWAL(walImplementation)) {
-                // Configured to use Sequential Access WAL but it has no records. Check if there are records in
-                // a MinimalLockingWriteAheadLog that we can recover.
-                recordList = migrateFromMinimalLockingLog(wal).orElse(new ArrayList<>());
-            } else {
-                // Configured to use Minimal Locking WAL but it has no records. Check if there are records in
-                // a SequentialAccess Log that we can recover.
-                recordList = migrateFromSequentialAccessLog(wal).orElse(new ArrayList<>());
-            }
         }
 
         fieldCache.clear();

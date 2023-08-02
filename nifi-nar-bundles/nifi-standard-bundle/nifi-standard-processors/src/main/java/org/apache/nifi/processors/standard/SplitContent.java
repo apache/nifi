@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -64,7 +63,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NaiveSearchRingBuffer;
 import org.apache.nifi.util.Tuple;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"content", "split", "binary"})

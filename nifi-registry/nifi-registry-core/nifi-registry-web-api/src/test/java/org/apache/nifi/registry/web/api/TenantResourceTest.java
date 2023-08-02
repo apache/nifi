@@ -101,7 +101,7 @@ public class TenantResourceTest {
     public void testDeleteUser() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         User user = new User("identifier", "identity");
-        Long version = new Long(0);
+        Long version = Long.valueOf(0);
         ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUser(eq(user.getIdentifier()), any(RevisionInfo.class))).thenReturn(user);
@@ -152,7 +152,7 @@ public class TenantResourceTest {
     public void testDeleteUserGroup() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         UserGroup userGroup = new UserGroup("identifier", "identity");
-        Long version = new Long(0);
+        Long version = Long.valueOf(0);
         ClientIdParameter clientId = new ClientIdParameter();
 
         when(serviceFacade.deleteUserGroup(eq(userGroup.getIdentifier()), any(RevisionInfo.class))).thenReturn(userGroup);

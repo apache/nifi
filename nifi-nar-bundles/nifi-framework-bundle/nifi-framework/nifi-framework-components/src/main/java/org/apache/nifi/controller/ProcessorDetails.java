@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -38,7 +37,6 @@ public class ProcessorDetails {
     private final boolean sideEffectFree;
     private final boolean triggeredSerially;
     private final boolean triggerWhenAnyDestinationAvailable;
-    private final boolean eventDrivenSupported;
     private final boolean batchSupported;
     private final boolean executionNodeRestricted;
     private final InputRequirement.Requirement inputRequirement;
@@ -56,7 +54,6 @@ public class ProcessorDetails {
         this.batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
         this.triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
         this.triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
-        this.eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
         this.executionNodeRestricted = procClass.isAnnotationPresent(PrimaryNodeOnly.class);
 
         final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
@@ -89,10 +86,6 @@ public class ProcessorDetails {
 
     public boolean isTriggerWhenAnyDestinationAvailable() {
         return triggerWhenAnyDestinationAvailable;
-    }
-
-    public boolean isEventDrivenSupported() {
-        return eventDrivenSupported;
     }
 
     public boolean isBatchSupported() {

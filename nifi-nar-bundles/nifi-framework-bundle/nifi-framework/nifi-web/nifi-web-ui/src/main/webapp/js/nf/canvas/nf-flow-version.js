@@ -175,6 +175,8 @@
 
         $('#import-flow-version-container').hide();
         $('#import-flow-version-label').text('');
+
+        $('#keep-parameter-context-container').hide();
     };
 
     /**
@@ -781,6 +783,9 @@
                 disabled: true
             }]
         }).show();
+
+        // show the checkbox to keep existing parameter context
+        $('#keep-parameter-context-container').show();
 
         loadRegistries($('#import-flow-version-dialog'), registryCombo, bucketCombo, flowCombo, selectBucketImportVersion, function (bucketEntity) {
             return true;
@@ -1779,15 +1784,17 @@
                 }
             });
 
-            // handle the click for the process group import
-            $('#import-process-group-link').on('click', function() {
-                showImportFlowVersionDialog();
-            });
-
             // initialize the import flow version table
             initImportFlowVersionTable();
             initLocalChangesTable($('#revert-local-changes-table'), $('#revert-local-changes-filter'), $('#displayed-revert-local-changes-entries'), $('#total-revert-local-changes-entries'));
             initLocalChangesTable($('#show-local-changes-table'), $('#show-local-changes-filter'), $('#displayed-show-local-changes-entries'), $('#total-show-local-changes-entries'));
+        },
+
+        /**
+         * Shows the import flow dialog.
+         */
+        showImportFlowDialog: function () {
+            showImportFlowVersionDialog();
         },
 
         /**
@@ -1924,6 +1931,9 @@
                         // show the current version information
                         $('#import-flow-version-container').show();
                         $('#import-flow-version-label').text(versionControlInformation.version);
+
+                        // hide the checkbox to keep existing parameter context
+                        $('#keep-parameter-context-container').hide();
 
                         // record the versionControlInformation
                         $('#import-flow-version-process-group-id').data('versionControlInformation', versionControlInformation).data('revision', groupVersionControlInformation.processGroupRevision).text(processGroupId);

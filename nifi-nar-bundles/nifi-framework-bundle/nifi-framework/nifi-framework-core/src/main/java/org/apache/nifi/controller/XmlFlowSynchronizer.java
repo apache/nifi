@@ -397,10 +397,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
         if (maxThreadCount == null) {
             controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
-            controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
         } else {
             controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
-            controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
         }
 
         // get the root group XML element
@@ -661,10 +659,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
         if (maxThreadCount == null) {
             controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
-            controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
         } else {
             controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
-            controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
         }
     }
 

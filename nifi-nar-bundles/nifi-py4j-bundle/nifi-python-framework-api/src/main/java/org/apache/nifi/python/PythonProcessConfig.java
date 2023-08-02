@@ -34,6 +34,10 @@ public class PythonProcessConfig {
     private final Duration commsTimeout;
     private final int maxPythonProcesses;
     private final int maxPythonProcessesPerType;
+    private final boolean debugController;
+    private final String debugHost;
+    private final int debugPort;
+    private final File debugLogsDirectory;
 
     private PythonProcessConfig(final Builder builder) {
         this.pythonCommand = builder.pythonCommand;
@@ -44,6 +48,10 @@ public class PythonProcessConfig {
         this.commsTimeout = builder.commsTimeout;
         this.maxPythonProcesses = builder.maxProcesses;
         this.maxPythonProcessesPerType = builder.maxProcessesPerType;
+        this.debugController = builder.debugController;
+        this.debugPort = builder.debugPort;
+        this.debugHost = builder.debugHost;
+        this.debugLogsDirectory = builder.debugLogsDirectory;
     }
 
     public String getPythonCommand() {
@@ -78,6 +86,22 @@ public class PythonProcessConfig {
         return maxPythonProcessesPerType;
     }
 
+    public boolean isDebugController() {
+        return debugController;
+    }
+
+    public String getDebugHost() {
+        return debugHost;
+    }
+
+    public int getDebugPort() {
+        return debugPort;
+    }
+
+    public File getDebugLogsDirectory() {
+        return debugLogsDirectory;
+    }
+
     public static class Builder {
         private String pythonCommand = "python3";
         private File pythonFrameworkDirectory = new File("python/framework");
@@ -87,6 +111,11 @@ public class PythonProcessConfig {
         private Duration commsTimeout = Duration.ofSeconds(0);
         private int maxProcesses;
         private int maxProcessesPerType;
+        private boolean debugController = false;
+        private String debugHost = "localhost";
+        private int debugPort = 5678;
+        private File debugLogsDirectory = new File("logs/");
+
 
         public Builder pythonCommand(final String command) {
             this.pythonCommand = command;
@@ -137,6 +166,26 @@ public class PythonProcessConfig {
 
         public Builder pythonLogsDirectory(final File logsDirectory) {
             this.pythonLogsDirectory = logsDirectory;
+            return this;
+        }
+
+        public Builder enableControllerDebug(final boolean enableDebug) {
+            this.debugController = enableDebug;
+            return this;
+        }
+
+        public Builder debugPort(final int debugPort) {
+            this.debugPort = debugPort;
+            return this;
+        }
+
+        public Builder debugHost(final String debugHost) {
+            this.debugHost = debugHost;
+            return this;
+        }
+
+        public Builder debugLogsDirectory(final File debugLogsDirectory) {
+            this.debugLogsDirectory = debugLogsDirectory;
             return this;
         }
 

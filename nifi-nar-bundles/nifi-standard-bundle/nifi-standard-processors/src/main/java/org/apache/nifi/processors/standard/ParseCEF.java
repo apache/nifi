@@ -28,7 +28,6 @@ import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.event.MacAddress;
 import com.fluenda.parcefone.parser.CEFParser;
 import org.apache.bval.jsr.ApacheValidationProvider;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -75,7 +74,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)

@@ -31,7 +31,6 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
     private String uptime;
     private String timeZone;
     private Integer activeTimerDrivenThreads;
-    private Integer activeEventDrivenThreads;
     private Set<BundleDTO> bundlesLoaded;
 
     @ApiModelProperty("How long this node has been running, formatted as hours:minutes:seconds.milliseconds")
@@ -62,15 +61,6 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
         this.activeTimerDrivenThreads = activeTimerDrivenThreads;
     }
 
-    @ApiModelProperty("The number of event-driven threads that are active")
-    public Integer getActiveEventDrivenThreads() {
-        return activeEventDrivenThreads;
-    }
-
-    public void setActiveEventDrivenThreads(Integer activeEventDrivenThreads) {
-        this.activeEventDrivenThreads = activeEventDrivenThreads;
-    }
-
     @ApiModelProperty("The NiFi Bundles (NARs) that are loaded by NiFi")
     public Set<BundleDTO> getBundlesLoaded() {
         return bundlesLoaded;
@@ -83,7 +73,6 @@ public class JVMFlowDiagnosticsSnapshotDTO implements Cloneable {
     @Override
     public JVMFlowDiagnosticsSnapshotDTO clone() {
         final JVMFlowDiagnosticsSnapshotDTO clone = new JVMFlowDiagnosticsSnapshotDTO();
-        clone.activeEventDrivenThreads = activeEventDrivenThreads;
         clone.activeTimerDrivenThreads = activeTimerDrivenThreads;
         clone.bundlesLoaded = bundlesLoaded == null ? null : new HashSet<>(bundlesLoaded);
         clone.timeZone = timeZone;

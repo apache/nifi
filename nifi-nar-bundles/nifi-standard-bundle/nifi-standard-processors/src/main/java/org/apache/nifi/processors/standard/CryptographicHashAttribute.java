@@ -29,7 +29,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -48,7 +47,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.crypto.HashAlgorithm;
 import org.apache.nifi.security.util.crypto.HashService;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"attributes", "hash", "md5", "sha", "keccak", "blake2", "cryptography"})

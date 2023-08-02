@@ -29,7 +29,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -64,7 +63,6 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_IN
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"json", "split", "jsonpath"})

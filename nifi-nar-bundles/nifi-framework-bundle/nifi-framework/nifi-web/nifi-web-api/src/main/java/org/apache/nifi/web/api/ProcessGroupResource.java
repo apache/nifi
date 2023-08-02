@@ -28,57 +28,6 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -162,6 +111,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.entity.ProcessGroupUploadEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -184,6 +134,59 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -479,7 +482,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
      * @param httpServletRequest request
      * @param id                 The id of the process group.
      * @param requestProcessGroupEntity A processGroupEntity.
-     * @return A processGroupEntity.
+     * @return A processGroupEntity or the parent processGroupEntity for recursive requests.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -535,6 +538,15 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
         }
 
+        final String processGroupUpdateStrategy = requestProcessGroupEntity.getProcessGroupUpdateStrategy();
+        final ProcessGroupUpdateStrategy updateStrategy;
+        if (processGroupUpdateStrategy == null) {
+            updateStrategy = ProcessGroupUpdateStrategy.CURRENT_GROUP;
+        } else {
+            updateStrategy = ProcessGroupUpdateStrategy.valueOf(processGroupUpdateStrategy);
+        }
+
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
         } else if (isDisconnectedFromCluster()) {
@@ -542,68 +554,100 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision requestRevision = getRevision(requestProcessGroupEntity, id);
+        final ParameterContextReferenceEntity requestParamContext = requestProcessGroupDTO.getParameterContext();
+        final String requestGroupId = requestProcessGroupDTO.getId();
+        final Map<ProcessGroupEntity, Revision> updatableProcessGroups = new HashMap<>();
+
+        updatableProcessGroups.put(requestProcessGroupEntity, getRevision(requestProcessGroupEntity, requestGroupId));
+
+        if (updateStrategy == ProcessGroupUpdateStrategy.CURRENT_GROUP_WITH_CHILDREN) {
+            for (ProcessGroupEntity processGroupEntity : serviceFacade.getProcessGroups(requestGroupId, updateStrategy)) {
+                final ProcessGroupDTO processGroupDTO = processGroupEntity.getComponent();
+                final String processGroupId = processGroupDTO == null ? processGroupEntity.getId() : processGroupDTO.getId();
+                if (processGroupDTO != null) {
+                    processGroupDTO.setParameterContext(requestParamContext);
+                }
+                updatableProcessGroups.put(processGroupEntity, getRevision(processGroupEntity, processGroupId));
+            }
+        }
+
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                requestRevision,
+                new HashSet<>(updatableProcessGroups.values()),
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    Authorizable authorizable = lookup.getProcessGroup(id).getAuthorizable();
-                    authorizable.authorize(authorizer, RequestAction.WRITE, user);
+                    for (final ProcessGroupEntity updatableGroupEntity : updatableProcessGroups.keySet()) {
+                        final ProcessGroupDTO updatableGroupDto = updatableGroupEntity.getComponent();
+                        final String groupId = updatableGroupDto == null ? updatableGroupEntity.getId() : updatableGroupDto.getId();
 
-                    // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
-                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupDTO.getParameterContext();
-                    if (referencedParamContext != null) {
-                        // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
-                        final String groupId = requestProcessGroupDTO.getId();
-                        final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
-                        final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
-                        final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
-                        final String currentParamContextId = currentParamContext == null ? null : currentParamContext.getId();
-                        final boolean parameterContextChanging = !Objects.equals(referencedParamContext.getId(), currentParamContextId);
+                        Authorizable authorizable = lookup.getProcessGroup(groupId).getAuthorizable();
+                        authorizable.authorize(authorizer, RequestAction.WRITE, user);
 
-                        // If Parameter Context is changing...
-                        if (parameterContextChanging) {
-                            // In order to bind to a Parameter Context, the user must have the READ policy to that Parameter Context.
-                            if (referencedParamContext.getId() != null) {
-                                lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
-                            }
+                        // Ensure that user has READ permission on current Parameter Context (if any) because user is un-binding.
+                        final ParameterContextReferenceEntity referencedParamContext = updatableGroupDto.getParameterContext();
+                        if (referencedParamContext != null) {
+                            // Lookup the current Parameter Context and determine whether or not the Parameter Context is changing
+                            final ProcessGroupEntity currentGroupEntity = serviceFacade.getProcessGroup(groupId);
+                            final ProcessGroupDTO groupDto = currentGroupEntity.getComponent();
+                            final ParameterContextReferenceEntity currentParamContext = groupDto.getParameterContext();
+                            final String currentParamContextId = currentParamContext == null ? null : currentParamContext.getId();
+                            final boolean parameterContextChanging = !Objects.equals(referencedParamContext.getId(), currentParamContextId);
 
-                            // If currently referencing a Parameter Context, we must authorize that the user has READ permissions on the Parameter Context in order to un-bind to it.
-                            if (currentParamContextId != null) {
-                                lookup.getParameterContext(currentParamContextId).authorize(authorizer, RequestAction.READ, user);
-                            }
+                            // If Parameter Context is changing...
+                            if (parameterContextChanging) {
+                                // In order to bind to a Parameter Context, the user must have the READ policy to that Parameter Context.
+                                if (referencedParamContext.getId() != null) {
+                                    lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
+                                }
 
-                            // Because the user will be changing the behavior of any component in this group that is currently referencing any Parameter, we must ensure that the user has
-                            // both READ and WRITE policies for each of those components.
-                            for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getProcessorsReferencingParameter(groupId)) {
-                                final Authorizable processorAuthorizable = lookup.getProcessor(affectedComponentEntity.getId()).getAuthorizable();
-                                processorAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                processorAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                            }
+                                // If currently referencing a Parameter Context, we must authorize that the user has READ permissions on the Parameter Context in order to un-bind to it.
+                                if (currentParamContextId != null) {
+                                    lookup.getParameterContext(currentParamContextId).authorize(authorizer, RequestAction.READ, user);
+                                }
 
-                            for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getControllerServicesReferencingParameter(groupId)) {
-                                final Authorizable serviceAuthorizable = lookup.getControllerService(affectedComponentEntity.getId()).getAuthorizable();
-                                serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                // Because the user will be changing the behavior of any component in this group that is currently referencing any Parameter, we must ensure that the user has
+                                // both READ and WRITE policies for each of those components.
+                                for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getProcessorsReferencingParameter(groupId)) {
+                                    final Authorizable processorAuthorizable = lookup.getProcessor(affectedComponentEntity.getId()).getAuthorizable();
+                                    processorAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                    processorAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                }
+
+                                for (final AffectedComponentEntity affectedComponentEntity : serviceFacade.getControllerServicesReferencingParameter(groupId)) {
+                                    final Authorizable serviceAuthorizable = lookup.getControllerService(affectedComponentEntity.getId()).getAuthorizable();
+                                    serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                    serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                }
                             }
                         }
                     }
                 },
-                () -> serviceFacade.verifyUpdateProcessGroup(requestProcessGroupDTO),
-                (revision, processGroupEntity) -> {
-                    // update the process group
-                    final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, processGroupEntity.getComponent());
-                    populateRemainingProcessGroupEntityContent(entity);
-
-                    // prune response as necessary
-                    if (entity.getComponent() != null) {
-                        entity.getComponent().setContents(null);
+                () -> {
+                    for (final ProcessGroupEntity entity : updatableProcessGroups.keySet()) {
+                        serviceFacade.verifyUpdateProcessGroup(entity.getComponent());
                     }
+                },
+                (revisions, entities) -> {
+                    ProcessGroupEntity responseEntity = null;
+                    for (Map.Entry<ProcessGroupEntity, Revision> entry : updatableProcessGroups.entrySet()) {
+                        // update the process group
+                        final Revision revision = entry.getValue();
+                        final ProcessGroupDTO groupDTO = entry.getKey().getComponent();
+                        final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, groupDTO);
 
-                    return generateOkResponse(entity).build();
+                        if (requestGroupId.equals(entity.getId())) {
+                            responseEntity = entity;
+                            populateRemainingProcessGroupEntityContent(responseEntity);
+
+                            // prune response as necessary
+                            if (responseEntity.getComponent() != null) {
+                                responseEntity.getComponent().setContents(null);
+                            }
+                        }
+                    }
+                    return generateOkResponse(responseEntity).build();
                 }
         );
     }
@@ -1242,7 +1286,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         boolean continuePolling = true;
         while (continuePolling) {
-            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true, false);
 
             // update the affected controller services
             updateAffectedControllerServices(serviceEntities, updateRequest);
@@ -2174,7 +2218,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the process groups
-        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId);
+        final Set<ProcessGroupEntity> entities = serviceFacade.getProcessGroups(groupId, ProcessGroupUpdateStrategy.CURRENT_GROUP);
 
         // always prune the contents
         for (final ProcessGroupEntity entity : entities) {

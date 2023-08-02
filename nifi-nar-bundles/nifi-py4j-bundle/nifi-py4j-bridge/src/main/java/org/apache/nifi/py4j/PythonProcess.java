@@ -35,8 +35,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -153,7 +155,23 @@ public class PythonProcess {
         final String pythonCommand = pythonCommandFile.getAbsolutePath();
 
         final File controllerPyFile = new File(pythonFrameworkDirectory, PYTHON_CONTROLLER_FILENAME);
-        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, controllerPyFile.getAbsolutePath());
+        final ProcessBuilder processBuilder = new ProcessBuilder();
+
+        final List<String> commands = new ArrayList<>();
+        commands.add(pythonCommand);
+
+        if (processConfig.isDebugController() && "Controller".equals(componentId)) {
+            commands.add("-m");
+            commands.add("debugpy");
+            commands.add("--listen");
+            commands.add(processConfig.getDebugHost() + ":" + processConfig.getDebugPort());
+            commands.add("--log-to");
+            commands.add(processConfig.getDebugLogsDirectory().getAbsolutePath());
+        }
+
+        commands.add(controllerPyFile.getAbsolutePath());
+        processBuilder.command(commands);
+
         processBuilder.environment().put("JAVA_PORT", String.valueOf(listeningPort));
         processBuilder.environment().put("LOGS_DIR", pythonLogsDirectory.getAbsolutePath());
         processBuilder.environment().put("ENV_HOME", virtualEnvHome.getAbsolutePath());
@@ -200,9 +218,36 @@ public class PythonProcess {
             throw new IOException("Failed to create Python Environment " + virtualEnvHome + ": process existed with code " + result);
         }
 
+        if (processConfig.isDebugController() && "Controller".equals(componentId)) {
+            installDebugPy();
+        }
+
         // Create file so that we don't keep trying to recreate the virtual environment
         environmentCreationCompleteFile.createNewFile();
         logger.info("Successfully created Python Virtual Environment {}", virtualEnvHome);
+    }
+
+    private void installDebugPy() throws IOException {
+        final String pythonCommand = processConfig.getPythonCommand();
+
+        final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--upgrade", "debugpy", "--target",
+            processConfig.getPythonWorkingDirectory().getAbsolutePath());
+        processBuilder.directory(virtualEnvHome.getParentFile());
+
+        final String command = String.join(" ", processBuilder.command());
+        logger.debug("Installing DebugPy to Virtual Env {} using command {}", virtualEnvHome, command);
+        final Process process = processBuilder.start();
+
+        final int result;
+        try {
+            result = process.waitFor();
+        } catch (final InterruptedException e) {
+            throw new IOException("Interrupted while waiting for DebugPy to be installed");
+        }
+
+        if (result != 0) {
+            throw new IOException("Failed to install DebugPy for Python Environment " + virtualEnvHome + ": process existed with code " + result);
+        }
     }
 
     public void shutdown() {

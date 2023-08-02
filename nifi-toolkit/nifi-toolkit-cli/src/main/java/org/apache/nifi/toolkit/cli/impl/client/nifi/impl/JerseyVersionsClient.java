@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
@@ -136,6 +137,26 @@ public class JerseyVersionsClient extends AbstractJerseyClient implements Versio
 
             return getRequestBuilder(target).post(Entity.entity(startVersionControlRequestEntity, MediaType.APPLICATION_JSON_TYPE),
                 VersionControlInformationEntity.class);
+        });
+    }
+
+    // DELETE /versions/process-groups/{id}
+
+    @Override
+    public VersionControlInformationEntity stopVersionControl(ProcessGroupEntity processGroupEntity) throws IOException, NiFiClientException {
+        final String pgId = processGroupEntity.getId();
+
+        if (StringUtils.isBlank(pgId)) {
+            throw new IllegalArgumentException("Process group id cannot be null or blank");
+        }
+
+        return executeAction("Error stopping version control", () -> {
+            final WebTarget target = versionsTarget
+                .path("process-groups/{id}")
+                .queryParam("version", processGroupEntity.getRevision().getVersion())
+                .resolveTemplate("id", pgId);
+
+            return getRequestBuilder(target).delete(VersionControlInformationEntity.class);
         });
     }
 

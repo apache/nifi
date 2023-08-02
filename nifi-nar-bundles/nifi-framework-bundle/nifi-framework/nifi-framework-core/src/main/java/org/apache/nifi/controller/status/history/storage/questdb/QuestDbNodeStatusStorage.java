@@ -69,8 +69,7 @@ public class QuestDbNodeStatusStorage implements NodeStatusStorage {
         METRICS.put(6, NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor());
         METRICS.put(7, NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor());
         METRICS.put(8, NodeStatusDescriptor.TOTAL_THREADS.getDescriptor());
-        METRICS.put(9, NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor());
-        METRICS.put(10, NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor());
+        METRICS.put(9, NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor());
     }
 
     private static final QuestDbEntityWritingTemplate<NodeStatus> WRITING_TEMPLATE

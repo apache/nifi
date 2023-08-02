@@ -40,7 +40,6 @@ public class ProcessorDTO extends ComponentDTO {
     private List<RelationshipDTO> relationships;
     private String description;
     private Boolean supportsParallelProcessing;
-    private Boolean supportsEventDriven;
     private Boolean supportsBatching;
     private Boolean supportsSensitiveDynamicProperties;
     private Boolean persistsState;
@@ -247,20 +246,6 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setInputRequirement(String inputRequirement) {
         this.inputRequirement = inputRequirement;
-    }
-
-    /**
-     * @return whether this processor supports event driven scheduling
-     */
-    @ApiModelProperty(
-            value = "Whether the processor supports event driven scheduling."
-    )
-    public Boolean getSupportsEventDriven() {
-        return supportsEventDriven;
-    }
-
-    public void setSupportsEventDriven(Boolean supportsEventDriven) {
-        this.supportsEventDriven = supportsEventDriven;
     }
 
     /**

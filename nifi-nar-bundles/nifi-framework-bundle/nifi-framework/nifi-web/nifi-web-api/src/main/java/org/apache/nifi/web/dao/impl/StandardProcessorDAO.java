@@ -292,14 +292,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (isNotNull(config.getConcurrentlySchedulableTaskCount())) {
             switch (schedulingStrategy) {
                 case TIMER_DRIVEN:
-                case PRIMARY_NODE_ONLY:
                     if (config.getConcurrentlySchedulableTaskCount() <= 0) {
                         validationErrors.add("Concurrent tasks must be greater than 0.");
-                    }
-                    break;
-                case EVENT_DRIVEN:
-                    if (config.getConcurrentlySchedulableTaskCount() < 0) {
-                        validationErrors.add("Concurrent tasks must be greater or equal to 0.");
                     }
                     break;
             }
@@ -312,7 +306,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (isNotNull(schedulingPeriod) && isNotNull(evaluatedSchedulingPeriod)) {
             switch (schedulingStrategy) {
                 case TIMER_DRIVEN:
-                case PRIMARY_NODE_ONLY:
                     final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(evaluatedSchedulingPeriod);
                     if (!schedulingMatcher.matches()) {
                         validationErrors.add("Scheduling period is not a valid time duration (ie 30 sec, 5 min)");

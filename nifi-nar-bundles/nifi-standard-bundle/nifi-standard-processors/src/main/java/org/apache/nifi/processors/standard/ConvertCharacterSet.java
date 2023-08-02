@@ -34,7 +34,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -78,7 +77,6 @@ import java.util.concurrent.TimeUnit;
  * The following relationships are required: <ul> <li><b>success</b> - the id of the processor to transfer successfully converted files</li>
  * <li><b>failure</b> - the id of the processor to transfer unsuccessfully converted files</li> </ul> </p>
  */
-@EventDriven
 @SideEffectFree
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SupportsBatching

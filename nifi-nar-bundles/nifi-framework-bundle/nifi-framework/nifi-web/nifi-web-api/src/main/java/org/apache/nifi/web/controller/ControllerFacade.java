@@ -261,15 +261,6 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Sets the max event driven thread count of this controller.
-     *
-     * @param maxEventDrivenThreadCount count
-     */
-    public void setMaxEventDrivenThreadCount(int maxEventDrivenThreadCount) {
-        flowController.setMaxEventDrivenThreadCount(maxEventDrivenThreadCount);
-    }
-
-    /**
      * Gets the root group id.
      *
      * @return group id
@@ -464,15 +455,6 @@ public class ControllerFacade implements Authorizable {
      */
     public int getMaxTimerDrivenThreadCount() {
         return flowController.getMaxTimerDrivenThreadCount();
-    }
-
-    /**
-     * Gets the max event driven thread count of this controller.
-     *
-     * @return count
-     */
-    public int getMaxEventDrivenThreadCount() {
-        return flowController.getMaxEventDrivenThreadCount();
     }
 
     /**

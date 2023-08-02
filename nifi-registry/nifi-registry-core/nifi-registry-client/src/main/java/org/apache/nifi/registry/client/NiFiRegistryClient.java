@@ -29,13 +29,6 @@ public interface NiFiRegistryClient extends Closeable {
     BucketClient getBucketClient();
 
     /**
-     * @deprecated use getBucketClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with buckets on behalf of the given proxied entities
-     */
-    BucketClient getBucketClient(String ... proxiedEntity);
-
-    /**
      * @return the client for interacting with buckets using the given request config
      */
     BucketClient getBucketClient(RequestConfig requestConfig);
@@ -46,13 +39,6 @@ public interface NiFiRegistryClient extends Closeable {
      * @return the client for interacting with flows
      */
     FlowClient getFlowClient();
-
-    /**
-     * @deprecated use getFlowClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with flows on behalf of the given proxied entities
-     */
-    FlowClient getFlowClient(String ... proxiedEntity);
 
     /**
      * @return the client for interacting with flows using the given request config
@@ -67,13 +53,6 @@ public interface NiFiRegistryClient extends Closeable {
     FlowSnapshotClient getFlowSnapshotClient();
 
     /**
-     * @deprecated use getFlowSnapshotClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with flows/snapshots on behalf of the given proxied entities
-     */
-    FlowSnapshotClient getFlowSnapshotClient(String ... proxiedEntity);
-
-    /**
      * @return the client for interacting with flows/snapshots using the given request config
      */
     FlowSnapshotClient getFlowSnapshotClient(RequestConfig requestConfig);
@@ -84,13 +63,6 @@ public interface NiFiRegistryClient extends Closeable {
      * @return the client for interacting with bucket items
      */
     ItemsClient getItemsClient();
-
-    /**
-     * @deprecated use getItemsClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with bucket items on behalf of the given proxied entities
-     */
-    ItemsClient getItemsClient(String ... proxiedEntity);
 
     /**
      * @return the client for interacting with bucket items using the given request config
@@ -105,13 +77,6 @@ public interface NiFiRegistryClient extends Closeable {
     UserClient getUserClient();
 
     /**
-     * @deprecated use getUserClient(RequestConfig requestConfig)
-     *
-     * @return the client for obtaining information about the current user based on the given proxied entities
-     */
-    UserClient getUserClient(String ... proxiedEntity);
-
-    /**
      * @return the client for obtaining information about the current user based on the request config
      */
     UserClient getUserClient(RequestConfig requestConfig);
@@ -122,13 +87,6 @@ public interface NiFiRegistryClient extends Closeable {
      * @return the client for interacting with extension bundles
      */
     BundleClient getBundleClient();
-
-    /**
-     * @deprecated use getBundleClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with extension bundles on behalf of the given proxied entities
-     */
-    BundleClient getBundleClient(String ... proxiedEntity);
 
     /**
      * @return the client for interacting with extension bundles using the given request config
@@ -143,13 +101,6 @@ public interface NiFiRegistryClient extends Closeable {
     BundleVersionClient getBundleVersionClient();
 
     /**
-     * @deprecated use getBundleVersionClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with extension bundle versions on behalf of the given proxied entities
-     */
-    BundleVersionClient getBundleVersionClient(String ... proxiedEntity);
-
-    /**
      * @return the client for interacting with extension bundle versions using the given request config
      */
     BundleVersionClient getBundleVersionClient(RequestConfig requestConfig);
@@ -162,13 +113,6 @@ public interface NiFiRegistryClient extends Closeable {
     ExtensionRepoClient getExtensionRepoClient();
 
     /**
-     * @deprecated use getExtensionRepoClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with the extension repository on behalf of the given proxied entities
-     */
-    ExtensionRepoClient getExtensionRepoClient(String ... proxiedEntity);
-
-    /**
      * @return the client for interacting with the extension repository using the given request config
      */
     ExtensionRepoClient getExtensionRepoClient(RequestConfig requestConfig);
@@ -179,13 +123,6 @@ public interface NiFiRegistryClient extends Closeable {
      * @return the client for interacting with extensions
      */
     ExtensionClient getExtensionClient();
-
-    /**
-     * @deprecated use getExtensionClient(RequestConfig requestConfig)
-     *
-     * @return the client for interacting with extensions on behalf of the given proxied entities
-     */
-    ExtensionClient getExtensionClient(String ... proxiedEntity);
 
     /**
      * @return the client for interacting with extensions using the given request config
@@ -202,17 +139,6 @@ public interface NiFiRegistryClient extends Closeable {
     TenantsClient getTenantsClient();
 
     /**
-     * Returns client for interacting with tenants.
-     *
-     * @deprecated use getTenantsClient(RequestConfig requestConfig)
-     *
-     * @param proxiedEntity The given proxied entities.
-     *
-     * @return the client for interacting with tenants on behalf of the given proxied entities.
-     */
-    TenantsClient getTenantsClient(String ... proxiedEntity);
-
-    /**
      * @return the client for interacting with tenants using the given request config
      */
     TenantsClient getTenantsClient(RequestConfig requestConfig);
@@ -225,17 +151,6 @@ public interface NiFiRegistryClient extends Closeable {
      * @return the client for interacting with access policies
      */
     PoliciesClient getPoliciesClient();
-
-    /**
-     * Returns client for interacting with access policies.
-     *
-     * @deprecated use getPoliciesClient(RequestConfig requestConfig)
-     *
-     * @param proxiedEntity The given proxied entities.
-     *
-     * @return the client for interacting with access policies on behalf of the given proxied entities.
-     */
-    PoliciesClient getPoliciesClient(String ... proxiedEntity);
 
     /**
      * @return the client for interacting with access policies using the given request config

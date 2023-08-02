@@ -43,9 +43,11 @@ import org.apache.nifi.controller.state.StateMapSerDe;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.wali.MinimalLockingWriteAheadLog;
+import org.wali.SerDe;
+import org.wali.SerDeFactory;
 import org.wali.UpdateType;
 import org.wali.WriteAheadRepository;
 
@@ -131,7 +133,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         }
 
         versionGenerator = new AtomicLong(-1L);
-        writeAheadLog = new MinimalLockingWriteAheadLog<>(basePath.toPath(), numPartitions, serde, null);
+        writeAheadLog = new SequentialAccessWriteAheadLog<>(basePath, new SerdeFactory(serde));
 
         final Collection<StateMapUpdate> updates = writeAheadLog.recoverRecords();
         long maxRecordVersion = EMPTY_VERSION;
@@ -318,5 +320,35 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
             t.setDaemon(true);
             return t;
         }
+    }
+
+    private static class SerdeFactory implements SerDeFactory<StateMapUpdate> {
+
+        private StateMapSerDe serde;
+
+        public SerdeFactory(StateMapSerDe serde) {
+            this.serde = serde;
+        }
+
+        @Override
+        public SerDe<StateMapUpdate> createSerDe(String encodingName) {
+            return this.serde;
+        }
+
+        @Override
+        public Object getRecordIdentifier(StateMapUpdate record) {
+            return this.serde.getRecordIdentifier(record);
+        }
+
+        @Override
+        public UpdateType getUpdateType(StateMapUpdate record) {
+            return this.serde.getUpdateType(record);
+        }
+
+        @Override
+        public String getLocation(StateMapUpdate record) {
+            return this.serde.getLocation(record);
+        }
+
     }
 }

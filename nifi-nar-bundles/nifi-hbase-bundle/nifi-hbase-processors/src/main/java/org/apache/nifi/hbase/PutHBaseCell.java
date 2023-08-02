@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -43,7 +42,6 @@ import java.util.Set;
 
 import static org.apache.nifi.hbase.util.VisibilityUtil.pickVisibilityString;
 
-@EventDriven
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "hbase"})

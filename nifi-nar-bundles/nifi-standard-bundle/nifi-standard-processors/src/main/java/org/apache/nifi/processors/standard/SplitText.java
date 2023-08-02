@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -67,7 +66,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @Tags({"split", "text"})

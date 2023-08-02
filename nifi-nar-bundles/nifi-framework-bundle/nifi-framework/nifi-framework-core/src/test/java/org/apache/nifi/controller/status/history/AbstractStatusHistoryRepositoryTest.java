@@ -297,7 +297,6 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         result.setOpenFileHandlers(6 + number);
         result.setProcessorLoadAverage(7.1d + number);
         result.setTotalThreads(9 + number);
-        result.setEventDrivenThreads(20 + number);
         result.setTimerDrivenThreads(21 + number);
         result.setFlowFileRepositoryFreeSpace(10 + number);
         result.setFlowFileRepositoryUsedSpace(11 + number);
@@ -323,7 +322,6 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setOpenFileHandlers(16);
         status.setProcessorLoadAverage(17);
         status.setTotalThreads(18);
-        status.setEventDrivenThreads(19);
         status.setTimerDrivenThreads(20);
         status.setContentRepositories(Arrays.asList(
                 givenStorageStatus("c1", 21, 22),
@@ -365,7 +363,6 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         assertEquals(16, snapshot.getStatusMetric(NodeStatusDescriptor.OPEN_FILE_HANDLES.getDescriptor()).longValue());
         assertEquals(17000000, snapshot.getStatusMetric(NodeStatusDescriptor.PROCESSOR_LOAD_AVERAGE.getDescriptor()).longValue());
         assertEquals(18, snapshot.getStatusMetric(NodeStatusDescriptor.TOTAL_THREADS.getDescriptor()).longValue());
-        assertEquals(19, snapshot.getStatusMetric(NodeStatusDescriptor.EVENT_DRIVEN_THREADS.getDescriptor()).longValue());
         assertEquals(20, snapshot.getStatusMetric(NodeStatusDescriptor.TIME_DRIVEN_THREADS.getDescriptor()).longValue());
 
         // Storage metrics

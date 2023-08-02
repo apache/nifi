@@ -37,7 +37,6 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -55,7 +54,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-@EventDriven
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({ "resize", "image", "jpg", "jpeg", "png", "bmp", "wbmp", "gif" })
@@ -171,8 +169,8 @@ public class ResizeImage extends AbstractProcessor {
                 reader.setInput(iis, true);
                 image = reader.read(0);
             }
-        } catch (final IOException | IllegalArgumentException | ProcessException ex) {
-            getLogger().error("Failed to read {} due to {}", new Object[] { flowFile, ex });
+        } catch (final IOException | RuntimeException ex) {
+            getLogger().error("Failed to read {} due to {}", flowFile, ex);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -184,14 +182,14 @@ public class ResizeImage extends AbstractProcessor {
             width = context.getProperty(IMAGE_WIDTH).evaluateAttributeExpressions(flowFile).asInteger();
             height = context.getProperty(IMAGE_HEIGHT).evaluateAttributeExpressions(flowFile).asInteger();
 
-            if(keepRatio) {
+            if (keepRatio) {
                 Dimension finalDimension = getScaledDimension(image.getWidth(), image.getHeight(), width, height);
                 width = finalDimension.width;
                 height = finalDimension.height;
             }
 
         } catch (final NumberFormatException nfe) {
-            getLogger().error("Failed to resize {} due to {}", new Object[] { flowFile, nfe });
+            getLogger().error("Failed to resize {} due to {}", flowFile, nfe);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -219,7 +217,7 @@ public class ResizeImage extends AbstractProcessor {
 
             ImageIO.write(scaledBufferedImg, formatName, out);
         } catch (final IOException | NegativeArraySizeException ex) {
-            getLogger().error("Failed to write {} due to {}", new Object[] { flowFile, ex });
+            getLogger().error("Failed to write {} due to {}", flowFile, ex);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }

@@ -51,7 +51,6 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater;
 import org.apache.nifi.controller.cluster.Heartbeater;
@@ -61,7 +60,6 @@ import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
-import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -102,7 +100,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.controller.scheduling.EventDrivenSchedulingAgent;
 import org.apache.nifi.controller.scheduling.QuartzSchedulingAgent;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
@@ -208,7 +205,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.concurrency.TimedLock;
-import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
@@ -271,10 +267,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     public static final double DEFAULT_POSITION_SCALE_FACTOR_Y = 1.34;
 
     private final AtomicInteger maxTimerDrivenThreads;
-    private final AtomicInteger maxEventDrivenThreads;
     private final AtomicReference<FlowEngine> timerDrivenEngineRef;
-    private final AtomicReference<FlowEngine> eventDrivenEngineRef;
-    private final EventDrivenSchedulingAgent eventDrivenSchedulingAgent;
 
     private final ContentRepository contentRepository;
     private final FlowFileRepository flowFileRepository;
@@ -295,7 +288,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final StandardControllerServiceResolver controllerServiceResolver;
     private final Authorizer authorizer;
     private final AuditService auditService;
-    private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
     private final StatusHistoryRepository statusHistoryRepository;
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
@@ -487,7 +479,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final StatusHistoryRepository statusHistoryRepository) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
-        maxEventDrivenThreads = new AtomicInteger(1);
 
         this.encryptor = encryptor;
         this.nifiProperties = nifiProperties;
@@ -513,7 +504,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         this.sensitiveValueEncoder = new StandardSensitiveValueEncoder(nifiProperties);
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
-        eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
         flowFileRepository = flowFileRepo;
@@ -554,7 +544,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
 
         processScheduler = new StandardProcessScheduler(timerDrivenEngineRef.get(), this, stateManagerProvider, this.nifiProperties);
-        eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
         parameterContextManager = new StandardParameterContextManager();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
@@ -580,16 +569,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         flowManager.initialize(controllerServiceProvider, pythonBridge);
 
-        eventDrivenSchedulingAgent = new EventDrivenSchedulingAgent(
-                eventDrivenEngineRef.get(), controllerServiceProvider, stateManagerProvider, eventDrivenWorkerQueue,
-                repositoryContextFactory, maxEventDrivenThreads.get(), extensionManager, this);
-        processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, eventDrivenSchedulingAgent);
-
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
-        // PRIMARY_NODE_ONLY is deprecated, but still exists to handle processors that are still defined with it (they haven't been re-configured with executeNode = PRIMARY).
-        processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
 
         startConnectablesAfterInitialization = new HashSet<>();
@@ -873,6 +855,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         int maxProcesses = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES, 20);
         int maxProcessesPerType = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, 2);
 
+        final boolean enableControllerDebug = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_ENABLED, "false"));
+        final int debugPort = nifiProperties.getIntegerProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_PORT, 5678);
+        final String debugHost = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_HOST, "localhost");
+        final String debugLogs = nifiProperties.getProperty(NiFiProperties.PYTHON_CONTROLLER_DEBUGPY_LOGS_DIR, "logs");
+
         // Validate configuration for max numbers of processes.
         if (maxProcessesPerType < 1) {
             LOG.warn("Configured value for {} in nifi.properties is {}, which is invalid. Defaulting to 2.", NiFiProperties.PYTHON_MAX_PROCESSES_PER_TYPE, maxProcessesPerType);
@@ -903,6 +890,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             .commsTimeout(commsTimeout == null ? null : Duration.ofMillis(FormatUtils.getTimeDuration(commsTimeout, TimeUnit.MILLISECONDS)))
             .maxPythonProcesses(maxProcesses)
             .maxPythonProcessesPerType(maxProcessesPerType)
+            .enableControllerDebug(enableControllerDebug)
+            .debugPort(debugPort)
+            .debugHost(debugHost)
+            .debugLogsDirectory(new File(debugLogs))
             .build();
 
         final ControllerServiceTypeLookup serviceTypeLookup = serviceProvider::getControllerServiceType;
@@ -1420,11 +1411,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             if (kill) {
                 this.timerDrivenEngineRef.get().shutdownNow();
-                this.eventDrivenEngineRef.get().shutdownNow();
                 LOG.info("Initiated immediate shutdown of flow controller...");
             } else {
                 this.timerDrivenEngineRef.get().shutdown();
-                this.eventDrivenEngineRef.get().shutdown();
                 LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds + " seconds");
             }
 
@@ -1456,8 +1445,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             try {
-                this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
-                this.eventDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds / 2, TimeUnit.SECONDS);
+                this.timerDrivenEngineRef.get().awaitTermination(gracefulShutdownSeconds, TimeUnit.SECONDS);
             } catch (final InterruptedException ie) {
                 LOG.info("Interrupted while waiting for controller termination.");
             }
@@ -1468,7 +1456,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 LOG.warn("Unable to shut down FlowFileRepository", t);
             }
 
-            if (this.timerDrivenEngineRef.get().isTerminated() && eventDrivenEngineRef.get().isTerminated()) {
+            if (this.timerDrivenEngineRef.get().isTerminated()) {
                 LOG.info("Controller has been terminated successfully.");
             } else {
                 LOG.warn("Controller hasn't terminated properly.  There exists an uninterruptable thread that "
@@ -1670,14 +1658,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return maxTimerDrivenThreads.get();
     }
 
-    public int getMaxEventDrivenThreadCount() {
-        return maxEventDrivenThreads.get();
-    }
-
-    public int getActiveEventDrivenThreadCount() {
-        return eventDrivenEngineRef.get().getActiveCount();
-    }
-
     public int getActiveTimerDrivenThreadCount() {
         return timerDrivenEngineRef.get().getActiveCount();
     }
@@ -1688,16 +1668,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             setMaxThreadCount(maxThreadCount, "Timer Driven", this.timerDrivenEngineRef.get(), this.maxTimerDrivenThreads);
         } finally {
             writeLock.unlock("setMaxTimerDrivenThreadCount");
-        }
-    }
-
-    public void setMaxEventDrivenThreadCount(final int maxThreadCount) {
-        writeLock.lock();
-        try {
-            setMaxThreadCount(maxThreadCount, "Event Driven", this.eventDrivenEngineRef.get(), this.maxEventDrivenThreads);
-            processScheduler.setMaxThreadCount(SchedulingStrategy.EVENT_DRIVEN, maxThreadCount);
-        } finally {
-            writeLock.unlock("setMaxEventDrivenThreadCount");
         }
     }
 
@@ -1777,14 +1747,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public String getProvenanceRepoFileStoreName(final String containerName) {
         return provenanceRepository.getContainerFileStoreName(containerName);
-    }
-
-    //
-    // ProcessGroup access
-    //
-
-    private Position toPosition(final PositionDTO dto) {
-        return new Position(dto.getX(), dto.getY());
     }
 
     //
@@ -2156,16 +2118,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         final FlowFileQueueFactory flowFileQueueFactory = new FlowFileQueueFactory() {
             @Override
-            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ConnectionEventListener eventListener,
-                                                     final ProcessGroup processGroup) {
+            public FlowFileQueue createFlowFileQueue(final LoadBalanceStrategy loadBalanceStrategy, final String partitioningAttribute, final ProcessGroup processGroup) {
                 final FlowFileQueue flowFileQueue;
 
                 if (clusterCoordinator == null) {
-                    flowFileQueue = new StandardFlowFileQueue(id, eventListener, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
+                    flowFileQueue = new StandardFlowFileQueue(id, flowFileRepository, provenanceRepository, resourceClaimManager, processScheduler, swapManager,
                             eventReporter, nifiProperties.getQueueSwapThreshold(),
                             processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
                 } else {
-                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, eventListener, processScheduler, flowFileRepository, provenanceRepository, contentRepository, resourceClaimManager,
+                    flowFileQueue = new SocketLoadBalancedFlowFileQueue(id, processScheduler, flowFileRepository, provenanceRepository, contentRepository, resourceClaimManager,
                             clusterCoordinator, loadBalanceClientRegistry, swapManager, nifiProperties.getQueueSwapThreshold(), eventReporter);
 
                     flowFileQueue.setFlowFileExpiration(processGroup.getDefaultFlowFileExpiration());
@@ -2332,9 +2293,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     }
 
     public int getActiveThreadCount() {
-        final int timerDrivenCount = timerDrivenEngineRef.get().getActiveCount();
-        final int eventDrivenCount = eventDrivenSchedulingAgent.getActiveThreadCount();
-        return timerDrivenCount + eventDrivenCount;
+        return timerDrivenEngineRef.get().getActiveCount();
     }
 
 
@@ -2574,7 +2533,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             // mark the new cluster status
             this.clustered = clustered;
-            eventDrivenWorkerQueue.setClustered(clustered);
 
             if (clusterInstanceId != null) {
                 this.instanceId = clusterInstanceId;
@@ -2657,9 +2615,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
             processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(reportingTaskNode, nodeState) );
         }
-
-        // update primary
-        eventDrivenWorkerQueue.setPrimary(primary);
 
         // update the heartbeat bean
         final HeartbeatBean oldBean = this.heartbeatBeanRef.getAndSet(new HeartbeatBean(rootGroup, primary));
@@ -3268,7 +3223,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         result.setOpenFileHandlers(systemDiagnostics.getOpenFileHandles());
         result.setProcessorLoadAverage(systemDiagnostics.getProcessorLoadAverage());
         result.setTotalThreads(systemDiagnostics.getTotalThreads());
-        result.setEventDrivenThreads(getActiveEventDrivenThreadCount());
         result.setTimerDrivenThreads(getActiveTimerDrivenThreadCount());
         result.setFlowFileRepositoryFreeSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getFreeSpace());
         result.setFlowFileRepositoryUsedSpace(systemDiagnostics.getFlowFileRepositoryStorageUsage().getUsedSpace());

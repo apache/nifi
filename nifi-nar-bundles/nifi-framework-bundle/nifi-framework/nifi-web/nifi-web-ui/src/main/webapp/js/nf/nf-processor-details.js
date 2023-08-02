@@ -239,15 +239,11 @@
                     var schedulingStrategy = details.config['schedulingStrategy'];
 
                     // make the scheduling strategy human readable
-                    if (schedulingStrategy === 'EVENT_DRIVEN') {
-                        showRunSchedule = false;
-                        schedulingStrategy = 'Event driven';
-                    } else if (schedulingStrategy === 'CRON_DRIVEN') {
+                    if (schedulingStrategy === 'CRON_DRIVEN') {
                         schedulingStrategy = 'CRON driven';
-                    } else if (schedulingStrategy === 'TIMER_DRIVEN') {
-                        schedulingStrategy = "Timer driven";
                     } else {
-                        schedulingStrategy = "On primary node";
+                      // the only other option schedulingStrategy === 'TIMER_DRIVEN'
+                        schedulingStrategy = "Timer driven";
                     }
                     nfCommon.populateField('read-only-scheduling-strategy', schedulingStrategy);
 

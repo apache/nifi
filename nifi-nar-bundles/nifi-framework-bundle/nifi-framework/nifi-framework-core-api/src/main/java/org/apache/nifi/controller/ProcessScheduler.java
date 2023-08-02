@@ -17,7 +17,6 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
-import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -195,13 +194,6 @@ public interface ProcessScheduler {
      * to run
      */
     boolean isScheduled(Object scheduled);
-
-    /**
-     * Registers a relevant event for an Event-Driven worker
-     *
-     * @param worker to register
-     */
-    void registerEvent(Connectable worker);
 
     /**
      * Notifies the ProcessScheduler of how many threads are available to use

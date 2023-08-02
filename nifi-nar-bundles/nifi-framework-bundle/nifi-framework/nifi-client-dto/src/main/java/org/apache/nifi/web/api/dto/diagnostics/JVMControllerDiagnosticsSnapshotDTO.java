@@ -26,7 +26,6 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
     private Boolean primaryNode;
     private Boolean clusterCoordinator;
     private Integer maxTimerDrivenThreads;
-    private Integer maxEventDrivenThreads;
 
     @ApiModelProperty("Whether or not this node is primary node")
     public Boolean getPrimaryNode() {
@@ -55,21 +54,11 @@ public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {
         this.maxTimerDrivenThreads = maxTimerDrivenThreads;
     }
 
-    @ApiModelProperty("The maximum number of event-driven threads")
-    public Integer getMaxEventDrivenThreads() {
-        return maxEventDrivenThreads;
-    }
-
-    public void setMaxEventDrivenThreads(Integer maxEventDrivenThreads) {
-        this.maxEventDrivenThreads = maxEventDrivenThreads;
-    }
-
     @Override
     public JVMControllerDiagnosticsSnapshotDTO clone() {
         final JVMControllerDiagnosticsSnapshotDTO clone = new JVMControllerDiagnosticsSnapshotDTO();
         clone.clusterCoordinator = clusterCoordinator;
         clone.primaryNode = primaryNode;
-        clone.maxEventDrivenThreads = maxEventDrivenThreads;
         clone.maxTimerDrivenThreads = maxTimerDrivenThreads;
         return clone;
     }

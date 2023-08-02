@@ -23,6 +23,7 @@ import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
+import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -72,14 +73,14 @@ public class RegistryUtil {
     private FlowClient getFlowClient(final NiFiUser user) {
         final String identity = getIdentity(user);
         final NiFiRegistryClient registryClient = getRegistryClient();
-        final FlowClient flowClient = identity == null ? registryClient.getFlowClient() : registryClient.getFlowClient(identity);
+        final FlowClient flowClient = identity == null ? registryClient.getFlowClient() : registryClient.getFlowClient(new ProxiedEntityRequestConfig(identity));
         return flowClient;
     }
 
     private FlowSnapshotClient getFlowSnapshotClient(final NiFiUser user) {
         final String identity = getIdentity(user);
         final NiFiRegistryClient registryClient = getRegistryClient();
-        final FlowSnapshotClient snapshotClient = identity == null ? registryClient.getFlowSnapshotClient() : registryClient.getFlowSnapshotClient(identity);
+        final FlowSnapshotClient snapshotClient = identity == null ? registryClient.getFlowSnapshotClient() : registryClient.getFlowSnapshotClient(new ProxiedEntityRequestConfig(identity));
         return snapshotClient;
     }
 

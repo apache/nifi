@@ -100,33 +100,6 @@
             description: 'Processor will be scheduled to run on an interval defined by the run schedule.'
         }];
 
-        // conditionally support event driven based on processor
-        if (processor.supportsEventDriven === true) {
-            strategies.push({
-                text: 'Event driven',
-                value: 'EVENT_DRIVEN',
-                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue). This scheduling strategy is experimental.'
-            });
-        } else if (processor.config['schedulingStrategy'] === 'EVENT_DRIVEN') {
-            // the processor was once configured for event driven but no longer supports it
-            strategies.push({
-                text: 'Event driven',
-                value: 'EVENT_DRIVEN',
-                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue). This scheduling strategy is experimental.',
-                disabled: true
-            });
-        }
-
-        // conditionally support event driven
-        if (processor.config['schedulingStrategy'] === 'PRIMARY_NODE_ONLY') {
-            strategies.push({
-                text: 'On primary node',
-                value: 'PRIMARY_NODE_ONLY',
-                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution setting below.',
-                disabled: true
-            });
-        }
-
         // add an option for cron driven
         strategies.push({
             text: 'CRON driven',
@@ -258,9 +231,7 @@
         if (details.supportsParallelProcessing === true) {
             // get the appropriate concurrent tasks field
             var concurrentTasks;
-            if (schedulingStrategy === 'EVENT_DRIVEN') {
-                concurrentTasks = $('#event-driven-concurrently-schedulable-tasks');
-            } else if (schedulingStrategy === 'CRON_DRIVEN') {
+            if (schedulingStrategy === 'CRON_DRIVEN') {
                 concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks');
             } else {
                 concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks');
@@ -276,7 +247,7 @@
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
-        } else if (schedulingStrategy !== 'EVENT_DRIVEN') {
+        } else {
             schedulingPeriod = $('#timer-driven-scheduling-period');
         }
 
@@ -327,9 +298,7 @@
 
         // get the appropriate concurrent tasks field
         var concurrentTasks;
-        if (schedulingStrategy === 'EVENT_DRIVEN') {
-            concurrentTasks = $('#event-driven-concurrently-schedulable-tasks');
-        } else if (schedulingStrategy === 'CRON_DRIVEN') {
+        if (schedulingStrategy === 'CRON_DRIVEN') {
             concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks');
         } else {
             concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks');
@@ -344,7 +313,7 @@
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
-        } else if (schedulingStrategy !== 'EVENT_DRIVEN') {
+        } else {
             schedulingPeriod = $('#timer-driven-scheduling-period');
         }
 
@@ -836,24 +805,12 @@
                         },
                         select: function (selectedOption) {
                             // show the appropriate panel
-                            if (selectedOption.value === 'EVENT_DRIVEN') {
-                                $('#event-driven-warning').show();
-
+                            if (selectedOption.value === 'CRON_DRIVEN') {
                                 $('#timer-driven-options').hide();
-                                $('#event-driven-options').show();
-                                $('#cron-driven-options').hide();
+                                $('#cron-driven-options').show();
                             } else {
-                                $('#event-driven-warning').hide();
-
-                                if (selectedOption.value === 'CRON_DRIVEN') {
-                                    $('#timer-driven-options').hide();
-                                    $('#event-driven-options').hide();
-                                    $('#cron-driven-options').show();
-                                } else {
-                                    $('#timer-driven-options').show();
-                                    $('#event-driven-options').hide();
-                                    $('#cron-driven-options').hide();
-                                }
+                                $('#timer-driven-options').show();
+                                $('#cron-driven-options').hide();
                             }
                         }
                     });
@@ -873,14 +830,11 @@
                     // initialize the concurrentTasks
                     var defaultConcurrentTasks = processor.config['defaultConcurrentTasks'];
                     $('#timer-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['TIMER_DRIVEN']);
-                    $('#event-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['EVENT_DRIVEN']);
                     $('#cron-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['CRON_DRIVEN']);
 
                     // get the appropriate concurrent tasks field
                     var concurrentTasks;
-                    if (schedulingStrategy === 'EVENT_DRIVEN') {
-                        concurrentTasks = $('#event-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
-                    } else if (schedulingStrategy === 'CRON_DRIVEN') {
+                    if (schedulingStrategy === 'CRON_DRIVEN') {
                         concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
                     } else {
                         concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
@@ -903,7 +857,7 @@
                     // set the scheduling period as appropriate
                     if (processor.config['schedulingStrategy'] === 'CRON_DRIVEN') {
                         $('#cron-driven-scheduling-period').val(processor.config['schedulingPeriod']);
-                    } else if (processor.config['schedulingStrategy'] !== 'EVENT_DRIVEN') {
+                    } else {
                         $('#timer-driven-scheduling-period').val(processor.config['schedulingPeriod']);
                     }
 

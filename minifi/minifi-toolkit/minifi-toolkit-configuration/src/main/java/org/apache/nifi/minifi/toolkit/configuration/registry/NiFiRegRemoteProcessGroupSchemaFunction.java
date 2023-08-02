@@ -40,7 +40,7 @@ public class NiFiRegRemoteProcessGroupSchemaFunction implements Function<Version
         Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.ID_KEY, versionedRemoteProcessGroup.getIdentifier());
         map.put(CommonPropertyKeys.NAME_KEY, versionedRemoteProcessGroup.getName());
-        map.put(RemoteProcessGroupSchema.URL_KEY, versionedRemoteProcessGroup.getTargetUri());
+        map.put(RemoteProcessGroupSchema.URL_KEY, versionedRemoteProcessGroup.getTargetUris());
 
         Set<VersionedRemoteGroupPort> inputPorts = versionedRemoteProcessGroup.getInputPorts();
         if (inputPorts != null) {

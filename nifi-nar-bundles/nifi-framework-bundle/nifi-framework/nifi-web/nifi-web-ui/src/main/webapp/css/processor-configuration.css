@@ -61,14 +61,6 @@ div.processor-enabled-container {
     width: 20%;
 }
 
-#event-driven-warning {
-    padding-top: 22px;
-    color: #f00;
-    float: left;
-    float: left;
-    margin-left: 10px;
-}
-
 div.processor-configuration-warning-icon {
     float: left;
     margin-top: -2px;

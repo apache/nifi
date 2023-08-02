@@ -24,7 +24,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -52,7 +51,6 @@ import java.util.Set;
 @Tags({"mongo", "aggregation", "aggregate"})
 @CapabilityDescription("A processor that runs an aggregation query whenever a flowfile is received.")
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@EventDriven
 public class RunMongoAggregation extends AbstractMongoProcessor {
 
     private final static Set<Relationship> relationships;

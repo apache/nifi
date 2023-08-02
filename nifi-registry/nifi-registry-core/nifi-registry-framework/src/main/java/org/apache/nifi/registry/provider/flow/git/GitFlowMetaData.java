@@ -137,9 +137,9 @@ class GitFlowMetaData {
         return builder.build();
     }
 
-    private static boolean hasAtLeastOneReference(Repository repo) {
+    private static boolean hasAtLeastOneReference(Repository repo) throws IOException {
         logger.info("Checking references for repository {}", repo.toString());
-        for (Ref ref : repo.getAllRefs().values()) {
+        for (Ref ref : repo.getRefDatabase().getRefs()) {
             if (ref.getObjectId() == null) {
                 continue;
             }
@@ -205,7 +205,6 @@ class GitFlowMetaData {
                 .call();
     }
 
-    @SuppressWarnings("unchecked")
     public void loadGitRepository(File gitProjectRootDir) throws IOException, GitAPIException {
         gitRepo = openRepository(gitProjectRootDir);
 
@@ -419,7 +418,7 @@ class GitFlowMetaData {
         }
     }
 
-    private boolean validateRequiredValue(final Map map, String nameOfMap, Object ... keys) {
+    private boolean validateRequiredValue(final Map<String, Object> map, String nameOfMap, Object ... keys) {
         for (Object key : keys) {
             if (!map.containsKey(key)) {
                 logger.warn("{} does not have {}. Skipping it.", nameOfMap, key);

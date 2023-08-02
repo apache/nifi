@@ -28,20 +28,6 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
     private ProcessorNode component;
 
     @Test
-    public void testWhenKeywordAppearsAndEvent() {
-        // given
-        final SchedulingMatcher testSubject = new SchedulingMatcher();
-        givenSchedulingStrategy(SchedulingStrategy.EVENT_DRIVEN);
-        givenSearchTerm("event");
-
-        // when
-        testSubject.match(component, searchQuery, matches);
-
-        // then
-        thenMatchConsistsOf("Scheduling strategy: Event driven");
-    }
-
-    @Test
     public void testWhenKeywordAppearsAndNotEvent() {
         // given
         final SchedulingMatcher testSubject = new SchedulingMatcher();
@@ -81,20 +67,6 @@ public class SchedulingMatcherTest extends AbstractAttributeMatcherTest {
 
         // then
         thenMatchConsistsOf("Scheduling strategy: Timer driven");
-    }
-
-    @Test
-    public void testWhenKeywordAppearsAndPrimaryNodeOnly() {
-        // given
-        final SchedulingMatcher testSubject = new SchedulingMatcher();
-        givenSchedulingStrategy(SchedulingStrategy.PRIMARY_NODE_ONLY);
-        givenSearchTerm("primary");
-
-        // when
-        testSubject.match(component, searchQuery, matches);
-
-        // then
-        thenMatchConsistsOf("Scheduling strategy: On primary node");
     }
 
     private void givenSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {

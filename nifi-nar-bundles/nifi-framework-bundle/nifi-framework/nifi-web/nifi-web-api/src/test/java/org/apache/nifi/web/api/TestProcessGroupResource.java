@@ -16,10 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUpdateStrategy;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
@@ -41,10 +47,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @ExtendWith(MockitoExtension.class)
 public class TestProcessGroupResource {
@@ -109,5 +119,34 @@ public class TestProcessGroupResource {
             assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
             assertFalse(Pattern.compile("<script.*>").matcher(response.getEntity().toString()).find());
         });
+    }
+    @Test
+    public void testUpdateProcessGroupNotExecuted_WhenUserNotAuthorized(@Mock HttpServletRequest httpServletRequest, @Mock NiFiProperties properties) {
+        when(httpServletRequest.getHeader(any())).thenReturn(null);
+        when(properties.isNode()).thenReturn(Boolean.FALSE);
+
+        processGroupResource.properties = properties;
+        processGroupResource.serviceFacade = serviceFacade;
+        processGroupResource.httpServletRequest = httpServletRequest;
+
+        final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
+        final ProcessGroupDTO groupDTO = new ProcessGroupDTO();
+        groupDTO.setId("id");
+        groupDTO.setName("name");
+        final RevisionDTO revisionDTO = new RevisionDTO();
+        revisionDTO.setClientId("clientId");
+        revisionDTO.setVersion(1L);
+
+        processGroupEntity.setRevision(revisionDTO);
+        processGroupEntity.setProcessGroupUpdateStrategy(ProcessGroupUpdateStrategy.CURRENT_GROUP.name());
+        processGroupEntity.setComponent(groupDTO);
+
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+                processGroupResource.updateProcessGroup(httpServletRequest, "id", processGroupEntity));
+
+        verify(serviceFacade, never()).verifyUpdateProcessGroup(any());
+        verify(serviceFacade, never()).updateProcessGroup(any(), any());
     }
 }

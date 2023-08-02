@@ -22,7 +22,6 @@ import io.grpc.DecompressorRegistry;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,7 +58,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-@EventDriven
 @SupportsBatching
 @Tags({"grpc", "rpc", "client"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

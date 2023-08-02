@@ -1078,7 +1078,6 @@ public class TestFlowController {
 
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
-        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
         processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
@@ -1138,7 +1137,6 @@ public class TestFlowController {
 
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
-        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
         processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();
@@ -1198,7 +1196,6 @@ public class TestFlowController {
 
         processorDTO.setDescription("description");
         processorDTO.setSupportsParallelProcessing(!processorNode.isTriggeredSerially());
-        processorDTO.setSupportsEventDriven(processorNode.isEventDrivenSupported());
         processorDTO.setSupportsBatching(processorNode.isSessionBatchingSupported());
 
         ProcessorConfigDTO configDTO = new ProcessorConfigDTO();

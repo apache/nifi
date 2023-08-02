@@ -70,7 +70,7 @@ public class ProcessorSchemaV1Test {
     public void setup() {
         testName = "testName";
         testProcessorClass = "testProcessorClass";
-        testSchedulingStrategy = SchedulingStrategy.PRIMARY_NODE_ONLY.toString();
+        testSchedulingStrategy = SchedulingStrategy.TIMER_DRIVEN.toString();
         testSchedulingPeriod = "testSchedulingPeriod";
         testMaxConcurrentTasks = 55;
         testPenalizationPeriod = "testPenalizationPeriod";

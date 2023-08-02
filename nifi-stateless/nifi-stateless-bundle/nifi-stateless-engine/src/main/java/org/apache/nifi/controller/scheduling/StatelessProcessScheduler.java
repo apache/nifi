@@ -21,7 +21,6 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.validation.ValidationStatus;
-import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -234,10 +233,6 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     @Override
     public boolean isScheduled(final Object scheduled) {
         return false;
-    }
-
-    @Override
-    public void registerEvent(final Connectable worker) {
     }
 
     @Override

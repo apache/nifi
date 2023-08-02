@@ -385,32 +385,6 @@ span.details-title {
     width: 300px;
 }
 
-span#import-process-group-link.link:focus {
-    outline: none;
-}
-
-span#import-process-group-link.link {
-    position: relative;
-    top: 164px;
-    left: 20px;
-    color: #004849; /*link-color*/
-    font-weight: normal;
-    display: inline-block;
-    border-bottom: 1px solid #CCDADB;
-    font-size: 13px;
-    font-family: Roboto;
-    z-index: 1;
-}
-
-span#import-process-group-link.link-over {
-    border-bottom: 1px solid #004849;
-}
-
-span#import-process-group-link.link-bold {
-    font-weight: bold;
-    border-bottom: none;
-}
-
 #file-cancel-button {
     position: absolute;
     width: 0px;

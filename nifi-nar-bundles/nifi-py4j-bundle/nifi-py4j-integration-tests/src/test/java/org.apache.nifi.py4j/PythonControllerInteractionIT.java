@@ -337,7 +337,7 @@ public class PythonControllerInteractionIT {
 
         final List<String> dependencies = writeNumpyVersionDetails.getDependencies();
         assertEquals(1, dependencies.size());
-        assertEquals("numpy==1.20.0", dependencies.get(0));
+        assertEquals("numpy==1.25.0", dependencies.get(0));
 
         // Create a PrettyPrintJson Processor
         final PythonProcessorBridge writeNumPyVersion = createProcessor("WriteNumpyVersion");
@@ -352,7 +352,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals("1.20.0");
+        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals("1.25.0");
     }
 
 

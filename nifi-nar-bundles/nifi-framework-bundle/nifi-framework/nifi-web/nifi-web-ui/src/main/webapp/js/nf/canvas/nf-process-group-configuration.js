@@ -93,6 +93,13 @@
      */
     var saveConfiguration = function (version, groupId) {
         // build the entity
+        var updateStrategy;
+        if ($('#parameter-contexts-recursive').hasClass('checkbox-unchecked')) {
+            updateStrategy = 'CURRENT_GROUP';
+        } else {
+            updateStrategy = 'CURRENT_GROUP_WITH_CHILDREN';
+        };
+
         var entity = {
             'revision': nfClient.getRevision({
                 'revision': {
@@ -100,6 +107,7 @@
                 }
             }),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'processGroupUpdateStrategy': updateStrategy,
             'component': {
                 'id': groupId,
                 'name': $('#process-group-name').val(),
@@ -375,37 +383,7 @@
                 value: null
             }];
 
-            var authorizedParameterContexts = parameterContexts.filter(function (parameterContext) {
-                return parameterContext.permissions.canRead;
-            });
-
-            var unauthorizedParameterContexts = parameterContexts.filter(function (parameterContext) {
-                return !parameterContext.permissions.canRead;
-            });
-
-            //sort alphabetically
-            var sortedAuthorizedParameterContexts = authorizedParameterContexts.sort(function (a, b) {
-                if (a.component.name < b.component.name) {
-                    return -1;
-                }
-                if (a.component.name > b.component.name) {
-                    return 1;
-                }
-                return 0;
-            });
-
-            //sort alphabetically
-            var sortedUnauthorizedParameterContexts = unauthorizedParameterContexts.sort(function (a, b) {
-                if (a.id < b.id) {
-                    return -1;
-                }
-                if (a.id > b.id) {
-                    return 1;
-                }
-                return 0;
-            });
-
-            var sortedParameterContexts = sortedAuthorizedParameterContexts.concat(sortedUnauthorizedParameterContexts);
+            var sortedParameterContexts = nfCommon.sortParameterContextsAlphabeticallyBasedOnAuthorization(parameterContexts);
 
             sortedParameterContexts.forEach(function (parameterContext) {
                 var option;
@@ -517,6 +495,10 @@
 
             // initialize the parameter context combo
             $('#process-group-parameter-context-combo').combo('destroy').combo(comboOptions);
+
+            // initialize parameter context recursive checkbox
+            $('#parameter-contexts-recursive').removeClass().addClass('nf-checkbox checkbox-unchecked');
+
         }).fail(nfErrorHandler.handleAjaxError);
     };
 
