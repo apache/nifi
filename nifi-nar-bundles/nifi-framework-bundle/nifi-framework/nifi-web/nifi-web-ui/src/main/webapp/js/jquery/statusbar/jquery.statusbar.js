@@ -27,7 +27,9 @@
     // static key path variables
     var PROCESSOR_ID_KEY = 'component.id',
         ACTIVE_THREAD_COUNT_KEY = 'status.aggregateSnapshot.activeThreadCount',
-        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus'
+        RUN_STATUS_KEY = 'status.aggregateSnapshot.runStatus',
+        CONTROLLER_STATUS_KEY = 'status.runStatus',
+        CONTROLLER_VALIDATION_KEY = 'status.validationStatus';
 
     var isUndefined = function (obj) {
         return typeof obj === 'undefined';
@@ -264,24 +266,39 @@
                 processorId,
                 obj,
                 runStatus,
+                validationStatus,
                 activeThreadCount,
                 bulletins;
 
             if (data.processor) {
                 processorId = data.processor;
                 obj = d3.select('#id-' + processorId).datum();
-                runStatus = getKeyValue(obj,RUN_STATUS_KEY);
-                activeThreadCount = getKeyValue(obj,ACTIVE_THREAD_COUNT_KEY);
+                runStatus = getKeyValue(obj, RUN_STATUS_KEY);
+                activeThreadCount = getKeyValue(obj, ACTIVE_THREAD_COUNT_KEY);
                 bulletins = data.bulletins;
-            } else if (data.provider) {
+            } else if (data.controller) {
+                processorId = data.controller.id;
+                obj = data.controller;
+                validationStatus = getKeyValue(obj, CONTROLLER_VALIDATION_KEY);
+                if (validationStatus === 'INVALID') {
+                    runStatus = validationStatus;
+                } else {
+                    runStatus = getKeyValue(obj, CONTROLLER_STATUS_KEY);
+                }
+                bulletins = data.bulletins;
+            }else if (data.provider) {
                 bulletins = data.provider;
             }
 
-            // set the values
-            if (isDefinedAndNotNull(runStatus) && isDefinedAndNotNull(activeThreadCount)) {
+            // set the status
+            if (isDefinedAndNotNull(runStatus)) {
                 bar.attr('state',runStatus.toUpperCase());
                 bar.attr('alerts', 'true');
                 bar.find('.dialog-status-bar-state').text(runStatus);
+            }
+
+            // set thread count
+            if (isDefinedAndNotNull(activeThreadCount)) {
                 bar.find('.dialog-status-bar-threads').attr('count',activeThreadCount);
                 bar.find('.dialog-status-bar-threads').attr('title',activeThreadCount+' active threads');
                 bar.find('.dialog-status-bar-threads').text('('+activeThreadCount+')');
