@@ -312,6 +312,47 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         deleteTable(tableName);
     }
 
+    @Test
+    public void testAvroIntType() throws InitializationException, IOException {
+        String tableName = UUID.randomUUID().toString();
+        TableId tableId = TableId.of(dataset.getDatasetId().getDataset(), tableName);
+        Field avrofloat = Field.newBuilder("avroint", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
+
+        // Table schema definition
+        schema = Schema.of(avrofloat);
+        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+
+        // create table
+        bigquery.create(tableInfo);
+
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, tableName);
+        runner.setProperty(PutBigQuery.TRANSFER_TYPE, BATCH_TYPE);
+
+        AvroReader reader = new AvroReader();
+        runner.addControllerService("reader", reader);
+
+        final String recordSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/bigquery/avroint.avsc")));
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_TEXT, recordSchema);
+
+        runner.enableControllerService(reader);
+        runner.setProperty(BigQueryAttributes.RECORD_READER_ATTR, "reader");
+
+        runner.enqueue(Paths.get("src/test/resources/bigquery/avroint.avro"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS, 1);
+
+        TableResult result = bigquery.listTableData(dataset.getDatasetId().getDataset(), tableName, schema);
+        Iterator<FieldValueList> iterator = result.getValues().iterator();
+        FieldValueList firstElt = iterator.next();
+        assertEquals(firstElt.get(0).getDoubleValue(), 1.0);
+
+        deleteTable(tableName);
+    }
+
     private String prepareTable(AllowableValue transferType) {
         String tableName = UUID.randomUUID().toString();
 
@@ -369,7 +410,7 @@ public class PutBigQueryIT extends AbstractBigQueryIT {
         Field full = Field.newBuilder("full", LegacySQLTypeName.TIMESTAMP).setMode(Field.Mode.NULLABLE).build();
         Field birth = Field.newBuilder("birth", LegacySQLTypeName.RECORD, date, time, full).setMode(Field.Mode.NULLABLE).build();
 
-        Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.NUMERIC).setMode(Field.Mode.NULLABLE).build();
+        Field numeric = Field.newBuilder("numeric", StandardSQLTypeName.INT64).setMode(Field.Mode.NULLABLE).build();
         Field floatc = Field.newBuilder("floatc", StandardSQLTypeName.FLOAT64).setMode(Field.Mode.NULLABLE).build();
         Field json = Field.newBuilder("json", StandardSQLTypeName.JSON).setMode(Field.Mode.NULLABLE).build();
 

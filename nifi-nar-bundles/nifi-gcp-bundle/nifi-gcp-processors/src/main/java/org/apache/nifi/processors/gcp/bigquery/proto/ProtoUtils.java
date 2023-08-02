@@ -78,8 +78,8 @@ public class ProtoUtils {
            // matches NUMERIC and BIGNUMERIC types in BigQuery
            // BQTableSchemaToProtoDescriptor.class
            case BYTES:
-               if(value instanceof BigDecimal) {
-                   if(tableSchema.getFields(field.getIndex()).getType().equals(Type.BIGNUMERIC)) {
+               if (value instanceof BigDecimal) {
+                   if (tableSchema.getFields(field.getIndex()).getType().equals(Type.BIGNUMERIC)) {
                        value = BigDecimalByteStringEncoder.encodeToBigNumericByteString((BigDecimal) value);
                    } else if (tableSchema.getFields(field.getIndex()).getType().equals(Type.NUMERIC)) {
                        value = BigDecimalByteStringEncoder.encodeToNumericByteString((BigDecimal) value);
@@ -90,6 +90,8 @@ public class ProtoUtils {
                    value = FloatValue.of((float) value).toByteString();
                } else if (value instanceof Double) {
                    value = DoubleValue.of((double) value).toByteString();
+               } else if (value instanceof Integer) {
+                   value = Int64Value.of((int) value).toByteString();
                }
 
                setField(value, field, builder);
