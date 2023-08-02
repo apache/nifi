@@ -221,6 +221,9 @@
                     // record the processor details
                     $('#processor-details').data('processorDetails', details);
 
+                    // add subtitle with component type details
+                    $('#processor-details').modal('setSubtitle', nfCommon.formatType(details));
+
                     // populate the processor settings
                     nfCommon.populateField('read-only-processor-id', details['id']);
                     nfCommon.populateField('read-only-processor-type', nfCommon.formatType(details));
