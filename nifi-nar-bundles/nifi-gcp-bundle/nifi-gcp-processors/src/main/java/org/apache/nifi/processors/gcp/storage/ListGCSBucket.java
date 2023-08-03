@@ -182,12 +182,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             " However an additional DistributedMapCache controller service is required and more JVM heap memory is used." +
             " For more information on how the 'Entity Tracking Time Window' property works, see the description.");
 
+    public static final AllowableValue NO_TRACKING = new AllowableValue("none", "No Tracking",
+            "This strategy lists all entities without any tracking. The same entities will be listed each time" +
+                    " this processor is scheduled. It is recommended to change the default run schedule value." +
+                    " Any property that relates to the persisting state will be ignored.");
+
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
         .name("listing-strategy")
         .displayName("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
-        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
         .defaultValue(BY_TIMESTAMPS.getValue())
         .build();
 
@@ -396,9 +401,29 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             listByTrackingTimestamps(context, session);
         } else if (BY_ENTITIES.equals(listingStrategy)) {
             listByTrackingEntities(context, session);
+        } else if (NO_TRACKING.equals(listingStrategy)) {
+            listNoTracking(context, session);
         } else {
             throw new ProcessException("Unknown listing strategy: " + listingStrategy);
         }
+    }
+
+    private void listNoTracking(ProcessContext context, ProcessSession session) {
+        final long startNanos = System.nanoTime();
+        final ListingAction listingAction = new NoTrackingListingAction(context, session);
+
+        try {
+            listBucket(context, listingAction);
+        } catch (final Exception e) {
+            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            listingAction.getBlobWriter().finishListingExceptionally(e);
+            session.rollback();
+            context.yield();
+            return;
+        }
+
+        final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{ context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis });
     }
 
     private void listByTrackingTimestamps(ProcessContext context, ProcessSession session) {
@@ -539,6 +564,49 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         void finishListing(int listCount, long maxTimestamp, Set<String> keysMatchingTimestamp);
 
         void commit(int listCount);
+    }
+
+    private class NoTrackingListingAction implements ListingAction<BlobWriter> {
+        final ProcessContext context;
+        final ProcessSession session;
+        final BlobWriter blobWriter;
+
+        private NoTrackingListingAction(final ProcessContext context, final ProcessSession session) {
+            this.context = context;
+            this.session = session;
+
+            final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+            if (writerFactory == null) {
+                blobWriter = new AttributeBlobWriter(session);
+            } else {
+                blobWriter = new RecordBlobWriter(session, writerFactory, getLogger());
+            }
+        }
+
+        @Override
+        public boolean skipBlob(final Blob blob) {
+            return false;
+        }
+
+        @Override
+        public void commit(final int listCount) {
+            ListGCSBucket.this.commit(session, listCount);
+        }
+
+        @Override
+        public BlobWriter getBlobWriter() {
+            return blobWriter;
+        }
+
+        @Override
+        public Storage getCloudService() {
+            return ListGCSBucket.this.getCloudService();
+        }
+
+        @Override
+        public void finishListing(final int listCount, final long maxTimestamp, final Set<String> keysMatchingTimestamp) {
+            // nothing to do
+        }
     }
 
     private class TriggerListingAction implements ListingAction<BlobWriter> {
