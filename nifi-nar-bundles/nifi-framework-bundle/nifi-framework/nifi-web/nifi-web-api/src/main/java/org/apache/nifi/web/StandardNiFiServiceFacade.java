@@ -6109,6 +6109,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Create a query to get all bulletins
         final BulletinQueryDTO query = new BulletinQueryDTO();
         BulletinBoardDTO bulletinBoardDTO = getBulletinBoard(query);
+        bulletinMetricsRegistry.clear();
         for(BulletinEntity bulletinEntity : bulletinBoardDTO.getBulletins()) {
             BulletinDTO bulletin = bulletinEntity.getBulletin();
             if(bulletin != null) {
