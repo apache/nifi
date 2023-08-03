@@ -25,18 +25,12 @@ env:
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
-    -Dmaven.wagon.http.retryHandler.class=standard
-    -Dmaven.wagon.http.retryHandler.count=5
-    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true
-    -Dmaven.wagon.httpconnectionManager.maxPerRoute=5
-    -Dmaven.wagon.httpconnectionManager.ttlSeconds=30
+    -Daether.connector.http.retryHandler.count=5
+    -Daether.connector.http.connectionMaxTtl=30
   COMPILE_MAVEN_OPTS: >-
     -Xmx3g
-    -Dmaven.wagon.http.retryHandler.class=standard
-    -Dmaven.wagon.http.retryHandler.count=5
-    -Dmaven.wagon.http.retryHandler.requestSentEnabled=true
-    -Dmaven.wagon.httpconnectionManager.maxPerRoute=5
-    -Dmaven.wagon.httpconnectionManager.ttlSeconds=30
+    -Daether.connector.http.retryHandler.count=5
+    -Daether.connector.http.connectionMaxTtl=30
   MAVEN_COMPILE_COMMAND: >-
     test-compile
     --show-version
@@ -69,7 +63,6 @@ env:
     --no-transfer-progress
     --fail-fast
     -D dir-only
-    -D disableXmlReport
   MAVEN_BUILD_PROFILES: >-
     -P include-grpc
     -P skip-nifi-bin-assembly
