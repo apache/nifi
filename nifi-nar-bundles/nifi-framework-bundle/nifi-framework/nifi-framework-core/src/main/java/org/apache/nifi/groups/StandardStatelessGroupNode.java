@@ -466,8 +466,34 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
 
 
     private void stopPorts() {
-        getProcessGroup().findAllInputPorts().forEach(Port::shutdown);
-        getProcessGroup().findAllOutputPorts().forEach(Port::shutdown);
+        final List<Port> allPorts = new ArrayList<>();
+        allPorts.addAll(getProcessGroup().findAllInputPorts());
+        allPorts.addAll(getProcessGroup().findAllOutputPorts());
+
+        allPorts.forEach(Port::shutdown);
+
+        // Local Ports finish very quickly. We should consider refactoring the shutdown() method so that
+        // it returns a Future that is completed only when all of the active threads have finished. But for now,
+        // we'll just sleep for a very short period of time and keep checking. We do this only because we expect
+        // the ports to finish very quickly.
+        while (!isStopped(allPorts)) {
+            try {
+                Thread.sleep(2L);
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
+    private boolean isStopped(final Collection<Port> ports) {
+        for (final Port port : ports) {
+            if (port.isRunning()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override
