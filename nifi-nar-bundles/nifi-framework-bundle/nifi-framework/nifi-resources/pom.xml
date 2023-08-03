@@ -22,7 +22,7 @@
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
-    <description>holds common resources used to build installers</description>
+    <description>Holds common resources used to build installers</description>
     <properties>
         <!--Wrapper Properties -->
         <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
