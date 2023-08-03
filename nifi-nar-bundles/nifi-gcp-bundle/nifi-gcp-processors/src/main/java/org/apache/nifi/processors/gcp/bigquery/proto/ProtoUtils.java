@@ -21,10 +21,7 @@ import com.google.cloud.bigquery.storage.v1.BigDecimalByteStringEncoder;
 import com.google.cloud.bigquery.storage.v1.TableFieldSchema.Type;
 import com.google.cloud.bigquery.storage.v1.TableSchema;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.DoubleValue;
 import com.google.protobuf.DynamicMessage;
-import com.google.protobuf.FloatValue;
-import com.google.protobuf.Int64Value;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -70,7 +67,7 @@ public class ProtoUtils {
            // FLOAT64
            case DOUBLE:
                if (value instanceof Float) {
-                   value = ((Float) value).doubleValue();
+                   value = Double.valueOf(value.toString());
                }
                setField(value, field, builder);
                break;
@@ -78,20 +75,20 @@ public class ProtoUtils {
            // matches NUMERIC and BIGNUMERIC types in BigQuery
            // BQTableSchemaToProtoDescriptor.class
            case BYTES:
+               if (value instanceof Integer) {
+                   value = new BigDecimal((int) value);
+               } else if (value instanceof Long) {
+                   value = new BigDecimal((long) value);
+               } else if (value instanceof Float || value instanceof Double) {
+                   value = new BigDecimal(value.toString());
+               }
+
                if (value instanceof BigDecimal) {
                    if (tableSchema.getFields(field.getIndex()).getType().equals(Type.BIGNUMERIC)) {
                        value = BigDecimalByteStringEncoder.encodeToBigNumericByteString((BigDecimal) value);
                    } else if (tableSchema.getFields(field.getIndex()).getType().equals(Type.NUMERIC)) {
                        value = BigDecimalByteStringEncoder.encodeToNumericByteString((BigDecimal) value);
                    }
-               } else if (value instanceof Long) {
-                   value = Int64Value.of((long) value).toByteString();
-               } else if (value instanceof Float) {
-                   value = FloatValue.of((float) value).toByteString();
-               } else if (value instanceof Double) {
-                   value = DoubleValue.of((double) value).toByteString();
-               } else if (value instanceof Integer) {
-                   value = Int64Value.of((int) value).toByteString();
                }
 
                setField(value, field, builder);
