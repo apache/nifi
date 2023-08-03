@@ -437,28 +437,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private AuthorizableLookup authorizableLookup;
 
     // Prometheus Metrics objects
-    private final NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
     private final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private final ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
-    private final BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
     private final ClusterMetricsRegistry clusterMetricsRegistry = new ClusterMetricsRegistry();
-
-    private final Collection<AbstractMetricsRegistry> configuredRegistries = Arrays.asList(
-            nifiMetricsRegistry,
-            jvmMetricsRegistry,
-            connectionAnalyticsMetricsRegistry,
-            bulletinMetricsRegistry,
-            clusterMetricsRegistry
-    );
-
-    private final Collection<CollectorRegistry> metricsRegistries = Arrays.asList(
-            nifiMetricsRegistry.getRegistry(),
-            jvmMetricsRegistry.getRegistry(),
-            connectionAnalyticsMetricsRegistry.getRegistry(),
-            bulletinMetricsRegistry.getRegistry(),
-            clusterMetricsRegistry.getRegistry()
-    );
-
 
     // -----------------------------------------
     // Synchronization methods
@@ -6040,12 +6021,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
-    @Override
-    public Collection<CollectorRegistry> generateFlowMetrics() {
+    protected Collection<AbstractMetricsRegistry> populateFlowMetrics() {
+        // Include registries which are fully refreshed upon each invocation
+        NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
+        BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+
         final String instanceId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
-        nifiMetricsRegistry.clear();
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP,
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
 
@@ -6144,8 +6127,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final boolean isClustered = clusterCoordinator != null;
         final boolean isConnectedToCluster = isClustered() && clusterCoordinator.isConnected();
         PrometheusMetricsUtil.createClusterMetrics(clusterMetricsRegistry, instanceId, isClustered, isConnectedToCluster, connectedNodesLabel, connectedNodeCount, totalNodeCount);
+        Collection<AbstractMetricsRegistry> metricsRegistries = Arrays.asList(
+                nifiMetricsRegistry,
+                jvmMetricsRegistry,
+                connectionAnalyticsMetricsRegistry,
+                bulletinMetricsRegistry,
+                clusterMetricsRegistry
+        );
 
         return metricsRegistries;
+    }
+
+    @Override
+    public Collection<CollectorRegistry> generateFlowMetrics() {
+
+        return populateFlowMetrics().stream().map(AbstractMetricsRegistry::getRegistry)
+                                             .collect(Collectors.toList());
     }
 
     @Override
@@ -6156,7 +6153,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(FlowMetricsRegistry::getRegistryClass)
                 .collect(Collectors.toSet());
 
-        generateFlowMetrics();
+        Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics();
+
         return configuredRegistries.stream()
                 .filter(configuredRegistry -> registryClasses.contains(configuredRegistry.getClass()))
                 .map(AbstractMetricsRegistry::getRegistry)
