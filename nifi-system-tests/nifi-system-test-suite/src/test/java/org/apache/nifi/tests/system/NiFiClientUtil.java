@@ -1313,20 +1313,30 @@ public class NiFiClientUtil {
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
         final ConnectionClient connectionClient = getConnectionClient();
 
-        DropRequestEntity requestEntity = connectionClient.emptyQueue(connectionId);
-        try {
-            while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
-                try {
-                    Thread.sleep(10L);
-                } catch (final InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return null;
-                }
+        DropRequestEntity requestEntity;
+        while (true) {
+            requestEntity = connectionClient.emptyQueue(connectionId);
+            try {
+                while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
+                    try {
+                        Thread.sleep(10L);
+                    } catch (final InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
 
-                requestEntity = connectionClient.getDropRequest(connectionId, requestEntity.getDropRequest().getId());
+                    requestEntity = connectionClient.getDropRequest(connectionId, requestEntity.getDropRequest().getId());
+                }
+            } finally {
+                requestEntity = connectionClient.deleteDropRequest(connectionId, requestEntity.getDropRequest().getId());
             }
-        } finally {
-            requestEntity = connectionClient.deleteDropRequest(connectionId, requestEntity.getDropRequest().getId());
+
+            final Integer count = requestEntity.getDropRequest().getCurrentCount();
+            if (count == null || count == 0) {
+                break;
+            }
+
+            logger.info("Request to Empty FlowFile Queue {} completed but queue still has {} FlowFiles. Will issue another request.", connectionId, count);
         }
 
         return requestEntity;
