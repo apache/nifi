@@ -33,7 +33,6 @@ import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
-import java.util.Map;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -48,9 +47,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AwsClientDetails;
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
+import org.apache.nifi.processors.aws.AwsClientDetails;
 import org.apache.nifi.processors.aws.AwsPropertyDescriptors;
 import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
 import org.apache.nifi.processors.aws.signer.AwsSignerType;
@@ -59,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
@@ -70,70 +70,72 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Full Control for an object")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Full Control for an object")
             .defaultValue("${s3.permissions.full.users}")
             .build();
     public static final PropertyDescriptor READ_USER_LIST = new PropertyDescriptor.Builder()
             .name("Read Permission User List")
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Read Access for an object")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Read Access for an object")
             .defaultValue("${s3.permissions.read.users}")
             .build();
     public static final PropertyDescriptor WRITE_USER_LIST = new PropertyDescriptor.Builder()
             .name("Write Permission User List")
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
             .defaultValue("${s3.permissions.write.users}")
             .build();
     public static final PropertyDescriptor READ_ACL_LIST = new PropertyDescriptor.Builder()
             .name("Read ACL User List")
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to read the Access Control List for an object")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to read the Access Control List for an object")
             .defaultValue("${s3.permissions.readacl.users}")
             .build();
     public static final PropertyDescriptor WRITE_ACL_LIST = new PropertyDescriptor.Builder()
             .name("Write ACL User List")
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
             .defaultValue("${s3.permissions.writeacl.users}")
             .build();
     public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
             .name("canned-acl")
             .displayName("Canned ACL")
+            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
+                "will be ignored if any other ACL/permission/owner property is specified")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
-                    "will be ignored if any other ACL/permission/owner property is specified")
             .defaultValue("${s3.permissions.cannedacl}")
             .build();
     public static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
+            .description("The Amazon ID to use for the object's owner")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("The Amazon ID to use for the object's owner")
             .defaultValue("${s3.owner}")
             .build();
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
             .name("Bucket")
+            .description("The S3 Bucket to interact with")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
             .name("Object Key")
+            .description("The S3 Object Key to use. This is analogous to a filename for traditional file systems.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

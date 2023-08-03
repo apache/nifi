@@ -246,9 +246,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.  Note that this "
                     + "setting is not applicable when 'Use Versions' is 'true'.")
             .addValidator(createRequesterPaysValidator())
-            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
-                    + "with listing the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
-                            + "requester charges for listing the S3 bucket."))
+            .allowableValues(
+                new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated with listing the S3 bucket."),
+                new AllowableValue("false", "False", "Does not consent to pay requester charges for listing the S3 bucket."))
             .defaultValue("false")
             .build();
 
