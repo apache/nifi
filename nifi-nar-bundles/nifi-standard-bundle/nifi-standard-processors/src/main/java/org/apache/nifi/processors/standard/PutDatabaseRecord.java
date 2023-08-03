@@ -482,7 +482,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
             putToDatabase(context, session, flowFile, connection);
             // Only commit the connection if auto-commit is false
-            if (!connection.getAutoCommit()) {
+            if (!originalAutoCommit) {
                 connection.commit();
             }
 
