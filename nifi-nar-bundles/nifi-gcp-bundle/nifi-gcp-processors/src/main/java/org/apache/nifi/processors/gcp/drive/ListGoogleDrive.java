@@ -16,36 +16,12 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
-
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -74,12 +50,37 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.IOException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ID_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.MIME_TYPE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.TIMESTAMP_DESC;
+
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"google", "drive", "storage"})
-@CapabilityDescription("Lists concrete files (shortcuts are ignored) in a Google Drive folder. " +
-        "Each listed file may result in one FlowFile, the metadata being written as FlowFile attributes. " +
-        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single FlowFile. " +
+@CapabilityDescription("Performs a listing of concrete files (shortcuts are ignored) in a Google Drive folder. " +
+        "If the 'Record Writer' property is set, a single Output FlowFile is created, and each file in the listing is written as a single record to the output file. " +
+        "Otherwise, for each file in the listing, an individual FlowFile is created, the metadata being written as FlowFile attributes. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data. " +
         "Please see Additional Details to set up access to Google Drive.")

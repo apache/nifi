@@ -64,7 +64,8 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("directory-name").displayName("Directory Name")
+            .name("directory-name")
+            .displayName("Directory Name")
             .description("Name of the Azure Storage Directory. The Directory Name cannot contain a leading '/'. The root directory can be designated by the empty string value. " +
                     "In case of the PutAzureDataLakeStorage processor, the directory will be created if not already existing.")
             .addValidator(new DirectoryValidator())
@@ -81,11 +82,13 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             .defaultValue(String.format("${%s}", ATTR_NAME_FILENAME))
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description(
-            "Files that have been successfully written to Azure storage are transferred to this relationship")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Files that have been successfully written to Azure storage are transferred to this relationship")
             .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description(
-            "Files that could not be written to Azure storage for some reason are transferred to this relationship")
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
