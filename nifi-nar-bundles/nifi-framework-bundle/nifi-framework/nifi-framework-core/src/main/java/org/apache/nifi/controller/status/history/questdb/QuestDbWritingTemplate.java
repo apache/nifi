@@ -59,7 +59,7 @@ public abstract class QuestDbWritingTemplate<T> {
             LOGGER.error("Table Token for table [{}] not found", tableName);
         } else {
             try (
-                final TableWriter tableWriter = engine.getWriter(tableToken, "adding rows")
+                final TableWriter tableWriter = engine.getWriter(context.getCairoSecurityContext(), tableToken, "adding rows")
             ) {
                 addRows(tableWriter, entries);
                 tableWriter.commit();
