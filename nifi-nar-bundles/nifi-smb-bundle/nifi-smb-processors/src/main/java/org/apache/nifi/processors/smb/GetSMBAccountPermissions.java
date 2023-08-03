@@ -185,7 +185,7 @@ public class GetSMBAccountPermissions extends AbstractProcessor {
         } catch (RPCException rpce) {
             //check error code
             if(rpce.getErrorCode() == SystemErrorCode.STATUS_OBJECT_NAME_NOT_FOUND) {
-                getLogger().error("Could not find account with SID {} on host {}", new Object[]{sidString, hostname});
+                getLogger().warn("Could not find account with SID {} on host {}", new Object[]{sidString, hostname});
                 context.yield();
                 smbClient.getServerList().unregister(hostname);
                 session.transfer(flowFile, REL_NOT_FOUND);
