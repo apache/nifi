@@ -21,7 +21,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <description>This module removes javax.ws.rs package from jersey-bundle-1.19.3.jar which is used by ranger-plugins-common.jar in order to address javax.ws.rs version mismatch between jersey-bundle-1.19.3.jar and NiFi Registry. NiFi Registry uses javax.ws.rs version 2.1. Without doing this, NiFi Registry encounters java.lang.LinkageError: ClassCastException: attempting to castjar:file:nifi-registry-xxx/work/jetty/nifi-registry-web-api-xxx.war/webapp/WEB-INF/lib/javax.ws.rs-api-2.1.jar!/javax/ws/rs/ext/RuntimeDelegate.classtojar:file:/home/koji/nifi-registry-xxx/./ext/ranger/lib/jersey-bundle-1.19.3.jar!/javax/ws/rs/ext/RuntimeDelegate.class</description>
+    <description>This module removes javax.ws.rs package from jersey-bundle-1.19.4.jar which is used by ranger-plugins-common.jar in order to address javax.ws.rs version mismatch between jersey-bundle-1.19.4.jar and NiFi Registry. NiFi Registry uses javax.ws.rs version 2.1. Without doing this, NiFi Registry encounters java.lang.LinkageError: ClassCastException: attempting to castjar:file:nifi-registry-xxx/work/jetty/nifi-registry-web-api-xxx.war/webapp/WEB-INF/lib/javax.ws.rs-api-2.1.1.jar!/javax/ws/rs/ext/RuntimeDelegate.classtojar:file:/home/koji/nifi-registry-xxx/./ext/ranger/lib/jersey-bundle-1.19.4.jar!/javax/ws/rs/ext/RuntimeDelegate.class</description>
 
     <artifactId>nifi-registry-ranger-jersey-bundle</artifactId>
 
