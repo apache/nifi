@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+
 import java.io.InputStream;
 import java.util.Objects;
 
@@ -26,6 +28,8 @@ public class KustoQueryResponse {
     private final boolean error;
 
     private final String errorMessage;
+
+    private KustoResultSetTable ingestionResultSet;
 
     public KustoQueryResponse(final boolean error, final String errorMessage) {
         this.responseStream = null;
@@ -39,6 +43,13 @@ public class KustoQueryResponse {
         this.errorMessage = null;
     }
 
+    public KustoQueryResponse(KustoResultSetTable ingestionResultSet) {
+        this.responseStream = null;
+        this.error = false;
+        this.errorMessage = null;
+        this.ingestionResultSet = ingestionResultSet;
+    }
+
     public InputStream getResponseStream() {
         return responseStream;
     }
@@ -49,5 +60,9 @@ public class KustoQueryResponse {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    public KustoResultSetTable getIngestionResultSet() {
+        return ingestionResultSet;
     }
 }

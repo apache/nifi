@@ -36,6 +36,16 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>5.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-ingest</artifactId>
+            <version>5.0.1</version>
+        </dependency>
         <!-- azure-core does not bring jackson-dataformat-xml dependency from version 1.37.0 on -->
         <!-- but some libraries in the processor nar module depend on jackson-dataformat-xml -->
         <!-- and check its existence and version via JacksonVersion in azure-core -->
