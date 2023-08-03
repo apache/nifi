@@ -85,6 +85,8 @@ import static org.mockito.Mockito.when;
 
 public class PutDatabaseRecordTest {
 
+    private static String DBCP_SERVICE_ID = "dbcp";
+
     private static final String CONNECTION_FAILED = "Connection Failed";
 
     private static final String PARSER_ID = MockRecordParser.class.getSimpleName();
@@ -147,9 +149,9 @@ public class PutDatabaseRecordTest {
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(processor);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
-        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
     }
 
     @Test
@@ -175,9 +177,9 @@ public class PutDatabaseRecordTest {
         dbcp = new DBCPServiceAutoCommitTest(DB_LOCATION);
         final Map<String, String> dbcpProperties = new HashMap<>();
         runner = TestRunners.newTestRunner(processor);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
-        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
 
         recreateTable(createPersons);
         final MockRecordParser parser = new MockRecordParser();
@@ -216,9 +218,9 @@ public class PutDatabaseRecordTest {
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(processor);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
-        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
 
         recreateTable();
         final MockRecordParser parser = new MockRecordParser();
@@ -1806,9 +1808,9 @@ public class PutDatabaseRecordTest {
     void testInsertEnum() throws InitializationException, ProcessException, SQLException, IOException {
         dbcp = spy(new DBCPServiceSimpleImpl(DB_LOCATION, false)); // Use H2
         runner = TestRunners.newTestRunner(processor);
-        runner.addControllerService("dbcp", dbcp, new HashMap<>());
+        runner.addControllerService(DBCP_SERVICE_ID, dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
-        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, "dbcp");
+        runner.setProperty(PutDatabaseRecord.DBCP_SERVICE, DBCP_SERVICE_ID);
         try (Connection conn = dbcp.getConnection()) {
             conn.createStatement().executeUpdate("DROP TABLE IF EXISTS ENUM_TEST");
         }
@@ -1999,13 +2001,12 @@ public class PutDatabaseRecordTest {
 
         @Override
         public String getIdentifier() {
-            return "dbcp";
+            return DBCP_SERVICE_ID;
         }
 
         @Override
         public Connection getConnection() throws ProcessException {
             try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
                 Connection spyConnection =  spy(DriverManager.getConnection("jdbc:derby:" + databaseLocation + ";create=true"));
                 doThrow(SQLFeatureNotSupportedException.class).when(spyConnection).setAutoCommit(false);
                 return spyConnection;
