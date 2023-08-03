@@ -16,33 +16,31 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
-import org.apache.nifi.components.DescribedValue;
+public enum KustoIngestionResult {
+    SUCCEEDED("Succeeded"),
 
-public enum KustoAuthenticationStrategy implements DescribedValue {
-    APPLICATION_CREDENTIALS("Application Credentials", "Azure Application Registration with Application Key"),
-    MANAGED_IDENTITY("Managed Identity", "Azure Managed Identity");
+    PARTIALLY_SUCCEEDED("PartiallySucceeded"),
 
-    private final String displayName;
+    FAILED("Failed"),
 
-    private final String description;
+    DEFAULT("Default");
 
-    KustoAuthenticationStrategy(final String displayName, final String description) {
-        this.displayName = displayName;
-        this.description = description;
+    private final String status;
+
+    KustoIngestionResult(final String status) {
+        this.status = status;
     }
 
-    @Override
-    public String getValue() {
-        return name();
+    public static KustoIngestionResult fromString(String status) {
+        for (KustoIngestionResult result : KustoIngestionResult.values()) {
+            if (result.status.equalsIgnoreCase(status)) {
+                return result;
+            }
+        }
+        return DEFAULT;
     }
 
-    @Override
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    @Override
-    public String getDescription() {
-        return description;
+    public String getStatus() {
+        return status;
     }
 }

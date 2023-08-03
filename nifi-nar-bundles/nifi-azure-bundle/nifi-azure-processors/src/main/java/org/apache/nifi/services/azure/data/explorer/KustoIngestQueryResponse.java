@@ -16,33 +16,34 @@
  */
 package org.apache.nifi.services.azure.data.explorer;
 
-import org.apache.nifi.components.DescribedValue;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-public enum KustoAuthenticationStrategy implements DescribedValue {
-    APPLICATION_CREDENTIALS("Application Credentials", "Azure Application Registration with Application Key"),
-    MANAGED_IDENTITY("Managed Identity", "Azure Managed Identity");
+public class KustoIngestQueryResponse {
 
-    private final String displayName;
+    private boolean error;
 
-    private final String description;
+    private Map<Integer, List<String>> queryResult;
 
-    KustoAuthenticationStrategy(final String displayName, final String description) {
-        this.displayName = displayName;
-        this.description = description;
+    public boolean isError() {
+        return error;
     }
 
-    @Override
-    public String getValue() {
-        return name();
+    public void setError(boolean error) {
+        this.error = error;
     }
 
-    @Override
-    public String getDisplayName() {
-        return displayName;
+    public Map<Integer, List<String>> getQueryResult() {
+        return queryResult;
     }
 
-    @Override
-    public String getDescription() {
-        return description;
+    public KustoIngestQueryResponse(final Map<Integer,List<String>> queryResult) {
+        this.error = false;
+        this.queryResult = Collections.unmodifiableMap(queryResult);
+    }
+
+    public KustoIngestQueryResponse(final boolean error) {
+        this.error = error;
     }
 }
