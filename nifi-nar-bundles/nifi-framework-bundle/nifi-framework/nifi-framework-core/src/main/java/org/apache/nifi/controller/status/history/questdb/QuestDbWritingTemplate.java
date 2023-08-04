@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.status.history.questdb;
 
 import io.questdb.cairo.CairoEngine;
+import io.questdb.cairo.TableToken;
 import io.questdb.cairo.TableWriter;
 import io.questdb.griffin.SqlExecutionContext;
 import org.slf4j.Logger;
@@ -53,15 +54,20 @@ public abstract class QuestDbWritingTemplate<T> {
             return;
         }
 
-        try (
-            final TableWriter tableWriter = engine.getWriter(engine.getTableTokenIfExists(tableName), "adding rows")
-        ) {
-            addRows(tableWriter, entries);
-            tableWriter.commit();
-        } catch (final Exception e) {
-            LOGGER.error("Error happened during writing into table " + tableName, e);
-        } finally {
-            engine.releaseInactive();
+        final TableToken tableToken = engine.getTableTokenIfExists(tableName);
+        if (tableToken == null) {
+            LOGGER.error("Table Token for table [{}] not found", tableName);
+        } else {
+            try (
+                    final TableWriter tableWriter = engine.getWriter(tableToken, "adding rows")
+            ) {
+                addRows(tableWriter, entries);
+                tableWriter.commit();
+            } catch (final Exception e) {
+                LOGGER.error("Add rows [{}] to table [{}] failed", entries.size(), tableName, e);
+            } finally {
+                engine.releaseInactive();
+            }
         }
     }
 

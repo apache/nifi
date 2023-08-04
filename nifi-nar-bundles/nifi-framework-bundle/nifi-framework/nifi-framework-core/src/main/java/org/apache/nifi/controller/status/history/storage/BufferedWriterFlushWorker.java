@@ -34,9 +34,9 @@ public class BufferedWriterFlushWorker implements Runnable {
     @Override
     public void run() {
         try {
-            bufferedWriterList.forEach(bufferedWriter -> bufferedWriter.flush());
+            bufferedWriterList.forEach(BufferedEntryWriter::flush);
         } catch (final Exception e) {
-            LOGGER.error("Error happened during calling flush.", e);
+            LOGGER.error("Flush Buffered Writer failed", e);
         }
     }
 }
