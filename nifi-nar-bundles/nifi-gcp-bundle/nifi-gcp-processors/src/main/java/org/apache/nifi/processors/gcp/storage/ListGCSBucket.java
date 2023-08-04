@@ -296,7 +296,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             try {
                 listedEntityTracker.clearListedEntities();
             } catch (IOException e) {
-                throw new RuntimeException("Failed to reset previously listed entities due to " + e, e);
+                throw new RuntimeException("Failed to reset previously listed entities", e);
             }
         }
         resetEntityTrackingState = false;
@@ -415,7 +415,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         try {
             listBucket(context, listingAction);
         } catch (final Exception e) {
-            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to list contents of GCS Bucket", e);
             listingAction.getBlobWriter().finishListingExceptionally(e);
             session.rollback();
             context.yield();
@@ -423,7 +423,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{ context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis });
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis);
     }
 
     private void listByTrackingTimestamps(ProcessContext context, ProcessSession session) {
@@ -441,7 +441,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         try {
             listBucket(context, listingAction);
         } catch (final Exception e) {
-            getLogger().error("Failed to list contents of GCS Bucket due to {}", new Object[] {e}, e);
+            getLogger().error("Failed to list contents of GCS Bucket", e);
             listingAction.getBlobWriter().finishListingExceptionally(e);
             session.rollback();
             context.yield();
@@ -449,7 +449,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         }
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully listed GCS bucket {} in {} millis", new Object[]{ context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis });
+        getLogger().info("Successfully listed GCS bucket {} in {} millis", context.getProperty(BUCKET).evaluateAttributeExpressions().getValue(), listMillis);
     }
 
     private void listBucket(final ProcessContext context, final ListingAction listingAction) throws IOException, SchemaNotFoundException {
@@ -549,7 +549,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     private void commit(final ProcessSession session, final int listCount) {
         if (listCount > 0) {
-            getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
+            getLogger().info("Successfully listed {} new files from GCS; routing to success", listCount);
             session.commitAsync();
         }
     }
@@ -713,7 +713,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
                 writer.finishListing();
             } catch (final Exception e) {
-                getLogger().error("Failed to list contents of bucket due to {}", new Object[] {e}, e);
+                getLogger().error("Failed to list contents of bucket", e);
                 writer.finishListingExceptionally(e);
                 session.rollback();
                 context.yield();
@@ -895,7 +895,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             try {
                 recordWriter.close();
             } catch (IOException e) {
-                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+                logger.error("Failed to write listing as Records", e);
             }
 
             session.remove(flowFile);
