@@ -23,9 +23,9 @@ import org.apache.nifi.processors.elasticsearch.api.SearchResultsFormat;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -39,26 +39,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends AbstractJsonQueryElasticsearchTest<AbstractPaginatedJsonQueryElasticsearch> {
    private static final String TEST_DIR = "src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest";
-    private static final String MATCH_ALL;
-   private static final String MATCH_ALL_WITH_SORT_BY_MESSAGE;
-   private static final String MATCH_ALL_WITH_SORT_BY_MSG;
+   private static String matchAllWithSortByMessage;
+   private static String matchAllWithSortByMsg;
 
-   static {
-       try {
-           MATCH_ALL = Files.readString(Paths.get("src/test/resources/common/matchAllQuery.json"));
-           MATCH_ALL_WITH_SORT_BY_MESSAGE = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
-           MATCH_ALL_WITH_SORT_BY_MSG = Files.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
-       } catch (IOException e) {
-           throw new RuntimeException(e);
-       }
-   }
+    @BeforeAll
+    public static void setUpBeforeClass() throws Exception {
+        AbstractJsonQueryElasticsearchTest.setUpBeforeClass();
+        matchAllWithSortByMessage = Files.readString(Paths.get(TEST_DIR, "matchAllWithSortByMessageQuery.json"));
+        matchAllWithSortByMsg = Files.readString(Paths.get(TEST_DIR,"matchAllWithSortByMsgQueryWithoutSize.json"));
+    }
 
     public abstract boolean isInput();
 
     @Test
     public void testInvalidPaginationProperties() {
         final TestRunner runner = createRunner(false);
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "not-a-period");
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, "not-enum");
 
@@ -77,7 +73,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     public void testSinglePage() {
         // paged query hits (no splitting)
         final TestRunner runner = createRunner(false);
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
         MockFlowFile input = runOnce(runner);
         AbstractJsonQueryElasticsearchTest.testCounts(runner, isInput() ? 1 : 0, 1, 0, 0);
         final MockFlowFile pageQueryHitsNoSplitting = runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0);
@@ -185,7 +181,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     public void testResultsFormat() {
         for (final ResultOutputStrategy resultOutputStrategy : ResultOutputStrategy.values()) {
             final TestRunner runner = createRunner(false);
-            runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MESSAGE);
+            runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMessage);
             runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
 
             // Test against each results format
@@ -205,12 +201,12 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     }
 
     @Test
-    public void testScrollError() throws Exception {
+    public void testScrollError() {
         final TestRunner runner = createRunner(false);
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setThrowErrorInDelete(true);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
 
         // still expect "success" output for exception during final clean-up
         runMultiple(runner);
@@ -228,7 +224,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_FORMAT, SearchResultsFormat.FULL.getValue());
         runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_FORMAT, AggregationResultsFormat.FULL.getValue());
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
 
         // still expect "success" output for exception during final clean-up
         runMultiple(runner);
@@ -244,7 +240,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setThrowErrorInPit(true);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsg);
 
         // expect "failure" output for exception during query setup
         runOnce(runner);
@@ -259,7 +255,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
         // test PiT without sort
         final TestRunner runner = createRunner(false);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.POINT_IN_TIME.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllQuery);
 
         // expect "failure" output for exception during query setup
         runOnce(runner);
@@ -327,7 +323,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearchTest extends Abstra
     public void testEmptyHitsFlowFileIsProducedForEachResultSplitSetup() {
         final TestRunner runner = createRunner(false);
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MESSAGE);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMessage);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.OUTPUT_NO_HITS, "true");
         service.setMaxPages(0);
 

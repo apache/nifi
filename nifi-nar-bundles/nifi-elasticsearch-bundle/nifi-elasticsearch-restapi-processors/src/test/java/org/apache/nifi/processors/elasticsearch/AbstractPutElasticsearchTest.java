@@ -38,4 +38,8 @@ public abstract class AbstractPutElasticsearchTest<P extends AbstractPutElastics
         runner.setProperty(AbstractPutElasticsearch.OUTPUT_ERROR_RESPONSES, "false");
         assertFalse(runner.getProcessor().getRelationships().contains(AbstractPutElasticsearch.REL_ERROR_RESPONSES));
     }
+
+    protected String getUnexpectedCountMsg(String countName) {
+        return "Did not get expected " + countName + " count";
+    }
 }

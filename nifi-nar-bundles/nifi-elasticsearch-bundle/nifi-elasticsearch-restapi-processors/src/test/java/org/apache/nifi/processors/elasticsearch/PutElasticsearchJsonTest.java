@@ -46,10 +46,14 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
     private static final String TEST_DIR = "src/test/resources/PutElasticsearchJsonTest";
     private static final String TEST_COMMON_DIR = "src/test/resources/common";
     private static final Path BATCH_WITH_ERROR = Paths.get(TEST_DIR,"batchWithError.json");
+    private static String script;
+    private static String dynamicTemplates;
     private MockBulkLoadClientService clientService;
     private TestRunner runner;
     private static String flowFileContents;
     private static String sampleErrorResponse;
+    private static Map<String, Object> expectedScript;
+    private static Map<String, Object> expectedDynamicTemplate;
 
     @Override
     public Class<? extends AbstractPutElasticsearch> getTestProcessor() {
@@ -60,6 +64,18 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
     public static void setUpBeforeClass() throws Exception {
         sampleErrorResponse = Files.readString(Paths.get(TEST_COMMON_DIR,"sampleErrorResponse.json"));
         flowFileContents = Files.readString(Paths.get(TEST_DIR, "flowFileContents.json"));
+        script = Files.readString(Paths.get(TEST_DIR,"script.json"));
+        dynamicTemplates = Files.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json"));
+        expectedScript = new LinkedHashMap<>();
+        expectedScript.put("_source", "some script");
+        expectedScript.put("language", "painless");
+        expectedDynamicTemplate = new LinkedHashMap<>();
+        expectedDynamicTemplate.put("my_field", "keyword");
+        final Map<String, Object> yourField = new LinkedHashMap<>();
+        yourField.put("type", "text");
+        yourField.put("keyword", Collections.singletonMap("type", "text"));
+        expectedDynamicTemplate.put("your_field", yourField);
+
     }
 
     @BeforeEach
@@ -216,18 +232,9 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
     }
 
     @Test
-    public void simpleTestWithScriptAndDynamicTemplates() throws Exception {
-        runner.setProperty(PutElasticsearchJson.SCRIPT, Files.readString(Paths.get(TEST_DIR,"script.json")));
-        runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, Files.readString(Paths.get(TEST_COMMON_DIR,"dynamicTemplates.json")));
-        final Map<String, Object> expectedScript = new LinkedHashMap<>();
-        expectedScript.put("_source", "some script");
-        expectedScript.put("language", "painless");
-        final Map<String, Object> expectedDynamicTemplate = new LinkedHashMap<>();
-        expectedDynamicTemplate.put("my_field", "keyword");
-        final Map<String, Object> yourField = new LinkedHashMap<>();
-        yourField.put("type", "text");
-        yourField.put("keyword", Collections.singletonMap("type", "text"));
-        expectedDynamicTemplate.put("your_field", yourField);
+    public void simpleTestWithScriptAndDynamicTemplates() {
+        runner.setProperty(PutElasticsearchJson.SCRIPT, script);
+        runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, dynamicTemplates);
         Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
             long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
             long falseScriptedUpsertCount = items.stream().filter(item -> !item.isScriptedUpsert()).count();
@@ -237,13 +244,15 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
             assertEquals(1L, dynamicTemplatesCount);
         };
         basicTest(0, 0, 1, consumer, null);
+    }
 
-        runner.clearTransferState();
-        runner.clearProvenanceEvents();
-
+    @Test
+    public void simpleTestWithScriptedUpsert() {
+        runner.setProperty(PutElasticsearchJson.SCRIPT, script);
+        runner.setProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES, dynamicTemplates);
         runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Upsert.getValue().toLowerCase());
         runner.setProperty(PutElasticsearchJson.SCRIPTED_UPSERT, "true");
-        consumer = (List<IndexOperationRequest> items) -> {
+        Consumer<List<IndexOperationRequest>> consumer = (List<IndexOperationRequest> items) -> {
             long scriptCount = items.stream().filter(item -> item.getScript().equals(expectedScript)).count();
             long trueScriptedUpsertCount = items.stream().filter(IndexOperationRequest::isScriptedUpsert).count();
             long dynamicTemplatesCount = items.stream().filter(item -> item.getDynamicTemplates().equals(expectedDynamicTemplate)).count();
@@ -253,12 +262,13 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest<PutEl
             assertEquals(1L, dynamicTemplatesCount);
         };
         basicTest(0, 0, 1, consumer, null);
+    }
 
-        runner.clearTransferState();
-        runner.clearProvenanceEvents();
-
+    @Test
+    public void testNonJsonScript() {
         runner.setProperty(PutElasticsearchJson.SCRIPT, "not-json");
-        runner.removeProperty(PutElasticsearchJson.DYNAMIC_TEMPLATES);
+        runner.setProperty(PutElasticsearchJson.INDEX_OP, IndexOperationRequest.Operation.Upsert.getValue().toLowerCase());
+        runner.setProperty(PutElasticsearchJson.SCRIPTED_UPSERT, "true");
 
         runner.enqueue(flowFileContents);
         final AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());

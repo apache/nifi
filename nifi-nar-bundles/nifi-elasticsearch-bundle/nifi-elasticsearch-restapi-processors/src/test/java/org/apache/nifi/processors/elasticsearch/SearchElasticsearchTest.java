@@ -21,6 +21,7 @@ import org.apache.nifi.processors.elasticsearch.api.PaginationType;
 import org.apache.nifi.processors.elasticsearch.api.ResultOutputStrategy;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,14 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTest {
-    private static final String MATCH_ALL_WITH_SORT_BY_MSG_WITH_SIZE_QUERY;
+    private static String matchAllWithSortByMsgWithSizeQuery;
 
-    static {
-        try {
-            MATCH_ALL_WITH_SORT_BY_MSG_WITH_SIZE_QUERY = Files.readString(Paths.get("src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest/matchAllWithSortByMsgQueryWithSize.json"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    @BeforeAll
+    public static void setUpBeforeClass() throws Exception {
+        AbstractPaginatedJsonQueryElasticsearchTest.setUpBeforeClass();
+        matchAllWithSortByMsgWithSizeQuery = Files.readString(Paths.get("src/test/resources/AbstractPaginatedJsonQueryElasticsearchTest/matchAllWithSortByMsgQueryWithSize.json"));
     }
 
     public AbstractPaginatedJsonQueryElasticsearch getProcessor() {
@@ -62,7 +61,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         service.setMaxPages(2);
         service.setThrowErrorInSearch(false);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, PaginationType.SCROLL.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG_WITH_SIZE_QUERY);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
 
         // initialize search
         runOnce(runner);
@@ -99,7 +98,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_KEEP_ALIVE, "1 sec");
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG_WITH_SIZE_QUERY);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
 
         // first page
         runOnce(runner);
@@ -146,7 +145,7 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
-        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, MATCH_ALL_WITH_SORT_BY_MSG_WITH_SIZE_QUERY);
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
 
         // first page
         runOnce(runner);

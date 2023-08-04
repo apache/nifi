@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
@@ -41,6 +42,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -49,7 +53,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,7 +72,14 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     private static final LocalTime LOCAL_TIME = LocalTime.of(TIME_HOUR, TIME_MINUTE, TIME_SECOND);
     private static final String TEST_DIR = "src/test/resources/PutElasticsearchRecordTest";
     private static final String TEST_COMMON_DIR = "src/test/resources/common";
-    private static String simpleSchema;
+    private static final String RECORD_PATH_TEST_SCHEMA = "recordPathTest";
+    private static final String DATE_TIME_FORMATTING_TEST_SCHEMA = "dateTimeFormattingTest";
+    private static final String ERROR_TEST_SCHEMA = "errorTest";
+    private static final Path VALUES = Paths.get(TEST_DIR, "values.json");
+    private static RecordSchema simpleSchema;
+    private static RecordSchema recordPathTestSchema;
+    private static RecordSchema dateTimeFormattingTestSchema;
+    private static RecordSchema errorTestSchema;
     private MockBulkLoadClientService clientService;
     private MockSchemaRegistry registry;
     private TestRunner runner;
@@ -81,8 +91,10 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
     @BeforeAll
     public static void setUpBeforeClass() throws Exception {
-        simpleSchema = Files.readString(Paths.get(TEST_DIR, "simpleSchema.json"));
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        simpleSchema = getRecordSchema(Paths.get(TEST_DIR, "simpleSchema.json"));
+        recordPathTestSchema = getRecordSchema(Paths.get(TEST_DIR, "recordPathTestSchema.json"));
+        dateTimeFormattingTestSchema = getRecordSchema(Paths.get(TEST_DIR, "dateTimeFormattingTestSchema.json"));
+        errorTestSchema = getRecordSchema(Paths.get(TEST_DIR, "errorTestSchema.json"));
     }
 
     @BeforeEach
@@ -90,7 +102,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         clientService = new MockBulkLoadClientService();
         clientService.setResponse(new IndexOperationResponse(1500));
         registry = new MockSchemaRegistry();
-        registry.addSchema("simple", AvroTypeUtil.createSchema(new Schema.Parser().parse(simpleSchema)));
+        registry.addSchema("simple", simpleSchema);
         RecordReaderFactory reader = new JsonTreeReader();
         runner = TestRunners.newTestRunner(getTestProcessor());
         runner.addControllerService("registry", registry);
@@ -274,8 +286,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     @Test
-    public void testRecordPathFeatures() throws Exception{
-        String newSchema = Files.readString(Paths.get(TEST_DIR, "recordPathTestSchema.json"));
+    public void testRecordPathFeatures() throws Exception {
         Map<String, Object> script =
                 JsonUtils.readMap(Files.readString(Paths.get(TEST_DIR, "script.json")));
         Map<String, Object> dynamicTemplates =
@@ -304,26 +315,26 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
                 assertTrue(item.getId().startsWith("rec-"));
                 assertEquals("message", item.getType()); });
 
-            assertEquals(3, a);
-            assertEquals(3, b);
-            assertEquals(5, index);
-            assertEquals(1, create);
-            assertEquals(4, msg);
-            assertEquals(1, empties);
-            assertEquals(1, nulls);
-            assertEquals(1, timestamp);
-            assertEquals(5, timestampDefault);
-            assertEquals(0, ts);
-            assertEquals(0, id);
-            assertEquals(5, emptyScript);
-            assertEquals(5, falseScriptedUpsertCount);
-            assertEquals(1, trueScriptedUpsertCount);
-            assertEquals(1, s);
-            assertEquals(5, emptyDynamicTemplates);
-            assertEquals(1, dt);
+            assertEquals(3, a, getUnexpectedCountMsg("bulk a"));
+            assertEquals(3, b, getUnexpectedCountMsg("bulk b"));
+            assertEquals(5, index, getUnexpectedCountMsg("index"));
+            assertEquals(1, create, getUnexpectedCountMsg("create"));
+            assertEquals(4, msg, getUnexpectedCountMsg("msg"));
+            assertEquals(1, empties, getUnexpectedCountMsg("empties"));
+            assertEquals(1, nulls, getUnexpectedCountMsg("nulls"));
+            assertEquals(1, timestamp, getUnexpectedCountMsg("timestamp"));
+            assertEquals(5, timestampDefault, getUnexpectedCountMsg("timestampDefault"));
+            assertEquals(0, ts, getUnexpectedCountMsg("ts"));
+            assertEquals(0, id, getUnexpectedCountMsg("id"));
+            assertEquals(5, emptyScript, getUnexpectedCountMsg("emptyScript"));
+            assertEquals(5, falseScriptedUpsertCount, getUnexpectedCountMsg("falseScriptedUpsertCount"));
+            assertEquals(1, trueScriptedUpsertCount, getUnexpectedCountMsg("trueScriptedUpsertCount"));
+            assertEquals(1, s, getUnexpectedCountMsg("s"));
+            assertEquals(5, emptyDynamicTemplates, getUnexpectedCountMsg("emptyDynamicTemplates"));
+            assertEquals(1, dt, getUnexpectedCountMsg("dt"));
         });
 
-        registry.addSchema("recordPathTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)));
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
 
         runner.removeProperty(PutElasticsearchRecord.INDEX_OP);
         runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op");
@@ -334,7 +345,9 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script");
         runner.setProperty(PutElasticsearchRecord.SCRIPTED_UPSERT_RECORD_PATH, "/scripted_upsert");
         runner.setProperty(PutElasticsearchRecord.DYNAMIC_TEMPLATES_RECORD_PATH, "/dynamic_templates");
-        runner.enqueue(Paths.get(TEST_DIR, "1_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
+        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "1_flowFileContents.json"));
+        flowFileContents = flowFileContents.replaceFirst("\\d{13}", String.valueOf(Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli()));
+        runner.enqueue(flowFileContents, Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
 
         runner.run();
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
@@ -343,10 +356,13 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
 
-        runner.clearTransferState();
-
-       clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+    @Test
+    public void testTimestampDateFormatAndScriptRecordPath() throws Exception {
+        Map<String, Object> script =
+                JsonUtils.readMap(Files.readString(Paths.get(TEST_DIR, "script.json")));
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
             long testTypeCount = items.stream().filter(item ->  "test_type".equals(item.getType())).count();
             long messageTypeCount = items.stream().filter(item ->  "message".equals(item.getType())).count();
             long testIndexCount = items.stream().filter(item ->  "test_index".equals(item.getIndex())).count();
@@ -360,200 +376,37 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
             long defaultCoercedTimestampCount = items.stream().filter(item -> Long.valueOf(100).equals(item.getFields().get("@timestamp"))).count();
             long emptyScriptCount = items.stream().filter(item ->  item.getScript().isEmpty()).count();
             long scriptCount = items.stream().filter(item ->  script.equals(item.getScript())).count();
-            assertEquals(5, testTypeCount);
-            assertEquals(1, messageTypeCount);
-            assertEquals(5, testIndexCount);
-            assertEquals(1, bulkIndexCount);
-            assertEquals(5, indexOperationCount);
-            assertEquals(1, updateOperationCount);
-            assertEquals(1, timestampCount);
-            assertEquals(5, defaultCoercedTimestampCount);
-            assertEquals(1, dateCount);
-            assertEquals(6, idCount);
-            assertEquals(5, emptyScriptCount);
-            assertEquals(1, scriptCount);
+            assertEquals(5, testTypeCount, getUnexpectedCountMsg("test type"));
+            assertEquals(1, messageTypeCount, getUnexpectedCountMsg("message type"));
+            assertEquals(5, testIndexCount, getUnexpectedCountMsg("test index"));
+            assertEquals(1, bulkIndexCount, getUnexpectedCountMsg("bulk index"));
+            assertEquals(5, indexOperationCount, getUnexpectedCountMsg("index operation"));
+            assertEquals(1, updateOperationCount, getUnexpectedCountMsg("update operation"));
+            assertEquals(1, timestampCount, getUnexpectedCountMsg("timestamp"));
+            assertEquals(5, defaultCoercedTimestampCount, getUnexpectedCountMsg("default coerced timestamp"));
+            assertEquals(1, dateCount, getUnexpectedCountMsg("date"));
+            assertEquals(6, idCount, getUnexpectedCountMsg("id"));
+            assertEquals(5, emptyScriptCount, getUnexpectedCountMsg("empty script"));
+            assertEquals(1, scriptCount, getUnexpectedCountMsg("script"));
         });
 
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
         runner.setProperty(PutElasticsearchRecord.INDEX_OP, "${operation}");
         runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "true");
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "100");
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/date");
         runner.setProperty(PutElasticsearchRecord.DATE_FORMAT, "dd/MM/yyyy");
         runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true");
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op");
+        runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
+        runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index");
         runner.setProperty(PutElasticsearchRecord.SCRIPT_RECORD_PATH, "/script_record");
         Map<String, String> attributes = new LinkedHashMap<>();
-        attributes.put("schema.name", "recordPathTest");
+        attributes.put("schema.name", RECORD_PATH_TEST_SCHEMA);
         attributes.put("operation", "index");
-        runner.enqueue(Paths.get(TEST_DIR, "2_flowFileContents.json"), attributes);
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullTypeCount = items.stream().filter(item -> item.getType() == null).count();
-            long messageTypeCount = items.stream().filter(item -> "message".equals(item.getType())).count();
-            long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
-            long recIdCount = items.stream().filter(item -> StringUtils.startsWith(item.getId(), "rec-")).count();
-            long timestampCount = items.stream().filter(item ->
-                    LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat())).equals(item.getFields().get("@timestamp"))).count();
-            assertEquals(5, nullTypeCount, "null type");
-            assertEquals(1, messageTypeCount, "message type");
-            assertEquals(2, nullIdCount, "null id");
-            assertEquals(4, recIdCount, "rec- id");
-            assertEquals(1, timestampCount, "@timestamp");
-        });
-
-        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index");
-        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP);
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/time");
-        runner.removeProperty(PutElasticsearchRecord.TYPE);
-        runner.enqueue(Paths.get(TEST_DIR, "3_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
-            long update = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
-            long upsert = items.stream().filter(item ->  IndexOperationRequest.Operation.Upsert.equals(item.getOperation())).count();
-            long delete = items.stream().filter(item ->  IndexOperationRequest.Operation.Delete.equals(item.getOperation())).count();
-            long timestampCount = items.stream().filter(item -> Long.valueOf(101).equals(item.getFields().get("@timestamp"))).count();
-            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp") ).count();
-            assertEquals(1, index);
-            assertEquals(2, create);
-            assertEquals(1, update);
-            assertEquals(1, upsert);
-            assertEquals(1, delete);
-            assertEquals(1, timestampCount);
-            assertEquals(5, noTimestampCount);
-        });
-
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/code");
-        runner.enqueue(Paths.get(TEST_DIR, "4_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long timestampCount = items.stream().filter(item ->  "Hello".equals(item.getFields().get("@timestamp"))).count();
-            assertEquals(1, timestampCount);
-        });
-
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/msg");
-        runner.enqueue(Paths.get(TEST_DIR, "5_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-       clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
-            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
-            assertEquals(1, nullIdCount);
-            assertEquals(1, noTimestampCount);
-        });
-
-
-        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "${id_not_exist}");
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "${not_exist}");
-        runner.enqueue(Paths.get(TEST_DIR, "6_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
-            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
-            assertEquals(1, nullIdCount);
-            assertEquals(1, noTimestampCount);
-        });
-
-        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "${will_be_empty}");
-        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "${will_be_empty}");
-        attributes = new LinkedHashMap<>();
-        attributes.put("schema.name", "recordPathTest");
-        attributes.put("will_be_empty", "/empty");
-        runner.enqueue(Paths.get(TEST_DIR, "7_flowFileContents.json"), attributes);
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-
-        runner.clearTransferState();
-
-        runner.enqueue(Paths.get(TEST_DIR, "8_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
-        runner.run();
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
-        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
-        MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).get(0);
-        failure.assertAttributeEquals("elasticsearch.put.error", String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object", "/dynamic_templates"));
-
-        runner.clearTransferState();
-
-        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
-            long idNotNull = items.stream().filter(item ->  item.getId() != null).count();
-            long opIndex = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
-            long opCreate = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
-            long indexA = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
-            long indexC = items.stream().filter(item ->  "bulk_c".equals(item.getIndex())).count();
-            long typeMessage = items.stream().filter(item ->  "message".equals(item.getType())).count();
-            long typeBlah = items.stream().filter(item -> "blah".equals(item.getType())).count();
-            assertEquals(4, idNotNull);
-            assertEquals(3, opIndex);
-            assertEquals(3, opCreate);
-            assertEquals(4, indexA);
-            assertEquals(2, indexC);
-            assertEquals(4, typeMessage);
-            assertEquals(2, typeBlah);
-        });
-
-        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index");
-        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op");
-        runner.setProperty(PutElasticsearchRecord.TYPE, "blah");
-        runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
-        runner.setProperty(PutElasticsearchRecord.INDEX, "bulk_c");
-        runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index");
-        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id");
-        runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "false");
-        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH);
-        runner.enqueue(Paths.get(TEST_DIR, "9_flowFileContents.json"), Collections.singletonMap("schema.name", "recordPathTest"));
+        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "2_flowFileContents.json"));
+        flowFileContents = flowFileContents.replaceFirst("\\d{13}", String.valueOf(Date.valueOf(LOCAL_DATE).getTime()));
+        runner.enqueue(flowFileContents, attributes);
         runner.run();
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
@@ -564,7 +417,200 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
     }
 
     @Test
-    public void testDateTimeFormatting() throws Exception{
+    public void testNullRecordPaths() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long nullTypeCount = items.stream().filter(item -> item.getType() == null).count();
+            long messageTypeCount = items.stream().filter(item -> "message".equals(item.getType())).count();
+            long nullIdCount = items.stream().filter(item -> item.getId() == null).count();
+            long recIdCount = items.stream().filter(item -> StringUtils.startsWith(item.getId(), "rec-")).count();
+            long timestampCount = items.stream().filter(item ->
+                    LOCAL_TIME.format(DateTimeFormatter.ofPattern(RecordFieldType.TIME.getDefaultFormat())).equals(item.getFields().get("@timestamp"))).count();
+            assertEquals(5, nullTypeCount, getUnexpectedCountMsg("null type"));
+            assertEquals(1, messageTypeCount, getUnexpectedCountMsg("message type"));
+            assertEquals(2, nullIdCount, getUnexpectedCountMsg("null id"));
+            assertEquals(4, recIdCount, getUnexpectedCountMsg("rec- id"));
+            assertEquals(1, timestampCount, getUnexpectedCountMsg("timestamp"));
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index");
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP);
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/time");
+        runner.removeProperty(PutElasticsearchRecord.TYPE);
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
+        String flowFileContents = Files.readString(Paths.get(TEST_DIR, "3_flowFileContents.json"));
+        flowFileContents = flowFileContents.replaceFirst("\\d{8}", String.valueOf(Time.valueOf(LOCAL_TIME).getTime()));
+        runner.enqueue(flowFileContents, Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testIndexOperationRecordPath() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long index = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            long create = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
+            long update = items.stream().filter(item ->  IndexOperationRequest.Operation.Update.equals(item.getOperation())).count();
+            long upsert = items.stream().filter(item ->  IndexOperationRequest.Operation.Upsert.equals(item.getOperation())).count();
+            long delete = items.stream().filter(item ->  IndexOperationRequest.Operation.Delete.equals(item.getOperation())).count();
+            long timestampCount = items.stream().filter(item -> Long.valueOf(101).equals(item.getFields().get("@timestamp"))).count();
+            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp") ).count();
+            assertEquals(1, index, getUnexpectedCountMsg("index"));
+            assertEquals(2, create, getUnexpectedCountMsg("create"));
+            assertEquals(1, update, getUnexpectedCountMsg("update"));
+            assertEquals(1, upsert, getUnexpectedCountMsg("upsert"));
+            assertEquals(1, delete, getUnexpectedCountMsg("delete"));
+            assertEquals(1, timestampCount, getUnexpectedCountMsg("timestamp"));
+            assertEquals(5, noTimestampCount, getUnexpectedCountMsg("noTimestamp"));
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/code");
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op");
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP);
+        runner.enqueue(Paths.get(TEST_DIR, "4_flowFileContents.json"), Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testIncompatibleTimestampRecordPath() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long timestampCount = items.stream().filter(item ->  "Hello".equals(item.getFields().get("@timestamp"))).count();
+            assertEquals(1, timestampCount);
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/msg");
+        runner.enqueue(Paths.get(TEST_DIR, "5_flowFileContents.json"), Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testNotFoundELRecordPaths() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
+            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
+            assertEquals(1, nullIdCount, getUnexpectedCountMsg("null id"));
+            assertEquals(1, noTimestampCount, getUnexpectedCountMsg("noTimestamp"));
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP);
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "${id_not_exist}");
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "${not_exist}");
+        runner.enqueue(Paths.get(TEST_DIR, "6_flowFileContents.json"), Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testEmptyELRecordPaths() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long nullIdCount = items.stream().filter(item ->  item.getId() == null).count();
+            long noTimestampCount = items.stream().filter(item -> !item.getFields().containsKey("@timestamp")).count();
+            assertEquals(1, nullIdCount, getUnexpectedCountMsg("null id"));
+            assertEquals(1, noTimestampCount, getUnexpectedCountMsg("noTimestamp"));
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP);
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "${will_be_empty}");
+        runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "${will_be_empty}");
+        Map<String, String> attributes = new LinkedHashMap<>();
+        attributes.put("schema.name", RECORD_PATH_TEST_SCHEMA);
+        attributes.put("will_be_empty", "/empty");
+        runner.enqueue(Paths.get(TEST_DIR, "7_flowFileContents.json"), attributes);
+        runner.run();
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testInvalidDynamicTemplatesRecordPath() throws Exception {
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.setProperty(PutElasticsearchRecord.DYNAMIC_TEMPLATES_RECORD_PATH, "/dynamic_templates");
+        runner.enqueue(Paths.get(TEST_DIR, "8_flowFileContents.json"), Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+        MockFlowFile failure = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILURE).get(0);
+        failure.assertAttributeEquals("elasticsearch.put.error", String.format("Field referenced by %s must be Map-type compatible or a String parsable into a JSON Object", "/dynamic_templates"));
+    }
+
+    @Test
+    public void testRecordPathFieldDefaults() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+            long idNotNull = items.stream().filter(item ->  item.getId() != null).count();
+            long opIndex = items.stream().filter(item ->  IndexOperationRequest.Operation.Index.equals(item.getOperation())).count();
+            long opCreate = items.stream().filter(item ->  IndexOperationRequest.Operation.Create.equals(item.getOperation())).count();
+            long indexA = items.stream().filter(item ->  "bulk_a".equals(item.getIndex())).count();
+            long indexC = items.stream().filter(item ->  "bulk_c".equals(item.getIndex())).count();
+            long typeMessage = items.stream().filter(item ->  "message".equals(item.getType())).count();
+            long typeBlah = items.stream().filter(item -> "blah".equals(item.getType())).count();
+            assertEquals(4, idNotNull, getUnexpectedCountMsg("id not null"));
+            assertEquals(3, opIndex, getUnexpectedCountMsg("op index"));
+            assertEquals(3, opCreate, getUnexpectedCountMsg("op create"));
+            assertEquals(4, indexA, getUnexpectedCountMsg("index A"));
+            assertEquals(2, indexC, getUnexpectedCountMsg("index C"));
+            assertEquals(4, typeMessage, getUnexpectedCountMsg("type message"));
+            assertEquals(2, typeBlah, getUnexpectedCountMsg("type blah"));
+        });
+
+        registry.addSchema(RECORD_PATH_TEST_SCHEMA, recordPathTestSchema);
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP, "index");
+        runner.setProperty(PutElasticsearchRecord.INDEX_OP_RECORD_PATH, "/op");
+        runner.setProperty(PutElasticsearchRecord.TYPE, "blah");
+        runner.setProperty(PutElasticsearchRecord.TYPE_RECORD_PATH, "/type");
+        runner.setProperty(PutElasticsearchRecord.INDEX, "bulk_c");
+        runner.setProperty(PutElasticsearchRecord.INDEX_RECORD_PATH, "/index");
+        runner.setProperty(PutElasticsearchRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchRecord.RETAIN_ID_FIELD, "false");
+        runner.removeProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH);
+        runner.enqueue(Paths.get(TEST_DIR, "9_flowFileContents.json"), Collections.singletonMap("schema.name", RECORD_PATH_TEST_SCHEMA));
+        runner.run();
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
+        runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
+
+    @Test
+    public void testDefaultDateTimeFormatting() throws Exception{
         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
             long msg = items.stream().filter(item ->  (item.getFields().get("msg") != null)).count();
             long timestamp = items.stream().filter(item ->
@@ -581,44 +627,42 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
             long dateNull = items.stream().filter(item ->  item.getFields().get("date") == null).count();
             long timeNull = items.stream().filter(item ->  item.getFields().get("time") == null).count();
             long choiceTsNull = items.stream().filter(item ->  item.getFields().get("choice_ts") == null).count();
-            assertEquals(5, msg);
-            assertEquals(2, timestamp);
-            assertEquals(2, date);
-            assertEquals(2, time);
-            assertEquals(1, choiceTs);
-            assertEquals(1, choiceNotTs);
-            assertEquals(3, tsNull);
-            assertEquals(3, dateNull);
-            assertEquals(3, timeNull);
-            assertEquals(3, choiceTsNull);
-            assertEquals(5, atTimestampDefault);
+            assertEquals(5, msg, getUnexpectedCountMsg("msg"));
+            assertEquals(2, timestamp, getUnexpectedCountMsg("timestamp"));
+            assertEquals(2, date, getUnexpectedCountMsg("date"));
+            assertEquals(2, time, getUnexpectedCountMsg("time"));
+            assertEquals(1, choiceTs, getUnexpectedCountMsg("choiceTs"));
+            assertEquals(1, choiceNotTs, getUnexpectedCountMsg("choiceNotTs"));
+            assertEquals(3, tsNull, getUnexpectedCountMsg("tsNull"));
+            assertEquals(3, dateNull, getUnexpectedCountMsg("dateNull"));
+            assertEquals(3, timeNull, getUnexpectedCountMsg("timeNull"));
+            assertEquals(3, choiceTsNull, getUnexpectedCountMsg("choiceTsNull"));
+            assertEquals(5, atTimestampDefault, getUnexpectedCountMsg("atTimestampDefault"));
         });
 
-        String newSchema = Files.readString(Paths.get(TEST_DIR, "dateTimeFormattingTestSchema.json"));
-        registry.addSchema("dateTimeFormattingTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)));
-        Path flowFileContents = Paths.get(TEST_DIR, "10_flowFileContents.json");
-        runner.enqueue(flowFileContents, Collections.singletonMap("schema.name", "dateTimeFormattingTest"));
-
+        registry.addSchema(DATE_TIME_FORMATTING_TEST_SCHEMA, dateTimeFormattingTestSchema);
+        runner.enqueue(getDateTimeFormattingJson(), Collections.singletonMap("schema.name", DATE_TIME_FORMATTING_TEST_SCHEMA));
         runner.run();
+
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_ERROR_RESPONSES, 0);
+    }
 
-        runner.clearTransferState();
-
-         clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
+    @Test
+    public void testCustomDateTimeFormatting() throws Exception {
+        clientService.setEvalConsumer((List<IndexOperationRequest> items) -> {
             String timestampOutput = LOCAL_DATE_TIME.format(DateTimeFormatter.ofPattern("yy MMM D H"));
             long msg = items.stream().filter(item -> (item.getFields().get("msg") != null)).count();
             long timestamp = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("ts"))).count();
             long date = items.stream().filter(item ->
                     LOCAL_DATE.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")).equals(item.getFields().get("date"))).count();
             long time = items.stream().filter(item ->
-                            // converted to a Long because the output is completely numerical
-                            Long.valueOf(LOCAL_TIME.format(DateTimeFormatter.ofPattern("HHmmss"))).equals(item.getFields().get("time"))
-                    ).count();
+                    // converted to a Long because the output is completely numerical
+                    Long.valueOf(LOCAL_TIME.format(DateTimeFormatter.ofPattern("HHmmss"))).equals(item.getFields().get("time"))).count();
             long choiceTs = items.stream().filter(item -> timestampOutput.equals(item.getFields().get("choice_ts"))).count();
             long choiceNotTs = items.stream().filter(item -> "not-timestamp".equals(item.getFields().get("choice_ts"))).count();
             long atTimestampDefault = items.stream().filter(item -> "test_timestamp".equals(item.getFields().get("@timestamp"))).count();
@@ -627,29 +671,29 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
             long dateNull = items.stream().filter(item -> item.getFields().get("date") == null).count();
             long timeNull = items.stream().filter(item -> item.getFields().get("time") == null).count();
             long choiceTsNull = items.stream().filter(item -> item.getFields().get("choice_ts") == null).count();
-            assertEquals(5, msg);
-            assertEquals(2, timestamp);
-            assertEquals(2, date);
-            assertEquals(2, time);
-            assertEquals(1, choiceTs);
-            assertEquals(1, choiceNotTs);
-            assertEquals(3, tsNull);
-            assertEquals(3, dateNull);
-            assertEquals(3, timeNull);
-            assertEquals(3, choiceTsNull);
-            assertEquals(2, atTimestamp);
-            assertEquals(3, atTimestampDefault);
+            assertEquals(5, msg, getUnexpectedCountMsg("msg"));
+            assertEquals(2, timestamp, getUnexpectedCountMsg("timestamp"));
+            assertEquals(2, date, getUnexpectedCountMsg("date"));
+            assertEquals(2, time, getUnexpectedCountMsg("time"));
+            assertEquals(1, choiceTs, getUnexpectedCountMsg("choiceTs"));
+            assertEquals(1, choiceNotTs, getUnexpectedCountMsg("choiceNotTs"));
+            assertEquals(3, tsNull, getUnexpectedCountMsg("tsNull"));
+            assertEquals(3, dateNull, getUnexpectedCountMsg("dateNull"));
+            assertEquals(3, timeNull, getUnexpectedCountMsg("timeNull"));
+            assertEquals(3, choiceTsNull, getUnexpectedCountMsg("choiceTsNull"));
+            assertEquals(2, atTimestamp, getUnexpectedCountMsg("atTimestamp"));
+            assertEquals(3, atTimestampDefault, getUnexpectedCountMsg("atTimestampDefault"));
         });
 
+        registry.addSchema(DATE_TIME_FORMATTING_TEST_SCHEMA, dateTimeFormattingTestSchema);
         runner.setProperty(PutElasticsearchRecord.TIMESTAMP_FORMAT, "yy MMM D H");
         runner.setProperty(PutElasticsearchRecord.DATE_FORMAT, "dd/MM/yyyy");
         runner.setProperty(PutElasticsearchRecord.TIME_FORMAT, "HHmmss");
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP_RECORD_PATH, "/ts");
         runner.setProperty(PutElasticsearchRecord.RETAIN_AT_TIMESTAMP_FIELD, "true");
-
-        runner.enqueue(flowFileContents, Collections.singletonMap("schema.name", "dateTimeFormattingTest"));
-
+        runner.enqueue(getDateTimeFormattingJson(), Collections.singletonMap("schema.name", DATE_TIME_FORMATTING_TEST_SCHEMA));
         runner.run();
+
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
@@ -670,6 +714,7 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertValid();
         runner.enqueue(Paths.get(TEST_DIR, "flowFileContentMaps.json"), Collections.singletonMap("operation", "not-valid2"));
         runner.run();
+
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1);
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0);
@@ -699,11 +744,8 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer");
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true");
         clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
-
-        String newSchema = Files.readString(Paths.get(TEST_DIR, "errorTestSchema.json"));
-        registry.addSchema("errorTest", AvroTypeUtil.createSchema(new Schema.Parser().parse(newSchema)));
-        Path values = Paths.get(TEST_DIR, "values.json");
-        runner.enqueue(values, Collections.singletonMap("schema.name", "errorTest"));
+        registry.addSchema(ERROR_TEST_SCHEMA, errorTestSchema);
+        runner.enqueue(VALUES, Collections.singletonMap("schema.name", ERROR_TEST_SCHEMA));
         runner.setProperty(PutElasticsearchRecord.LOG_ERROR_RESPONSES, "true");
         runner.assertValid();
         runner.run();
@@ -720,14 +762,21 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter(e -> ProvenanceEventType.SEND.equals(e.getEventType())
-                        && "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]".equals(e.getDetails())
-                ).count());
+                        && "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]".equals(e.getDetails())).count());
+    }
 
-        runner.clearTransferState();
-        runner.clearProvenanceEvents();
-
+    @Test
+    public void testErrorsLoggedWithoutErrorRelationship() throws Exception {
+        JsonRecordSetWriter writer = new JsonRecordSetWriter();
+        runner.addControllerService("writer", writer);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY);
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
+        runner.enableControllerService(writer);
+        runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer");
         runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
-        runner.enqueue(values, Collections.singletonMap("schema.name", "errorTest"));
+        clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
+        registry.addSchema(ERROR_TEST_SCHEMA, errorTestSchema);
+        runner.enqueue(VALUES, Collections.singletonMap("schema.name", ERROR_TEST_SCHEMA));
         runner.assertValid();
         runner.run();
 
@@ -743,16 +792,16 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
 
         assertEquals(1,
                 runner.getProvenanceEvents().stream().filter(
-                    e -> ProvenanceEventType.SEND.equals(e.getEventType()) && "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]".equals(e.getDetails())
-                ).count());
+                        e -> ProvenanceEventType.SEND.equals(e.getEventType()) && "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]".equals(e.getDetails())).count());
+    }
 
-        runner.clearTransferState();
-        runner.clearProvenanceEvents();
-
-        // errors still counted/logged even if not outputting to the error relationship
-        runner.removeProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER);
+    @Test
+    public void testDocumentNotFoundErrorHandling() throws Exception {
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false");
         runner.setProperty(PutElasticsearchRecord.OUTPUT_ERROR_RESPONSES, "true");
-        runner.enqueue(values, Collections.singletonMap("schema.name", "errorTest"));
+        clientService.setResponse(IndexOperationResponse.fromJsonResponse(Files.readString(Paths.get(TEST_COMMON_DIR, "sampleErrorResponse.json"))));
+        registry.addSchema(ERROR_TEST_SCHEMA, errorTestSchema);
+        runner.enqueue(VALUES, Collections.singletonMap("schema.name", ERROR_TEST_SCHEMA));
         runner.assertValid();
         runner.run();
 
@@ -780,5 +829,22 @@ public class PutElasticsearchRecordTest extends AbstractPutElasticsearchTest<Put
         runner.assertValid();
         runner.setProperty(AbstractPutElasticsearch.BULK_HEADER_PREFIX + "routing", "not-record-path");
         runner.assertNotValid();
+    }
+
+    private static RecordSchema getRecordSchema(Path schema) throws IOException {
+        return AvroTypeUtil.createSchema(new Schema.Parser().parse(Files.readString(schema)));
+    }
+
+    private String getDateTimeFormattingJson() throws Exception {
+        String json = Files.readString(Paths.get(TEST_DIR, "10_flowFileContents.json"));
+        List<Map<String, Object>> parsedJson = JsonUtils.readListOfMaps(json);
+        parsedJson.forEach(msg -> {
+            msg.computeIfPresent("ts", (key, val) -> Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli());
+            msg.computeIfPresent("date", (key, val) -> Date.valueOf(LOCAL_DATE).getTime());
+            msg.computeIfPresent("time", (key, val) -> Time.valueOf(LOCAL_TIME).getTime());
+            msg.computeIfPresent("choice_ts", (key, val) -> Timestamp.valueOf(LOCAL_DATE_TIME).toInstant().toEpochMilli());
+        });
+        parsedJson.get(parsedJson.size() - 1).computeIfPresent("choice_ts", (key, val) -> "not-timestamp");
+        return JsonUtils.prettyPrint(parsedJson);
     }
 }
