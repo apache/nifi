@@ -120,22 +120,22 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
 
     private static final Map<String, String> fileExtensions = new HashMap<>();
     static {
-        fileExtensions.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx");
-        fileExtensions.put("application/vnd.oasis.opendocument.text", ".odt");
-        fileExtensions.put("application/pdf", ".pdf");
-        fileExtensions.put("application/rtf", ".rtf");
-        fileExtensions.put("application/epub+zip", ".epub");
-        fileExtensions.put("application/zip", ".zip");
-        fileExtensions.put("text/plain", ".txt");
-        fileExtensions.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx");
-        fileExtensions.put("application/x-vnd.oasis.opendocument.spreadsheet", ".ods");
-        fileExtensions.put("text/csv", ".csv");
-        fileExtensions.put("text/tab-separated-values", ".tsv");
-        fileExtensions.put("application/vnd.openxmlformats-officedocument.presentationml.presentation", ".pptx");
-        fileExtensions.put("application/vnd.oasis.opendocument.presentation", ".odp");
-        fileExtensions.put("image/png", ".png");
-        fileExtensions.put("image/jpeg", ".jpg");
-        fileExtensions.put("image/svg+xml", ".svg");
+        fileExtensions.put(EXPORT_MS_WORD.getValue(), ".docx");
+        fileExtensions.put(EXPORT_OPEN_DOCUMENT.getValue(), ".odt");
+        fileExtensions.put(EXPORT_PDF.getValue(), ".pdf");
+        fileExtensions.put(EXPORT_RICH_TEXT.getValue(), ".rtf");
+        fileExtensions.put(EXPORT_EPUB.getValue(), ".epub");
+        fileExtensions.put(EXPORT_HTML_DOC.getValue(), ".zip");
+        fileExtensions.put(EXPORT_PLAIN_TEXT.getValue(), ".txt");
+        fileExtensions.put(EXPORT_MS_EXCEL.getValue(), ".xlsx");
+        fileExtensions.put(EXPORT_OPEN_SPREADSHEET.getValue(), ".ods");
+        fileExtensions.put(EXPORT_CSV.getValue(), ".csv");
+        fileExtensions.put(EXPORT_TSV.getValue(), ".tsv");
+        fileExtensions.put(EXPORT_MS_POWERPOINT.getValue(), ".pptx");
+        fileExtensions.put(EXPORT_OPEN_PRESENTATION.getValue(), ".odp");
+        fileExtensions.put(EXPORT_PNG.getValue(), ".png");
+        fileExtensions.put(EXPORT_JPEG.getValue(), ".jpg");
+        fileExtensions.put(EXPORT_SVG.getValue(), ".svg");
         fileExtensions.put("application/vnd.google-apps.script+json", ".json");
     }
 
