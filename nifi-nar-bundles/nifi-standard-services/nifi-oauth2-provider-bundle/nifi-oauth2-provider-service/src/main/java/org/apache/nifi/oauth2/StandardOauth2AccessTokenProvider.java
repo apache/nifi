@@ -42,12 +42,15 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -205,6 +208,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .dependsOn(SSL_CONTEXT)
         .build();
 
+    private static final ProxySpec[] PROXY_SPECS = { ProxySpec.HTTP_AUTH };
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
         AUTHORIZATION_SERVER_URL,
         CLIENT_AUTHENTICATION_STRATEGY,
@@ -219,7 +224,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         AUDIENCE,
         REFRESH_WINDOW,
         SSL_CONTEXT,
-        HTTP_PROTOCOL_STRATEGY
+        HTTP_PROTOCOL_STRATEGY,
+        ProxyConfiguration.createProxyConfigPropertyDescriptor(false, PROXY_SPECS)
     ));
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
@@ -302,6 +308,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
                 .build());
         }
 
+        ProxyConfiguration.validateProxySpec(validationContext, validationResults, PROXY_SPECS);
+
         return validationResults;
     }
 
@@ -313,6 +321,21 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             final X509TrustManager trustManager = sslService.createTrustManager();
             SSLContext sslContext = sslService.createContext();
             clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+        }
+
+        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context);
+
+        final Proxy proxy = proxyConfig.createProxy();
+        if (!Proxy.Type.DIRECT.equals(proxy.type())) {
+            clientBuilder.proxy(proxy);
+            if (proxyConfig.hasCredential()) {
+                clientBuilder.proxyAuthenticator((route, response) -> {
+                    final String credential = Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                    return response.request().newBuilder()
+                                   .header("Proxy-Authorization", credential)
+                                   .build();
+                });
+            }
         }
 
         final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
