@@ -17,3 +17,4 @@ org.apache.nifi.processors.smb.GetSmbFile
 org.apache.nifi.processors.smb.ListSmb
 org.apache.nifi.processors.smb.PutSmbFile
 org.apache.nifi.processors.smb.GetSMBAccountPermissions
+org.apache.nifi.processors.smb.EnumerateAccountRights
