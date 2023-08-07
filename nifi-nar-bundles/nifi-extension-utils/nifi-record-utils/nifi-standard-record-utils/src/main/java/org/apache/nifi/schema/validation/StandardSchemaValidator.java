@@ -24,6 +24,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -33,6 +34,7 @@ import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map;
 
 public class StandardSchemaValidator implements RecordSchemaValidator {
@@ -179,6 +181,13 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
     private boolean isTypeCorrect(final Object value, final DataType dataType) {
         switch (dataType.getFieldType()) {
+            case ENUM:
+                if (!(value instanceof String)) {
+                    return false;
+                }
+                final EnumDataType enumDataType = (EnumDataType) dataType;
+                final List<String> enumList = enumDataType.getEnums();
+                return enumList.contains(value);
             case ARRAY:
                 if (!(value instanceof Object[])) {
                     return false;
