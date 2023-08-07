@@ -125,6 +125,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor REFRESH_TOKEN = new PropertyDescriptor.Builder()
@@ -153,6 +154,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor SCOPE = new PropertyDescriptor.Builder()
@@ -161,6 +163,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .description("Space-delimited, case-sensitive list of scopes of the access request (as per the OAuth 2.0 specification)")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor RESOURCE = new PropertyDescriptor.Builder()
@@ -169,6 +172,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .description("Resource URI for the access token request defined in RFC 8707 Section 2")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor AUDIENCE = new PropertyDescriptor.Builder()
@@ -177,6 +181,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .description("Audience for the access token request defined in RFC 8693 Section 2.1")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
@@ -184,6 +189,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .displayName("Refresh Window")
         .description("The service will attempt to refresh tokens expiring within the refresh window, subtracting the configured duration from the token expiration.")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue("0 s")
         .required(true)
         .build();
@@ -258,12 +264,12 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         clientAuthenticationStrategy = ClientAuthenticationStrategy.valueOf(context.getProperty(CLIENT_AUTHENTICATION_STRATEGY).getValue());
         grantType = context.getProperty(GRANT_TYPE).getValue();
         username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        password = context.getProperty(PASSWORD).getValue();
+        password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
-        clientSecret = context.getProperty(CLIENT_SECRET).getValue();
-        scope = context.getProperty(SCOPE).getValue();
-        resource = context.getProperty(RESOURCE).getValue();
-        audience = context.getProperty(AUDIENCE).getValue();
+        clientSecret = context.getProperty(CLIENT_SECRET).evaluateAttributeExpressions().getValue();
+        scope = context.getProperty(SCOPE).evaluateAttributeExpressions().getValue();
+        resource = context.getProperty(RESOURCE).evaluateAttributeExpressions().getValue();
+        audience = context.getProperty(AUDIENCE).evaluateAttributeExpressions().getValue();
 
         if (context.getProperty(REFRESH_TOKEN).isSet()) {
             String refreshToken = context.getProperty(REFRESH_TOKEN).evaluateAttributeExpressions().getValue();
@@ -275,7 +281,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             this.accessDetails = accessDetailsWithRefreshTokenOnly;
         }
 
-        refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
+        refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS);
     }
 
     @OnDisabled

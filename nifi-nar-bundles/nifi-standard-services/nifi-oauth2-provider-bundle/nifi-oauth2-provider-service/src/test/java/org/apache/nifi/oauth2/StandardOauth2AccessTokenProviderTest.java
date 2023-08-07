@@ -46,6 +46,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -72,6 +74,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class StandardOauth2AccessTokenProviderTest {
     private static final String AUTHORIZATION_SERVER_URL = "http://authorizationServerUrl";
     private static final String USERNAME = "username";
@@ -120,13 +123,13 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.GRANT_TYPE).getValue()).thenReturn(StandardOauth2AccessTokenProvider.RESOURCE_OWNER_PASSWORD_CREDENTIALS_GRANT_TYPE.getValue());
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL).evaluateAttributeExpressions().getValue()).thenReturn(AUTHORIZATION_SERVER_URL);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.USERNAME).evaluateAttributeExpressions().getValue()).thenReturn(USERNAME);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).evaluateAttributeExpressions().getValue()).thenReturn(PASSWORD);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.SCOPE).getValue()).thenReturn(SCOPE);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.RESOURCE).getValue()).thenReturn(RESOURCE);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.AUDIENCE).getValue()).thenReturn(AUDIENCE);
-        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_SECRET);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.SCOPE).evaluateAttributeExpressions().getValue()).thenReturn(SCOPE);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.RESOURCE).evaluateAttributeExpressions().getValue()).thenReturn(RESOURCE);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.AUDIENCE).evaluateAttributeExpressions().getValue()).thenReturn(AUDIENCE);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).evaluateAttributeExpressions().asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.BASIC_AUTHENTICATION.getValue());
 
         testSubject.onEnabled(mockContext);
