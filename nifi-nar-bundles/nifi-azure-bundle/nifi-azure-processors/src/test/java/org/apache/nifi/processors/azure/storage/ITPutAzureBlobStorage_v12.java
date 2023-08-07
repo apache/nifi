@@ -128,7 +128,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     public void testPutBlobWithNonExistingContainerAndCreateContainerFalse() throws Exception {
         String containerName = generateContainerName();
         runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
-        runner.setProperty(PutAzureBlobStorage_v12.CREATE_CONTAINER, "false");
+        runner.setProperty(AzureStorageUtils.CREATE_CONTAINER, "false");
 
         runProcessor(BLOB_DATA);
 
@@ -139,7 +139,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     public void testPutBlobWithNonExistingContainerAndCreateContainerTrue() throws Exception {
         String containerName = generateContainerName();
         runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
-        runner.setProperty(PutAzureBlobStorage_v12.CREATE_CONTAINER, "true");
+        runner.setProperty(AzureStorageUtils.CREATE_CONTAINER, "true");
 
         try {
             runProcessor(BLOB_DATA);
@@ -174,7 +174,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     @Test
     public void testPutBlobToExistingBlobConflictStrategyIgnore() throws Exception {
         uploadBlob(BLOB_NAME, BLOB_DATA);
-        runner.setProperty(PutAzureBlobStorage_v12.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION.getValue());
+        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.IGNORE_RESOLUTION.getValue());
 
         runProcessor(BLOB_DATA);
 
@@ -185,7 +185,7 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     @Test
     public void testPutBlobToExistingBlobConflictStrategyReplace() throws Exception {
         uploadBlob(BLOB_NAME, BLOB_DATA);
-        runner.setProperty(PutAzureBlobStorage_v12.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.REPLACE_RESOLUTION.getValue());
+        runner.setProperty(AzureStorageUtils.CONFLICT_RESOLUTION, AzureStorageConflictResolutionStrategy.REPLACE_RESOLUTION.getValue());
 
         runProcessor(BLOB_DATA);
 
