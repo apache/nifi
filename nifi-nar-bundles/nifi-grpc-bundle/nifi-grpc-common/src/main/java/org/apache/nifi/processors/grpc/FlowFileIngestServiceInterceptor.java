@@ -26,12 +26,16 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.CertificateUtils;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
-import javax.security.cert.X509Certificate;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
@@ -100,10 +104,11 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
         final SSLSession sslSession = attributes.get(Grpc.TRANSPORT_ATTR_SSL_SESSION);
         if (this.authorizedDNPattern != null && sslSession != null) {
             try {
-                final X509Certificate[] certs = sslSession.getPeerCertificateChain();
+                final Certificate[] certs = sslSession.getPeerCertificates();
                 if (certs != null && certs.length > 0) {
-                    for (final X509Certificate cert : certs) {
-                        foundSubject = cert.getSubjectDN().getName();
+                    for (final Certificate cert : certs) {
+                        final X509Certificate x509Cert = CertificateUtils.convertAbstractX509Certificate(cert);
+                        foundSubject = x509Cert.getSubjectX500Principal().getName();
                         if (authorizedDNPattern.matcher(foundSubject).matches()) {
                             break;
                         } else {
@@ -115,6 +120,8 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
                 }
             } catch (final SSLPeerUnverifiedException e) {
                 logger.debug("Skipping DN authorization for request from {}", clientIp, e);
+            } catch (CertificateException e) {
+                throw new ProcessException("Certificate is not an X.509 certificate", e);
             }
         }
         // contextualize the DN and IP for use in the RPC implementation
