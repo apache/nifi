@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.storage.utils;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.ProxyOptions;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.core.util.ClientOptions;
 import com.azure.core.util.HttpClientOptions;
 import com.azure.identity.ClientSecretCredential;
@@ -50,6 +51,7 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
         final String servicePrincipalTenantId = credentialsDetails.getServicePrincipalTenantId();
         final String servicePrincipalClientId = credentialsDetails.getServicePrincipalClientId();
         final String servicePrincipalClientSecret = credentialsDetails.getServicePrincipalClientSecret();
+        final ProxyOptions credentialProxyOptions = credentialsDetails.getProxyOptions();
 
         final String endpoint = String.format("https://%s.%s", accountName, endpointSuffix);
 
@@ -67,6 +69,9 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
         } else if (useManagedIdentity) {
             final ManagedIdentityCredential misCredential = new ManagedIdentityCredentialBuilder()
                     .clientId(managedIdentityClientId)
+                    .httpClient(new NettyAsyncHttpClientBuilder()
+                            .proxy(credentialProxyOptions)
+                            .build())
                     .build();
             dataLakeServiceClientBuilder.credential(misCredential);
         } else if (StringUtils.isNoneBlank(servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret)) {
@@ -74,6 +79,9 @@ public class DataLakeServiceClientFactory extends AbstractStorageClientFactory<A
                     .tenantId(servicePrincipalTenantId)
                     .clientId(servicePrincipalClientId)
                     .clientSecret(servicePrincipalClientSecret)
+                    .httpClient(new NettyAsyncHttpClientBuilder()
+                            .proxy(credentialProxyOptions)
+                            .build())
                     .build();
             dataLakeServiceClientBuilder.credential(credential);
         } else {

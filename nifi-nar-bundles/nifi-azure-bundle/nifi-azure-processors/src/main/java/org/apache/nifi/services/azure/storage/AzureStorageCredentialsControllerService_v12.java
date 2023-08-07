@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import com.azure.core.http.ProxyOptions;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -109,6 +110,11 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue())
             .build();
 
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL.getAllowableValue(), AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue())
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
@@ -118,7 +124,8 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET
+            SERVICE_PRINCIPAL_CLIENT_SECRET,
+            PROXY_CONFIGURATION_SERVICE
     ));
 
     private ConfigurationContext context;
@@ -138,6 +145,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
         String accountName = context.getProperty(ACCOUNT_NAME).getValue();
         String endpointSuffix = context.getProperty(ENDPOINT_SUFFIX).getValue();
         AzureStorageCredentialsType credentialsType = AzureStorageCredentialsType.valueOf(context.getProperty(CREDENTIALS_TYPE).getValue());
+        ProxyOptions proxyOptions = AzureStorageUtils.getProxyOptions(context);
 
         switch (credentialsType) {
             case ACCOUNT_KEY:
@@ -148,12 +156,13 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
                 return AzureStorageCredentialsDetails_v12.createWithSasToken(accountName, endpointSuffix, sasToken);
             case MANAGED_IDENTITY:
                 String managedIdentityClientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
-                return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix, managedIdentityClientId);
+                return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix, managedIdentityClientId, proxyOptions);
             case SERVICE_PRINCIPAL:
                 String servicePrincipalTenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
                 String servicePrincipalClientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
                 String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
-                return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix, servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret);
+                return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
+                        servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
             default:
                 throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
         }
