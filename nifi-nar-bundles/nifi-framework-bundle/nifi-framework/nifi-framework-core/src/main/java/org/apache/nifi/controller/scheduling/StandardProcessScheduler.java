@@ -68,7 +68,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -759,7 +761,28 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public CompletableFuture<Void> disableControllerService(final ControllerServiceNode service) {
         LOG.info("Disabling {}", service);
-        return service.disable(this.componentLifeCycleThreadPool);
+
+        // Because of the shutdown lifecycle, we may need to disable controller services even after the
+        // thread pool has been shutdown. If this happens, we will use a new thread pool specifically for this
+        // task and then immediately shut it down. Otherwise, use the existing thread pool
+        if (componentLifeCycleThreadPool.isShutdown() || componentLifeCycleThreadPool.isTerminated()) {
+            return disableControllerServiceWithStandaloneThreadPool(service);
+        } else {
+            try {
+                return service.disable(this.componentLifeCycleThreadPool);
+            } catch (final RejectedExecutionException ree) {
+                return disableControllerServiceWithStandaloneThreadPool(service);
+            }
+        }
+    }
+
+    private CompletableFuture<Void> disableControllerServiceWithStandaloneThreadPool(final ControllerServiceNode service) {
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            return service.disable(executor);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Override

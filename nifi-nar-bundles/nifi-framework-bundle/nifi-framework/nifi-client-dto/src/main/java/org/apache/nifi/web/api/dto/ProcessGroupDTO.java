@@ -420,7 +420,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "The Execution Engine that should be used to run the flow represented by this Process Group.",
-        allowableValues = "STATELESS, TRADITIONAL, INHERITED")
+        allowableValues = "STATELESS, STANDARD, INHERITED")
     public String getExecutionEngine() {
         return executionEngine;
     }

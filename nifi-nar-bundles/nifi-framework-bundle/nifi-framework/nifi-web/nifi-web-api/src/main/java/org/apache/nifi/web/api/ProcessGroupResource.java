@@ -566,6 +566,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
         }
 
+        final Integer maxConcurrentTasks = requestProcessGroupDTO.getMaxConcurrentTasks();
+        if (maxConcurrentTasks != null && maxConcurrentTasks < 1) {
+            throw new IllegalArgumentException("Illegal value proposed for Max Concurrent Tasks: " + maxConcurrentTasks);
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
         } else if (isDisconnectedFromCluster()) {

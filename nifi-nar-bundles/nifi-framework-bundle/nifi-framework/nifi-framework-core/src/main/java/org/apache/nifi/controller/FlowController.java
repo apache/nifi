@@ -1422,14 +1422,6 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 heartbeatMonitor.stop();
             }
 
-            if (kill) {
-                this.timerDrivenEngineRef.get().shutdownNow();
-                LOG.info("Initiated immediate shutdown of flow controller...");
-            } else {
-                this.timerDrivenEngineRef.get().shutdown();
-                LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds + " seconds");
-            }
-
             validationThreadPool.shutdown();
             clusterTaskExecutor.shutdownNow();
 
@@ -1455,6 +1447,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
                 processScheduler.shutdownReportingTask(taskNode);
+            }
+
+            if (kill) {
+                this.timerDrivenEngineRef.get().shutdownNow();
+                LOG.info("Initiated immediate shutdown of flow controller...");
+            } else {
+                this.timerDrivenEngineRef.get().shutdown();
+                LOG.info("Initiated graceful shutdown of flow controller...waiting up to " + gracefulShutdownSeconds + " seconds");
             }
 
             try {

@@ -387,12 +387,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
             controllerServiceProvider.disableControllerServicesAsync(allControllerServices).get();
         } catch (final InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(ie);
+            logger.error("Failed to properly disable one or more of the following Controller Services: {} due to being interrupted while waiting for them to disable", allControllerServices, ie);
         } catch (final ExecutionException ee) {
-            if (ee.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) ee.getCause();
-            }
-            throw new RuntimeException(ee.getCause());
+            logger.error("Failed to properly disable one or more of the following Controller Services: {}", allControllerServices, ee);
         }
 
         logger.info("Finished disabling all Controller Services");
