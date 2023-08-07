@@ -17,8 +17,12 @@
 package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
+import com.azure.core.http.ProxyOptions;
 
 import java.util.Objects;
+
+import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.equalsProxyOptions;
+import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.hashCodeProxyOptions;
 
 public class ADLSCredentialsDetails {
     private final String accountName;
@@ -36,6 +40,8 @@ public class ADLSCredentialsDetails {
     private final String servicePrincipalClientId;
     private final String servicePrincipalClientSecret;
 
+    private final ProxyOptions proxyOptions;
+
     public ADLSCredentialsDetails(
             String accountName,
             String accountKey,
@@ -46,7 +52,8 @@ public class ADLSCredentialsDetails {
             String managedIdentityClientId,
             String servicePrincipalTenantId,
             String servicePrincipalClientId,
-            String servicePrincipalClientSecret
+            String servicePrincipalClientSecret,
+            ProxyOptions proxyOptions
     ) {
         this.accountName = accountName;
         this.accountKey = accountKey;
@@ -58,6 +65,7 @@ public class ADLSCredentialsDetails {
         this.servicePrincipalTenantId = servicePrincipalTenantId;
         this.servicePrincipalClientId = servicePrincipalClientId;
         this.servicePrincipalClientSecret = servicePrincipalClientSecret;
+        this.proxyOptions = proxyOptions;
     }
 
     public String getAccountName() {
@@ -100,6 +108,10 @@ public class ADLSCredentialsDetails {
         return servicePrincipalClientSecret;
     }
 
+    public ProxyOptions getProxyOptions() {
+        return proxyOptions;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -120,7 +132,8 @@ public class ADLSCredentialsDetails {
                 && Objects.equals(managedIdentityClientId, that.managedIdentityClientId)
                 && Objects.equals(servicePrincipalTenantId, that.servicePrincipalTenantId)
                 && Objects.equals(servicePrincipalClientId, that.servicePrincipalClientId)
-                && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret);
+                && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret)
+                && equalsProxyOptions(proxyOptions, that.proxyOptions);
     }
 
     @Override
@@ -135,7 +148,8 @@ public class ADLSCredentialsDetails {
                 managedIdentityClientId,
                 servicePrincipalTenantId,
                 servicePrincipalClientId,
-                servicePrincipalClientSecret
+                servicePrincipalClientSecret,
+                hashCodeProxyOptions(proxyOptions)
         );
     }
 
@@ -150,6 +164,7 @@ public class ADLSCredentialsDetails {
         private String servicePrincipalTenantId;
         private String servicePrincipalClientId;
         private String servicePrincipalClientSecret;
+        private ProxyOptions proxyOptions;
 
         private Builder() {}
 
@@ -207,9 +222,14 @@ public class ADLSCredentialsDetails {
             return this;
         }
 
+        public Builder setProxyOptions(ProxyOptions proxyOptions) {
+            this.proxyOptions = proxyOptions;
+            return this;
+        }
+
         public ADLSCredentialsDetails build() {
             return new ADLSCredentialsDetails(accountName, accountKey, sasToken, endpointSuffix, accessToken, useManagedIdentity, managedIdentityClientId,
-                    servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret);
+                    servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
         }
     }
 }
