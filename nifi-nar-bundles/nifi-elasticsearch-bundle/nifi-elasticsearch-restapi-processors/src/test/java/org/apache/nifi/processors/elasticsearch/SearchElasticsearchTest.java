@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -139,77 +140,59 @@ public class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticse
     }
 
     @Override
-    public void testPagination(final PaginationType paginationType) throws Exception{
-        // test flowfile per page
+    public void testPagination(final PaginationType paginationType) throws Exception {
         final TestRunner runner = createRunner(false);
         final TestElasticsearchClientService service = AbstractJsonQueryElasticsearchTest.getService(runner);
         service.setMaxPages(2);
         runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.PAGINATION_TYPE, paginationType.getValue());
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, matchAllWithSortByMsgWithSizeQuery);
 
-        // first page
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "1");
-        assertState(runner.getStateManager(), paginationType, 10, 1);
-        runner.clearTransferState();
+        // Tests flowfile per page, hits splitting and hits combined
+        for(ResultOutputStrategy resultOutputStrategy : Arrays.asList(null, ResultOutputStrategy.PER_HIT, ResultOutputStrategy.PER_QUERY)) {
+            if(resultOutputStrategy != null) {
+                runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, resultOutputStrategy.getValue());
+            }
 
-        // second page
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
-        assertState(runner.getStateManager(), paginationType, 20, 2);
-        runner.clearTransferState();
+            for(int iteration = 1; iteration < 4; iteration++) {
+                runOnce(runner);
+                validatePagination(runner, resultOutputStrategy, paginationType, iteration);
+                runner.clearTransferState();
+                if(ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
+                    break;
+                }
+            }
+            reset(runner);
+        }
+    }
 
-        // third page - no hits
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
-        assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
-        reset(runner);
+    private static void validatePagination(final TestRunner runner, final ResultOutputStrategy resultOutputStrategy, final PaginationType paginationType, int iteration) throws IOException {
+        boolean noResultOutputStrategy = resultOutputStrategy == null;
+        boolean perHitResultOutputStrategy = ResultOutputStrategy.PER_HIT.equals(resultOutputStrategy);
+        final int expectedHitCount = 10 * iteration;
 
-
-        // test hits splitting
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_HIT.getValue());
-
-        // first page
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 10, 0, 0);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
-                    hit.assertAttributeEquals("hit.count", "1");
-                    hit.assertAttributeEquals("page.number", "1");
-        });
-        assertState(runner.getStateManager(), paginationType, 10, 1);
-        runner.clearTransferState();
-
-        // second page
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 10, 0, 0);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
-            hit.assertAttributeEquals("hit.count", "1");
-            hit.assertAttributeEquals("page.number", "2");});
-
-        assertState(runner.getStateManager(), paginationType, 20, 2);
-        runner.clearTransferState();
-
-        // third page - no hits
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
-        assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
-        reset(runner);
-
-
-        // test hits combined
-        runner.setProperty(AbstractPaginatedJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, ResultOutputStrategy.PER_QUERY.getValue());
-        // hits are combined from all pages within a single trigger of the processor
-        runOnce(runner);
-        AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20");
-        // the "last" page.number is used, so 2 here because there were 2 pages of hits
-        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
-        assertEquals(20, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length);
-        assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
+        if (noResultOutputStrategy && (iteration == 1 || iteration == 2)) {
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "10");
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", String.valueOf(iteration));
+            assertState(runner.getStateManager(), paginationType, expectedHitCount, iteration);
+        } else if (perHitResultOutputStrategy && (iteration == 1 || iteration == 2)) {
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 10, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(hit -> {
+                hit.assertAttributeEquals("hit.count", "1");
+                hit.assertAttributeEquals("page.number", String.valueOf(iteration));
+            });
+            assertState(runner.getStateManager(), paginationType, expectedHitCount, iteration);
+        } else if ((noResultOutputStrategy || perHitResultOutputStrategy) && iteration == 3) {
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 0, 0, 0);
+            assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
+        } else if (ResultOutputStrategy.PER_QUERY.equals(resultOutputStrategy)) {
+            AbstractJsonQueryElasticsearchTest.testCounts(runner, 0, 1, 0, 0);
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("hit.count", "20");
+            // the "last" page.number is used, so 2 here because there were 2 pages of hits
+            runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).assertAttributeEquals("page.number", "2");
+            assertEquals(20, runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).get(0).getContent().split("\n").length);
+            assertTrue(runner.getStateManager().getState(Scope.LOCAL).toMap().isEmpty());
+        }
     }
 
     private static void assertState(final MockStateManager stateManager, final PaginationType paginationType, final int hitCount, final int pageCount) throws IOException {
